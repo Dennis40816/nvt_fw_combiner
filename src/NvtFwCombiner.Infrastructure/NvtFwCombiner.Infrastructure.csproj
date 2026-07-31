@@ -18,6 +18,11 @@
       Include="..\..\docs\contracts\saved-composition-rule-v2.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Contracts.Schemas.saved-composition-rule-v2.schema.json" />
     <Content
+      Include="..\..\docs\contracts\support-publication-policy-v1.0.0.json"
+      Link="docs\contracts\support-publication-policy-v1.0.0.json"
+      CopyToOutputDirectory="PreserveNewest"
+      CopyToPublishDirectory="PreserveNewest" />
+    <Content
       Include="..\..\docs\contracts\support-publication-policy-v1.json"
       Link="docs\contracts\support-publication-policy-v1.json"
       CopyToOutputDirectory="PreserveNewest"

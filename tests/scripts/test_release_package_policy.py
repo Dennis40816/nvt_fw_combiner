@@ -29,7 +29,14 @@ SUPPORT_POLICY_RELATIVE_PATH = Path(
 )
 SUPPORT_POLICY_ROLE = "publicationPolicy"
 SUPPORT_POLICY_SHA256 = (
-    "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2"
+    "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff"
+)
+SUPPORT_POLICY_HISTORY = (
+    (
+        Path("docs/contracts/support-publication-policy-v1.0.0.json"),
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
+    ),
+    (SUPPORT_POLICY_RELATIVE_PATH, SUPPORT_POLICY_SHA256),
 )
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
@@ -249,7 +256,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 for source in (
                     PACKAGE_SCRIPT,
                     SMOKE_SCRIPT,
-                    ROOT / SUPPORT_POLICY_RELATIVE_PATH,
+                    *(ROOT / path for path, _ in SUPPORT_POLICY_HISTORY),
                     ROOT
                     / "src/NvtFwCombiner.Infrastructure/Support/"
                     "BuiltInSupportPublicationPolicy.cs",
@@ -588,7 +595,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
-                SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
+                *(path.as_posix() for path, _ in SUPPORT_POLICY_HISTORY),
                 "RELEASE-MANIFEST.json",
                 "SHA256SUMS.txt",
                 "README.txt",
@@ -862,6 +869,25 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 required_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries: list[dict[str, object]] = []
+            for policy_relative_path, policy_sha256 in SUPPORT_POLICY_HISTORY:
+                if policy_relative_path == SUPPORT_POLICY_RELATIVE_PATH:
+                    continue
+                policy_payload = (ROOT / policy_relative_path).read_bytes()
+                self.assertEqual(
+                    policy_sha256,
+                    hashlib.sha256(policy_payload).hexdigest(),
+                )
+                policy_path = package_root / policy_relative_path
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                policy_path.write_bytes(policy_payload)
+                manifest_entries.append(
+                    {
+                        "path": policy_relative_path.as_posix(),
+                        "size": len(policy_payload),
+                        "sha256": policy_sha256,
+                        "role": SUPPORT_POLICY_ROLE,
+                    }
+                )
             if include_policy:
                 policy_payload = (
                     (ROOT / SUPPORT_POLICY_RELATIVE_PATH).read_bytes()
@@ -905,22 +931,23 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         package_root: Path,
         manifest_entries: list[dict[str, object]],
     ) -> None:
-        policy_payload = (ROOT / SUPPORT_POLICY_RELATIVE_PATH).read_bytes()
-        self.assertEqual(
-            SUPPORT_POLICY_SHA256,
-            hashlib.sha256(policy_payload).hexdigest(),
-        )
-        policy_path = package_root / SUPPORT_POLICY_RELATIVE_PATH
-        policy_path.parent.mkdir(parents=True, exist_ok=True)
-        policy_path.write_bytes(policy_payload)
-        manifest_entries.append(
-            {
-                "path": SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
-                "size": len(policy_payload),
-                "sha256": SUPPORT_POLICY_SHA256,
-                "role": SUPPORT_POLICY_ROLE,
-            }
-        )
+        for policy_relative_path, policy_sha256 in SUPPORT_POLICY_HISTORY:
+            policy_payload = (ROOT / policy_relative_path).read_bytes()
+            self.assertEqual(
+                policy_sha256,
+                hashlib.sha256(policy_payload).hexdigest(),
+            )
+            policy_path = package_root / policy_relative_path
+            policy_path.parent.mkdir(parents=True, exist_ok=True)
+            policy_path.write_bytes(policy_payload)
+            manifest_entries.append(
+                {
+                    "path": policy_relative_path.as_posix(),
+                    "size": len(policy_payload),
+                    "sha256": policy_sha256,
+                    "role": SUPPORT_POLICY_ROLE,
+                }
+            )
 
 
 if __name__ == "__main__":

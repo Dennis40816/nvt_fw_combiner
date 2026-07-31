@@ -10,8 +10,10 @@ namespace NvtFwCombiner.Infrastructure.Tests.Support;
 /// <summary>Hash and strict-contract tests for the built-in publication policy.</summary>
 public sealed class BuiltInSupportPublicationPolicyTests
 {
-    private const string ExpectedSha256 =
+    private const string InitialSha256 =
         "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
+    private const string ExpectedSha256 =
+        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff";
 
     /// <summary>The shipped policy loads only through its reviewed SHA-256.</summary>
     [Fact]
@@ -21,17 +23,28 @@ public sealed class BuiltInSupportPublicationPolicyTests
             BuiltInSupportPublicationPolicy.Load();
         SupportPublicationPolicySnapshot policy = loaded.Current;
 
-        Assert.Null(loaded.SupersededPolicy);
+        SupportPublicationPolicySnapshot superseded =
+            Assert.IsType<SupportPublicationPolicySnapshot>(
+                loaded.SupersededPolicy);
         Assert.Equal("support-publication-policy", policy.PolicyId);
-        Assert.Equal("1.0.0", policy.PolicyVersion);
+        Assert.Equal("1.1.0", policy.PolicyVersion);
         Assert.Equal(ExpectedSha256, policy.Sha256);
+        Assert.Equal("1.0.0", policy.SupersedesPolicyVersion);
+        Assert.Equal(InitialSha256, policy.SupersedesPolicySha256);
+        Assert.Equal("1.0.0", superseded.PolicyVersion);
+        Assert.Equal(InitialSha256, superseded.Sha256);
         Assert.Equal(5, policy.Decisions.Count);
-        Assert.Contains(policy.Decisions, decision =>
+        SupportPublicationDecision decision = Assert.Single(
+            policy.Decisions,
+            decision =>
             decision.RouteId ==
                 "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
                     "nt51950-ab-merge-512k-integrity-" +
-                    "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab" &&
-            decision.Status == SupportPublicationStatus.Candidate);
+                    "3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87");
+        Assert.Equal(SupportPublicationStatus.Candidate, decision.Status);
+        Assert.Equal(
+            ["nt51950-ab-merge-1-ic-candidate"],
+            decision.SupersedesDecisionIds);
     }
 
     /// <summary>The reviewed policy is present in build output and retained for publish.</summary>

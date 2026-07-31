@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Json.Schema;
@@ -18,9 +19,9 @@ public sealed class SupportPublicationPolicyContractTests
         RequireFormatValidation = true,
     };
 
-    /// <summary>Verifies the initial owner-approved policy satisfies its closed contract.</summary>
+    /// <summary>Verifies the current owner-approved policy satisfies its closed contract.</summary>
     [Fact]
-    public void InitialPolicySatisfiesClosedPublicationPolicyContract()
+    public void CurrentPolicySatisfiesClosedPublicationPolicyContract()
     {
         JsonObject policy = ReadPolicy();
 
@@ -41,20 +42,59 @@ public sealed class SupportPublicationPolicyContractTests
                 (
                     "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
                         "nt51950-ab-merge-512k-integrity-" +
-                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
+                        "3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87",
                     "candidate"),
                 (
                     "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
                         "nt51950-ab-merge-1024k-integrity-" +
-                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab",
+                        "3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87",
                     "candidate"),
                 (
                     "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
                         "nt51951-ab-merge-1024k-integrity-" +
-                        "6435dea0731a432f950b22ae880dab32329ef1f04bb449f8a2556552791f5622",
+                        "1a34ef8bf35f8205d3326f556d8d6108cbe0bbb5ae0e59982ae801048904ae7a",
                     "candidate"),
             ],
             Decisions(policy));
+    }
+
+    /// <summary>The current policy names the exact preserved predecessor and replaced decisions.</summary>
+    [Fact]
+    public void CurrentPolicyDeclaresVerifiableVersionedLineage()
+    {
+        JsonObject prior = ReadPolicy("support-publication-policy-v1.0.0.json");
+        JsonObject current = ReadPolicy();
+
+        Assert.True(EvaluatePolicy(prior).IsValid);
+        Assert.True(EvaluatePolicy(current).IsValid);
+        ValidateSourceSemantics(prior);
+        ValidateSourceSemantics(current);
+        Assert.Equal("1.0.0", prior["policyVersion"]!.GetValue<string>());
+        Assert.Equal("1.1.0", current["policyVersion"]!.GetValue<string>());
+        Assert.Equal(
+            prior["policyVersion"]!.GetValue<string>(),
+            current["supersedesPolicyVersion"]!.GetValue<string>());
+        string priorPath = RepositoryPaths.FromRepositoryRoot(
+            "docs",
+            "contracts",
+            "support-publication-policy-v1.0.0.json");
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(priorPath)))
+                .ToLowerInvariant(),
+            current["supersedesPolicySha256"]!.GetValue<string>());
+        Assert.Equal(
+            [
+                "nt51950-ab-merge-1-ic-candidate",
+                "nt51950-ab-merge-2-plus-ic-candidate",
+                "nt51951-ab-merge-candidate",
+            ],
+            Assert.IsType<JsonArray>(current["decisions"])
+                .Select(Assert.IsType<JsonObject>)
+                .SelectMany(static decision =>
+                    decision["supersedesDecisionIds"] is JsonArray ids
+                        ? ids.Select(static id => id!.GetValue<string>())
+                        : [])
+                .OrderBy(static id => id, StringComparer.Ordinal));
     }
 
     /// <summary>Verifies incomplete, blank, unknown, and invalid decision fields are rejected.</summary>
@@ -95,11 +135,11 @@ public sealed class SupportPublicationPolicyContractTests
         JsonObject policy = ReadPolicy();
         if (mutation == "version-only")
         {
-            policy["supersedesPolicyVersion"] = "0.9.0";
+            Assert.True(policy.Remove("supersedesPolicySha256"));
         }
         else
         {
-            policy["supersedesPolicySha256"] = new string('a', 64);
+            Assert.True(policy.Remove("supersedesPolicyVersion"));
         }
 
         Assert.False(EvaluatePolicy(policy).IsValid);
@@ -139,13 +179,14 @@ public sealed class SupportPublicationPolicyContractTests
         return LoadSchema().Evaluate(document.RootElement, EvaluationOptions);
     }
 
-    private static JsonObject ReadPolicy()
+    private static JsonObject ReadPolicy(
+        string fileName = "support-publication-policy-v1.json")
     {
         return Assert.IsType<JsonObject>(JsonNode.Parse(
             File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
                 "docs",
                 "contracts",
-                "support-publication-policy-v1.json"))));
+                fileName))));
     }
 
     private static JsonSchema LoadSchema()

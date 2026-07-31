@@ -117,6 +117,38 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
+    /// <summary>Locks ADR 0035 to the canonical 950/951 relocation and import ownership.</summary>
+    [Fact]
+    public void Nt51950AndNt51951AdrMatchesCanonicalExecutionOwnership()
+    {
+        string adr = ReadText("docs/adr/0035-ab-topology-operator-selection.md");
+        string contract = ReadText(
+            "docs/architecture/nt51950-nt51951-ab-code-contract.md");
+
+        Assert.Contains(
+            "canonical execution amended for `0.10.x` issue #190",
+            adr,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "relocates only the TPB DIFF stored BIN-start field",
+            adr,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "imports only those three fields into the output",
+            adr,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "host imports only those",
+            contract,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "three four-byte fields",
+            contract,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("TPB ILM/DLM/DIFF addend", adr, StringComparison.Ordinal);
+        Assert.DoesNotContain("all three TPB relocations", adr, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
     [Fact]
     public void BuiltInBundleMaterializationUsesExplicitIdentityAllowlist()
@@ -203,7 +235,7 @@ public sealed partial class RepositoryBoundaryTests
             XAttribute include = Assert.Single(bundle.Attributes());
 
             Assert.Equal("Include", include.Name.LocalName);
-            if (include.Value == "nt51919-nt51929-nt51932-ab-merge")
+            if (include.Value is "nt51919-nt51929-nt51932-ab-merge" or "nt51950-ab-merge")
             {
                 Assert.Equal(
                     "composition-profile-v2.14.schema.json",
@@ -245,7 +277,7 @@ public sealed partial class RepositoryBoundaryTests
                 Assert.Empty(bundle.Elements("CompositionProfileSchemaFile"));
             }
 
-            if (include.Value == "nt51919-nt51929-nt51932-ab-merge")
+            if (include.Value is "nt51919-nt51929-nt51932-ab-merge" or "nt51950-ab-merge")
             {
                 Assert.Equal(
                     "firmware-family-v1.2-bank-instances.schema.json",

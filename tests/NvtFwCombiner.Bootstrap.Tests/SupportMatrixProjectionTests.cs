@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class SupportMatrixProjectionTests
 {
     private const string ExpectedPolicySha256 =
-        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2";
+        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff";
 
     /// <summary>NT51950/951 AB publication decisions bind only to their exact map/count pairs.</summary>
     [Fact]
@@ -59,28 +59,28 @@ public sealed class SupportMatrixProjectionTests
                     "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
                         "external-processor:32:nfc-nt51950-ab-merge-combiner-v1:" +
                         "22:legacy-combiner-1.13.0|fingerprint:" +
-                        "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
+                        "b00181e924452c038a629b7d8ff52d12c240bf0bb5d14efed6f77529ec6ae042",
                     "route-7-nt51950-8-ab-merge-4-1-ic-21-" +
                         "nt51950-ab-merge-512k-integrity-" +
-                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab"),
+                        "3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87"),
                 (
                     "NT51950",
                     "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
                         "external-processor:32:nfc-nt51950-ab-merge-combiner-v1:" +
                         "22:legacy-combiner-1.13.0|fingerprint:" +
-                        "f859b871f87deb06e77b82bcb0dd0055638a23989a44be5344d6e1856cad385d",
+                        "b00181e924452c038a629b7d8ff52d12c240bf0bb5d14efed6f77529ec6ae042",
                     "route-7-nt51950-8-ab-merge-9-2-plus-ic-22-" +
                         "nt51950-ab-merge-1024k-integrity-" +
-                        "de1df72be12d1b57dfcbf272889653a8faede4f2334d64e54126bf586902e5ab"),
+                        "3f41ce1d441da78f311ca9f7b0b250716de0cdf6c8d49ed764521de07fa39c87"),
                 (
                     "NT51951",
                     "transform-scalar:28:relocate-tpb-diff-for-b-bank|" +
                         "external-processor:32:nfc-nt51951-ab-merge-combiner-v1:" +
                         "22:legacy-combiner-1.13.0|fingerprint:" +
-                        "513690905d39f26ac8afb63a63d4efb9f24e9c0cc9bdbfc2df7028d6b655c252",
+                        "6a5888486d14dc81df85f30bb5529816919d31993c0001580fa0479fde777e97",
                     "route-7-nt51951-8-ab-merge-13-selector-free-22-" +
                         "nt51951-ab-merge-1024k-integrity-" +
-                        "6435dea0731a432f950b22ae880dab32329ef1f04bb449f8a2556552791f5622"),
+                        "1a34ef8bf35f8205d3326f556d8d6108cbe0bbb5ae0e59982ae801048904ae7a"),
             ],
             [
                 .. matrix.Rows

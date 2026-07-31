@@ -1,513 +1,78 @@
 {
-  "schemaVersion": "2.13",
+  "schemaVersion": "2.14",
   "profileId": "nt51951-ab-merge",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.3.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
-      {
-        "blockerId": "direct-golden-evidence",
-        "kind": "golden",
-        "reason": "A direct NT51951 AB input/output golden is required before supported certification.",
-        "evidenceRefs": [
-          "nt51951-ab-combiner-topology-regression-2026-07-15"
-        ]
-      },
-      {
-        "blockerId": "firmware-owner-review",
-        "kind": "human-review",
-        "reason": "Firmware owner must approve the exact NT51951 AB Combiner staging sequence before certified release.",
-        "evidenceRefs": [
-          "nt51951-ab-combiner-topology-regression-2026-07-15"
-        ]
-      }
+      { "blockerId": "direct-golden-evidence", "kind": "golden", "reason": "A direct NT51951 AB input/output golden remains required before supported certification; the distinct synthetic topology vector is not product evidence.", "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ] },
+      { "blockerId": "firmware-owner-review", "kind": "human-review", "reason": "Firmware owner must approve the exact NT51951 AB Combiner staging and TP-only import sequence before certified release.", "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ] }
     ]
   },
   "compositionKind": "merge",
-  "compilationContext": {
-    "kind": "resolved-map"
-  },
-  "experience": {
-    "experienceId": "ab-merge",
-    "audience": "system",
-    "layoutPolicy": "fixed",
-    "inputPolicy": "fixed",
-    "topologyAuthoring": "hidden",
-    "displayNameKey": "profile.nt51951.ab-merge"
-  },
+  "compilationContext": { "kind": "resolved-map" },
+  "experience": { "experienceId": "ab-merge", "audience": "system", "layoutPolicy": "fixed", "inputPolicy": "fixed", "topologyAuthoring": "hidden", "displayNameKey": "profile.nt51951.ab-merge" },
   "mapBinding": {
     "familyId": "nt51950-ab-merge",
-    "familyVersion": "0.2.0",
-    "familyContentHash": "bd3509a6a2406366f5d6c21ad53eba1f165df74afd1e20663492200fb5479b85",
-    "mapIds": [
-      "nt51951-ab-merge-1024k"
-    ],
-    "requiredRegionIds": [
-      "ab-image",
-      "a-bank",
-      "a-cmi-dp-version",
-      "b-bank",
-      "b-cmi-dp-version",
-      "b-tp-code"
-    ],
+    "familyVersion": "0.3.0",
+    "familyContentHash": "abf70ea6451134f74ca8a863436842f80c66f7980c49c8f9849e1257764889aa",
+    "mapIds": [ "nt51951-ab-merge-1024k" ],
+    "requiredRegionIds": [ "ab-image", "a-bank", "a-cmi-dp-version", "a-tp-code", "b-bank", "b-cmi-dp-version", "b-tp-code" ],
     "requiredMetadataStructureIds": [],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
-    {
-      "slotId": "dp-ab-input",
-      "role": "dp-ab",
-      "artifactClass": "dp-firmware",
-      "required": true,
-      "cardinality": "exactly-one",
-      "acceptedExtensions": [
-        ".bin"
-      ],
-      "acceptance": {
-        "lengthRule": {
-          "kind": "exact-resolved-map-capacity"
-        },
-        "normalization": {
-          "kind": "none"
-        }
-      }
-    },
-    {
-      "slotId": "tp-a-input",
-      "role": "tp-a",
-      "artifactClass": "tp-firmware",
-      "required": true,
-      "cardinality": "exactly-one",
-      "acceptedExtensions": [
-        ".bin"
-      ],
-      "acceptance": {
-        "lengthRule": {
-          "kind": "source-view-coverage"
-        },
-        "normalization": {
-          "kind": "none"
-        }
-      }
-    },
-    {
-      "slotId": "tp-b-input",
-      "role": "tp-b",
-      "artifactClass": "tp-firmware",
-      "required": true,
-      "cardinality": "exactly-one",
-      "acceptedExtensions": [
-        ".bin"
-      ],
-      "acceptance": {
-        "lengthRule": {
-          "kind": "source-view-coverage"
-        },
-        "normalization": {
-          "kind": "none"
-        }
-      }
-    }
+    { "slotId": "dp-ab-input", "role": "dp-ab", "artifactClass": "dp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "exact-resolved-map-capacity" }, "normalization": { "kind": "none" } } },
+    { "slotId": "tp-a-input", "role": "tp-a", "artifactClass": "tp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } } },
+    { "slotId": "tp-b-input", "role": "tp-b", "artifactClass": "tp-firmware", "required": true, "cardinality": "exactly-one", "acceptedExtensions": [ ".bin" ], "acceptance": { "lengthRule": { "kind": "source-view-coverage" }, "normalization": { "kind": "none" } } }
   ],
   "spaces": [
-    {
-      "spaceId": "dp-ab-input",
-      "kind": "input-artifact",
-      "slotId": "dp-ab-input",
-      "instancePolicy": "singleton"
-    },
-    {
-      "spaceId": "tp-a-input",
-      "kind": "input-artifact",
-      "slotId": "tp-a-input",
-      "instancePolicy": "singleton"
-    },
-    {
-      "spaceId": "tp-b-input",
-      "kind": "input-artifact",
-      "slotId": "tp-b-input",
-      "instancePolicy": "singleton"
-    },
-    {
-      "spaceId": "a-bank-work",
-      "kind": "work-buffer",
-      "capacity": {
-        "kind": "fixed",
-        "bytes": 524288
-      },
-      "initializer": {
-        "kind": "blank",
-        "fillByte": 0
-      }
-    },
-    {
-      "spaceId": "b-bank-work",
-      "kind": "work-buffer",
-      "capacity": {
-        "kind": "fixed",
-        "bytes": 524288
-      },
-      "initializer": {
-        "kind": "blank",
-        "fillByte": 0
-      }
-    },
-    {
-      "spaceId": "ab-combiner-work",
-      "kind": "work-buffer",
-      "capacity": {
-        "kind": "fixed",
-        "bytes": 1048576
-      },
-      "initializer": {
-        "kind": "blank",
-        "fillByte": 0
-      }
-    },
-    {
-      "spaceId": "tp-b-work",
-      "kind": "work-buffer",
-      "capacity": {
-        "kind": "fixed",
-        "bytes": 225280
-      },
-      "initializer": {
-        "kind": "clone",
-        "sourceSlotId": "tp-b-input"
-      }
-    },
-    {
-      "spaceId": "output-image",
-      "kind": "output-image",
-      "capacity": {
-        "kind": "resolved-map"
-      },
-      "initializer": {
-        "kind": "blank",
-        "fillByte": 0
-      }
-    }
+    { "spaceId": "dp-ab-input", "kind": "input-artifact", "slotId": "dp-ab-input", "instancePolicy": "singleton" },
+    { "spaceId": "tp-a-input", "kind": "input-artifact", "slotId": "tp-a-input", "instancePolicy": "singleton" },
+    { "spaceId": "tp-b-input", "kind": "input-artifact", "slotId": "tp-b-input", "instancePolicy": "singleton" },
+    { "spaceId": "ab-combiner-work", "kind": "work-buffer", "capacity": { "kind": "fixed", "bytes": 1048576 }, "initializer": { "kind": "blank", "fillByte": 0 } },
+    { "spaceId": "tp-b-work", "kind": "work-buffer", "capacity": { "kind": "fixed", "bytes": 225280 }, "initializer": { "kind": "clone", "sourceSlotId": "tp-b-input" } },
+    { "spaceId": "output-image", "kind": "output-image", "capacity": { "kind": "resolved-map" }, "initializer": { "kind": "blank", "fillByte": 0 } }
   ],
   "views": [
-    {
-      "viewId": "dp-ab-source",
-      "spaceId": "dp-ab-input",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "ab-image"
-      }
-    },
-    {
-      "viewId": "dp-ab-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "ab-image"
-      }
-    },
-    {
-      "viewId": "dp-a-bank-source",
-      "spaceId": "dp-ab-input",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "a-bank"
-      }
-    },
-    {
-      "viewId": "dp-b-bank-source",
-      "spaceId": "dp-ab-input",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "b-bank"
-      }
-    },
-    {
-      "viewId": "a-bank-work-image",
-      "spaceId": "a-bank-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 0,
-          "length": 524288
-        }
-      }
-    },
-    {
-      "viewId": "b-bank-work-image",
-      "spaceId": "b-bank-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 0,
-          "length": 524288
-        }
-      }
-    },
-    {
-      "viewId": "ab-combiner-work-image",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 0,
-          "length": 1048576
-        }
-      }
-    },
-    {
-      "viewId": "a-bank-combiner-image",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 0,
-          "length": 524288
-        }
-      }
-    },
-    {
-      "viewId": "b-bank-combiner-image",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 524288,
-          "length": 524288
-        }
-      }
-    },
-    {
-      "viewId": "tp-a-code-source",
-      "spaceId": "tp-a-input",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 40960,
-          "length": 184320
-        }
-      }
-    },
-    {
-      "viewId": "tp-b-code-source",
-      "spaceId": "tp-b-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 40960,
-          "length": 184320
-        }
-      }
-    },
-    {
-      "viewId": "a-tp-code-work",
-      "spaceId": "a-bank-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 40960,
-          "length": 184320
-        }
-      }
-    },
-    {
-      "viewId": "b-tp-code-work",
-      "spaceId": "b-bank-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 40960,
-          "length": 184320
-        }
-      }
-    },
-    {
-      "viewId": "a-bank-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "a-bank"
-      }
-    },
-    {
-      "viewId": "b-bank-output",
-      "spaceId": "output-image",
-      "selector": {
-        "kind": "map-region",
-        "regionId": "b-bank"
-      }
-    },
-    {
-      "viewId": "b-header-ilm",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 565504,
-          "length": 4
-        }
-      }
-    },
-    {
-      "viewId": "b-header-dlm",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 565520,
-          "length": 4
-        }
-      }
-    },
-    {
-      "viewId": "tp-b-diff-work",
-      "spaceId": "tp-b-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 41248,
-          "length": 4
-        }
-      }
-    },
-    {
-      "viewId": "b-header-crc",
-      "spaceId": "ab-combiner-work",
-      "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 565552,
-          "length": 4
-        }
-      }
-    }
+    { "viewId": "dp-ab-source", "spaceId": "dp-ab-input", "selector": { "kind": "map-region", "regionId": "ab-image" } },
+    { "viewId": "dp-ab-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "ab-image" } },
+    { "viewId": "tp-a-code-source", "spaceId": "tp-a-input", "selector": { "kind": "region-template-range", "regionInstanceId": "a-tp-placement", "templateRegionId": "tp-code" } },
+    { "viewId": "tp-b-code-source", "spaceId": "tp-b-work", "selector": { "kind": "region-template-range", "regionInstanceId": "b-tp-placement", "templateRegionId": "tp-code" } },
+    { "viewId": "tp-b-diff-work", "spaceId": "tp-b-work", "selector": { "kind": "space-range", "range": { "start": 41248, "length": 4 } } },
+    { "viewId": "a-tp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "a-tp-code" } },
+    { "viewId": "b-tp-code-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "b-tp-code" } },
+    { "viewId": "a-bank-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "a-bank" } },
+    { "viewId": "b-bank-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "b-bank" } },
+    { "viewId": "ab-combiner-work-image", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 0, "length": 1048576 } } },
+    { "viewId": "a-bank-combiner-image", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 0, "length": 524288 } } },
+    { "viewId": "b-bank-combiner-image", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 524288, "length": 524288 } } },
+    { "viewId": "b-header-ilm-combiner", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 565504, "length": 4 } } },
+    { "viewId": "b-header-dlm-combiner", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 565520, "length": 4 } } },
+    { "viewId": "b-header-crc-combiner", "spaceId": "ab-combiner-work", "selector": { "kind": "space-range", "range": { "start": 565552, "length": 4 } } },
+    { "viewId": "b-header-ilm-output", "spaceId": "output-image", "selector": { "kind": "map-region-slice", "regionId": "b-tp-code", "offset": 256, "length": 4 } },
+    { "viewId": "b-header-dlm-output", "spaceId": "output-image", "selector": { "kind": "map-region-slice", "regionId": "b-tp-code", "offset": 272, "length": 4 } },
+    { "viewId": "b-header-crc-output", "spaceId": "output-image", "selector": { "kind": "map-region-slice", "regionId": "b-tp-code", "offset": 304, "length": 4 } }
   ],
   "metadataBindings": [],
   "regionAccessRules": [
-    {
-      "regionId": "ab-image",
-      "access": "explicit-range",
-      "reason": "Copy the full owner-supplied 1 MiB DP AB image before constructing A and B Combiner artifacts."
-    },
-    {
-      "regionId": "a-bank",
-      "access": "explicit-range",
-      "reason": "Materialize the complete A bank used as an immutable Combiner artifact."
-    },
-    {
-      "regionId": "b-bank",
-      "access": "explicit-range",
-      "reason": "Materialize the complete B bank used as an immutable Combiner artifact."
-    },
-    {
-      "regionId": "b-tp-code",
-      "access": "explicit-range",
-      "reason": "Allow only the audited B-bank header and CRC byte ranges for the external Combiner stage."
-    }
+    { "regionId": "ab-image", "access": "explicit-range", "reason": "Seed the exact one-mebibyte DP AB container before TP overlays." },
+    { "regionId": "a-bank", "access": "explicit-range", "reason": "Read the completed output A bank into the private Combiner transport image." },
+    { "regionId": "b-bank", "access": "explicit-range", "reason": "Read the completed output B bank into the private Combiner transport image." },
+    { "regionId": "a-tp-code", "access": "explicit-range", "reason": "Overlay the exact immutable TPA native section at the declared A placement." },
+    { "regionId": "b-tp-code", "access": "explicit-range", "reason": "Overlay the exact relocated TPB native section and import only its three exact verified postbuild slices." }
   ],
   "operations": [
-    {
-      "operationId": "copy-dp-ab-image",
-      "sequence": 100,
-      "overlapPolicy": "reject",
-      "reason": "Copy the full 1 MiB AB DP image to the output staging image.",
-      "kind": "copy-range",
-      "sourceViewId": "dp-ab-source",
-      "targetViewId": "dp-ab-output"
-    },
-    {
-      "operationId": "seed-a-bank-from-dp",
-      "sequence": 200,
-      "overlapPolicy": "reject",
-      "reason": "Seed the immutable A-bank Combiner artifact from DP AB bank A.",
-      "kind": "copy-range",
-      "sourceViewId": "dp-a-bank-source",
-      "targetViewId": "a-bank-work-image"
-    },
-    {
-      "operationId": "overlay-tpa-into-a-bank",
-      "sequence": 300,
-      "overlapPolicy": "replace-existing",
-      "reason": "Overlay TPA code into the A-bank artifact without modifying the caller input.",
-      "kind": "copy-range",
-      "sourceViewId": "tp-a-code-source",
-      "targetViewId": "a-tp-code-work"
-    },
-    {
-      "operationId": "seed-b-bank-from-dp",
-      "sequence": 400,
-      "overlapPolicy": "reject",
-      "reason": "Seed the immutable B-bank Combiner artifact from DP AB bank B.",
-      "kind": "copy-range",
-      "sourceViewId": "dp-b-bank-source",
-      "targetViewId": "b-bank-work-image"
-    },
-    {
-      "operationId": "relocate-tpb-diff-for-b-bank",
-      "sequence": 500,
-      "overlapPolicy": "reject",
-      "reason": "Relocate the cloned TPB difference address by the fixed 0x80000 B-bank offset before overlay and Combiner header CRC recalculation.",
-      "kind": "transform-scalar",
-      "sourceViewId": "tp-b-diff-work",
-      "targetViewId": "tp-b-diff-work",
-      "widthBytes": 4,
-      "byteOrder": "little",
-      "valueInterpretation": "unsigned",
-      "addend": 524288,
-      "overflowPolicy": "reject"
-    },
-    {
-      "operationId": "overlay-tpb-into-b-bank",
-      "sequence": 550,
-      "overlapPolicy": "replace-existing",
-      "reason": "Overlay relocated TPB code into the B-bank artifact before Combiner header processing.",
-      "kind": "copy-range",
-      "sourceViewId": "tp-b-code-source",
-      "targetViewId": "b-tp-code-work"
-    },
-    {
-      "operationId": "copy-a-bank-to-combiner-work",
-      "sequence": 600,
-      "overlapPolicy": "reject",
-      "reason": "Seed the host-owned Combiner work image with the exact staged A-bank artifact.",
-      "kind": "copy-range",
-      "sourceViewId": "a-bank-work-image",
-      "targetViewId": "a-bank-combiner-image"
-    },
-    {
-      "operationId": "copy-b-bank-to-combiner-work",
-      "sequence": 650,
-      "overlapPolicy": "reject",
-      "reason": "Seed the host-owned Combiner work image with the exact staged B-bank artifact.",
-      "kind": "copy-range",
-      "sourceViewId": "b-bank-work-image",
-      "targetViewId": "b-bank-combiner-image"
-    },
-    {
-      "operationId": "run-nt51951-ab-combiner",
-      "sequence": 700,
-      "overlapPolicy": "replace-existing",
-      "reason": "Use legacy Combiner 1.13.0 on the host-owned A/B work image for synthetic-topology-verified TPB header and CRC recalculation before B-slot backfill.",
-      "kind": "run-processor",
-      "processorStageId": "nt51951-ab-combiner"
-    },
-    {
-      "operationId": "copy-a-bank-to-output",
-      "sequence": 800,
-      "overlapPolicy": "replace-existing",
-      "reason": "Replace output bank A with the exact staged A-bank artifact without postbuild mutation.",
-      "kind": "copy-range",
-      "sourceViewId": "a-bank-work-image",
-      "targetViewId": "a-bank-output"
-    },
-    {
-      "operationId": "copy-postbuild-b-bank-to-output",
-      "sequence": 900,
-      "overlapPolicy": "replace-existing",
-      "reason": "Backfill output bank B from the externally postbuilt Combiner work image.",
-      "kind": "copy-range",
-      "sourceViewId": "b-bank-combiner-image",
-      "targetViewId": "b-bank-output"
-    }
+    { "operationId": "copy-dp-ab-image", "sequence": 100, "overlapPolicy": "reject", "reason": "Seed the complete exact-capacity DP AB image.", "kind": "copy-range", "sourceViewId": "dp-ab-source", "targetViewId": "dp-ab-output" },
+    { "operationId": "overlay-tpa-into-output", "sequence": 200, "overlapPolicy": "replace-existing", "reason": "Copy the address-aligned immutable TPA section directly into its named output placement.", "kind": "copy-range", "sourceViewId": "tp-a-code-source", "targetViewId": "a-tp-code-output" },
+    { "operationId": "relocate-tpb-diff-for-b-bank", "sequence": 300, "overlapPolicy": "reject", "reason": "Relocate only the cloned TPB DIFF address by the resolved A-to-B placement delta.", "kind": "transform-scalar", "sourceViewId": "tp-b-diff-work", "targetViewId": "tp-b-diff-work", "widthBytes": 4, "byteOrder": "little", "valueInterpretation": "unsigned", "addend": { "kind": "region-instance-delta", "sourceRegionInstanceId": "a-tp-placement", "targetRegionInstanceId": "b-tp-placement" }, "overflowPolicy": "reject" },
+    { "operationId": "overlay-tpb-into-output", "sequence": 400, "overlapPolicy": "replace-existing", "reason": "Copy the relocated TPB native section into its named B placement.", "kind": "copy-range", "sourceViewId": "tp-b-code-source", "targetViewId": "b-tp-code-output" },
+    { "operationId": "copy-a-bank-to-combiner-work", "sequence": 500, "overlapPolicy": "reject", "reason": "Materialize the completed A output bank in the private Combiner transport image.", "kind": "copy-range", "sourceViewId": "a-bank-output", "targetViewId": "a-bank-combiner-image" },
+    { "operationId": "copy-b-bank-to-combiner-work", "sequence": 600, "overlapPolicy": "reject", "reason": "Materialize the completed B output bank in the private Combiner transport image.", "kind": "copy-range", "sourceViewId": "b-bank-output", "targetViewId": "b-bank-combiner-image" },
+    { "operationId": "run-nt51951-ab-combiner", "sequence": 700, "overlapPolicy": "replace-existing", "reason": "Run the workflow-logic-verified legacy TP-only postbuild against private staged A/B artifacts.", "kind": "run-processor", "processorStageId": "nt51951-ab-combiner" },
+    { "operationId": "import-postbuild-b-ilm", "sequence": 800, "overlapPolicy": "replace-existing", "reason": "Import only the verified TPB ILM postbuild field.", "kind": "copy-range", "sourceViewId": "b-header-ilm-combiner", "targetViewId": "b-header-ilm-output" },
+    { "operationId": "import-postbuild-b-dlm", "sequence": 810, "overlapPolicy": "replace-existing", "reason": "Import only the verified TPB DLM postbuild field.", "kind": "copy-range", "sourceViewId": "b-header-dlm-combiner", "targetViewId": "b-header-dlm-output" },
+    { "operationId": "import-postbuild-b-crc", "sequence": 820, "overlapPolicy": "replace-existing", "reason": "Import only the verified TPB CRC postbuild field.", "kind": "copy-range", "sourceViewId": "b-header-crc-combiner", "targetViewId": "b-header-crc-output" }
   ],
   "validations": [],
   "processorStages": [
@@ -521,43 +86,14 @@
       "authority": "transform",
       "purpose": "header-and-integrity",
       "integrityDisposition": "recalculate-and-write",
-      "allowedReadViewIds": [
-        "ab-combiner-work-image"
-      ],
-      "allowedWriteViewIds": [
-        "b-header-ilm",
-        "b-header-dlm",
-        "b-header-crc"
-      ],
+      "allowedReadViewIds": [ "ab-combiner-work-image" ],
+      "allowedWriteViewIds": [ "b-header-ilm-combiner", "b-header-dlm-combiner", "b-header-crc-combiner" ],
       "stagedSourceBindings": [],
-      "stagedArtifactBindings": [
-        {
-          "artifactId": "a-bank",
-          "sourceViewId": "a-bank-work-image"
-        },
-        {
-          "artifactId": "b-bank",
-          "sourceViewId": "b-bank-work-image"
-        }
-      ],
+      "stagedArtifactBindings": [ { "artifactId": "a-bank", "sourceViewId": "a-bank-output" }, { "artifactId": "b-bank", "sourceViewId": "b-bank-output" } ],
       "evidenceRef": "nt51951-ab-combiner-topology-regression-2026-07-15",
       "failurePolicy": "fail-closed"
     }
   ],
-  "output": {
-    "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-    "allowOverride": true,
-    "invalidCharacterPolicy": "reject",
-    "requiredTokenIds": [
-      "date",
-      "dp-a",
-      "dp-b",
-      "ic",
-      "tp-a",
-      "tp-b"
-    ]
-  },
-  "evidenceRefs": [
-    "nt51951-ab-combiner-topology-regression-2026-07-15"
-  ]
+  "output": { "fileNameTemplate": "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin", "allowOverride": true, "invalidCharacterPolicy": "reject", "requiredTokenIds": [ "date", "dp-a", "dp-b", "ic", "tp-a", "tp-b" ] },
+  "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
 }

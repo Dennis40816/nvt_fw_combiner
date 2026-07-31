@@ -47,9 +47,14 @@ from skill_metadata_validation import (
 ROOT = Path(__file__).resolve().parents[1]
 APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS = {
     (
-        "docs/contracts/support-publication-policy-v1.json",
+        "docs/contracts/support-publication-policy-v1.0.0.json",
         "publicationPolicy",
         "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
+    ),
+    (
+        "docs/contracts/support-publication-policy-v1.json",
+        "publicationPolicy",
+        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff",
     )
 }
 REQUIRED_FILES = {
@@ -1424,39 +1429,44 @@ def validate_support_publication_policy_package_contracts(
         "BuiltInSupportPublicationPolicy.cs"
     )
     runtime = runtime_path.read_text(encoding="utf-8")
-    runtime_sha = re.search(
-        r'private const string ExpectedSha256\s*=\s*"([0-9a-f]{64})";',
+    runtime_shas = dict(re.findall(
+        r'private const string (\w+Sha256)\s*=\s*"([0-9a-f]{64})";',
         runtime,
-    )
-    runtime_policy_path = re.search(
-        r'new\(\s*"([^"]+)",\s*ExpectedSha256\)',
+    ))
+    runtime_files = re.findall(
+        r'new\(\s*"([^"]+)",\s*(\w+Sha256)\)',
         runtime,
         flags=re.DOTALL,
     )
-    expected_path, _, expected_sha = next(
-        iter(APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS)
-    )
-    if (
-        runtime_sha is None
-        or runtime_policy_path is None
-        or runtime_sha.group(1) != expected_sha
-        or runtime_policy_path.group(1) != expected_path
-    ):
+    runtime_contracts = {
+        (path, runtime_shas.get(hash_name))
+        for path, hash_name in runtime_files
+    }
+    expected_runtime_contracts = {
+        (path, sha256)
+        for path, _, sha256 in
+        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
+    }
+    if runtime_contracts != expected_runtime_contracts:
         errors.append(
-            "BuiltInSupportPublicationPolicy runtime identity differs from the "
-            "approved release package contract"
+            "BuiltInSupportPublicationPolicy runtime history differs from the "
+            "approved release package contracts"
         )
 
-    policy_path = root / expected_path
-    if not policy_path.is_file():
-        errors.append(
-            f"approved support publication policy file is missing: {expected_path}"
-        )
-    elif hashlib.sha256(policy_path.read_bytes()).hexdigest() != expected_sha:
-        errors.append(
-            "approved support publication policy bytes differ from the "
-            "release package SHA-256"
-        )
+    for expected_path, _, expected_sha in sorted(
+        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
+    ):
+        policy_path = root / expected_path
+        if not policy_path.is_file():
+            errors.append(
+                "approved support publication policy file is missing: "
+                f"{expected_path}"
+            )
+        elif hashlib.sha256(policy_path.read_bytes()).hexdigest() != expected_sha:
+            errors.append(
+                "approved support publication policy bytes differ from the "
+                f"release package SHA-256: {expected_path}"
+            )
 
 
 def validate_agent_files(errors: list[str]) -> None:

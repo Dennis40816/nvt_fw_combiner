@@ -33,8 +33,8 @@ internal static class BuiltInV2RegistrationRegistry
             new BuiltInV2Registration("NT51919", "nt51919-ab-merge-alias", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
             new BuiltInV2Registration("NT51929", "nt51929-ab-merge", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
             new BuiltInV2Registration("NT51932", "nt51932-ab-merge", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51950", "nt51950-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51951", "nt51951-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51950", "nt51950-ab-merge", "0.3.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51951", "nt51951-ab-merge", "0.3.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
