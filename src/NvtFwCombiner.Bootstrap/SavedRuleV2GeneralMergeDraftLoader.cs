@@ -8,12 +8,14 @@ namespace NvtFwCombiner.Bootstrap;
 internal sealed record SavedRuleV2GeneralMergeDraftLoadResult(
     GeneralMergeDraftState? Draft,
     SavedRuleV2ParentBinding? ParentBinding,
+    SavedRuleExecutionIdentity? ExecutionIdentity,
     GeneralSavedRuleResourcePolicy? ResourcePolicy,
     IReadOnlyList<SavedRuleValidationIssue> Issues)
 {
     internal bool IsValid =>
         Draft is not null &&
         ParentBinding is not null &&
+        ExecutionIdentity is not null &&
         ResourcePolicy is not null &&
         Issues.Count == 0;
 }
@@ -102,6 +104,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 null,
                 admission.ParentBinding,
                 null,
+                null,
                 admission.Issues);
         }
 
@@ -127,17 +130,25 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 null,
                 admission.ParentBinding,
                 null,
+                null,
                 issues);
         }
 
         try
         {
+            SavedRuleExecutionIdentity executionIdentity =
+                CreateExecutionIdentity(
+                    root,
+                    ruleId,
+                    ruleVersion,
+                    admission.ParentBinding!);
             return new SavedRuleV2GeneralMergeDraftLoadResult(
                 new GeneralMergeDraftState(
                     admission.Initializer!,
                     new GeneralMappingDraftState(rows)),
                 admission.ParentBinding,
-                CreateSavedRuleResourcePolicy(root, ruleId, rows),
+                executionIdentity,
+                CreateSavedRuleResourcePolicy(root, executionIdentity, rows),
                 []);
         }
         catch (ArgumentException exception)
@@ -150,20 +161,44 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
                 null,
                 admission.ParentBinding,
                 null,
+                null,
                 issues);
         }
     }
 
-    private static GeneralSavedRuleResourcePolicy CreateSavedRuleResourcePolicy(
+    private static SavedRuleExecutionIdentity CreateExecutionIdentity(
         JsonElement root,
         string ruleId,
+        string ruleVersion,
+        SavedRuleV2ParentBinding parent)
+    {
+        return new SavedRuleExecutionIdentity(
+            ruleId,
+            ruleVersion,
+            SavedCompositionRuleV2ContentHasher.Calculate(root),
+            new SavedRuleParentIdentity(
+                parent.BundleId,
+                parent.BundleVersion,
+                parent.BundleContentHash,
+                parent.ProfileId,
+                parent.ProfileVersion,
+                parent.ProfileContentHash,
+                parent.FamilyId,
+                parent.FamilyVersion,
+                parent.FamilyContentHash,
+                parent.MapId));
+    }
+
+    private static GeneralSavedRuleResourcePolicy CreateSavedRuleResourcePolicy(
+        JsonElement root,
+        SavedRuleExecutionIdentity executionIdentity,
         IReadOnlyList<GeneralMappingDraftRow> rows)
     {
         JsonElement accessEnvelope = root.GetProperty("accessEnvelope");
         GeneralResourceLimits technical =
             GeneralAuthoringTechnicalLimits.Default;
         return new GeneralSavedRuleResourcePolicy(
-            ruleId,
+            executionIdentity,
             new GeneralResourceLimits(
                 accessEnvelope.GetProperty("maximumMappingCount").GetInt32(),
                 accessEnvelope.GetProperty("maximumTotalWriteBytes").GetInt64(),

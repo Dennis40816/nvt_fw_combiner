@@ -226,15 +226,39 @@ public sealed record GeneralSavedRuleResourcePolicy
     public GeneralSavedRuleResourcePolicy(
         string ruleId,
         GeneralResourceLimits limits)
+        : this(ruleId, executionIdentity: null, limits)
+    {
+    }
+
+    /// <summary>Creates one exact content-identified narrowing policy.</summary>
+    public GeneralSavedRuleResourcePolicy(
+        SavedRuleExecutionIdentity executionIdentity,
+        GeneralResourceLimits limits)
+        : this(
+            executionIdentity?.RuleId ??
+            throw new ArgumentNullException(nameof(executionIdentity)),
+            executionIdentity,
+            limits)
+    {
+    }
+
+    private GeneralSavedRuleResourcePolicy(
+        string ruleId,
+        SavedRuleExecutionIdentity? executionIdentity,
+        GeneralResourceLimits limits)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(limits);
         RuleId = ruleId;
+        ExecutionIdentity = executionIdentity;
         Limits = limits;
     }
 
     /// <summary>Saved Rule identity responsible for the narrowing layer.</summary>
     public string RuleId { get; }
+
+    /// <summary>Exact rule revision and Parent identity for v2 consumption.</summary>
+    public SavedRuleExecutionIdentity? ExecutionIdentity { get; }
 
     /// <summary>Limits that may only narrow the exact Parent.</summary>
     public GeneralResourceLimits Limits { get; }

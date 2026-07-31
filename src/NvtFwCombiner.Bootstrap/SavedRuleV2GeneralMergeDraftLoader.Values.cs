@@ -107,6 +107,7 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
             null,
             null,
             null,
+            null,
             [issue]);
     }
 

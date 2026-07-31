@@ -160,9 +160,12 @@ public sealed partial class SavedRuleCliCommandTests
         return JsonNode.Parse(node.ToJsonString())!.AsObject();
     }
 
-    private static async Task<string> WriteRuleAsync(TempWorkspace workspace, JsonObject json)
+    private static async Task<string> WriteRuleAsync(
+        TempWorkspace workspace,
+        JsonObject json,
+        string fileName = "rule.json")
     {
-        string rule = workspace.PathFor("rule.json");
+        string rule = workspace.PathFor(fileName);
         await File.WriteAllTextAsync(rule, json.ToJsonString(), TestContext.Current.CancellationToken);
         return rule;
     }

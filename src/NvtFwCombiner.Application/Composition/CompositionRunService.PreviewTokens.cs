@@ -100,6 +100,14 @@ public sealed partial class CompositionRunService
             builder,
             "general.admission.saved-rule",
             admission.SavedRuleId ?? string.Empty);
+        if (admission.SavedRule is { } savedRule)
+        {
+            AppendTokenField(builder, "general.admission.saved-rule.id", savedRule.RuleId);
+            AppendTokenField(builder, "general.admission.saved-rule.version", savedRule.RuleVersion);
+            AppendTokenField(builder, "general.admission.saved-rule.hash", savedRule.ContentHash);
+            AppendSavedRuleParent(builder, savedRule.Parent);
+        }
+
         GeneralResourceLimits? limits = admission.EffectiveLimits;
         AppendTokenField(
             builder,
@@ -179,6 +187,22 @@ public sealed partial class CompositionRunService
                 "general.admission.occupancy.length",
                 segment.TargetRange.Length.ToString(CultureInfo.InvariantCulture));
         }
+    }
+
+    private static void AppendSavedRuleParent(
+        StringBuilder builder,
+        SavedRuleParentIdentity parent)
+    {
+        AppendTokenField(builder, "general.admission.saved-rule.parent.bundle.id", parent.BundleId);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.bundle.version", parent.BundleVersion);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.bundle.hash", parent.BundleContentHash);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.profile.id", parent.ProfileId);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.profile.version", parent.ProfileVersion);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.profile.hash", parent.ProfileContentHash);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.family.id", parent.FamilyId);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.family.version", parent.FamilyVersion);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.family.hash", parent.FamilyContentHash);
+        AppendTokenField(builder, "general.admission.saved-rule.parent.map.id", parent.MapId);
     }
 
     private static void AppendTokenField(StringBuilder builder, string fieldName, string value)

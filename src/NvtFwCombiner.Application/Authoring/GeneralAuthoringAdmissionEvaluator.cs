@@ -17,7 +17,8 @@ public sealed record GeneralAuthoringAdmissionResult
         GeneralResourceLimits? effectiveLimits,
         IEnumerable<GeneralInputResource> inputResources,
         IEnumerable<GeneralOccupancySegment> occupancySegments,
-        IEnumerable<GeneralAuthoringAdmissionIssue> issues)
+        IEnumerable<GeneralAuthoringAdmissionIssue> issues,
+        SavedRuleExecutionIdentity? savedRule = null)
     {
         ArgumentNullException.ThrowIfNull(draft);
         ArgumentException.ThrowIfNullOrWhiteSpace(trustedParentId);
@@ -40,6 +41,15 @@ public sealed record GeneralAuthoringAdmissionResult
         SavedRuleId = string.IsNullOrWhiteSpace(savedRuleId)
             ? null
             : savedRuleId;
+        if (savedRule is not null &&
+            !StringComparer.Ordinal.Equals(SavedRuleId, savedRule.RuleId))
+        {
+            throw new ArgumentException(
+                "Saved Rule id and exact execution identity must agree.",
+                nameof(savedRule));
+        }
+
+        SavedRule = savedRule;
         EffectiveLimits = effectiveLimits;
         OccupancySegments = Array.AsReadOnly(_occupancySegments);
         Issues = Array.AsReadOnly(_issues);
@@ -57,6 +67,9 @@ public sealed record GeneralAuthoringAdmissionResult
 
     /// <summary>Optional Saved Rule narrowing identity.</summary>
     public string? SavedRuleId { get; }
+
+    /// <summary>Exact content-identified Saved Rule revision, when available.</summary>
+    public SavedRuleExecutionIdentity? SavedRule { get; }
 
     /// <summary>All authored writer segments in canonical target/range/id order.</summary>
     public IReadOnlyList<GeneralOccupancySegment> OccupancySegments { get; }
@@ -97,7 +110,8 @@ public sealed record GeneralAuthoringAdmissionResult
             EffectiveLimits,
             InputResources,
             OccupancySegments,
-            Issues);
+            Issues,
+            SavedRule);
     }
 }
 
@@ -146,6 +160,7 @@ public static class GeneralAuthoringAdmission
                 draft,
                 trustedParent.ParentId,
                 savedRule?.RuleId,
+                savedRule?.ExecutionIdentity,
                 null,
                 observedResources,
                 occupancy,
@@ -161,6 +176,7 @@ public static class GeneralAuthoringAdmission
             draft,
             trustedParent.ParentId,
             savedRule?.RuleId,
+            savedRule?.ExecutionIdentity,
             effective,
             observedResources,
             occupancy,
@@ -408,6 +424,7 @@ public static class GeneralAuthoringAdmission
         GeneralMappingDraftState draft,
         string trustedParentId,
         string? savedRuleId,
+        SavedRuleExecutionIdentity? savedRule,
         GeneralResourceLimits? effectiveLimits,
         IEnumerable<GeneralInputResource> inputResources,
         GeneralOccupancySegment[] occupancy,
@@ -427,7 +444,8 @@ public static class GeneralAuthoringAdmission
             effectiveLimits,
             inputResources,
             Array.AsReadOnly(occupancy),
-            Array.AsReadOnly(orderedIssues));
+            Array.AsReadOnly(orderedIssues),
+            savedRule);
     }
 
     private static string FormatRange(ByteRange range)
@@ -453,7 +471,8 @@ public sealed record GeneralAuthoringAdmissionSummary
         GeneralResourceLimits? effectiveLimits,
         IEnumerable<GeneralInputResource> inputResources,
         IEnumerable<GeneralOccupancySegment> occupancySegments,
-        IEnumerable<GeneralAuthoringAdmissionIssue> issues)
+        IEnumerable<GeneralAuthoringAdmissionIssue> issues,
+        SavedRuleExecutionIdentity? savedRule = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(trustedParentId);
         ArgumentNullException.ThrowIfNull(occupancySegments);
@@ -463,6 +482,15 @@ public sealed record GeneralAuthoringAdmissionSummary
         SavedRuleId = string.IsNullOrWhiteSpace(savedRuleId)
             ? null
             : savedRuleId;
+        if (savedRule is not null &&
+            !StringComparer.Ordinal.Equals(SavedRuleId, savedRule.RuleId))
+        {
+            throw new ArgumentException(
+                "Saved Rule id and exact execution identity must agree.",
+                nameof(savedRule));
+        }
+
+        SavedRule = savedRule;
         EffectiveLimits = effectiveLimits;
         _inputResources = [.. inputResources];
         _occupancySegments = [.. occupancySegments];
@@ -485,6 +513,9 @@ public sealed record GeneralAuthoringAdmissionSummary
 
     /// <summary>Optional Saved Rule narrowing identity.</summary>
     public string? SavedRuleId { get; }
+
+    /// <summary>Exact content-identified Saved Rule revision, when available.</summary>
+    public SavedRuleExecutionIdentity? SavedRule { get; }
 
     /// <summary>Resolved effective limits, or null for failed resolution.</summary>
     public GeneralResourceLimits? EffectiveLimits { get; }
