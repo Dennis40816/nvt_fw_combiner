@@ -9,7 +9,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
 /// <summary>Integration evidence for controlled Saved Rule document lifecycle writes.</summary>
-public sealed class SavedRuleDocumentStorageTests
+public sealed partial class SavedRuleDocumentStorageTests
 {
     /// <summary>Semantic Save-in-place overwrites local bytes and clears every prior gate.</summary>
     [Fact]
@@ -267,6 +267,11 @@ public sealed class SavedRuleDocumentStorageTests
             path => Path.GetFileName(path).EndsWith(
                 ".tmp",
                 StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            Directory.EnumerateFiles(authoringRoot),
+            path => Path.GetFileName(path).EndsWith(
+                ".lease",
+                StringComparison.Ordinal));
     }
 
     /// <summary>The complete rule identity is derived from strict document bytes, never caller fields.</summary>
@@ -362,98 +367,6 @@ public sealed class SavedRuleDocumentStorageTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(expectedBytes, storage.WrittenBytes);
-    }
-
-    /// <summary>Configured roots and resolved targets remain fail-closed against path replacement.</summary>
-    [Fact]
-    public async Task StorageRejectsOverlapEscapeAndResolvedTargetReparse()
-    {
-        using var workspace = TempWorkspace.Create("nfc-saved-rule-path-guard");
-        string authoringRoot = CreateDirectory(workspace, "authoring");
-        string catalogRoot = CreateDirectory(workspace, "catalog");
-        _ = Assert.Throws<ArgumentException>(() =>
-            new SavedRuleDocumentStorage([authoringRoot], [authoringRoot]));
-        var storage = new SavedRuleDocumentStorage(
-            [authoringRoot],
-            [catalogRoot]);
-        _ = Assert.Throws<UnauthorizedAccessException>(() =>
-            storage.ResolveTarget(workspace.PathFor("outside.json")));
-
-        string targetPath = Path.Combine(authoringRoot, "target.json");
-        SavedRuleDocumentStorageLocation target =
-            storage.ResolveTarget(targetPath);
-        string outsidePath = workspace.PathFor("outside-target.json");
-        await File.WriteAllBytesAsync(
-            outsidePath,
-            Document("outside"),
-            TestContext.Current.CancellationToken);
-        try
-        {
-            _ = File.CreateSymbolicLink(targetPath, outsidePath);
-        }
-        catch (Exception exception) when (
-            exception is UnauthorizedAccessException or
-                PlatformNotSupportedException or IOException)
-        {
-            return;
-        }
-
-        _ = await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
-            await storage.WriteAsync(
-                target,
-                Document("after"),
-                TestContext.Current.CancellationToken));
-        Assert.Equal(
-            Document("outside"),
-            await File.ReadAllBytesAsync(
-                outsidePath,
-                TestContext.Current.CancellationToken));
-    }
-
-    /// <summary>A failed atomic promotion removes its staging file and preserves the destination.</summary>
-    [Fact]
-    public async Task FailedWindowsPromotionRemovesTemporaryArtifact()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        using var workspace = TempWorkspace.Create("nfc-saved-rule-move-failure");
-        string authoringRoot = CreateDirectory(workspace, "authoring");
-        string catalogRoot = CreateDirectory(workspace, "catalog");
-        var storage = new SavedRuleDocumentStorage(
-            [authoringRoot],
-            [catalogRoot]);
-        string targetPath = Path.Combine(authoringRoot, "rule.json");
-        SavedRuleDocumentStorageLocation target =
-            storage.ResolveTarget(targetPath);
-        byte[] original = Document("before");
-        await File.WriteAllBytesAsync(
-            targetPath,
-            original,
-            TestContext.Current.CancellationToken);
-        await using (FileStream lockStream = new(
-                         targetPath,
-                         FileMode.Open,
-                         FileAccess.Read,
-                         FileShare.None))
-        {
-            _ = await Assert.ThrowsAsync<UnauthorizedAccessException>(async () =>
-                await storage.WriteAsync(
-                    target,
-                    Document("after"),
-                    TestContext.Current.CancellationToken));
-        }
-
-        Assert.Equal(original, await File.ReadAllBytesAsync(
-            targetPath,
-            TestContext.Current.CancellationToken));
-        Assert.DoesNotContain(
-            Directory.EnumerateFiles(authoringRoot),
-            path => Path.GetFileName(path).EndsWith(
-                ".tmp",
-                StringComparison.Ordinal));
     }
 
     private static SavedRuleDocumentLifecycleUseCase CreateUseCase(

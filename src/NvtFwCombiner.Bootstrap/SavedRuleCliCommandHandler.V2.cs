@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -36,24 +37,82 @@ internal static partial class SavedRuleCliCommandHandler
         TextWriter output,
         TextWriter error)
     {
-        SavedRuleV2DraftLoadResult<GeneralMergeDraftState> load;
+        SavedRuleV2Inspection? inspection;
         try
         {
             using var document = JsonDocument.Parse(
                 File.ReadAllText(Path.GetFullPath(path)));
-            if (!TryResolveV2GeneralMergeParent(
-                    document.RootElement,
-                    out SavedRuleV2GeneralMergeAdmissionContext? context,
-                    out SavedRuleValidationIssue? issue))
+            JsonElement root = document.RootElement;
+            if (MatchesV2Workflow(
+                    root,
+                    SavedRuleSchemaTokens.CompositionKindMerge,
+                    IcWorkflowIds.GeneralMerge))
             {
-                await PrintIssuesAsync([issue!], error).ConfigureAwait(false);
+                if (!TryResolveV2GeneralMergeParent(
+                        root,
+                        out SavedRuleV2GeneralMergeAdmissionContext? context,
+                        out SavedRuleValidationIssue? issue))
+                {
+                    await PrintIssuesAsync([issue!], error).ConfigureAwait(false);
+                    return CompositionFailed;
+                }
+
+                SavedRuleV2DraftLoadResult<GeneralMergeDraftState> load =
+                    SavedRuleV2GeneralMergeDraftLoader.Load(
+                        path,
+                        CreatePlaceholderBindings(root, context!.InputPolicies),
+                        context);
+                if (!load.IsValid)
+                {
+                    await PrintIssuesAsync(load.Issues, error).ConfigureAwait(false);
+                    return CompositionFailed;
+                }
+
+                inspection = new SavedRuleV2Inspection(
+                    load.ExecutionIdentity!,
+                    load.Draft!.Mappings);
+            }
+            else if (MatchesV2Workflow(
+                         root,
+                         SavedRuleSchemaTokens.CompositionKindReplace,
+                         IcWorkflowIds.GeneralReplace))
+            {
+                if (!TryResolveV2GeneralReplaceParent(
+                        root,
+                        out SavedRuleV2GeneralReplaceAdmissionContext? context,
+                        out SavedRuleValidationIssue? issue))
+                {
+                    await PrintIssuesAsync([issue!], error).ConfigureAwait(false);
+                    return CompositionFailed;
+                }
+
+                SavedRuleV2DraftLoadResult<GeneralMappingDraftState> load =
+                    SavedRuleV2GeneralMergeDraftLoader.LoadGeneralReplace(
+                        path,
+                        CreatePlaceholderBindings(root, context!.InputPolicies),
+                        context);
+                if (!load.IsValid)
+                {
+                    await PrintIssuesAsync(load.Issues, error).ConfigureAwait(false);
+                    return CompositionFailed;
+                }
+
+                inspection = new SavedRuleV2Inspection(
+                    load.ExecutionIdentity!,
+                    load.Draft!);
+            }
+            else
+            {
+                await PrintIssuesAsync(
+                    [
+                        new SavedRuleValidationIssue(
+                            SavedRuleIssueCodes.V2ContractInvalid,
+                            "Saved Rule v2 requires one supported compositionKind/sourceExperienceId pair.",
+                            "$"),
+                    ],
+                    error).ConfigureAwait(false);
                 return CompositionFailed;
             }
-
-            load = SavedRuleV2GeneralMergeDraftLoader.Load(
-                path,
-                CreatePlaceholderBindings(document.RootElement, context!),
-                context!);
         }
         catch (Exception exception) when (
             exception is IOException or
@@ -72,13 +131,7 @@ internal static partial class SavedRuleCliCommandHandler
             return CompositionFailed;
         }
 
-        if (!load.IsValid)
-        {
-            await PrintIssuesAsync(load.Issues, error).ConfigureAwait(false);
-            return CompositionFailed;
-        }
-
-        SavedRuleExecutionIdentity identity = load.ExecutionIdentity!;
+        SavedRuleExecutionIdentity identity = inspection.Identity;
         SavedRuleLifecycleSnapshot lifecycle = SavedRuleLifecycle.Import(identity);
         await output.WriteLineAsync(
             $"Rule: {identity.RuleId} {identity.RuleVersion}").ConfigureAwait(false);
@@ -92,10 +145,10 @@ internal static partial class SavedRuleCliCommandHandler
             $"Parent: {identity.Parent.BundleId} / {identity.Parent.ProfileId} / {identity.Parent.FamilyId} / {identity.Parent.MapId}")
             .ConfigureAwait(false);
         await output.WriteLineAsync(
-            $"Mappings: {load.Draft!.Mappings.Rows.Count}").ConfigureAwait(false);
+            $"Mappings: {inspection.Mappings.Rows.Count}").ConfigureAwait(false);
         if (action == "mappings")
         {
-            await PrintMappingsAsync(load.Draft.Mappings, output).ConfigureAwait(false);
+            await PrintMappingsAsync(inspection.Mappings, output).ConfigureAwait(false);
         }
 
         return Success;
@@ -107,21 +160,11 @@ internal static partial class SavedRuleCliCommandHandler
         out SavedRuleValidationIssue? issue)
     {
         context = null;
-        if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty("parentBinding", out JsonElement parent) ||
-            parent.ValueKind != JsonValueKind.Object ||
-            !parent.TryGetProperty("profileId", out JsonElement profileIdElement) ||
-            profileIdElement.ValueKind != JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(profileIdElement.GetString()))
+        if (!TryReadV2ParentProfileId(root, out string? profileId, out issue))
         {
-            issue = new SavedRuleValidationIssue(
-                SavedRuleIssueCodes.V2ContractInvalid,
-                "Saved Rule v2 requires one exact parentBinding.profileId.",
-                "$.parentBinding.profileId");
             return false;
         }
 
-        string profileId = profileIdElement.GetString()!;
         SavedRuleV2GeneralMergeAdmissionContext[] matches =
         [
             .. BuiltInV2RegistrationRegistry.GeneralMergeByIc.Values
@@ -148,11 +191,80 @@ internal static partial class SavedRuleCliCommandHandler
         return true;
     }
 
+    private static bool TryResolveV2GeneralReplaceParent(
+        JsonElement root,
+        out SavedRuleV2GeneralReplaceAdmissionContext? context,
+        out SavedRuleValidationIssue? issue)
+    {
+        context = null;
+        if (!TryReadV2ParentProfileId(root, out string? profileId, out issue))
+        {
+            return false;
+        }
+
+        SavedRuleV2GeneralReplaceAdmissionContext installed =
+            WorkbenchCompositionService
+                .GetNt51926GeneralReplaceSavedRuleAdmissionContext();
+        if (!StringComparer.Ordinal.Equals(
+                installed.ParentBinding.ProfileId,
+                profileId))
+        {
+            issue = new SavedRuleValidationIssue(
+                SavedRuleIssueCodes.V2ParentNarrowingInvalid,
+                $"Exact Saved Rule v2 Parent profile '{profileId}' is not uniquely installed in the Trusted Catalog.",
+                "$.parentBinding");
+            return false;
+        }
+
+        context = installed;
+        issue = null;
+        return true;
+    }
+
+    private static bool TryReadV2ParentProfileId(
+        JsonElement root,
+        out string? profileId,
+        out SavedRuleValidationIssue? issue)
+    {
+        profileId = null;
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("parentBinding", out JsonElement parent) ||
+            parent.ValueKind != JsonValueKind.Object ||
+            !parent.TryGetProperty("profileId", out JsonElement profileIdElement) ||
+            profileIdElement.ValueKind != JsonValueKind.String ||
+            string.IsNullOrWhiteSpace(profileIdElement.GetString()))
+        {
+            issue = new SavedRuleValidationIssue(
+                SavedRuleIssueCodes.V2ContractInvalid,
+                "Saved Rule v2 requires one exact parentBinding.profileId.",
+                "$.parentBinding.profileId");
+            return false;
+        }
+
+        profileId = profileIdElement.GetString();
+        issue = null;
+        return true;
+    }
+
+    private static bool MatchesV2Workflow(
+        JsonElement root,
+        string compositionKind,
+        string experienceId)
+    {
+        return root.ValueKind == JsonValueKind.Object &&
+            root.TryGetProperty("compositionKind", out JsonElement kind) &&
+            kind.ValueKind == JsonValueKind.String &&
+            StringComparer.Ordinal.Equals(kind.GetString(), compositionKind) &&
+            root.TryGetProperty("sourceExperienceId", out JsonElement experience) &&
+            experience.ValueKind == JsonValueKind.String &&
+            StringComparer.Ordinal.Equals(experience.GetString(), experienceId);
+    }
+
     private static Dictionary<string, string> CreatePlaceholderBindings(
         JsonElement root,
-        SavedRuleV2GeneralMergeAdmissionContext context)
+        IReadOnlyList<SavedRuleV2ParentInputPolicy> inputPolicies)
     {
-        var bindings = context.InputPolicies.ToDictionary(
+        var bindings = inputPolicies.ToDictionary(
             static policy => policy.SlotId,
             static policy => policy.SlotId,
             StringComparer.Ordinal);
@@ -176,4 +288,8 @@ internal static partial class SavedRuleCliCommandHandler
 
         return bindings;
     }
+
+    private sealed record SavedRuleV2Inspection(
+        SavedRuleExecutionIdentity Identity,
+        GeneralMappingDraftState Mappings);
 }

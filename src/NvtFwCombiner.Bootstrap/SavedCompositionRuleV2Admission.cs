@@ -338,6 +338,15 @@ internal static partial class SavedCompositionRuleV2Admission
         var parentSlots = context.InputPolicies
             .Select(static policy => policy.SlotId)
             .ToHashSet(StringComparer.Ordinal);
+        foreach (string slotId in ruleSlots.Intersect(
+                     parentSlots,
+                     StringComparer.Ordinal))
+        {
+            issues.Add(Issue(
+                SavedRuleIssueCodes.V2ParentNarrowingInvalid,
+                $"Saved Rule v2 rule-slot '{slotId}' collides with exact Parent slot '{slotId}'.",
+                "$.slotTemplates"));
+        }
 
         int index = 0;
         foreach (JsonElement fragment in root.GetProperty("mappingFragments").EnumerateArray())

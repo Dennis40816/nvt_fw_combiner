@@ -603,7 +603,7 @@ public sealed partial class ReplaceCliCommandTests
         return path;
     }
 
-    private static JsonObject ValidGeneralReplaceV2RuleObject()
+    internal static JsonObject ValidGeneralReplaceV2RuleObject()
     {
         return JsonNode.Parse(
             /*lang=json,strict*/ """

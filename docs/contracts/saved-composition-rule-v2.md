@@ -67,6 +67,10 @@ targets are offsets within canonical map regions, never absolute unowned writes.
 bounds, alignment, overlap, atomicity, protected range, and processor dependencies are checked by
 the same profile compiler.
 
+Parent input slot ids and rule `slotTemplateId` values are one disjoint namespace. A rule whose
+slot template collides with any exact Parent slot is compatibility-invalid and must fail closed;
+it cannot shadow or rebind the Parent's required input.
+
 The General Merge/General Replace authoring contract currently admits only
 `overlapPolicy = reject`. Any intersection between two user-authored target
 ranges is an order-independent blocker even though the wider profile operation

@@ -14,6 +14,7 @@ public static partial class WorkbenchCompositionService
         "nt51926-general-replace-dp-single-candidate";
     internal const string Nt51926GeneralReplaceDpProfileVersion = "0.1.0";
     internal const string Nt51926GeneralReplaceIcId = "NT51926";
+    internal const string Nt51926GeneralReplaceReferenceSlotId = "reference";
     private const string Nt51926GeneralReplaceReferenceSpaceId = "reference-image";
 
     private static bool IsNt51926GeneralReplaceDpV2Route(
@@ -42,7 +43,10 @@ public static partial class WorkbenchCompositionService
     {
         V2RuntimeReferenceReplaceInputBinding[] bindings =
         [
-            new(Nt51926GeneralReplaceReferenceSpaceId, "reference", context.Capacity),
+            new(
+                Nt51926GeneralReplaceReferenceSpaceId,
+                Nt51926GeneralReplaceReferenceSlotId,
+                context.Capacity),
             .. sourceSpaces.Select(static source =>
                 new V2RuntimeReferenceReplaceInputBinding(source.AddressSpaceId, "source", source.Length)),
         ];

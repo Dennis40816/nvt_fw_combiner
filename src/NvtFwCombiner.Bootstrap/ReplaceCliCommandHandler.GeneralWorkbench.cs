@@ -40,6 +40,7 @@ internal static partial class ReplaceCliCommandHandler
                 ? !TryCreateGeneralReplaceDraftFromSavedRule(
                     rulePath!,
                     options.GetValues("--slot"),
+                    basePath,
                     icId,
                     error,
                     out GeneralMappingDraftState? mappingDraft,
@@ -108,6 +109,7 @@ internal static partial class ReplaceCliCommandHandler
     private static bool TryCreateGeneralReplaceDraftFromSavedRule(
         string rulePath,
         IReadOnlyList<string> slotValues,
+        string basePath,
         string icId,
         TextWriter error,
         [NotNullWhen(true)] out GeneralMappingDraftState? mappingDraft,
@@ -131,6 +133,17 @@ internal static partial class ReplaceCliCommandHandler
         {
             return false;
         }
+
+        const string parentReferenceSlotId =
+            WorkbenchCompositionService.Nt51926GeneralReplaceReferenceSlotId;
+        if (slotsById.ContainsKey(parentReferenceSlotId))
+        {
+            error.WriteLine(
+                $"error: --slot {parentReferenceSlotId} is reserved for --base");
+            return false;
+        }
+
+        slotsById.Add(parentReferenceSlotId, Path.GetFullPath(basePath));
 
         SavedRuleV2DraftLoadResult<GeneralMappingDraftState> load =
             SavedRuleV2GeneralMergeDraftLoader.LoadGeneralReplace(

@@ -103,38 +103,20 @@ public sealed class SavedRuleDocumentStorage : ISavedRuleDocumentStorage
                 "Saved Rule target no longer matches its resolved location.");
         }
 
-        string directory = Path.GetDirectoryName(destinationPath)!;
-        string tempPath = Path.Combine(
-            directory,
-            $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
-        try
+        using IAtomicFileWriteScope writeScope =
+            AtomicFileWriteScope.Open(destinationPath);
+        destinationPath = FileSystemPathGuard.ResolveFileUnderRoots(
+            target.DocumentId,
+            _authoringRoots,
+            mustExist: false);
+        if (!DocumentIdComparer.Equals(destinationPath, target.DocumentId))
         {
-            await using (var stream = new FileStream(
-                             tempPath,
-                             FileMode.CreateNew,
-                             FileAccess.Write,
-                             FileShare.None,
-                             bufferSize: 131_072,
-                             FileOptions.Asynchronous |
-                             FileOptions.SequentialScan |
-                             FileOptions.WriteThrough))
-            {
-                await stream.WriteAsync(documentBytes, cancellationToken)
-                    .ConfigureAwait(false);
-                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            File.Move(tempPath, destinationPath, overwrite: true);
+            throw new UnauthorizedAccessException(
+                "Saved Rule target changed while acquiring its directory lease.");
         }
-        catch
-        {
-            if (File.Exists(tempPath))
-            {
-                File.Delete(tempPath);
-            }
 
-            throw;
-        }
+        await writeScope.WriteAsync(documentBytes, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private SavedRuleDocumentStorageLocation Location(string path)
