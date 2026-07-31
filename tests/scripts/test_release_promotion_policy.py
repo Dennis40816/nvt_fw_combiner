@@ -287,6 +287,62 @@ class ReleasePromotionPolicyTests(unittest.TestCase):
                         expected_message=TAG_MESSAGE,
                     )
 
+    def test_existing_tag_accepts_crlf_transport_but_rejects_logical_drift(
+        self,
+    ) -> None:
+        tag_ref = {"object": {"type": "tag", "sha": TAG_OBJECT_SHA}}
+        tag_object = {
+            "sha": TAG_OBJECT_SHA,
+            "tag": "v0.9.14",
+            "object": {"type": "commit", "sha": SHA},
+            "message": TAG_MESSAGE.replace("\n", "\r\n"),
+        }
+
+        MODULE.validate_existing_tag(
+            tag_ref,
+            tag_object,
+            expected_tag="v0.9.14",
+            source_sha=SHA,
+            expected_message=TAG_MESSAGE,
+        )
+
+        with self.assertRaisesRegex(ValueError, "message differs"):
+            MODULE.validate_existing_tag(
+                tag_ref,
+                {
+                    **tag_object,
+                    "message": "NVT FW Combiner v0.9.14\r\ncandidate-run: 100",
+                },
+                expected_tag="v0.9.14",
+                source_sha=SHA,
+                expected_message=TAG_MESSAGE,
+            )
+
+    def test_existing_tag_rejects_every_non_transport_message_difference(self) -> None:
+        tag_ref = {"object": {"type": "tag", "sha": TAG_OBJECT_SHA}}
+        tag_object = {
+            "sha": TAG_OBJECT_SHA,
+            "tag": "v0.9.14",
+            "object": {"type": "commit", "sha": SHA},
+        }
+        mutations = (
+            " " + TAG_MESSAGE,
+            TAG_MESSAGE + " ",
+            TAG_MESSAGE + "\n",
+            TAG_MESSAGE.replace("\n", "\r"),
+        )
+
+        for message in mutations:
+            with self.subTest(message=repr(message)):
+                with self.assertRaisesRegex(ValueError, "message differs"):
+                    MODULE.validate_existing_tag(
+                        tag_ref,
+                        {**tag_object, "message": message},
+                        expected_tag="v0.9.14",
+                        source_sha=SHA,
+                        expected_message=TAG_MESSAGE,
+                    )
+
     def test_existing_release_metadata_returns_zero_one_or_all_names_as_arrays(
         self,
     ) -> None:
