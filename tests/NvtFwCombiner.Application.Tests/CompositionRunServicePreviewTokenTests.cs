@@ -77,15 +77,15 @@ public sealed partial class CompositionRunServiceTests
             {
                 ["reference-artifact"] = [0, 0, 0, 0, 0, 0, 0, 0],
                 ["dp-artifact"] = [1, 2, 3, 4],
-                ["ld-artifact"] = [5, 6],
+                ["ldc-artifact"] = [5, 6],
             }),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
 
         CompositionRunResult first = await service.PreviewAsync(
-            CreateDpReplaceRequest("51920"),
+            CreateDpReplaceRequest("51923"),
             CancellationToken.None);
         CompositionRunResult second = await service.PreviewAsync(
-            CreateDpReplaceRequest("51921"),
+            CreateDpReplaceRequest("51926"),
             CancellationToken.None);
 
         Assert.Equal(first.OutputBytes.ToArray(), second.OutputBytes.ToArray());

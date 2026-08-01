@@ -153,14 +153,11 @@ public sealed class IcSupportCatalogTests
         [
             "NT51917",
             "NT51919",
-            "NT51920",
             "NT51923",
             "NT51926",
             "NT51927",
             "NT51928",
             "NT51929",
-            "NT51930",
-            "NT51931",
             "NT51932",
             "NT51950",
             "NT51951",
@@ -169,6 +166,20 @@ public sealed class IcSupportCatalogTests
         Assert.Equal(expectedStandardMergeIcIds, supportedIcIds);
         Assert.All(expectedStandardMergeIcIds, icId =>
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
+    }
+
+    /// <summary>Owner-retired ICs cannot remain selectable or expose any production workflow.</summary>
+    [Theory]
+    [InlineData("NT51920")]
+    [InlineData("NT51925")]
+    [InlineData("NT51930")]
+    [InlineData("NT51931")]
+    public void RetiredIcIdsAreNotProductionCatalogMembers(string icId)
+    {
+        Assert.False(IcSupportCatalog.TryFind(icId, out _));
+        Assert.All(
+            IcWorkflowIds.All,
+            workflowId => Assert.False(IcSupportCatalog.SupportsWorkflow(icId, workflowId), workflowId));
     }
 
     /// <summary>DP Replace exposure follows a canonical Standard Merge map; evidence readiness remains separate.</summary>
@@ -188,20 +199,6 @@ public sealed class IcSupportCatalogTests
             dpReplaceIcIds);
         Assert.All(dpReplaceIcIds, icId =>
             Assert.True(IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.StandardMerge), icId));
-    }
-
-    /// <summary>NT51931 exposes canonical DP and CtrlRAM Replace while General Replace remains closed.</summary>
-    [Fact]
-    public void Nt51931DpAndCtrlRamReplaceAreExposed()
-    {
-        Assert.True(IcSupportCatalog.TryFind("NT51931", out IcSupportEntry? entry));
-        Assert.True(entry!.SupportsWorkflow(IcWorkflowIds.StandardMerge));
-        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.GeneralMerge));
-        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.DpReplace));
-        Assert.True(entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace));
-        Assert.False(entry.SupportsWorkflow(IcWorkflowIds.GeneralReplace));
-        Assert.Contains("canonical 256 KiB", entry.Notes, StringComparison.Ordinal);
-        Assert.Contains("support-neutral", entry.Notes, StringComparison.Ordinal);
     }
 
     /// <summary>Alias facts are explicit instead of being hidden in separate profile tables.</summary>
@@ -292,9 +289,9 @@ public sealed class IcSupportCatalogTests
             IcWorkflowEvidenceStatus.GoldenVerified,
             nt51950!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
 
-        Assert.True(IcSupportCatalog.TryFind("NT51930", out IcSupportEntry? nt51930));
+        Assert.True(IcSupportCatalog.TryFind("NT51928", out IcSupportEntry? nt51928));
         Assert.Equal(
             IcWorkflowEvidenceStatus.EvidenceGated,
-            nt51930!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
+            nt51928!.GetWorkflowEvidenceStatus(IcWorkflowIds.DpReplace));
     }
 }

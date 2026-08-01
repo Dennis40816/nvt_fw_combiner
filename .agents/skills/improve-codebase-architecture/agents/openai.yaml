@@ -1,6 +1,0 @@
-interface:
-  display_name: "Improve Codebase Architecture"
-  short_description: "Find and grill architecture improvements"
-  default_prompt: "Use $improve-codebase-architecture to survey NFC architecture friction and present reviewable deepening candidates."
-policy:
-  allow_implicit_invocation: false

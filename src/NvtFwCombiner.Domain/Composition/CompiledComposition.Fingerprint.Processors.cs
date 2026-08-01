@@ -5,6 +5,38 @@ namespace NvtFwCombiner.Domain.Composition;
 
 public sealed partial class CompiledComposition
 {
+    private static void AppendRuntimeReferenceCompilationContext(
+        StringBuilder builder,
+        RuntimeReferenceReplaceV2CompilationContext context,
+        bool capabilityBound)
+    {
+        AppendEnum(builder, "compilation-context", context.Kind);
+        if (context.AllowsConditionalProcessor)
+        {
+            AppendInteger(
+                builder,
+                "compilation-context.conditional-processor",
+                1);
+        }
+
+        if (!capabilityBound)
+        {
+            return;
+        }
+
+        AppendInteger(
+            builder,
+            "compilation-context.processor-write-view.count",
+            context.ProcessorWriteViewIds.Count);
+        for (int index = 0; index < context.ProcessorWriteViewIds.Count; index++)
+        {
+            AppendField(
+                builder,
+                $"compilation-context.processor-write-view.{index}",
+                context.ProcessorWriteViewIds[index]);
+        }
+    }
+
     private static void AppendProcessor(
         StringBuilder builder,
         string operationPrefix,
@@ -52,6 +84,24 @@ public sealed partial class CompiledComposition
             AppendField(builder, $"{bindingPrefix}.source-space", binding.SourceSpaceId);
             AppendRange(builder, $"{bindingPrefix}.source-range", binding.SourceRange);
             AppendRange(builder, $"{bindingPrefix}.firmware-range", binding.FirmwareRange);
+        }
+
+        AppendInteger(builder, $"{prefix}.staged-artifact.count", invocation.StagedArtifactBindings.Count);
+        for (int index = 0; index < invocation.StagedArtifactBindings.Count; index++)
+        {
+            ExternalProcessorStagedArtifactBinding binding =
+                invocation.StagedArtifactBindings[index];
+            string bindingPrefix =
+                FormattableString.Invariant($"{prefix}.staged-artifact.{index}");
+            AppendField(builder, $"{bindingPrefix}.id", binding.ArtifactId);
+            AppendField(
+                builder,
+                $"{bindingPrefix}.source-space",
+                binding.SourceSpaceId);
+            AppendRange(
+                builder,
+                $"{bindingPrefix}.source-range",
+                binding.SourceRange);
         }
     }
 }

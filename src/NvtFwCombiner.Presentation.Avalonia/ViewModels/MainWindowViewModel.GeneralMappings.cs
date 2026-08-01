@@ -33,7 +33,12 @@ public sealed partial class MainWindowViewModel
 
         if (mapping is GeneralMergeMappingViewModel)
         {
+            _acceptedGeneralMergeDraft = null;
             RefreshMergeMemoryMapState();
+        }
+        else
+        {
+            _acceptedGeneralReplaceDraft = null;
         }
         RefreshCommandState();
     }
@@ -49,6 +54,14 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
+        if (mapping is GeneralMergeMappingViewModel)
+        {
+            _acceptedGeneralMergeDraft = null;
+        }
+        else
+        {
+            _acceptedGeneralReplaceDraft = null;
+        }
         mapping.FilePath = path;
         if (mapping is GeneralMergeMappingViewModel)
         {

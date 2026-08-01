@@ -508,8 +508,53 @@ public sealed partial class CompositionRunRequestV2Tests
         string modeId = "standard",
         FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden,
         TopologyRequirement? topologyRequirement = null,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
+        FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
+        bool includeNestedCtrlRamRegion = false)
     {
+        FirmwareRegion[] regions = includeNestedCtrlRamRegion
+            ?
+            [
+                new FirmwareRegion(
+                    "root",
+                    parentRegionId: null,
+                    FirmwareRegionOwner.System,
+                    FirmwareRegionKind.Image,
+                    new ByteRange(0, 4),
+                    rootWriteConstraint),
+                new FirmwareRegion(
+                    "prefix",
+                    "root",
+                    FirmwareRegionOwner.Unknown,
+                    FirmwareRegionKind.Unmapped,
+                    new ByteRange(0, 1),
+                    FirmwareWriteConstraint.Forbidden),
+                new FirmwareRegion(
+                    "ctrlram",
+                    "root",
+                    FirmwareRegionOwner.Tp,
+                    FirmwareRegionKind.CtrlRam,
+                    new ByteRange(1, 2),
+                    FirmwareWriteConstraint.ExplicitRange),
+                new FirmwareRegion(
+                    "suffix",
+                    "root",
+                    FirmwareRegionOwner.Unknown,
+                    FirmwareRegionKind.Unmapped,
+                    new ByteRange(3, 1),
+                    FirmwareWriteConstraint.Forbidden),
+            ]
+            :
+            [
+                new FirmwareRegion(
+                    "root",
+                    parentRegionId: null,
+                    rootOwner,
+                    rootKind,
+                    new ByteRange(0, 4),
+                    rootWriteConstraint),
+            ];
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
             "flash",
@@ -522,13 +567,7 @@ public sealed partial class CompositionRunRequestV2Tests
             [new FirmwareRegionSet(
                 "physical",
                 "flash",
-                [new FirmwareRegion(
-                    "root",
-                    parentRegionId: null,
-                    FirmwareRegionOwner.System,
-                    FirmwareRegionKind.Image,
-                    new ByteRange(0, 4),
-                    rootWriteConstraint)],
+                regions,
                 ["map-evidence"])],
             [],
             ["map-evidence"]);

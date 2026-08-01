@@ -20,6 +20,11 @@ internal static partial class MergeCliCommandHandler
         await output.WriteLineAsync($"Output: {result.OutputFileName}").ConfigureAwait(false);
         await output.WriteLineAsync($"Size: {result.OutputSize.ToString(CultureInfo.InvariantCulture)} bytes").ConfigureAwait(false);
         await output.WriteLineAsync($"SHA256: {result.OutputSha256}").ConfigureAwait(false);
+        if (result.PreviewToken is not null)
+        {
+            await output.WriteLineAsync($"PreviewToken: {result.PreviewToken}").ConfigureAwait(false);
+        }
+
         if (result.CommittedOutputId is not null)
         {
             await output.WriteLineAsync($"Committed: {result.CommittedOutputId}").ConfigureAwait(false);

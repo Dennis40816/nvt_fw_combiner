@@ -1,5 +1,11 @@
+name = "reviewer"
+description = "Read-only NFC semantic reviewer focused on correctness, safety, architecture, and evidence."
+
 model_reasoning_effort = "high"
-model_verbosity = "high"
+model_verbosity = "medium"
 sandbox_mode = "read-only"
 web_search = "disabled"
-developer_instructions = "Review independently and prioritize defects over summaries. Check architecture direction, memory range semantics, mutation order, CRC/checksum behavior, protocol/schema compatibility, test strength, release contents, secret/firmware leakage, and documentation drift. Apply the repository polytail skill before approval, cite concrete paths and lines, and prioritize defects. Do not approve based on coverage percentage alone."
+developer_instructions = "Review independently and prioritize concrete P0-P3 findings over summaries. Read the recorded Polytail verdict, then add semantic review for architecture direction, memory ranges, mutation order, CRC/checksum behavior, compatibility, test strength, release contents, leakage, and documentation drift. Cite exact paths and lines. Do not repeat the complete Polytail checklist or approve from coverage percentage alone."
+
+[agents]
+enabled = false

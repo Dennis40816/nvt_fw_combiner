@@ -107,11 +107,48 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Empty(preparation.Issues);
     }
 
-    /// <summary>Verifies a required metadata artifact remains a typed Domain pending requirement.</summary>
+    /// <summary>Verifies inspection-only metadata does not block composition preparation.</summary>
     [Fact]
-    public void PreparationPreservesPendingMissingArtifactRequirement()
+    public void PreparationDefersInspectionOnlyMetadataArtifactRequirement()
     {
-        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson: FamilyJsonRequiringArtifact());
+        string familyJson = FamilyJsonRequiringArtifact();
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
+            TrustedV2BundleTestDocuments.ProfileJson(Hash(familyJson))));
+        Assert.IsType<JsonArray>(
+            Assert.IsType<JsonObject>(profile["mapBinding"])["requiredMetadataStructureIds"])
+            .Add("firmware-config");
+        Assert.IsType<JsonArray>(profile["metadataBindings"]).Add(new JsonObject
+        {
+            ["bindingId"] = "firmware-config-inspection",
+            ["spaceId"] = "tp-source",
+            ["structureId"] = "firmware-config",
+            ["fieldIds"] = new JsonArray("pid"),
+            ["purposes"] = new JsonArray("display"),
+        });
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
+        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
+            catalog.SelectProfile("profile", "1.0.0").Selection);
+
+        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+            catalog,
+            Request(selection));
+
+        Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
+        Assert.NotNull(preparation.Admission);
+        Assert.Empty(preparation.Issues);
+    }
+
+    /// <summary>Verifies map-selection metadata still blocks when its required artifact is missing.</summary>
+    [Fact]
+    public void PreparationPreservesPendingMissingMapSelectionArtifactRequirement()
+    {
+        string familyJson = FamilyJsonRequiringArtifact();
+        string profileJson = TrustedV2BundleTestDocuments.ProfileJson(Hash(familyJson)).Replace(
+            "\"requiredMetadataStructureIds\": []",
+            "\"requiredMetadataStructureIds\": [\"firmware-config\"]",
+            StringComparison.Ordinal);
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
         TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
             catalog.SelectProfile("profile", "1.0.0").Selection);
 

@@ -8,33 +8,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Proves newly closed runtime plans compile only their declared topology and byte authority.</summary>
 public sealed class CtrlRamV2PlanClosureProfileTests
 {
-    private const string Nt51920BundleHash = "eafad4284d5e25dcfd32d54c4c160958a0fd7eb9a21dda3ae44f73f3a2cb56c7";
     private const string Nt51923BundleHash = "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f";
-    private const string Nt51926BundleHash = "4e77aef1aca3f388ef4c1526d88cd2f89f51132e76cfe0fccf774ccf786078e7";
-    private const string Nt51929BundleHash = "6e86f8d6df04bc8d54ddab5e28bcb962fc2f31f9c350e4603c1a8c12f97f4365";
+    private const string Nt51926BundleHash = "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529";
+    private const string Nt51929BundleHash = "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5";
     private const string Nt51928BundleHash = "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634";
-    private const string Nt51930BundleHash = "9750eaa60fc76f4368ea27279f4e3900af10ce3a252783b7f95fd8d6a0f7af57";
-    private const string Nt51931BundleHash = "5580e22edce0755c785693093917f12f2dfb173941e31ca12b1e2d1c312c5a20";
-    private const string Nt51932BundleHash = "7184a75733724cf85c0c63d219b24abbeac372eee1197063c2b2d2179aca7257";
-    private const string Nt51950BundleHash = "d3f745c68d948e7e3a3a07d5717de2114742f881444076d93d2232343f98049e";
-    private const string Nt51951BundleHash = "f48429f505f71fbe7c258780dc1ef848c1d9a402d79906c1e24b3a1097192728";
+    private const string Nt51932BundleHash = "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf";
+    private const string Nt51950BundleHash = "793e521f1015569ed57cb01033bf6e501abcc55c16b5fd890c7525af3e169926";
+    private const string Nt51951BundleHash = "0fae69274908a044493ac838ac8204cb7513433732804691f8a56d39e0a8eaba";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
     [Theory]
-    [InlineData(
-        "nt51920-ctrlram-replace-candidate",
-        Nt51920BundleHash,
-        "nt51920-ctrlram-replace-fw120-single",
-        "NT51920",
-        1,
-        0x22780)]
-    [InlineData(
-        "nt51920-ctrlram-replace-candidate",
-        Nt51920BundleHash,
-        "nt51920-ctrlram-replace-fw120-cascade2",
-        "NT51920",
-        2,
-        0x22780)]
     [InlineData(
         "nt51923-ctrlram-replace-candidate",
         Nt51923BundleHash,
@@ -108,7 +91,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51929-ctrlram-replace-candidate",
         Nt51929BundleHash,
@@ -119,40 +102,18 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
-    [InlineData(
-        "nt51930-ctrlram-replace-candidate",
-        Nt51930BundleHash,
-        "nt51930-ctrlram-replace-fw130-cascade3",
-        "NT51930",
-        3,
-        0x21650,
-        0x7128,
-        0x30,
-        0x40000,
-        "0.3.0")]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "nt51931-ctrlram-replace-fw130-cascade6",
-        "NT51931",
-        6,
-        0x16800,
-        0x6C,
-        0x4C,
-        0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,
-        "nt51932-ctrlram-replace-fw200-cascade3",
+        "nt51932-ctrlram-replace-fw200-cascade",
         "NT51932",
         3,
         0x1FC00,
         0x7128,
         0x1C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51950-ctrlram-replace-candidate",
         Nt51950BundleHash,
@@ -163,7 +124,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x40000,
-        "0.5.0")]
+        "0.6.0")]
     [InlineData(
         "nt51951-ctrlram-replace-candidate",
         Nt51951BundleHash,
@@ -174,7 +135,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x80000,
-        "0.5.0")]
+        "0.6.0")]
     public void CascadeProfilesCompileDlmCrcAuthority(
         string bundleDirectory,
         string bundleHash,
@@ -224,26 +185,6 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0x40000,
         "0.2.0")]
     [InlineData(
-        "nt51930-ctrlram-replace-candidate",
-        Nt51930BundleHash,
-        "nt51930-ctrlram-replace-fw1x-runtime-single",
-        "NT51930",
-        0x1FC00,
-        0x7128,
-        0x30,
-        0x40000,
-        "0.2.0")]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "nt51931-ctrlram-replace-fw1x-single",
-        "NT51931",
-        0x16800,
-        0x6C,
-        0x4C,
-        0x40000,
-        "0.2.0")]
-    [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,
         "nt51932-ctrlram-replace-fw1x-single",
@@ -262,7 +203,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x40000,
-        "0.3.0")]
+        "0.4.0")]
     [InlineData(
         "nt51951-ctrlram-replace-candidate",
         Nt51951BundleHash,
@@ -272,7 +213,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         0xA134,
         0x4C,
         0x80000,
-        "0.3.0")]
+        "0.4.0")]
     public void SingleProfilesExcludeCascadeDlmCrcAuthority(
         string bundleDirectory,
         string bundleHash,
@@ -317,7 +258,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             chipCount: 2,
             targetStart: 0x2D100,
             targetLength: 0x8C00,
-            profileVersion: "0.3.0");
+            profileVersion: "0.4.0");
 
         Assert.Equal("nt51929-ctrlram-fw1x-cascade-full-flash", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(processorId, Processor(composition).ProcessorId);
@@ -331,19 +272,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             static view => view.ViewId == "fw-config-backup-output");
     }
 
-    /// <summary>NT51931/NT51932 single routes compile without their cascade-only DiffDLM ranges.</summary>
+    /// <summary>NT51932 single routes compile without their cascade-only DiffDLM ranges.</summary>
     [Theory]
-    [InlineData(
-        "nt51931-ctrlram-replace-candidate",
-        Nt51931BundleHash,
-        "NT51931",
-        "nt51931-ctrlram-replace-fw1x-single",
-        "nfc.nt51931.ctrlram-postbuild-v1",
-        0x22800,
-        0x17C00,
-        0x16800,
-        1,
-        true)]
     [InlineData(
         "nt51932-ctrlram-replace-candidate",
         Nt51932BundleHash,
@@ -433,7 +363,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x40000,
-            profileVersion: "0.5.0");
+            profileVersion: "0.6.0");
         CompiledComposition nt51951 = Compile(
             "nt51951-ctrlram-replace-candidate",
             Nt51951BundleHash,
@@ -443,7 +373,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetStart: 0x33200,
             targetLength: 0x1400,
             referenceCapacity: 0x80000,
-            profileVersion: "0.5.0");
+            profileVersion: "0.6.0");
 
         Assert.Equal(0x40000, nt51950.V2Details!.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(0x80000, nt51951.V2Details!.Provenance.ResolvedMap.CapacityBytes);
@@ -461,7 +391,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51950-ctrlram-replace-fw200-single",
         "NT51950",
         1,
-        "0.3.0",
+        "0.4.0",
         0x22C00,
         "nt51950-ctrlram-fw200-single-tp-work")]
     [InlineData(
@@ -470,7 +400,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51950-ctrlram-replace-fw1x-cascade",
         "NT51950",
         2,
-        "0.5.0",
+        "0.6.0",
         0x33200,
         "nt51950-ctrlram-fw1x-cascade-tp-work")]
     [InlineData(
@@ -479,7 +409,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51951-ctrlram-replace-fw200-single",
         "NT51951",
         1,
-        "0.3.0",
+        "0.4.0",
         0x22C00,
         "nt51951-ctrlram-fw200-single-tp-work")]
     [InlineData(
@@ -488,7 +418,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         "nt51951-ctrlram-replace-fw1x-cascade",
         "NT51951",
         2,
-        "0.5.0",
+        "0.6.0",
         0x33200,
         "nt51951-ctrlram-fw1x-cascade-tp-work")]
     public void Nt51950FamilyTpFirmwareBasesCompileWithPrefixOnlyProcessorAuthority(
@@ -551,7 +481,9 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             icId,
             ExperienceIds.CtrlRamReplace,
             requestedTopology,
-            [new FirmwareArtifactPayload("reference-base", ResolutionReference(chipCount, referenceCapacity))],
+            [new FirmwareArtifactPayload(
+                "reference-base",
+                ResolutionReference(icId, chipCount, referenceCapacity))],
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
                     new V2RuntimeReferenceReplaceInputBinding("reference-base", "reference-base", referenceCapacity),
@@ -577,14 +509,21 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         return composition;
     }
 
-    private static byte[] ResolutionReference(int chipCount, long capacity)
+    private static byte[] ResolutionReference(
+        string icId,
+        int chipCount,
+        long capacity)
     {
         byte[] bytes = new byte[checked((int)capacity)];
         bytes[23] = checked((byte)chipCount);
-        bytes[4092] = 0x00;
-        bytes[4093] = 0x4E;
-        bytes[4094] = 0x56;
-        bytes[4095] = 0x54;
+        int markerOffset = StringComparer.Ordinal.Equals(icId, "NT51926")
+            ? 0x3BFFC
+            : 0x0FFC;
+        bytes[markerOffset] = 0x00;
+        bytes[markerOffset + 1] = 0x4E;
+        bytes[markerOffset + 2] = 0x56;
+        bytes[markerOffset + 3] = 0x54;
+
         return bytes;
     }
 

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51929-standard-merge-family",
-  "bundleVersion": "0.9.1-v2-candidate.1",
+  "bundleVersion": "0.10.1-shared-facts.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09",
+  "contentHash": "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,42 +11,42 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "1af166d37379329cc7a298ea24637a665b183f286e5a2323d4ed014e893dc9f0"
+      "contentHash": "97540ff527b8929726949629aa9fff46819be3a413f757c007a44a1025e31100"
     },
     {
       "entryId": "firmware-family-v1-schema",
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "df51a164a73ab3c6dae4139b5501b4e34e5faad750267c7aa353d1e3ee27129f"
     },
     {
       "entryId": "nt51919-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9801dbfc24ac02b62cf2f600a5daa9f4f1c31a5f5f1ecf5cb64cec5d69cf9b86"
+      "contentHash": "a371406f27b84468741deac64edd82fba1232143fcb6fbd53dce7fd029d0c66f"
     },
     {
       "entryId": "nt51929-nt51932-family",
       "kind": "firmware-family",
       "path": "families/nt51929-nt51932.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce"
+      "contentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39"
     },
     {
       "entryId": "nt51929-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "a27fc13b72a6d505f70fe0dbaead6916649fa4d6a904933ed68f5633b12fc620"
+      "contentHash": "a824bc3f89cc45b81e35584bd11e4c8ebedf2bb6cc77856408a27956add50488"
     },
     {
       "entryId": "nt51932-standard-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51932-standard-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b25af9605cf805917c4f233ed09a6cd6ab0314a1377aab2f486acce09bca5ad1"
+      "contentHash": "5b7870824f339b1f1f910bda3aec4fb7ba80b9e8582564a5b8f520b61ce54824"
     }
   ]
 }

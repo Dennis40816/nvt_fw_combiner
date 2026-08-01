@@ -21,6 +21,7 @@ internal sealed class V2CompositionPreparationRequest
 
     /// <summary>Immutable Domain-owned map resolution selections and artifact snapshots.</summary>
     internal FirmwareMapResolutionInputs ResolutionInputs { get; }
+
 }
 
 /// <summary>Closed non-executable preparation outcome before V2 composition-plan lowering exists.</summary>
@@ -200,9 +201,17 @@ internal static class V2CompositionPreparationService
         }
 
         var profileMapIds = profile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
-        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMapWithin(
+        var deferredInspectionStructureIds = profile.Profile.MetadataBindings
+            .Select(static binding => binding.StructureId)
+            .ToHashSet(StringComparer.Ordinal);
+        var requiredMetadataStructureIds =
+            profile.Profile.MapBinding.RequiredMetadataStructureIds
+                .Where(structureId => !deferredInspectionStructureIds.Contains(structureId))
+                .ToHashSet(StringComparer.Ordinal);
+        FirmwareMapResolutionResult mapResolution = profile.Family.Family.ResolveMapWithinForProfile(
             request.ResolutionInputs,
-            profileMapIds);
+            profileMapIds,
+            requiredMetadataStructureIds);
         switch (mapResolution.Status)
         {
             case FirmwareMapResolutionStatus.Pending:

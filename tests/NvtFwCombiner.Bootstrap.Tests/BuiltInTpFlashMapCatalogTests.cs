@@ -100,10 +100,15 @@ public sealed class BuiltInTpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerDiffDlmPolicy? maskedDiffDlm =
+                plan.Branch == LegacyCombinerPostbuildBranch.Cascade
+                    ? profile.DiffDlmPolicy
+                    : null;
             string[] expectedFileNames =
             [
                 .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
                     .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
+                    .Where(block => maskedDiffDlm is null || !maskedDiffDlm.IsIndependentNfBlock(block))
                     .Select(block => block.SourceFileName)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
@@ -177,14 +182,11 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Theory]
     [InlineData("NT51917", 0x16000)]
     [InlineData("NT51919", 0x1F200)]
-    [InlineData("NT51920", 0x22000)]
     [InlineData("NT51923", 0x22000)]
     [InlineData("NT51926", 0x22000)]
     [InlineData("NT51927", 0x16000)]
     [InlineData("NT51928", 0x16000)]
     [InlineData("NT51929", 0x1F200)]
-    [InlineData("NT51930", 0x1F200)]
-    [InlineData("NT51931", 0x16000)]
     [InlineData("NT51932", 0x1F200)]
     [InlineData("NT51950", 0x22200)]
     [InlineData("NT51951", 0x22200)]
@@ -235,11 +237,9 @@ public sealed class BuiltInTpFlashMapCatalogTests
 
     /// <summary>TP Overview backup rows used by postbuild traceability are declared explicitly.</summary>
     [Theory]
-    [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780)]
     [InlineData("NT51926", "fw-config-backup", 0x3B000, 0x00780)]
     [InlineData("NT51927", "header-backup", 0x32DC0, 0x00460)]
     [InlineData("NT51927", "fw-config-reg-backup", 0x34000, 0x00800)]
-    [InlineData("NT51931", "fw-config-backup", 0x3B000, 0x00800)]
     public void BackupRowsFromTpOverviewAreDeclared(string icId, string regionId, long start, long length)
     {
         Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? profile));
@@ -254,12 +254,9 @@ public sealed class BuiltInTpFlashMapCatalogTests
 
     /// <summary>Rows adjacent to the TP end flag are cataloged as protected traceability rows.</summary>
     [Theory]
-    [InlineData("NT51920", "fw-config-backup", 0x2F000, 0x00780, "backup")]
     [InlineData("NT51923", "fw-config-backup", 0x3B000, 0x00800, "fw-config")]
     [InlineData("NT51927", "fw-config-reg-backup", 0x34000, 0x00800, "backup")]
     [InlineData("NT51929", "fw-information", 0x3F000, 0x00FFC, "fw-information")]
-    [InlineData("NT51930", "fw-information-host", 0x3F000, 0x00FFC, "fw-information")]
-    [InlineData("NT51931", "fw-config-backup", 0x3B000, 0x00800, "backup")]
     [InlineData("NT51950", "fw-information-host", 0x36000, 0x00FFC, "fw-information")]
     [InlineData("NT51951", "fw-information-host", 0x36000, 0x00FFC, "fw-information")]
     public void EndFlagAdjacentRowsFromTpOverviewAreDeclared(
@@ -313,24 +310,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
         }
     }
 
-    /// <summary>NT51930 Common FW 1.x exposes and consumes its MP CtrlRAM input.</summary>
-    [Fact]
-    public void Nt51930CommonFw1xConsumesMpCtrlRam()
-    {
-        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-            "NT51930",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
-            null,
-            TpFlashMapRegionKind.CtrlRam);
-        IReadOnlyList<TpFlashMapRegion> postbuildMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
-            "NT51930",
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]),
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-
-        Assert.Contains(regions, region => region.RegionId == "mp" && region.Tags.Contains("overview-only"));
-        Assert.Contains(postbuildMapped, region => region.RegionId == "mp");
-    }
-
     /// <summary>NT51926 CtrlRAM rows follow the selected Common FW postbuild category.</summary>
     [Fact]
     public void Nt51926PostbuildCategoryOverridesVersionedLengths()
@@ -356,44 +335,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
             commonFw200Regions.Single(region => region.RegionId == "fw-config-backup").Range);
     }
 
-    /// <summary>NT51930 Common FW 1.x keeps its approved MP/VN and 2..13 DiffDLM mapping.</summary>
-    [Fact]
-    public void Nt51930PostbuildCategoryControlsMpConsumption()
-    {
-        var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade_2to13"]);
-
-        IReadOnlyList<TpFlashMapRegion> commonFw1xMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
-            "NT51930",
-            selection,
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-        IReadOnlyList<TpFlashMapRegion> commonFw1xRangeEndMapped = BuiltInTpFlashMapCatalog.GetPostbuildMappedCtrlRamRegions(
-            "NT51930",
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["13"]),
-            LegacyCombinerPostbuildCatalog.Nt51930CommonFw1x);
-
-        Assert.Contains(commonFw1xMapped, region => region.RegionId == "mp" && region.Range == new ByteRange(0x24250, 0x3400));
-        Assert.Contains(commonFw1xMapped, region => region.RegionId == "vn" && region.Range == new ByteRange(0x27650, 0x195E));
-        Assert.Contains(commonFw1xRangeEndMapped, region => region.RegionId == "diff" && region.Range == new ByteRange(0x2F200, 0xFE00));
-    }
-
-    /// <summary>NT51930 exposes one typed 2..13 selector and no generic or 14+ plan.</summary>
-    [Fact]
-    public void Nt51930PlanSelectorsBoundApprovedCascadeCounts()
-    {
-        LegacyCombinerPostbuildProfile profile = Assert.Single(
-            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
-        LegacyCombinerPostbuildPlanSelector range = Assert.Single(
-            profile.PlanSelectors,
-            static selector => selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.CountRange);
-
-        Assert.Equal("cascade_2to13", range.Token);
-        Assert.Equal(2, range.MinimumCount);
-        Assert.Equal(13, range.MaximumCount);
-        Assert.DoesNotContain(
-            profile.PlanSelectors,
-            static selector => selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.GenericCascade);
-    }
-
     /// <summary>Projects legacy numeric branch aliases into one concise UI choice per command branch.</summary>
     [Fact]
     public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
@@ -402,8 +343,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"));
         IReadOnlyList<IcNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51927"));
-        IReadOnlyList<IcNumberChoice> nt51930 = IcNumberChoicePolicy.GetNumberSelectionChoices(
-            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
 
         Assert.Equal(
             [
@@ -411,12 +350,6 @@ public sealed class BuiltInTpFlashMapCatalogTests
                 new IcNumberChoice("cascade_2to8", "2–8 IC"),
             ],
             nt51932);
-        Assert.Equal(
-            [
-                new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("cascade_2to13", "2–13 IC"),
-            ],
-            nt51930);
         Assert.Equal(
             [
                 new IcNumberChoice("single", "1 IC"),

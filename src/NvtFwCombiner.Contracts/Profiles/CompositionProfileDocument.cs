@@ -24,7 +24,8 @@ public sealed record CompositionProfileDocument(
     CompositionProfileOutputDocument Output,
     IReadOnlyList<string> EvidenceRefs,
     CompositionProfileCompilationContextDocument? CompilationContext = null,
-    CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null)
+    CompositionProfileLogicalOutputBindingDocument? LogicalOutputBinding = null,
+    IReadOnlyList<CompositionProfileInputSelectionGroupDocument>? InputSelectionGroups = null)
 {
     /// <summary>Preserves the original public transport constructor for previously compiled consumers.</summary>
     public CompositionProfileDocument(
@@ -66,7 +67,8 @@ public sealed record CompositionProfileDocument(
             Output,
             EvidenceRefs,
             CompilationContext: null,
-            LogicalOutputBinding: null)
+            LogicalOutputBinding: null,
+            InputSelectionGroups: null)
     {
     }
 }
@@ -100,7 +102,8 @@ public sealed record CompositionProfileMapBindingDocument(
     IReadOnlyList<string> MapIds,
     IReadOnlyList<string> RequiredRegionIds,
     IReadOnlyList<string> RequiredMetadataStructureIds,
-    IReadOnlyList<string> RequiredCapabilityIds);
+    IReadOnlyList<string> RequiredCapabilityIds,
+    IReadOnlyList<string>? OptionalRegionIds = null);
 
 /// <summary>DTO discriminator for a map-bound or logical-output profile compilation context.</summary>
 public sealed record CompositionProfileCompilationContextDocument(string Kind);

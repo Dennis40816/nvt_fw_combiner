@@ -28,6 +28,8 @@ public sealed partial class CompiledComposition
         Authority = new LegacyProfileCompilationAuthority();
         V2Details = null;
         ValidationRequirements = CopyValidationRequirements(validationRequirements);
+        ValidateValidationRequirements(plan, ValidationRequirements);
+        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -68,6 +70,30 @@ public sealed partial class CompiledComposition
         Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
         ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
+        ValidateValidationRequirements(plan, ValidationRequirements);
+        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
+        CompilationFingerprint = CalculateCompilationFingerprint(this);
+    }
+
+    private CompiledComposition(
+        CompiledComposition source,
+        string capabilityFingerprint)
+    {
+        Plan = source.Plan;
+        ProfileId = source.ProfileId;
+        ProfileVersion = source.ProfileVersion;
+        IcId = source.IcId;
+        ModeId = source.ModeId;
+        ExperienceId = source.ExperienceId;
+        CompositionKind = source.CompositionKind;
+        DefaultOutputFileName = source.DefaultOutputFileName;
+        IcNumberPolicy = source.IcNumberPolicy;
+        Eligibility = source.Eligibility;
+        Authority = source.Authority;
+        V2Details = source.V2Details;
+        ValidationRequirements = source.ValidationRequirements;
+        IntegrityFingerprint = source.IntegrityFingerprint;
+        CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -146,6 +172,43 @@ public sealed partial class CompiledComposition
 
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
+
+    /// <summary>Reviewed capability definition chained into this canonical compilation; null before catalog binding.</summary>
+    public string? CapabilityFingerprint { get; }
+
+    /// <summary>
+    /// Canonical lowercase SHA-256 over profile-declared external processors and
+    /// host-side scalar relocation operations; null when neither is present.
+    /// </summary>
+    public string? IntegrityFingerprint { get; }
+
+    /// <summary>Returns the immutable canonical artifact whose compilation identity references one reviewed capability.</summary>
+    public CompiledComposition BindCapabilityFingerprint(
+        string capabilityFingerprint)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        string acceptedFingerprint = capabilityFingerprint.Length == 64 &&
+            !capabilityFingerprint.Any(static character =>
+                character is not ((>= '0' and <= '9') or (>= 'a' and <= 'f')))
+            ? capabilityFingerprint
+            : throw new ArgumentException(
+                "Capability fingerprints must be lowercase SHA-256 values.",
+                nameof(capabilityFingerprint));
+
+        return CapabilityFingerprint is not null
+            ? StringComparer.Ordinal.Equals(
+                    CapabilityFingerprint,
+                    acceptedFingerprint)
+                ? this
+                : throw new InvalidOperationException(
+                    "A compiled composition cannot be rebound to another capability definition.")
+            : Authority is
+                ProfileBundleV2CompilationAuthority or
+                LegacyProfileCompilationAuthority
+            ? new CompiledComposition(this, acceptedFingerprint)
+            : throw new InvalidOperationException(
+                "Only recognized compiler authorities can bind a canonical capability definition.");
+    }
 
     /// <summary>Creates an artifact from the existing typed profile compiler without bundle or map claims.</summary>
     internal static CompiledComposition CreateLegacy(
@@ -257,6 +320,7 @@ public sealed partial class CompiledComposition
         var tpInputSpaces = new List<AddressSpace>();
         var normalDpInputRequirements = new List<(AddressSpace AddressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement Requirement)>();
         var declaredPrefixInputRequirements = new List<(AddressSpace AddressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement Requirement)>();
+        var sourceViewInputRequirements = new List<(AddressSpace AddressSpace, CompiledSourceViewCoverageInputLengthRequirement Requirement)>();
         var slots = details.InputContract.Slots.ToDictionary(
             static requirement => requirement.SlotId,
             StringComparer.Ordinal);
@@ -331,9 +395,19 @@ public sealed partial class CompiledComposition
 
                     declaredPrefixInputRequirements.Add((addressSpace, declaredPrefix));
                     break;
+                case CompiledSourceViewCoverageInputLengthRequirement sourceView:
+                    if (requirement.Normalization is not CompiledNoInputNormalization)
+                    {
+                        throw new ArgumentException(
+                            "Source-view coverage requires an unnormalized immutable section source.",
+                            nameof(details));
+                    }
+
+                    sourceViewInputRequirements.Add((addressSpace, sourceView));
+                    break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, source-view, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
                         nameof(details));
             }
         }
@@ -373,6 +447,11 @@ public sealed partial class CompiledComposition
         {
             ValidateDeclaredPrefixInputGeometry(addressSpace, requirement);
         }
+
+        foreach ((AddressSpace addressSpace, CompiledSourceViewCoverageInputLengthRequirement requirement) in sourceViewInputRequirements)
+        {
+            ValidateSourceViewInputGeometry(addressSpace, requirement);
+        }
     }
 
     private static void ValidateLogicalOutputInputRequirements(
@@ -382,12 +461,11 @@ public sealed partial class CompiledComposition
     {
         if (compositionKind != CompositionKind.Merge ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Blank ||
-            plan.OutputInitialization.FillByte != 0 ||
             details.RegionAccessContract.Requirements.Count != 0 ||
             details.RegionAccessContract.ResolvedViews.Count != 0)
         {
             throw new ArgumentException(
-                "Logical-output V2 artifacts require a zero-filled Merge output with no physical region access.",
+                "Logical-output V2 artifacts require a blank Merge output with no physical region access.",
                 nameof(details));
         }
 
@@ -524,8 +602,20 @@ public sealed partial class CompiledComposition
         }
 
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+        if (output.RendererKind is
+            CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+            CompiledOutputNameRendererKind.TpFirmwareV1)
+        {
+            CompiledOutputNamingRequirement.ValidateCanonicalIcIdentity(
+                details.Provenance.Context.MemberId,
+                nameof(details));
+        }
+
         bool hasExecutableOutputContract = output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
-            (output.RendererKind == CompiledOutputNameRendererKind.Static ||
+            (output.RendererKind is
+                CompiledOutputNameRendererKind.Static or
+                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                CompiledOutputNameRendererKind.TpFirmwareV1 ||
              (output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
               compositionKind == CompositionKind.Merge &&
               StringComparer.Ordinal.Equals(experienceId, ExperienceIds.AbMerge)));
@@ -539,77 +629,4 @@ public sealed partial class CompiledComposition
         }
     }
 
-    private static void ValidateTpMaximumInputGeometry(
-        AddressSpace addressSpace,
-        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
-    {
-        long maximumEndExclusive = 0;
-        bool hasSourceView = false;
-        foreach (CompiledResolvedPhysicalView view in resolvedViews.Where(view =>
-                     StringComparer.Ordinal.Equals(view.AddressSpaceId, addressSpace.AddressSpaceId)))
-        {
-            maximumEndExclusive = Math.Max(maximumEndExclusive, view.Range.EndExclusive);
-            hasSourceView = true;
-        }
-
-        if (!hasSourceView ||
-            maximumEndExclusive > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
-            addressSpace.Length != maximumEndExclusive ||
-            addressSpace.InputPaddingByte is not null ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            addressSpace.AllowedInputLengths.Count != 0)
-        {
-            throw new ArgumentException(
-                "TP maximum input requirements must extract the maximum resolved source span while accepting inputs through the 256 KiB limit.",
-                nameof(addressSpace));
-        }
-    }
-
-    private static void ValidateNormalDpExtractionInputGeometry(
-        AddressSpace addressSpace,
-        CompiledNormalDpExtractWithWarningInputLengthRequirement requirement,
-        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
-    {
-        long maximumEndExclusive = 0;
-        bool hasSourceView = false;
-        foreach (CompiledResolvedPhysicalView view in resolvedViews.Where(view =>
-                     StringComparer.Ordinal.Equals(view.AddressSpaceId, addressSpace.AddressSpaceId)))
-        {
-            maximumEndExclusive = Math.Max(maximumEndExclusive, view.Range.EndExclusive);
-            hasSourceView = true;
-        }
-
-        if (!hasSourceView ||
-            addressSpace.Length != maximumEndExclusive ||
-            addressSpace.InputPaddingByte is not null ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            addressSpace.AllowedInputLengths.Count != 0 ||
-            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedInputLengths) ||
-            requirement.ExpectedInputLengths.Any(length => length < maximumEndExclusive) ||
-            !StringComparer.Ordinal.Equals(addressSpace.UnexpectedInputLengthIssueCode, requirement.IssueCode))
-        {
-            throw new ArgumentException(
-                "Normal DP extraction requirements must bind the declared source span, expected container lengths, extraction policy, and warning code.",
-                nameof(addressSpace));
-        }
-    }
-
-    private static void ValidateDeclaredPrefixInputGeometry(
-        AddressSpace addressSpace,
-        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
-    {
-        if (addressSpace.Length != requirement.RequiredEndExclusive ||
-            addressSpace.InputPaddingByte is not null ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            addressSpace.AllowedInputLengths.Count != 0 ||
-            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedOuterLengths) ||
-            !StringComparer.Ordinal.Equals(
-                addressSpace.UnexpectedInputLengthIssueCode,
-                requirement.UnexpectedOuterLengthIssueCode))
-        {
-            throw new ArgumentException(
-                "Declared-prefix input requirements must bind the exact execution prefix, outer-length expectations, extraction policy, and warning code.",
-                nameof(addressSpace));
-        }
-    }
 }

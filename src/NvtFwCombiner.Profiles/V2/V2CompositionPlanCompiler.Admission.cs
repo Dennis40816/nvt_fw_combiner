@@ -29,9 +29,10 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared experience");
         }
 
-        if (profile.MetadataBindings.Count != 0 || profile.Validations.Count != 0)
+        if (profile.Validations.Any(static validation =>
+                validation is not NonUniformRegionProfileValidation))
         {
-            AddUnsupported(issues, "metadata bindings and validations are not lowered in this slice");
+            AddUnsupported(issues, "only warning-only non-uniform-region validations are lowered in this slice");
         }
 
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
@@ -41,17 +42,27 @@ internal static partial class V2CompositionPlanCompiler
         {
             CompositionProfileInputSlot? slot = profile.InputSlots.SingleOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.SlotId, inputSpace.SlotId));
+            bool requiredSingleton = slot is
+            {
+                Required: true,
+                Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
+            };
+            bool groupedOptionalSingleton = slot is
+            {
+                Required: false,
+                Cardinality: CompositionProfileSlotCardinality.ZeroOrOne,
+            } && profile.InputSelectionGroups.Any(group =>
+                group.MemberSlotIds.Contains(slot.SlotId, StringComparer.Ordinal));
             if (inputSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
                 slot is null ||
-                !slot.Required ||
-                slot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne ||
+                (!requiredSingleton && !groupedOptionalSingleton) ||
                 slot.Normalization is not (NoInputNormalization or PadShorterInputNormalization or TruncateCtrlRamInputNormalization) ||
                 (slot.LengthRule is DeclaredPrefixWithWarningLengthRule && profile.CompositionKind != CompositionKind.Merge) ||
                 !IsCurrentInputLengthRuleSupported(slot))
             {
                 AddUnsupported(
                     issues,
-                    $"input space '{inputSpace.SpaceId}' must bind one required singleton exact-map-capacity, declared-prefix Merge, normal-DP, tp-maximum-256k, exact TP, or truncatable CtrlRAM slot with approved normalization");
+                    $"input space '{inputSpace.SpaceId}' must bind one required exact-one or grouped optional zero-or-one singleton slot with approved length and normalization");
             }
         }
 
@@ -111,6 +122,12 @@ internal static partial class V2CompositionPlanCompiler
     {
         return profile.Output.InvalidCharacterPolicy == CompositionProfileInvalidCharacterPolicy.Reject &&
             (profile.Output.RequiredTokenIds.Count == 0 ||
+             StringComparer.Ordinal.Equals(
+                 profile.Output.RuleId,
+                 CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId) ||
+             StringComparer.Ordinal.Equals(
+                 profile.Output.RuleId,
+                 CompiledOutputNamingRequirement.TpFirmwareV1RuleId) ||
              (profile.CompositionKind == CompositionKind.Merge &&
               StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.AbMerge) &&
               StringComparer.Ordinal.Equals(profile.Output.FileNameTemplate, CompiledOutputNamingRequirement.AbCodeV1Template) &&

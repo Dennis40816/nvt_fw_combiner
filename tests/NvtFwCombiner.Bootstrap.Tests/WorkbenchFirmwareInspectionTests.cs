@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -8,14 +9,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
 public sealed partial class WorkbenchFirmwareInspectionTests
 {
-    /// <summary>NT51950/NT51951 alone recognize their owner-declared standalone 0x37000 TP FW shape.</summary>
+    /// <summary>NT51950/NT51951 recognize a plausible TP overlay in their standalone 0x37000 TP FW shape.</summary>
     [Theory]
     [InlineData("NT51950")]
     [InlineData("NT51951")]
+    [InlineData("51950")]
+    [InlineData("51951")]
     public void Nt51950FamilyTpPrefixClassifiesBeforeDpContent(string icId)
     {
         byte[] tpFirmware = new byte[0x37000];
-        tpFirmware[0] = 0x5A;
+        tpFirmware[0xA000] = 0x5A;
 
         WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
             icId,
@@ -29,58 +32,98 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Null(inspection.CmiDpCode);
     }
 
-    /// <summary>Other ICs classify a full base only from their declared DP bytes, even at TP-prefix length.</summary>
+    /// <summary>Other ICs require both declared DP and TP plausibility before claiming FlashCode.</summary>
     [Fact]
     public void OtherIcFullBaseClassifiesFromDeclaredDpContent()
     {
-        byte[] erasedDp = new byte[0x40000];
-        byte[] programmedDp = (byte[])erasedDp.Clone();
-        programmedDp[0] = 0x5A;
+        byte[] tpOnly = new byte[0x40000];
+        tpOnly[0x7000] = 0x3C;
+        byte[] flashCode = (byte[])tpOnly.Clone();
+        flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
             "NT51929",
-            "erased.bin",
+            "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => erasedDp);
-        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            _ => tpOnly);
+        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
             "NT51929",
-            "programmed.bin",
+            "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => programmedDp);
+            _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
-        Assert.Null(erased.DpVersion);
-        Assert.Null(erased.CmiDpCode);
-        _ = Assert.NotNull(programmed.DpVersion);
-        _ = Assert.NotNull(programmed.CmiDpCode);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
+        Assert.Null(tp.DpVersion);
+        Assert.Null(tp.CmiDpCode);
+        Assert.NotNull(flash.ArtifactClassification);
     }
 
-    /// <summary>NT51950 full containers classify from their declared post-prefix DP region after the length check.</summary>
+    /// <summary>A full-length Initial Code candidate with a dummy TP range is not promoted to FlashCode.</summary>
+    [Fact]
+    public void FullLengthInitialCodeWithoutTpContentRemainsUnknown()
+    {
+        byte[] initialCode = new byte[0x40000];
+        initialCode[0] = 0x5A;
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51929",
+            "initial-code.bin",
+            tpPath: null,
+            ctrlRamRequest: null,
+            _ => initialCode);
+
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.Unknown, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(
+            CompiledFirmwareArtifactKind.Unknown,
+            Assert.IsType<CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification).Kind);
+    }
+
+    /// <summary>NT51950 full containers require plausible Initial Code and TP overlay ranges.</summary>
     [Fact]
     public void Nt51950FullBaseClassifiesFromDeclaredDpContent()
     {
-        byte[] erasedDp = new byte[0x40000];
-        byte[] programmedDp = (byte[])erasedDp.Clone();
-        programmedDp[0x38000] = 0x5A;
+        byte[] tpOnly = new byte[0x40000];
+        tpOnly[0xA000] = 0x3C;
+        byte[] flashCode = (byte[])tpOnly.Clone();
+        flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection erased = WorkbenchCompositionService.InspectFirmware(
+        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
             "NT51950",
-            "erased.bin",
+            "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => erasedDp);
-        WorkbenchFirmwareInspection programmed = WorkbenchCompositionService.InspectFirmware(
+            _ => tpOnly);
+        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
             "NT51950",
-            "programmed.bin",
+            "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
-            _ => programmedDp);
+            _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, erased.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, programmed.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
+    }
+
+    /// <summary>A dynamic Standard Merge route projects DP DPCMI from its canonical metadata plan.</summary>
+    [Fact]
+    public void Nt51926StandardMergeInspectionProjectsCanonicalDpcmi()
+    {
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            dpPath,
+            tpPath);
+
+        Assert.Equal("0100", Assert.IsType<WorkbenchDpVersionMetadata>(inspection.DpVersion).VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal((byte)0x01, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)597, cmi.JiraNumber);
     }
 
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
@@ -167,8 +210,13 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "tp.bin",
             ctrlRamRequest: null,
             readFirmwareImage: Read);
-        Assert.Null(distinctPaths.DpVersion);
-        _ = Assert.NotNull(distinctPaths.CmiDpCode);
+        Assert.Equal("CC00", distinctPaths.DpVersion?.VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
+            distinctPaths.CmiDpCode);
+        Assert.Equal((byte)0xCC, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)0x0240, cmi.JiraNumber);
+        Assert.Equal(0x3B016, cmi.Register16Offset);
         Assert.Equal(["dp.bin", "tp.bin"], reads);
 
         reads.Clear();
@@ -248,7 +296,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             Encoding.ASCII.GetBytes("NT51927TT"),
             Encoding.ASCII.GetBytes("151926 51928"),
             Encoding.ASCII.GetBytes("51926TT7"),
-            Encoding.ASCII.GetBytes("a51920b51921"),
+            Encoding.ASCII.GetBytes("a51923b51926"),
             [0xFF, (byte)'5', (byte)'1', (byte)'9', (byte)'3', (byte)'2', 0x80],
         ];
         foreach (byte[] sample in craftedSamples)
@@ -271,7 +319,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         }
     }
 
-    /// <summary>A full 256 KiB header probe does not allocate a whole decoded text copy.</summary>
+    /// <summary>A full 256 KiB probe plus its canonical snapshot does not allocate a decoded text copy.</summary>
     [Fact]
     public void InspectionHeaderHintAvoidsWholeProbeTextAllocation()
     {
@@ -295,7 +343,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal("NT51926", inspection.DetectedIcId);
-        Assert.InRange(allocatedBytes, 0, 64 * 1024);
+        Assert.InRange(allocatedBytes, 0, 384 * 1024);
     }
 
     /// <summary>FW/bar validity is independent from Common FW interval selection.</summary>
@@ -324,40 +372,6 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "base.bin",
             "base.bin",
             new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
-            _ => invalidBytes);
-        WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
-            invalidInspection.FirmwareConfig);
-        Assert.False(invalidMetadata.IsFirmwareVersionBarValid);
-        Assert.Equal(validMetadata.PostbuildCategory, invalidMetadata.PostbuildCategory);
-        Assert.NotEmpty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
-    }
-
-    /// <summary>Informational Common FW metadata cannot hide an IC's sole runtime postbuild profile.</summary>
-    [Fact]
-    public void InspectionKeepsSoleProfileWhenVersionMetadataIsUnreadable()
-    {
-        byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51930", "expected-output"));
-        WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
-            "NT51930",
-            "base.bin",
-            "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
-            _ => validBytes);
-        WorkbenchFirmwareConfigMetadata validMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
-            validInspection.FirmwareConfig);
-        Assert.True(validMetadata.IsFirmwareVersionBarValid);
-        Assert.NotNull(validMetadata.PostbuildCategory);
-
-        byte[] invalidBytes = (byte[])validBytes.Clone();
-        int versionBarOffset = checked(
-            (int)validMetadata.FirmwareConfigBackupStart + FirmwareConfigLayout.FirmwareVersionBarOffset);
-        invalidBytes[versionBarOffset] ^= 0x01;
-
-        WorkbenchFirmwareInspection invalidInspection = WorkbenchCompositionService.InspectFirmware(
-            "NT51930",
-            "base.bin",
-            "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.CascadeTwoToThirteen),
             _ => invalidBytes);
         WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
             invalidInspection.FirmwareConfig);

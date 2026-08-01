@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51927",
-  "familyVersion": "1.1.0",
+  "familyVersion": "1.3.0",
   "members": [
     {
       "memberId": "NT51917",
@@ -71,7 +71,34 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51917-nt51927-initial-code-metadata",
+      "structures": [
+        {
+          "structureId": "dpcmi",
+          "artifactBindingId": "dp-replacement",
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "dp-code",
+            "offset": 28,
+            "allowedResultRegionId": "dp-code"
+          },
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "dpcmi"
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "gen-flash-bin-v2-51927-golden",
+        "standard-merge-alias-51917-to-51927"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51917-standard-merge-256k",
@@ -93,7 +120,9 @@
       "regionSetIds": [
         "nt51917-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51917-nt51927-initial-code-metadata"
+      ],
       "evidenceRefs": [
         "standard-merge-alias-51917-to-51927",
         "dp-replace-owner-decision-2026-07-20"
@@ -119,7 +148,9 @@
       "regionSetIds": [
         "nt51927-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51917-nt51927-initial-code-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51927-golden",
         "dp-replace-owner-decision-2026-07-20"
@@ -154,6 +185,7 @@
     }
   ],
   "evidenceRefs": [
+    "adr-0039-owner-accepted-2026-07-26",
     "gen-flash-bin-v2-51927-golden",
     "standard-merge-alias-51917-to-51927",
     "dp-replace-owner-decision-2026-07-20"

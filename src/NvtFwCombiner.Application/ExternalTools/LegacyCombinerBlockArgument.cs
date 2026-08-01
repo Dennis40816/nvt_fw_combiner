@@ -12,7 +12,8 @@ public sealed class LegacyCombinerBlockArgument
         string sourceFileName,
         long sourceOffset,
         ByteRange firmwareRange,
-        string? stagedArtifactId = null)
+        string? stagedArtifactId = null,
+        string? sectionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(blockId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFileName);
@@ -47,12 +48,25 @@ public sealed class LegacyCombinerBlockArgument
             ExternalProcessorStagedArtifact.ValidateArtifactId(stagedArtifactId, nameof(stagedArtifactId));
         }
 
+        string effectiveSectionId = sectionId ?? (sourceKind is
+                LegacyCombinerBlockSourceKind.StagedFile or
+                LegacyCombinerBlockSourceKind.StagedArtifact
+            ? PostbuildWriteSectionIds.CtrlRamReplacement
+            : PostbuildWriteSectionIds.PostbuildCopy);
+        if (!PostbuildWriteSectionSemantics.KnownSectionIds.Contains(effectiveSectionId))
+        {
+            throw new ArgumentException(
+                "Postbuild blocks require a declared known write section.",
+                nameof(sectionId));
+        }
+
         BlockId = blockId;
         SourceKind = sourceKind;
         SourceFileName = sourceFileName;
         SourceOffset = sourceOffset;
         FirmwareRange = firmwareRange;
         StagedArtifactId = stagedArtifactId;
+        SectionId = effectiveSectionId;
     }
 
     /// <summary>Stable block id used in diagnostics.</summary>
@@ -66,6 +80,9 @@ public sealed class LegacyCombinerBlockArgument
 
     /// <summary>Required staged-artifact id, or an optional exact-file override id for a staged-file block.</summary>
     public string? StagedArtifactId { get; }
+
+    /// <summary>Declared write/report section; never inferred from the block id.</summary>
+    public string SectionId { get; }
 
     /// <summary>Source offset passed to Combiner.exe.</summary>
     public long SourceOffset { get; }

@@ -1,7 +1,11 @@
-# Application Instructions
+# Application instructions
 
-- Orchestrate use cases through ports declared here; do not instantiate infrastructure adapters.
-- Compile all experiences into one plan/executor model.
-- Return structured issue/result types for user/profile failures.
-- Preview and Build must share semantics; Build adds output commitment only.
-- Never access UI state, environment paths or arbitrary worker commands directly.
+- Own use-case policy through ports; do not start processes, access files, or
+  render UI.
+- Consume canonical Domain/profile resolution rather than copy firmware facts.
+- Expose typed requests, results, stable issue codes, readiness, and immutable
+  snapshots for UI and CLI.
+- Keep Merge and Replace on the same composition planner/executor.
+- Temporary compatibility adapters require a named replacement and deletion
+  criterion.
+- First test: `NvtFwCombiner.Application.Tests`.

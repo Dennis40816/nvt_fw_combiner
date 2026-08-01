@@ -57,6 +57,12 @@ def _validate_release_source(source_branch: str, source_version: str) -> None:
     )
 
 
+def _normalize_transport_line_endings(value: str) -> str:
+    """Normalize only CRLF transport differences in external text payloads."""
+
+    return value.replace("\r\n", "\n")
+
+
 def validate_candidate_context(
     snapshot: dict[str, Any],
     *,
@@ -461,7 +467,8 @@ def validate_existing_tag(
     message = tag_object.get("message")
     _require(isinstance(message, str), "annotated tag message is missing")
     _require(
-        message.strip() == expected_message.strip(),
+        _normalize_transport_line_endings(message)
+        == _normalize_transport_line_endings(expected_message),
         "annotated tag message differs from the candidate",
     )
 

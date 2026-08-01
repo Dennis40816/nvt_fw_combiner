@@ -25,10 +25,16 @@ public static class WorkbenchIssueCodes
     public const string GeneralMergeRangeInvalid = "ui.general-merge.range-invalid";
 
     /// <summary>General Merge output capacity text is invalid.</summary>
-    public const string GeneralMergeCapacityInvalid = "ui.general-merge.capacity-invalid";
+    public const string GeneralMergeCapacityInvalid =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.CapacityInvalid;
 
     /// <summary>General Merge output capacity exceeds supported in-memory composition limits.</summary>
-    public const string GeneralMergeCapacityUnsupported = "ui.general-merge.capacity-unsupported";
+    public const string GeneralMergeCapacityUnsupported =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.CapacityUnsupported;
+
+    /// <summary>General Merge fill-byte text is outside the complete byte domain.</summary>
+    public const string GeneralMergeFillByteInvalid =
+        Application.Authoring.GeneralMergeInitializerIssueCodes.FillByteInvalid;
 
     /// <summary>Standard Merge DP Perspective input length is not approved by the profile.</summary>
     public const string StandardMergeDpLengthUnsupported = "standard-merge.dp-length-unsupported";
@@ -80,6 +86,24 @@ public static class WorkbenchIssueCodes
 
     /// <summary>CtrlRAM Replace has no selected replacement BIN for mapped regions.</summary>
     public const string ReplaceCtrlRamNoRegionInput = "replace.ctrlram.no-region-input";
+
+    /// <summary>A stale or manually constructed CtrlRAM binding is unavailable for the resolved route.</summary>
+    public const string ReplaceCtrlRamSourceUnavailable = "replace.ctrlram.source-unavailable";
+
+    /// <summary>An active DiffDLM record is a uniform dummy placeholder.</summary>
+    public const string ReplaceCtrlRamDiffDlmPlaceholder = "ctrlram.diffdlm.placeholder";
+
+    /// <summary>Postbuild did not leave one FWConfig Backup inside the compiled authority.</summary>
+    public const string ReplaceCtrlRamFirmwareConfigBackupPlacementInvalid =
+        "replace.ctrlram.fwconfig-backup-placement-invalid";
+
+    /// <summary>Postbuild changed inactive masked DiffDLM bytes outside permitted FWConfig Backup envelopes.</summary>
+    public const string ReplaceCtrlRamDynamicDiffDlmInactiveMutation =
+        "replace.ctrlram.dynamic-diffdlm-inactive-mutation";
+
+    /// <summary>Postbuild placed FWConfig Backup at an unexpected but still authorized address.</summary>
+    public const string ReplaceCtrlRamFirmwareConfigBackupPlacementUnexpected =
+        "replace.ctrlram.fwconfig-backup-placement-unexpected";
 
     /// <summary>CtrlRAM Replace postbuild planner did not expose an approved write range.</summary>
     public const string ReplaceCtrlRamPostbuildWriteRangeMissing = "replace.ctrlram.postbuild-write-range-missing";

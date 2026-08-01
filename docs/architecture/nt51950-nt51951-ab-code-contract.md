@@ -1,8 +1,8 @@
 # NT51950 / NT51951 AB Code Contract
 
-Status: `0.9.15` release-target design and review contract. It does not itself
-claim certification or replace the profile, processor binding, or executable
-tests as the source of runtime behavior.
+Status: canonical `0.10.x` design and review contract, migrated by issue #190.
+It does not itself claim certification or replace the profile, processor
+binding, or executable tests as the source of runtime behavior.
 
 Related authority: [ADR 0035](../adr/0035-ab-topology-operator-selection.md)
 and [ADR 0036](../adr/0036-output-destination-and-ab-naming-v2.md).
@@ -15,7 +15,7 @@ certification claim.
 
 | Route | Direct golden state | Certification debt |
 | --- | --- | --- |
-| NT51950 `1 IC` | Owner-supplied; formal intake/closure pending | Firmware-owner postbuild/map review and release evidence. |
+| NT51950 `1 IC` | Two owner-supplied outputs are regression-pinned | Firmware-owner postbuild/map review and certification closure. |
 | NT51950 `Cascade` | Missing | Direct vector plus firmware-owner postbuild/map review and release evidence. |
 | NT51951 selector-free | Missing | Direct vector plus firmware-owner postbuild/map review and release evidence. |
 
@@ -62,13 +62,11 @@ NT51951 has one declared byte plan and never presents an IC-number control.
 ## TPB-only postbuild boundary
 
 TPA remains byte-for-byte copied and its CRC is never recomputed. TPB is the
-only cloned mutable source. Before postbuild, these little-endian `u32` fields
-receive the layout addend:
+only cloned mutable source. Before postbuild, the host applies the resolved
+layout addend only to this checked little-endian `u32` field:
 
 | Field | Source-relative interval |
 | --- | --- |
-| ILM | `[0xA100,0xA104)` |
-| DLM | `[0xA110,0xA114)` |
 | DIFF | `[0xA120,0xA124)` |
 
 The host first materializes a private A/B Combiner work image: 512 KiB for
@@ -78,8 +76,10 @@ the processor's staging/read scope, not its write authority. The host admits
 changes only to B-bank TPB ILM, DLM, and Header CRC: respectively
 `[0x4A100,0x4A104)`, `[0x4A110,0x4A114)`, and `[0x4A130,0x4A134)` for
 NT51950; the corresponding NT51951 ranges begin at `0x8A100`, `0x8A110`, and
-`0x8A130`. Its postbuilt B bank is then the sole B-slot backfill source; the
-already-copied DP tail remains byte-for-byte unchanged.
+`0x8A130`. After the external diff is checked, the host imports only those
+three four-byte fields from the private work image. It never backfills the
+whole B bank; the already-seeded DP container and every byte outside the named
+TP overlays and exact imports remain byte-for-byte unchanged.
 
 The approved staged postbuild route then calculates CRC-32/MPEG-2 over
 `[0xA100,0xA130)` and writes its little-endian value at `[0xA130,0xA134)`.
@@ -87,8 +87,7 @@ It is the authoritative writer so the release/runtime environment matches the
 same postbuild implementation used by the approved 950/951 path. C# performs
 the same pure calculation only as an independent equivalence assertion. The
 host rejects a changed DP byte, any out-of-range TPB mutation, a length change,
-or a C#/postbuild CRC disagreement before it imports the staged TPB bytes into
-the B slot.
+or a C#/postbuild CRC disagreement before it imports the three verified fields.
 
 The workbench Memory coverage view labels A bank, B bank, and postbuild A/B
 work buffers with their roles. The postbuild step description shows the full
@@ -96,9 +95,10 @@ staging/read scope and the three exact allowed-write ranges separately; the
 full `[0x00000,0x80000)` NT51950 scope must not be described as one CRC
 calculation interval.
 
-Required tests include all three maps, complete DP preservation, short-prefix
-rejection, longer-tail independence, NVT metadata detection, TPA no-write,
-the three TPB relocations, TPB postbuild allowed ranges, C#/postbuild CRC
+Required tests include all three maps, exact topology-resolved DP capacity,
+complete DP preservation, short-prefix rejection, longer-tail independence,
+NVT metadata detection, TPA no-write, checked TPB DIFF relocation, TPB
+postbuild allowed ranges and exact three-field imports, C#/postbuild CRC
 equivalence, output identity/override rules, source immutability, and atomic
 failure.
 
@@ -107,8 +107,8 @@ failure.
 The Mermaid source below is versioned with this contract. It is explanatory:
 the compiled profile and staged processor are the executable authority.
 
-Editable Mermaid Live permalink (generated from this exact source on
-2026-07-23):
+Historical `0.9.15` Mermaid Live permalink retained for provenance (the source
+below reflects the narrower canonical `0.10.x` import boundary):
 
 https://mermaid.live/edit#pako:eJxNkU1vwjAMhv-KlTNodw6T-kEBaUiIoV3WaQpNAhFp3KUJrEP89zmpBusBVeV57Nf2lTUoJJsxZfDSHLnzsCtrC_Rk7zV740YL7iX4oZMCshyc_Aqy98CtgN0GOieV_q7ZB0ynz5CTUmA3gArGQLn5JMEjYPBd8ASNhfPEFn_sbpNBDAGO24OEYCkGvYg7XyS-jLxBK0nI_wl3rEzYnLCtNNjE1JFcvawnUMafGLlcVdXdmCejImNNtNM07I-kkfQ5ytlTDgW2e22lgwu6E-iW_-tXJXsR-wULvOscnmlHvSdIpNYd9n4ftHmMskjOMm6W-qkBuKG9j_gUrRlAaKVS0mJbAO2ashhpm0fbZSqxohI5b05K06Jz6A2OJ-EeW91Q1YHmwBb9KLIJa6VruRZ06mvN_FG29M-sZkIqHgwd50YMDx5fB9uwmXdBTljo4vFLzQ-Ot-PH2y_0NrMb
 
@@ -117,14 +117,14 @@ flowchart TD
     A["Validate typed AB request and TP prefix"] --> B["Copy full DP_AB to output"]
     B --> C["Copy TPA code range unchanged"]
     C --> D["Clone TPB code range"]
-    D --> E["Relocate TPB ILM, DLM, and DIFF"]
+    D --> E["Relocate checked TPB DIFF by resolved A-to-B delta"]
     E --> F["Materialize private A/B Combiner work image"]
     F --> G["Run approved staged TPB postbuild"]
     G --> H["Verify allowed TPB-only diff and CRC equivalence"]
-    H --> I["Backfill B slot and atomically promote"]
+    H --> I["Import exact B ILM, DLM, and CRC fields"]
+    I --> J["Atomically promote complete DP-seeded output"]
 ```
 
-The `0.9.15` release handoff must record this file path, its commit SHA, and
-the permalink above. Broader all-IC/all-mode documentation and Mermaid work
-are deferred to an owner-selected later milestone; this dedicated contract is
-not an implementation-convergence authorization.
+The `0.10.x` review handoff records this file path and commit SHA. Broader
+all-IC/all-mode documentation remains a separate owner-selected organization
+slice; this dedicated contract does not authorize unrelated convergence.

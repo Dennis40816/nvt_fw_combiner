@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -14,9 +16,28 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+import validate_repository as repository_validation  # noqa: E402
+
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
+SUPPORT_POLICY_RELATIVE_PATH = Path(
+    "docs/contracts/support-publication-policy-v1.json"
+)
+SUPPORT_POLICY_ROLE = "publicationPolicy"
+SUPPORT_POLICY_SHA256 = (
+    "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff"
+)
+SUPPORT_POLICY_HISTORY = (
+    (
+        Path("docs/contracts/support-publication-policy-v1.0.0.json"),
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
+    ),
+    (SUPPORT_POLICY_RELATIVE_PATH, SUPPORT_POLICY_SHA256),
+)
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
@@ -24,6 +45,7 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/legacy-combiner/1.13.0/Combiner.exe",
     "external-tools/legacy-combiner/1.13.0/manifest.json",
 )
+RETIRED_PRODUCTION_IC_IDS = ("NT51920", "NT51925", "NT51930", "NT51931")
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 PERSONAL_OWNER_IDENTIFIER = "Dennis40816"
 DISTRIBUTION_OWNER = "MSP/FW3"
@@ -176,6 +198,86 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             )
         )
 
+    def test_support_policy_package_contract_matches_runtime_and_release_scripts(
+        self,
+    ) -> None:
+        errors: list[str] = []
+
+        repository_validation.validate_support_publication_policy_package_contracts(
+            ROOT, errors
+        )
+
+        self.assertEqual([], errors)
+
+    def test_repository_validator_rejects_support_policy_contract_drift(self) -> None:
+        mutations = {
+            "empty": (
+                PACKAGE_SCRIPT,
+                lambda text: re.sub(
+                    r"\$ApprovedSupportPublicationPolicyPackageContracts\s*=\s*@\("
+                    r".*?\)\s*\n",
+                    "$ApprovedSupportPublicationPolicyPackageContracts = @()\n",
+                    text,
+                    count=1,
+                    flags=re.DOTALL,
+                ),
+            ),
+            "repath": (
+                PACKAGE_SCRIPT,
+                lambda text: text.replace(
+                    SUPPORT_POLICY_RELATIVE_PATH.as_posix(),
+                    "docs/contracts/repathed-support-policy.json",
+                    1,
+                ),
+            ),
+            "wrong-role": (
+                SMOKE_SCRIPT,
+                lambda text: text.replace(
+                    "role = 'publicationPolicy'",
+                    "role = 'reference'",
+                    1,
+                ),
+            ),
+            "wrong-hash": (
+                SMOKE_SCRIPT,
+                lambda text: text.replace(
+                    SUPPORT_POLICY_SHA256,
+                    "0" * 64,
+                    1,
+                ),
+            ),
+        }
+
+        for name, (script_path, mutate) in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="nvt-support-policy-contract-validator-"
+            ) as temporary_directory:
+                temporary_root = Path(temporary_directory)
+                for source in (
+                    PACKAGE_SCRIPT,
+                    SMOKE_SCRIPT,
+                    *(ROOT / path for path, _ in SUPPORT_POLICY_HISTORY),
+                    ROOT
+                    / "src/NvtFwCombiner.Infrastructure/Support/"
+                    "BuiltInSupportPublicationPolicy.cs",
+                ):
+                    destination = temporary_root / source.relative_to(ROOT)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, destination)
+
+                copied_script = temporary_root / script_path.relative_to(ROOT)
+                copied_script.write_text(
+                    mutate(copied_script.read_text(encoding="utf-8")),
+                    encoding="utf-8",
+                )
+                errors: list[str] = []
+
+                repository_validation.validate_support_publication_policy_package_contracts(
+                    temporary_root, errors
+                )
+
+                self.assertTrue(errors, name)
+
     def test_console_output_normalization_removes_powershell_formatting(self) -> None:
         output = "\x1b[31mowner-approved maximum\x1b[0m\n| 58076715 bytes"
 
@@ -246,7 +348,11 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded",
+            "Support publication policy package dry-run passed: exact path, role, and SHA-256 pinned; empty contract and wrong published hash rejected",
+            result.stdout,
+        )
+        self.assertIn(
+            "Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded",
             result.stdout,
         )
         self.assertIn(
@@ -487,10 +593,20 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(match)
-        self.assertIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
+        self.assertNotIn("nfc.nt51920.ctrlram-postbuild-v1", match.group(1))
         self.assertNotIn("nfc.nt51930.ctrlram-postbuild-v1", match.group(1))
-        self.assertIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertNotIn("nfc.nt51930.ctrlram-postbuild-fw1.x", match.group(1))
+        self.assertNotIn("nfc.nt51931.ctrlram-postbuild-v1", match.group(1))
         self.assertIn("nfc.nt51926.ctrlram-postbuild-fw1.4.1", match.group(1))
+
+    def test_standard_merge_release_allowlist_excludes_retired_ic_ids(self) -> None:
+        allowlist_path = ROOT / "testdata/golden/release-standard-merge-v1.json"
+        allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
+        publication_text = json.dumps(allowlist, sort_keys=True).upper()
+
+        for retired_ic_id in RETIRED_PRODUCTION_IC_IDS:
+            with self.subTest(ic=retired_ic_id):
+                self.assertNotIn(retired_ic_id, publication_text)
 
     def test_sbom_file_ids_encode_every_package_path_as_valid_spdx_characters(
         self,
@@ -544,6 +660,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             for required_file in (
                 "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                *(path.as_posix() for path, _ in SUPPORT_POLICY_HISTORY),
                 "RELEASE-MANIFEST.json",
                 "SHA256SUMS.txt",
                 "README.txt",
@@ -605,6 +722,64 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout + result.stderr,
         )
 
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_missing_support_policy(self) -> None:
+        result = self.run_smoke_with_support_policy(include_policy=False)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_repathed_support_policy(self) -> None:
+        result = self.run_smoke_with_support_policy(
+            relative_path=Path("support-publication-policy-v1.json")
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{SUPPORT_POLICY_RELATIVE_PATH.as_posix()}'.",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_wrong_support_policy_role(self) -> None:
+        result = self.run_smoke_with_support_policy(role="reference")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest support publication policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_self_consistent_wrong_support_policy_hash(
+        self,
+    ) -> None:
+        payload = b'{"changed":"but self-consistent"}\n'
+        result = self.run_smoke_with_support_policy(
+            payload=payload,
+            manifest_sha256=hashlib.sha256(payload).hexdigest(),
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest support publication policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
     def run_smoke_with_manifested_external_tool(
         self, relative_path: Path
     ) -> subprocess.CompletedProcess[str]:
@@ -631,15 +806,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             staged_probe = package_root / relative_path
             staged_probe.parent.mkdir(parents=True, exist_ok=True)
             staged_probe.write_bytes(b"negative release-policy probe\n")
+            manifest_entries: list[dict[str, object]] = []
+            self.add_valid_support_policy(package_root, manifest_entries)
+            manifest_entries.append(
+                {
+                    "path": relative_path.as_posix(),
+                    "size": staged_probe.stat().st_size,
+                    "sha256": "0" * 64,
+                    "role": "externalTool",
+                }
+            )
             manifest = {
-                "files": [
-                    {
-                        "path": relative_path.as_posix(),
-                        "size": staged_probe.stat().st_size,
-                        "sha256": "0" * 64,
-                        "role": "externalTool",
-                    }
-                ]
+                "files": manifest_entries
             }
             (package_root / "RELEASE-MANIFEST.json").write_text(
                 json.dumps(manifest),
@@ -686,6 +864,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 required_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries = []
+            self.add_valid_support_policy(package_root, manifest_entries)
             for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
@@ -724,6 +903,116 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Release manifest has no materialized built-in profile files.",
             result.stdout + result.stderr,
         )
+
+    def run_smoke_with_support_policy(
+        self,
+        *,
+        include_policy: bool = True,
+        relative_path: Path = SUPPORT_POLICY_RELATIVE_PATH,
+        role: str = SUPPORT_POLICY_ROLE,
+        payload: bytes | None = None,
+        manifest_sha256: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-support-policy-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+
+            for required_file in (
+                "NvtFwCombiner.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = []
+            for policy_relative_path, policy_sha256 in SUPPORT_POLICY_HISTORY:
+                if policy_relative_path == SUPPORT_POLICY_RELATIVE_PATH:
+                    continue
+                policy_payload = (ROOT / policy_relative_path).read_bytes()
+                self.assertEqual(
+                    policy_sha256,
+                    hashlib.sha256(policy_payload).hexdigest(),
+                )
+                policy_path = package_root / policy_relative_path
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                policy_path.write_bytes(policy_payload)
+                manifest_entries.append(
+                    {
+                        "path": policy_relative_path.as_posix(),
+                        "size": len(policy_payload),
+                        "sha256": policy_sha256,
+                        "role": SUPPORT_POLICY_ROLE,
+                    }
+                )
+            if include_policy:
+                policy_payload = (
+                    (ROOT / SUPPORT_POLICY_RELATIVE_PATH).read_bytes()
+                    if payload is None
+                    else payload
+                )
+                policy_path = package_root / relative_path
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                policy_path.write_bytes(policy_payload)
+                manifest_entries.append(
+                    {
+                        "path": relative_path.as_posix(),
+                        "size": len(policy_payload),
+                        "sha256": manifest_sha256
+                        or hashlib.sha256(policy_payload).hexdigest(),
+                        "role": role,
+                    }
+                )
+
+            (package_root / "RELEASE-MANIFEST.json").write_text(
+                json.dumps({"files": manifest_entries}),
+                encoding="utf-8",
+            )
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            return self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+    def add_valid_support_policy(
+        self,
+        package_root: Path,
+        manifest_entries: list[dict[str, object]],
+    ) -> None:
+        for policy_relative_path, policy_sha256 in SUPPORT_POLICY_HISTORY:
+            policy_payload = (ROOT / policy_relative_path).read_bytes()
+            self.assertEqual(
+                policy_sha256,
+                hashlib.sha256(policy_payload).hexdigest(),
+            )
+            policy_path = package_root / policy_relative_path
+            policy_path.parent.mkdir(parents=True, exist_ok=True)
+            policy_path.write_bytes(policy_payload)
+            manifest_entries.append(
+                {
+                    "path": policy_relative_path.as_posix(),
+                    "size": len(policy_payload),
+                    "sha256": policy_sha256,
+                    "role": SUPPORT_POLICY_ROLE,
+                }
+            )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "name": "assess-refactor-progress",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "progress-report",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "code-review",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "review",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "composition-experience-change",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "experience",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "crc-worker-contract",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "crc-worker",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "diagnosing-bugs",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "diagnosis",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "dotnet-bootstrap",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "bootstrap",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "firmware-profile-authoring",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "firmware-profile",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "github-review-polling",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "explicit",
+      "authority": "github-review",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "golden-regression",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "golden-evidence",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "grill-with-docs",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "decision-documentation",
+      "owner": "repository",
+      "replaces": ["domain-modeling"]
+    },
+    {
+      "name": "grilling",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "explicit",
+      "authority": "decision-interview",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "implement",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "implementation",
+      "owner": "repository",
+      "replaces": ["tdd"]
+    },
+    {
+      "name": "nfc-architecture-change",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "architecture",
+      "owner": "repository",
+      "replaces": ["codebase-design", "improve-codebase-architecture"]
+    },
+    {
+      "name": "polytail",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "quality-gate",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "release-readiness",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "release",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "resolving-merge-conflicts",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "conflict-recovery",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "supervised-branch-development",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "explicit",
+      "authority": "branch-coordination",
+      "owner": "repository",
+      "replaces": ["handoff"]
+    },
+    {
+      "name": "to-spec",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "specification-draft",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "to-tickets",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "ticket-planning",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "ui-experience-change",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "presentation",
+      "owner": "repository",
+      "replaces": ["prototype"]
+    }
+  ]
+}

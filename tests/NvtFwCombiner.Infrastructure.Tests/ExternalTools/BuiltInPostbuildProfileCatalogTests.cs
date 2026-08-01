@@ -14,13 +14,10 @@ public sealed class BuiltInPostbuildProfileCatalogTests
     [Fact]
     public void LoadReadsEveryRuntimeBuiltInProfile()
     {
-        Assert.Equal(14, BuiltInPostbuildProfileCatalog.All.Count);
+        Assert.Equal(11, BuiltInPostbuildProfileCatalog.All.Count);
         Assert.DoesNotContain(
             BuiltInPostbuildProfileCatalog.All,
-            profile => profile.ProcessorId == "nfc.nt51930.ctrlram-postbuild-v1");
-        Assert.Contains(
-            BuiltInPostbuildProfileCatalog.All,
-            profile => profile.ProcessorId == "nfc.nt51930.ctrlram-postbuild-fw1.x");
+            profile => profile.IcId is "NT51920" or "NT51925" or "NT51930" or "NT51931");
     }
 
     /// <summary>A catalog byte change cannot pass under the release-pinned hash.</summary>
@@ -41,7 +38,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         byte[] lfBytes = Encoding.UTF8.GetBytes(lfText);
         byte[] crlfBytes = Encoding.UTF8.GetBytes(lfText.Replace("\n", "\r\n", StringComparison.Ordinal));
 
-        Assert.Equal(14, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
+        Assert.Equal(11, BuiltInPostbuildProfileCatalog.Load(crlfBytes, Hash(lfBytes)).Count);
     }
 
     /// <summary>Canonical repository bytes do not create document-sized hash-normalization buffers.</summary>
@@ -149,7 +146,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
     public void LoadRejectsOverlappingPlanSelectors()
     {
         JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
-        JsonObject profile = FindProfile(root, "nfc.nt51930.ctrlram-postbuild-fw1.x");
+        JsonObject profile = FindProfile(root, "nfc.nt51932.ctrlram-postbuild-v1");
         JsonArray selectors = Assert.IsType<JsonArray>(profile["planSelectors"]);
         selectors.Add(new JsonObject
         {
@@ -167,7 +164,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
     public void LoadRejectsDegenerateCountRange()
     {
         JsonObject root = Assert.IsType<JsonObject>(JsonNode.Parse(ReadCatalog()));
-        JsonObject profile = FindProfile(root, "nfc.nt51930.ctrlram-postbuild-fw1.x");
+        JsonObject profile = FindProfile(root, "nfc.nt51932.ctrlram-postbuild-v1");
         JsonObject range = Assert.IsType<JsonObject>(profile["planSelectors"]![1]);
         range["maximumCount"] = 2;
         byte[] bytes = Encoding.UTF8.GetBytes(root.ToJsonString());

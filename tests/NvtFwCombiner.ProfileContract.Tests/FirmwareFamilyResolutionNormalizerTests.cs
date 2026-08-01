@@ -15,7 +15,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     [Fact]
     public void NormalizeCreatesCandidateScopedDomainFacts()
     {
-        FirmwareFamilyDocument document = Document();
+        FirmwareFamilyDocument document = Document(includeRelations: true);
 
         FirmwareFamilyResolutionDefinition definition =
             FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash);
@@ -35,6 +35,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Empty(regionBinding.Provenance.AliasChain);
         Assert.Empty(metadataBinding.Provenance.AliasChain);
         Assert.Equal(["tp-firmware"], definition.RequiredArtifactBindingIds);
+        FirmwareMetadataStructure structure =
+            Assert.Single(definition.GetStructuresForMap("map"));
+        Assert.Equal(
+            "u8FWVersion",
+            structure.Fields.Single(static field =>
+                field.FieldId == "firmware-version").SourceName);
         FirmwareMetadataPredicate predicate = Assert.Single(map.Applicability.MetadataPredicates);
         Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(2), Assert.Single(predicate.ExpectedValues));
 
@@ -43,6 +49,8 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         bytes[1] = (byte)'A';
         bytes[2] = 0xF2;
         bytes[3] = 0xFE;
+        bytes[4] = 0x5A;
+        bytes[5] = 0xA5;
         FirmwareMetadataStructureResolution resolution = definition.ResolveMetadataStructure(
             "map",
             "config",
@@ -58,6 +66,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal("A", facts["label"].TextValue);
         Assert.Equal(2UL, facts["chip-number"].UnsignedIntegerValue);
         Assert.Equal(-2, facts["signed-offset"].SignedIntegerValue);
+        Assert.True(Assert.Single(decoded.Relations).IsSatisfied);
         Assert.Equal(FirmwarePredicateResult.Match, predicate.Evaluate(facts).Result);
     }
 

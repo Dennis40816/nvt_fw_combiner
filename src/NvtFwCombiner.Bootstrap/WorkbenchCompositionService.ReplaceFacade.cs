@@ -1,6 +1,8 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -131,6 +133,227 @@ public static partial class WorkbenchCompositionService
             display.Issues.Count == 0
                 ? BuiltInV2Bundle.FormatCapacities(display.SupportedBaseCapacities)
                 : null;
+    }
+
+    /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralReplaceDraftAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        return !IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.GeneralReplace)
+            ? ValueTask.FromResult(CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build,
+                [],
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} General Replace is Not available under the current IC workflow policy.",
+                    IcWorkflowIds.GeneralReplace)],
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
+            : RunGeneralReplaceDraftCoreAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                build,
+                outputPath,
+                progress: null,
+                cancellationToken);
+    }
+
+    /// <summary>
+    /// Ephemeral CLI/Saved Rule boundary: inspect once, then execute the exact
+    /// content-bound draft through the strict General Replace runner.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralReplaceEphemeralDraftAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        return !IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.GeneralReplace)
+            ? ValueTask.FromResult(CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build,
+                [],
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} General Replace is Not available under the current IC workflow policy.",
+                    IcWorkflowIds.GeneralReplace)],
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
+            : RunGeneralReplaceWithInitialInspectionAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                new AuthoringRevision(1),
+                build,
+                outputPath,
+                progress: null,
+                cancellationToken,
+                savedRulePolicy);
+    }
+
+    /// <summary>
+    /// Test seam that resolves a hash-bound General Replace Parent from one
+    /// trusted fixture catalog; callers may override readiness, never authority.
+    /// </summary>
+    internal static ValueTask<WorkbenchRunResult>
+        RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            GeneralMappingDraftState mappingDraft,
+            bool build,
+            TrustedProfileBundleCatalog exactParentCatalog,
+            string exactParentProfileId,
+            GeneralReplacePostbuildReadinessOverride postbuildReadinessOverride,
+            CompositionRunProgressFeed progress,
+            string? outputPath,
+            CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(exactParentCatalog);
+        ArgumentException.ThrowIfNullOrWhiteSpace(exactParentProfileId);
+        ArgumentNullException.ThrowIfNull(postbuildReadinessOverride);
+        ArgumentNullException.ThrowIfNull(progress);
+        SavedRuleV2GeneralReplaceExactParent exactParent =
+            SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
+                exactParentCatalog,
+                exactParentProfileId);
+        return RunGeneralReplaceWithInitialInspectionAsync(
+            icId,
+            number,
+            slotPaths,
+            mappingDraft,
+            new AuthoringRevision(1),
+            build,
+            outputPath,
+            progress,
+            cancellationToken,
+            savedRulePolicy: null,
+            postbuildReadinessOverride,
+            exactParent);
+    }
+
+    /// <summary>
+    /// Runs General Replace from the exact content-bound draft returned by an
+    /// earlier desktop Preview or explicit Reload/Rebind.
+    /// </summary>
+    public static ValueTask<WorkbenchRunResult> RunGeneralReplaceAcceptedDraftWithProgressAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState acceptedMappingDraft,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(number);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(acceptedMappingDraft);
+        ArgumentNullException.ThrowIfNull(progress);
+        return !IcSupportCatalog.SupportsWorkflow(icId, IcWorkflowIds.GeneralReplace)
+            ? ValueTask.FromResult(CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                new Dictionary<string, string>(StringComparer.Ordinal),
+                build,
+                [],
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    $"{IcSupportCatalog.NormalizeIcId(icId)} General Replace is Not available under the current IC workflow policy.",
+                    IcWorkflowIds.GeneralReplace)],
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
+            : RunGeneralReplaceDraftCoreAsync(
+                icId,
+                number,
+                slotPaths,
+                acceptedMappingDraft,
+                build,
+                outputPath,
+                progress,
+                cancellationToken);
+    }
+
+    private static async ValueTask<WorkbenchRunResult>
+        RunGeneralReplaceWithInitialInspectionAsync(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            GeneralMappingDraftState mappingDraft,
+            AuthoringRevision inspectionRevision,
+            bool build,
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null,
+        SavedRuleV2GeneralReplaceExactParent? exactParentOverride = null)
+    {
+        if (!TryCreateGeneralReplaceRunContext(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                build,
+                out GeneralReplaceRunContext? context,
+                out WorkbenchRunResult? failure))
+        {
+            return failure!;
+        }
+
+        GeneralSelectedFileBindingResult accepted =
+            await AcceptGeneralSelectedFilesAsync(
+                mappingDraft,
+                inspectionRevision,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return !accepted.Succeeded
+            ? CreateReplaceReportRunResult(
+                icId,
+                WorkbenchReplaceModes.General,
+                context!.ReportSlotPaths,
+                build,
+                [],
+                accepted.Issues,
+                GetReplaceDefaultOutputFileName(
+                    icId,
+                    WorkbenchReplaceModes.General))
+            : await RunGeneralReplaceDraftCoreAsync(
+                icId,
+                number,
+                slotPaths,
+                accepted.Draft!,
+                build,
+                outputPath,
+                progress,
+                cancellationToken,
+                savedRulePolicy,
+                postbuildReadinessOverride,
+                exactParentOverride).ConfigureAwait(false);
     }
 
     /// <summary>Runs a Replace preview or build through the workbench Replace facade.</summary>

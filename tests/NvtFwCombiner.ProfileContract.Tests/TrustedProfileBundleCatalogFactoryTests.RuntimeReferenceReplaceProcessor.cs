@@ -117,6 +117,78 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             });
     }
 
+    /// <summary>
+    /// Reviewed postbuild section identities survive compiler lowering and
+    /// therefore distinguish the exact compiled processor plan.
+    /// </summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamWriteSectionsChangeCompilationFingerprint()
+    {
+        TrustedProfileBundleCatalog catalog = CreateConditionalRuntimeReferenceReplaceCatalog(
+            includeProcessor: true,
+            experienceId: ExperienceIds.CtrlRamReplace);
+        var topology = new TopologySelection(
+            1,
+            "single",
+            TopologySelectionSource.Requested,
+            "ic-number");
+        V2RuntimeReferenceReplaceInputBinding[] bindings =
+        [
+            new("base", "reference", 16),
+            new("source-a", "source", 4),
+        ];
+        ExplicitMapping[] mappings =
+        [
+            RuntimeReferenceReplaceMapping(
+                "replace-tp",
+                10,
+                new ByteRange(0, 2),
+                new ByteRange(8, 2)),
+        ];
+        V2CompositionPlanCompileResult baseline =
+            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+                catalog,
+                "runtime-ctrlram-replace",
+                "1.0.0",
+                LogicalTestMemberId,
+                ExperienceIds.CtrlRamReplace,
+                topology,
+                new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
+        V2CompositionPlanCompileResult classified =
+            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+                catalog,
+                "runtime-ctrlram-replace",
+                "1.0.0",
+                LogicalTestMemberId,
+                ExperienceIds.CtrlRamReplace,
+                topology,
+                new V2RuntimeReferenceReplaceCompileRequest(
+                    bindings,
+                    mappings,
+                    postbuildWriteRangeSections:
+                    [
+                        new ExternalProcessorWriteRangeSection(
+                            "flash-header-crc",
+                            new ByteRange(12, 4),
+                            new ByteRange(0, 4)),
+                    ]));
+
+        CompiledComposition baselineComposition =
+            Assert.IsType<CompiledComposition>(baseline.CompiledComposition);
+        CompiledComposition classifiedComposition =
+            Assert.IsType<CompiledComposition>(classified.CompiledComposition);
+        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
+            classifiedComposition.Plan.OrderedOperations[^1].ExternalProcessorInvocation);
+        ExternalProcessorWriteRangeSection section =
+            Assert.Single(invocation.AllowedWriteRangeSections);
+        Assert.Equal("flash-header-crc", section.SectionId);
+        Assert.Equal(new ByteRange(12, 4), section.Range);
+        Assert.Equal(new ByteRange(0, 4), section.SourceRange);
+        Assert.NotEqual(
+            baselineComposition.CompilationFingerprint,
+            classifiedComposition.CompilationFingerprint);
+    }
+
     /// <summary>Verifies CtrlRAM Replace cannot borrow an explicitly writable DP region.</summary>
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceRejectsDpTarget()

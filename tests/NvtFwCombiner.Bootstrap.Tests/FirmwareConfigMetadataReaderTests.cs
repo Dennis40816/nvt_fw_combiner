@@ -46,7 +46,10 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(0x07C, FirmwareConfigLayout.RequiredLength);
     }
 
-    /// <summary>Reads Common FW, FW/bar, and PID facts from the canonical Backup in owner-approved golden outputs.</summary>
+    /// <summary>
+    /// Reads Common FW, FW/bar, and PID facts from immutable owner-approved golden outputs.
+    /// Retired IC rows in this evidence-only set do not imply production catalog admission.
+    /// </summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCases))]
     public void GoldenFlashImagesExposeExpectedFirmwareFacts(
@@ -127,7 +130,7 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal(afterRight, hardware.GipAfterRight);
     }
 
-    /// <summary>Confirms every current IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF Backup block.</summary>
+    /// <summary>Confirms every admitted IC golden copies all exposed FWConfig fields to the NVT T-minus-FFF Backup block.</summary>
     [Theory]
     [MemberData(nameof(GoldenFirmwareConfigCopyCases))]
     public void GoldenFlashHardwareInfoMatchesNvtBackup(string ic, string _)
@@ -202,7 +205,9 @@ public sealed class FirmwareConfigMetadataReaderTests
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
     }
 
-    /// <summary>Golden FWConfig facts used by UI display and postbuild-category detection discussion.</summary>
+    /// <summary>
+    /// Historical golden FWConfig facts used for parser evidence; membership is not production support.
+    /// </summary>
     public static TheoryData<string, string, string, byte, byte, byte, byte, ushort> GoldenFirmwareConfigCases()
     {
         TheoryData<string, string, string, byte, byte, byte, byte, ushort> data = [];
@@ -224,14 +229,11 @@ public sealed class FirmwareConfigMetadataReaderTests
     public static TheoryData<string, string> GoldenFirmwareConfigCopyCases()
     {
         TheoryData<string, string> data = [];
-        data.Add("51920", "51920/flash.bin");
         data.Add("51923", "51923/flash.bin");
         data.Add("51926", "51926/flash.bin");
         data.Add("51927", "51927/flash.bin");
         data.Add("51928", "51928/flash.bin");
         data.Add("51929", "51929/flash.bin");
-        data.Add("51930", "51930/flash.bin");
-        data.Add("51931", "51931/flash.bin");
         data.Add("51932", "51932/flash.bin");
         data.Add("51950", "51950/dp-256k/flash.bin");
         data.Add("51951", "51951/dp-512k/flash.bin");

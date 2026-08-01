@@ -10,8 +10,8 @@ Specification package version: `0.10.0`
 ## 0.10.0 maintainability planning-release candidate
 
 The candidate is a support-neutral documentation, governance, terminology, and
-evidence-reference release. It records the IC-first architecture, a closed
-ticket dependency graph (#170–#197), ADR lifecycle handling, and the
+evidence-reference release. It records the IC-first architecture, the initial
+dependency graph (later extended by explicitly approved tickets), ADR lifecycle handling, and the
 owner-updated FlashMap workbook provenance. It does not change production
 firmware behavior, supported routes, processor authority, IC promotion, or
 golden outputs.

@@ -185,7 +185,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             "f11e8bc970bfebcb803082c9f048b235fd990fba440f5900cbe81e100b3c9cd3",
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
-            "16015cf9f7d33e587d23010dba27d5f878a897105d12f4192911172627a472d1",
+            "d4ca898a8324723a104c690bd64a1db3edf61a217bb6a0a092d600f356a1da27",
             first.CompilationFingerprint);
         Assert.Equal(
             first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,

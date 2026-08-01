@@ -56,7 +56,7 @@ public sealed partial class CompositionRunService
         DateTimeOffset startedAtUtc = _clock.UtcNow;
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         OutputNameResolution outputName = boundInputs.Issues.Count == 0
-            ? AbCodeOutputNameResolver.Resolve(
+            ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
@@ -65,7 +65,7 @@ public sealed partial class CompositionRunService
         return new CompositionOutputNamePreview(
             outputName.FileName,
             outputName.Summary,
-            [.. boundInputs.Issues, .. outputName.Issues]);
+            [.. boundInputs.Issues, .. boundInputs.AdvisoryIssues, .. outputName.Issues]);
     }
 
     /// <summary>Executes the request without committing output.</summary>
@@ -222,6 +222,8 @@ public sealed partial class CompositionRunService
                 failedAtUtc,
                 committed: false,
                 validations: [
+                    .. CreateSkippedInputLoadValidations(request.CompiledComposition)
+                        .Select(static evaluation => evaluation.Summary),
                     .. CreateSkippedFinalOutputValidations(request.CompiledComposition)
                         .Select(static evaluation => evaluation.Summary),
                 ]);
@@ -235,13 +237,26 @@ public sealed partial class CompositionRunService
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
         BoundInputs boundInputs = await ReadInputsAsync(request, cancellationToken).ConfigureAwait(false);
         OutputNameResolution outputName = boundInputs.Issues.Count == 0
-            ? AbCodeOutputNameResolver.Resolve(
+            ? CompiledOutputNameResolver.Resolve(
                 request,
                 boundInputs.InputBytes,
                 boundInputs.InputSummaries,
                 startedAtUtc)
             : OutputNameResolution.Static(request.OutputFileName);
-        if (commitOutput && boundInputs.Issues.Count == 0 &&
+        CompositionIssue[] outputNameBlockingIssues =
+        [
+            .. outputName.Issues.Where(static issue =>
+                string.Equals(
+                    issue.Severity,
+                    CompositionIssueSeverity.Error,
+                    StringComparison.Ordinal)),
+        ];
+        CompositionIssue[] preparationIssues =
+        [
+            .. boundInputs.Issues,
+            .. outputNameBlockingIssues,
+        ];
+        if (commitOutput && preparationIssues.Length == 0 &&
             _outputWriter is ICompositionOutputCommitPreflight outputPreflight)
         {
             // The renderer has now bound the name to these exact accepted snapshots.  Perform
@@ -250,7 +265,7 @@ public sealed partial class CompositionRunService
         }
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;
-        if (boundInputs.Issues.Count == 0)
+        if (preparationIssues.Length == 0)
         {
             progressPublisher.Report(CompositionRunPhase.ExecutingComposition);
             execution = await ExecutePlanAsync(
@@ -263,14 +278,17 @@ public sealed partial class CompositionRunService
         }
         else
         {
-            execution = CompositionExecutionResult.Failed(boundInputs.Issues);
+            execution = CompositionExecutionResult.Failed(preparationIssues);
         }
 
         List<FinalOutputValidationEvaluation> finalOutputValidations;
         if (execution.Status == CompositionExecutionStatus.Succeeded)
         {
             progressPublisher.Report(CompositionRunPhase.ValidatingOutput);
-            finalOutputValidations = EvaluateFinalOutput(request.CompiledComposition, execution.OutputBytes);
+            finalOutputValidations = EvaluateFinalOutput(
+                request.CompiledComposition,
+                boundInputs.InputBytes,
+                execution.OutputBytes);
         }
         else
         {
@@ -280,7 +298,13 @@ public sealed partial class CompositionRunService
             .. CreateOutputDifferences(request, execution, boundInputs.InputBytes, execution.OutputBytes),
         ];
         List<CompositionIssue> runIssues = [
-            .. outputName.Issues,
+            .. request.AdvisoryIssues,
+            .. boundInputs.AdvisoryIssues,
+            .. outputName.Issues.Where(static issue =>
+                !string.Equals(
+                    issue.Severity,
+                    CompositionIssueSeverity.Error,
+                    StringComparison.Ordinal)),
             .. finalOutputValidations
                 .Where(static evaluation => evaluation.Issue is not null)
                 .Select(static evaluation => evaluation.Issue!),
@@ -334,7 +358,11 @@ public sealed partial class CompositionRunService
             outputFileName: outputName.FileName,
             outputNaming: outputName.Summary,
             additionalIssues: runIssues,
-            validations: [.. finalOutputValidations.Select(static evaluation => evaluation.Summary)],
+            validations:
+            [
+                .. boundInputs.InputLoadValidations.Select(static evaluation => evaluation.Summary),
+                .. finalOutputValidations.Select(static evaluation => evaluation.Summary),
+            ],
             executedCommandsByOperationId: executedCommandsByOperationId);
 
         (string? inspectionOutputSpaceId, string? inspectionReferenceSpaceId, byte[]? inspectionReferenceBytes) = GetInspectionReference(

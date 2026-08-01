@@ -1,4 +1,6 @@
 interface:
   display_name: "Supervised Branch Development"
-  short_description: "Coordinate branch work with continuous local review"
-  default_prompt: "Use $supervised-branch-development to supervise this branch through implementation, review, and integration without premature blocking."
+  short_description: "Coordinate explicit multi-agent branch integration"
+  default_prompt: "Use $supervised-branch-development for this explicit multi-agent or high-risk branch integration."
+policy:
+  allow_implicit_invocation: false

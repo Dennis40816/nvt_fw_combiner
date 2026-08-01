@@ -90,6 +90,48 @@ public sealed partial class CompositionEngineTests
         Assert.Equal([0x12, 0x34, 0x99], source);
     }
 
+    /// <summary>Verifies a work-buffer clone can consume a checked source view while ignoring a non-authoritative tail.</summary>
+    [Fact]
+    public void ClonedWorkBufferUsesSourceViewSnapshot()
+    {
+        byte[] source = [0x12, 0x34, 0x99];
+        var plan = new CompositionPlan(
+            [
+                ImageInitialization.Blank("output-image", 2, 0),
+                ImageInitialization.Reference("scratch", "source", 2),
+            ],
+            "output-image",
+            [
+                new AddressSpace(
+                    "source",
+                    2,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+                new AddressSpace("output-image", 2, AddressSpaceMutability.Mutable),
+                new AddressSpace("scratch", 2, AddressSpaceMutability.Mutable),
+            ],
+            [
+                CompositionOperation.CopyRange(
+                    "copy-scratch",
+                    10,
+                    "scratch",
+                    new ByteRange(0, 2),
+                    "output-image",
+                    new ByteRange(0, 2),
+                    OverlapPolicy.Reject,
+                    "copy source view"),
+            ]);
+
+        CompositionExecutionResult result = CompositionEngine.Execute(
+            plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]> { ["source"] = source }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal([0x12, 0x34], result.OutputBytes.ToArray());
+        Assert.Empty(result.Issues);
+        Assert.Equal([0x12, 0x34, 0x99], source);
+    }
+
     /// <summary>Verifies caller bytes cannot seed any engine-owned work buffer.</summary>
     [Fact]
     public void CallerSuppliedWorkBufferBytesAreRejected()

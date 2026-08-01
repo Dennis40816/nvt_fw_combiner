@@ -181,6 +181,32 @@ public sealed partial class CompiledCompositionTests
             compositionKind: CompositionKind.Replace));
     }
 
+    /// <summary>Source-view diagnostics are immutable, paired, ordered, and optional.</summary>
+    [Fact]
+    public void SourceViewCoverageRequirementValidatesOptionalOuterLengths()
+    {
+        long[] outerLengths = [8, 16];
+        var requirement = new CompiledSourceViewCoverageInputLengthRequirement(
+            outerLengths,
+            "INPUT_OUTER_LENGTH");
+        outerLengths[0] = 4;
+
+        Assert.Equal([8L, 16L], requirement.ExpectedOuterLengths);
+        Assert.Equal("INPUT_OUTER_LENGTH", requirement.UnexpectedOuterLengthIssueCode);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledSourceViewCoverageInputLengthRequirement([8], unexpectedOuterLengthIssueCode: null));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledSourceViewCoverageInputLengthRequirement(
+                expectedOuterLengths: null,
+                "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledSourceViewCoverageInputLengthRequirement([], "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledSourceViewCoverageInputLengthRequirement([0], "INPUT_OUTER_LENGTH"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledSourceViewCoverageInputLengthRequirement([16, 8], "INPUT_OUTER_LENGTH"));
+    }
+
     /// <summary>Verifies a V2 Replace artifact can use an exact reference clone and one declared padded DP source.</summary>
     [Fact]
     public void V2ReplaceArtifactBindsReferenceCloneAndExactDpPadding()

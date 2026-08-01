@@ -25,7 +25,9 @@ public sealed class WorkbenchCompositionServiceTests
         MethodInfo[] replace = [.. methods.Where(static method => method.Name == "RunReplaceAsync")];
 
         Assert.Equal([5], standardMerge.Select(static method => method.GetParameters().Length));
-        Assert.Equal([6], generalMerge.Select(static method => method.GetParameters().Length));
+        Assert.Equal(
+            [6, 7],
+            generalMerge.Select(static method => method.GetParameters().Length).Order());
         Assert.Equal([8, 9, 10], replace.Select(static method => method.GetParameters().Length).Order());
         Assert.All(
             standardMerge.Concat(generalMerge).Concat(replace),
@@ -34,6 +36,7 @@ public sealed class WorkbenchCompositionServiceTests
                 static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
         AssertProgressAwareMethod(methods, "RunStandardMergeWithProgressAsync", expectedParameterCount: 6);
         AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 7);
+        AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 8);
         AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 11);
     }
 
@@ -72,9 +75,9 @@ public sealed class WorkbenchCompositionServiceTests
         }
     }
 
-    /// <summary>Verifies Standard Merge extracts a sufficient nonstandard DP artifact and reports the size warning.</summary>
+    /// <summary>Verifies Standard Merge reads its DP source view and ignores a non-authoritative trailing byte.</summary>
     [Fact]
-    public async Task StandardMergePreviewWarnsButDoesNotBlockUnexpectedDpLength()
+    public async Task StandardMergePreviewIgnoresNonAuthoritativeDpTail()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
         byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51926", "dp-input"));
@@ -98,11 +101,7 @@ public sealed class WorkbenchCompositionServiceTests
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(),
             result.OutputSha256);
         using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue =>
-                issue.GetProperty("Code").GetString() == "DP_SIZE_WARNING" &&
-                issue.GetProperty("Severity").GetString() == "warning");
+        Assert.Empty(document.RootElement.GetProperty("Issues").EnumerateArray());
     }
 
     /// <summary>Verifies firmware metadata exposes display-ready postbuild category names outside the UI layer.</summary>
@@ -595,8 +594,11 @@ public sealed class WorkbenchCompositionServiceTests
         string name,
         int expectedParameterCount)
     {
-        MethodInfo method = Assert.Single(methods, candidate => candidate.Name == name);
-        Assert.Equal(expectedParameterCount, method.GetParameters().Length);
+        MethodInfo method = Assert.Single(
+            methods,
+            candidate =>
+                candidate.Name == name &&
+                candidate.GetParameters().Length == expectedParameterCount);
         Assert.Contains(
             method.GetParameters(),
             static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed));

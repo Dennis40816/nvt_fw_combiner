@@ -11,17 +11,14 @@ public sealed class BuiltInV2StandardMergeRoutingTests
 {
     /// <summary>Verifies every registered IC selects one deployed V2 artifact without legacy fallback.</summary>
     [Theory]
-    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51920", "nt51920-standard-merge-gen-flash", "nt51920-standard-merge", "3bb76d56656642af553ff012a619ca8fc38fb7cdabf8ac674e5433998357f9f2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "6bac75eb386ff08c3fa6970e54b3c1dca35722ddaeaf52b67068a127c4e85a96", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "751f44c7dd790a826e9ab17747b933542c691125bdee8b975c9c764e4f2ef4b1", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "27de29151abd1305a8ebf6ba25118acbf59392efd362d362699310a5564ad5af", "dp-input,ld-input,tp-input", "DpFirmware,Auxiliary,TpFirmware")]
-    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51930", "nt51930-standard-merge-flashmap", "nt51930-standard-merge", "50f9b7f84879088c72ba6da8f23860d92d7819eff5dd0a4772e4b3bc28f0921a", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51931", "nt51931-standard-merge-gen-flash", "nt51931-standard-merge", "a7b3534afce6d2fe107363e41554668a71832f203168c81fa09e9f98a1a5815f", "dp-input,tp-input", "DpFirmware,TpFirmware")]
-    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "3c8ace0d7b0360573847d4b2c5f052313af9d2ff680cebe6288cf1611edb8f09", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51917", "nt51917-standard-merge-gen-flash-alias", "nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51919", "nt51919-standard-merge-gen-flash-alias", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51923", "nt51923-standard-merge-gen-flash", "nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51926", "nt51926-standard-merge-gen-flash", "nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51927", "nt51927-standard-merge-gen-flash", "nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51928", "nt51928-standard-merge-gen-flash", "nt51928-standard-merge", "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51929", "nt51929-standard-merge-gen-flash", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
+    [InlineData("NT51932", "nt51932-standard-merge-gen-flash", "nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380", "dp-input,tp-input", "DpFirmware,TpFirmware")]
     public void RegisteredStandardMergeUsesDeployedTrustedV2Artifact(
         string icId,
         string profileId,
@@ -64,6 +61,79 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .Select(static slot => slot.ArtifactClass.ToString()));
     }
 
+    /// <summary>NT51928 selects its LDC-capable map only when the optional LDC slot is selected.</summary>
+    [Fact]
+    public void Nt51928StandardMergeLdcSelectionResolvesThe512KVariant()
+    {
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            "NT51928",
+            dpInputLength: null,
+            [
+                CompositionAddressSpaceIds.DpInput,
+                CompositionAddressSpaceIds.TpInput,
+                CompositionAddressSpaceIds.LdcInput,
+            ],
+            out CompiledComposition? composition,
+            out IReadOnlyList<CompositionIssue> issues);
+
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
+        Assert.Equal(0x80000, artifact.Plan.OutputInitialization.Capacity);
+        Assert.Equal(
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.LdcInput, CompositionAddressSpaceIds.TpInput],
+            artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
+        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details!.InputContract.SelectionGroups);
+        Assert.Equal("ldc-selection", group.GroupId);
+        Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.ApplicableMemberSlotIds);
+        Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.SelectedSlotIds);
+        Assert.Empty(group.NotApplicableReasons);
+    }
+
+    /// <summary>Exact byte oracles cover the no-LDC 256-KiB and selected-LDC 512-KiB Standard Merge variants.</summary>
+    [Theory]
+    [InlineData("NT51928", false, 0x40000)]
+    [InlineData("NT51928", true, 0x80000)]
+    [InlineData(" 51928 ", false, 0x40000)]
+    public async Task Nt51928StandardMergeBuildsTheSelectedCapacityWithoutImplicitLdcAsync(
+        string icId,
+        bool selectLdc,
+        int expectedCapacity)
+    {
+        using var workspace = TempWorkspace.Create($"nfc-nt51928-standard-{expectedCapacity:X}");
+        byte[] tp = CreatePattern(0x40000, 0x31);
+        byte[] dp = CreatePattern(expectedCapacity, 0x72);
+        byte[] ldc = CreatePattern(0x80000, 0xB5);
+        string outputPath = workspace.PathFor("output.bin");
+        var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [CompositionAddressSpaceIds.TpInput] = workspace.Write("tp.bin", tp),
+            [CompositionAddressSpaceIds.DpInput] = workspace.Write("dp.bin", dp),
+        };
+        if (selectLdc)
+        {
+            slotPaths[CompositionAddressSpaceIds.LdcInput] = workspace.Write("ldc.bin", ldc);
+        }
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+            icId,
+            slotPaths,
+            build: true,
+            TestContext.Current.CancellationToken,
+            outputPath);
+
+        Assert.True(result.Succeeded, result.ReportJson);
+        byte[] expected = new byte[expectedCapacity];
+        tp.AsSpan(0, 0x35000).CopyTo(expected.AsSpan(0, 0x35000));
+        dp.AsSpan(0x3C000, 0x4000).CopyTo(expected.AsSpan(0x3C000, 0x4000));
+        if (selectLdc)
+        {
+            ldc.AsSpan(0x40000, 0x22000).CopyTo(expected.AsSpan(0x40000, 0x22000));
+        }
+
+        Assert.Equal(expected, File.ReadAllBytes(outputPath));
+    }
+
     /// <summary>Verifies DP Perspective routing selects the trusted map that exactly matches the supplied DP container length.</summary>
     [Theory]
     [InlineData("NT51950", "nt51950-standard-merge-dp-perspective", 0x40000)]
@@ -85,7 +155,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.ProfileId);
         Assert.Equal(icId, artifact.IcId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
@@ -223,6 +293,17 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 .EnumerateArray()
                 .Select(static input => input.GetProperty("OriginalFileName").GetString())
                 .Order(StringComparer.Ordinal));
+    }
+
+    private static byte[] CreatePattern(int length, byte salt)
+    {
+        byte[] bytes = new byte[length];
+        for (int index = 0; index < bytes.Length; index++)
+        {
+            bytes[index] = unchecked((byte)(salt + (index * 37)));
+        }
+
+        return bytes;
     }
 
 }

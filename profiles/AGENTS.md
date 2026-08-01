@@ -1,12 +1,14 @@
-# Profile Instructions
+# Profile declaration instructions
 
-These rules apply to `profiles/`.
-
-- JSON is canonical and must validate against the committed JSON Schema.
-- All ranges use half-open `[start, end)` semantics and hexadecimal display in documentation.
-- Every id is stable, unique, lower-kebab-case, and meaningful.
-- Overwrite is deny-by-default and must be explicit per operation.
-- Hooks must declare ordered execution, typed parameters, and exact allowed write ranges.
-- Do not encode executable code, filesystem paths, UI behavior, or shell commands in profiles.
-- A profile behavior change requires a profile version decision and golden regression review.
-- New IC/mode support is incomplete without a support-matrix entry, sample manifest, owner, and expected output hash.
+- Profiles are canonical IC facts, not UI configuration or golden-derived
+  guesses.
+- Declare named half-open address ranges, address spaces, topology/IC Count
+  applicability, regions, mappings, access, atomicity, metadata, processors,
+  integrity, validation, and output naming once.
+- Perfect-like families own one complete modeled firmware definition and forbid
+  member-specific semantic overrides. Partial family relationships are named
+  and part/fact-scoped; sharing one part never implies inheritance of another.
+- Every byte-semantic change is R3 and requires schema/profile tests,
+  independent byte/golden evidence, and firmware-owner approval.
+- Do not add real firmware payloads.
+- First test: `NvtFwCombiner.ProfileContract.Tests`.

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Reports;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -28,6 +29,8 @@ public sealed partial class CompositionRunService
         }
 
         OutputDifferenceExpectation[] expectations = [.. CreateOutputDifferenceExpectations(request)];
+        MetadataInspectionSnapshot? reportMetadata =
+            CreateReportMetadataSnapshot(request, inputBytes);
         List<OutputDifferenceSummary> rows = [];
         OutputDifferenceExpectation? cachedSemanticExpectation = null;
         OutputDifferenceSemantic? cachedSemantic = null;
@@ -47,13 +50,21 @@ public sealed partial class CompositionRunService
                     else
                     {
                         cachedSemanticExpectation = expectation;
-                        semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                        semantic = CreateOutputDifferenceSemantic(
+                            request,
+                            reportMetadata,
+                            expectation,
+                            segment);
                         cachedSemantic = semantic;
                     }
                 }
                 else
                 {
-                    semantic = CreateOutputDifferenceSemantic(request, expectation, segment);
+                    semantic = CreateOutputDifferenceSemantic(
+                        request,
+                        reportMetadata,
+                        expectation,
+                        segment);
                 }
 
                 rows.Add(new OutputDifferenceSummary(

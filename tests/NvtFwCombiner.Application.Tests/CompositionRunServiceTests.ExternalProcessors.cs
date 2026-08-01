@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -202,117 +201,6 @@ public sealed partial class CompositionRunServiceTests
             ],
             "mapped-processor.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-    }
-
-    private static CompositionRunRequest CreateNt51926HeaderSemanticRequest()
-    {
-        const string ctrlRamSpaceId = "replace-ctrlram-normal";
-        AddressSpace[] addressSpaces =
-        [
-            new("reference-base", 0x100, AddressSpaceMutability.Immutable),
-            new(ctrlRamSpaceId, 2, AddressSpaceMutability.Immutable),
-            new("output-image", 0x100, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            ImageInitialization.Reference("output-image", "reference-base", 0x100),
-            addressSpaces,
-            [
-                CompositionOperation.RunExternalProcessor(
-                    "run-postbuild",
-                    10,
-                    "output-image",
-                    new ByteRange(0, 0x100),
-                    new ExternalProcessorInvocation(
-                        "processor-v1",
-                        "tool-v1",
-                        [new ByteRange(0, 0x100)],
-                        [new ByteRange(0, 0x100)],
-                        [
-                            new ExternalProcessorStagedSourceBinding(
-                                ctrlRamSpaceId,
-                                new ByteRange(0, 2),
-                                new ByteRange(0x40, 2)),
-                        ],
-                        allowedWriteRangeSections:
-                        [
-                            new ExternalProcessorWriteRangeSection(
-                                TpHeaderSectionIds.FlashHeaderCrc,
-                                new ByteRange(0x1C, 4)),
-                        ]),
-                    OverlapPolicy.ReplaceExisting,
-                    "run NT51926 postbuild"),
-            ]);
-        return new CompositionRunRequest(
-            "run-nt51926-header-semantic",
-            CreateCompiledComposition(
-                plan,
-                new LegacyCompiledCompositionIdentity(
-                    "nt51926-header-semantic-profile",
-                    "1.0.0",
-                    "NT51926",
-                    "external",
-                    "ctrlram-replace",
-                    CompositionKind.Replace),
-                "nt51926-header-semantic.bin",
-                CompiledIcNumberPolicy.SingleSelector),
-            [
-                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
-                new InputArtifactBinding(ctrlRamSpaceId, ctrlRamSpaceId, "ctrlram-artifact"),
-            ],
-            "nt51926-header-semantic.bin",
-            icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
-    }
-
-    private static CompositionRunRequest CreateNt51927CopiedHeaderSemanticRequest()
-    {
-        const long outputLength = 0x1E3C0;
-        var headerCopyRange = new ByteRange(0x1E230, 0x190);
-        var headerSourceRange = new ByteRange(0x200, 0x190);
-        AddressSpace[] addressSpaces =
-        [
-            new("reference-base", outputLength, AddressSpaceMutability.Immutable),
-            new("output-image", outputLength, AddressSpaceMutability.Mutable),
-        ];
-        var plan = new CompositionPlan(
-            ImageInitialization.Reference("output-image", "reference-base", outputLength),
-            addressSpaces,
-            [
-                CompositionOperation.RunExternalProcessor(
-                    "run-postbuild",
-                    10,
-                    "output-image",
-                    new ByteRange(0, outputLength),
-                    new ExternalProcessorInvocation(
-                        "processor-v1",
-                        "tool-v1",
-                        [new ByteRange(0, outputLength)],
-                        [headerCopyRange],
-                        allowedWriteRangeSections:
-                        [
-                            new ExternalProcessorWriteRangeSection(
-                                TpHeaderSectionIds.HeaderCopyMaster,
-                                headerCopyRange,
-                                headerSourceRange),
-                        ]),
-                    OverlapPolicy.ReplaceExisting,
-                    "run NT51927 postbuild"),
-            ]);
-        return new CompositionRunRequest(
-            "run-nt51927-copied-header-semantic",
-            CreateCompiledComposition(
-                plan,
-                new LegacyCompiledCompositionIdentity(
-                    "nt51927-copied-header-semantic-profile",
-                    "1.0.0",
-                    "NT51927",
-                    "external",
-                    "ctrlram-replace",
-                    CompositionKind.Replace),
-                "nt51927-copied-header-semantic.bin",
-                CompiledIcNumberPolicy.NumericSelector),
-            [new InputArtifactBinding("reference-base", "reference-base", "reference-artifact")],
-            "nt51927-copied-header-semantic.bin",
-            icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
     }
 
     private sealed class FakeExternalProcessor : IExternalProcessor

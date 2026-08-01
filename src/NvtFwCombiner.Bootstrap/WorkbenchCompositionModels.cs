@@ -1,6 +1,9 @@
 using System.Text.Json.Serialization;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -261,6 +264,9 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay,
     WorkbenchBaseFirmwareArtifactKind BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
+    public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
+
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
 }
@@ -393,6 +399,22 @@ public sealed record WorkbenchRunResult(
     [JsonIgnore]
     public CompositionRunInspectionSnapshot? InspectionSnapshot { get; internal init; }
 
+    /// <summary>
+    /// Non-serialized content-bound General draft accepted for this result.
+    /// Desktop Preview and Build reuse this exact immutable draft until an
+    /// explicit edit or Reload/Rebind replaces it.
+    /// </summary>
+    [JsonIgnore]
+    public GeneralMappingDraftState? AcceptedGeneralMappingDraft { get; internal init; }
+
+    /// <summary>Shared action state retained for CLI and later Presentation consumers.</summary>
+    [JsonIgnore]
+    public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal init; }
+
+    /// <summary>Whether this result owns a serialized run report.</summary>
+    [JsonIgnore]
+    public bool HasRunReport => !string.IsNullOrWhiteSpace(ReportJson);
+
     /// <summary>Non-serialized immutable output bytes retained only for a declared follow-up delivery artifact.</summary>
     [JsonIgnore]
     internal ReadOnlyMemory<byte> OutputBytes { get; init; }
@@ -412,6 +434,10 @@ public sealed record WorkbenchRunResult(
     /// <summary>Operator-safe detail when the primary output committed but a requested additional delivery did not.</summary>
     [JsonIgnore]
     public string? DeliveryFailureMessage { get; init; }
+
+    /// <summary>Deterministic Preview identity, retained for adapter parity and Build approval.</summary>
+    [JsonIgnore]
+    public string? PreviewToken { get; internal init; }
 }
 
 /// <summary>One profile-declared optional A-bank delivery proposed before a Build commits output.</summary>

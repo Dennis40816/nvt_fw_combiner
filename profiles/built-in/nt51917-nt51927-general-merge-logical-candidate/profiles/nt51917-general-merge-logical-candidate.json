@@ -36,9 +36,9 @@
     "kind": "logical-output"
   },
   "logicalOutputBinding": {
-    "familyId": "nt51927",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360",
+    "familyId": "nt51917-nt51927-nt51928-canonical-container",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
     "memberIds": [
       "NT51917"
     ]

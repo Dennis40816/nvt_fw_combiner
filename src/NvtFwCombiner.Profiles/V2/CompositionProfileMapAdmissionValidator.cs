@@ -16,6 +16,7 @@ internal static class CompositionProfileMapAdmissionValidator
     private const string MapNotAllowed = "profile.v2.map.map-not-allowed";
     private const string RequiredRegionMissing = "profile.v2.map.required-region-missing";
     private const string RequiredMetadataStructureMissing = "profile.v2.map.required-metadata-structure-missing";
+    private const string MetadataTargetMissing = "profile.v2.map.metadata-target-missing";
     private const string RequiredCapabilityMissing = "profile.v2.map.required-capability-missing";
     private const string RequiredCapabilityAbsent = "profile.v2.map.required-capability-absent";
     private const string RequiredCapabilityUnknown = "profile.v2.map.required-capability-unknown";
@@ -23,7 +24,8 @@ internal static class CompositionProfileMapAdmissionValidator
     private const string RequiredCapabilityAmbiguous = "profile.v2.map.required-capability-ambiguous";
 
     /// <summary>
-    /// Validates only map identity and effective physical/decoded facts. This result grants no execution authority.
+    /// Validates map identity, effective physical facts, and canonical metadata declarations.
+    /// This result neither executes inspection metadata nor grants execution authority.
     /// </summary>
     internal static CompositionProfileMapAdmissionResult Validate(
         CompositionProfileDefinition profile,
@@ -55,15 +57,19 @@ internal static class CompositionProfileMapAdmissionValidator
             "region",
             issues);
 
-        var resolvedMetadataStructureIds = resolvedMap.ResolvedMetadataStructures
-            .Select(static structure => structure.DecodedStructure.MetadataStructureId)
+        var declaredMetadataStructureIds = binding.RequiredMetadataStructureIds
+            .Where(structureId => IsMetadataStructureDeclared(
+                family,
+                resolvedMap,
+                structureId))
             .ToHashSet(StringComparer.Ordinal);
         AddMissingIssues(
             binding.RequiredMetadataStructureIds,
-            resolvedMetadataStructureIds,
+            declaredMetadataStructureIds,
             RequiredMetadataStructureMissing,
             "metadata structure",
             issues);
+        AddMetadataTargetIssues(profile, family, resolvedMap, issues);
 
         if (familyAssociationIsValid)
         {
@@ -153,6 +159,36 @@ internal static class CompositionProfileMapAdmissionValidator
         }
     }
 
+    private static void AddMetadataTargetIssues(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues)
+    {
+        foreach (CompositionProfileMetadataBinding metadataBinding in profile.MetadataBindings)
+        {
+            if (!family.TryResolveStructure(
+                    resolvedMap.ImageMap.MapId,
+                    metadataBinding.StructureId,
+                    out FirmwareMetadataStructure? structure))
+            {
+                continue;
+            }
+
+            foreach (FirmwareMetadataReferenceTarget target in
+                     metadataBinding.TargetReferences)
+            {
+                if (!structure.Definition.ContainsReferenceTarget(target))
+                {
+                    issues.Add(new CompositionIssue(
+                        MetadataTargetMissing,
+                        $"Metadata binding '{metadataBinding.BindingId}' references unknown " +
+                        $"{target.Kind} target '{target.TargetId}'."));
+                }
+            }
+        }
+    }
+
     private static AdmittedCapabilityEvidence[] ResolveRequiredCapabilities(
         CompositionProfileMapBinding binding,
         FirmwareFamilyResolutionDefinition family,
@@ -222,6 +258,17 @@ internal static class CompositionProfileMapAdmissionValidator
         }
 
         return [.. admitted];
+    }
+
+    internal static bool IsMetadataStructureDeclared(
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        string structureId)
+    {
+        return family.TryResolveStructure(
+            resolvedMap.ImageMap.MapId,
+            structureId,
+            out _);
     }
 }
 
@@ -303,12 +350,16 @@ internal sealed class CompositionProfileMapAdmission
         ValidateFamilyAndMap(profile, family, resolvedMap);
         ValidateCapabilityEvidence(profile, family, resolvedMap, _requiredCapabilities);
         Profile = profile;
+        Family = family;
         ResolvedMap = resolvedMap;
         RequiredCapabilities = Array.AsReadOnly(_requiredCapabilities);
     }
 
     /// <summary>Normalized profile whose map requirements were admitted.</summary>
     internal CompositionProfileDefinition Profile { get; }
+
+    /// <summary>Exact normalized family that admitted the selected map.</summary>
+    internal FirmwareFamilyResolutionDefinition Family { get; }
 
     /// <summary>Exact resolver-produced physical map accepted for the profile.</summary>
     internal FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }
@@ -337,11 +388,12 @@ internal sealed class CompositionProfileMapAdmission
         var regionIds = resolvedMap.ImageMap.Regions
             .Select(static region => region.RegionId)
             .ToHashSet(StringComparer.Ordinal);
-        var metadataStructureIds = resolvedMap.ResolvedMetadataStructures
-            .Select(static structure => structure.DecodedStructure.MetadataStructureId)
-            .ToHashSet(StringComparer.Ordinal);
         if (binding.RequiredRegionIds.Any(requiredId => !regionIds.Contains(requiredId)) ||
-            binding.RequiredMetadataStructureIds.Any(requiredId => !metadataStructureIds.Contains(requiredId)))
+            binding.RequiredMetadataStructureIds.Any(requiredId =>
+                !CompositionProfileMapAdmissionValidator.IsMetadataStructureDeclared(
+                    family,
+                    resolvedMap,
+                    requiredId)))
         {
             throw new ArgumentException("Admission map does not satisfy every required physical or metadata fact.");
         }

@@ -107,6 +107,7 @@ internal static partial class V2CompositionPlanCompiler
 
         CompositionOperation[] declaredProcessorOperations = LowerOperations(
             profile,
+            resolvedMap,
             spaces,
             views,
             regionAccess,
@@ -117,11 +118,25 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
+        ValidatePostbuildPolicy(
+            resolvedMap,
+            request.PostbuildPolicy,
+            bindings,
+            mappingOperations,
+            declaredProcessorOperations,
+            issues);
+        if (issues.Count != 0)
+        {
+            return V2CompositionPlanCompileResult.Failed(issues);
+        }
+
         CompositionOperation[] processorOperations = touchesTp
             ? NarrowRuntimeReferenceProcessorAuthority(
                 resolvedMap,
                 mappingOperations,
                 firmwareVersionEdit.PostbuildWriteRanges,
+                request.PostbuildPolicy,
+                request.PostbuildWriteRangeSections,
                 declaredProcessorOperations)
             : [];
         CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];
@@ -138,13 +153,58 @@ internal static partial class V2CompositionPlanCompiler
                 "verify-nvt-fwconfig-backup-version", edit.InvalidOutputIssueCode,
                 edit.MismatchOutputIssueCode, edit.FirmwareVersion, edit.FirmwareSubVersion)]
             : [];
+        IReadOnlyList<CompiledValidationRequirement> placementValidations =
+            request.PostbuildPolicy is { } placement
+                ?
+                [
+                    CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                        "verify-nvt-fwconfig-backup-authority",
+                        placement.InvalidPlacementIssueCode,
+                        placement.InactiveMutationIssueCode,
+                        referenceBinding.BindingId,
+                        placement.ResolvedProcessorAuthority,
+                        placement.FirmwareConfigBackupLength),
+                    CompiledValidationRequirements.FirmwareConfigBackupExpectedAddress(
+                        "verify-nvt-fwconfig-backup-expected-address",
+                        placement.UnexpectedPlacementIssueCode,
+                        placement.ExpectedFirmwareConfigBackupStart),
+                ]
+                : [];
+        IReadOnlyList<CompiledValidationRequirement> inputValidations =
+            request.PostbuildPolicy is
+            {
+                SourceAddressSpaceId: { } sourceAddressSpaceId,
+                UniformSourceIssueCode: { } uniformSourceIssueCode,
+            } sourcePolicy
+                ?
+                [
+                    CompiledValidationRequirements.RejectUniformInputRanges(
+                        "verify-dynamic-diffdlm-active-source-records",
+                        CompiledValidationSeverity.Error,
+                        uniformSourceIssueCode,
+                        sourceAddressSpaceId,
+                        sourcePolicy.RequiredNonuniformSourceRanges),
+                ]
+                : [];
+        string[] processorWriteViewIds = shape.ProcessorOperation is null
+            ? []
+            :
+            [
+                .. profile.ProcessorStages
+                    .OfType<LegacyCombinerProfileProcessorStage>()
+                    .Single(stage => StringComparer.Ordinal.Equals(
+                        stage.ProcessorStageId,
+                        shape.ProcessorOperation.ProcessorStageId))
+                    .AllowedWriteViewIds,
+            ];
         return Succeed(
             profile,
             preparation.Selection,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
-                    .AllowsConditionalProcessor),
+                    .AllowsConditionalProcessor,
+                processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
             bindings.Values.Select(binding => new CompiledInputSpaceBinding(
@@ -156,7 +216,12 @@ internal static partial class V2CompositionPlanCompiler
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
             preparation.Admission,
-            additionalValidationRequirements: versionValidations);
+            additionalValidationRequirements:
+            [
+                .. inputValidations,
+                .. versionValidations,
+                .. placementValidations,
+            ]);
     }
 
     private static RuntimeFirmwareVersionEditLowering LowerRuntimeFirmwareVersionEdit(
@@ -487,7 +552,11 @@ internal static partial class V2CompositionPlanCompiler
             _ = TryAuthorizeTargetWrite(
                 mapping.MappingId,
                 "runtime-request-target",
-                new ResolvedView(shape.Output.SpaceId, mapping.TargetRange, governingRegionChain),
+                new ResolvedView(
+                    shape.Output.SpaceId,
+                    mapping.TargetRange,
+                    governingRegionChain,
+                    IsSourceOnly: false),
                 regionAccess,
                 issues);
         }
@@ -519,68 +588,6 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         return touchesTp;
-    }
-
-    private static CompositionOperation[] NarrowRuntimeReferenceProcessorAuthority(
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IReadOnlyList<CompositionOperation> mappingOperations,
-        IReadOnlyList<ByteRange> postbuildFirmwareVersionWrites,
-        CompositionOperation[] processorOperations)
-    {
-        if (!StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) ||
-            processorOperations.Length == 0)
-        {
-            return [.. processorOperations];
-        }
-
-        CompositionOperation processor = processorOperations.Single();
-        ExternalProcessorInvocation declared = processor.ExternalProcessorInvocation!;
-        ByteRange[] allowedWrites =
-        [
-            .. declared.AllowedWriteRanges.SelectMany(range =>
-                IsCanonicalCtrlRamRange(resolvedMap.ImageMap, range)
-                    ? mappingOperations
-                        .Select(mapping => mapping.TargetRange.Intersect(range))
-                        .Where(static overlap => overlap is not null)
-                        .Select(static overlap => overlap!.Value)
-                    : [range]),
-            .. postbuildFirmwareVersionWrites,
-        ];
-        var invocation = new ExternalProcessorInvocation(
-            declared.ProcessorId,
-            declared.ToolBindingId,
-            declared.AllowedReadRanges,
-            allowedWrites,
-            declared.StagedSourceBindings,
-            declared.AllowedWriteRangeSections.Where(section =>
-                allowedWrites.Any(range => range.Contains(section.Range))),
-            declared.StagedArtifactBindings,
-            declared.OutputAssertions);
-        return
-        [
-            CompositionOperation.RunExternalProcessor(
-                processor.OperationId,
-                processor.Sequence,
-                processor.TargetSpaceId,
-                processor.TargetRange,
-                invocation,
-                processor.OverlapPolicy,
-                processor.Reason,
-                processor.Provenance),
-        ];
-    }
-
-    private static bool IsCanonicalCtrlRamRange(FirmwareImageMap map, ByteRange range)
-    {
-        return map.Regions
-            .Where(region => region.Range.Contains(range))
-            .OrderBy(static region => region.Range.Length)
-            .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
-            .FirstOrDefault() is
-        {
-            Owner: FirmwareRegionOwner.Tp,
-            Kind: FirmwareRegionKind.CtrlRam,
-        };
     }
 
     private sealed record RuntimeReferenceReplaceProfileShape(

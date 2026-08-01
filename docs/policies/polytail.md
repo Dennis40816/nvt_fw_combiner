@@ -1,60 +1,22 @@
-# Polytail Quality Gate
+# Polytail Policy
 
-Status: **Confirmed repository skill and mandatory outcome**
+Status: Mandatory for non-trivial R1-R3 implementation and review.
 
-## Definition
+The executable workflow is `.agents/skills/polytail/SKILL.md`. This policy owns
+only the required outcome:
 
-Polytail is the repository's anti-slop Agent Skill located at:
+- R0: structure validation; full Polytail is optional.
+- R1: scoped correctness/test review.
+- R2: R1 plus architecture/contract review.
+- R3: R2 plus authority-specific human and independent evidence gates.
+- Verdicts are `PASS`, `PASS-WITH-HUMAN-GATE`, or `FAIL`.
+- `PASS` is forbidden with P0/P1 findings, failing required checks, undeclared
+  mutations, fake/disabled tests, placeholders, missing mandatory review, or
+  hidden private/generated payloads.
+- Required CI check: `policy / polytail`.
+- Canonical final command for R1-R3: `python scripts/verify.py --all`.
 
-```text
-.agents/skills/polytail/SKILL.md
-```
-
-It exists to prevent AI-assisted development from producing low-quality code: duplicated semantics, architecture drift, magic firmware constants, fake tests, placeholders, silent failures, broad suppressions, speculative abstractions, oversized unrelated diffs, or documentation/schema drift.
-
-Polytail is not a public dependency, not an external package requirement, and not an alias for Pylint. Pylint remains one analyzer inside the Python quality toolchain.
-
-## Required outcomes
-
-A mergeable change must prove:
-
-1. deterministic formatting and zero unsuppressed compiler/analyzer/lint/type errors;
-2. dependency/architecture boundaries remain valid;
-3. Merge and Replace still use one composition engine;
-4. all firmware operations have typed address spaces and half-open ranges;
-5. Python staging mutations stay within declared write ranges and original files remain unchanged;
-6. meaningful positive/negative/unit/property/contract/profile/golden tests pass as applicable;
-7. schema, generated files, locks, docs, reports, and code agree;
-8. no firmware payload, secret, cache, build output, or unapproved binary is committed;
-9. package contents match the closed allowlist;
-10. any unavailable private evidence is explicitly reported rather than claimed complete.
-
-Required CI status check:
-
-```text
-policy / polytail
-```
-
-Canonical command:
-
-```text
-python scripts/verify.py --all
-```
-
-The skill adds architectural and test-quality review beyond merely running this command. CI cannot replace an agent/human semantic review: the required status check enforces the deterministic subset, while the PR records the skill verdict, findings, commands, and residual human gates.
-
-## Prohibited ways to pass
-
-- lower thresholds or expand exclusions;
-- disable analyzers/tests or add broad suppressions;
-- delete negative cases;
-- update golden outputs without approved firmware evidence;
-- turn errors into warnings or silent fallback;
-- duplicate core logic in UI/CLI/worker;
-- claim a TODO/placeholder as finished;
-- split code only cosmetically while preserving a god object;
-- conceal an R3 change inside formatting/generated noise.
-
-## Waivers
-
-A waiver requires rule/tool, scope, reason, risk, owner, issue, approver, creation/expiry date, and removal condition. No permanent waiver is allowed for firmware range safety, processor write ranges, checksum/header ordering, secrets, signing material, or release allowlists.
+A waiver must identify rule/tool, scope, reason, risk, owner, issue, approver,
+creation/expiry date, and removal condition. No waiver may weaken firmware
+range safety, processor write ranges, integrity order, secrets/signing,
+release allowlists, or independent golden expectations.

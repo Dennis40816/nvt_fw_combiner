@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -8,7 +10,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static async ValueTask<WorkbenchRunResult> RunGeneralReplaceAsync(
+    private static ValueTask<WorkbenchRunResult> RunGeneralReplaceAsync(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -19,12 +21,49 @@ public static partial class WorkbenchCompositionService
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken)
     {
+        return !TryCreateLegacyGeneralReplaceDraft(
+            mappingInputs,
+            patchInputs,
+            out GeneralMappingDraftState? mappingDraft,
+            out IReadOnlyList<CompositionIssue> draftIssues)
+                ? ValueTask.FromResult(CreateReplaceReportRunResult(
+                    icId,
+                    WorkbenchReplaceModes.General,
+                    new Dictionary<string, string>(slotPaths, StringComparer.Ordinal),
+                    build,
+                    [],
+                    draftIssues,
+                    GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General)))
+                : RunGeneralReplaceWithInitialInspectionAsync(
+                    icId,
+                     number,
+                     slotPaths,
+                     mappingDraft,
+                     new AuthoringRevision(1),
+                     build,
+                    outputPath,
+                    progress,
+                    cancellationToken);
+    }
+
+    private static async ValueTask<WorkbenchRunResult> RunGeneralReplaceDraftCoreAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
+        GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null,
+        SavedRuleV2GeneralReplaceExactParent? exactParentOverride = null)
+    {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
                 number,
                 slotPaths,
-                mappingInputs,
-                patchInputs,
+                mappingDraft,
                 build,
                 out GeneralReplaceRunContext? context,
                 out WorkbenchRunResult? failure))
@@ -32,24 +71,59 @@ public static partial class WorkbenchCompositionService
             return failure!;
         }
 
+        GeneralAuthoringAdmissionResult? admission = null;
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
             IReadOnlyList<OperationRunSummary>? operations = null,
-            string? outputFileName = null)
+            string? outputFileName = null,
+            GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
+            CapabilityActionReadinessSnapshot? readiness = null)
         {
-            return CreateReplaceReportRunResult(
+            WorkbenchRunResult result = CreateReplaceReportRunResult(
                 icId,
                 WorkbenchReplaceModes.General,
                 context!.ReportSlotPaths,
                 build,
                 operations ?? [],
                 issues,
-                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General));
+                outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
+                generalAdmission: admission,
+                diagnosticPreview: diagnosticPreview);
+            return result with
+            {
+                AcceptedGeneralMappingDraft =
+                    IsAcceptedGeneralMappingDraft(context!.MappingDraft)
+                        ? context.MappingDraft
+                        : null,
+                ActionReadiness = readiness,
+            };
+        }
+
+        GeneralSelectedFileBindingResult acceptedFiles =
+            RequireAcceptedGeneralSelectedFiles(context!.MappingDraft);
+        if (!acceptedFiles.Succeeded)
+        {
+            return Blocked(acceptedFiles.Issues);
+        }
+
+        context = context with { MappingDraft = acceptedFiles.Draft! };
+        SavedRuleV2GeneralReplaceExactParent exactParent =
+            exactParentOverride ?? GetNt51926GeneralReplaceExactParent();
+        admission = AdmitGeneralMappingDraft(
+            context.MappingDraft,
+            context.Capacity,
+            CreateCurrentGeneralTrustedParentPolicy(
+                exactParent.Admission.ParentBinding.ProfileId,
+                context.MappingDraft,
+                exactParent.Admission.ParentBinding),
+            savedRulePolicy);
+        if (!admission.IsAdmitted)
+        {
+            return Blocked(admission.ToCompositionIssues());
         }
 
         if (!TryCreateGeneralReplaceMappings(
-                context!.SelectedMappings,
-                context.SelectedPatches,
+                admission,
                 context.Capacity,
                 out IReadOnlyList<ExplicitMapping> explicitMappings,
                 out IReadOnlyList<AddressSpace> requestAddressSpaces,
@@ -70,15 +144,19 @@ public static partial class WorkbenchCompositionService
             context.Selection,
             postbuildProfileResolved ? postbuildProfile : null);
         bool touchesTpRegion = GeneralReplaceTouchesTpRegion(regionsForMappingPolicy, explicitMappings);
+        IReadOnlyList<OperationRunSummary> planningOperations =
+            CreateExplicitMappingPlanningOperations(
+                explicitMappings,
+                CompositionOperationKind.ReplaceRange);
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-        List<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections = [];
+        List<ExternalProcessorWriteRangeSection> postbuildWriteRangeSections = [];
         if (touchesTpRegion)
         {
             if (!postbuildProfileResolved)
             {
                 return Blocked(
                     [postbuildIssue!],
-                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+                    planningOperations);
             }
 
             try
@@ -94,7 +172,7 @@ public static partial class WorkbenchCompositionService
                             exception.Message,
                             "number"),
                     ],
-                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+                    planningOperations);
             }
 
             long requiredCapacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(commandPlan, []);
@@ -107,7 +185,7 @@ public static partial class WorkbenchCompositionService
                             $"Base flash BIN is too short for {icId} / {number} General Replace postbuild (actual {context.Capacity} bytes, required at least {requiredCapacity} bytes).",
                             WorkbenchSlotIds.ReplaceBase),
                     ],
-                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+                    planningOperations);
             }
 
             postbuildWriteRangeSections =
@@ -123,7 +201,7 @@ public static partial class WorkbenchCompositionService
                             "No approved postbuild write range could be derived for TP-touching General Replace.",
                             "postbuild"),
                     ],
-                    CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+                    planningOperations);
             }
         }
 
@@ -141,7 +219,44 @@ public static partial class WorkbenchCompositionService
                         "The selected General Replace shape has no exact evidence-backed V2 route.",
                         "mapping"),
                 ],
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange));
+                planningOperations);
+        }
+
+        IReadOnlyList<Domain.Firmware.FirmwareImageMap> capabilityMaps =
+            GetNt51926GeneralReplaceSupportMaps(
+                out _,
+                out IReadOnlyList<CompositionIssue> capabilityMapIssues);
+        Domain.Firmware.FirmwareImageMap? capabilityMap =
+            capabilityMapIssues.Count == 0
+                ? capabilityMaps.SingleOrDefault(map =>
+                    map.CapacityBytes == context.Capacity)
+                : null;
+        if (capabilityMap is null)
+        {
+            return Blocked(
+                capabilityMapIssues.Count == 0
+                    ? [new CompositionIssue(
+                        CapabilityCatalogIssueCodes.RouteUnavailable,
+                        "The selected General Replace capacity has no canonical map route.")]
+                    : capabilityMapIssues,
+                planningOperations);
+        }
+
+        var capabilityIdentity = new CapabilityRouteIdentity(
+            icId,
+            Profiles.IcWorkflowIds.GeneralReplace,
+            "1-ic",
+            capabilityMap.MapId);
+        CapabilityRouteResolutionResult capabilityResolution =
+            s_canonicalCapabilityCatalog.ResolveDynamicRoute(
+                capabilityIdentity.RouteId);
+        if (!capabilityResolution.Succeeded)
+        {
+            return Blocked(
+                [new CompositionIssue(
+                    capabilityResolution.Issue!.Code,
+                    capabilityResolution.Issue.Message)],
+                planningOperations);
         }
 
         V2CompositionPlanCompileResult compile = CompileNt51926GeneralReplaceDpV2(
@@ -153,8 +268,61 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 compile.Issues,
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
+                planningOperations,
                 "nt51926-general-replace.bin");
+        }
+        ResolvedCapability resolvedCapability =
+            capabilityResolution.Route!.BindCompilation(
+                compiledComposition,
+                BuiltInV2BundleRegistry.All[Nt51926GeneralReplaceBundleId]
+                    .CreateMetadataPlan(
+                        Nt51926GeneralReplaceDpProfileId,
+                        Nt51926GeneralReplaceDpProfileVersion,
+                        compiledComposition));
+        compiledComposition = resolvedCapability.CompiledComposition;
+
+        if (touchesTpRegion &&
+            StringComparer.Ordinal.Equals(
+                icId,
+                Nt51926GeneralReplaceIcId))
+        {
+            GeneralReplacePostbuildReadinessResult postbuild =
+                await ResolveGeneralReplacePostbuildReadinessAsync(
+                    admission,
+                    exactParent.Runtime,
+                    resolvedCapability,
+                    postbuildReadinessOverride,
+                    cancellationToken).ConfigureAwait(false);
+            CapabilityActionReadinessSnapshot readiness = postbuild.Readiness;
+            if (!readiness.Build.IsAvailable)
+            {
+                CapabilityActionBlocker blocker =
+                    readiness.Build.PrimaryBlocker!;
+                CompositionIssue issue = new(
+                    blocker.Code,
+                    blocker.Message,
+                    blocker.SubjectId);
+                GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
+                    ? null
+                    : GeneralReplaceDiagnosticPreviewProjector.Project(
+                        context.Capacity,
+                        admission,
+                        readiness,
+                        postbuild.RequiredStageId);
+                return build
+                    ? CreateReplaceReadinessOnlyResult(
+                        icId,
+                        WorkbenchReplaceModes.General,
+                        readiness) with
+                    {
+                        AcceptedGeneralMappingDraft = context.MappingDraft,
+                    }
+                    : Blocked(
+                        [issue],
+                        planningOperations,
+                        diagnosticPreview: diagnostic,
+                        readiness: readiness);
+            }
         }
 
         if (!TryMaterializeGeneralReplacePatchArtifacts(
@@ -164,7 +332,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 materializationIssues,
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.ReplaceRange),
+                planningOperations,
                 "nt51926-general-replace.bin");
         }
 
@@ -177,10 +345,11 @@ public static partial class WorkbenchCompositionService
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 binding.AddressSpaceId,
-                binding.ArtifactId)),
+                binding.ArtifactId,
+                acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
 
-        return await RunCompiledCompositionAsync(
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
             GeneralReplaceRunIdPrefix,
             compiledComposition,
             bindings,
@@ -191,7 +360,13 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: context.Selection,
             cancellationToken,
             patchVirtualArtifacts,
-            progress).ConfigureAwait(false);
+            progress,
+            generalAdmission: admission,
+            resolvedCapability: resolvedCapability).ConfigureAwait(false);
+        return result with
+        {
+            AcceptedGeneralMappingDraft = context.MappingDraft,
+        };
     }
 
     private static bool GeneralReplaceTouchesTpRegion(

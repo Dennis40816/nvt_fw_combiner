@@ -78,6 +78,13 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             static artifact => artifact.RelativePath,
             static artifact => Hash(artifact.Bytes),
             StringComparer.Ordinal);
+        Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
+            evidence.Expected.Bytes,
+            out FirmwareConfigMetadata referenceMetadata));
+        Assert.Equal(3, referenceMetadata.ChipNumber);
+        WorkbenchFirmwareConfigMetadata workbenchReferenceMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51932", evidence.Expected.Path));
+        Assert.Equal(3, workbenchReferenceMetadata.ChipNumber);
         using var workspace = TempWorkspace.Create("nfc-nt51932-fw200-parity");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
         string v2Path = workspace.PathFor("v2.bin");
@@ -92,7 +99,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         AssertPhysicalInputProjection(evidence, v2Bytes);
 
         using var v2Report = JsonDocument.Parse(v2.ReportJson);
-        AssertReportIdentity(v2Report.RootElement, "nt51932-ctrlram-replace-fw200-cascade3");
+        AssertReportIdentity(v2Report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
         AssertProcessEvidence(v2Report.RootElement);
         Assert.All(
             evidence.Artifacts,
@@ -169,7 +176,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.True(File.Exists(outputPath));
         using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade3");
+        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
 
     /// <summary>Proves production routing accepts a structurally valid base without golden hash admission.</summary>
@@ -193,7 +200,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.Equal(reference[0x100], File.ReadAllBytes(outputPath)[0x100]);
         using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade3");
+        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
 
     /// <summary>The single plan routes through the shared TP layout without exposing DiffDLM.</summary>
@@ -244,7 +251,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         using var report = JsonDocument.Parse(result.ReportJson);
-        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade3");
+        AssertReportIdentity(report.RootElement, "nt51932-ctrlram-replace-fw200-cascade");
     }
 
     private static void AssertOwnerDifferenceClassification(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual)
@@ -295,16 +302,29 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
     private static void AssertProcessEvidence(JsonElement report)
     {
         JsonElement session = Assert.Single(ReadProcessorSessions(report));
-        Assert.Equal(ExpectedArguments(), ReadNormalizedArguments(session));
+        string[][] expectedArguments = ExpectedArguments();
+        string[][] actualArguments = ReadNormalizedArguments(session);
+        Assert.True(
+            expectedArguments.Length == actualArguments.Length &&
+            expectedArguments.Zip(actualArguments).All(static pair =>
+                pair.First.SequenceEqual(pair.Second, StringComparer.Ordinal)),
+            $"Expected arguments: {JsonSerializer.Serialize(expectedArguments)}{Environment.NewLine}" +
+            $"Actual arguments: {JsonSerializer.Serialize(actualArguments)}");
         Assert.Equal(2, session.GetProperty("ExecutedCommands").GetArrayLength());
         AssertProcessorIdentity(session);
         Assert.Equal([new ByteRange(0, Capacity)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = [
             new(0x7100, 4), new(0x7118, 4), new(0x7128, 0x1C),
-            new(NfStart, 1758), new(NormalStart, NormalLength),
-            new(VnStart, 4120), new(HeaderCopyStart, HeaderCopyLength), new(DiffStart, DiffLength),
+            new(NormalStart, NormalLength), new(VnStart, 4120),
+            new(HeaderCopyStart, HeaderCopyLength),
+            new(DiffStart, 0xB90), new(DiffStart + 0x1400, 0xB90),
+            new(0x2F900, 0x7700),
         ];
-        Assert.Equal(expectedWrites, ReadRanges(session, "ProcessorAllowedWriteRanges"));
+        IReadOnlyList<ByteRange> actualWrites = ReadRanges(session, "ProcessorAllowedWriteRanges");
+        Assert.True(
+            expectedWrites.SequenceEqual(actualWrites),
+            $"Expected writes: {JsonSerializer.Serialize(expectedWrites)}{Environment.NewLine}" +
+            $"Actual writes: {JsonSerializer.Serialize(actualWrites)}");
         string executable = session.GetProperty("ExecutedCommands")[0].GetProperty("ExecutablePath").GetString()!;
         Assert.Equal(RegisteredCombinerSha256, Hash(File.ReadAllBytes(executable)));
         Assert.DoesNotContain("DiffNFMerge", session.GetRawText(), StringComparison.OrdinalIgnoreCase);
@@ -315,7 +335,9 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         return [
             [
                 "NT51932BASED_NORMAL_MODE", "CRC8", "output/nt51932_fw.bin", "output/nt51932_fw.bin",
-                "BIN/Normal_Ctrlram.bin", "0x0", "0x21B90", "18944", "BIN/DiffDLM.bin", "0x0", "0x2D100", "35840",
+                "BIN/Normal_Ctrlram.bin", "0x0", "0x21B90", "18944",
+                "BIN/DiffDLM.bin", "0x0", "0x2D100", "2960",
+                "BIN/DiffDLM.bin", "0x1400", "0x2E500", "2960",
                 "BIN/VN_Ctrlram.bin", "0x0", "0x26590", "6496", "BIN/NF_Ctrlram.bin", "0x0", "0x1FC00", "8080",
                 "output/nt51932_fw.bin", "0x7000", "0x27EF0", "512",
             ],
@@ -402,7 +424,6 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
-            ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
     }
 

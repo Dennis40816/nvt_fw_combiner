@@ -35,7 +35,7 @@
       "sourceBlobSha": "0d75193d7a2e0c93fdb455f1a3eed5a07e6f10c6"
     },
     {
-      "artifactId": "ld-input",
+      "artifactId": "ldc-input",
       "role": "input",
       "path": "NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/ld-input.bin",
       "size": 524288,

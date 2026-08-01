@@ -57,6 +57,22 @@ until the owner authorizes the required GitHub vocabulary and behavior.
 - Label creation, deletion, renaming, and repository settings remain separate
   owner-authorized administration.
 
+## Live execution state
+
+GitHub issues and pull requests are the sole owners of live open/closed,
+checklist, implementation-PR, review, and evidence-gate state. Repository
+dependency documents own stable approved outcomes and dependency edges only;
+they do not duplicate `done`, current frontier, or publication-time progress.
+Status reports query GitHub in UTF-8 mode and are not committed as a second
+authority. Offline build and canonical verification do not depend on GitHub
+network availability.
+
+Feature PRs target a non-default version integration branch, so `Closes #N` in
+their body does not reliably close the issue. The merge workflow/checklist must
+explicitly update or close the named GitHub issue and record the merged PR.
+Changing a dependency/outcome still updates the issue and repository dependency
+graph in the same approved planning synchronization.
+
 ## External pull requests
 
 External PRs are not included in routine triage discovery. An explicitly named

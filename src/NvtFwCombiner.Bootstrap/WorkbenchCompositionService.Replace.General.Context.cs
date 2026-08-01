@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -10,18 +11,18 @@ public static partial class WorkbenchCompositionService
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs,
-        IReadOnlyList<WorkbenchGeneralReplacePatchInput> patchInputs,
+        GeneralMappingDraftState mappingDraft,
         bool build,
         out GeneralReplaceRunContext? context,
         out WorkbenchRunResult? failure)
     {
         Dictionary<string, string> reportSlotPaths = new(slotPaths, StringComparer.Ordinal);
-        foreach (WorkbenchGeneralReplaceMappingInput mapping in mappingInputs)
+        foreach (GeneralMappingDraftRow mapping in mappingDraft.Rows)
         {
-            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            if (mapping.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
+                !string.IsNullOrWhiteSpace(mapping.Source.Reference))
             {
-                reportSlotPaths[mapping.MappingId] = mapping.FilePath;
+                reportSlotPaths[mapping.MappingId] = mapping.Source.Reference;
             }
         }
         IcNumberSelection selection = ToIcNumberSelection(number);
@@ -67,12 +68,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        WorkbenchGeneralReplaceMappingInput[] selectedMappings =
-        [
-            .. mappingInputs.Where(mapping => !string.IsNullOrWhiteSpace(mapping.FilePath)),
-        ];
-        WorkbenchGeneralReplacePatchInput[] selectedPatches = [.. patchInputs];
-        if (selectedMappings.Length == 0 && selectedPatches.Length == 0)
+        if (mappingDraft.Rows.Count == 0)
         {
             context = null;
             failure = CreatePlanningRunResult(
@@ -104,8 +100,7 @@ public static partial class WorkbenchCompositionService
             reportSlotPaths,
             fullBasePath,
             capacity,
-            selectedMappings,
-            selectedPatches);
+            mappingDraft);
         failure = null;
         return true;
     }

@@ -64,14 +64,20 @@ public sealed class CompositionProfileV2SpaceTests
         var region = new MapRegionViewSelector("dp-code");
         var slice = new MapRegionSliceViewSelector("dp-code", new ByteRange(4, 8));
         var range = new SpaceRangeViewSelector(new ByteRange(12, 4));
+        var templateRange = new RegionTemplateRangeViewSelector("b-bank", "tp-code");
         var view = new CompositionProfileView("source-view", "source", slice);
 
         Assert.Equal(CompositionProfileViewSelectorKind.MapRegion, region.Kind);
         Assert.Equal(new ByteRange(4, 8), slice.RelativeRange);
         Assert.Equal(new ByteRange(12, 4), range.Range);
+        Assert.Equal(CompositionProfileViewSelectorKind.RegionTemplateRange, templateRange.Kind);
+        Assert.Equal("b-bank", templateRange.RegionInstanceId);
+        Assert.Equal("tp-code", templateRange.TemplateRegionId);
         Assert.Equal("source", view.SpaceId);
         Assert.Same(slice, view.Selector);
         _ = Assert.Throws<ArgumentException>(() => new MapRegionViewSelector("DP-Code"));
+        _ = Assert.Throws<ArgumentException>(() => new RegionTemplateRangeViewSelector("B-Bank", "tp-code"));
+        _ = Assert.Throws<ArgumentException>(() => new RegionTemplateRangeViewSelector("b-bank", "TP-Code"));
         _ = Assert.Throws<ArgumentException>(() => new CompositionProfileView("source_view", "source", range));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new MapRegionSliceViewSelector(
             "dp-code",

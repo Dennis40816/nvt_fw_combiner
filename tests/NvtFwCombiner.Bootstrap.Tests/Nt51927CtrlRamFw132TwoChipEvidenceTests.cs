@@ -94,6 +94,12 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
         AssertProcessEvidence(v2Report.RootElement, expectedProcessorId, icId);
         JsonElement[] differences = [.. v2Report.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
         Assert.Equal(ExpectedDerivedCrcRanges.Length, differences.Length);
+        JsonElement firstSemantic = differences[0].GetProperty("Semantic");
+        Assert.Equal("tp-flash-header", firstSemantic.GetProperty("CategoryId").GetString());
+        Assert.Equal(
+            $"{icId.ToLowerInvariant()}-header:header-0-dlm-crc",
+            firstSemantic.GetProperty("SubjectId").GetString());
+        Assert.Equal("DLM CRC 0", firstSemantic.GetProperty("SubjectLabel").GetString());
         Assert.All(differences, difference =>
         {
             Assert.Equal("PostbuildCrcHeader", difference.GetProperty("Classification").GetString());

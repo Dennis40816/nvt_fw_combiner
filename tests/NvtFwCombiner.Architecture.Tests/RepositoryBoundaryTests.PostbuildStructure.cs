@@ -10,11 +10,12 @@ public sealed partial class RepositoryBoundaryTests
         string loader = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs");
         string pinnedJsonLoader = ReadText("src/NvtFwCombiner.Infrastructure/PinnedJsonCatalogLoader.cs");
 
-        Assert.Contains("\"schemaVersion\": \"2.2\"", catalog, StringComparison.Ordinal);
-        Assert.Equal(15, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
-        Assert.Equal(15, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
+        Assert.Contains("\"schemaVersion\": \"2.3\"", catalog, StringComparison.Ordinal);
+        Assert.Contains("\"diffDlmPolicies\":", catalog, StringComparison.Ordinal);
+        Assert.Equal(11, catalog.Split("\"effectiveCommonFwVersion\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(11, catalog.Split("\"planSelectors\":", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("\"branchRules\":", catalog, StringComparison.Ordinal);
-        Assert.Equal(15, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
+        Assert.Equal(11, catalog.Split("\"processorId\":", StringSplitOptions.None).Length - 1);
         Assert.Contains("NT51917", catalog, StringComparison.Ordinal);
         Assert.Contains("NT51951", catalog, StringComparison.Ordinal);
         Assert.Contains("ExpectedSha256", loader, StringComparison.Ordinal);
@@ -24,6 +25,42 @@ public sealed partial class RepositoryBoundaryTests
             pinnedJsonLoader,
             StringComparison.Ordinal);
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
+    }
+
+    /// <summary>Locks every Dynamic DiffDLM summary to active-prefix scatter and immutable inactive records.</summary>
+    [Fact]
+    public void DynamicDiffDlmSummariesPreserveInactiveRecords()
+    {
+        string[] summaries =
+        [
+            NormalizeWhitespace(ReadText(
+                "docs/architecture/integrity-processing-matrix.md")),
+            NormalizeWhitespace(ReadText(
+                "docs/architecture/ctrlram-postbuild-command-matrix.md")),
+        ];
+
+        foreach (string summary in summaries)
+        {
+            Assert.Contains(
+                "scatters only the declared `N - 1` active DLM prefixes",
+                summary,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "AE suffix after the active prefix does not enter the read set or write set",
+                summary,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Every active Diff NF tail and every inactive target record remains byte-identical",
+                summary,
+                StringComparison.Ordinal);
+        }
+
+        static string NormalizeWhitespace(string text)
+        {
+            return string.Join(
+                ' ',
+                text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        }
     }
 
     /// <summary>Verifies retained Legacy Combiner runner contract types stay split by responsibility.</summary>
@@ -94,7 +131,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AddNtBasedHeaderIntegrityRanges", integrityRanges, StringComparison.Ordinal);
         Assert.Contains("AddNt51927BasedCrcOnlyIntegrityRanges", integrityRanges, StringComparison.Ordinal);
         Assert.Contains("GetPostbuildBlockSectionId", integrityRanges, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static IReadOnlyList<LegacyCombinerPostbuildWriteRange> NormalizeCandidateWriteRangeSections", integrityRanges, StringComparison.Ordinal);
+        Assert.DoesNotContain("NormalizeCandidateWriteRangeSections", integrityRanges, StringComparison.Ordinal);
 
         Assert.Contains("NormalizeCandidateWriteRangeSections", normalize, StringComparison.Ordinal);
         Assert.Contains("SelectWriteRangeSection", normalize, StringComparison.Ordinal);
@@ -127,8 +164,14 @@ public sealed partial class RepositoryBoundaryTests
     public void ExternalProcessorDiscoveryUsesOneExplicitProcessLifetime()
     {
         string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
+        string ctrlRam = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
 
-        Assert.Contains("ProcessLifetime = new(CreateUncachedOrNull)", factory, StringComparison.Ordinal);
+        Assert.Contains("ProcessLifetime = new(CreateUncached)", factory, StringComparison.Ordinal);
+        Assert.Contains("internal static ExternalProcessorGenerationLease AcquireCurrent()", factory, StringComparison.Ordinal);
+        Assert.Contains("internal static void Refresh()", factory, StringComparison.Ordinal);
+        Assert.Contains("public static void RefreshCtrlRamRuntimeDependencies()", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("ExternalProcessorFactory.Refresh()", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
         Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);

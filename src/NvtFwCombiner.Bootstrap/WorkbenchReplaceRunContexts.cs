@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -13,5 +14,4 @@ internal sealed record GeneralReplaceRunContext(
     IReadOnlyDictionary<string, string> ReportSlotPaths,
     string BasePath,
     long Capacity,
-    WorkbenchGeneralReplaceMappingInput[] SelectedMappings,
-    WorkbenchGeneralReplacePatchInput[] SelectedPatches);
+    GeneralMappingDraftState MappingDraft);

@@ -83,7 +83,12 @@ public sealed class CompositionProfileDocumentUnionTests
                 [
                   { "kind": "map-region", "regionId": "dp-code" },
                   { "kind": "map-region-slice", "regionId": "dp-code", "offset": 4, "length": 8 },
-                  { "kind": "space-range", "range": { "start": 12, "length": 4 } }
+                  { "kind": "space-range", "range": { "start": 12, "length": 4 } },
+                  {
+                    "kind": "region-template-range",
+                    "regionInstanceId": "b-bank",
+                    "templateRegionId": "tp-code"
+                  }
                 ]
                 """);
 
@@ -123,6 +128,11 @@ public sealed class CompositionProfileDocumentUnionTests
         AssertPropertyNames(selectorJson.RootElement[0], "kind", "regionId");
         AssertPropertyNames(selectorJson.RootElement[1], "kind", "length", "offset", "regionId");
         AssertPropertyNames(selectorJson.RootElement[2], "kind", "range");
+        AssertPropertyNames(
+            selectorJson.RootElement[3],
+            "kind",
+            "regionInstanceId",
+            "templateRegionId");
     }
 
     /// <summary>Verifies every operation and validation union retains exact typed JSON values.</summary>

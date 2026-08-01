@@ -15,7 +15,16 @@ public sealed class StandardMergeWorkbenchGoldenTests
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        JsonElement[] goldenCases = [.. manifestDocument.RootElement.GetProperty("cases").EnumerateArray()];
+        var admittedIcIds = WorkbenchCompositionService.GetSupportedIcIds()
+            .ToHashSet(StringComparer.Ordinal);
+        JsonElement[] goldenCases =
+        [
+            .. manifestDocument.RootElement.GetProperty("cases")
+                .EnumerateArray()
+                // Retired fixtures remain immutable historical evidence, not runtime golden claims.
+                .Where(goldenCase =>
+                    admittedIcIds.Contains($"NT{goldenCase.GetProperty("ic").GetString()}")),
+        ];
 
         foreach (JsonElement goldenCase in goldenCases)
         {
@@ -102,5 +111,51 @@ public sealed class StandardMergeWorkbenchGoldenTests
         Assert.Equal(
             File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
             File.ReadAllBytes(outputPath));
+        if (StringComparer.Ordinal.Equals(ic, "51929"))
+        {
+            VerifyNt51929CanonicalTrace(result);
+        }
+    }
+
+    private static void VerifyNt51929CanonicalTrace(WorkbenchRunResult result)
+    {
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement root = report.RootElement;
+        JsonElement[] inputs = [.. root.GetProperty("Inputs").EnumerateArray()];
+        JsonElement[] operations = [.. root.GetProperty("Operations").EnumerateArray()];
+
+        Assert.Equal("nt51929-standard-merge-gen-flash.bin", result.OutputFileName);
+        Assert.Equal(
+            "377b6b9ad0d3f1b9c0c413b622e95f80b58a5e502a5fca5da90c5abf8e96d39d",
+            root.GetProperty("CompilationFingerprint").GetString());
+        Assert.Equal(
+            ["dp-input", "tp-input"],
+            inputs.Select(input => input.GetProperty("AddressSpaceId").GetString()));
+        Assert.Equal(
+            [
+                "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095",
+                "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458",
+            ],
+            inputs.Select(input => input.GetProperty("Sha256").GetString()));
+        Assert.Equal(
+            ["copy-tp", "copy-dp"],
+            operations.Select(operation => operation.GetProperty("OperationId").GetString()));
+        AssertOperation(operations[0], start: 0x7000, length: 0x39000);
+        AssertOperation(operations[1], start: 0, length: 0x6000);
+        Assert.Equal(
+            "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
+            root.GetProperty("Output").GetProperty("Sha256").GetString());
+    }
+
+    private static void AssertOperation(
+        JsonElement operation,
+        long start,
+        long length)
+    {
+        JsonElement range = operation.GetProperty("TargetRange");
+        Assert.Equal(start, range.GetProperty("Start").GetInt64());
+        Assert.Equal(length, range.GetProperty("Length").GetInt64());
+        Assert.Equal(JsonValueKind.Null, operation.GetProperty("ProcessorId").ValueKind);
+        Assert.Empty(operation.GetProperty("ExecutedCommands").EnumerateArray());
     }
 }

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
   "bundleId": "nt51950-ab-merge",
-  "bundleVersion": "0.9.15-ab-function-open.1",
+  "bundleVersion": "0.10.1-issue-190.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206",
+  "contentHash": "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -11,35 +11,35 @@
       "kind": "schema",
       "path": "schemas/composition-profile-v2.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "2f26a55a9b856bb2850dac87177ddc7db8c2523d81a08cc69643662b20bd3ba6"
+      "contentHash": "456a60ae7ebe9bcc598c1a4fc1946e600401be24bc35a41e1bdbbf084495316b"
     },
     {
       "entryId": "firmware-family-v1-schema",
       "kind": "schema",
       "path": "schemas/firmware-family-v1.schema.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "0dd353296e02e448dcc653028fd3b3ce6ad7fdd8e11a1ce11a465b46f0b471d7"
+      "contentHash": "2dc53838071217de47a7306519777dfc399f4ee7e7ef49cf07a7e65ea2a433aa"
     },
     {
       "entryId": "nt51950-ab-merge-family",
       "kind": "firmware-family",
       "path": "families/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json",
-      "contentHash": "bd3509a6a2406366f5d6c21ad53eba1f165df74afd1e20663492200fb5479b85"
+      "contentHash": "abf70ea6451134f74ca8a863436842f80c66f7980c49c8f9849e1257764889aa"
     },
     {
       "entryId": "nt51950-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "2b5b5dad4c1db5ac96cf55352de0c850cc9295bdaea6c0c7fecc3caefe3107c2"
+      "contentHash": "444bc68fde91107884fa8b79497e3e582f238065e888f27acb4835b7e51b97b7"
     },
     {
       "entryId": "nt51951-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "4746b633f65901a98271a97c55253e8c938bf7c378c1bc22a92af6fb477490ca"
+      "contentHash": "ec68cd000a069b47ad976006257a65783704d607cb18ae6862e5e5dbb858bfa2"
     }
   ]
 }

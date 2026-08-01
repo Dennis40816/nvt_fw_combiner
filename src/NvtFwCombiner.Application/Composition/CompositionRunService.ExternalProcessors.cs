@@ -54,7 +54,8 @@ public sealed partial class CompositionRunService
                 invocation.AllowedWriteRanges,
                 request.IcNumberSelection,
                 stagedSources,
-                stagedArtifacts);
+                stagedArtifacts,
+                ResolveExternalProcessorIcCount(request.CompiledComposition));
         }
         catch (ArgumentException exception)
         {
@@ -78,5 +79,12 @@ public sealed partial class CompositionRunService
         return processorResult.Succeeded
             ? CompositionExternalProcessorResult.Success(processorResult.OutputBytes)
             : CompositionExternalProcessorResult.Failed(processorResult.Issues);
+    }
+
+    private static int? ResolveExternalProcessorIcCount(CompiledComposition compiledComposition)
+    {
+        return compiledComposition.V2Details?.Provenance.Context is MapBoundV2CompilationContext mapContext
+            ? mapContext.ResolvedMap.TopologySelection?.ChipCount
+            : null;
     }
 }

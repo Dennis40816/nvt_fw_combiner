@@ -10,7 +10,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Exact V2 route evidence from NT51929 Common FW 2.0.0 owner artifacts.</summary>
-public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
+public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 {
     private const string OwnerExpectedSha256 = "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910";
     private const string CurrentOutputSha256 = "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f";
@@ -271,11 +271,17 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
         byte[] reference = [.. evidence.Expected.Bytes];
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         reference[checked((int)metadata.StructureStart) + FirmwareConfigLayout.ChipNumberOffset] = 2;
+        int existingBackupStart = checked((int)metadata.StructureStart);
+        const int expectedTwoIcBackupStart = 0x2F000;
+        reference.AsSpan(existingBackupStart, 0x1000)
+            .CopyTo(reference.AsSpan(expectedTwoIcBackupStart, 0x1000));
+        reference.AsSpan(existingBackupStart + 0x0FFC, 4).Clear();
         File.WriteAllBytes(referencePath, reference);
 
         byte[] diff = [.. Enumerable.Range(0, 0x8C00).Select(static index => (byte)((index * 17) + 3))];
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         Dictionary<string, string> slotPaths = CreateSlotPaths(evidence, referencePath);
+        _ = slotPaths.Remove("replace-ctrlram-nf");
         slotPaths["replace-ctrlram-diff"] = diffPath;
         string outputPath = workspace.PathFor("cascade-output.bin");
 
@@ -291,7 +297,13 @@ public sealed class Nt51929CtrlRamFw200SingleEvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(diff, output.AsSpan(0x2D100, diff.Length).ToArray());
+        Assert.Equal(diff.AsSpan(0, 0x0B90).ToArray(), output.AsSpan(0x2D100, 0x0B90).ToArray());
+        Assert.Equal(
+            reference.AsSpan(0x2DC90, 0x0870).ToArray(),
+            output.AsSpan(0x2DC90, 0x0870).ToArray());
+        Assert.Equal(
+            reference.AsSpan(0x2E500, 0x7800).ToArray(),
+            output.AsSpan(0x2E500, 0x7800).ToArray());
         using var report = JsonDocument.Parse(result.ReportJson);
         AssertReportIdentity(report.RootElement, expectedProfileId, icId);
         Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));

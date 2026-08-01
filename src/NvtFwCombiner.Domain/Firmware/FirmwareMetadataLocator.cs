@@ -11,6 +11,12 @@ public enum FirmwareMetadataLocatorKind
 
     /// <summary>One checked signed offset from a selected marker.</summary>
     MarkerRelative,
+
+    /// <summary>
+    /// One checked offset from an anchor selected by a decoded prerequisite
+    /// metadata field.
+    /// </summary>
+    MetadataFieldSelected,
 }
 
 /// <summary>Base declaration for one closed metadata locator.</summary>
@@ -186,4 +192,123 @@ public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
 
     /// <summary>Signed offset from the selected marker start to the structure start.</summary>
     public long ResultOffset { get; }
+}
+
+/// <summary>
+/// One non-overlapping unsigned prerequisite value interval and its exact
+/// logical-address anchor.
+/// </summary>
+public sealed record FirmwareMetadataFieldSelectedBranch
+{
+    /// <summary>Creates one checked inclusive value interval.</summary>
+    public FirmwareMetadataFieldSelectedBranch(
+        ulong minimumValue,
+        ulong maximumValue,
+        FirmwareAddressedRange anchorRange)
+    {
+        if (minimumValue > maximumValue)
+        {
+            throw new ArgumentException(
+                "Metadata-selected branch minimum cannot exceed its maximum.");
+        }
+
+        ArgumentNullException.ThrowIfNull(anchorRange);
+        MinimumValue = minimumValue;
+        MaximumValue = maximumValue;
+        AnchorRange = anchorRange;
+    }
+
+    /// <summary>Inclusive minimum prerequisite value.</summary>
+    public ulong MinimumValue { get; }
+
+    /// <summary>Inclusive maximum prerequisite value.</summary>
+    public ulong MaximumValue { get; }
+
+    /// <summary>Exact map-relative logical-address anchor.</summary>
+    public FirmwareAddressedRange AnchorRange { get; }
+
+    /// <summary>Whether this branch accepts one decoded unsigned value.</summary>
+    public bool Contains(ulong value)
+    {
+        return value >= MinimumValue && value <= MaximumValue;
+    }
+}
+
+/// <summary>
+/// Metadata structure located from one prerequisite field-selected logical
+/// address anchor.
+/// </summary>
+public sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLocator
+{
+    private readonly FirmwareMetadataFieldSelectedBranch[] _branches;
+
+    /// <summary>Creates one deterministic prerequisite-selected locator.</summary>
+    public FirmwareMetadataFieldSelectedLocator(
+        string prerequisiteStructureId,
+        string prerequisiteFieldId,
+        IEnumerable<FirmwareMetadataFieldSelectedBranch> branches,
+        long resultOffset,
+        string allowedResultRegionId)
+        : base(
+            FirmwareMetadataLocatorKind.MetadataFieldSelected,
+            allowedResultRegionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prerequisiteStructureId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(prerequisiteFieldId);
+        ArgumentNullException.ThrowIfNull(branches);
+        _branches = Composition.ImmutableReferenceSnapshot.Create(
+            branches,
+            "Metadata-selected locators cannot contain null branches.");
+        if (_branches.Length == 0)
+        {
+            throw new ArgumentException(
+                "Metadata-selected locators require at least one branch.",
+                nameof(branches));
+        }
+
+        Array.Sort(_branches, static (left, right) =>
+        {
+            int minimum = left.MinimumValue.CompareTo(right.MinimumValue);
+            return minimum != 0
+                ? minimum
+                : left.MaximumValue.CompareTo(right.MaximumValue);
+        });
+        for (int index = 1; index < _branches.Length; index++)
+        {
+            if (_branches[index].MinimumValue <=
+                _branches[index - 1].MaximumValue)
+            {
+                throw new ArgumentException(
+                    "Metadata-selected locator branch intervals cannot overlap.",
+                    nameof(branches));
+            }
+        }
+
+        PrerequisiteStructureId = prerequisiteStructureId;
+        PrerequisiteFieldId = prerequisiteFieldId;
+        ResultOffset = resultOffset;
+        Branches = Array.AsReadOnly(_branches);
+    }
+
+    /// <summary>Exact prerequisite structure binding selected by the same map.</summary>
+    public string PrerequisiteStructureId { get; }
+
+    /// <summary>Unsigned field that selects one logical-address anchor.</summary>
+    public string PrerequisiteFieldId { get; }
+
+    /// <summary>Non-overlapping value branches in ascending order.</summary>
+    public IReadOnlyList<FirmwareMetadataFieldSelectedBranch> Branches { get; }
+
+    /// <summary>Checked signed offset from the selected anchor start.</summary>
+    public long ResultOffset { get; }
+
+    /// <summary>Returns the unique branch for one decoded value.</summary>
+    public bool TrySelect(
+        ulong value,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out FirmwareMetadataFieldSelectedBranch? branch)
+    {
+        branch = _branches.FirstOrDefault(candidate => candidate.Contains(value));
+        return branch is not null;
+    }
 }

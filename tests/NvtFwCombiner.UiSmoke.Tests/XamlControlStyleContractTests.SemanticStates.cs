@@ -325,7 +325,10 @@ public sealed partial class XamlControlStyleContractTests
         (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> standardMergeCoverage) =
             UiCompositionRunner.GetStandardMergeMemoryDisplay("NT51926");
         (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> customizedMergeCoverage) =
-            UiCompositionRunner.GetGeneralMergeMemoryDisplay("0x100", []);
+            UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                "NT51950",
+                "0x100",
+                []);
 
         Assert.Contains(replaceCoverage, segment => segment.UsesBaseFirmwarePattern);
         Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);

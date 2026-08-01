@@ -1,12 +1,15 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
   "profileId": "nt51932-standard-merge-gen-flash",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
   },
   "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "experience": {
     "experienceId": "standard-merge",
     "audience": "system",
@@ -17,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51929-nt51932",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "c23385d5ad956016dbf356ede9355205611bad636fe2ddea44f5f654634e80ce",
+    "familyVersion": "1.1.0",
+    "familyContentHash": "06ab5b5ac35e143587420ecdc40aa17324cb63ec8a0c48e4c208092b1be22f39",
     "mapIds": [
       "nt51932-standard-merge-256k"
     ],
@@ -26,7 +29,9 @@
       "tp-code",
       "dp-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "type-ab-tp-flash-header"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -41,8 +46,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "tp-maximum-256k",
-          "maximumBytes": 262144
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -60,8 +64,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "normal-dp-extract-with-warning",
-          "issueCode": "DP_SIZE_WARNING"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -128,7 +131,59 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "type-ab-tp-flash-header-read-model",
+      "spaceId": "tp-input",
+      "structureId": "type-ab-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "series",
+          "targetId": "dlm-crc-series"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51932-golden",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tp-flash-header-copy-reference",
+      "spaceId": "tp-input",
+      "structureId": "type-ab-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51932-golden",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "tp-code",
@@ -161,7 +216,24 @@
       "targetViewId": "dp-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51932-standard-merge-gen-flash.bin",

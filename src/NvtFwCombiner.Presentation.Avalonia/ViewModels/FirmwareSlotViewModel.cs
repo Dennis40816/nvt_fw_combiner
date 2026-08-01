@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 using System.Collections.ObjectModel;
 
@@ -18,7 +19,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string description,
         FirmwareSlotKind kind,
         bool isOptional = false,
-        string? regionId = null)
+        string? regionId = null,
+        string? addressSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -30,6 +32,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         SlotKind = kind;
         IsOptional = isOptional;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
+        AddressSpaceId = string.IsNullOrWhiteSpace(addressSpaceId) ? null : addressSpaceId;
     }
 
     /// <summary>Stable slot id used by drag/drop handlers.</summary>
@@ -46,6 +49,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Profile-owned physical region identity used only for coverage selection projection.</summary>
     public string? RegionId { get; }
+
+    /// <summary>Canonical composition address space used by Application selection readiness.</summary>
+    public string? AddressSpaceId { get; }
 
     /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
@@ -82,6 +88,21 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Concise localized health and next-action line.</summary>
     public string InputInspectionStatus { get; private set; } = string.Empty;
+
+    /// <summary>True when Application selection readiness is available for this slot.</summary>
+    public bool HasSelectionReadinessStatus => SelectionReadinessState is not null;
+
+    /// <summary>Application-owned applicability state projected for display.</summary>
+    public ResolvedChildReadiness? SelectionReadinessState { get; private set; }
+
+    /// <summary>Localized short label for the projected selection state.</summary>
+    public string SelectionReadinessLabel { get; private set; } = string.Empty;
+
+    /// <summary>Localized reason or next action for the projected selection state.</summary>
+    public string SelectionReadinessDetail { get; private set; } = string.Empty;
+
+    /// <summary>Screen-reader equivalent of the complete visible selection state.</summary>
+    public string SelectionReadinessAutomationText { get; private set; } = string.Empty;
 
     /// <summary>True when the highest completed input health is blocking.</summary>
     public bool IsInputInspectionBlocking => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
@@ -192,6 +213,54 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         NotifyInputInspectionChanged();
     }
 
+    /// <summary>Applies one localized projection of Application input-selection readiness.</summary>
+    public void SetSelectionReadiness(
+        ResolvedChildReadiness state,
+        string label,
+        string detail,
+        string automationText)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        ArgumentException.ThrowIfNullOrWhiteSpace(automationText);
+        if (!Enum.IsDefined(state))
+        {
+            throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
+
+        if (SelectionReadinessState == state &&
+            string.Equals(SelectionReadinessLabel, label, StringComparison.Ordinal) &&
+            string.Equals(SelectionReadinessDetail, detail, StringComparison.Ordinal) &&
+            string.Equals(SelectionReadinessAutomationText, automationText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        SelectionReadinessState = state;
+        SelectionReadinessLabel = label;
+        SelectionReadinessDetail = detail;
+        SelectionReadinessAutomationText = automationText;
+        NotifySelectionReadinessChanged();
+    }
+
+    /// <summary>Clears selection readiness when the active workflow has no matching group member.</summary>
+    public void ClearSelectionReadiness()
+    {
+        if (SelectionReadinessState is null &&
+            SelectionReadinessLabel.Length == 0 &&
+            SelectionReadinessDetail.Length == 0 &&
+            SelectionReadinessAutomationText.Length == 0)
+        {
+            return;
+        }
+
+        SelectionReadinessState = null;
+        SelectionReadinessLabel = string.Empty;
+        SelectionReadinessDetail = string.Empty;
+        SelectionReadinessAutomationText = string.Empty;
+        NotifySelectionReadinessChanged();
+    }
+
     private void NotifyInputInspectionChanged()
     {
         OnPropertyChanged(nameof(HasInputInspectionStatus));
@@ -203,6 +272,15 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInputInspectionWarning));
         OnPropertyChanged(nameof(IsInputInspectionValid));
         OnPropertyChanged(nameof(InputInspectionIconPathData));
+    }
+
+    private void NotifySelectionReadinessChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectionReadinessStatus));
+        OnPropertyChanged(nameof(SelectionReadinessState));
+        OnPropertyChanged(nameof(SelectionReadinessLabel));
+        OnPropertyChanged(nameof(SelectionReadinessDetail));
+        OnPropertyChanged(nameof(SelectionReadinessAutomationText));
     }
 
 }

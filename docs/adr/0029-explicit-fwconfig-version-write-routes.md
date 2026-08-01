@@ -3,12 +3,18 @@
 - Status: Accepted for v0.9.12 implementation; firmware-owner release gate remains
 - Date: 2026-07-21
 - Risk: R3; firmware-owner review is required before release
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51920, NT51930,
+  and NT51931
 
 ## Context
 
 CtrlRAM TP firmware-version authoring reads the final contract from the canonical NVT FWConfig
 Backup, applies the requested values before postbuild, and verifies the same values in Backup before
 committing output. The pre-postbuild write location is not identical for every legacy mode:
+
+ADR 0042 makes the NT51920, NT51930, and NT51931 rows below legacy `0.9.x`
+characterization only. They do not migrate into `0.10.x` production selectors,
+profiles, processors, or authoring routes.
 
 - some command plans explicitly copy a Primary FWConfig source block to Backup;
 - some NT-based modes implicitly propagate the TP Overview Primary FWConfig to Backup;

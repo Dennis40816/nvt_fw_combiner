@@ -23,11 +23,12 @@ internal sealed partial class CompositionProfileDefinition
         ValidateIcNumberInputMode();
         ValidateOutputSpace();
         ValidateInputPolicy();
+        ValidateInputSelectionGroups(slots);
         ValidateSpaces(slots);
         if (CompilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput)
         {
             ValidateLogicalOutputShape();
-            ValidateOutputNaming();
+            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -38,7 +39,7 @@ internal sealed partial class CompositionProfileDefinition
             ValidateRegionAccess();
             ValidateOperations(views, spaces, processors);
             ValidateProcessors(views, spaces);
-            ValidateOutputNaming();
+            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -48,7 +49,7 @@ internal sealed partial class CompositionProfileDefinition
         ValidateOperations(views, spaces, processors);
         ValidateProcessors(views, spaces);
         ValidateValidations(views, metadataBindings);
-        ValidateOutputNaming();
+        ValidateOutputNaming(metadataBindings);
     }
 
     private void ValidateLogicalOutputShape()
@@ -277,6 +278,33 @@ internal sealed partial class CompositionProfileDefinition
         }
     }
 
+    private void ValidateInputSelectionGroups(
+        IReadOnlyDictionary<string, CompositionProfileInputSlot> slots)
+    {
+        var groupedSlotIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (CompositionProfileInputSelectionGroup group in _inputSelectionGroups)
+        {
+            foreach (string memberSlotId in group.MemberSlotIds)
+            {
+                CompositionProfileInputSlot slot = RequireReference(
+                    slots,
+                    memberSlotId,
+                    "Input selection group references an unknown slot.");
+                if (slot.Required || slot.Cardinality != CompositionProfileSlotCardinality.ZeroOrOne)
+                {
+                    throw new ArgumentException(
+                        "Input selection groups may reference only optional zero-or-one slots.");
+                }
+
+                if (!groupedSlotIds.Add(memberSlotId))
+                {
+                    throw new ArgumentException(
+                        "An input slot may belong to only one selection group.");
+                }
+            }
+        }
+    }
+
     private void ValidateSpaces(IReadOnlyDictionary<string, CompositionProfileInputSlot> slots)
     {
         HashSet<string> referencedSlotIds = new(StringComparer.Ordinal);
@@ -336,10 +364,11 @@ internal sealed partial class CompositionProfileDefinition
                 _ => null,
             };
             if (regionId is not null &&
-                !MapBinding.RequiredRegionIds.Contains(regionId, StringComparer.Ordinal))
+                !MapBinding.RequiredRegionIds.Contains(regionId, StringComparer.Ordinal) &&
+                !MapBinding.OptionalRegionIds.Contains(regionId, StringComparer.Ordinal))
             {
                 throw new ArgumentException(
-                    "Map-region views must declare their region in mapBinding.requiredRegionIds.");
+                    "Map-region views must declare their region in mapBinding required or optional regions.");
             }
         }
     }
@@ -360,10 +389,11 @@ internal sealed partial class CompositionProfileDefinition
     private void ValidateRegionAccess()
     {
         if (_regionAccessRules.Any(rule =>
-                !MapBinding.RequiredRegionIds.Contains(rule.RegionId, StringComparer.Ordinal)))
+                !MapBinding.RequiredRegionIds.Contains(rule.RegionId, StringComparer.Ordinal) &&
+                !MapBinding.OptionalRegionIds.Contains(rule.RegionId, StringComparer.Ordinal)))
         {
             throw new ArgumentException(
-                "Region access rules must declare their region in mapBinding requirements.");
+                "Region access rules must declare their region in mapBinding required or optional regions.");
         }
     }
 
@@ -487,19 +517,11 @@ internal sealed partial class CompositionProfileDefinition
                 case ViewByteAssertionProfileValidation assertion:
                     _ = RequireReference(views, assertion.ViewId, "Validation references an unknown view.");
                     break;
+                case NonUniformRegionProfileValidation nonUniform:
+                    _ = RequireReference(views, nonUniform.ViewId, "Validation references an unknown view.");
+                    break;
                 default:
                     throw new InvalidOperationException("Unknown composition profile validation shape.");
-            }
-        }
-    }
-
-    private void ValidateOutputNaming()
-    {
-        foreach (string tokenId in Output.RequiredTokenIds)
-        {
-            if (!Output.FileNameTemplate.Contains($"{{{tokenId}}}", StringComparison.Ordinal))
-            {
-                throw new ArgumentException($"Output template does not contain required token '{tokenId}'.");
             }
         }
     }

@@ -17,6 +17,26 @@ public sealed class WorkbenchOutputNamingTests
         foreach (JsonElement goldenCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
             string icId = $"NT{goldenCase.GetProperty("ic").GetString()}";
+            bool carriesStandardMergeNamingInputs =
+                goldenCase.TryGetProperty("artifacts", out JsonElement artifacts) &&
+                artifacts.EnumerateArray().Any(static artifact =>
+                    artifact.TryGetProperty("sourceRole", out JsonElement sourceRole) &&
+                    sourceRole.GetString() == "standard-merge-dp-input") &&
+                artifacts.EnumerateArray().Any(static artifact =>
+                    artifact.TryGetProperty("sourceRole", out JsonElement sourceRole) &&
+                    sourceRole.GetString() == "standard-merge-tp-input");
+            if (!WorkbenchCompositionService.GetSupportedIcIds().Contains(icId, StringComparer.Ordinal))
+            {
+                // Retired fixtures remain immutable historical evidence, not production naming claims.
+                continue;
+            }
+
+            if (!carriesStandardMergeNamingInputs)
+            {
+                // A narrow hot-fix golden does not claim the DP/TP metadata needed by output naming.
+                continue;
+            }
+
             string caseId = goldenCase.GetProperty("caseId").GetString()!;
             WorkbenchOutputFileNameSuggestion suggestion = InspectDirectCtrlRamGolden(icId, caseId);
 
@@ -29,20 +49,16 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Empty(gaps);
     }
 
-    /// <summary>Every direct CtrlRAM owner golden retains its exact full-flash D/T metadata bytes.</summary>
+    /// <summary>Every direct CtrlRAM owner golden projects its canonical DPCMI and TP version facts.</summary>
     [Theory]
-    [InlineData("NT51920", "nt51920-fw120-single-auto-prj-72-20260717", "0700", "0900")]
-    [InlineData("NT51920", "nt51920-fw120-cascade2-auto-prj-55-20260717", "0900", "1400")]
-    [InlineData("NT51923", "nt51923-fw141-single-auto-prj-662-20260717", "8001", "8100")]
-    [InlineData("NT51923", "nt51923-fw141-cascade3-auto-prj-734-20260717", "8202", "8100")]
-    [InlineData("NT51926", "nt51926-fw141-single-auto-prj-747-20260717", "8002", "8000")]
-    [InlineData("NT51926", "nt51926-fw141-cascade2-auto-prj-597-20260717", "0202", "0600")]
-    [InlineData("NT51926", "nt51926-fw200-single-auto-prj-597-20260718", "0202", "FF00")]
-    [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0202", "0000")]
+    [InlineData("NT51923", "nt51923-fw141-single-auto-prj-662-20260717", "8000", "8100")]
+    [InlineData("NT51923", "nt51923-fw141-cascade3-auto-prj-734-20260717", "8200", "8100")]
+    [InlineData("NT51926", "nt51926-fw141-single-auto-prj-747-20260717", "8000", "8000")]
+    [InlineData("NT51926", "nt51926-fw141-cascade2-auto-prj-597-20260717", "0200", "0600")]
+    [InlineData("NT51926", "nt51926-fw200-single-auto-prj-597-20260718", "0200", "FF00")]
+    [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0200", "0000")]
     [InlineData("NT51927", "nt51927-fw141-single-auto-prj-529-20260717", "0400", "0100")]
-    [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0602", "0500")]
-    [InlineData("NT51930", "nt51930-fw130-cascade3-auto-prj-302-inx-20260718", "0500", "0305")]
-    [InlineData("NT51931", "nt51931-fw130-cascade6-auto-prj-158-20260718", "8D60", "8300")]
+    [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0600", "0500")]
     [InlineData("NT51932", "nt51932-fw200-cascade3-auto-prj-525-20260718", "0200", "8800")]
     [InlineData("NT51950", "nt51950-fw200-single-auto-prj-676-20260717", "8600", "8000")]
     [InlineData("NT51951", "nt51951-fw200-single-auto-prj-695-20260718", "0600", "0300")]
@@ -58,23 +74,9 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Equal(expectedTp, suggestion.TpVersionToken);
     }
 
-    /// <summary>NT51930 full FlashCode inspection resolves the owner-confirmed CMI triple into the final output name.</summary>
-    [Fact]
-    public void Nt51930OutputNameUsesOwnerConfirmedCmiDpVersion()
-    {
-        WorkbenchOutputFileNameSuggestion suggestion = InspectDirectCtrlRamGolden(
-            "NT51930",
-            "nt51930-fw130-cascade3-auto-prj-302-inx-20260718",
-            new DateOnly(2026, 7, 23));
-
-        Assert.Equal("0500", suggestion.DpVersionToken);
-        Assert.True(suggestion.HasDpVersion);
-        Assert.Equal("NT51930_FlashCode_D0500T0305_20260723.bin", suggestion.FileName);
-    }
-
     /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
     [Fact]
-    public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
+    public void FlashCodeOutputNameUsesCanonicalDpAndTpMetadata()
     {
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
@@ -87,8 +89,8 @@ public sealed class WorkbenchOutputNamingTests
             ],
             new DateOnly(2026, 7, 8));
 
-        Assert.Equal("NT51926_FlashCode_D0102T0100_20260708.bin", suggestion.FileName);
-        Assert.Equal("0102", suggestion.DpVersionToken);
+        Assert.Equal("NT51926_FlashCode_D0100T0100_20260708.bin", suggestion.FileName);
+        Assert.Equal("0100", suggestion.DpVersionToken);
         Assert.True(suggestion.HasDpVersion);
         Assert.Equal("0100", suggestion.TpVersionToken);
         Assert.True(suggestion.HasTpVersion);
@@ -156,9 +158,9 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(inspected.HasDpVersion);
     }
 
-    /// <summary>NT51951 uses its fixed CMI location without requiring an IC-count context.</summary>
+    /// <summary>NT51951 keeps DP naming pending until its declared TP prerequisite is available.</summary>
     [Fact]
-    public void Nt51951OutputNameUsesFixedCmiDpVersion()
+    public void Nt51951OutputNameWithoutTpKeepsDpVersionUnknown()
     {
         string dpPath = GoldenArtifactPath("51951", "dp-input");
 
@@ -167,9 +169,9 @@ public sealed class WorkbenchOutputNamingTests
             [new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath)],
             new DateOnly(2026, 7, 20));
 
-        Assert.Equal("0500", suggestion.DpVersionToken);
-        Assert.Equal("NT51951_FlashCode_D0500Txxxx_20260720.bin", suggestion.FileName);
-        Assert.True(suggestion.HasDpVersion);
+        Assert.Equal("xxxx", suggestion.DpVersionToken);
+        Assert.Equal("NT51951_FlashCode_DxxxxTxxxx_20260720.bin", suggestion.FileName);
+        Assert.False(suggestion.HasDpVersion);
     }
 
     /// <summary>CtrlRAM-style workflows preserve DP, so their base is the version source when no DP input exists.</summary>
@@ -226,7 +228,7 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(ctrlRam.HasDpVersion);
         Assert.Equal("xxxx", unreadableDp.DpVersionToken);
         Assert.False(unreadableDp.HasDpVersion);
-        Assert.Equal("0102", pathBackedCtrlRam.DpVersionToken);
+        Assert.Equal("0100", pathBackedCtrlRam.DpVersionToken);
         Assert.True(pathBackedCtrlRam.HasDpVersion);
     }
 

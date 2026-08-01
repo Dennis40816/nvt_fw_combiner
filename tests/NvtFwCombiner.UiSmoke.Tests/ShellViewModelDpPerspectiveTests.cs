@@ -136,7 +136,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             ["replace-base", "replace-dp", "replace-ldc"],
             viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
-        Assert.Equal("Reference FlashCode length: 0x80000", viewModel.ReplaceMemoryRangeLabel);
+        Assert.Equal(
+            "Reference FlashCode length: 0x40000 / 0x80000",
+            viewModel.ReplaceMemoryRangeLabel);
     }
 
     /// <summary>NT51951 DP inputs explain that the container includes Initial Code and LDC.</summary>

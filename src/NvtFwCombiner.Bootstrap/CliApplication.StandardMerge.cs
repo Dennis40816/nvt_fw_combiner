@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
@@ -13,7 +14,7 @@ public static partial class CliApplication
         {
             [CompositionAddressSpaceIds.DpInput] = "--dp",
             [CompositionAddressSpaceIds.TpInput] = "--tp",
-            [CompositionAddressSpaceIds.LdInput] = "--ld",
+            [CompositionAddressSpaceIds.LdcInput] = "--ldc",
             [CompositionAddressSpaceIds.DpAbInput] = "--dp-ab",
             [CompositionAddressSpaceIds.TpAInput] = "--tp-a",
             [CompositionAddressSpaceIds.TpBInput] = "--tp-b",
@@ -38,7 +39,7 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        string[] valueOptions = ["--profile", "--dp", "--tp", "--ld", "--output", "--report"];
+        string[] valueOptions = ["--profile", "--dp", "--tp", "--ldc", "--output", "--report"];
         if (!CliOptionParser.TryParse(
                 args[1..],
                 valueOptions,
@@ -73,17 +74,22 @@ public static partial class CliApplication
             return SoftwareError;
         }
 
-        if (!TryCreateBindings(
-                selectedProfile.RequiredInputAddressSpaceIds,
-                options,
-                error,
-                out IReadOnlyList<InputArtifactBinding> bindings))
+        IReadOnlyList<string> availableInputAddressSpaces =
+            WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(selectedProfile.IcId);
+        foreach ((string addressSpaceId, string optionName) in InputOptionsByAddressSpace)
         {
-            return UsageError;
+            if (options.Values.ContainsKey(optionName) &&
+                !availableInputAddressSpaces.Contains(addressSpaceId, StringComparer.Ordinal))
+            {
+                await error.WriteLineAsync($"error: {optionName} is not used by this profile")
+                    .ConfigureAwait(false);
+                return UsageError;
+            }
         }
 
-        string? dpPath = bindings.FirstOrDefault(binding =>
-            string.Equals(binding.AddressSpaceId, CompositionAddressSpaceIds.DpInput, StringComparison.Ordinal))?.ArtifactId;
+        string? dpPath = options.Values.TryGetValue("--dp", out string? selectedDpPath)
+            ? Path.GetFullPath(selectedDpPath)
+            : null;
         if (!WorkbenchCompositionService.TryGetStandardMergeDpInputLength(
                 selectedProfile.IcId,
                 dpPath,
@@ -97,21 +103,26 @@ public static partial class CliApplication
         if (!WorkbenchCompositionService.TryCompileStandardMerge(
                 selectedProfile.IcId,
                 dpInputLength,
+                [
+                    .. InputOptionsByAddressSpace
+                        .Where(pair => options.Values.ContainsKey(pair.Value))
+                        .Select(static pair => pair.Key),
+                ],
                 out CompiledComposition? compiledComposition,
+                out ResolvedCapability? resolvedCapability,
                 out IReadOnlyList<CompositionIssue> issues))
         {
             await CliCompositionRunSupport.PrintIssuesAsync(error, issues).ConfigureAwait(false);
             return SoftwareError;
         }
 
-        if (!selectedProfile.RequiredInputAddressSpaceIds.SequenceEqual(
+        if (!TryCreateBindings(
                 compiledComposition.Plan.RequiredInputAddressSpaceIds,
-                StringComparer.Ordinal))
+                options,
+                error,
+                out IReadOnlyList<InputArtifactBinding> bindings))
         {
-            await error.WriteLineAsync(
-                    $"error: Standard Merge profile '{selectedProfile.ProfileId}' changed required input address spaces during DP-length resolution.")
-                .ConfigureAwait(false);
-            return SoftwareError;
+            return UsageError;
         }
 
         bindings =
@@ -147,7 +158,10 @@ public static partial class CliApplication
             CreateRunId(action),
             compiledComposition,
             bindings,
-            outputTarget.FileName);
+            outputTarget.FileName,
+            resolvedCapability: WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+                compiledComposition,
+                resolvedCapability));
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(request, action == "build", cancellationToken)

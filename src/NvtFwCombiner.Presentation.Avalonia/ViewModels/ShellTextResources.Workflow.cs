@@ -49,6 +49,10 @@ public sealed partial class ShellTextResources
 
     public string OutputLengthPlaceholder { get; private init; } = string.Empty;
 
+    public string OutputFillByteLabel { get; private init; } = string.Empty;
+
+    public string OutputFillBytePlaceholder { get; private init; } = string.Empty;
+
     public string BrowseLabel { get; private init; } = string.Empty;
 
     public string RequiredLabel { get; private init; } = string.Empty;
@@ -61,7 +65,7 @@ public sealed partial class ShellTextResources
 
     public string MergeTpSlotDescription { get; private init; } = string.Empty;
 
-    public string MergeLdSlotDescription { get; private init; } = string.Empty;
+    public string MergeLdcSlotDescription { get; private init; } = string.Empty;
 
     public string DpReplacementBinTitle { get; private init; } = string.Empty;
 

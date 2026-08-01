@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -8,6 +9,7 @@ internal enum CompositionProfileViewSelectorKind
     MapRegion,
     MapRegionSlice,
     SpaceRange,
+    RegionTemplateRange,
 }
 
 /// <summary>Base value for one normalized logical-view selector.</summary>
@@ -65,6 +67,27 @@ internal sealed record SpaceRangeViewSelector : CompositionProfileViewSelector
     internal ByteRange Range { get; }
 }
 
+/// <summary>Selects one template-relative range through an explicit region instance.</summary>
+internal sealed record RegionTemplateRangeViewSelector : CompositionProfileViewSelector
+{
+    internal RegionTemplateRangeViewSelector(
+        string regionInstanceId,
+        string templateRegionId)
+        : base(CompositionProfileViewSelectorKind.RegionTemplateRange)
+    {
+        RegionInstanceId = CompositionProfileValueRules.RequireId(
+            regionInstanceId,
+            nameof(regionInstanceId));
+        TemplateRegionId = CompositionProfileValueRules.RequireId(
+            templateRegionId,
+            nameof(templateRegionId));
+    }
+
+    internal string RegionInstanceId { get; }
+
+    internal string TemplateRegionId { get; }
+}
+
 /// <summary>One named logical view over a profile address space.</summary>
 internal sealed record CompositionProfileView
 {
@@ -94,13 +117,23 @@ internal enum CompositionProfileMetadataPurpose
     OutputNaming,
     Display,
     Version,
+    Inspection,
+    Formatting,
+    Copy,
+    Relocation,
+    Integrity,
+    Processor,
+    MemoryProjection,
+    ReportClassification,
 }
 
 /// <summary>One canonical metadata structure and selected fields bound to a profile space.</summary>
 internal sealed class CompositionProfileMetadataBinding
 {
     private readonly string[] _fieldIds;
+    private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
     private readonly CompositionProfileMetadataPurpose[] _purposes;
+    private readonly string[] _evidenceRefs;
 
     internal CompositionProfileMetadataBinding(
         string bindingId,
@@ -108,11 +141,55 @@ internal sealed class CompositionProfileMetadataBinding
         string structureId,
         IEnumerable<string> fieldIds,
         IEnumerable<CompositionProfileMetadataPurpose> purposes)
+        : this(
+            bindingId,
+            spaceId,
+            structureId,
+            fieldIds.Select(static fieldId =>
+                new FirmwareMetadataReferenceTarget(
+                    FirmwareMetadataReferenceTargetKind.Field,
+                    fieldId)),
+            purposes,
+            [])
+    {
+    }
+
+    internal CompositionProfileMetadataBinding(
+        string bindingId,
+        string spaceId,
+        string structureId,
+        IEnumerable<FirmwareMetadataReferenceTarget> targetReferences,
+        IEnumerable<CompositionProfileMetadataPurpose> purposes,
+        IEnumerable<string> evidenceRefs)
     {
         BindingId = CompositionProfileValueRules.RequireId(bindingId, nameof(bindingId));
         SpaceId = CompositionProfileValueRules.RequireId(spaceId, nameof(spaceId));
         StructureId = CompositionProfileValueRules.RequireId(structureId, nameof(structureId));
-        _fieldIds = CompositionProfileValueRules.SnapshotIds(fieldIds, nameof(fieldIds), requireValue: true);
+        _targetReferences = ImmutableReferenceSnapshot.Create(
+            targetReferences,
+            "Metadata target references cannot contain null.");
+        if (_targetReferences.Length == 0 ||
+            _targetReferences.Distinct().Count() != _targetReferences.Length)
+        {
+            throw new ArgumentException(
+                "Metadata target references must be nonempty and unique.",
+                nameof(targetReferences));
+        }
+
+        Array.Sort(_targetReferences, static (left, right) =>
+        {
+            int kind = left.Kind.CompareTo(right.Kind);
+            return kind != 0
+                ? kind
+                : StringComparer.Ordinal.Compare(left.TargetId, right.TargetId);
+        });
+        _fieldIds =
+        [
+            .. _targetReferences
+                .Where(static target =>
+                    target.Kind == FirmwareMetadataReferenceTargetKind.Field)
+                .Select(static target => target.TargetId),
+        ];
 
         ArgumentNullException.ThrowIfNull(purposes);
         _purposes = [.. purposes];
@@ -132,8 +209,14 @@ internal sealed class CompositionProfileMetadataBinding
         }
 
         Array.Sort(_purposes);
+        _evidenceRefs = CompositionProfileValueRules.SnapshotIds(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            requireValue: false);
+        TargetReferences = Array.AsReadOnly(_targetReferences);
         FieldIds = Array.AsReadOnly(_fieldIds);
         Purposes = Array.AsReadOnly(_purposes);
+        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
     internal string BindingId { get; }
@@ -142,9 +225,13 @@ internal sealed class CompositionProfileMetadataBinding
 
     internal string StructureId { get; }
 
+    internal IReadOnlyList<FirmwareMetadataReferenceTarget> TargetReferences { get; }
+
     internal IReadOnlyList<string> FieldIds { get; }
 
     internal IReadOnlyList<CompositionProfileMetadataPurpose> Purposes { get; }
+
+    internal IReadOnlyList<string> EvidenceRefs { get; }
 }
 
 /// <summary>One deny-by-default authoring access rule for a canonical map region.</summary>

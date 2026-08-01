@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -17,7 +19,12 @@ public sealed class CompositionRunRequest
         string? approvedPreviewToken = null,
         IcNumberSelection? icNumberSelection = null,
         bool outputFileNameIsOverride = false,
-        TopologySelection? abMergeTopologySelection = null)
+        TopologySelection? abMergeTopologySelection = null,
+        IEnumerable<CompositionIssue>? advisoryIssues = null,
+        GeneralAuthoringAdmissionSummary? generalAdmission = null,
+        AcceptedOutputNamingInspection? outputNamingInspection = null,
+        OutputNamingAdmissionIdentity? outputNamingAdmission = null,
+        ResolvedCapability? resolvedCapability = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -31,6 +38,11 @@ public sealed class CompositionRunRequest
         ValidateRuntimeValidationRequirements(compiledComposition);
         ValidateIcNumberSelection(compiledComposition, icNumberSelection);
         ValidateAbMergeTopologySelection(compiledComposition, abMergeTopologySelection);
+        ValidateOutputNamingAdmission(
+            compiledComposition,
+            outputNamingInspection,
+            outputNamingAdmission);
+        ValidateResolvedCapability(compiledComposition, resolvedCapability);
         ValidateV2RuntimeRequest(
             compiledComposition,
             copiedBindings,
@@ -45,6 +57,11 @@ public sealed class CompositionRunRequest
         ApprovedPreviewToken = string.IsNullOrWhiteSpace(approvedPreviewToken) ? null : approvedPreviewToken;
         IcNumberSelection = icNumberSelection;
         AbMergeTopologySelection = abMergeTopologySelection;
+        AdvisoryIssues = CopyAdvisoryIssues(advisoryIssues);
+        GeneralAdmission = generalAdmission;
+        OutputNamingInspection = outputNamingInspection;
+        OutputNamingAdmission = outputNamingAdmission;
+        ResolvedCapability = resolvedCapability;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -71,10 +88,55 @@ public sealed class CompositionRunRequest
     /// <summary>Explicit topology chosen only for an AB Merge profile whose resolved map requires it.</summary>
     public TopologySelection? AbMergeTopologySelection { get; }
 
+    /// <summary>Caller-supplied typed warnings or information retained in Preview/Build reports.</summary>
+    public IReadOnlyList<CompositionIssue> AdvisoryIssues { get; }
+
+    /// <summary>Path-free General admission provenance shared by Preview and Build.</summary>
+    public GeneralAuthoringAdmissionSummary? GeneralAdmission { get; }
+
+    /// <summary>
+    /// Accepted canonical metadata inspection used only by a compiled normal output-name renderer.
+    /// </summary>
+    public AcceptedOutputNamingInspection? OutputNamingInspection { get; }
+
+    /// <summary>Current publication and revision admitted for normal output naming.</summary>
+    public OutputNamingAdmissionIdentity? OutputNamingAdmission { get; }
+
+    /// <summary>Publication-bound capability that owns report metadata for this exact compilation.</summary>
+    public ResolvedCapability? ResolvedCapability { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        return OutputNamingAdmission is not null
+            ? throw new InvalidOperationException(
+                "Normal output naming requires a freshly captured build admission.")
+            : new CompositionRunRequest(
+                RunId,
+                CompiledComposition,
+                ArtifactBindings.Values,
+                OutputFileName,
+                previewToken,
+                IcNumberSelection,
+                IsOutputFileNameOverride,
+                AbMergeTopologySelection,
+                AdvisoryIssues,
+                GeneralAdmission,
+                OutputNamingInspection,
+                resolvedCapability: ResolvedCapability);
+    }
+
+    /// <summary>
+    /// Returns a build request only when the freshly captured admission still
+    /// matches the accepted inspection used by the preview.
+    /// </summary>
+    public CompositionRunRequest WithApprovedPreviewToken(
+        string previewToken,
+        OutputNamingAdmissionIdentity currentAdmission)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(previewToken);
+        ArgumentNullException.ThrowIfNull(currentAdmission);
         return new CompositionRunRequest(
             RunId,
             CompiledComposition,
@@ -83,7 +145,63 @@ public sealed class CompositionRunRequest
             previewToken,
             IcNumberSelection,
             IsOutputFileNameOverride,
-            AbMergeTopologySelection);
+            AbMergeTopologySelection,
+            AdvisoryIssues,
+            GeneralAdmission,
+            OutputNamingInspection,
+            currentAdmission,
+            ResolvedCapability);
+    }
+
+    private static void ValidateResolvedCapability(
+        CompiledComposition compiledComposition,
+        ResolvedCapability? resolvedCapability)
+    {
+        if (resolvedCapability is null)
+        {
+            if (compiledComposition.CapabilityFingerprint is not null)
+            {
+                throw new ArgumentException(
+                    "Capability-bound compilations require their exact current resolved capability.",
+                    nameof(resolvedCapability));
+            }
+
+            return;
+        }
+
+        if (resolvedCapability.Authoring.Value !=
+                CapabilityAuthoringAvailability.Available ||
+            !resolvedCapability.ExecutionAdmitted ||
+            !ReferenceEquals(
+                resolvedCapability.CompiledComposition,
+                compiledComposition) ||
+            !StringComparer.Ordinal.Equals(
+                resolvedCapability.CapabilityFingerprint,
+                compiledComposition.CapabilityFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                resolvedCapability.CompiledComposition.CompilationFingerprint,
+                compiledComposition.CompilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Resolved report capability must own the exact executable compilation.",
+                nameof(resolvedCapability));
+        }
+    }
+
+    private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(
+        IEnumerable<CompositionIssue>? advisoryIssues)
+    {
+        CompositionIssue[] copy = advisoryIssues is null ? [] : [.. advisoryIssues];
+        return copy.Any(static issue => issue is null)
+            ? throw new ArgumentException(
+                "Advisory issues cannot contain null.",
+                nameof(advisoryIssues))
+            : copy.Any(static issue =>
+                StringComparer.Ordinal.Equals(issue.Severity, CompositionIssueSeverity.Error))
+            ? throw new ArgumentException(
+                "Advisory issues must use info or warning severity.",
+                nameof(advisoryIssues))
+            : Array.AsReadOnly(copy);
     }
 
     private static Dictionary<string, InputArtifactBinding> CopyBindings(IEnumerable<InputArtifactBinding> bindings)
@@ -173,14 +291,17 @@ public sealed class CompositionRunRequest
                 nameof(compiledComposition));
         }
 
-        bool isAbCodeAutomatic = output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+        bool isSnapshotRenderedAutomatic = (output.RendererKind is
+                CompiledOutputNameRendererKind.AbCodeV1 or
+                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                CompiledOutputNameRendererKind.TpFirmwareV1) &&
             !outputFileNameIsOverride;
-        if (isAbCodeAutomatic)
+        if (isSnapshotRenderedAutomatic)
         {
             if (!string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
             {
                 throw new ArgumentException(
-                    "Automatic AB Code output naming must retain the compiled template until execution snapshots are read.",
+                    "Automatic output naming must retain the compiled template until accepted snapshots are read.",
                     nameof(outputFileName));
             }
         }
@@ -272,6 +393,58 @@ public sealed class CompositionRunRequest
                     $"V2 runtime binding '{expected.AddressSpaceId}' has an unaccepted original file extension.",
                     nameof(bindings));
             }
+        }
+    }
+
+    private static void ValidateOutputNamingAdmission(
+        CompiledComposition compiledComposition,
+        AcceptedOutputNamingInspection? inspection,
+        OutputNamingAdmissionIdentity? admission)
+    {
+        CompiledOutputNameRendererKind? renderer =
+            compiledComposition.V2Details?.OutputNamingRequirement.RendererKind;
+        bool requiresAcceptedInspection = renderer is
+            CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+            CompiledOutputNameRendererKind.TpFirmwareV1;
+        if (inspection is null)
+        {
+            if (requiresAcceptedInspection || admission is not null)
+            {
+                throw new ArgumentException(
+                    "Compiled normal output naming requires one accepted inspection and current admission.",
+                    nameof(inspection));
+            }
+
+            return;
+        }
+
+        if (admission is null)
+        {
+            throw new ArgumentException(
+                "Compiled normal output naming requires a current publication admission.",
+                nameof(admission));
+        }
+
+        if (!StringComparer.Ordinal.Equals(
+                inspection.CompilationFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                admission.CompilationFingerprint,
+                compiledComposition.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(inspection.RouteId, admission.RouteId) ||
+            inspection.ResolutionToken != admission.ResolutionToken ||
+            inspection.AuthoringRevision != admission.AuthoringRevision)
+        {
+            throw new ArgumentException(
+                "Output naming inspection and admission must belong to the exact current route, publication, revision, and compiled capability.",
+                nameof(inspection));
+        }
+
+        if (!requiresAcceptedInspection)
+        {
+            throw new ArgumentException(
+                "Output naming inspection and admission are valid only for a compiled normal output-name renderer.",
+                nameof(inspection));
         }
     }
 
@@ -371,9 +544,24 @@ public sealed class CompositionRunRequest
         foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
         {
             if (compiledComposition.Authority is LegacyProfileCompilationAuthority or ProfileBundleV2CompilationAuthority &&
-                requirement is CompiledFirmwareConfigBackupVersionValidation &&
-                requirement.Stage == CompiledValidationStage.FinalOutput &&
-                requirement.Severity == CompiledValidationSeverity.Error)
+                requirement switch
+                {
+                    CompiledFirmwareConfigBackupVersionValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Error,
+                    CompiledFirmwareConfigBackupPlacementAuthorityValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Error,
+                    CompiledFirmwareConfigBackupExpectedAddressValidation =>
+                        requirement.Stage == CompiledValidationStage.FinalOutput &&
+                        requirement.Severity == CompiledValidationSeverity.Warning,
+                    CompiledUniformInputRangeValidation =>
+                        requirement.Stage == CompiledValidationStage.InputLoad &&
+                        requirement.Severity is
+                            CompiledValidationSeverity.Error or
+                            CompiledValidationSeverity.Warning,
+                    _ => false,
+                })
             {
                 continue;
             }

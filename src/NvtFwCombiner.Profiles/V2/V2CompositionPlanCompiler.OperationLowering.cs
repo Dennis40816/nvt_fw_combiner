@@ -1,3 +1,4 @@
+using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -7,15 +8,22 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static CompositionOperation[] LowerOperations(
         CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyDictionary<string, AddressSpace> spaces,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues,
-        bool useProcessorWriteAuthority = false)
+        bool useProcessorWriteAuthority = false,
+        IReadOnlySet<string>? activeOperationIds = null)
     {
         var operations = new List<CompositionOperation>();
         foreach (CompositionProfileOperation operation in profile.Operations)
         {
+            if (activeOperationIds is not null && !activeOperationIds.Contains(operation.OperationId))
+            {
+                continue;
+            }
+
             if (!TryResolveSequence(operation, issues, out int sequence))
             {
                 continue;
@@ -33,7 +41,14 @@ internal static partial class V2CompositionPlanCompiler
                     LowerPatchOperation(patch, sequence, views, regionAccess, operations, issues);
                     break;
                 case TransformScalarProfileOperation transform:
-                    LowerTransformOperation(transform, sequence, views, regionAccess, operations, issues);
+                    LowerTransformOperation(
+                        transform,
+                        sequence,
+                        resolvedMap,
+                        views,
+                        regionAccess,
+                        operations,
+                        issues);
                     break;
                 case RunProcessorProfileOperation processor:
                     LowerProcessorOperation(
@@ -256,6 +271,7 @@ internal static partial class V2CompositionPlanCompiler
     private static void LowerTransformOperation(
         TransformScalarProfileOperation operation,
         int sequence,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
@@ -279,11 +295,16 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
-        if (!TryCreateScalarTransform(operation, out ScalarTransform? transform) || transform is null)
+        if (!TryCreateScalarTransform(
+                operation,
+                resolvedMap,
+                out ScalarTransform? transform,
+                out string? transformError) ||
+            transform is null)
         {
             issues.Add(new CompositionIssue(
                 InvalidScalarTransform,
-                $"Operation '{operation.OperationId}' scalar addend or expected value cannot be represented at its declared width.",
+                $"Operation '{operation.OperationId}' scalar transform is invalid: {transformError}",
                 operation.OperationId));
             return;
         }
@@ -374,6 +395,16 @@ internal static partial class V2CompositionPlanCompiler
         {
             ResolvedView source = views[binding.SourceViewId];
             ResolvedView target = views[binding.TargetViewId];
+            if (target.IsSourceOnly)
+            {
+                AddUnsupported(
+                    issues,
+                    $"processor stage '{operation.ProcessorStageId}' staged target " +
+                    $"'{binding.TargetViewId}' cannot use a source-only selector",
+                    operation.OperationId);
+                return;
+            }
+
             if (spaces[source.SpaceId].Mutability != AddressSpaceMutability.Immutable)
             {
                 AddUnsupported(
@@ -509,8 +540,22 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryCreateScalarTransform(
         TransformScalarProfileOperation operation,
-        out ScalarTransform? transform)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        out ScalarTransform? transform,
+        out string? error)
     {
+        if (!TryResolveTransformAddend(
+                operation,
+                resolvedMap,
+                out BigInteger addend,
+                out ScalarTransformAddendSource? addendSource,
+                out error) ||
+            addendSource is null)
+        {
+            transform = null;
+            return false;
+        }
+
         try
         {
             transform = new ScalarTransform(
@@ -528,15 +573,91 @@ internal static partial class V2CompositionPlanCompiler
                     CompositionProfileScalarByteOrder.BigEndian => ScalarTransformByteOrder.BigEndian,
                     _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown scalar byte order."),
                 },
-                operation.Addend,
+                addend,
                 operation.ExpectedBefore,
-                ScalarTransformOverflowPolicy.Reject);
+                ScalarTransformOverflowPolicy.Reject,
+                addendSource);
+            error = null;
             return true;
         }
-        catch (ArgumentException)
+        catch (ArgumentException exception)
         {
             transform = null;
+            error = exception.Message;
             return false;
+        }
+    }
+
+    private static bool TryResolveTransformAddend(
+        TransformScalarProfileOperation operation,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        out BigInteger addend,
+        out ScalarTransformAddendSource? addendSource,
+        out string? error)
+    {
+        switch (operation.AddendSource)
+        {
+            case FixedTransformAddendSource fixedAddend:
+                addend = fixedAddend.Value;
+                addendSource = ScalarTransformAddendSource.Fixed;
+                error = null;
+                return true;
+            case RegionInstanceDeltaTransformAddendSource delta:
+                if (!TryResolveRegionInstance(
+                        resolvedMap,
+                        delta.SourceRegionInstanceId,
+                        out FirmwareRegionSet? sourceSet,
+                        out FirmwareRegionInstance? source,
+                        out error) ||
+                    sourceSet is null ||
+                    source is null)
+                {
+                    addend = default;
+                    addendSource = null;
+                    return false;
+                }
+
+                if (!TryResolveRegionInstance(
+                        resolvedMap,
+                        delta.TargetRegionInstanceId,
+                        out FirmwareRegionSet? targetSet,
+                        out FirmwareRegionInstance? target,
+                        out error) ||
+                    targetSet is null ||
+                    target is null)
+                {
+                    addend = default;
+                    addendSource = null;
+                    return false;
+                }
+
+                if (!ReferenceEquals(source.Template, target.Template))
+                {
+                    addend = default;
+                    addendSource = null;
+                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
+                        $"'{delta.TargetRegionInstanceId}' do not reference the same canonical template";
+                    return false;
+                }
+
+                if (!StringComparer.Ordinal.Equals(sourceSet.AddressSpaceId, targetSet.AddressSpaceId))
+                {
+                    addend = default;
+                    addendSource = null;
+                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
+                        $"'{delta.TargetRegionInstanceId}' use incompatible address spaces";
+                    return false;
+                }
+
+                addend = new BigInteger(target.BaseOffset) - new BigInteger(source.BaseOffset);
+                addendSource = ScalarTransformAddendSource.RegionInstanceDelta(
+                    delta.SourceRegionInstanceId,
+                    delta.TargetRegionInstanceId);
+                error = null;
+                return true;
+            default:
+                throw new InvalidOperationException(
+                    "Validated V2 lowering encountered an unknown transform addend source.");
         }
     }
 

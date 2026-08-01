@@ -252,7 +252,7 @@ public sealed partial class CompositionRunServiceTests
             CreateStagedSourceExternalProcessorRequest(
                 stagedSourceSpaceId: "replace-ctrlram-nf-master",
                 writeRangeSections: [
-                    new ExternalProcessorWriteRangeSection(TpHeaderSectionIds.FlashHeaderCrc, new ByteRange(3, 1)),
+                    new ExternalProcessorWriteRangeSection(PostbuildWriteSectionIds.FlashHeaderCrc, new ByteRange(3, 1)),
                 ]),
             CancellationToken.None);
 
@@ -269,8 +269,8 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
         OutputDifferenceSemantic replacementSemantic = Assert.IsType<OutputDifferenceSemantic>(replacement.Semantic);
-        Assert.Equal(TpSemanticCategoryIds.CtrlRam, replacementSemantic.CategoryId);
-        Assert.Equal(TpHeaderSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
+        Assert.Equal(OutputDifferenceSemanticCategoryIds.CtrlRam, replacementSemantic.CategoryId);
+        Assert.Equal(PostbuildWriteSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
         Assert.Equal("NF CtrlRAM (Master)", replacementSemantic.SubjectLabel);
         OutputDifferenceSummary crcHeader = result.Report.OutputDifferences[1];
         Assert.Equal(new ByteRange(3, 1), crcHeader.Range);
@@ -353,165 +353,6 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(OutputDifferenceClassifications.DeclaredReplacement, difference.Classification);
         Assert.Equal("fill-output", difference.Evidence);
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
-    }
-
-    /// <summary>Verifies a modeled normal-header range reaches the report as a named field, not just a CRC bucket.</summary>
-    [Fact]
-    public async Task ReplaceReportNamesNt51926DlmCrcZero()
-    {
-        var processor = new FakeExternalProcessor(request =>
-        {
-            byte[] output = request.InputBytes.ToArray();
-            ExternalProcessorStagedSource stagedSource = Assert.Single(request.StagedSources);
-            stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
-            output[0x1C] = 0x7E;
-            return ExternalProcessorResult.Success(
-                output,
-                [stagedSource.FirmwareRange, new ByteRange(0x1C, 1)]);
-        });
-        var service = new CompositionRunService(
-            new FakeArtifactReader(new Dictionary<string, byte[]>
-            {
-                ["reference-artifact"] = new byte[0x100],
-                ["ctrlram-artifact"] = [0xAA, 0xBB],
-            }),
-            new FakeClock([FirstTimestamp, SecondTimestamp]),
-            null,
-            processor);
-
-        CompositionRunResult result = await service.PreviewAsync(
-            CreateNt51926HeaderSemanticRequest(),
-            CancellationToken.None);
-
-        OutputDifferenceSummary headerDifference = Assert.Single(
-            result.Report.OutputDifferences,
-            difference => difference.Range == new ByteRange(0x1C, 1));
-
-        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
-        Assert.Equal("tp-flash-header", semantic.CategoryId);
-        Assert.Equal("TP Flash Header", semantic.CategoryLabel);
-        Assert.Equal("nt51926-header:dlm-crc-0", semantic.SubjectId);
-        Assert.Equal("DLM CRC 0", semantic.SubjectLabel);
-        Assert.Equal("Expected: postbuild recalculated DLM CRC 0.", semantic.Explanation);
-        Assert.Equal("tp-header", semantic.ParentId);
-        Assert.Equal("Header", semantic.ParentLabel);
-    }
-
-    /// <summary>Verifies copied NT51927 header bytes retain the primary header field identity in the report.</summary>
-    [Fact]
-    public async Task ReplaceReportNamesNt51927CopiedIlmCrcZero()
-    {
-        var copiedFieldRange = new ByteRange(0x1E25C, 1);
-        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
-        ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
-            Assert.Single(request.CompiledComposition.Plan.OrderedOperations).ExternalProcessorInvocation);
-        ExternalProcessorWriteRangeSection headerCopySection = Assert.Single(invocation.AllowedWriteRangeSections);
-        Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, headerCopySection.SectionId);
-        Assert.Equal(new ByteRange(0x200, 0x190), headerCopySection.SourceRange);
-        Assert.True(headerCopySection.TryMapRangeToSourceRange(copiedFieldRange, out ByteRange sourceFieldRange));
-        Assert.Equal(new ByteRange(0x22C, 1), sourceFieldRange);
-        Assert.True(TpHeaderCatalog.TryFindField("NT51927", sourceFieldRange, out TpHeaderField? sourceField));
-        Assert.Equal("header-0-ilm-crc", sourceField!.FieldId);
-        var processor = new FakeExternalProcessor(request =>
-        {
-            byte[] output = request.InputBytes.ToArray();
-            output[checked((int)copiedFieldRange.Start)] = 0x7E;
-            return ExternalProcessorResult.Success(output, [copiedFieldRange]);
-        });
-        var service = new CompositionRunService(
-            new FakeArtifactReader(new Dictionary<string, byte[]>
-            {
-                ["reference-artifact"] = new byte[0x1E3C0],
-            }),
-            new FakeClock([FirstTimestamp, SecondTimestamp]),
-            null,
-            processor);
-
-        CompositionRunResult result = await service.PreviewAsync(
-            request,
-            CancellationToken.None);
-
-        OutputDifferenceSummary headerDifference = Assert.Single(result.Report.OutputDifferences);
-        Assert.Equal(copiedFieldRange, headerDifference.Range);
-
-        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
-        Assert.Equal("tp-flash-header", semantic.CategoryId);
-        Assert.Equal("nt51927-header:header-0-ilm-crc", semantic.SubjectId);
-        Assert.Equal("ILM CRC 0", semantic.SubjectLabel);
-        Assert.Equal(
-            "Expected: postbuild refreshed ILM CRC 0 and copied it to Header copy / master.",
-            semantic.Explanation);
-        Assert.Equal(TpHeaderSectionIds.HeaderCopyMaster, semantic.ParentId);
-        Assert.Equal("Header copy / master", semantic.ParentLabel);
-    }
-
-    /// <summary>Verifies the verified NT51927 Header #3 continuation also survives copied-header projection.</summary>
-    [Fact]
-    public async Task ReplaceReportNamesNt51927CopiedHeaderThreeCrc()
-    {
-        var copiedFieldRange = new ByteRange(0x1E2EC, 4);
-        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
-        var processor = new FakeExternalProcessor(externalRequest =>
-        {
-            byte[] output = externalRequest.InputBytes.ToArray();
-            output.AsSpan(checked((int)copiedFieldRange.Start), checked((int)copiedFieldRange.Length)).Fill(0x7E);
-            return ExternalProcessorResult.Success(output, [copiedFieldRange]);
-        });
-        var service = new CompositionRunService(
-            new FakeArtifactReader(new Dictionary<string, byte[]>
-            {
-                ["reference-artifact"] = new byte[0x1E3C0],
-            }),
-            new FakeClock([FirstTimestamp, SecondTimestamp]),
-            null,
-            processor);
-
-        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
-
-        OutputDifferenceSummary headerDifference = Assert.Single(result.Report.OutputDifferences);
-        OutputDifferenceSemantic semantic = Assert.IsType<OutputDifferenceSemantic>(headerDifference.Semantic);
-        Assert.Equal("nt51927-header:header-3-ilm-crc", semantic.SubjectId);
-        Assert.Equal("ILM CRC 3", semantic.SubjectLabel);
-        Assert.Equal(
-            "Expected: postbuild refreshed ILM CRC 3 and copied it to Header copy / master.",
-            semantic.Explanation);
-    }
-
-    /// <summary>Verifies range-sensitive postbuild fields never share semantic instances.</summary>
-    [Fact]
-    public async Task ReplaceReportDoesNotShareRangeSensitivePostbuildSemantics()
-    {
-        var firstFieldRange = new ByteRange(0x1E25C, 1);
-        var secondFieldRange = new ByteRange(0x1E2EC, 4);
-        CompositionRunRequest request = CreateNt51927CopiedHeaderSemanticRequest();
-        var processor = new FakeExternalProcessor(externalRequest =>
-        {
-            byte[] output = externalRequest.InputBytes.ToArray();
-            output[checked((int)firstFieldRange.Start)] = 0x7E;
-            output.AsSpan(
-                checked((int)secondFieldRange.Start),
-                checked((int)secondFieldRange.Length)).Fill(0x7E);
-            return ExternalProcessorResult.Success(output, [firstFieldRange, secondFieldRange]);
-        });
-        var service = new CompositionRunService(
-            new FakeArtifactReader(new Dictionary<string, byte[]>
-            {
-                ["reference-artifact"] = new byte[0x1E3C0],
-            }),
-            new FakeClock([FirstTimestamp, SecondTimestamp]),
-            null,
-            processor);
-
-        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
-
-        Assert.Equal(2, result.Report.OutputDifferences.Count);
-        OutputDifferenceSemantic firstSemantic = Assert.IsType<OutputDifferenceSemantic>(
-            result.Report.OutputDifferences[0].Semantic);
-        OutputDifferenceSemantic secondSemantic = Assert.IsType<OutputDifferenceSemantic>(
-            result.Report.OutputDifferences[1].Semantic);
-        Assert.NotSame(firstSemantic, secondSemantic);
-        Assert.Equal("nt51927-header:header-0-ilm-crc", firstSemantic.SubjectId);
-        Assert.Equal("nt51927-header:header-3-ilm-crc", secondSemantic.SubjectId);
     }
 
     /// <summary>Verifies preview approval includes staged source-to-firmware mapping details.</summary>

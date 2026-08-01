@@ -29,6 +29,37 @@ public sealed class FirmwareMapResolutionTests
             resolved.FactProvenance.Select(static provenance => provenance.EffectiveKey));
     }
 
+    /// <summary>Map-selected metadata that is not an applicability predicate remains available for later inspection.</summary>
+    [Fact]
+    public void ResolveMapForSelectionDoesNotExecuteInspectionOnlyMetadata()
+    {
+        FirmwareMetadataSet metadata = MetadataSet(Config("inspection", "dp-firmware"));
+        FirmwareImageMap map = Map("map", [metadata]);
+        FirmwareFamilyResolutionDefinition definition = Definition([map], [metadata]);
+
+        _ = Assert.Throws<ArgumentNullException>(() =>
+            definition.ResolveMapWithinForSelection(Inputs([]), null!));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            definition.ResolveMapWithinForSelection(
+                Inputs([]),
+                new HashSet<string>(StringComparer.Ordinal)));
+
+        FirmwareMapResolutionResult result = definition.ResolveMapWithinForSelection(
+            Inputs([]),
+            new HashSet<string>(["map"], StringComparer.Ordinal));
+
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
+        ResolvedFirmwareImageMap resolved = Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap);
+        Assert.Empty(resolved.ResolvedMetadataStructures);
+        Assert.True(definition.TryResolveStructure("map", "inspection", out _));
+        FirmwareMetadataStructureResolution inspection = definition.ResolveMetadataStructure(
+            "map",
+            "inspection",
+            Inputs([]));
+        Assert.Equal(FirmwareMetadataStructureResolutionStatus.Pending, inspection.Status);
+        Assert.Equal(FirmwareMetadataStructureResolutionFailure.MissingArtifact, inspection.Failure);
+    }
+
     /// <summary>Verifies an absent map-selected artifact yields one exact missing-artifact requirement.</summary>
     [Fact]
     public void ResolveMapReportsCandidateSpecificMissingArtifact()

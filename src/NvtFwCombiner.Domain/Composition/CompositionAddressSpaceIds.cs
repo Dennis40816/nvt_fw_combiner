@@ -15,8 +15,8 @@ public static class CompositionAddressSpaceIds
     /// <summary>Immutable TP input address space used by Standard Merge.</summary>
     public const string TpInput = "tp-input";
 
-    /// <summary>Immutable LD input address space used by Standard Merge.</summary>
-    public const string LdInput = "ld-input";
+    /// <summary>Immutable LDC input address space used by Standard Merge.</summary>
+    public const string LdcInput = "ldc-input";
 
     /// <summary>Immutable complete DP A/B container used by AB Merge.</summary>
     public const string DpAbInput = "dp-ab-input";
@@ -33,8 +33,11 @@ public static class CompositionAddressSpaceIds
     /// <summary>Immutable DP replacement address space used by DP Replace.</summary>
     public const string DpReplacement = "dp-replacement";
 
-    /// <summary>Immutable LD replacement address space used by DP Replace.</summary>
-    public const string LdReplacement = "ld-replacement";
+    /// <summary>Immutable Initial Code replacement address space used when DP and LDC are independently selectable.</summary>
+    public const string InitialCodeReplacement = "initial-code-replacement";
+
+    /// <summary>Immutable LDC replacement address space used by DP Replace.</summary>
+    public const string LdcReplacement = "ldc-replacement";
 
     /// <summary>Immutable CtrlRAM replacement address space used by CtrlRAM Replace.</summary>
     public const string CtrlRamReplacement = "ctrlram-replacement";

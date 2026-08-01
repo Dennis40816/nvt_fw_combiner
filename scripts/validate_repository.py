@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tomllib
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 from urllib.parse import unquote
@@ -19,7 +20,16 @@ from canonical_golden_validation import (
     validate_canonical_golden,
     validate_standard_merge_release_allowlist,
 )
-from code_size_policy import review_code_size_policy
+from code_size_policy import is_physical_source_file, review_code_size_policy
+from coverage_configuration_policy import (
+    is_approved_package_analyzer,
+    is_approved_sdk_analyzer,
+    validate_coverage_collector_pin,
+    validate_coverage_exclusion_policy,
+    validate_evaluated_test_coverage_collector,
+    validate_restored_test_coverage_collector_version,
+)
+from coverage_policy import load_baseline
 from diagnostic_golden_validation import validate_diagnostic_golden_separation
 from external_tool_policy import (
     ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS,
@@ -35,6 +45,18 @@ from skill_metadata_validation import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS = {
+    (
+        "docs/contracts/support-publication-policy-v1.0.0.json",
+        "publicationPolicy",
+        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
+    ),
+    (
+        "docs/contracts/support-publication-policy-v1.json",
+        "publicationPolicy",
+        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff",
+    )
+}
 REQUIRED_FILES = {
     "README.md",
     "LICENSE",
@@ -55,6 +77,7 @@ REQUIRED_FILES = {
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
     ".github/workflows/release.yml",
+    ".agents/skills/manifest.json",
     "scripts/bootstrap.ps1",
     "scripts/bootstrap.sh",
     "scripts/install-dotnet.ps1",
@@ -66,6 +89,7 @@ REQUIRED_FILES = {
     "scripts/validate_repository.py",
     "scripts/canonical_golden_validation.py",
     "scripts/code_size_policy.py",
+    "scripts/coverage_policy.py",
     "scripts/diagnostic_golden_validation.py",
     "scripts/external_tool_policy.py",
     "scripts/repository_contract_validation.py",
@@ -94,6 +118,8 @@ REQUIRED_FILES = {
     "docs/architecture/saved-rule-promotion.md",
     "docs/architecture/terminal-log-and-diagnostics.md",
     "docs/contracts/composition-profile-v1.schema.json",
+    "docs/contracts/coverage-baseline-v1.json",
+    "docs/contracts/coverage-baseline-v1.md",
     "docs/contracts/canonical-golden-manifest-v1.md",
     "docs/contracts/composition-profile-v2.md",
     "docs/contracts/composition-profile-v2.schema.json",
@@ -112,7 +138,9 @@ REQUIRED_FILES = {
     "docs/contracts/saved-composition-rule-v1.schema.json",
     "docs/contracts/saved-composition-rule-v2.md",
     "docs/contracts/saved-composition-rule-v2.schema.json",
-    "docs/governance/codex-handoff.md",
+    "docs/governance/agent-skill-inventory.md",
+    "docs/governance/agent-skill-routing.md",
+    "docs/governance/development-execution-workflow.md",
     "docs/governance/development-tags.md",
     "docs/policies/polytail.md",
     "docs/references/verification-report.md",
@@ -128,6 +156,15 @@ REQUIRED_FILES = {
     "refcode/ab_code_combiner/SOURCE_MANIFEST.json",
     "tools/crc-worker/pyproject.toml",
 }
+
+
+@dataclass(frozen=True)
+class EvaluatedProjectItems:
+    """Restored MSBuild items plus the SDK root that supplied implicit analyzers."""
+
+    items: dict[str, list[dict[str, Any]]]
+    msbuild_sdks_path: Path
+
 
 EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
@@ -205,6 +242,7 @@ EXPECTED_PROJECT_REFERENCES = {
     },
     "tests/NvtFwCombiner.Bootstrap.Tests/NvtFwCombiner.Bootstrap.Tests.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
     "tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj": set(),
@@ -216,48 +254,6 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
-}
-EXPECTED_SKILLS = {
-    "ask-matt",
-    "code-review",
-    "codebase-design",
-    "diagnosing-bugs",
-    "domain-modeling",
-    "grill-with-docs",
-    "grilling",
-    "handoff",
-    "implement",
-    "improve-codebase-architecture",
-    "nfc-architecture-change",
-    "firmware-profile-authoring",
-    "github-review-polling",
-    "crc-worker-contract",
-    "golden-regression",
-    "ui-experience-change",
-    "composition-experience-change",
-    "dotnet-bootstrap",
-    "release-readiness",
-    "research",
-    "resolving-merge-conflicts",
-    "setup-matt-pocock-skills",
-    "polytail",
-    "prototype",
-    "supervised-branch-development",
-    "tdd",
-    "to-spec",
-    "to-tickets",
-    "writing-great-skills",
-}
-EXPECTED_USER_INVOKED_SKILLS = {
-    "ask-matt",
-    "grill-with-docs",
-    "handoff",
-    "implement",
-    "improve-codebase-architecture",
-    "setup-matt-pocock-skills",
-    "to-spec",
-    "to-tickets",
-    "writing-great-skills",
 }
 EXPECTED_REFCODE_SNAPSHOTS = {"gen_flash_bin_v2", "ab_code_combiner"}
 FORBIDDEN_SUFFIXES = {
@@ -458,7 +454,96 @@ def validate_markdown_links(files: Iterable[Path], errors: list[str]) -> None:
                 )
 
 
+def load_skill_manifest(errors: list[str]) -> list[dict[str, Any]]:
+    manifest_path = ROOT / ".agents" / "skills" / "manifest.json"
+    document = load_json(manifest_path, errors)
+    if not isinstance(document, dict) or document.get("schemaVersion") != 1:
+        errors.append("skill manifest must be an object with schemaVersion 1")
+        return []
+    skills = document.get("skills")
+    if not isinstance(skills, list):
+        errors.append("skill manifest skills must be an array")
+        return []
+
+    required_fields = {
+        "name",
+        "status",
+        "scope",
+        "invocation",
+        "authority",
+        "owner",
+        "replaces",
+    }
+    result: list[dict[str, Any]] = []
+    names: set[str] = set()
+    for index, entry in enumerate(skills):
+        label = f"skill manifest skills[{index}]"
+        if not isinstance(entry, dict) or set(entry) != required_fields:
+            errors.append(f"{label} must contain exactly {sorted(required_fields)}")
+            continue
+        name = entry.get("name")
+        if (
+            not isinstance(name, str)
+            or re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) is None
+        ):
+            errors.append(f"{label}.name must be lowercase hyphen-case")
+            continue
+        if name in names:
+            errors.append(f"skill manifest contains duplicate name: {name}")
+            continue
+        names.add(name)
+        if entry.get("status") != "active":
+            errors.append(f"{label}.status must be active")
+        if entry.get("scope") != "repo":
+            errors.append(f"{label}.scope must be repo")
+        if entry.get("invocation") not in {"implicit", "explicit"}:
+            errors.append(f"{label}.invocation must be implicit or explicit")
+        for field in ("authority", "owner"):
+            if not isinstance(entry.get(field), str) or not entry[field].strip():
+                errors.append(f"{label}.{field} must be a non-empty string")
+        replaces = entry.get("replaces")
+        if (
+            not isinstance(replaces, list)
+            or any(not isinstance(value, str) or not value for value in replaces)
+            or len(replaces) != len(set(replaces))
+        ):
+            errors.append(f"{label}.replaces must be an array of unique names")
+        result.append(entry)
+
+    if [entry["name"] for entry in result] != sorted(names):
+        errors.append("skill manifest entries must be sorted by name")
+    return result
+
+
+def render_skill_inventory(entries: list[dict[str, Any]]) -> str:
+    lines = [
+        "# Agent Skill Inventory",
+        "",
+        "Status: Generated from `.agents/skills/manifest.json`; do not edit the table manually.",
+        "",
+        "Repository validation checks this table, every active skill directory,",
+        "frontmatter, Codex metadata, and invocation policy against the manifest.",
+        "Removed generic workflows remain available from Git history or user-level",
+        "skills; they are not repository authority.",
+        "",
+        "| Skill | Invocation | Authority | Replaces |",
+        "| --- | --- | --- | --- |",
+    ]
+    for entry in entries:
+        replaces = ", ".join(entry["replaces"]) or "—"
+        lines.append(
+            f"| `{entry['name']}` | {entry['invocation']} | "
+            f"{entry['authority']} | {replaces} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
 def validate_skills(errors: list[str]) -> None:
+    manifest_entries = load_skill_manifest(errors)
+    expected_skills = {entry["name"] for entry in manifest_entries}
+    explicit_skills = {
+        entry["name"] for entry in manifest_entries if entry["invocation"] == "explicit"
+    }
     found: set[str] = set()
     for path in sorted((ROOT / ".agents" / "skills").glob("*/SKILL.md")):
         text = path.read_text(encoding="utf-8")
@@ -512,20 +597,27 @@ def validate_skills(errors: list[str]) -> None:
             continue
         validate_skill_metadata_fields(metadata, metadata_path, ROOT, name, errors)
         implicit_disabled = metadata["policy"].get("allow_implicit_invocation") is False
-        if name in EXPECTED_USER_INVOKED_SKILLS and not implicit_disabled:
+        if name in explicit_skills and not implicit_disabled:
             errors.append(
-                "user-invoked skill must set allow_implicit_invocation: false: "
+                "explicit skill must set allow_implicit_invocation: false: "
                 f"{metadata_path.relative_to(ROOT)}"
             )
-        if name not in EXPECTED_USER_INVOKED_SKILLS and implicit_disabled:
+        if name not in explicit_skills and implicit_disabled:
             errors.append(
-                "model-invoked skill must not disable implicit invocation: "
+                "implicit skill must not disable implicit invocation: "
                 f"{metadata_path.relative_to(ROOT)}"
             )
-    if found != EXPECTED_SKILLS:
+    if found != expected_skills:
         errors.append(
-            f"repository skills must be exactly {sorted(EXPECTED_SKILLS)}, got {sorted(found)}"
+            f"repository skills must match manifest {sorted(expected_skills)}, got {sorted(found)}"
         )
+    inventory_path = ROOT / "docs" / "governance" / "agent-skill-inventory.md"
+    if inventory_path.is_file():
+        expected_inventory = render_skill_inventory(manifest_entries)
+        if inventory_path.read_text(encoding="utf-8") != expected_inventory:
+            errors.append(
+                "agent-skill-inventory.md must be rendered from manifest.json"
+            )
 
 
 def validate_source_manifest(manifest_path: Path, errors: list[str]) -> None:
@@ -847,6 +939,236 @@ def normalize_project_reference(project: Path, include: str) -> str:
     )
 
 
+def is_solution_test_project(relative: str) -> bool:
+    """Classify solution test projects without trusting mutable project properties."""
+
+    path = PurePosixPath(relative)
+    return (
+        bool(path.parts) and path.parts[0] == "tests" and path.stem.endswith(".Tests")
+    )
+
+
+def validate_production_source_ownership(
+    relative: str, project_root: ET.Element, errors: list[str]
+) -> None:
+    """Keep production source physical, owned, and inside the measured tree."""
+
+    if not relative.startswith("src/"):
+        return
+    for element in project_root.iter("Compile"):
+        include = element.attrib.get("Include")
+        if include:
+            errors.append(
+                "production project must not add an explicit Compile include "
+                f"outside its owned source tree: {relative} -> {include}"
+            )
+    for element in project_root.iter("Analyzer"):
+        include = element.attrib.get("Include", "<implicit>")
+        errors.append(
+            "production project must not add a source-generating analyzer without "
+            f"an explicit architecture decision: {relative} -> {include}"
+        )
+
+
+def evaluate_project_items(
+    project_path: Path, errors: list[str]
+) -> EvaluatedProjectItems | None:
+    """Read evaluated source and package items, including imported package targets."""
+
+    assets_file = project_path.parent / "obj" / "project.assets.json"
+    relative = project_path.relative_to(ROOT).as_posix()
+    if not assets_file.is_file():
+        errors.append(
+            f"repository MSBuild evaluation requires restored assets: {relative}"
+        )
+        return None
+    executable_name = "dotnet.exe" if sys.platform == "win32" else "dotnet"
+    repository_dotnet = ROOT / ".dotnet" / executable_name
+    dotnet = str(repository_dotnet) if repository_dotnet.is_file() else "dotnet"
+    try:
+        result = subprocess.run(
+            [
+                dotnet,
+                "msbuild",
+                str(project_path),
+                "-nologo",
+                "-property:Configuration=Release",
+                "-target:ResolveLockFileAnalyzers",
+                "-getProperty:MSBuildSDKsPath",
+                "-getItem:Compile",
+                "-getItem:Analyzer",
+                "-getItem:PackageReference",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        errors.append(
+            f"could not start repository MSBuild evaluation for {relative}: {exc}"
+        )
+        return None
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        errors.append(
+            f"could not evaluate repository MSBuild items for {relative}: {detail}"
+        )
+        return None
+    try:
+        document = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        errors.append(
+            "could not parse evaluated repository MSBuild items for "
+            f"{relative}: {exc.msg}"
+        )
+        return None
+    items = document.get("Items") if isinstance(document, dict) else None
+    if not isinstance(items, dict):
+        errors.append(f"evaluated repository MSBuild items are invalid for {relative}")
+        return None
+    properties = document.get("Properties")
+    msbuild_sdks_path = (
+        properties.get("MSBuildSDKsPath") if isinstance(properties, dict) else None
+    )
+    if not isinstance(msbuild_sdks_path, str) or not msbuild_sdks_path:
+        errors.append(
+            f"evaluated repository MSBuild SDK path is invalid for {relative}"
+        )
+        return None
+    typed_items: dict[str, list[dict[str, Any]]] = {}
+    for kind in ("Compile", "Analyzer", "PackageReference"):
+        value = items.get(kind)
+        if not isinstance(value, list) or not all(
+            isinstance(item, dict) for item in value
+        ):
+            errors.append(
+                f"evaluated repository MSBuild {kind} items are invalid for {relative}"
+            )
+            return None
+        typed_items[kind] = value
+    return EvaluatedProjectItems(typed_items, Path(msbuild_sdks_path))
+
+
+def validate_evaluated_production_source_ownership(
+    relative: str,
+    project_directory: Path,
+    items: dict[str, list[dict[str, Any]]],
+    msbuild_sdks_path: Path,
+    errors: list[str],
+    repository_root: Path = ROOT,
+) -> None:
+    """Reject imported or packaged sources that escape the owned production tree."""
+
+    if not relative.startswith("src/"):
+        return
+    owned_directory = project_directory.resolve()
+    for compile_item in items["Compile"]:
+        full_path = compile_item.get("FullPath")
+        if not isinstance(full_path, str):
+            errors.append(
+                f"production project has an invalid evaluated Compile item: {relative}"
+            )
+            continue
+        source_path = Path(full_path)
+        if not is_physical_source_file(
+            source_path,
+            owned_directory,
+            frozenset({".cs"}),
+        ):
+            errors.append(
+                "production project must compile only physical C# inside its measured "
+                f"source tree: {relative} -> {full_path}"
+            )
+    for analyzer in items["Analyzer"]:
+        if is_approved_sdk_analyzer(
+            analyzer, msbuild_sdks_path
+        ) or is_approved_package_analyzer(analyzer, repository_root):
+            continue
+        identity = analyzer.get("Identity", "<implicit>")
+        errors.append(
+            "production project must not add an evaluated analyzer without an "
+            f"explicit architecture decision: {relative} -> {identity}"
+        )
+
+
+def validate_evaluated_nonproduction_source_ownership(
+    relative: str,
+    items: dict[str, list[dict[str, Any]]],
+    repository_root: Path,
+    errors: list[str],
+) -> None:
+    """Reject duplicate compilation of measured production sources."""
+
+    if relative.startswith("src/"):
+        return
+    production_root = (repository_root / "src").resolve()
+    for compile_item in items["Compile"]:
+        full_path = compile_item.get("FullPath")
+        if not isinstance(full_path, str):
+            errors.append(
+                f"non-production project has an invalid evaluated Compile item: {relative}"
+            )
+            continue
+        try:
+            Path(full_path).resolve().relative_to(production_root)
+        except ValueError:
+            continue
+        errors.append(
+            "non-production project must not compile a duplicate production source: "
+            f"{relative} -> {full_path}"
+        )
+
+
+def validate_restored_project_contracts(errors: list[str]) -> None:
+    """Evaluate source ownership and test collectors after the .NET owner restores."""
+
+    try:
+        baseline = load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"coverage baseline validation failed: {exc}")
+        return
+    collector = baseline["collection"]["dotnet"]["collector"]
+    collector_version = baseline["collection"]["dotnet"]["version"]
+    for relative in sorted(EXPECTED_PROJECT_REFERENCES):
+        project_path = ROOT / relative
+        is_test_project = is_solution_test_project(relative)
+        evaluated = evaluate_project_items(project_path, errors)
+        if evaluated is None:
+            continue
+        if relative.startswith("src/"):
+            validate_evaluated_production_source_ownership(
+                relative,
+                project_path.parent,
+                evaluated.items,
+                evaluated.msbuild_sdks_path,
+                errors,
+                ROOT,
+            )
+        else:
+            validate_evaluated_nonproduction_source_ownership(
+                relative,
+                evaluated.items,
+                ROOT,
+                errors,
+            )
+        if is_test_project:
+            validate_evaluated_test_coverage_collector(
+                relative,
+                evaluated.items,
+                collector,
+                ROOT,
+                errors,
+            )
+            validate_restored_test_coverage_collector_version(
+                relative,
+                project_path.parent / "obj" / "project.assets.json",
+                collector,
+                collector_version,
+                errors,
+            )
+
+
 def validate_solution_and_dependencies(errors: list[str]) -> None:
     solution_root = ET.parse(ROOT / "NvtFwCombiner.slnx").getroot()
     solution_projects = {
@@ -874,6 +1196,7 @@ def validate_solution_and_dependencies(errors: list[str]) -> None:
                 errors.append(
                     f"production/test project includes refcode: {relative} -> {include}"
                 )
+        validate_production_source_ownership(relative, root, errors)
 
 
 def validate_contract_model(errors: list[str]) -> None:
@@ -948,8 +1271,43 @@ def validate_workflows(errors: list[str]) -> None:
     if "python scripts/verify.py --skip-python --skip-structure" not in ci:
         errors.append("CI dotnet job must run the canonical .NET verifier")
     verifier = (ROOT / "scripts/verify.py").read_text(encoding="utf-8")
-    if '[dotnet, "test", str(SOLUTION), "-c", "Release", "--no-build"]' not in verifier:
-        errors.append("canonical verifier must run the full .NET solution test suite")
+    required_dotnet_coverage_markers = (
+        '            "test",',
+        "            str(SOLUTION),",
+        '            "--no-build",',
+        '"--collect:XPlat Code Coverage",',
+        '"--results-directory",',
+    )
+    if any(marker not in verifier for marker in required_dotnet_coverage_markers):
+        errors.append(
+            "canonical verifier must run the full .NET solution test suite "
+            "with coverage collection"
+        )
+    if verifier.count('"--evaluated-source-ownership-only"') != 1:
+        errors.append(
+            "canonical .NET verifier must own exactly one restored source-ownership check"
+        )
+    dotnet_job = ci[ci.index("  dotnet:") :] if "  dotnet:" in ci else ""
+    if "fetch-depth: 0" not in dotnet_job:
+        errors.append("CI dotnet job must fetch the fixed coverage baseline revision")
+    main_package = (ROOT / ".github/workflows/main-package.yml").read_text(
+        encoding="utf-8"
+    )
+    if (
+        "python ./scripts/verify.py --all" in main_package
+        and "fetch-depth: 0" not in main_package
+    ):
+        errors.append(
+            "main package workflow must fetch the fixed coverage baseline revision"
+        )
+    for marker in (
+        "name: python-coverage",
+        "path: artifacts/coverage/python/",
+        "name: dotnet-coverage",
+        "path: artifacts/coverage/dotnet/",
+    ):
+        if marker not in ci:
+            errors.append(f"CI is missing coverage evidence marker: {marker}")
     if "verify_ctrlram_replace_fixture.py" not in verifier:
         errors.append(
             "canonical verifier must include the CtrlRAM Replace fixture gate"
@@ -1021,6 +1379,7 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
         errors,
     )
+    validate_support_publication_policy_package_contracts(ROOT, errors)
 
     for script_name in ("package.ps1", "smoke-release.ps1"):
         text = (ROOT / "scripts" / script_name).read_text(encoding="utf-8")
@@ -1045,10 +1404,103 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
             )
 
 
+def validate_support_publication_policy_package_contracts(
+    root: Path, errors: list[str]
+) -> None:
+    """Keep runtime, packager, and smoke bound to one exact policy identity."""
+
+    contract_pattern = re.compile(
+        r"\$ApprovedSupportPublicationPolicyPackageContracts\s*=\s*@\((.*?)\)\s*(?:\r?\n)",
+        flags=re.DOTALL,
+    )
+    entry_pattern = re.compile(
+        r"\[pscustomobject\]@\{\s*"
+        r"path\s*=\s*'([^']+)'\s*"
+        r"role\s*=\s*'([^']+)'\s*"
+        r"sha256\s*=\s*'([^']+)'\s*"
+        r"\}",
+        flags=re.DOTALL,
+    )
+    for script_name in ("package.ps1", "smoke-release.ps1"):
+        text = (root / "scripts" / script_name).read_text(encoding="utf-8")
+        match = contract_pattern.search(text)
+        if match is None:
+            errors.append(
+                f"{script_name} must declare a fixed "
+                "ApprovedSupportPublicationPolicyPackageContracts array"
+            )
+            continue
+
+        entries = entry_pattern.findall(match.group(1))
+        declared_contracts = set(entries)
+        if not entries:
+            errors.append(
+                f"{script_name} support publication policy package contract "
+                "must not be empty"
+            )
+        if match.group(1).count("[pscustomobject]@{") != len(entries):
+            errors.append(
+                f"{script_name} has a malformed support publication policy "
+                "package contract"
+            )
+        if declared_contracts != APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS:
+            errors.append(
+                f"{script_name} support publication policy package contract "
+                "differs from the approved path, role, and SHA-256"
+            )
+
+    runtime_path = (
+        root
+        / "src/NvtFwCombiner.Infrastructure/Support/"
+        "BuiltInSupportPublicationPolicy.cs"
+    )
+    runtime = runtime_path.read_text(encoding="utf-8")
+    runtime_shas = dict(re.findall(
+        r'private const string (\w+Sha256)\s*=\s*"([0-9a-f]{64})";',
+        runtime,
+    ))
+    runtime_files = re.findall(
+        r'new\(\s*"([^"]+)",\s*(\w+Sha256)\)',
+        runtime,
+        flags=re.DOTALL,
+    )
+    runtime_contracts = {
+        (path, runtime_shas.get(hash_name))
+        for path, hash_name in runtime_files
+    }
+    expected_runtime_contracts = {
+        (path, sha256)
+        for path, _, sha256 in
+        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
+    }
+    if runtime_contracts != expected_runtime_contracts:
+        errors.append(
+            "BuiltInSupportPublicationPolicy runtime history differs from the "
+            "approved release package contracts"
+        )
+
+    for expected_path, _, expected_sha in sorted(
+        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
+    ):
+        policy_path = root / expected_path
+        if not policy_path.is_file():
+            errors.append(
+                "approved support publication policy file is missing: "
+                f"{expected_path}"
+            )
+        elif hashlib.sha256(policy_path.read_bytes()).hexdigest() != expected_sha:
+            errors.append(
+                "approved support publication policy bytes differ from the "
+                f"release package SHA-256: {expected_path}"
+            )
+
+
 def validate_agent_files(errors: list[str]) -> None:
-    if (ROOT / "AGENTS.md").stat().st_size > 32 * 1024:
-        errors.append("root AGENTS.md exceeds 32 KiB")
+    if (ROOT / "AGENTS.md").stat().st_size > 16 * 1024:
+        errors.append("root AGENTS.md exceeds 16 KiB")
     for relative in {
+        "profiles/AGENTS.md",
+        "testdata/golden/AGENTS.md",
         "src/NvtFwCombiner.Domain/AGENTS.md",
         "src/NvtFwCombiner.Application/AGENTS.md",
         "src/NvtFwCombiner.Infrastructure/AGENTS.md",
@@ -1060,12 +1512,52 @@ def validate_agent_files(errors: list[str]) -> None:
         if not (ROOT / relative).is_file():
             errors.append(f"missing scoped AGENTS.md: {relative}")
 
+    config = tomllib.loads(
+        (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
+    )
+    if config.get("agents") != {
+        "enabled": True,
+        "max_concurrent_threads_per_session": 3,
+    }:
+        errors.append(
+            ".codex/config.toml must use only the approved global agents keys"
+        )
+
+    agents_root = ROOT / ".codex" / "agents"
+    expected_agent_files = {
+        "architect.toml",
+        "evidence_reviewer.toml",
+        "implementer.toml",
+        "reviewer.toml",
+    }
+    found_agent_files = {path.name for path in agents_root.glob("*.toml")}
+    if found_agent_files != expected_agent_files:
+        errors.append(
+            "standalone Codex agents must be exactly "
+            f"{sorted(expected_agent_files)}, got {sorted(found_agent_files)}"
+        )
+    for name in expected_agent_files & found_agent_files:
+        document = tomllib.loads((agents_root / name).read_text(encoding="utf-8"))
+        for field in ("name", "description", "developer_instructions"):
+            if not isinstance(document.get(field), str) or not document[field].strip():
+                errors.append(f".codex/agents/{name} requires non-empty {field}")
+        if document.get("agents") != {"enabled": False}:
+            errors.append(f".codex/agents/{name} must disable nested agents")
+    for read_only in ("architect.toml", "evidence_reviewer.toml", "reviewer.toml"):
+        if read_only in found_agent_files:
+            document = tomllib.loads(
+                (agents_root / read_only).read_text(encoding="utf-8")
+            )
+            if document.get("sandbox_mode") != "read-only":
+                errors.append(f".codex/agents/{read_only} must be read-only")
+
 
 def validate() -> list[str]:
     errors: list[str] = []
     files = repository_files()
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
+    validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
@@ -1081,13 +1573,39 @@ def validate() -> list[str]:
     validate_version_license_and_sdk(errors)
     validate_solution_and_dependencies(errors)
     validate_contract_model(errors)
+    baseline: dict[str, Any] | None = None
+    try:
+        baseline = load_baseline(ROOT / "docs/contracts/coverage-baseline-v1.json")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        errors.append(f"coverage baseline validation failed: {exc}")
+    if baseline is not None:
+        validate_coverage_collector_pin(baseline, errors, ROOT)
     validate_workflows(errors)
     validate_packaging_policy(files, errors)
     validate_agent_files(errors)
     return sorted(set(errors))
 
 
-def main() -> int:
+def main(arguments: list[str] | None = None) -> int:
+    arguments = sys.argv[1:] if arguments is None else arguments
+    if arguments:
+        if arguments != ["--evaluated-source-ownership-only"]:
+            print(
+                "ERROR: unsupported repository validation arguments",
+                file=sys.stderr,
+            )
+            return 2
+        errors: list[str] = []
+        validate_restored_project_contracts(errors)
+        if errors:
+            for error in sorted(set(errors)):
+                print(f"ERROR: {error}", file=sys.stderr)
+            return 1
+        print(
+            "Restored source ownership and test coverage collector validation passed."
+        )
+        return 0
+
     for finding in review_code_size_policy(ROOT):
         print(f"WARNING: {finding}", file=sys.stderr)
     errors = validate()

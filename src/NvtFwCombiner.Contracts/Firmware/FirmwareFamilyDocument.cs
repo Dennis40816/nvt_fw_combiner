@@ -14,6 +14,7 @@ namespace NvtFwCombiner.Contracts.Firmware;
 /// <param name="ImageMaps">Candidate physical image maps.</param>
 /// <param name="FactAliases">Explicit fact-scoped aliases.</param>
 /// <param name="EvidenceRefs">Family-level evidence manifest references.</param>
+/// <param name="FamilyRelationships">Optional owner-declared perfect-like or shared-part relationships.</param>
 public sealed record FirmwareFamilyDocument(
     string SchemaVersion,
     string FamilyId,
@@ -24,12 +25,60 @@ public sealed record FirmwareFamilyDocument(
     IReadOnlyList<FirmwareMetadataSetDocument> MetadataSets,
     IReadOnlyList<FirmwareImageMapDocument> ImageMaps,
     IReadOnlyList<FirmwareFactAliasDocument> FactAliases,
-    IReadOnlyList<string> EvidenceRefs);
+    IReadOnlyList<string> EvidenceRefs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareFamilyRelationshipDocument>? FamilyRelationships = null);
 
 /// <summary>DTO for one family member and its display label.</summary>
 /// <param name="MemberId">Stable IC member identifier.</param>
 /// <param name="DisplayName">Human-readable IC name.</param>
 public sealed record FirmwareFamilyMemberDocument(string MemberId, string DisplayName);
+
+/// <summary>
+/// Shared DTO fields for one owner-declared family relationship. Relationship
+/// declarations contain firmware-semantic scope only; support, publication,
+/// evidence classification, workflow, and processor authority are intentionally
+/// not representable here.
+/// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "relationshipKind")]
+[JsonDerivedType(typeof(FirmwarePerfectFamilyRelationshipDocument), "perfect-like-family")]
+[JsonDerivedType(typeof(FirmwareSharedFactRelationshipDocument), "shared-fact-relationship")]
+public abstract record FirmwareFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs);
+
+/// <summary>DTO for one complete perfect-family firmware-semantic relationship.</summary>
+public sealed record FirmwarePerfectFamilyRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
+
+/// <summary>DTO for the exact image maps on which one shared-fact relationship applies.</summary>
+public sealed record FirmwareSharedFactApplicabilityDocument(
+    IReadOnlyList<string> MapIds);
+
+/// <summary>DTO for one typed exact reference to a canonical shared firmware fact.</summary>
+public sealed record FirmwareSharedFactReferenceDocument(
+    string FactKind,
+    string FactId);
+
+/// <summary>
+/// DTO for one partial relationship whose readable role never selects runtime
+/// behavior; only its exact map applicability and typed fact references do.
+/// </summary>
+public sealed record FirmwareSharedFactRelationshipDocument(
+    string RelationshipId,
+    IReadOnlyList<string> MemberIds,
+    string Role,
+    FirmwareSharedFactApplicabilityDocument Applicability,
+    IReadOnlyList<FirmwareSharedFactReferenceDocument> SharedFactReferences,
+    string Reason,
+    IReadOnlyList<string> EvidenceRefs)
+    : FirmwareFamilyRelationshipDocument(RelationshipId, MemberIds, Reason, EvidenceRefs);
 
 /// <summary>DTO for one map-bound evidence-backed technical capability fact.</summary>
 /// <param name="CapabilityFactId">Stable aliasable capability fact identifier.</param>
@@ -55,11 +104,47 @@ public sealed record FirmwareCapabilityFactDocument(
 /// <param name="AddressSpaceId">Physical address-space identifier.</param>
 /// <param name="Regions">Physical region declarations.</param>
 /// <param name="EvidenceRefs">Evidence manifest references.</param>
+/// <param name="RegionTemplates">Optional canonical instance-relative region definitions.</param>
+/// <param name="RegionInstances">Optional explicit placements of canonical region definitions.</param>
 public sealed record FirmwareRegionSetDocument(
     string RegionSetId,
     string AddressSpaceId,
     IReadOnlyList<FirmwareRegionDocument> Regions,
-    IReadOnlyList<string> EvidenceRefs);
+    IReadOnlyList<string> EvidenceRefs,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareRegionTemplateDocument>? RegionTemplates = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareRegionInstanceDocument>? RegionInstances = null);
+
+/// <summary>DTO for one canonical instance-relative physical region definition.</summary>
+/// <param name="TemplateId">Stable template identifier.</param>
+/// <param name="CapacityBytes">Exact positive template capacity.</param>
+/// <param name="Regions">Physical regions measured from the instance base.</param>
+public sealed record FirmwareRegionTemplateDocument(
+    string TemplateId,
+    JsonElement CapacityBytes,
+    IReadOnlyList<FirmwareRegionDocument> Regions);
+
+/// <summary>DTO for one template-local to resolved region-id binding.</summary>
+/// <param name="TemplateRegionId">Template-local region identifier.</param>
+/// <param name="ResolvedRegionId">Stable map-resolved region identifier.</param>
+public sealed record FirmwareRegionIdBindingDocument(
+    string TemplateRegionId,
+    string ResolvedRegionId);
+
+/// <summary>DTO for one explicit placement of a relative region definition.</summary>
+/// <param name="InstanceId">Stable instance identifier.</param>
+/// <param name="TemplateId">Referenced canonical template identifier.</param>
+/// <param name="BaseOffset">Absolute base in the region-set address space.</param>
+/// <param name="ResolvedRegionIds">Complete template-local to resolved id bindings.</param>
+/// <param name="ParentRegionId">Optional external parent for template roots.</param>
+public sealed record FirmwareRegionInstanceDocument(
+    string InstanceId,
+    string TemplateId,
+    JsonElement BaseOffset,
+    IReadOnlyList<FirmwareRegionIdBindingDocument> ResolvedRegionIds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? ParentRegionId = null);
 
 /// <summary>DTO for one canonical physical firmware region.</summary>
 /// <param name="RegionId">Stable map-local region identifier.</param>

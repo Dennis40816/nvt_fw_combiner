@@ -14,8 +14,6 @@ public static class PostbuildTestCatalog
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51919 => Find("nfc.nt51919.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>
-    public static LegacyCombinerPostbuildProfile Nt51920 => Find("nfc.nt51920.ctrlram-postbuild-v1");
-    /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51923 => Find("nfc.nt51923.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51926 => Find("nfc.nt51926.ctrlram-postbuild-v1");
@@ -27,10 +25,6 @@ public static class PostbuildTestCatalog
     public static LegacyCombinerPostbuildProfile Nt51928 => Find("nfc.nt51928.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51929 => Find("nfc.nt51929.ctrlram-postbuild-v1");
-    /// <summary>Named fixture projection.</summary>
-    public static LegacyCombinerPostbuildProfile Nt51930CommonFw1x => Find("nfc.nt51930.ctrlram-postbuild-fw1.x");
-    /// <summary>Named fixture projection.</summary>
-    public static LegacyCombinerPostbuildProfile Nt51931 => Find("nfc.nt51931.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>
     public static LegacyCombinerPostbuildProfile Nt51932 => Find("nfc.nt51932.ctrlram-postbuild-v1");
     /// <summary>Named fixture projection.</summary>

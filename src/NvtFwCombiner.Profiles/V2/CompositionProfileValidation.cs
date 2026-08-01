@@ -90,6 +90,7 @@ internal enum CompositionProfileValidationKind
     MetadataEquality,
     RejectMetadataBytePattern,
     ViewByteAssertion,
+    NonUniformRegion,
 }
 
 /// <summary>Base value for one normalized profile validation.</summary>
@@ -338,4 +339,28 @@ internal sealed record ViewByteAssertionProfileValidation : CompositionProfileVa
             }
         }
     }
+}
+
+/// <summary>Emits a warning when one declared source view contains only one repeated byte.</summary>
+internal sealed record NonUniformRegionProfileValidation : CompositionProfileValidation
+{
+    internal NonUniformRegionProfileValidation(
+        string ruleId,
+        CompositionProfileValidationStage stage,
+        CompositionProfileValidationSeverity severity,
+        string issueCode,
+        string viewId)
+        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.NonUniformRegion)
+    {
+        if (stage != CompositionProfileValidationStage.InputLoad ||
+            severity != CompositionProfileValidationSeverity.Warning)
+        {
+            throw new ArgumentException(
+                "Non-uniform region validation is restricted to warning-only input-load checks.");
+        }
+
+        ViewId = CompositionProfileValueRules.RequireId(viewId, nameof(viewId));
+    }
+
+    internal string ViewId { get; }
 }

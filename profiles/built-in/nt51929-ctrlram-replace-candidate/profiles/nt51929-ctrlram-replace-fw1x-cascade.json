@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51929-ctrlram-replace-fw1x-cascade",
-  "profileVersion": "0.3.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -27,7 +27,7 @@
   "mapBinding": {
     "familyId": "nt51929-ctrlram-replace",
     "familyVersion": "0.5.0",
-      "familyContentHash": "6e5390f635af437c772f0b9f213acb9dd16c93d992ad0b8efb4224a59ba0ebd0",
+      "familyContentHash": "86b69e9f1737d0bc0e547c0159d102cbebb154c7ce163760288e53a9fbcffbd8",
     "mapIds": [ "nt51929-ctrlram-fw1x-cascade-full-flash" ],
     "requiredRegionIds": [
       "flash-image",
@@ -39,7 +39,8 @@
       "normal-ctrlram",
       "vn-ctrlram",
       "header-copy",
-      "diff-ctrlram"
+      "diff-ctrlram",
+      "dynamic-diffdlm-layout-authority-tail"
     ],
     "requiredMetadataStructureIds": [ "nt51929-fwconfig-envelope" ],
     "requiredCapabilityIds": []
@@ -103,7 +104,8 @@
     { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
     { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram" } },
     { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
-    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } }
+    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } },
+    { "viewId": "dynamic-diffdlm-layout-authority-tail-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "dynamic-diffdlm-layout-authority-tail" } }
   ],
   "metadataBindings": [],
   "regionAccessRules": [
@@ -114,7 +116,8 @@
     { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x4A00 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "vn-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1960 bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words." },
-    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x8C00 bytes; the Legacy Combiner performs the exact postbuild treatment of the embedded FWConfig backup." }
+    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy only active DiffDLM record payloads while preserving each Diff NF tail and inactive records from Reference." },
+    { "regionId": "dynamic-diffdlm-layout-authority-tail", "access": "hidden", "reason": "Static upper extension of Dynamic DiffDLM layout authority; runtime IC Count narrows processor writes to the resolved FWConfig Backup envelope." }
   ],
   "operations": [
     {
@@ -147,7 +150,8 @@
         "normal-ctrlram-output",
         "vn-ctrlram-output",
         "header-copy-output",
-        "diff-ctrlram-output"
+        "diff-ctrlram-output",
+        "dynamic-diffdlm-layout-authority-tail-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],

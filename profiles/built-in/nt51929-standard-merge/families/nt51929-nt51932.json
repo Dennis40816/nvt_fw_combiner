@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51929-nt51932",
-  "familyVersion": "1.0.0",
+  "familyVersion": "1.1.0",
   "members": [
     {
       "memberId": "NT51919",
@@ -76,7 +76,517 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51929-nt51932-type-ab-tp-flash-header",
+      "structures": [
+        {
+          "structureId": "type-ab-tp-flash-header",
+          "artifactBindingId": "tp-input",
+          "length": 256,
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 256,
+            "allowedResultRegionId": "tp-code"
+          },
+          "fields": [
+            {
+              "fieldId": "header-crc",
+              "offset": 0,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "ilm-destination-address-in-sram",
+              "offset": 4,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "ilm-size",
+              "offset": 8,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "ilm-crc-0",
+              "offset": 12,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-destination-address-in-sram",
+              "offset": 16,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-size",
+              "offset": 20,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-0",
+              "offset": 24,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-diff-destination-address-in-sram",
+              "offset": 28,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-diff-size",
+              "offset": 32,
+              "widthBytes": 2,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "build-read-command",
+              "offset": 36,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "build-divider-count",
+              "offset": 37,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "spi-option",
+              "offset": 38,
+              "widthBytes": 1,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-1",
+              "offset": 40,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-2",
+              "offset": 44,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-3",
+              "offset": 48,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-4",
+              "offset": 52,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-5",
+              "offset": 56,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-6",
+              "offset": 60,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-crc-7",
+              "offset": 64,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "ilm-start-address-in-bin",
+              "offset": 100,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-start-address-in-bin",
+              "offset": 104,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            },
+            {
+              "fieldId": "dlm-diff-start-address-in-bin",
+              "offset": 108,
+              "widthBytes": 4,
+              "encoding": "unsigned-integer",
+              "byteOrder": "little"
+            }
+          ],
+          "assertions": [],
+          "relations": [],
+          "structureKind": "tp-flash-header",
+          "tpFlashHeader": {
+            "spans": [
+              {
+                "spanId": "complete-header",
+                "range": {
+                  "start": 0,
+                  "length": 256
+                }
+              },
+              {
+                "spanId": "descriptor-table",
+                "range": {
+                  "start": 0,
+                  "length": 68
+                }
+              },
+              {
+                "spanId": "bank-relative-start-addresses",
+                "range": {
+                  "start": 100,
+                  "length": 12
+                }
+              }
+            ],
+            "fieldSemantics": [
+              {
+                "fieldId": "header-crc",
+                "spanId": "descriptor-table",
+                "subject": "header",
+                "role": "integrity-value"
+              },
+              {
+                "fieldId": "ilm-destination-address-in-sram",
+                "spanId": "descriptor-table",
+                "subject": "ilm",
+                "role": "destination-address",
+                "storedAddress": {
+                  "addressSpaceId": "sram",
+                  "basis": "absolute"
+                }
+              },
+              {
+                "fieldId": "ilm-size",
+                "spanId": "descriptor-table",
+                "subject": "ilm",
+                "role": "size"
+              },
+              {
+                "fieldId": "ilm-crc-0",
+                "spanId": "descriptor-table",
+                "subject": "ilm",
+                "role": "integrity-value"
+              },
+              {
+                "fieldId": "dlm-destination-address-in-sram",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "destination-address",
+                "storedAddress": {
+                  "addressSpaceId": "sram",
+                  "basis": "absolute"
+                }
+              },
+              {
+                "fieldId": "dlm-size",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "size"
+              },
+              {
+                "fieldId": "dlm-crc-0",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 0
+              },
+              {
+                "fieldId": "dlm-diff-destination-address-in-sram",
+                "spanId": "descriptor-table",
+                "subject": "dlm-difference",
+                "role": "destination-address",
+                "storedAddress": {
+                  "addressSpaceId": "sram",
+                  "basis": "absolute"
+                }
+              },
+              {
+                "fieldId": "dlm-diff-size",
+                "spanId": "descriptor-table",
+                "subject": "dlm-difference",
+                "role": "size"
+              },
+              {
+                "fieldId": "build-read-command",
+                "spanId": "descriptor-table",
+                "subject": "header",
+                "role": "option"
+              },
+              {
+                "fieldId": "build-divider-count",
+                "spanId": "descriptor-table",
+                "subject": "header",
+                "role": "option"
+              },
+              {
+                "fieldId": "spi-option",
+                "spanId": "descriptor-table",
+                "subject": "header",
+                "role": "option"
+              },
+              {
+                "fieldId": "dlm-crc-1",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 1
+              },
+              {
+                "fieldId": "dlm-crc-2",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 2
+              },
+              {
+                "fieldId": "dlm-crc-3",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 3
+              },
+              {
+                "fieldId": "dlm-crc-4",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 4
+              },
+              {
+                "fieldId": "dlm-crc-5",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 5
+              },
+              {
+                "fieldId": "dlm-crc-6",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 6
+              },
+              {
+                "fieldId": "dlm-crc-7",
+                "spanId": "descriptor-table",
+                "subject": "dlm",
+                "role": "integrity-value",
+                "logicalIndex": 7
+              },
+              {
+                "fieldId": "ilm-start-address-in-bin",
+                "spanId": "bank-relative-start-addresses",
+                "subject": "ilm",
+                "role": "tp-bin-start-address",
+                "storedAddress": {
+                  "addressSpaceId": "tp-bin",
+                  "basis": "tp-bin-offset"
+                }
+              },
+              {
+                "fieldId": "dlm-start-address-in-bin",
+                "spanId": "bank-relative-start-addresses",
+                "subject": "dlm",
+                "role": "tp-bin-start-address",
+                "storedAddress": {
+                  "addressSpaceId": "tp-bin",
+                  "basis": "tp-bin-offset"
+                }
+              },
+              {
+                "fieldId": "dlm-diff-start-address-in-bin",
+                "spanId": "bank-relative-start-addresses",
+                "subject": "dlm-difference",
+                "role": "tp-bin-start-address",
+                "storedAddress": {
+                  "addressSpaceId": "tp-bin",
+                  "basis": "tp-bin-offset"
+                }
+              }
+            ],
+            "fieldSeries": [
+              {
+                "seriesId": "dlm-crc-series",
+                "members": [
+                  {
+                    "index": 0,
+                    "fieldId": "dlm-crc-0"
+                  },
+                  {
+                    "index": 1,
+                    "fieldId": "dlm-crc-1"
+                  },
+                  {
+                    "index": 2,
+                    "fieldId": "dlm-crc-2"
+                  },
+                  {
+                    "index": 3,
+                    "fieldId": "dlm-crc-3"
+                  },
+                  {
+                    "index": 4,
+                    "fieldId": "dlm-crc-4"
+                  },
+                  {
+                    "index": 5,
+                    "fieldId": "dlm-crc-5"
+                  },
+                  {
+                    "index": 6,
+                    "fieldId": "dlm-crc-6"
+                  },
+                  {
+                    "index": 7,
+                    "fieldId": "dlm-crc-7"
+                  }
+                ],
+                "applicability": [
+                  {
+                    "icCount": 1,
+                    "activeIndices": [
+                      0
+                    ]
+                  },
+                  {
+                    "icCount": 2,
+                    "activeIndices": [
+                      0,
+                      1
+                    ]
+                  },
+                  {
+                    "icCount": 3,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2
+                    ]
+                  },
+                  {
+                    "icCount": 4,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2,
+                      3
+                    ]
+                  },
+                  {
+                    "icCount": 5,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4
+                    ]
+                  },
+                  {
+                    "icCount": 6,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      5
+                    ]
+                  },
+                  {
+                    "icCount": 7,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6
+                    ]
+                  },
+                  {
+                    "icCount": 8,
+                    "activeIndices": [
+                      0,
+                      1,
+                      2,
+                      3,
+                      4,
+                      5,
+                      6,
+                      7
+                    ]
+                  }
+                ]
+              }
+            ],
+            "fieldGroups": [
+              {
+                "groupId": "header-integrity-values",
+                "fieldIds": [
+                  "header-crc",
+                  "ilm-crc-0"
+                ],
+                "seriesIds": [
+                  "dlm-crc-series"
+                ]
+              },
+              {
+                "groupId": "tp-bank-relative-start-addresses",
+                "fieldIds": [
+                  "ilm-start-address-in-bin",
+                  "dlm-start-address-in-bin",
+                  "dlm-diff-start-address-in-bin"
+                ],
+                "seriesIds": []
+              }
+            ]
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51929-golden",
+        "gen-flash-bin-v2-51932-golden",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51919-standard-merge-256k",
@@ -121,7 +631,9 @@
       "regionSetIds": [
         "nt51929-nt51932-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-header"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51929-golden"
       ]
@@ -145,7 +657,9 @@
       "regionSetIds": [
         "nt51929-nt51932-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51929-nt51932-type-ab-tp-flash-header"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51932-golden"
       ]
@@ -179,6 +693,7 @@
   "evidenceRefs": [
     "gen-flash-bin-v2-51929-golden",
     "gen-flash-bin-v2-51932-golden",
-    "standard-merge-alias-51919-to-51929"
+    "standard-merge-alias-51919-to-51929",
+    "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
   ]
 }

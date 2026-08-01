@@ -299,7 +299,7 @@ public sealed partial class CompositionRunServiceTests
         [
             new("reference-base", 8, AddressSpaceMutability.Immutable),
             new("dp-replacement", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
-            new("ld-replacement", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            new("ldc-replacement", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
             new("output-image", 8, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -318,7 +318,7 @@ public sealed partial class CompositionRunServiceTests
                 CompositionOperation.ReplaceRange(
                     "replace-ld",
                     110,
-                    "ld-replacement",
+                    "ldc-replacement",
                     new ByteRange(0, 2),
                     "output-image",
                     new ByteRange(6, 2),
@@ -418,7 +418,7 @@ public sealed partial class CompositionRunServiceTests
         [
             new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
             new InputArtifactBinding("dp-replacement", "dp-safe", "dp-artifact"),
-            new InputArtifactBinding("ld-replacement", "ld-safe", "ld-artifact"),
+            new InputArtifactBinding("ldc-replacement", "ldc-safe", "ldc-artifact"),
         ];
     }
 }

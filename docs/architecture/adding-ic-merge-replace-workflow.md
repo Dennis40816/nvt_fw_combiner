@@ -14,6 +14,13 @@ of truth there. Compatibility projections are removed after byte/name/trace pari
 - Merge starts from a blank output image; Replace clones an immutable reference/base image.
 - UI, CLI, and workbench paths must call the same composition profile/compiler/runner contracts.
 - All ranges are half-open `[start, end)` and name their address space.
+- Built-in Initial Code, DP, TP, LDC, TPA, and TPB inputs use address-bearing
+  source views. TPA is same-coordinate; TPB uses a resolved bank placement
+  delta. Compact CtrlRAM payloads alone currently use source byte `0` as the
+  normal origin for a nonzero firmware target.
+- Section inputs require source-view coverage and may be supplied by a
+  compatible same-IC FlashCode. Replace Reference and complete DP AB seeds
+  instead require one exact declared container variant.
 - Physical IC facts live in firmware-family documents; workflow semantics live in composition
   profiles. Do not put them in XAML, ViewModels, CLI routing, Bootstrap joins, or one-off scripts.
 - Experience selects authoring policy only. It must not create a second byte-execution branch.
@@ -28,7 +35,7 @@ Collect these items before adding a production IC profile:
 | Evidence | Required for | Notes |
 | --- | --- | --- |
 | Owner-approved memory map or flash-map source | all workflows | Record source file, sheet/section, revision, owner, and hash when available. |
-| Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`. |
+| Merge source ranges and output size | Standard Merge | Normalize inclusive legacy ranges into half-open `[start, end)`; record every source/metadata/validation read and expected outer length separately. |
 | Replace base/reference length and mutable regions | DP/CtrlRAM/General Replace | Replace never writes back to the input/base artifact. |
 | Protected ranges | DP/CtrlRAM/General Replace | Header, customer info, TP CRC/header areas, and any no-touch regions must be explicit. |
 | Combiner postbuild command source | CtrlRAM Replace and TP-affecting General Replace | Prefer owner-approved postbuild and mmap references committed as documentation/reference evidence when they contain no firmware payload or secrets. |
@@ -96,9 +103,9 @@ Update only the rows that are relevant to the new IC/mode.
 | Replace profile / V2 deployment | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus a focused Bootstrap V2 registration | Add an evidence-backed V2 Replace profile and explicit deployed-bundle registration before routing an IC. Candidate bundles have no runtime authority. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/V2/` | Change only for general validation gaps, not to special-case one IC. The V1 `CompositionProfileCompiler` is retired. |
 | TP/DP/CtrlRAM compatibility catalog | `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | Add reviewed TP/full-Flash shapes and TP Overview rows as hash-pinned config facts. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel C# or tag authority. |
-| TP header/write category | `src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.cs` | Add TP header/postbuild write section ids, report labels, overlap priority, and postbuild block-id classification when the IC introduces a new header copy, backup, CRC, or TP window category. Keep this out of planner, UI, and CLI code. |
+| TP Header metadata and behavior | Versioned family/profile contracts | Declare the common `tp-flash-header` definition once, then reference exact resolved spans, fields, series, or groups from read-only or execution behavior bindings. Do not add a parallel C# layout or report catalog. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and hash-pinned `flash-map.json` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
-| Output naming metadata | `src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DP main/sub contiguous version-byte rules, CMI register evidence when applicable, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
+| Output naming metadata | Versioned family/profile metadata bindings plus `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DPCMI and FWConfig typed fields, target purposes, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
 | CtrlRAM postbuild catalog | `profiles/built-in/ctrlram-postbuild-v2/catalog.json` plus `BuiltInPostbuildProfileCatalog` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and Common FW rule metadata. Update the pinned SHA-256 and parity tests; never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
 | Golden manifest | `testdata/golden/canonical/manifest.json` | Add owner-approved direct cases or explicit fact-scoped aliases only. Keep diagnostics outside canonical expected evidence. |
@@ -136,7 +143,8 @@ Minimum tests:
 
 ## DP Replace steps
 
-1. Confirm DP/LD partition boundaries and whether replacement is whole-only or declared-parts.
+1. Confirm Initial Code/LDC partition boundaries and whether replacement is
+   whole-only or declared-parts.
 2. Confirm base/reference image length and whether shorter replacement inputs may be padded. Padding must be profile-declared.
 3. Add a Replace profile with `ImageInitialization.Reference`.
 4. Add deny-by-default access rules. DP Replace must expose only DP whole/declared partitions, not TP-persona categories.
@@ -156,7 +164,7 @@ Minimum tests:
 ## CtrlRAM Replace steps
 
 1. Add or confirm TP/full-Flash shapes and TP flash-map CtrlRAM rows in hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
-2. Add or confirm TP header/write categories in `TpHeaderCatalog` when postbuild writes new header copy, backup, CRC, or TP window sections.
+2. Add or reference the canonical TP Header definition and declare exact behavior bindings for header copy, backup, CRC, processor, or report consumers. Do not add a parallel geometry or report authority.
 3. Add postbuild structured commands in `profiles/built-in/ctrlram-postbuild-v2/catalog.json` from owner-approved postbuild/mmap evidence and update its pinned SHA-256.
 4. Declare only owner-provided runtime postbuild revisions. One runtime profile covers Common FW
    `[1.0.0, infinity)`; multiple profiles form ordered effective-version intervals whose next entry
