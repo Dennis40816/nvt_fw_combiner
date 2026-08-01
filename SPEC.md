@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.0 maintainability-program planning release; v0.9.16 is the stable predecessor`
-> 文件版本：`0.10.0`
-> 基準日期：`2026-07-25`
+> 文件狀態：`0.10.1 headless canonical foundation release; v0.10.0 is the stable predecessor on the canonical line`
+> 文件版本：`0.10.1`
+> 基準日期：`2026-08-01`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,22 @@
 
 ## 0.1 Current owner priority
 
-`0.9.16` is the published focused hot-fix derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The separately approved `0.9.17` compatibility hot-fix starts from official `v0.9.16` and is limited to the DiffDLM active-NF preservation and selector behavior defined below; it does not import the `0.10.x` architecture. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
+`0.10.1` is the first implementation release from the approved `0.10.x`
+program. It completes the 78-route headless canonical foundation, separates
+reviewed capability identity from per-compilation identity, retains one exact
+compiled composition for Preview/Build/report, retires the four owner-rejected
+IC capabilities, and ships the reviewed firmware contracts allocated through
+#194. It does not complete the deferred desktop UI, compatibility deletion,
+legacy runtime deletion, or Core convergence waves, and it does not convert
+function availability or golden observations into support certification.
+`v0.10.0` remains the stable planning predecessor on this canonical line;
+independent `0.9.17`/`0.9.18` maintenance releases remain historical upgrade
+sources rather than alternate `0.10.x` architecture authority. The remaining
+sequence is maintained in [NFC Roadmap](docs/architecture/nfc_roadmap.md).
+Publication is permitted only after independent review, firmware-owner
+approval, protected CI, package verification, and release-owner approval; an
+omitted external gate must remain explicit rather than being described as
+passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB references NT51927 canonical Initial Code and TP facts
