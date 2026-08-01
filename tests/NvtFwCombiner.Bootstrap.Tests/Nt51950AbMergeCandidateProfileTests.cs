@@ -311,6 +311,65 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(new BigInteger(0x40000), Assert.IsType<ScalarTransform>(relocation.ScalarTransform).Addend);
     }
 
+    /// <summary>Verifies the cascade route never exposes or rewrites the opaque DP container tail during TP postbuild.</summary>
+    [Fact]
+    public async Task CascadePlanPreservesCompleteDpSeedOutsideTpPlacementsAsync()
+    {
+        using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cascade-preservation");
+        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+            "nt51950-ab-merge",
+            "0.3.0",
+            "NT51950",
+            ExperienceIds.AbMerge,
+            requestedMapCapacity: 0x100000,
+            requestedTopology: CascadeTopology(),
+            resolutionArtifacts: []);
+        Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        byte[] dp = CreatePattern(0x100000, 0x21);
+        byte[] tpA = CreatePattern(TpInputLength, 0x43);
+        byte[] tpB = CreatePattern(TpInputLength, 0x65);
+        BinaryPrimitives.WriteUInt32LittleEndian(tpB.AsSpan(0xA120, sizeof(uint)), 0x12345678);
+        byte[] originalTpB = [.. tpB];
+
+        CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
+            composition.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                ["dp-ab-input"] = dp,
+                ["tp-a-input"] = tpA,
+                ["tp-b-input"] = tpB,
+            }),
+            (_, inputBytes, stagedSources, stagedArtifacts, _) =>
+            {
+                Assert.Empty(stagedSources);
+                Assert.Equal(Capacity, inputBytes.Length);
+                Assert.Equal(["a-bank", "b-bank"], stagedArtifacts.Select(static artifact => artifact.ArtifactId));
+                Assert.All(stagedArtifacts, artifact => Assert.Equal(BankLength, artifact.Bytes.Length));
+                return ValueTask.FromResult(CompositionExternalProcessorResult.Success(inputBytes));
+            },
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(0x100000, result.OutputBytes.Length);
+        Assert.Equal(originalTpB, tpB);
+        AssertRangeEquals(dp, 0, result.OutputBytes.Span, 0, TpCodeStart);
+        AssertRangeEquals(dp, 0x37000, result.OutputBytes.Span, 0x37000, 0x13000);
+        AssertRangeEquals(dp, 0x77000, result.OutputBytes.Span, 0x77000, 0x89000);
+        AssertRangeEquals(tpA, TpCodeStart, result.OutputBytes.Span, TpCodeStart, TpCodeLength);
+        AssertRangeEquals(tpB, TpCodeStart, result.OutputBytes.Span, BankLength + TpCodeStart, 0x120);
+        Assert.Equal(
+            0x12385678u,
+            BinaryPrimitives.ReadUInt32LittleEndian(result.OutputBytes.Span.Slice(BankLength + 0xA120, sizeof(uint))));
+        AssertRangeEquals(
+            tpB,
+            TpCodeStart + 0x124,
+            result.OutputBytes.Span,
+            BankLength + TpCodeStart + 0x124,
+            TpCodeLength - 0x124);
+    }
+
     /// <summary>Verifies the candidate rejects incomplete DP or TP prefixes before staging.</summary>
     [Theory]
     [InlineData("dp-ab-input", Capacity - 1)]
