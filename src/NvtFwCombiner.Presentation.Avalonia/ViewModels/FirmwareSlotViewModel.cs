@@ -30,6 +30,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         Title = title;
         Description = description;
         SlotKind = kind;
+        DeclaredIsOptional = isOptional;
         IsOptional = isOptional;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
         AddressSpaceId = string.IsNullOrWhiteSpace(addressSpaceId) ? null : addressSpaceId;
@@ -53,6 +54,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Canonical composition address space used by Application selection readiness.</summary>
     public string? AddressSpaceId { get; }
 
+    /// <summary>Profile projection used when no compiled selection-group cardinality is available.</summary>
+    public bool DeclaredIsOptional { get; }
+
     /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
 
@@ -71,8 +75,17 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
+    /// <summary>At most four facts kept immediately visible for scanability.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Take(4)];
+
+    /// <summary>Facts disclosed on demand after the four primary facts.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Skip(4)];
+
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
+
+    /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
+    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
 
     /// <summary>True when the selected source has a current health or pending inspection state.</summary>
     public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
@@ -113,7 +126,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>True when the highest completed input health is valid.</summary>
     public bool IsInputInspectionValid => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Valid;
 
-    /// <summary>Vector icon path for the highest completed or pending input health.</summary>
+    /// <summary>Vector icon path for the pre-#208 slot health presentation.</summary>
     public string InputInspectionIconPathData => IsInputInspectionPending
         ? "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14"
         : InputInspectionSeverity switch
@@ -161,6 +174,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(RequirementLabel));
         OnPropertyChanged(nameof(DisplayName));
+        NotifySemanticStateChanged();
     }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>
@@ -171,10 +185,29 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         FirmwareFacts.Clear();
         foreach (FirmwareSlotFactViewModel fact in facts)
         {
-            FirmwareFacts.Add(fact);
+            if (!fact.IsNotApplicable)
+            {
+                FirmwareFacts.Add(fact);
+            }
         }
 
+        IsFirmwareFactsExpanded = false;
+        IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
+        OnPropertyChanged(nameof(PrimaryFirmwareFacts));
+        OnPropertyChanged(nameof(AdditionalFirmwareFacts));
+        OnPropertyChanged(nameof(HasAdditionalFirmwareFacts));
+        OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
+    }
+
+    /// <summary>Reprojects cached facts after a language change without collapsing disclosure state.</summary>
+    internal void RelocalizeFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)
+    {
+        bool isExpanded = IsFirmwareFactsExpanded;
+        bool areAdditionalFactsExpanded = IsAdditionalFirmwareFactsExpanded;
+        SetFirmwareFacts(facts);
+        IsFirmwareFactsExpanded = isExpanded;
+        IsAdditionalFirmwareFactsExpanded = areAdditionalFactsExpanded;
     }
 
     /// <summary>Marks the current selected source as awaiting a fresh typed inspection.</summary>
@@ -272,6 +305,11 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInputInspectionWarning));
         OnPropertyChanged(nameof(IsInputInspectionValid));
         OnPropertyChanged(nameof(InputInspectionIconPathData));
+        OnPropertyChanged(nameof(IsLegacyInputInspectionBlocking));
+        OnPropertyChanged(nameof(IsLegacyInputInspectionPending));
+        OnPropertyChanged(nameof(IsLegacyInputInspectionValid));
+        OnPropertyChanged(nameof(IsLegacyInputInspectionWarning));
+        NotifySemanticStateChanged();
     }
 
     private void NotifySelectionReadinessChanged()
@@ -281,6 +319,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectionReadinessLabel));
         OnPropertyChanged(nameof(SelectionReadinessDetail));
         OnPropertyChanged(nameof(SelectionReadinessAutomationText));
+        NotifySemanticStateChanged();
     }
 
 }

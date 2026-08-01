@@ -23,6 +23,8 @@ public sealed partial class MainWindowViewModel
         MergePreview = Text.MergePreview;
         ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
+        RelocalizeFirmwareFacts();
+        RefreshDpReplaceInputSelectionReadiness();
         foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
         {
             if (_firmwareInspectionSession.TryGetInspection(
@@ -86,6 +88,32 @@ public sealed partial class MainWindowViewModel
             () => RefreshReplaceModeState(preserveSlotFiles: true),
             RefreshCtrlRamDisplayFromInspection,
             RefreshReplaceSelectionState);
+    }
+
+    private void RelocalizeFirmwareFacts()
+    {
+        foreach (FirmwareSlotViewModel slot in MergeSlots
+                     .Concat(ReplaceSlots)
+                     .Append(ReplaceBaseSlot)
+                     .Distinct())
+        {
+            if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
+                !_firmwareInspectionSession.TryGetInspection(
+                    slot.SlotId,
+                    slot.FilePath,
+                    out WorkbenchFirmwareInspection inspection) ||
+                inspection.AbMergeInput is not null)
+            {
+                continue;
+            }
+
+            slot.RelocalizeFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
+                ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
+                : UiCompositionRunner.GetFirmwareSlotFacts(
+                    inspection,
+                    includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
+                    text: Text));
+        }
     }
 
     private void RequestReportRelocalization()
@@ -167,6 +195,11 @@ public sealed partial class MainWindowViewModel
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
             ApplyReplaceSlotText(slot);
+        }
+
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(static slot => slot.UsesSharedSlotPresentation))
+        {
+            slot.ApplyExperienceText(Text);
         }
     }
 

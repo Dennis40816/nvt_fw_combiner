@@ -167,10 +167,11 @@ public sealed partial class MainWindowViewModel
             else if (item.PublishFacts)
             {
                 slot.SetFirmwareFacts(item.SlotKind == FirmwareSlotKind.Dp
-                    ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection)
+                    ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
                     : UiCompositionRunner.GetFirmwareSlotFacts(
                         inspection,
-                        includeBaseFacts: item.SlotKind == FirmwareSlotKind.Base));
+                        includeBaseFacts: item.SlotKind == FirmwareSlotKind.Base,
+                        text: Text));
             }
 
             if (item.PromptForMismatch)
