@@ -9,7 +9,11 @@ namespace NvtFwCombiner.Domain.Composition;
 public sealed partial class CompiledComposition
 {
     private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v3";
+    private const string CapabilityBoundLegacyFingerprintFormat =
+        "nfc.compiled-composition.legacy.v4";
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
+    private const string CapabilityBoundV2FingerprintFormat =
+        "nfc.compiled-composition.profile-v2.v6";
     private const string IntegrityFingerprintFormat =
         "nfc.compiled-composition.integrity.v1";
 
@@ -60,7 +64,13 @@ public sealed partial class CompiledComposition
     private static string CalculateLegacyCompilationFingerprint(CompiledComposition composition)
     {
         var builder = new StringBuilder();
-        AppendField(builder, "format", LegacyFingerprintFormat);
+        AppendField(
+            builder,
+            "format",
+            composition.CapabilityFingerprint is null
+                ? LegacyFingerprintFormat
+                : CapabilityBoundLegacyFingerprintFormat);
+        AppendCapabilityFingerprint(builder, composition);
         AppendField(builder, "authority.kind", "legacy-profile");
         AppendField(
             builder,
@@ -103,7 +113,13 @@ public sealed partial class CompiledComposition
             "Profile-bundle-v2 artifacts require paired v2 details.");
         V2CompilationProvenance provenance = details.Provenance;
         var builder = new StringBuilder();
-        AppendField(builder, "format", V2FingerprintFormat);
+        AppendField(
+            builder,
+            "format",
+            composition.CapabilityFingerprint is null
+                ? V2FingerprintFormat
+                : CapabilityBoundV2FingerprintFormat);
+        AppendCapabilityFingerprint(builder, composition);
         AppendV2ProfileIdentity(builder, composition);
         if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
         {
@@ -134,6 +150,16 @@ public sealed partial class CompiledComposition
         AppendField(builder, "profile.mode", composition.ModeId);
         AppendField(builder, "profile.experience", composition.ExperienceId);
         AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
+    }
+
+    private static void AppendCapabilityFingerprint(
+        StringBuilder builder,
+        CompiledComposition composition)
+    {
+        if (composition.CapabilityFingerprint is { } fingerprint)
+        {
+            AppendField(builder, "capability.fingerprint", fingerprint);
+        }
     }
 
     private static void AppendV2ProfileAdmission(

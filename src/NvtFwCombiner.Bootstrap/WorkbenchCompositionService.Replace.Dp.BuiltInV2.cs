@@ -14,26 +14,19 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        if (TryCompilePublishedDpReplaceCapability(
+        return TryCompilePublishedDynamicCapability(
+                icId,
+                IcWorkflowIds.DpReplace,
+                "1-ic",
+                baseCapacity,
+                selectedInputSlotIds: null,
+                out composition,
+                out issues) ||
+            TryCompilePublishedDpReplaceCapability(
                 icId,
                 baseCapacity,
                 out composition,
-                out issues))
-        {
-            return true;
-        }
-
-        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        registration.TryCompile(baseCapacity, out composition, out issues);
-        return true;
+                out issues);
     }
 
     internal static bool TryCompileBuiltInV2DpReplace(
@@ -44,17 +37,19 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<CompositionIssue> issues)
     {
         ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
-        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
+        return TryCompilePublishedDynamicCapability(
                 icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        registration.TryCompile(baseCapacity, selectedInputSlotIds, out composition, out issues);
-        return true;
+                IcWorkflowIds.DpReplace,
+                "1-ic",
+                baseCapacity,
+                selectedInputSlotIds,
+                out composition,
+                out issues) ||
+            TryCompilePublishedDpReplaceCapability(
+                icId,
+                baseCapacity,
+                out composition,
+                out issues);
     }
 
     private static bool IsDpReplaceSelectionGroupMember(string icId, string addressSpaceId)

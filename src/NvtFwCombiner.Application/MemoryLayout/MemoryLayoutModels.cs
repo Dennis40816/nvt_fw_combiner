@@ -479,6 +479,8 @@ public sealed class MemoryLayoutSnapshot
 
         RouteId = capability.Identity.RouteId;
         CapabilityFingerprint = capability.CapabilityFingerprint;
+        CompilationFingerprint =
+            capability.CompiledComposition.CompilationFingerprint;
         ResolutionToken = capability.ResolutionToken;
         AuthoringRevision = authoring.AuthoringRevision;
         MapId = map.MapId;
@@ -494,8 +496,10 @@ public sealed class MemoryLayoutSnapshot
 
     /// <summary>Exact canonical route identity.</summary>
     public string RouteId { get; }
-    /// <summary>Firmware-semantic capability identity.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
+    /// <summary>Exact compiled-composition fingerprint used by this projection.</summary>
+    public string CompilationFingerprint { get; }
     /// <summary>Catalog publication identity.</summary>
     public ResolutionToken ResolutionToken { get; }
     /// <summary>Projected authoring revision.</summary>

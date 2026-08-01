@@ -29,6 +29,15 @@ public sealed partial class MemoryLayoutProjectorTests
             session,
             fixture.Composition);
 
+        Assert.Equal(
+            fixture.Capability.CapabilityFingerprint,
+            snapshot.CapabilityFingerprint);
+        Assert.Equal(
+            fixture.Composition.CompilationFingerprint,
+            snapshot.CompilationFingerprint);
+        Assert.NotEqual(
+            snapshot.CapabilityFingerprint,
+            snapshot.CompilationFingerprint);
         Assert.Equal("flash", snapshot.AddressSpaceId);
         Assert.Equal(Capacity, snapshot.Capacity);
         Assert.Equal(
@@ -359,7 +368,7 @@ public sealed partial class MemoryLayoutProjectorTests
         return new ProjectionFixture(
             route,
             capability,
-            composition,
+            capability.CompiledComposition,
             resolvedMap,
             dp,
             tp);
@@ -582,7 +591,8 @@ public sealed partial class MemoryLayoutProjectorTests
         CapabilityRouteIdentity route,
         CompiledComposition composition)
     {
-        string fingerprint = composition.CompilationFingerprint;
+        const string fingerprint =
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
         return new ResolvedCapability(
             route,
             fingerprint,
@@ -625,7 +635,7 @@ public sealed partial class MemoryLayoutProjectorTests
         ProjectionFixture fixture,
         params AuthoringSlotState[] slots)
     {
-        return CreateSession(fixture, fixture.Composition.CompilationFingerprint, slots);
+        return CreateSession(fixture, fixture.Capability.CapabilityFingerprint, slots);
     }
 
     private static ActiveSessionSnapshot CreateSession(

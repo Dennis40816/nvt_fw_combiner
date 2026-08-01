@@ -5,6 +5,7 @@
 - Owners: Product owner, architecture owner
 - Risk: R2
 - Follows: [ADR 0022](0022-canonical-contract-schema-materialization.md)
+- Amended by: ADR 0046 for capability-definition versus per-compilation identity
 
 ## Context
 
@@ -32,9 +33,13 @@ Each decision contains:
    recorded `unclassified`; and
 3. an immutable decision id plus owner-decision provenance.
 
-No row is a wildcard. A new IC Count, map variant, or integrity route creates a
-new route and remains `unclassified` until an owner-approved decision references
-that route. A missing policy row also resolves to `unclassified`.
+No row is a wildcard. A new IC Count or route map-axis value creates a new
+route and remains `unclassified` until an owner-approved decision references
+that route. Under ADR 0046, a route may instead reference one reviewed closed
+map-variant-set definition. Adding or removing a member then changes
+`CapabilityFingerprint` and stales policy without creating another logical
+row; selecting an existing member changes only `CompilationFingerprint`. A
+missing policy row also resolves to `unclassified`.
 
 The canonical route renderer length-frames the IC, workflow, IC Count, and map
 axes before joining them, so hyphens inside one axis cannot collide with an

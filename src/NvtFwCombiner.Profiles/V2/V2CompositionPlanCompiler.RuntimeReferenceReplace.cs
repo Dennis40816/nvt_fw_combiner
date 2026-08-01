@@ -136,6 +136,7 @@ internal static partial class V2CompositionPlanCompiler
                 mappingOperations,
                 firmwareVersionEdit.PostbuildWriteRanges,
                 request.PostbuildPolicy,
+                request.PostbuildWriteRangeSections,
                 declaredProcessorOperations)
             : [];
         CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];

@@ -1,5 +1,18 @@
 namespace NvtFwCombiner.Application.Composition;
 
+/// <summary>Stable top-level categories emitted by output-difference classification.</summary>
+public static class OutputDifferenceSemanticCategoryIds
+{
+    /// <summary>TP Flash Header fields and copies.</summary>
+    public const string TpFlashHeader = "tp-flash-header";
+    /// <summary>Firmware configuration structures.</summary>
+    public const string FirmwareConfiguration = "firmware-configuration";
+    /// <summary>CtrlRAM payload ranges.</summary>
+    public const string CtrlRam = "ctrlram";
+    /// <summary>Other documented firmware regions.</summary>
+    public const string OtherDocumentedRegion = "other-documented-region";
+}
+
 /// <summary>
 /// Stable semantic subject for a final-output difference. It is emitted by Application policy so report renderers
 /// do not infer firmware fields from offsets.

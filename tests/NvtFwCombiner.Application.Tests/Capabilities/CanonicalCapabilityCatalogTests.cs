@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
@@ -249,6 +250,37 @@ public sealed class CanonicalCapabilityCatalogTests
         Assert.Equal("nvt-crc-worker", dependency.ToolBindingId);
     }
 
+    /// <summary>Report metadata cannot cross either capability or compilation identity.</summary>
+    [Theory]
+    [InlineData("capability")]
+    [InlineData("compilation")]
+    public void RunRequestRejectsResolvedCapabilityFingerprintDrift(string drift)
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(CreateCandidate())));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+        ResolvedCapability capability = catalog.Resolve(Route.RouteId).Capability!;
+        CompiledComposition composition = drift switch
+        {
+            "capability" => CreateCompiledComposition()
+                .BindCapabilityFingerprint(new string('b', 64)),
+            "compilation" => CreateCompiledCompositionWithExternalProcessor()
+                .BindCapabilityFingerprint(capability.CapabilityFingerprint),
+            _ => throw new InvalidOperationException($"Unknown drift '{drift}'."),
+        };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "capability-fingerprint-drift",
+                composition,
+                [],
+                composition.DefaultOutputFileName,
+                resolvedCapability: capability));
+
+        Assert.Equal("resolvedCapability", exception.ParamName);
+    }
+
     /// <summary>An explicit unavailable authoring decision blocks the exact route.</summary>
     [Fact]
     public void ResolveRejectsUnavailableAuthoring()
@@ -357,6 +389,7 @@ public sealed class CanonicalCapabilityCatalogTests
         CapabilityRouteIdentity effectiveRoute = route ?? Route;
         return new CanonicalCapabilityDefinition(
             effectiveRoute,
+            fingerprint,
             composition,
             new PinnedCapabilityDecision<CapabilityAuthoringAvailability>(
                 "nt51929-standard-merge-authoring",

@@ -444,6 +444,15 @@ compiled bytes and the compilation fingerprint are otherwise identical. That
 identity is retained in the report and Preview-to-Build token, and Build
 requires a freshly captured matching admission.
 
+ADR 0046 separates that reviewed definition identity from per-compilation
+identity. `CapabilityFingerprint` binds the complete allowed capability
+definition and its policy. `CompiledComposition.CompilationFingerprint` binds
+the exact selected map/topology, selected slots, authored mappings/initializer,
+selected processor plan, and lowered plan for one compilation. Preview, Build,
+Memory Layout when compiled, naming, and reports consume the same immutable
+compiled instance; none may recompile it or treat the capability fingerprint as
+the compiled-plan fingerprint.
+
 A static template supplies the default output filename; dynamic renderers
 supply their automatic candidate. `allowOverride: false` requires that
 automatic result, while `allowOverride: true` accepts another Windows-safe

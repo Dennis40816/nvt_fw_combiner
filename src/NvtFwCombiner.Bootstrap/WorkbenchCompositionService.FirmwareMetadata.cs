@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    /// <summary>Reads gen_flash-backed contiguous DP main/sub version metadata from a selected DP payload.</summary>
+    /// <summary>Reads canonical DPCMI version metadata from a selected DP payload.</summary>
     public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -31,8 +31,12 @@ public static partial class WorkbenchCompositionService
             return null;
         }
 
-        byte? chipNumber = TryReadFirmwareConfigBackupChipNumber(icId, tpPath);
-        return ReadCmiDpCodeMetadata(icId, image, chipNumber);
+        byte[]? tpImage = string.IsNullOrWhiteSpace(tpPath)
+            ? null
+            : string.Equals(path, tpPath, StringComparison.Ordinal)
+                ? null
+                : TryReadFirmwareImage(tpPath);
+        return ReadCmiDpCodeMetadata(icId, image, tpImage);
     }
 
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
@@ -116,14 +120,6 @@ public static partial class WorkbenchCompositionService
 
         byte[]? image = TryReadFirmwareImage(path);
         return image is not null && TryReadFirmwareConfigBackupMetadata(icId, image, out metadata);
-    }
-
-    private static byte? TryReadFirmwareConfigBackupChipNumber(string icId, string? tpPath)
-    {
-        return !string.IsNullOrWhiteSpace(tpPath) &&
-            TryReadFirmwareConfigBackupMetadata(icId, tpPath, out FirmwareConfigMetadata metadata)
-                ? metadata.ChipNumber
-                : null;
     }
 
     private static byte[]? TryReadFirmwareImage(string path)

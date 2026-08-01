@@ -96,7 +96,15 @@ public sealed class CanonicalMemoryLayoutProjectionTests
             activation.Issue is null
                 ? string.Empty
                 : $"{activation.Issue.Code}: {activation.Issue.Message}");
-        ActiveSessionSnapshot authoring = activation.Snapshot!;
+        AuthoringSessionTransitionResult selection = session.Select(
+            capability.Identity.IcId,
+            capability.Identity.IcCountVariant);
+        Assert.True(
+            selection.Succeeded,
+            selection.Issue is null
+                ? string.Empty
+                : $"{selection.Issue.Code}: {selection.Issue.Message}");
+        ActiveSessionSnapshot authoring = selection.Snapshot!;
         FirmwareImageMap map = capability.CompiledComposition.V2Details!
             .Provenance.ResolvedMap.ImageMap;
         return new PilotFixture(capability, authoring, map);

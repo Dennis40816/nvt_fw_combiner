@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
@@ -81,7 +80,7 @@ public sealed class RuntimeDependencyReadinessRequest
     /// <summary>Stable exact-route identity.</summary>
     public string RouteId { get; }
 
-    /// <summary>Firmware-semantic identity of the compiled capability.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Catalog publication identity.</summary>
@@ -112,34 +111,6 @@ public sealed class RuntimeDependencyReadinessRequest
                     invocation.ToolBindingId)));
     }
 
-    /// <summary>
-    /// Temporary one-way extraction for a compiled V2 migration route. It
-    /// copies only processor/tool references already present in the plan.
-    /// </summary>
-    public static RuntimeDependencyReadinessRequest FromCompiledMigration(
-        CapabilityAdmissionSnapshot admission,
-        CompiledComposition compiledComposition)
-    {
-        ArgumentNullException.ThrowIfNull(admission);
-        ArgumentNullException.ThrowIfNull(compiledComposition);
-        return StringComparer.Ordinal.Equals(
-            admission.CapabilityFingerprint,
-            compiledComposition.CompilationFingerprint)
-            ? new RuntimeDependencyReadinessRequest(
-            admission.RouteId,
-            admission.CapabilityFingerprint,
-            admission.ResolutionToken,
-            admission.AuthoringRevision,
-            compiledComposition.Plan.OrderedOperations
-                .Select(static operation => operation.ExternalProcessorInvocation)
-                .Where(static invocation => invocation is not null)
-                .Select(static invocation => new ExternalProcessorDependencyReference(
-                    invocation!.ProcessorId,
-                    invocation.ToolBindingId)))
-            : throw new ArgumentException(
-                "The readiness admission fingerprint must match the compiled composition.",
-                nameof(compiledComposition));
-    }
 }
 
 /// <summary>One refresh-time environment result for a compiled dependency.</summary>
@@ -295,7 +266,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
     /// <summary>Stable exact-route identity.</summary>
     public string RouteId { get; }
 
-    /// <summary>Firmware-semantic identity evaluated by this refresh.</summary>
+    /// <summary>Reviewed capability-definition fingerprint evaluated by this refresh.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Catalog publication evaluated by this refresh.</summary>

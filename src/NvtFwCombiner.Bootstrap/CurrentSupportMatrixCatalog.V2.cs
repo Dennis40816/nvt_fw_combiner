@@ -82,7 +82,10 @@ internal static partial class CurrentSupportMatrixCatalog
                         registration.IcId,
                         registration.WorkflowId,
                         countVariant,
-                        map.MapId,
+                        selectionGroupMemberSlotIds.Count == 0
+                            ? map.MapId
+                            : CanonicalDynamicRouteInventory
+                                .Nt51928DualCapacityMapVariantSetId,
                         ResolveIntegrityRouteId(composition!)),
                     registration.IcId,
                     registration.WorkflowId,

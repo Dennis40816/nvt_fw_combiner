@@ -426,7 +426,8 @@ public sealed class MetadataInspectionRequest
     public MetadataInspectionRequest(
         ResolvedMetadataPlan plan,
         long authoringRevision,
-        IEnumerable<FirmwareArtifactPayload> artifacts)
+        IEnumerable<FirmwareArtifactPayload> artifacts,
+        TopologySelection? topologySelection = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
@@ -444,6 +445,7 @@ public sealed class MetadataInspectionRequest
         Plan = plan;
         AuthoringRevision = authoringRevision;
         Artifacts = Array.AsReadOnly(_artifacts);
+        TopologySelection = topologySelection;
     }
 
     /// <summary>Exact publication-bound metadata plan.</summary>
@@ -454,6 +456,11 @@ public sealed class MetadataInspectionRequest
 
     /// <summary>Immutable artifact payload snapshots.</summary>
     public IReadOnlyList<FirmwareArtifactPayload> Artifacts { get; }
+
+    /// <summary>
+    /// Optional exact compilation selection used for topology-scoped fields.
+    /// </summary>
+    public TopologySelection? TopologySelection { get; }
 }
 
 /// <summary>Immutable result of inspecting one resolved plan against artifact snapshots.</summary>
@@ -545,13 +552,13 @@ public static class FirmwareMetadataInspector
         }
 
         MetadataPlanEntry first = plan.Entries[0].Definition;
-        TopologySelection? requestedTopology =
-            first.ResolvedMap.TopologySelection is
+        TopologySelection? requestedTopology = request.TopologySelection ??
+            (first.ResolvedMap.TopologySelection is
             {
                 Source: TopologySelectionSource.Requested,
             } topology
                 ? topology
-                : null;
+                : null);
         var inputs = new FirmwareMapResolutionInputs(
             first.ResolvedMap.MemberId,
             first.ResolvedMap.ModeId,

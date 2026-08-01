@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
@@ -64,7 +63,7 @@ public static partial class LegacyCombinerPostbuildPlanner
     {
         return candidates
             .Where(candidate => candidate.Range.Contains(segment))
-            .OrderByDescending(candidate => TpHeaderCatalog.GetPriority(candidate.SectionId))
+            .OrderByDescending(candidate => PostbuildWriteSectionSemantics.GetOverlapPriority(candidate.SectionId))
             .ThenBy(candidate => candidate.Range.Length)
             .ThenBy(candidate => candidate.Range.Start)
             .First();

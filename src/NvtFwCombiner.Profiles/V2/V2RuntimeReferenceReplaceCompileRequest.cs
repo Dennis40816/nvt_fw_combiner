@@ -123,21 +123,25 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
 {
     private readonly V2RuntimeReferenceReplaceInputBinding[] _bindings;
     private readonly ExplicitMapping[] _mappings;
+    private readonly ExternalProcessorWriteRangeSection[] _postbuildWriteRangeSections;
 
     internal V2RuntimeReferenceReplaceCompileRequest(
         IEnumerable<V2RuntimeReferenceReplaceInputBinding> bindings,
         IEnumerable<ExplicitMapping> mappings,
         V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null,
-        V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy = null)
+        V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy = null,
+        IEnumerable<ExternalProcessorWriteRangeSection>? postbuildWriteRangeSections = null)
     {
         ArgumentNullException.ThrowIfNull(bindings);
         ArgumentNullException.ThrowIfNull(mappings);
         _bindings = [.. bindings];
         _mappings = [.. mappings];
+        _postbuildWriteRangeSections = [.. postbuildWriteRangeSections ?? []];
         Bindings = Array.AsReadOnly(_bindings);
         Mappings = Array.AsReadOnly(_mappings);
         FirmwareVersionEdit = firmwareVersionEdit;
         PostbuildPolicy = postbuildPolicy;
+        PostbuildWriteRangeSections = Array.AsReadOnly(_postbuildWriteRangeSections);
     }
 
     /// <summary>Concrete immutable inputs with no host paths, source bytes, or process authority.</summary>
@@ -149,4 +153,7 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest
     internal V2RuntimeReferenceReplaceFirmwareVersionEdit? FirmwareVersionEdit { get; }
 
     internal V2RuntimeReferenceReplacePostbuildPolicy? PostbuildPolicy { get; }
+
+    /// <summary>Compiler input annotations for the exact resolved postbuild processor plan.</summary>
+    internal IReadOnlyList<ExternalProcessorWriteRangeSection> PostbuildWriteRangeSections { get; }
 }

@@ -1162,12 +1162,15 @@ version.
    resolution authority and `CompiledComposition` remains sole execution
    authority. Strongly typed children may be consumed independently but cannot
    be mixed across roots.
-   `CapabilityFingerprint` deterministically identifies only the selected
-   canonical firmware resolution, inspection, and compilation semantics,
-   including applicable map, artifact, metadata, workflow, integrity, and
-   selection facts. It excludes authoring policy, evidence, publication, and
-   current-machine runtime dependency state. Those inputs retain their own
-   version/hash provenance. Every catalog publication creates a new
+   `CapabilityFingerprint` deterministically identifies the complete reviewed
+   capability definition, including its closed allowed map variants,
+   selection-group and compiler semantics, artifacts, metadata, workflow,
+   integrity, and processor constraints. The exact selected map/topology,
+   selected slots, General mappings/initializer, and selected processor plan
+   belong instead to the resulting `CompilationFingerprint` on the sole
+   `CompiledComposition`. It excludes authoring policy, evidence, publication,
+   current authoring values, and current-machine runtime dependency state.
+   Those inputs retain their own version/hash provenance. Every catalog publication creates a new
    `ResolutionToken`, even when the firmware fingerprint is unchanged, so
    action availability and presentation are re-evaluated without discarding
    reusable firmware-inspection cache entries.
@@ -1239,6 +1242,11 @@ version.
   `Available` authoring decision cannot keep Build enabled for changed firmware
   semantics; authoring, support, and evidence never carry forward
   automatically.
+  For a capability whose accepted definition owns a closed map-variant set,
+  such as NT51928 dual capacity, the route map axis identifies that reviewed
+  set. Changing the set stales `CapabilityFingerprint`; selecting one admitted
+  member belongs to `CompilationFingerprint` and does not create a second
+  Support Matrix row.
 - Execution admission is not a hand-authored catalog boolean. The canonical
   compiler proves it by producing a valid `CompiledComposition` that is eligible
   for engine execution. Runtime dependency readiness is a separate refreshable
@@ -1565,15 +1573,12 @@ Preview/Build. The processor executor and readiness provider used by one
 attempt come from the same generation-coherent environment lease; the executor
 continues to perform its normal manifest/hash checks at mutation time.
 
-Until #180/#194 migrate CtrlRAM authoring and execution to canonical capability
-resolution, the named CtrlRAM Workbench adapter may project its already
-executable compiled route into this readiness contract with
-`AuthoringRevision(0)`. That one-way bridge only extracts processor/tool
-references already present in the compiled plan and carries the existing route
-admission into the gate. It cannot define firmware facts, ranges, evidence, or
-publication/support, and it cannot be used as a second catalog. #180 supplies
-the real authoring revision; #194 deletes the compiled-route bridge after the
-remaining headless routes resolve through the canonical capability owner.
+CtrlRAM authoring and execution resolve the exact dynamic canonical capability
+before readiness is evaluated. Processor/tool references come only from that
+capability's `CompiledComposition`, and the same publication token, capability
+fingerprint, compilation fingerprint, and authoring revision reach Preview and
+Build. The former `AuthoringRevision(0)` compiled-route bridge is deleted and
+must not be restored as a second admission or dependency catalog.
 
 #### Shared presentation
 
@@ -1860,7 +1865,7 @@ after the grill closes so issues do not become a competing draft specification.
     coverage gate is weakened.
 24. Content identity uses one versioned deterministic fingerprint chain:
     trusted document exact-byte hash, canonical definition hash,
-    `CapabilityFingerprint`, compiled-plan fingerprint, then run/Preview
+    `CapabilityFingerprint`, `CompilationFingerprint`, then run/Preview
     identity. Trust admission verifies the separately pinned SHA-256 of the
     exact raw document bytes before deserialization; no line-ending, whitespace,
     encoding, or property-order normalization may satisfy that trust check.
@@ -2012,13 +2017,12 @@ NT51920/NT51925/NT51930/NT51931 from the `0.10.x` production capability set.
 Any later re-admission requires a new owner-approved contract and cannot be
 derived from those locators.
 
-Until #194 migrates every existing consumer, `GenFlashVersionCatalog` is a
-compatibility adapter for `WorkbenchCompositionService` inspection, slot facts,
-and output naming. It owns no firmware locator or admission authority. When a
-canonical DPCMI structure is declared, its result—including a typed read
-failure—is final and must never fall back to the compatibility adapter. Adapter
-deletion requires canonical consumer parity and zero remaining callers; #195
-retains the Workbench-facade deletion gate.
+All production inspection, slot-fact, and output-naming consumers resolve the
+canonical DPCMI structure selected by the capability. Its result—including a
+typed read failure—is final. `GenFlashVersionCatalog` and its differential
+adapter tests are deleted after parity and zero-caller proof; #195 retains only
+the separate Workbench-facade deletion gate and must not restore another
+metadata locator/catalog.
 
 The tracer's authoring-policy model is closed: each exact route declares
 `Available` or `Unavailable`, and UI and CLI must always expose the same result.

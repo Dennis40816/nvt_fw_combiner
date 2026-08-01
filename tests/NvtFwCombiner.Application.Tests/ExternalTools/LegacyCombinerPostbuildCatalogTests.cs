@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.ExternalTools;
@@ -253,19 +252,19 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, 0x40000);
 
         Assert.Contains(sections, section =>
-            section.SectionId == TpHeaderSectionIds.HeaderCopyMaster &&
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopyMaster &&
             section.Range == new ByteRange(0x1E230, 0x190) &&
             section.SourceRange == new ByteRange(0x200, 0x190));
         Assert.Contains(sections, section =>
-            section.SectionId == TpHeaderSectionIds.HeaderCopyRight &&
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopyRight &&
             section.Range == new ByteRange(0x27230, 0x190) &&
             section.SourceRange == new ByteRange(0x200, 0x190));
         Assert.Contains(sections, section =>
-            section.SectionId == TpHeaderSectionIds.HeaderCopyLeft &&
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopyLeft &&
             section.Range == new ByteRange(0x30230, 0x190) &&
             section.SourceRange == new ByteRange(0x200, 0x190));
         Assert.Contains(sections, section =>
-            section.SectionId == TpHeaderSectionIds.HeaderCopyFinalBackup &&
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopyFinalBackup &&
             section.Range == new ByteRange(0x32DC0, 0x460) &&
             section.SourceRange == new ByteRange(0x0000, 0x460));
     }
@@ -313,10 +312,10 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x32F50, 256) &&
-            section.SectionId == TpHeaderSectionIds.HeaderCopy);
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopy);
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x1C, 4) &&
-            section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
+            section.SectionId == PostbuildWriteSectionIds.FlashHeaderCrc);
     }
 
     /// <summary>The canonical integrity identity covers selected commands, staging, assembly, and capacity.</summary>
@@ -387,10 +386,10 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
 
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0x2D30C, 512) &&
-            section.SectionId == TpHeaderSectionIds.HeaderCopy);
+            section.SectionId == PostbuildWriteSectionIds.HeaderCopy);
         Assert.Contains(sections, section =>
             section.Range == new ByteRange(0xA11C, 4) &&
-            section.SectionId == TpHeaderSectionIds.FlashHeaderCrc);
+            section.SectionId == PostbuildWriteSectionIds.FlashHeaderCrc);
     }
 
     /// <summary>Verifies the documented one-file sentinel covers every current staged CtrlRAM input block.</summary>

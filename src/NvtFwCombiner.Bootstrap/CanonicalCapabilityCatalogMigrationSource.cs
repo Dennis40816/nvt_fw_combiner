@@ -1,8 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Capabilities;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -35,14 +33,25 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
             CanonicalCapabilityPolicySnapshot policy = _loadPolicy();
             CanonicalCapabilityDefinition[] definitions =
             [
-                .. policy.Routes.Select(Materialize),
+                .. policy.Routes
+                    .Where(static route =>
+                        !CanonicalDynamicRouteInventory.IsDynamic(route.Identity))
+                    .Select(Materialize),
+            ];
+            CanonicalDynamicCapabilityDefinition[] dynamicDefinitions =
+            [
+                .. policy.Routes
+                    .Where(static route =>
+                        CanonicalDynamicRouteInventory.IsDynamic(route.Identity))
+                    .Select(MaterializeDynamic),
             ];
             return CapabilityCatalogLoadResult.Success(
                 new CanonicalCapabilityCatalogCandidate(
                     policy.CatalogId,
                     policy.CatalogVersion,
                     policy.SourceSha256,
-                    definitions));
+                    definitions,
+                    dynamicDefinitions));
         }
         catch (InvalidDataException exception)
         {
@@ -62,82 +71,52 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
         }
     }
 
+    private static CanonicalDynamicCapabilityDefinition MaterializeDynamic(
+        CanonicalCapabilityPolicyRoute route)
+    {
+        CanonicalDynamicRoute definition =
+            CanonicalDynamicRouteInventory.Resolve(route.Identity);
+        return !StringComparer.Ordinal.Equals(
+                definition.CapabilityFingerprint,
+                route.CapabilityFingerprint)
+            ? throw new InvalidDataException(
+                $"Capability definition fingerprint does not match dynamic route '{route.Identity.RouteId}' " +
+                $"(current {definition.CapabilityFingerprint}, policy {route.CapabilityFingerprint}).")
+            : new CanonicalDynamicCapabilityDefinition(
+                route.Identity,
+                definition.CapabilityFingerprint,
+                definition.CompilationContract,
+                route.Authoring,
+                route.Publication,
+                route.Evidence);
+    }
+
     private static CanonicalCapabilityDefinition Materialize(
         CanonicalCapabilityPolicyRoute route)
     {
-        BuiltInV2Registration registration =
-            ResolveRegistration(route.Identity) ??
-            throw new InvalidDataException(
-                $"No migration compiler registration matches route '{route.Identity.RouteId}'.");
-
-        IReadOnlyList<FirmwareImageMap> mapVariants =
-            registration.GetMapVariants(
-                out _,
-                out IReadOnlyList<CompositionIssue> mapIssues);
-        FirmwareImageMap selectedMap = (mapIssues.Count == 0
-            ? mapVariants.SingleOrDefault(map =>
-                StringComparer.Ordinal.Equals(
-                    map.MapId,
-                    route.Identity.MapVariant))
-            : null) ??
-            throw new InvalidDataException(
-                $"No trusted map matches route '{route.Identity.RouteId}': " +
-                string.Join(
-                    ", ",
-                    mapIssues.Select(static issue => issue.Code)));
-
-        registration.TryCompile(
-            inputLength: selectedMap.CapacityBytes,
-            out CompiledComposition? composition,
-            out IReadOnlyList<CompositionIssue> issues);
-        if (composition is null || issues.Count != 0)
-        {
-            throw new InvalidDataException(
-                $"Compiler rejected route '{route.Identity.RouteId}': " +
-                string.Join(
-                    ", ",
-                    issues.Select(static issue => issue.Code)));
-        }
+        CanonicalCompiledRoute compiled =
+            CanonicalCompiledRouteInventory.Resolve(route.Identity);
+        CompiledComposition composition = compiled.Composition
+            .BindCapabilityFingerprint(compiled.CapabilityFingerprint);
 
         string? mapId = composition.V2Details?.Provenance.ResolvedMap.ImageMap.MapId;
         return !StringComparer.Ordinal.Equals(mapId, route.Identity.MapVariant)
             ? throw new InvalidDataException(
                 $"Compiler map '{mapId}' does not match route '{route.Identity.MapVariant}'.")
             : !StringComparer.Ordinal.Equals(
-                composition.CompilationFingerprint,
+                compiled.CapabilityFingerprint,
                 route.CapabilityFingerprint)
             ? throw new InvalidDataException(
-                $"Compiler fingerprint does not match route '{route.Identity.RouteId}' " +
-                $"(compiled {composition.CompilationFingerprint}, policy {route.CapabilityFingerprint}).")
+                $"Capability definition fingerprint does not match route '{route.Identity.RouteId}' " +
+                $"(current {compiled.CapabilityFingerprint}, policy {route.CapabilityFingerprint}).")
             : new CanonicalCapabilityDefinition(
             route.Identity,
+            compiled.CapabilityFingerprint,
             composition,
             route.Authoring,
             route.Publication,
             route.Evidence,
-            registration.CreateMetadataPlan(composition));
-    }
-
-    private static BuiltInV2Registration? ResolveRegistration(
-        CapabilityRouteIdentity identity)
-    {
-        BuiltInV2Registration? registration =
-            identity.WorkflowId switch
-            {
-                IcWorkflowIds.StandardMerge =>
-                    BuiltInV2RegistrationRegistry.StandardMergeByIc
-                        .GetValueOrDefault(identity.IcId),
-                IcWorkflowIds.DpReplace =>
-                    BuiltInV2RegistrationRegistry.DpReplaceByIc.Value
-                        .GetValueOrDefault(identity.IcId),
-                _ => null,
-            };
-        return registration is not null &&
-            StringComparer.Ordinal.Equals(
-                registration.WorkflowId,
-                identity.WorkflowId)
-                ? registration
-                : null;
+            compiled.MetadataPlan);
     }
 
     private static CapabilityCatalogLoadResult Failure(

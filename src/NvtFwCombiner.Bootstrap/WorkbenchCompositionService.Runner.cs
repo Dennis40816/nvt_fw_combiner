@@ -1,5 +1,6 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -36,7 +37,8 @@ public static partial class WorkbenchCompositionService
         bool outputPathUsesAutomaticName = false,
         Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
         IReadOnlyList<CompositionIssue>? advisoryIssues = null,
-        GeneralAuthoringAdmissionResult? generalAdmission = null)
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        ResolvedCapability? resolvedCapability = null)
     {
         CompositionRunResult result = await RunCompiledCompositionResultAsync(
             runIdPrefix,
@@ -57,7 +59,8 @@ public static partial class WorkbenchCompositionService
             outputPathUsesAutomaticName,
             additionalOutputPreflight,
             advisoryIssues,
-            generalAdmission).ConfigureAwait(false);
+            generalAdmission,
+            resolvedCapability).ConfigureAwait(false);
         return ToWorkbenchRunResult(result);
     }
 
@@ -81,7 +84,8 @@ public static partial class WorkbenchCompositionService
         bool outputPathUsesAutomaticName = false,
         Action<string, OutputNamingSummary?>? additionalOutputPreflight = null,
         IReadOnlyList<CompositionIssue>? advisoryIssues = null,
-        GeneralAuthoringAdmissionResult? generalAdmission = null)
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        ResolvedCapability? resolvedCapability = null)
     {
         if (outputPathUsesAutomaticName &&
             (string.IsNullOrWhiteSpace(outputPath) || previewOutputFileName is not null))
@@ -156,6 +160,7 @@ public static partial class WorkbenchCompositionService
                 additionalOutputPreflight)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
+        resolvedCapability ??= ResolveCanonicalCapabilityForRun(compiledComposition);
         CompositionRunRequest request = new(
             CreateWorkbenchRunId(runIdPrefix, build),
             compiledComposition,
@@ -166,7 +171,8 @@ public static partial class WorkbenchCompositionService
                 previewOutputFileName is not null,
             abMergeTopologySelection: abMergeTopologySelection,
             advisoryIssues: advisoryIssues,
-            generalAdmission: generalAdmission?.ToSummary());
+            generalAdmission: generalAdmission?.ToSummary(),
+            resolvedCapability: resolvedCapability);
 
         CompositionRunResult result = progress is null
             ? await service.PreviewOrBuildAsync(request, build, cancellationToken).ConfigureAwait(false)
@@ -198,7 +204,8 @@ public static partial class WorkbenchCompositionService
             compiledComposition,
             bindings,
             compiledComposition.DefaultOutputFileName,
-            abMergeTopologySelection: abMergeTopologySelection);
+            abMergeTopologySelection: abMergeTopologySelection,
+            resolvedCapability: ResolveCanonicalCapabilityForRun(compiledComposition));
         return await service.ResolveOutputNameAsync(request, cancellationToken).ConfigureAwait(false);
     }
 

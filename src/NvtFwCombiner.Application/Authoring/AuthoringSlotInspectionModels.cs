@@ -37,7 +37,7 @@ public sealed class AuthoringSlotInspectionLease
     /// <summary>Exact selected route at inspection start.</summary>
     public string SelectedRouteId { get; }
 
-    /// <summary>Firmware-semantic identity at inspection start.</summary>
+    /// <summary>Reviewed capability-definition fingerprint at inspection start.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Resolved slot definition being inspected.</summary>

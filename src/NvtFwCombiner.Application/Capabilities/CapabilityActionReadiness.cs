@@ -2,7 +2,6 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -70,7 +69,7 @@ public sealed record CapabilityAdmissionSnapshot
     /// <summary>Stable exact-route identity.</summary>
     public string RouteId { get; }
 
-    /// <summary>Firmware-semantic identity of the compiled capability.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Catalog publication identity.</summary>
@@ -111,29 +110,6 @@ public sealed record CapabilityAdmissionSnapshot
             capability.Publication.Value);
     }
 
-    /// <summary>
-    /// Temporary one-way bridge for a compiled V2 route that has not yet moved
-    /// into the canonical capability catalog. #194 deletes this bridge.
-    /// </summary>
-    public static CapabilityAdmissionSnapshot FromCompiledMigration(
-        string routeId,
-        ResolutionToken resolutionToken,
-        AuthoringRevision authoringRevision,
-        CapabilityAuthoringAvailability authoringAvailability,
-        bool executionAdmitted,
-        CompiledComposition compiledComposition)
-    {
-        ArgumentNullException.ThrowIfNull(compiledComposition);
-        return new CapabilityAdmissionSnapshot(
-            routeId,
-            compiledComposition.CompilationFingerprint,
-            resolutionToken,
-            authoringRevision,
-            authoringAvailability,
-            executionAdmitted,
-            CapabilityEvidenceStatus.Missing,
-            CapabilityPublicationStatus.Internal);
-    }
 }
 
 /// <summary>One required input/selection child evaluated for the current authoring revision.</summary>

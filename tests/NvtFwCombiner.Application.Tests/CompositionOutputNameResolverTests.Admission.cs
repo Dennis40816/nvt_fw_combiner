@@ -13,10 +13,12 @@ public sealed partial class CompositionOutputNameResolverTests
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
         CompiledComposition composition = CreateRuntimeComposition(fixture);
-        _ = Assert.Throws<ArgumentException>(() =>
+        CompiledComposition differentlyBound = composition.BindCapabilityFingerprint(
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        _ = Assert.Throws<InvalidOperationException>(() =>
             CreateAdmissionCapability(
                 fixture,
-                composition,
+                differentlyBound,
                 CapabilityFingerprint,
                 fixture.Plan.ResolutionToken));
         _ = Assert.Throws<ArgumentException>(() =>
@@ -230,6 +232,7 @@ public sealed partial class CompositionOutputNameResolverTests
         string fingerprint = composition.CompilationFingerprint;
         return new CanonicalCapabilityDefinition(
             route,
+            fingerprint,
             composition,
             Decision(
                 "authoring",

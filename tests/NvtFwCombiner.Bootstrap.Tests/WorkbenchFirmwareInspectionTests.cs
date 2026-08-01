@@ -191,8 +191,13 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "tp.bin",
             ctrlRamRequest: null,
             readFirmwareImage: Read);
-        Assert.Null(distinctPaths.DpVersion);
-        _ = Assert.NotNull(distinctPaths.CmiDpCode);
+        Assert.Equal("CC00", distinctPaths.DpVersion?.VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
+            distinctPaths.CmiDpCode);
+        Assert.Equal((byte)0xCC, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)0x0240, cmi.JiraNumber);
+        Assert.Equal(0x3B016, cmi.Register16Offset);
         Assert.Equal(["dp.bin", "tp.bin"], reads);
 
         reads.Clear();
@@ -295,7 +300,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         }
     }
 
-    /// <summary>A full 256 KiB header probe does not allocate a whole decoded text copy.</summary>
+    /// <summary>A full 256 KiB probe plus its canonical snapshot does not allocate a decoded text copy.</summary>
     [Fact]
     public void InspectionHeaderHintAvoidsWholeProbeTextAllocation()
     {
@@ -319,7 +324,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal("NT51926", inspection.DetectedIcId);
-        Assert.InRange(allocatedBytes, 0, 64 * 1024);
+        Assert.InRange(allocatedBytes, 0, 384 * 1024);
     }
 
     /// <summary>FW/bar validity is independent from Common FW interval selection.</summary>

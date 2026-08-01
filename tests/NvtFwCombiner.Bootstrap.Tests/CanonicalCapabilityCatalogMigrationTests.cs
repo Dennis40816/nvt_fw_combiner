@@ -28,12 +28,18 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.IcId == "NT51929" &&
                 candidate.Identity.WorkflowId == "standard-merge");
         CompiledComposition composition = definition.CompiledComposition;
 
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
-        Assert.Equal(definition.CapabilityFingerprint, composition.CompilationFingerprint);
+        Assert.Equal(
+            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
+            definition.CapabilityFingerprint);
+        Assert.NotEqual(
+            definition.CapabilityFingerprint,
+            composition.CompilationFingerprint);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         Assert.Equal(0x40000, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(
@@ -111,6 +117,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.IcId == "NT51929" &&
                 candidate.Identity.WorkflowId == "dp-replace");
         MetadataPlanEntry entry = Assert.Single(definition.MetadataPlan.Entries);
 
@@ -144,6 +151,57 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             entry.Purposes);
     }
 
+    /// <summary>One reviewed NT51928 capability binds both admitted maps to distinct exact compilations.</summary>
+    [Fact]
+    public void Nt51928DualCapacityKeepsDefinitionIdentityAndChangesCompilationIdentity()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new CanonicalCapabilityCatalogMigrationSource());
+        CapabilityCatalogReloadResult reload = catalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
+            candidate =>
+                candidate.Identity.IcId == "NT51928" &&
+                candidate.Identity.WorkflowId == "dp-replace");
+        BuiltInV2Registration registration =
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+
+        registration.TryCompile(
+            0x40000,
+            requestedTopology: null,
+            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            out CompiledComposition? compact,
+            out IReadOnlyList<CompositionIssue> compactIssues);
+        registration.TryCompile(
+            0x80000,
+            requestedTopology: null,
+            registration.InputSelectionGroupMemberSlotIds,
+            out CompiledComposition? extended,
+            out IReadOnlyList<CompositionIssue> extendedIssues);
+        ResolvedCapability compactCapability = route.BindCompilation(compact!);
+        ResolvedCapability extendedCapability = route.BindCompilation(extended!);
+
+        Assert.True(reload.Succeeded);
+        Assert.Empty(compactIssues);
+        Assert.Empty(extendedIssues);
+        Assert.Equal(
+            CanonicalDynamicRouteInventory.Nt51928DualCapacityMapVariantSetId,
+            route.Identity.MapVariant);
+        Assert.Equal(
+            ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
+            route.CompilationContract.AllowedMapVariantIds);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+        Assert.Equal(
+            route.CapabilityFingerprint,
+            compactCapability.CompiledComposition.CapabilityFingerprint);
+        Assert.Equal(
+            route.CapabilityFingerprint,
+            extendedCapability.CompiledComposition.CapabilityFingerprint);
+        Assert.NotEqual(
+            compactCapability.CompiledComposition.CompilationFingerprint,
+            extendedCapability.CompiledComposition.CompilationFingerprint);
+    }
+
     /// <summary>A stale policy fingerprint rejects the complete candidate.</summary>
     [Fact]
     public void SourceRejectsStaleCapabilityFingerprint()
@@ -151,6 +209,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         CanonicalCapabilityPolicySnapshot current =
             BuiltInCanonicalCapabilityPolicy.Load();
         CanonicalCapabilityPolicyRoute route = current.Routes.Single(candidate =>
+            candidate.Identity.IcId == "NT51929" &&
             candidate.Identity.WorkflowId == "standard-merge");
         string staleFingerprint = new('0', 64);
         CanonicalCapabilityPolicyRoute staleRoute = route with
@@ -290,9 +349,9 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             path));
     }
 
-    /// <summary>Non-pilot routes remain executable only through the named migration adapter.</summary>
+    /// <summary>Every static Standard Merge route resolves and compiles through one canonical snapshot.</summary>
     [Fact]
-    public void OtherStandardMergeRoutesRemainBehindMigrationAdapter()
+    public void OtherStandardMergeRoutesUsePublishedCanonicalSnapshot()
     {
         bool recognized = WorkbenchCompositionService.TryCompileStandardMerge(
             "NT51923",
@@ -304,10 +363,9 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 "NT51923");
 
         Assert.True(recognized);
-        Assert.NotNull(composition);
         Assert.Empty(issues);
-        Assert.False(canonical.Succeeded);
-        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, canonical.Issue!.Code);
+        Assert.True(canonical.Succeeded);
+        Assert.Same(canonical.Capability!.CompiledComposition, composition);
     }
 
     /// <summary>Retired ICs resolve to the same stable unsupported result and cannot compile through migration adapters.</summary>

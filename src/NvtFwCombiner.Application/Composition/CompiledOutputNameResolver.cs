@@ -176,7 +176,7 @@ internal static class CompiledOutputNameResolver
                 ? null
                 : new OutputNamingAdmissionSummary(
                     admission.RouteId,
-                    admission.CapabilityFingerprint,
+                    admission.CompilationFingerprint,
                     admission.ResolutionToken.Value,
                     admission.AuthoringRevision));
         return new OutputNameResolution(actualFileName, summary, issues);

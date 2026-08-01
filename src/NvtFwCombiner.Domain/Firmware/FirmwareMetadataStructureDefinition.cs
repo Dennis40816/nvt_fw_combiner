@@ -149,6 +149,62 @@ public sealed class FirmwareMetadataStructureDefinition
         };
     }
 
+    /// <summary>
+    /// Returns whether one canonical target includes the exact physical field,
+    /// expanding typed spans, series, and groups without copying their members.
+    /// </summary>
+    public bool ReferenceTargetContainsField(
+        FirmwareMetadataReferenceTarget target,
+        FirmwareMetadataField field)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(field);
+        if (!_fields.Any(candidate => ReferenceEquals(candidate, field)))
+        {
+            return false;
+        }
+
+        if (target.Kind == FirmwareMetadataReferenceTargetKind.Field)
+        {
+            return StringComparer.Ordinal.Equals(target.TargetId, field.FieldId);
+        }
+
+        if (TypedDefinition is not FirmwareTpFlashHeaderDefinition header)
+        {
+            return false;
+        }
+
+        switch (target.Kind)
+        {
+            case FirmwareMetadataReferenceTargetKind.Field:
+                return false;
+            case FirmwareMetadataReferenceTargetKind.Span:
+                return header.Spans.Any(span =>
+                    StringComparer.Ordinal.Equals(span.SpanId, target.TargetId) &&
+                    span.Range.Contains(field.Range));
+            case FirmwareMetadataReferenceTargetKind.Series:
+                return header.FieldSeries.Any(series =>
+                    StringComparer.Ordinal.Equals(series.SeriesId, target.TargetId) &&
+                    series.Members.Any(member => StringComparer.Ordinal.Equals(
+                        member.FieldId,
+                        field.FieldId)));
+            case FirmwareMetadataReferenceTargetKind.Group:
+                FirmwareMetadataFieldGroup? group = header.FieldGroups.FirstOrDefault(
+                    candidate => StringComparer.Ordinal.Equals(
+                        candidate.GroupId,
+                        target.TargetId));
+                return group is not null &&
+                       (group.FieldIds.Contains(field.FieldId, StringComparer.Ordinal) ||
+                        group.SeriesIds.Any(seriesId => header.FieldSeries.Any(series =>
+                            StringComparer.Ordinal.Equals(series.SeriesId, seriesId) &&
+                            series.Members.Any(member => StringComparer.Ordinal.Equals(
+                                member.FieldId,
+                                field.FieldId)))));
+            default:
+                return false;
+        }
+    }
+
     internal bool TryDecode(
         string artifactBindingId,
         string structureBindingId,

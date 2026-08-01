@@ -155,6 +155,22 @@ public static partial class WorkbenchCompositionService
         var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
         if (CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
         {
+            CapabilityRouteIdentity capabilityIdentity =
+                CanonicalDynamicRouteInventory.ResolveCtrlRamIdentity(
+                    route,
+                    context.CommandPlan,
+                    referencePayload.LengthBytes);
+            CapabilityRouteResolutionResult capabilityResolution =
+                s_canonicalCapabilityCatalog.ResolveDynamicRoute(
+                    capabilityIdentity.RouteId);
+            if (!capabilityResolution.Succeeded)
+            {
+                return Blocked(
+                    [new CompositionIssue(
+                        capabilityResolution.Issue!.Code,
+                        capabilityResolution.Issue.Message)]);
+            }
+
             int topologyCount = context.CommandPlan.TopologyCount;
             V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
                 context,
@@ -172,31 +188,30 @@ public static partial class WorkbenchCompositionService
                     $"{icId.ToLowerInvariant()}-ctrlram-replace.bin");
             }
 
-            CompiledComposition compiledComposition = v2Compile.CompiledComposition!;
+            CompiledComposition unboundComposition =
+                v2Compile.CompiledComposition!;
+            ResolvedCapability resolvedCapability =
+                capabilityResolution.Route!.BindCompilation(
+                    unboundComposition,
+                    CreateCtrlRamReportMetadataPlan(
+                        route.Key.IcId,
+                        referencePayload.LengthBytes));
+            CompiledComposition compiledComposition =
+                resolvedCapability.CompiledComposition;
             IReadOnlyList<InputArtifactBinding> bindings =
                 CreateCtrlRamReplaceBindings(
                     compiledComposition,
                     context,
                     slotPaths);
-            string readinessRouteId = string.Create(
-                System.Globalization.CultureInfo.InvariantCulture,
-                $"migration:ctrlram:{compiledComposition.ProfileId}:{context.CommandPlan.Selector.Token}");
             var authoringRevision = new AuthoringRevision(0);
-            var resolutionToken = new ResolutionToken(string.Create(
-                System.Globalization.CultureInfo.InvariantCulture,
-                $"ctrlram-migration:{compiledComposition.ProfileId}:{compiledComposition.ProfileVersion}"));
             var admission =
-                CapabilityAdmissionSnapshot.FromCompiledMigration(
-                    readinessRouteId,
-                    resolutionToken,
-                    authoringRevision,
-                    CapabilityAuthoringAvailability.Available,
-                    executionAdmitted: true,
-                    compiledComposition);
+                CapabilityAdmissionSnapshot.FromResolvedCapability(
+                    resolvedCapability,
+                    authoringRevision);
             var dependencyRequest =
-                RuntimeDependencyReadinessRequest.FromCompiledMigration(
-                    admission,
-                    compiledComposition);
+                RuntimeDependencyReadinessRequest.FromResolvedCapability(
+                    resolvedCapability,
+                    authoringRevision);
             CapabilityActionReadinessSnapshot readiness =
                 await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
                     admission,
@@ -238,7 +253,8 @@ public static partial class WorkbenchCompositionService
                         [context.BasePath!] = referenceBytes,
                     },
                     progress: progress,
-                    advisoryIssues: context.AdvisoryIssues).ConfigureAwait(false);
+                    advisoryIssues: context.AdvisoryIssues,
+                    resolvedCapability: resolvedCapability).ConfigureAwait(false);
         }
 
         return Blocked(

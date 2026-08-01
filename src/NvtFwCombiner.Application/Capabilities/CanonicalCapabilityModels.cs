@@ -10,30 +10,49 @@ public sealed record CanonicalCapabilityDefinition
     /// <summary>Creates one candidate capability definition.</summary>
     public CanonicalCapabilityDefinition(
         CapabilityRouteIdentity identity,
+        string capabilityFingerprint,
         CompiledComposition compiledComposition,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
-        MetadataPlanDefinition? metadataPlan = null)
+        MetadataPlanDefinition? metadataPlan = null,
+        CanonicalCapabilityCompilationContract? compilationContract = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
+        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
+        {
+            throw new ArgumentException(
+                "Canonical capabilities require a lowercase SHA-256 definition fingerprint.",
+                nameof(capabilityFingerprint));
+        }
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentNullException.ThrowIfNull(authoring);
         ArgumentNullException.ThrowIfNull(publication);
         ArgumentNullException.ThrowIfNull(evidence);
         MetadataPlanDefinition effectiveMetadataPlan =
             metadataPlan ?? MetadataPlanDefinition.Empty;
+        CompiledComposition boundComposition = compiledComposition
+            .BindCapabilityFingerprint(capabilityFingerprint);
+        CanonicalCapabilityCompilationContract effectiveCompilationContract =
+            compilationContract ??
+            CanonicalCapabilityCompilationContract.FromCompiled(
+                identity,
+                boundComposition);
         CapabilityPublicationCoherence.ValidateDefinition(
             identity,
-            compiledComposition,
+            capabilityFingerprint,
+            boundComposition,
+            effectiveCompilationContract,
             authoring,
             publication,
             evidence,
             effectiveMetadataPlan);
 
         Identity = identity;
-        CompiledComposition = compiledComposition;
-        CapabilityFingerprint = compiledComposition.CompilationFingerprint;
+        CompiledComposition = boundComposition;
+        CapabilityFingerprint = capabilityFingerprint;
+        CompilationContract = effectiveCompilationContract;
         MetadataPlan = effectiveMetadataPlan;
         Authoring = authoring;
         Publication = publication;
@@ -46,8 +65,11 @@ public sealed record CanonicalCapabilityDefinition
     /// <summary>The existing sole executable composition artifact.</summary>
     public CompiledComposition CompiledComposition { get; }
 
-    /// <summary>Firmware-semantic revision derived by the compiler.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Definition-level bounds for the published compilation.</summary>
+    public CanonicalCapabilityCompilationContract CompilationContract { get; }
 
     /// <summary>Canonical reference-only metadata plan selected by this route.</summary>
     public MetadataPlanDefinition MetadataPlan { get; }
@@ -63,9 +85,8 @@ public sealed record CanonicalCapabilityDefinition
 
     /// <summary>True only when the compiler admitted the artifact for runtime execution.</summary>
     public bool ExecutionAdmitted =>
-        CompiledComposition.Eligibility is
-            CompiledCompositionEligibility.LegacyRuntimeExecutable or
-            CompiledCompositionEligibility.V2RuntimeExecutable;
+        CapabilityPublicationCoherence.IsExecutionAdmitted(
+            CompiledComposition);
 
 }
 
@@ -77,7 +98,8 @@ public sealed record CanonicalCapabilityCatalogCandidate
         string catalogId,
         string catalogVersion,
         string sourceSha256,
-        IEnumerable<CanonicalCapabilityDefinition> definitions)
+        IEnumerable<CanonicalCapabilityDefinition> definitions,
+        IEnumerable<CanonicalDynamicCapabilityDefinition>? dynamicDefinitions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogId);
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogVersion);
@@ -94,6 +116,7 @@ public sealed record CanonicalCapabilityCatalogCandidate
         CatalogVersion = catalogVersion;
         SourceSha256 = sourceSha256;
         Definitions = Array.AsReadOnly([.. definitions]);
+        DynamicDefinitions = Array.AsReadOnly([.. dynamicDefinitions ?? []]);
     }
 
     /// <summary>Stable catalog id.</summary>
@@ -107,6 +130,9 @@ public sealed record CanonicalCapabilityCatalogCandidate
 
     /// <summary>Compiler-proved definitions awaiting publication.</summary>
     public IReadOnlyList<CanonicalCapabilityDefinition> Definitions { get; }
+
+    /// <summary>Policy-bound definitions compiled only after current authoring resolution.</summary>
+    public IReadOnlyList<CanonicalDynamicCapabilityDefinition> DynamicDefinitions { get; }
 }
 
 /// <summary>Unique identity for one published in-process resolution snapshot.</summary>
@@ -152,12 +178,22 @@ public sealed record ResolvedCapability
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
-        ResolutionToken resolutionToken)
+        ResolutionToken resolutionToken,
+        CanonicalCapabilityCompilationContract? compilationContract = null)
     {
+        ArgumentNullException.ThrowIfNull(compiledComposition);
+        CompiledComposition boundComposition = compiledComposition
+            .BindCapabilityFingerprint(capabilityFingerprint);
+        CanonicalCapabilityCompilationContract effectiveCompilationContract =
+            compilationContract ??
+            CanonicalCapabilityCompilationContract.FromCompiled(
+                identity,
+                boundComposition);
         CapabilityPublicationCoherence.ValidateResolved(
             identity,
             capabilityFingerprint,
-            compiledComposition,
+            boundComposition,
+            effectiveCompilationContract,
             authoring,
             publication,
             evidence,
@@ -165,7 +201,8 @@ public sealed record ResolvedCapability
             resolutionToken);
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
-        CompiledComposition = compiledComposition;
+        CompiledComposition = boundComposition;
+        CompilationContract = effectiveCompilationContract;
         Authoring = authoring;
         Publication = publication;
         Evidence = evidence;
@@ -176,11 +213,14 @@ public sealed record ResolvedCapability
     /// <summary>Stable exact route identity.</summary>
     public CapabilityRouteIdentity Identity { get; }
 
-    /// <summary>Executable semantic fingerprint.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Exact compiled composition published by this capability.</summary>
     public CompiledComposition CompiledComposition { get; }
+
+    /// <summary>Definition-level bounds which admitted this exact compilation.</summary>
+    public CanonicalCapabilityCompilationContract CompilationContract { get; }
 
     /// <summary>Shared UI/CLI authoring decision.</summary>
     public PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring { get; }
@@ -199,9 +239,8 @@ public sealed record ResolvedCapability
 
     /// <summary>Compiler-proved execution admission.</summary>
     public bool ExecutionAdmitted =>
-        CompiledComposition.Eligibility is
-            CompiledCompositionEligibility.LegacyRuntimeExecutable or
-            CompiledCompositionEligibility.V2RuntimeExecutable;
+        CapabilityPublicationCoherence.IsExecutionAdmitted(
+            CompiledComposition);
 }
 
 /// <summary>One immutable published catalog projection.</summary>
@@ -229,7 +268,8 @@ public sealed record CanonicalCapabilityCatalogSnapshot
                 definition.Publication,
                 definition.Evidence,
                 definition.MetadataPlan.Resolve(resolutionToken),
-                resolutionToken);
+                resolutionToken,
+                definition.CompilationContract);
             if (!byRouteId.TryAdd(definition.Identity.RouteId, resolved))
             {
                 throw new ArgumentException(
@@ -256,6 +296,18 @@ public sealed record CanonicalCapabilityCatalogSnapshot
                     "A supported route has no approved evidence declaration.",
                     capability.Identity.RouteId)),
         ]);
+        DynamicRoutes = Array.AsReadOnly(
+        [
+            .. candidate.DynamicDefinitions
+                .Select(definition => new ResolvedCapabilityRoute(
+                    definition,
+                    resolutionToken))
+                .OrderBy(static route => route.Identity.RouteId, StringComparer.Ordinal),
+        ]);
+        _dynamicByRouteId = new ReadOnlyDictionary<string, ResolvedCapabilityRoute>(
+            DynamicRoutes.ToDictionary(
+                static route => route.Identity.RouteId,
+                StringComparer.Ordinal));
     }
 
     /// <summary>Stable catalog id.</summary>
@@ -276,10 +328,22 @@ public sealed record CanonicalCapabilityCatalogSnapshot
     /// <summary>Certification inconsistencies that do not rewrite Build admission.</summary>
     public IReadOnlyList<CapabilityCatalogIssue> CertificationIssues { get; }
 
+    private readonly ReadOnlyDictionary<string, ResolvedCapabilityRoute> _dynamicByRouteId;
+
+    /// <summary>Published definitions awaiting current-authoring compilation.</summary>
+    public IReadOnlyList<ResolvedCapabilityRoute> DynamicRoutes { get; }
+
     internal bool TryGet(
         string routeId,
         out ResolvedCapability? capability)
     {
         return _byRouteId.TryGetValue(routeId, out capability);
+    }
+
+    internal bool TryGetDynamic(
+        string routeId,
+        out ResolvedCapabilityRoute? route)
+    {
+        return _dynamicByRouteId.TryGetValue(routeId, out route);
     }
 }

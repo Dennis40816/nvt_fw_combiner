@@ -1,4 +1,4 @@
-using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
 
@@ -32,7 +32,7 @@ public sealed partial class CompositionRunService
                         operation.OperationId,
                         $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.CompiledComposition.IcId} / {icNumber}.",
                         FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason),
-                        TpHeaderSectionIds.CtrlRamReplacement,
+                        PostbuildWriteSectionIds.CtrlRamReplacement,
                         null);
                 }
 

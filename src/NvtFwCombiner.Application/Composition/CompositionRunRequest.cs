@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -22,7 +23,8 @@ public sealed class CompositionRunRequest
         IEnumerable<CompositionIssue>? advisoryIssues = null,
         GeneralAuthoringAdmissionSummary? generalAdmission = null,
         AcceptedOutputNamingInspection? outputNamingInspection = null,
-        OutputNamingAdmissionIdentity? outputNamingAdmission = null)
+        OutputNamingAdmissionIdentity? outputNamingAdmission = null,
+        ResolvedCapability? resolvedCapability = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -40,6 +42,7 @@ public sealed class CompositionRunRequest
             compiledComposition,
             outputNamingInspection,
             outputNamingAdmission);
+        ValidateResolvedCapability(compiledComposition, resolvedCapability);
         ValidateV2RuntimeRequest(
             compiledComposition,
             copiedBindings,
@@ -58,6 +61,7 @@ public sealed class CompositionRunRequest
         GeneralAdmission = generalAdmission;
         OutputNamingInspection = outputNamingInspection;
         OutputNamingAdmission = outputNamingAdmission;
+        ResolvedCapability = resolvedCapability;
     }
 
     /// <summary>Stable run id for reports and diagnostics.</summary>
@@ -98,6 +102,9 @@ public sealed class CompositionRunRequest
     /// <summary>Current publication and revision admitted for normal output naming.</summary>
     public OutputNamingAdmissionIdentity? OutputNamingAdmission { get; }
 
+    /// <summary>Publication-bound capability that owns report metadata for this exact compilation.</summary>
+    public ResolvedCapability? ResolvedCapability { get; }
+
     /// <summary>Returns a copy of this request with a preview token approved for build.</summary>
     public CompositionRunRequest WithApprovedPreviewToken(string previewToken)
     {
@@ -116,7 +123,8 @@ public sealed class CompositionRunRequest
                 AbMergeTopologySelection,
                 AdvisoryIssues,
                 GeneralAdmission,
-                OutputNamingInspection);
+                OutputNamingInspection,
+                resolvedCapability: ResolvedCapability);
     }
 
     /// <summary>
@@ -141,7 +149,31 @@ public sealed class CompositionRunRequest
             AdvisoryIssues,
             GeneralAdmission,
             OutputNamingInspection,
-            currentAdmission);
+            currentAdmission,
+            ResolvedCapability);
+    }
+
+    private static void ValidateResolvedCapability(
+        CompiledComposition compiledComposition,
+        ResolvedCapability? resolvedCapability)
+    {
+        if (resolvedCapability is null)
+        {
+            return;
+        }
+
+        if (!resolvedCapability.ExecutionAdmitted ||
+            !StringComparer.Ordinal.Equals(
+                resolvedCapability.CapabilityFingerprint,
+                compiledComposition.CapabilityFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                resolvedCapability.CompiledComposition.CompilationFingerprint,
+                compiledComposition.CompilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Resolved report capability must own the exact executable compilation.",
+                nameof(resolvedCapability));
+        }
     }
 
     private static ReadOnlyCollection<CompositionIssue> CopyAdvisoryIssues(
@@ -382,10 +414,10 @@ public sealed class CompositionRunRequest
         }
 
         if (!StringComparer.Ordinal.Equals(
-                inspection.CapabilityFingerprint,
+                inspection.CompilationFingerprint,
                 compiledComposition.CompilationFingerprint) ||
             !StringComparer.Ordinal.Equals(
-                admission.CapabilityFingerprint,
+                admission.CompilationFingerprint,
                 compiledComposition.CompilationFingerprint) ||
             !StringComparer.Ordinal.Equals(inspection.RouteId, admission.RouteId) ||
             inspection.ResolutionToken != admission.ResolutionToken ||

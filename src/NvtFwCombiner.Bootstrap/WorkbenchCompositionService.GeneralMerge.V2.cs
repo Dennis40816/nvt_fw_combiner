@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -74,6 +75,23 @@ public static partial class WorkbenchCompositionService
                     GeneralMergeV2CandidateMemberNotAdmitted,
                     "The General Merge V2 candidate is currently admitted only for explicitly registered members.",
                     icId)]);
+        }
+
+        var capabilityIdentity = new CapabilityRouteIdentity(
+            icId,
+            IcWorkflowIds.GeneralMerge,
+            "not-applicable",
+            "generic");
+        CapabilityRouteResolutionResult capabilityResolution =
+            s_canonicalCapabilityCatalog.ResolveDynamicRoute(
+                capabilityIdentity.RouteId);
+        if (!capabilityResolution.Succeeded)
+        {
+            return Blocked(
+                [new CompositionIssue(
+                    capabilityResolution.Issue!.Code,
+                    capabilityResolution.Issue.Message)],
+                profileId: registration.ProfileId);
         }
 
         if (draftIssues is { Count: > 0 })
@@ -188,6 +206,10 @@ public static partial class WorkbenchCompositionService
                 registration.ProfileId);
         }
 
+        ResolvedCapability resolvedCapability =
+            capabilityResolution.Route!.BindCompilation(composition);
+        composition = resolvedCapability.CompiledComposition;
+
         InputArtifactBinding[] candidateBindings =
         [
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
@@ -207,7 +229,8 @@ public static partial class WorkbenchCompositionService
             icNumberSelection: null,
             cancellationToken: cancellationToken,
             progress: progress,
-            generalAdmission: admission).ConfigureAwait(false);
+            generalAdmission: admission,
+            resolvedCapability: resolvedCapability).ConfigureAwait(false);
         return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
 

@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "27b79e0080d3e005e7cd04f391d0f7dedc232cadb401cdfba1dfb4df59b177a6";
+    private const string ExpectedSha256 = "417adb68d222dfe3bd02e9fbaf274b90f68e3fc99a01c6679d3e900a710313fc";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;
@@ -350,7 +350,10 @@ internal static class BuiltInPostbuildProfileCatalog
             source.SourceFileName,
             source.SourceOffset,
             new ByteRange(source.TargetStart, source.TargetLength),
-            source.StagedArtifactId);
+            source.StagedArtifactId,
+            string.IsNullOrWhiteSpace(source.SectionId)
+                ? throw Invalid("block.sectionId")
+                : source.SectionId);
     }
 
     private static void ValidateArguments(LegacyCombinerCommandFamily family, string mode, string? crc)
@@ -416,7 +419,8 @@ internal static class BuiltInPostbuildProfileCatalog
         long SourceOffset,
         long TargetStart,
         long TargetLength,
-        string? StagedArtifactId);
+        string? StagedArtifactId,
+        string SectionId);
 
     private sealed record DiffDlmPolicyDocument(
         string PolicyId,

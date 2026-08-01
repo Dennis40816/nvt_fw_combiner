@@ -286,9 +286,9 @@ public sealed partial class CompositionOutputNameResolverTests
             fixture.Snapshot));
     }
 
-    /// <summary>The public acceptance boundary requires the current publication, revision, and artifacts.</summary>
+    /// <summary>The public acceptance boundary pins the exact compilation and requires current publication state.</summary>
     [Fact]
-    public void AcceptanceFactoryRejectsStaleAuthoringRevision()
+    public void AcceptanceFactoryPinsCompilationAndRejectsStaleAuthoringRevision()
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
         CompiledComposition composition = CreateRuntimeComposition(fixture);
@@ -297,10 +297,10 @@ public sealed partial class CompositionOutputNameResolverTests
             "standard-merge",
             "none",
             "map");
-        string fingerprint = composition.CompilationFingerprint;
+        string capabilityFingerprint = CapabilityFingerprint;
         var capability = new ResolvedCapability(
             route,
-            fingerprint,
+            capabilityFingerprint,
             composition,
             Decision(
                 "authoring",
@@ -324,11 +324,14 @@ public sealed partial class CompositionOutputNameResolverTests
             OutputNamingAdmissionIdentity.Capture(
                 capability,
                 currentAuthoringRevision: 7);
+        string compilationFingerprint =
+            capability.CompiledComposition.CompilationFingerprint;
 
+        Assert.NotEqual(capabilityFingerprint, compilationFingerprint);
         Assert.Equal(route.RouteId, accepted.RouteId);
-        Assert.Equal(fingerprint, accepted.CapabilityFingerprint);
+        Assert.Equal(compilationFingerprint, accepted.CompilationFingerprint);
         Assert.Equal(route.RouteId, admission.RouteId);
-        Assert.Equal(fingerprint, admission.CapabilityFingerprint);
+        Assert.Equal(compilationFingerprint, admission.CompilationFingerprint);
         Assert.Equal(fixture.Plan.ResolutionToken, admission.ResolutionToken);
         Assert.Equal(7, admission.AuthoringRevision);
         _ = Assert.Throws<ArgumentException>(() =>
@@ -346,7 +349,7 @@ public sealed partial class CompositionOutputNameResolverTests
             return new PinnedCapabilityDecision<TValue>(
                 decisionId,
                 route.RouteId,
-                fingerprint,
+                capabilityFingerprint,
                 value,
                 "synthetic-output-naming");
         }

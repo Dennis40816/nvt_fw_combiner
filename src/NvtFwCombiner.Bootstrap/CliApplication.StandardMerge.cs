@@ -156,7 +156,9 @@ public static partial class CliApplication
             CreateRunId(action),
             compiledComposition,
             bindings,
-            outputTarget.FileName);
+            outputTarget.FileName,
+            resolvedCapability: WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+                compiledComposition));
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(request, action == "build", cancellationToken)
