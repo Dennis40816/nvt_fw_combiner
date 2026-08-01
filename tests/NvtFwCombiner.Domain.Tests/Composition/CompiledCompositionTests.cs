@@ -1,4 +1,3 @@
-using System.Reflection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Tests.Composition;
@@ -6,121 +5,6 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 /// <summary>Tests atomic compiled-composition identity and fingerprint invariants.</summary>
 public sealed partial class CompiledCompositionTests
 {
-    /// <summary>Verifies a legacy artifact carries only the identity and authority the legacy compiler can prove.</summary>
-    [Fact]
-    public void LegacyArtifactCapturesAtomicIdentityAndAuthority()
-    {
-        CompiledComposition composition = CreateMerge();
-        Assert.Equal(
-            "2504b2afade952c5e2f9ade9323396454f7d65484654704d0c4c268816c997d5",
-            composition.CompilationFingerprint);
-
-        Assert.Equal("profile-a", composition.ProfileId);
-        Assert.Equal("1.0.0", composition.ProfileVersion);
-        Assert.Equal("NT-SYNTHETIC", composition.IcId);
-        Assert.Equal("standard", composition.ModeId);
-        Assert.Equal("standard-merge", composition.ExperienceId);
-        Assert.Equal(CompositionKind.Merge, composition.CompositionKind);
-        Assert.Equal("output.bin", composition.DefaultOutputFileName);
-        Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
-        Assert.Equal(CompiledCompositionEligibility.LegacyRuntimeExecutable, composition.Eligibility);
-        Assert.Null(composition.IntegrityFingerprint);
-        LegacyProfileCompilationAuthority authority = Assert.IsType<LegacyProfileCompilationAuthority>(
-            composition.Authority);
-        Assert.Equal("0.2", authority.ModelVersion);
-        Assert.Equal(64, composition.CompilationFingerprint.Length);
-        Assert.All(
-            composition.CompilationFingerprint,
-            character => Assert.True(character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
-        Assert.Empty(typeof(CompiledComposition).GetConstructors(BindingFlags.Instance | BindingFlags.Public));
-        Assert.Null(typeof(CompiledComposition).GetMethod(
-            "CreateLegacy",
-            BindingFlags.Static | BindingFlags.Public));
-    }
-
-    /// <summary>Verifies legacy artifacts require both a byte plan and compiler-owned identity.</summary>
-    [Fact]
-    public void LegacyArtifactRequiresPlanAndIdentity()
-    {
-        var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
-            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
-            []);
-        LegacyCompiledCompositionIdentity identity = CreateMergeIdentity();
-
-        _ = Assert.Throws<ArgumentNullException>(() => CompiledComposition.CreateLegacy(
-            null!,
-            identity,
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
-        _ = Assert.Throws<ArgumentNullException>(() => CompiledComposition.CreateLegacy(
-            plan,
-            null!,
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
-    }
-
-    /// <summary>Verifies every legacy identity field is mandatory at the Domain minting boundary.</summary>
-    [Theory]
-    [InlineData("", "1.0.0", "NT-SYNTHETIC", "standard", "standard-merge")]
-    [InlineData("profile-a", "", "NT-SYNTHETIC", "standard", "standard-merge")]
-    [InlineData("profile-a", "1.0.0", "", "standard", "standard-merge")]
-    [InlineData("profile-a", "1.0.0", "NT-SYNTHETIC", "", "standard-merge")]
-    [InlineData("profile-a", "1.0.0", "NT-SYNTHETIC", "standard", "")]
-    public void LegacyIdentityRequiresEveryField(
-        string profileId,
-        string profileVersion,
-        string icId,
-        string modeId,
-        string experienceId)
-    {
-        _ = Assert.Throws<ArgumentException>(() => new LegacyCompiledCompositionIdentity(
-            profileId,
-            profileVersion,
-            icId,
-            modeId,
-            experienceId,
-            CompositionKind.Merge));
-    }
-
-    /// <summary>Verifies an unknown composition kind cannot enter a compiled identity.</summary>
-    [Fact]
-    public void LegacyIdentityRejectsUnknownCompositionKind()
-    {
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new LegacyCompiledCompositionIdentity(
-            "invalid-kind",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "invalid",
-            "standard-merge",
-            (CompositionKind)int.MaxValue));
-    }
-
-    /// <summary>Verifies IC-number policy remains closed and consistent with Merge or Replace intent.</summary>
-    [Fact]
-    public void IcNumberPolicyMustMatchCompositionKind()
-    {
-        CompositionPlan mergePlan = CreateMerge().Plan;
-        CompositionPlan replacePlan = CreateReplace(CompiledIcNumberPolicy.SingleSelector).Plan;
-
-        _ = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
-            mergePlan,
-            CreateMergeIdentity(),
-            "output.bin",
-            CompiledIcNumberPolicy.SingleSelector));
-        _ = Assert.Throws<ArgumentException>(() => CompiledComposition.CreateLegacy(
-            replacePlan,
-            CreateReplaceIdentity(),
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompiledComposition.CreateLegacy(
-            replacePlan,
-            CreateReplaceIdentity(),
-            "output.bin",
-            (CompiledIcNumberPolicy)int.MaxValue));
-
-    }
-
     /// <summary>Verifies every supported Replace IC-number policy is represented without null or unknown states.</summary>
     [Theory]
     [InlineData(CompiledIcNumberPolicy.SingleSelector)]
@@ -147,7 +31,7 @@ public sealed partial class CompiledCompositionTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateMerge(
             defaultOutputFileName: defaultOutputFileName));
 
-        Assert.Contains("plain filename", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("path or control", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies declaration order cannot perturb the canonical compilation fingerprint.</summary>
@@ -184,9 +68,9 @@ public sealed partial class CompiledCompositionTests
             CreateReplace(CompiledIcNumberPolicy.CascadeSelector).CompilationFingerprint);
     }
 
-    /// <summary>Verifies legacy final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
+    /// <summary>Verifies final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
     [Fact]
-    public void FingerprintBindsLegacyFinalOutputValidationRequirement()
+    public void FingerprintBindsFinalOutputValidationRequirement()
     {
         CompiledValidationRequirement baselineRequirement =
             CompiledValidationRequirements.FirmwareConfigBackupVersion(
@@ -328,10 +212,6 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition[] variants =
         [
             CreateMerge(initializationFillByte: 0xFF),
-            CreateMerge(inputPaddingByte: 0xFF),
-            CreateMerge(inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            CreateMerge(allowedInputLengths: [2, 4]),
-            CreateMerge(expectedInputLengths: [4, 8]),
             CreateMerge(copyOperationId: "copy-other"),
             CreateMerge(copySourceStart: 1),
             CreateMerge(copyOverlapPolicy: OverlapPolicy.ReplaceExisting),
@@ -402,10 +282,6 @@ public sealed partial class CompiledCompositionTests
         string experienceId = "standard-merge",
         string defaultOutputFileName = "output.bin",
         byte initializationFillByte = 0,
-        byte? inputPaddingByte = null,
-        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.Reject,
-        IReadOnlyList<long>? allowedInputLengths = null,
-        IReadOnlyList<long>? expectedInputLengths = null,
         string copyOperationId = "copy-input",
         long copySourceStart = 0,
         OverlapPolicy copyOverlapPolicy = OverlapPolicy.Reject,
@@ -419,11 +295,7 @@ public sealed partial class CompiledCompositionTests
         var input = new AddressSpace(
             "input",
             4,
-            AddressSpaceMutability.Immutable,
-            inputPaddingByte,
-            inputOversizePolicy,
-            allowedInputLengths,
-            expectedInputLengths);
+            AddressSpaceMutability.Immutable);
         var output = new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable);
         var copy = CompositionOperation.CopyRange(
             copyOperationId,
@@ -445,28 +317,28 @@ public sealed partial class CompiledCompositionTests
             "fill output tail");
         AddressSpace[] spaces = reverseDeclarations ? [output, input] : [input, output];
         CompositionOperation[] operations = reverseDeclarations ? [fill, copy] : [copy, fill];
-        var identity = new LegacyCompiledCompositionIdentity(
-            profileId,
-            profileVersion,
-            icId,
-            modeId,
-            experienceId,
-            CompositionKind.Merge);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, initializationFillByte),
             spaces,
             operations);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            identity,
-            defaultOutputFileName,
-            CompiledIcNumberPolicy.NotApplicable,
-            validationRequirements);
+        return CreateV2(
+            outputTemplate: defaultOutputFileName,
+            requiredOutputTokenIds: [],
+            validationRequirements: validationRequirements,
+            inputContract: CreateExactMapInputContract("input", CompiledInputArtifactClass.ReferenceImage),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                modeId: modeId,
+                memberId: icId),
+            plan: plan,
+            modeId: modeId,
+            experienceId: experienceId,
+            profileId: profileId,
+            profileVersion: profileVersion);
     }
 
     private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
     {
-        LegacyCompiledCompositionIdentity identity = CreateReplaceIdentity();
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference", 4),
             [
@@ -474,12 +346,26 @@ public sealed partial class CompiledCompositionTests
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ],
             []);
-        return CompiledComposition.CreateLegacy(plan, identity, "replace.bin", policy);
+        return CreateV2(
+            outputTemplate: "replace.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "reference",
+                CompiledInputArtifactClass.ReferenceImage),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                modeId: "replace"),
+            plan: plan,
+            modeId: "replace",
+            experienceId: "general-replace",
+            compositionKind: CompositionKind.Replace,
+            icNumberPolicy: policy,
+            profileId: "replace-profile",
+            profileVersion: "1.0.0");
     }
 
     private static CompiledComposition CreateMultiOutput(string outputSpaceId)
     {
-        LegacyCompiledCompositionIdentity identity = CreateMergeIdentity();
         var plan = new CompositionPlan(
             [
                 ImageInitialization.Blank("output-image", 4, 0),
@@ -487,15 +373,20 @@ public sealed partial class CompiledCompositionTests
             ],
             outputSpaceId,
             [
+                new AddressSpace("input", 4, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
                 new AddressSpace("scratch", 4, AddressSpaceMutability.Mutable),
             ],
             []);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            identity,
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+        return CreateV2(
+            outputTemplate: "output.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "input",
+                CompiledInputArtifactClass.ReferenceImage),
+            plan: plan,
+            profileId: "profile-a",
+            profileVersion: "1.0.0");
     }
 
     private static CompiledComposition CreatePatchComposition(
@@ -503,16 +394,12 @@ public sealed partial class CompiledCompositionTests
         byte patchByte = 0x11,
         OverlapPolicy overlapPolicy = OverlapPolicy.Reject)
     {
-        var identity = new LegacyCompiledCompositionIdentity(
-            "patch-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "patch",
-            "general-merge",
-            CompositionKind.Merge);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 2, 0),
-            [new AddressSpace("output-image", 2, AddressSpaceMutability.Mutable)],
+            [
+                new AddressSpace("input", 2, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", 2, AddressSpaceMutability.Mutable),
+            ],
             [
                 CompositionOperation.PatchScalar(
                     "patch-byte",
@@ -523,11 +410,22 @@ public sealed partial class CompiledCompositionTests
                     overlapPolicy,
                     "patch one byte"),
             ]);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            identity,
-            "patch.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+        return CreateV2(
+            outputTemplate: "patch.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "input",
+                CompiledInputArtifactClass.ReferenceImage,
+                2),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                capacity: 2,
+                modeId: "patch"),
+            plan: plan,
+            modeId: "patch",
+            experienceId: "general-merge",
+            profileId: "patch-profile",
+            profileVersion: "1.0.0");
     }
 
     private static CompiledComposition CreateProcessorComposition(
@@ -568,17 +466,10 @@ public sealed partial class CompiledCompositionTests
                     new ByteRange(stagedArtifactSourceStart, 1)),
             ],
             outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
-        var identity = new LegacyCompiledCompositionIdentity(
-            "processor-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "processor",
-            "standard-merge",
-            CompositionKind.Merge);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
-                new AddressSpace("source", 3, AddressSpaceMutability.Immutable),
+                new AddressSpace("source", 4, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ],
             [
@@ -591,32 +482,40 @@ public sealed partial class CompiledCompositionTests
                     OverlapPolicy.Reject,
                     "run processor"),
             ]);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            identity,
-            "processor.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+        return CreateV2(
+            outputTemplate: "processor.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "source",
+                CompiledInputArtifactClass.ReferenceImage),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                modeId: "processor"),
+            plan: plan,
+            modeId: "processor",
+            profileId: "processor-profile",
+            profileVersion: "1.0.0");
     }
 
-    private static LegacyCompiledCompositionIdentity CreateMergeIdentity()
+    private static CompiledInputContract CreateExactMapInputContract(
+        string addressSpaceId,
+        CompiledInputArtifactClass artifactClass,
+        long capacity = 4)
     {
-        return new LegacyCompiledCompositionIdentity(
-            "profile-a",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "standard",
-            "standard-merge",
-            CompositionKind.Merge);
-    }
-
-    private static LegacyCompiledCompositionIdentity CreateReplaceIdentity()
-    {
-        return new LegacyCompiledCompositionIdentity(
-            "replace-profile",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            "replace",
-            "general-replace",
-            CompositionKind.Replace);
+        string slotId = $"{addressSpaceId}-slot";
+        return new CompiledInputContract(
+            [new CompiledInputSlotRequirement(
+                slotId,
+                addressSpaceId,
+                artifactClass,
+                required: true,
+                CompiledInputSlotCardinality.ExactlyOne,
+                [".bin"],
+                new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity),
+                new CompiledNoInputNormalization())],
+            [new CompiledInputSpaceBinding(
+                addressSpaceId,
+                slotId,
+                CompiledInputInstancePolicy.Singleton)]);
     }
 }

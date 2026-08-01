@@ -30,7 +30,6 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
     {
         CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, candidate.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(candidate.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(candidate.V2Details);
         Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
         Assert.Empty(details.Provenance.Promotion.Blockers);

@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
                     candidate.Issues.Count == 0)
                 .Select(static candidate => candidate.Composition!)
                 .DistinctBy(static composition =>
-                    composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId),
+                    composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId),
         ];
         CompiledComposition[] matches =
         [

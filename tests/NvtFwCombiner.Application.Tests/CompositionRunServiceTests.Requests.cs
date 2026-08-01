@@ -51,14 +51,15 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "synthetic-standard-merge",
                 "0.3.0",
                 "NT-SYNTHETIC",
                 "standard-merge",
                 "standard-merge",
                 CompositionKind.Merge),
-            "synthetic-standard-merge.bin");
+            "synthetic-standard-merge.bin",
+            allowOutputOverride: true);
     }
 
     private static CompositionRunRequest CreateScratchRequest(
@@ -66,6 +67,7 @@ public sealed partial class CompositionRunServiceTests
     {
         AddressSpace[] addressSpaces =
         [
+            new("v2-test-input", 1, AddressSpaceMutability.Immutable),
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
@@ -89,7 +91,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "scratch-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -100,7 +102,15 @@ public sealed partial class CompositionRunServiceTests
         return new CompositionRunRequest(
             "run-scratch",
             compiledComposition,
-            bindings ?? [],
+            bindings ??
+            [
+                new InputArtifactBinding(
+                    "v2-test-input",
+                    "v2-test-input",
+                    "v2-test-input-artifact",
+                    "v2-test-input.bin",
+                    CompiledInputArtifactClass.TpFirmware),
+            ],
             "scratch.bin");
     }
 
@@ -110,6 +120,7 @@ public sealed partial class CompositionRunServiceTests
     {
         AddressSpace[] addressSpaces =
         [
+            new("v2-test-input", 1, AddressSpaceMutability.Immutable),
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("scratch", 4, AddressSpaceMutability.Mutable),
         ];
@@ -123,7 +134,7 @@ public sealed partial class CompositionRunServiceTests
             []);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "initializer-fingerprint-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -134,7 +145,12 @@ public sealed partial class CompositionRunServiceTests
         return new CompositionRunRequest(
             "run-initializer-fingerprint",
             compiledComposition,
-            [],
+            [new InputArtifactBinding(
+                "v2-test-input",
+                "v2-test-input",
+                "v2-test-input-artifact",
+                "v2-test-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "fingerprint.bin");
     }
 
@@ -174,7 +190,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "multi-reference-replace-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -190,11 +206,15 @@ public sealed partial class CompositionRunServiceTests
                 new InputArtifactBinding(
                     "output-reference",
                     "output-reference",
-                    "output-reference-artifact"),
+                    "output-reference-artifact",
+                    "output-reference.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
                 new InputArtifactBinding(
                     "scratch-reference",
                     "scratch-reference",
-                    "scratch-reference-artifact"),
+                    "scratch-reference-artifact",
+                    "scratch-reference.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
             ],
             "multi-reference.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
@@ -204,18 +224,19 @@ public sealed partial class CompositionRunServiceTests
     {
         AddressSpace[] addressSpaces =
         [
+            new("reference-base", 4, AddressSpaceMutability.Immutable),
             new("output-image", 4, AddressSpaceMutability.Mutable),
             new("short-input", 4, AddressSpaceMutability.Immutable, inputPaddingByte),
         ];
-        var identity = new LegacyCompiledCompositionIdentity(
+        var identity = new TestCompiledCompositionIdentity(
             "padded-input-profile",
             "1.0.0",
             "NT-SYNTHETIC",
-            "standard-merge",
-            "standard-merge",
-            CompositionKind.Merge);
+            "dp-replace",
+            "dp-replace",
+            CompositionKind.Replace);
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
+            ImageInitialization.Reference("output-image", "reference-base", 4),
             addressSpaces,
             [
                 CompositionOperation.CopyRange(
@@ -231,9 +252,31 @@ public sealed partial class CompositionRunServiceTests
 
         return new CompositionRunRequest(
             "run-padded-input",
-            CreateCompiledComposition(plan, identity, "padded.bin"),
-            [new InputArtifactBinding("short-input", "short-safe", artifactId)],
-            "padded.bin");
+            CreateCompiledComposition(
+                plan,
+                identity,
+                "padded.bin",
+                CompiledIcNumberPolicy.SingleSelector),
+            [
+                new InputArtifactBinding(
+                    "reference-base",
+                    "reference-base",
+                    "padding-reference-artifact",
+                    "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "short-input",
+                    "short-safe",
+                    artifactId,
+                    "short-input.bin",
+                    inputPaddingByte is null
+                        ? CompiledInputArtifactClass.TpFirmware
+                        : CompiledInputArtifactClass.DpFirmware),
+            ],
+            "padded.bin",
+            icNumberSelection: new IcNumberSelection(
+                IcNumberInputMode.SingleSelector,
+                ["single"]));
     }
 
     private static CompositionRunRequest CreateCtrlRamReplaceRequest(
@@ -246,7 +289,7 @@ public sealed partial class CompositionRunServiceTests
             new("ctrlram-input", 2, AddressSpaceMutability.Immutable, inputOversizePolicy: inputOversizePolicy),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
-        var identity = new LegacyCompiledCompositionIdentity(
+        var identity = new TestCompiledCompositionIdentity(
             "ctrlram-replace-profile",
             "1.0.0",
             "NT-SYNTHETIC",
@@ -276,8 +319,14 @@ public sealed partial class CompositionRunServiceTests
                 "ctrlram.bin",
                 CompiledIcNumberPolicy.SingleSelector),
             [
-                new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
-                new InputArtifactBinding("ctrlram-input", "ctrlram-safe", ctrlRamArtifactId),
+                new InputArtifactBinding(
+                    "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "ctrlram-input", "ctrlram-safe", ctrlRamArtifactId, "ctrlram-input.bin",
+                    inputOversizePolicy == InputOversizePolicy.TruncateWithWarning
+                        ? CompiledInputArtifactClass.CtrlRamReplacement
+                        : CompiledInputArtifactClass.TpFirmware),
             ],
             "ctrlram.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["SYNTHETIC"]));
@@ -298,8 +347,8 @@ public sealed partial class CompositionRunServiceTests
         AddressSpace[] addressSpaces =
         [
             new("reference-base", 8, AddressSpaceMutability.Immutable),
-            new("dp-replacement", 4, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
-            new("ldc-replacement", 2, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            new("dp-replacement", 8, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
+            new("ldc-replacement", 8, AddressSpaceMutability.Immutable, inputPaddingByte: 0xFF),
             new("output-image", 8, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -327,7 +376,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         return CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "synthetic-dp-replace",
                 "0.5.0",
                 "NT-SYNTHETIC",
@@ -340,7 +389,7 @@ public sealed partial class CompositionRunServiceTests
 
     private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
     {
-        var identity = new LegacyCompiledCompositionIdentity(
+        var identity = new TestCompiledCompositionIdentity(
             "numeric-replace",
             "1.0.0",
             "NT51927",
@@ -363,7 +412,9 @@ public sealed partial class CompositionRunServiceTests
                 identity,
                 "numeric.bin",
                 CompiledIcNumberPolicy.NumericSelector),
-            [new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact")],
+            [new InputArtifactBinding(
+                "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
+                CompiledInputArtifactClass.ReferenceImage)],
             "numeric.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.NumericSelector, [icCount]));
     }
@@ -372,6 +423,7 @@ public sealed partial class CompositionRunServiceTests
     {
         AddressSpace[] addressSpaces =
         [
+            new("v2-test-input", 1, AddressSpaceMutability.Immutable),
             new("output-image", 1, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -397,7 +449,7 @@ public sealed partial class CompositionRunServiceTests
             ]);
         CompiledComposition compiledComposition = CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "overwrite-profile",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -408,7 +460,12 @@ public sealed partial class CompositionRunServiceTests
         return new CompositionRunRequest(
             runId,
             compiledComposition,
-            [],
+            [new InputArtifactBinding(
+                "v2-test-input",
+                "v2-test-input",
+                "v2-test-input-artifact",
+                "v2-test-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "overwrite.bin");
     }
 
@@ -416,9 +473,15 @@ public sealed partial class CompositionRunServiceTests
     {
         return
         [
-            new InputArtifactBinding("reference-base", "reference-safe", "reference-artifact"),
-            new InputArtifactBinding("dp-replacement", "dp-safe", "dp-artifact"),
-            new InputArtifactBinding("ldc-replacement", "ldc-safe", "ldc-artifact"),
+            new InputArtifactBinding(
+                "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
+                CompiledInputArtifactClass.ReferenceImage),
+            new InputArtifactBinding(
+                "dp-replacement", "dp-safe", "dp-artifact", "dp-replacement.bin",
+                CompiledInputArtifactClass.DpFirmware),
+            new InputArtifactBinding(
+                "ldc-replacement", "ldc-safe", "ldc-artifact", "ldc-replacement.bin",
+                CompiledInputArtifactClass.DpFirmware),
         ];
     }
 }

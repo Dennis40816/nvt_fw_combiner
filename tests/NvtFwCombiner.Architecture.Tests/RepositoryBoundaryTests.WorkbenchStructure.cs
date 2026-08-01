@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
@@ -303,6 +305,8 @@ public sealed partial class RepositoryBoundaryTests
     public void BuiltInV2BundlePinsHaveOneOwner()
     {
         string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+        string trustIndexText = ReadText("profiles/built-in/package-trust-index.json");
+        using var trustIndex = JsonDocument.Parse(trustIndexText);
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string generalMerge = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
@@ -314,19 +318,32 @@ public sealed partial class RepositoryBoundaryTests
             return value.Length == 64 && value.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
         }
 
-        Assert.Equal(25, bundle.Split('"').Count(IsSha256Literal));
-        Assert.Equal(35, CountOccurrences(registrations, "BuiltInV2BundleRegistry.All[\""));
-        Assert.Equal(1, CountOccurrences(bundle, "nt51919-nt51929-nt51932-ab-merge"));
-        Assert.Equal(1, CountOccurrences(bundle, "nt51950-ab-merge"));
+        JsonElement[] entries =
+        [
+            .. trustIndex.RootElement.GetProperty("bundles").EnumerateArray(),
+        ];
+        Assert.Equal(25, entries.Length);
+        Assert.All(entries, entry =>
+            Assert.True(IsSha256Literal(entry.GetProperty("contentHash").GetString()!)));
+        Assert.Equal(
+            36,
+            entries.Sum(static entry => entry.GetProperty("runtimeRegistrations")
+                .EnumerateArray()
+                .Count(static registration => registration.GetProperty("workflowId").GetString() != "ctrlram-replace")));
+        _ = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
+            "nt51919-nt51929-nt51932-ab-merge");
+        _ = Assert.Single(entries, static entry => entry.GetProperty("bundleDirectory").GetString() ==
+            "nt51950-ab-merge");
         Assert.Contains(
             "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67",
-            bundle,
+            trustIndexText,
             StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(
                 bundle + registrations + generalMerge + dpReplace,
                 "new BuiltInV2Bundle("));
+        Assert.DoesNotContain(bundle.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(registrations.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(generalMerge.Split('"'), IsSha256Literal);
         Assert.DoesNotContain(dpReplace.Split('"'), IsSha256Literal);

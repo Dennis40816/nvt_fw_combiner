@@ -135,7 +135,7 @@ public sealed partial class CompiledCompositionTests
         AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
         CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
             CompiledDeclaredPrefixWithWarningInputLengthRequirement>(
-                Assert.Single(baseline.V2Details!.InputContract.Slots).LengthRequirement);
+                Assert.Single(baseline.V2Details.InputContract.Slots).LengthRequirement);
         Assert.Equal(new ByteRange(0, 8), new ByteRange(0, input.Length));
         Assert.Null(input.InputPaddingByte);
         Assert.Empty(input.AllowedInputLengths);

@@ -62,7 +62,7 @@ internal static partial class CurrentSupportMatrixCatalog
                     out CompiledComposition? composition,
                     out IReadOnlyList<CompositionIssue> compileIssues);
                 FirmwareImageMap? compiledMap =
-                    composition?.V2Details?.Provenance.ResolvedMap.ImageMap;
+                    composition?.V2Details.Provenance.ResolvedMap.ImageMap;
                 if (compiledMap is null ||
                     !StringComparer.Ordinal.Equals(
                         compiledMap.MapId,
@@ -84,8 +84,7 @@ internal static partial class CurrentSupportMatrixCatalog
                         countVariant,
                         selectionGroupMemberSlotIds.Count == 0
                             ? map.MapId
-                            : CanonicalDynamicRouteInventory
-                                .Nt51928DualCapacityMapVariantSetId,
+                            : registration.SelectionGroupMapVariantSetId!,
                         ResolveIntegrityRouteId(composition!)),
                     registration.IcId,
                     registration.WorkflowId,

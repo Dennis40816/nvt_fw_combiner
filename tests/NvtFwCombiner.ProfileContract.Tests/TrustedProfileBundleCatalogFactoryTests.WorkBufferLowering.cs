@@ -22,7 +22,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["scratch", "output"],
             composition.Plan.OrderedOperations.Select(static operation => operation.TargetSpaceId));
         Assert.DoesNotContain(
-            composition.V2Details!.RegionAccessContract.ResolvedViews,
+            composition.V2Details.RegionAccessContract.ResolvedViews,
             static view => view.AddressSpaceId == "scratch");
     }
 

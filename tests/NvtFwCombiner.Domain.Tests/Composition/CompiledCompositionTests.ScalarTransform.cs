@@ -4,15 +4,15 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompiledCompositionTests
 {
-    /// <summary>Verifies adding a transform primitive preserves existing external-processor fingerprint bytes.</summary>
+    /// <summary>Verifies the canonical V2 writer pins external-processor fingerprint bytes.</summary>
     [Fact]
-    public void ExistingExternalProcessorCompositionKeepsPinnedFingerprint()
+    public void V2ExternalProcessorCompositionHasPinnedFingerprint()
     {
         CompiledComposition composition = CreateExternalProcessorComposition();
 
         Assert.NotNull(composition.IntegrityFingerprint);
         Assert.Equal(
-            "7f6978447437adac3da4a8eee08b9027a5ca65d47b165b309ffb8ba061fcf174",
+            "ab62d604a3e8e44d27a80f751055dcd384ab5f007f53e09c28a6a4a407457c88",
             composition.CompilationFingerprint);
     }
 
@@ -120,18 +120,29 @@ public sealed partial class CompiledCompositionTests
                 transform,
                 OverlapPolicy.Reject,
                 reason)]);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            CreateMergeIdentity(),
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+        return CreateV2(
+            outputTemplate: "output.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "source",
+                CompiledInputArtifactClass.ReferenceImage,
+                width),
+            resolvedMap: CreateResolvedMap(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                capacity: width),
+            plan: plan,
+            profileId: "profile-a",
+            profileVersion: "1.0.0");
     }
 
     private static CompiledComposition CreateExternalProcessorComposition()
     {
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
-            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
+            [
+                new AddressSpace("input", 4, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
             [CompositionOperation.RunExternalProcessor(
                 "postbuild",
                 10,
@@ -144,10 +155,14 @@ public sealed partial class CompiledCompositionTests
                     [new ByteRange(2, 1)]),
                 OverlapPolicy.Reject,
                 "refresh postbuild")]);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            CreateMergeIdentity(),
-            "output.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+        return CreateV2(
+            outputTemplate: "output.bin",
+            requiredOutputTokenIds: [],
+            inputContract: CreateExactMapInputContract(
+                "input",
+                CompiledInputArtifactClass.ReferenceImage),
+            plan: plan,
+            profileId: "profile-a",
+            profileVersion: "1.0.0");
     }
 }

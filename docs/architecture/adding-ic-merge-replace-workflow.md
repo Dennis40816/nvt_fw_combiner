@@ -4,10 +4,12 @@ Status: architecture runbook.
 
 This runbook lists the files and review flow for adding one IC to Merge and Replace. It is not a support claim by itself. An IC/mode is releasable only after profile validation, processor diff review, golden regression, and firmware-owner sign-off.
 
-For 0.9.0 firmware-model-v2 work, canonical physical facts are added to a trusted
-`firmware-family-v1` document and workflow policy to `composition-profile-v2`. The C# catalog rows
-listed below describe the current v1 compatibility implementation only; do not add a second source
-of truth there. Compatibility projections are removed after byte/name/trace parity.
+Canonical physical facts are added to a trusted firmware-family document and
+workflow policy to a composition profile. Built-in bundle and executable-route
+admission are declared together in
+`profiles/built-in/package-trust-index.json`; generic C# registries only project
+that immutable package data. Support exposure remains a separately reviewed
+policy and must not be inferred from runtime admission.
 
 ## Non-negotiable model rules
 
@@ -97,10 +99,10 @@ Update only the rows that are relevant to the new IC/mode.
 
 | Area | File | What changes |
 | --- | --- | --- |
-| IC support / exposure catalog | `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Add the IC id, supported workflow ids, owner-approved alias facts, and short onboarding notes. This is the first C# row to update when introducing a new IC/mode. Workflow ids must come from `IcWorkflowIds.All`; unknown ids fail catalog construction. |
+| IC support / exposure policy | Current compatibility projection: `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Runtime onboarding through the package trust index does not itself expose or promote support. Change selectable/publication status only in its separately approved policy ticket; do not use this compatibility catalog as a second runtime registration list. |
 | V2 family/map/profile facts | `profiles/built-in/<bundle>/{families,maps,profiles}` plus its manifest | Put shared family facts, supported capacities, canonical named ranges, operations, and access rules in the manifest-pinned V2 bundle. Runtime and display projections must consume the resolved map and compiled plan; do not add a companion C# family-fact catalog or duplicate facts in UI/CLI code. |
-| Standard Merge bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}`; `src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj`; `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schema from `docs/contracts`; do not add source schema snapshots. A reviewed, evidence-backed bundle must add one `<BuiltInProfileBundle Include="<bundle>" />` materialization allowlist entry and then receive the explicit Bootstrap V2 registration. A 0.9.4 candidate has no runtime authority and must add neither production allowlist nor registration; its closed-root preview belongs in caller-selected staging. |
-| Replace profile / V2 deployment | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus a focused Bootstrap V2 registration | Add an evidence-backed V2 Replace profile and explicit deployed-bundle registration before routing an IC. Candidate bundles have no runtime authority. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
+| Built-in bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus `profiles/built-in/package-trust-index.json` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schemas from `docs/contracts`; do not add source schema snapshots. After evidence review, add one hash-pinned bundle entry and its closed-vocabulary runtime registrations to the package trust index. Existing-vocabulary onboarding requires no IC-specific Domain, Application, Bootstrap, CLI, or Workbench route edit. Candidate-only staging must not enter the package index. |
+| Replace profile / V2 deployment | The same bundle and package trust-index entry | Add an evidence-backed V2 Replace profile and the exact `dp-replace`, `general-replace`, or `ctrlram-replace` data registration before routing an IC. Processor and branch fields are allowed only for CtrlRAM registrations. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/V2/` | Change only for general validation gaps, not to special-case one IC. The V1 `CompositionProfileCompiler` is retired. |
 | TP/DP/CtrlRAM compatibility catalog | `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | Add reviewed TP/full-Flash shapes and TP Overview rows as hash-pinned config facts. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel C# or tag authority. |
 | TP Header metadata and behavior | Versioned family/profile contracts | Declare the common `tp-flash-header` definition once, then reference exact resolved spans, fields, series, or groups from read-only or execution behavior bindings. Do not add a parallel C# layout or report catalog. |
@@ -125,7 +127,7 @@ Do not add IC-specific byte behavior to:
 
 1. Normalize source evidence into output capacity, fill byte, address spaces, and copy ranges.
 2. Author or update one manifest-pinned V2 source bundle: `profile-bundle.json`, family document, profile document, and evidence references. Source schema snapshots are forbidden; the materializer injects the exact manifest-pinned inventory bytes into the closed runtime root.
-3. After evidence review, add the source bundle to the explicit Bootstrap materialization allowlist, then add the explicit V2 registration and compile the deployed materialized bundle. Production V2 routes have no legacy runtime fallback.
+3. After evidence review, add the bundle hash/materialization and exact `standard-merge` registration to the package trust index, then compile the deployed materialized bundle. Production V2 routes have no legacy runtime fallback.
 4. Confirm blank initialization plus ordered copy operations, then add invalid input-size tests for every declared input length rule.
 5. Add or update golden regression:
    - owner-approved direct fixtures under `testdata/golden/canonical/`, or
@@ -190,10 +192,11 @@ Minimum tests:
 ## General Replace steps
 
 1. Define the allowed explicit-mapping envelope and protected ranges in the profile/catalog.
-2. Compile runtime mappings into normal `replace-range` operations; do not generate scripts.
-3. If a General Replace mapping writes any TP/TP-CtrlRAM/CRC-covered range for the selected IC, the profile must declare the same approved post-processing requirement as the normal workflow. The UI must not decide this.
-4. Reject overlap, out-of-bounds, protected-range, and unsupported post-processing cases before execution.
-5. Add exact boundary tests around protected and processor-covered ranges.
+2. Add the exact `general-replace` IC/profile/version registration to the package trust index; do not add an IC-specific Workbench or CLI branch.
+3. Compile runtime mappings into normal `replace-range` operations; do not generate scripts.
+4. If a General Replace mapping writes any TP/TP-CtrlRAM/CRC-covered range for the selected IC, the profile must declare the same approved post-processing requirement as the normal workflow. The UI must not decide this.
+5. Reject overlap, out-of-bounds, protected-range, and unsupported post-processing cases before execution.
+6. Add exact boundary tests around protected and processor-covered ranges.
 
 ## Documentation update rule
 

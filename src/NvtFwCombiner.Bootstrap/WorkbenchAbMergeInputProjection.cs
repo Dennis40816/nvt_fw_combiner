@@ -21,7 +21,7 @@ internal static class WorkbenchAbMergeInputProjection
                 icId,
                 requestedTopology,
                 out CompiledComposition? composition,
-                out _) || composition.V2Details is null
+                out _)
             ? []
             : CreateInputSlots(composition);
     }
@@ -38,11 +38,12 @@ internal static class WorkbenchAbMergeInputProjection
                 icId,
                 requestedTopology,
                 out CompiledComposition? composition,
-                out IReadOnlyList<CompositionIssue> compileIssues) ||
-            composition.V2Details is not { } details)
+                out IReadOnlyList<CompositionIssue> compileIssues))
         {
             throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(compileIssues));
         }
+
+        V2CompiledCompositionDetails details = composition.V2Details;
 
         WorkbenchAbMergeInputSlot slot = CreateInputSlots(composition).Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
@@ -98,8 +99,7 @@ internal static class WorkbenchAbMergeInputProjection
     private static IReadOnlyList<WorkbenchAbMergeInputSlot> CreateInputSlots(
         CompiledComposition composition)
     {
-        V2CompiledCompositionDetails details = composition.V2Details ??
-            throw new InvalidOperationException("Supported AB profiles require a compiled V2 input contract.");
+        V2CompiledCompositionDetails details = composition.V2Details;
         return
         [
             .. composition.Plan.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
@@ -166,11 +166,7 @@ internal static class WorkbenchAbMergeInputProjection
         out List<WorkbenchAbVersionValue>? versions)
     {
         versions = null;
-        IReadOnlyList<FirmwareRegion>? regions = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions;
-        if (regions is null)
-        {
-            return false;
-        }
+        IReadOnlyList<FirmwareRegion> regions = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions;
 
         FirmwareRegion? a = regions.SingleOrDefault(region =>
             StringComparer.Ordinal.Equals(region.RegionId, "a-cmi-dp-version"));

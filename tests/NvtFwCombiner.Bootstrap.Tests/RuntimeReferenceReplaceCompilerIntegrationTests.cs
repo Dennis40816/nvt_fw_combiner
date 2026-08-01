@@ -40,7 +40,7 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details!.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
 
         byte[] reference = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         byte[] source = [0xAA, 0xBB, 0xCC, 0xDD];

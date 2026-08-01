@@ -300,8 +300,7 @@ public static partial class WorkbenchCompositionService
             CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 CompositionAddressSpaceIds.ReferenceBase,
-                context.BasePath!,
-                WorkbenchSlotIds.ReplaceBase),
+                context.BasePath!),
             .. context.SelectedSources
                 .Select(source => CtrlRamSlotId(source.SourceId))
                 .Select(sourceSpaceId => CompiledCompositionInputBindingFactory.Create(

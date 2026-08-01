@@ -20,7 +20,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(12, input.Length);
         Assert.Empty(input.AllowedInputLengths);
         Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
-        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
         Assert.Equal(CompiledInputArtifactClass.TpFirmware, slot.ArtifactClass);
         _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(slot.LengthRequirement);
         CompositionOperation operation = Assert.Single(composition.Plan.OrderedOperations);
@@ -101,7 +101,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         ImageInitialization scratch = Assert.Single(
             composition.Plan.Initializations,
             static initialization => initialization.TargetSpaceId == "scratch");
-        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
 
         Assert.Equal(16, input.Length);
         Assert.Null(input.InputPaddingByte);
@@ -133,7 +133,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
-        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
 
         Assert.Equal(16, input.Length);
         Assert.Empty(input.AllowedInputLengths);
@@ -156,7 +156,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
-        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
 
         Assert.Equal(16, input.Length);
         Assert.Equal([0x80000L, 0x200000L], input.ExpectedInputLengths);
@@ -190,7 +190,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             string.Join(Environment.NewLine, result.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
-        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details!.InputContract.Slots);
+        CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
         CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
             CompiledDeclaredPrefixWithWarningInputLengthRequirement>(slot.LengthRequirement);
 

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Xml.Linq;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -46,7 +46,6 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.ProfileId);
@@ -83,7 +82,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(
             [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.LdcInput, CompositionAddressSpaceIds.TpInput],
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
-        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details!.InputContract.SelectionGroups);
+        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details.InputContract.SelectionGroups);
         Assert.Equal("ldc-selection", group.GroupId);
         Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.ApplicableMemberSlotIds);
         Assert.Equal([CompositionAddressSpaceIds.LdcInput], group.SelectedSlotIds);
@@ -153,7 +152,6 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal("45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c", details.Provenance.Bundle.ContentHash);
         Assert.Equal(profileId, artifact.ProfileId);
@@ -178,17 +176,15 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             "materialized-profiles",
             "built-in");
         string deployedBuiltInRoot = Path.Combine(AppContext.BaseDirectory, "profiles", "built-in");
-        string projectFile = RepositoryPaths.FromRepositoryRoot(
-            "src",
-            "NvtFwCombiner.Bootstrap",
-            "NvtFwCombiner.Bootstrap.csproj");
         string[] bundleDirectories =
         [
-            .. XDocument.Load(projectFile)
-                .Descendants("BuiltInProfileBundle")
-                .Select(static bundle => bundle.Attribute("Include")?.Value)
-                .Where(static bundleDirectory => !string.IsNullOrWhiteSpace(bundleDirectory))
-                .Cast<string>()
+            .. ProfileBundlePackageTrustIndexLoader.Load(
+                    RepositoryPaths.FromRepositoryRoot(
+                        "profiles",
+                        "built-in",
+                        "package-trust-index.json"))
+                .Bundles
+                .Select(static bundle => bundle.BundleDirectory)
                 .Order(StringComparer.Ordinal),
         ];
         Assert.NotEmpty(bundleDirectories);

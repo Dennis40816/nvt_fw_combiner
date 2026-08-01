@@ -24,9 +24,7 @@ import validate_repository as repository_validation  # noqa: E402
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 SMOKE_SCRIPT = ROOT / "scripts" / "smoke-release.ps1"
 PROBE_RELATIVE_PATH = Path("external-tools/release-package-policy-probe.txt")
-SUPPORT_POLICY_RELATIVE_PATH = Path(
-    "docs/contracts/support-publication-policy-v1.json"
-)
+SUPPORT_POLICY_RELATIVE_PATH = Path("docs/contracts/support-publication-policy-v1.json")
 SUPPORT_POLICY_ROLE = "publicationPolicy"
 SUPPORT_POLICY_SHA256 = (
     "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff"
@@ -275,16 +273,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         }
 
         for name, (script_path, mutate) in mutations.items():
-            with self.subTest(name=name), tempfile.TemporaryDirectory(
-                prefix="nvt-support-policy-contract-validator-"
-            ) as temporary_directory:
+            with (
+                self.subTest(name=name),
+                tempfile.TemporaryDirectory(
+                    prefix="nvt-support-policy-contract-validator-"
+                ) as temporary_directory,
+            ):
                 temporary_root = Path(temporary_directory)
                 for source in (
                     PACKAGE_SCRIPT,
                     SMOKE_SCRIPT,
                     *(ROOT / path for path, _ in SUPPORT_POLICY_HISTORY),
-                    ROOT
-                    / "src/NvtFwCombiner.Infrastructure/Support/"
+                    ROOT / "src/NvtFwCombiner.Infrastructure/Support/"
                     "BuiltInSupportPublicationPolicy.cs",
                 ):
                     destination = temporary_root / source.relative_to(ROOT)
@@ -366,7 +366,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout,
         )
         self.assertIn(
-            "manifest-pinned materialized files included and unexpected file rejected",
+            "manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected",
             result.stdout,
         )
         self.assertIn(
@@ -468,7 +468,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
         self.assertIn("foreach ($page in $pages)", release_workflow)
         self.assertIn("foreach ($item in $page)", release_workflow)
-        self.assertEqual(1, release_workflow.count("gh api --paginate --slurp $endpoint"))
+        self.assertEqual(
+            1, release_workflow.count("gh api --paginate --slurp $endpoint")
+        )
         self.assertNotIn("--jq 'add'", release_workflow)
         self.assertIn("$requiredCheckNames = @(", release_workflow)
         for required_check in (
@@ -544,9 +546,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             promote,
         )
         self.assertIn("contents: read", published_smoke)
-        self.assertIn(
-            "Smoke published package without a GitHub token", published_smoke
-        )
+        self.assertIn("Smoke published package without a GitHub token", published_smoke)
         self.assertIn(
             "(Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)",
             published_smoke,
@@ -563,7 +563,9 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             'gh api --method POST "repos/$env:NFC_REPOSITORY/git/tags"',
             absent_index,
         )
-        tag_step = promote[promote.index("- name: Create or verify immutable annotated tag") :]
+        tag_step = promote[
+            promote.index("- name: Create or verify immutable annotated tag") :
+        ]
         self.assertIn(
             "NFC_SOURCE_BRANCH: ${{ needs.candidate.outputs.source-branch }}",
             tag_step,
@@ -902,9 +904,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                     "role": "externalTool",
                 }
             )
-            manifest = {
-                "files": manifest_entries
-            }
+            manifest = {"files": manifest_entries}
             (package_root / "RELEASE-MANIFEST.json").write_text(
                 json.dumps(manifest),
                 encoding="utf-8",
@@ -990,6 +990,137 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             "Release manifest has no materialized built-in profile files.",
             result.stdout + result.stderr,
         )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_profile_entry_drift_with_updated_release_hash(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-profile-closure-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+            for required_file in (
+                "NvtFwCombiner.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = []
+            self.add_valid_support_policy(package_root, manifest_entries)
+            self.add_valid_capability_policy(package_root, manifest_entries)
+            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+                external_path = package_root / relative_path
+                external_path.parent.mkdir(parents=True, exist_ok=True)
+                external_path.write_bytes(b"external-tool policy fixture\n")
+                manifest_entries.append(
+                    self.manifest_entry(external_path, package_root, "externalTool")
+                )
+
+            profile_paths = self.stage_single_profile_bundle(package_root)
+            drift_path = next(
+                path for path in profile_paths if "/schemas/" in path.as_posix()
+            )
+            drift_path.write_bytes(drift_path.read_bytes() + b"\n")
+            manifest_entries.extend(
+                self.manifest_entry(path, package_root, "builtInProfile")
+                for path in profile_paths
+            )
+            (package_root / "RELEASE-MANIFEST.json").write_text(
+                json.dumps({"files": manifest_entries}),
+                encoding="utf-8",
+            )
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            result = self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release built-in profile bundle file hash differs",
+            result.stdout + result.stderr,
+        )
+
+    def stage_single_profile_bundle(self, package_root: Path) -> tuple[Path, ...]:
+        source_index = json.loads(
+            (ROOT / "profiles/built-in/package-trust-index.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        trust_entry = next(
+            entry
+            for entry in source_index["bundles"]
+            if entry["bundleDirectory"] == "nt51928-standard-merge"
+        )
+        package_index = {
+            key: value for key, value in source_index.items() if key != "bundles"
+        }
+        package_index["bundles"] = [trust_entry]
+        index_path = package_root / "profiles/built-in/package-trust-index.json"
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        index_path.write_text(json.dumps(package_index), encoding="utf-8")
+
+        bundle_directory = trust_entry["bundleDirectory"]
+        source_bundle_root = ROOT / "profiles/built-in" / bundle_directory
+        bundle_root = package_root / "profiles/built-in" / bundle_directory
+        bundle_root.mkdir(parents=True)
+        manifest = json.loads(
+            (source_bundle_root / "profile-bundle.json").read_text(encoding="utf-8")
+        )
+        manifest_path = bundle_root / "profile-bundle.json"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        staged = [index_path, manifest_path]
+        for entry in manifest["entries"]:
+            relative_path = Path(entry["path"])
+            source_path = source_bundle_root / relative_path
+            if not source_path.is_file():
+                if entry["path"] == "schemas/composition-profile-v2.schema.json":
+                    source_path = (
+                        ROOT
+                        / "docs/contracts"
+                        / trust_entry["materialization"]["compositionProfileSchemaFile"]
+                    )
+                elif entry["path"] == "schemas/firmware-family-v1.schema.json":
+                    source_path = (
+                        ROOT
+                        / "docs/contracts"
+                        / trust_entry["materialization"]["firmwareFamilySchemaFile"]
+                    )
+            destination = bundle_root / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(source_path.read_bytes())
+            staged.append(destination)
+        return tuple(staged)
+
+    @staticmethod
+    def manifest_entry(path: Path, package_root: Path, role: str) -> dict[str, object]:
+        payload = path.read_bytes()
+        return {
+            "path": path.relative_to(package_root).as_posix(),
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "role": role,
+        }
 
     def run_smoke_with_support_policy(
         self,

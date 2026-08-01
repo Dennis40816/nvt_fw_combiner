@@ -41,7 +41,7 @@ public sealed partial class CompositionRunRequestV2Tests
             "logical-output.bin");
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, request.CompiledComposition.Eligibility);
-        _ = Assert.IsType<LogicalOutputV2CompilationContext>(request.CompiledComposition.V2Details!.Provenance.Context);
+        _ = Assert.IsType<LogicalOutputV2CompilationContext>(request.CompiledComposition.V2Details.Provenance.Context);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, request.CompiledComposition.V2Details.Provenance.Promotion.Stage);
     }
 

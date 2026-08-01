@@ -210,7 +210,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("explicit Standard Merge, AB pilot, and DP Replace registration lists", reference, StringComparison.Ordinal);
+        Assert.Contains("package-trust-index.json", reference, StringComparison.Ordinal);
+        Assert.Contains("runtime admission for Standard Merge", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

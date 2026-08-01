@@ -5,36 +5,6 @@ public sealed partial class CompiledComposition
 {
     private CompiledComposition(
         CompositionPlan plan,
-        LegacyCompiledCompositionIdentity identity,
-        string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy,
-        IReadOnlyList<CompiledValidationRequirement>? validationRequirements)
-    {
-        ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(identity);
-        ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
-        ValidateDefaultOutputFileName(defaultOutputFileName);
-
-        Plan = plan;
-        ProfileId = identity.ProfileId;
-        ProfileVersion = identity.ProfileVersion;
-        IcId = identity.IcId;
-        ModeId = identity.ModeId;
-        ExperienceId = identity.ExperienceId;
-        CompositionKind = identity.CompositionKind;
-        DefaultOutputFileName = defaultOutputFileName;
-        IcNumberPolicy = icNumberPolicy;
-        Eligibility = CompiledCompositionEligibility.LegacyRuntimeExecutable;
-        Authority = new LegacyProfileCompilationAuthority();
-        V2Details = null;
-        ValidationRequirements = CopyValidationRequirements(validationRequirements);
-        ValidateValidationRequirements(plan, ValidationRequirements);
-        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
-        CompilationFingerprint = CalculateCompilationFingerprint(this);
-    }
-
-    private CompiledComposition(
-        CompositionPlan plan,
         V2CompiledCompositionIdentity identity,
         CompiledIcNumberPolicy icNumberPolicy,
         CompiledCompositionEligibility eligibility)
@@ -67,7 +37,6 @@ public sealed partial class CompiledComposition
         DefaultOutputFileName = identity.Details.OutputNamingRequirement.FileNameTemplate;
         IcNumberPolicy = icNumberPolicy;
         Eligibility = eligibility;
-        Authority = new ProfileBundleV2CompilationAuthority();
         V2Details = identity.Details;
         ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
         ValidateValidationRequirements(plan, ValidationRequirements);
@@ -89,7 +58,6 @@ public sealed partial class CompiledComposition
         DefaultOutputFileName = source.DefaultOutputFileName;
         IcNumberPolicy = source.IcNumberPolicy;
         Eligibility = source.Eligibility;
-        Authority = source.Authority;
         V2Details = source.V2Details;
         ValidationRequirements = source.ValidationRequirements;
         IntegrityFingerprint = source.IntegrityFingerprint;
@@ -134,15 +102,13 @@ public sealed partial class CompiledComposition
     /// </summary>
     public bool IsV2AbFunctionOpenCandidate =>
         Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-        Authority is ProfileBundleV2CompilationAuthority &&
-        V2Details is { } details &&
-        details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
-        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+        V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
         CompositionKind == CompositionKind.Merge &&
         StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
-        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
-        details.Provenance.Promotion.Blockers.Count != 0 &&
-        details.Provenance.Promotion.Blockers.All(static blocker =>
+        V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
+        V2Details.Provenance.Promotion.Blockers.Count != 0 &&
+        V2Details.Provenance.Promotion.Blockers.All(static blocker =>
             blocker.Kind is CompiledProfilePromotionBlockerKind.Golden or
                 CompiledProfilePromotionBlockerKind.HumanReview);
 
@@ -154,18 +120,13 @@ public sealed partial class CompiledComposition
     public bool IsV2AbMergeRuntimeRoute =>
         (Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
          IsV2AbFunctionOpenCandidate) &&
-        Authority is ProfileBundleV2CompilationAuthority &&
-        V2Details is { } details &&
-        details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
         CompositionKind == CompositionKind.Merge &&
         StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
-        details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
+        V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
 
-    /// <summary>Authority that established this artifact.</summary>
-    public CompositionCompilationAuthority Authority { get; }
-
-    /// <summary>Paired profile-bundle-v2 provenance and output requirements; null only for legacy artifacts.</summary>
-    public V2CompiledCompositionDetails? V2Details { get; }
+    /// <summary>Paired trusted profile-bundle provenance and compiled requirements.</summary>
+    public V2CompiledCompositionDetails V2Details { get; }
 
     /// <summary>Closed validation requirements retained by the compiler authority.</summary>
     public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
@@ -202,28 +163,7 @@ public sealed partial class CompiledComposition
                 ? this
                 : throw new InvalidOperationException(
                     "A compiled composition cannot be rebound to another capability definition.")
-            : Authority is
-                ProfileBundleV2CompilationAuthority or
-                LegacyProfileCompilationAuthority
-            ? new CompiledComposition(this, acceptedFingerprint)
-            : throw new InvalidOperationException(
-                "Only recognized compiler authorities can bind a canonical capability definition.");
-    }
-
-    /// <summary>Creates an artifact from the existing typed profile compiler without bundle or map claims.</summary>
-    internal static CompiledComposition CreateLegacy(
-        CompositionPlan plan,
-        LegacyCompiledCompositionIdentity identity,
-        string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy,
-        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
-    {
-        return new CompiledComposition(
-            plan,
-            identity,
-            defaultOutputFileName,
-            icNumberPolicy,
-            validationRequirements);
+            : new CompiledComposition(this, acceptedFingerprint);
     }
 
     /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>

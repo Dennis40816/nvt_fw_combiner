@@ -73,6 +73,25 @@ public sealed partial class CompositionRunRequestV2Tests
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 wrongTool,
                 postbuildPlan));
+        CompiledComposition wrongTopology = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            topologyRequirement: TopologyRequirement.RequireExactCount(2),
+            requestedTopology: new TopologySelection(
+                2,
+                "2 IC",
+                TopologySelectionSource.Requested,
+                "test"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                wrongTopology,
+                postbuildPlan));
         var fabricatedCommand = new LegacyCombinerPostbuildCommand(
             "fabricated-command",
             LegacyCombinerCommandFamily.NormalMode,
@@ -190,7 +209,7 @@ public sealed partial class CompositionRunRequestV2Tests
             var contract = new CanonicalCapabilityCompilationContract(
                 composition.ProfileId,
                 composition.ProfileVersion,
-                composition.V2Details!.Provenance.Bundle.ContentHash,
+                composition.V2Details.Provenance.Bundle.ContentHash,
                 ["map"],
                 CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
                 bindings);
@@ -268,7 +287,7 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal([0, 0xAA, 0xBB, 3], preview.OutputBytes.ToArray());
         Assert.False(writer.WasCalled);
         _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
-            composition.V2Details!.Provenance.Context);
+            composition.V2Details.Provenance.Context);
     }
 
     /// <summary>Verifies a generic resolved-map context cannot mint the runtime-reference candidate shape.</summary>
@@ -303,9 +322,9 @@ public sealed partial class CompositionRunRequestV2Tests
         CompiledComposition conditional = CreateRuntimeReferenceCandidate(allowsConditionalProcessor: true);
 
         Assert.False(Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
-            baseline.V2Details!.Provenance.Context).AllowsConditionalProcessor);
+            baseline.V2Details.Provenance.Context).AllowsConditionalProcessor);
         Assert.True(Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
-            conditional.V2Details!.Provenance.Context).AllowsConditionalProcessor);
+            conditional.V2Details.Provenance.Context).AllowsConditionalProcessor);
         Assert.NotEqual(baseline.CompilationFingerprint, conditional.CompilationFingerprint);
     }
 
@@ -384,11 +403,15 @@ public sealed partial class CompositionRunRequestV2Tests
         ByteRange? processorWriteRange = null,
         string? processorWriteSectionId = null,
         IReadOnlyList<ByteRange>? processorAdditionalWriteRanges = null,
-        bool useNestedCtrlRamMap = false)
+        bool useNestedCtrlRamMap = false,
+        TopologyRequirement? topologyRequirement = null,
+        TopologySelection? requestedTopology = null)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
             FirmwareWriteConstraint.ExplicitRange,
+            topologyRequirement,
+            requestedTopology,
             rootOwner: rootOwner,
             rootKind: rootKind,
             includeNestedCtrlRamRegion: useNestedCtrlRamMap);

@@ -13,8 +13,7 @@ public sealed partial class CompiledComposition
         CompiledComposition composition,
         LogicalOutputV2CompilationContext context)
     {
-        V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
-            "Profile-bundle-v2 artifacts require paired v2 details.");
+        V2CompiledCompositionDetails details = composition.V2Details;
         V2CompilationProvenance provenance = details.Provenance;
         bool capabilityBound = composition.CapabilityFingerprint is not null;
         var builder = new StringBuilder();

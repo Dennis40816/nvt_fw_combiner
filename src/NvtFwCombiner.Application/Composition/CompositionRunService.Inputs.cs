@@ -72,10 +72,7 @@ public sealed partial class CompositionRunService
         Dictionary<string, byte[]> inputBytes,
         List<CompositionIssue> issues)
     {
-        if (request.CompiledComposition.V2Details is not { } details)
-        {
-            return;
-        }
+        V2CompiledCompositionDetails details = request.CompiledComposition.V2Details;
 
         if (details.Provenance.Context is LogicalOutputV2CompilationContext)
         {
@@ -288,8 +285,8 @@ public sealed partial class CompositionRunService
         string addressSpaceId,
         ReadOnlyMemory<byte> sourceBytes)
     {
-        if (composition.V2Details is not { } details ||
-            details.Provenance.Context is LogicalOutputV2CompilationContext)
+        V2CompiledCompositionDetails details = composition.V2Details;
+        if (details.Provenance.Context is LogicalOutputV2CompilationContext)
         {
             return null;
         }

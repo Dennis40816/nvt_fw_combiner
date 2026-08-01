@@ -71,10 +71,7 @@ public static class CompiledInputArtifactInspectionService
         ReadOnlyMemory<byte> sourceBytes)
     {
         ArgumentNullException.ThrowIfNull(composition);
-        V2CompiledCompositionDetails details = composition.V2Details ??
-            throw new ArgumentException(
-                "Compiled input inspection requires V2 composition details.",
-                nameof(composition));
+        V2CompiledCompositionDetails details = composition.V2Details;
         (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
             ResolveBinding(details.InputContract, addressSpaceId);
         if (slot.LengthRequirement is not CompiledSourceViewCoverageInputLengthRequirement sourceView)

@@ -61,7 +61,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
         PilotFixture fixture,
         MemoryLayoutSnapshot snapshot)
     {
-        FirmwareImageMap map = fixture.Capability.CompiledComposition.V2Details!
+        FirmwareImageMap map = fixture.Capability.CompiledComposition.V2Details
             .Provenance.ResolvedMap.ImageMap;
         Assert.Same(map, fixture.Map);
         Assert.Equal(map.Regions.Count, snapshot.CanonicalRegions.Count);
@@ -105,7 +105,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
                 ? string.Empty
                 : $"{selection.Issue.Code}: {selection.Issue.Message}");
         ActiveSessionSnapshot authoring = selection.Snapshot!;
-        FirmwareImageMap map = capability.CompiledComposition.V2Details!
+        FirmwareImageMap map = capability.CompiledComposition.V2Details
             .Provenance.ResolvedMap.ImageMap;
         return new PilotFixture(capability, authoring, map);
     }

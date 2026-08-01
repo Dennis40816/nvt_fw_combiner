@@ -10,123 +10,337 @@
   <PropertyGroup>
     <BuiltInProfileSourceRoot>$(MSBuildProjectDirectory)\..\..\profiles\built-in</BuiltInProfileSourceRoot>
     <ProfileContractRoot>$(MSBuildProjectDirectory)\..\..\docs\contracts</ProfileContractRoot>
+    <BuiltInProfileTrustIndex>$(BuiltInProfileSourceRoot)\package-trust-index.json</BuiltInProfileTrustIndex>
     <BuiltInProfileMaterializedRoot>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\materialized-profiles\built-in</BuiltInProfileMaterializedRoot>
-    <DefaultCompositionProfileSchemaFile>composition-profile-v2.schema.json</DefaultCompositionProfileSchemaFile>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <BuiltInProfileBundle>
-      <CompositionProfileSchemaFile>$(DefaultCompositionProfileSchemaFile)</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource />
-      <CanonicalFirmwareFamilyDestination />
-    </BuiltInProfileBundle>
-  </ItemDefinitionGroup>
   <ItemGroup>
-    <BuiltInProfileBundle Include="nt51917-nt51927-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.1-tp-header.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51923-nt51926-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51923-standard-merge\families\nt51923-nt51926.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51923-nt51926.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51927-standard-merge\families\nt51927-nt51928.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51950-nt51951-general-merge-logical-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.5.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51950-nt51951-standard-merge\families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51950-nt51951-dp-perspective.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51923-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51926-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51917-ctrlram-replace-alias-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-      <CanonicalFirmwareFamilySource>nt51927-ctrlram-replace-candidate\families\nt51927-ctrlram-replace.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-ctrlram-replace.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51927-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51929-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51932-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51950-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51951-ctrlram-replace-candidate">
-      <CompositionProfileSchemaFile>composition-profile-v2.9.schema.json</CompositionProfileSchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51923-dp-replace">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51923-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51927-dp-replace">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51927-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-dp-replace">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-      <CanonicalFirmwareFamilySource>nt51928-standard-merge\families\nt51927-nt51928-v1.5.json</CanonicalFirmwareFamilySource>
-      <CanonicalFirmwareFamilyDestination>families\nt51927-nt51928-v1.5.json</CanonicalFirmwareFamilyDestination>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51928-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-tp-header-subjects.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51929-dp-replace">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51929-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.1-tp-header.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51919-nt51929-nt51932-ab-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.14.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-bank-instances.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51950-ab-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.14.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1.2-bank-instances.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
-    <BuiltInProfileBundle Include="nt51950-nt51951-standard-merge">
-      <CompositionProfileSchemaFile>composition-profile-v2.13.schema.json</CompositionProfileSchemaFile>
-      <FirmwareFamilySchemaFile>firmware-family-v1-relations.schema.json</FirmwareFamilySchemaFile>
-    </BuiltInProfileBundle>
+    <Content
+      Include="$(BuiltInProfileTrustIndex)"
+      Link="profiles\built-in\package-trust-index.json"
+      CopyToOutputDirectory="Always"
+      CopyToPublishDirectory="Always" />
   </ItemGroup>
+
+  <UsingTask
+    TaskName="LoadProfileBundleTrustIndex"
+    TaskFactory="RoslynCodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TrustIndexPath ParameterType="System.String" Required="true" />
+      <TrustIndexSchemaPath ParameterType="System.String" Required="true" />
+      <Bundles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="$(MSBuildToolsPath)\Sdks\Microsoft.NET.Sdk\tools\net472\Newtonsoft.Json.dll" />
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Using Namespace="Newtonsoft.Json" />
+      <Using Namespace="Newtonsoft.Json.Linq" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Using Namespace="Microsoft.Build.Utilities" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (new FileInfo(TrustIndexPath).Length > 131072)
+        {
+            throw new InvalidDataException("Profile bundle package trust index exceeds its bounded size.");
+        }
+
+        var loadSettings = new JsonLoadSettings
+        {
+            DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error,
+        };
+        JObject root;
+        using (var reader = new JsonTextReader(File.OpenText(TrustIndexPath)) { MaxDepth = 16 })
+        {
+            root = JObject.Load(reader, loadSettings);
+        }
+        const string expectedSchemaSha256 =
+            "82c013193c028e0a5db34a79f4bb20ba2fbc6a9d1ae844762819ee70268fdb92";
+        string actualSchemaSha256;
+        using (var stream = File.OpenRead(TrustIndexSchemaPath))
+        using (var sha256 = SHA256.Create())
+        {
+            actualSchemaSha256 = BitConverter.ToString(sha256.ComputeHash(stream))
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+        }
+        if (!string.Equals(actualSchemaSha256, expectedSchemaSha256, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                "Profile bundle package trust-index validator is not bound to the normative schema bytes.");
+        }
+
+        JObject normativeSchema;
+        using (var reader = new JsonTextReader(File.OpenText(TrustIndexSchemaPath)) { MaxDepth = 32 })
+        {
+            normativeSchema = JObject.Load(reader, loadSettings);
+        }
+        if (!(normativeSchema["$id"] is JValue schemaIdToken) ||
+            schemaIdToken.Type != JTokenType.String ||
+            (string)schemaIdToken !=
+            "https://novatek.example/nvt-fw-combiner/profile-bundle-package-trust-index-v1.schema.json")
+        {
+            throw new InvalidDataException("Profile bundle package trust-index normative schema identity is invalid.");
+        }
+
+        Action<JObject, string, string[], string[]> requireProperties =
+            (value, path, required, optional) =>
+            {
+                var allowed = new HashSet<string>(required.Concat(optional), StringComparer.Ordinal);
+                if (required.Any(name => value.Property(name, StringComparison.Ordinal) == null) ||
+                    value.Properties().Any(property => !allowed.Contains(property.Name)))
+                {
+                    throw new InvalidDataException(path + " does not satisfy the closed package trust-index shape.");
+                }
+            };
+        Func<JObject, string, string, string> readRequiredString =
+            (value, name, path) =>
+            {
+                JProperty property = value.Property(name, StringComparison.Ordinal);
+                if (property == null || property.Value.Type != JTokenType.String)
+                {
+                    throw new InvalidDataException(path + "." + name + " must be a JSON string.");
+                }
+                return (string)property.Value;
+            };
+        Func<JObject, string, string, string> readOptionalString =
+            (value, name, path) =>
+            {
+                JProperty property = value.Property(name, StringComparison.Ordinal);
+                if (property == null)
+                {
+                    return null;
+                }
+                if (property.Value.Type != JTokenType.String)
+                {
+                    throw new InvalidDataException(path + "." + name + " must be a JSON string.");
+                }
+                return (string)property.Value;
+            };
+        Func<string, bool> isToken = value =>
+            value != null && Regex.IsMatch(value, "^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant);
+        Func<string, bool> isFileName = value =>
+            value != null && Regex.IsMatch(value, "^[A-Za-z0-9][A-Za-z0-9._-]*\\.json$", RegexOptions.CultureInvariant);
+        Func<string, bool> isRelativeJsonPath = value =>
+            value != null &&
+            value.EndsWith(".json", StringComparison.Ordinal) &&
+            !value.Contains('\\') &&
+            !Path.IsPathRooted(value) &&
+            value.Split('/').All(segment => segment.Length != 0 && segment != "." && segment != "..");
+
+        requireProperties(
+            root,
+            "trust-index root",
+            new[] { "schemaVersion", "trustIndexId", "trustIndexVersion", "trustAnchorBindingId", "bundles" },
+            new string[0]);
+        string schemaVersion = readRequiredString(root, "schemaVersion", "trust-index root");
+        string trustIndexId = readRequiredString(root, "trustIndexId", "trust-index root");
+        string trustIndexVersion = readRequiredString(root, "trustIndexVersion", "trust-index root");
+        string trustAnchorBindingId = readRequiredString(root, "trustAnchorBindingId", "trust-index root");
+        if (schemaVersion != "1.0")
+        {
+            throw new InvalidDataException("Unsupported profile bundle package trust-index schema.");
+        }
+
+        var directories = new HashSet<string>(StringComparer.Ordinal);
+        var bundles = new List<ITaskItem>();
+        if (!isToken(trustIndexId) ||
+            !isToken(trustAnchorBindingId) ||
+            string.IsNullOrWhiteSpace(trustIndexVersion) ||
+            trustIndexVersion.Length > 128 ||
+            !(root["bundles"] is JArray bundleArray) ||
+            bundleArray.Count == 0 || bundleArray.Count > 128)
+        {
+            throw new InvalidDataException("Profile bundle package trust-index root values are invalid.");
+        }
+
+        var registrationKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (JObject bundle in bundleArray)
+        {
+            requireProperties(
+                bundle,
+                "bundle entry",
+                new[] { "bundleDirectory", "bundleSchemaVersion", "bundleVersion", "contentHash", "materialization", "runtimeRegistrations" },
+                new[] { "metadataProviderFamilies" });
+            string directory = readRequiredString(bundle, "bundleDirectory", "bundle entry");
+            string bundleSchemaVersion = readRequiredString(bundle, "bundleSchemaVersion", "bundle entry");
+            string bundleVersion = readRequiredString(bundle, "bundleVersion", "bundle entry");
+            string contentHash = readRequiredString(bundle, "contentHash", "bundle entry");
+            if (!directories.Add(directory) || !isToken(directory) ||
+                bundleSchemaVersion != "1.0" ||
+                string.IsNullOrWhiteSpace(bundleVersion) ||
+                bundleVersion.Length > 128 ||
+                !Regex.IsMatch(contentHash, "^[0-9a-f]{64}$"))
+            {
+                throw new InvalidDataException("Bundle identity must be unique, canonical, and hash closed.");
+            }
+
+            if (!(bundle["materialization"] is JObject materialization))
+            {
+                throw new InvalidDataException("Bundle materialization must be an object.");
+            }
+            requireProperties(
+                materialization,
+                "bundle materialization",
+                new[] { "compositionProfileSchemaFile", "firmwareFamilySchemaFile" },
+                new[] { "canonicalFirmwareFamily" });
+            string compositionProfileSchemaFile = readRequiredString(
+                materialization,
+                "compositionProfileSchemaFile",
+                "bundle materialization");
+            string firmwareFamilySchemaFile = readRequiredString(
+                materialization,
+                "firmwareFamilySchemaFile",
+                "bundle materialization");
+            if (!isFileName(compositionProfileSchemaFile) ||
+                !isFileName(firmwareFamilySchemaFile))
+            {
+                throw new InvalidDataException("Bundle materialization schema files must be closed JSON file names.");
+            }
+            string canonicalSource = null;
+            string canonicalDestination = null;
+            JToken canonicalToken = materialization["canonicalFirmwareFamily"];
+            if (canonicalToken != null)
+            {
+                if (!(canonicalToken is JObject canonical))
+                {
+                    throw new InvalidDataException("Canonical firmware-family materialization must be an object.");
+                }
+                requireProperties(
+                    canonical,
+                    "canonical firmware-family materialization",
+                    new[] { "source", "destination" },
+                    new string[0]);
+                canonicalSource = readRequiredString(
+                    canonical,
+                    "source",
+                    "canonical firmware-family materialization");
+                canonicalDestination = readRequiredString(
+                    canonical,
+                    "destination",
+                    "canonical firmware-family materialization");
+                if (!isRelativeJsonPath(canonicalSource) ||
+                    !isRelativeJsonPath(canonicalDestination) ||
+                    !canonicalDestination.StartsWith("families/", StringComparison.Ordinal) ||
+                    canonicalDestination.Split('/').Length != 2)
+                {
+                    throw new InvalidDataException("Canonical firmware-family paths must remain inside closed roots.");
+                }
+            }
+
+            JToken metadataProvidersToken = bundle["metadataProviderFamilies"];
+            if (metadataProvidersToken != null)
+            {
+                if (!(metadataProvidersToken is JArray metadataProviders))
+                {
+                    throw new InvalidDataException("Metadata provider families must be an array.");
+                }
+                if (metadataProviders.Count > 32)
+                {
+                    throw new InvalidDataException("Bundle metadata providers exceed the closed array bound.");
+                }
+                foreach (JObject provider in metadataProviders)
+                {
+                    requireProperties(
+                        provider,
+                        "metadata provider family",
+                        new[] { "familyId", "familyVersion" },
+                        new string[0]);
+                    string providerFamilyId = readRequiredString(
+                        provider,
+                        "familyId",
+                        "metadata provider family");
+                    string providerFamilyVersion = readRequiredString(
+                        provider,
+                        "familyVersion",
+                        "metadata provider family");
+                    if (!isToken(providerFamilyId) ||
+                        !Regex.IsMatch(providerFamilyVersion, "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?$"))
+                    {
+                        throw new InvalidDataException("Metadata provider family identity is invalid.");
+                    }
+                }
+            }
+
+            if (!(bundle["runtimeRegistrations"] is JArray registrations) || registrations.Count > 128)
+            {
+                throw new InvalidDataException("Bundle runtime registrations exceed the closed array bound.");
+            }
+            foreach (JObject registration in registrations)
+            {
+                requireProperties(
+                    registration,
+                    "runtime registration",
+                    new[] { "workflowId", "icId", "profileId", "profileVersion" },
+                    new[] { "mapVariantSetId", "familyId", "postbuildProcessorId", "postbuildBranch" });
+                string workflow = readRequiredString(registration, "workflowId", "runtime registration");
+                string icId = readRequiredString(registration, "icId", "runtime registration");
+                string profileId = readRequiredString(registration, "profileId", "runtime registration");
+                string profileVersion = readRequiredString(registration, "profileVersion", "runtime registration");
+                string mapVariantSetId = readOptionalString(registration, "mapVariantSetId", "runtime registration");
+                string familyId = readOptionalString(registration, "familyId", "runtime registration");
+                string processor = readOptionalString(registration, "postbuildProcessorId", "runtime registration");
+                string branch = readOptionalString(registration, "postbuildBranch", "runtime registration");
+                bool mapSetAllowed = workflow == "standard-merge" || workflow == "dp-replace";
+                bool generalMerge = workflow == "general-merge";
+                bool ctrlRam = workflow == "ctrlram-replace";
+                string registrationKey = string.Join(
+                    "\n",
+                    workflow,
+                    icId,
+                    processor ?? string.Empty,
+                    branch ?? string.Empty);
+                if (!(new[] { "standard-merge", "ab-merge", "dp-replace", "general-merge", "general-replace", "ctrlram-replace" }).Contains(workflow) ||
+                    !Regex.IsMatch(icId, "^NT[0-9]{5}$") ||
+                    !isToken(profileId) ||
+                    !Regex.IsMatch(profileVersion, "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?$") ||
+                    (mapVariantSetId != null && (!mapSetAllowed || !isToken(mapVariantSetId))) ||
+                    ((familyId != null) != generalMerge) ||
+                    (generalMerge && !isToken(familyId)) ||
+                    ((processor != null) != ctrlRam) ||
+                    (ctrlRam && !Regex.IsMatch(processor ?? string.Empty, "^[a-z0-9]+(?:[.-][a-z0-9]+)*$")) ||
+                    ((branch != null) != ctrlRam) ||
+                    (ctrlRam && !(new[] { "single-chip", "two-chip", "three-chip", "cascade" }).Contains(branch)) ||
+                    !registrationKeys.Add(registrationKey))
+                {
+                    throw new InvalidDataException("Runtime registration does not satisfy its closed workflow shape.");
+                }
+            }
+
+            var item = new TaskItem(directory);
+            item.SetMetadata(
+                "CompositionProfileSchemaFile",
+                compositionProfileSchemaFile);
+            item.SetMetadata(
+                "FirmwareFamilySchemaFile",
+                firmwareFamilySchemaFile);
+            if (canonicalSource != null || canonicalDestination != null)
+            {
+                item.SetMetadata(
+                    "CanonicalFirmwareFamilySource",
+                    canonicalSource);
+                item.SetMetadata(
+                    "CanonicalFirmwareFamilyDestination",
+                    canonicalDestination);
+            }
+
+            bundles.Add(item);
+        }
+
+        Bundles = bundles.ToArray();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
+    <LoadProfileBundleTrustIndex
+      TrustIndexPath="$(BuiltInProfileTrustIndex)"
+      TrustIndexSchemaPath="$(ProfileContractRoot)\profile-bundle-package-trust-index-v1.schema.json">
+      <Output TaskParameter="Bundles" ItemName="BuiltInProfileBundle" />
+    </LoadProfileBundleTrustIndex>
     <PropertyGroup>
       <_BuiltInProfilePublishedRoot>$(OutDir)profiles\built-in</_BuiltInProfilePublishedRoot>
     </PropertyGroup>

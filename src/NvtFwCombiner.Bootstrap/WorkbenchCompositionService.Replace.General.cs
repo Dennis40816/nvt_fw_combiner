@@ -107,8 +107,18 @@ public static partial class WorkbenchCompositionService
         }
 
         context = context with { MappingDraft = acceptedFiles.Draft! };
+        string normalizedIcId = Profiles.IcSupportCatalog.NormalizeIcId(icId);
+        _ = BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
+            normalizedIcId,
+            out GeneralReplaceV2Registration? registration);
+        // Preserve route-independent authoring diagnostics for unsupported ICs.
+        // This parent is never compiled or capability-bound; multiple registered
+        // parents fail closed instead of choosing one by order.
+        GeneralReplaceV2Registration validationRegistration = registration ??
+            BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Values.Single();
+
         SavedRuleV2GeneralReplaceExactParent exactParent =
-            exactParentOverride ?? GetNt51926GeneralReplaceExactParent();
+            exactParentOverride ?? validationRegistration.ExactParent;
         admission = AdmitGeneralMappingDraft(
             context.MappingDraft,
             context.Capacity,
@@ -205,12 +215,21 @@ public static partial class WorkbenchCompositionService
             }
         }
 
-        bool useNt51926DpV2 = IsNt51926GeneralReplaceDpV2Route(
-            icId,
+        if (registration is null)
+        {
+            return Blocked(
+                [new CompositionIssue(
+                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                    "The selected General Replace shape has no exact evidence-backed V2 route.",
+                    "mapping")],
+                planningOperations);
+        }
+
+        bool useRegisteredDpV2 = IsGeneralReplaceDpV2Route(
             context,
             regionsForMappingPolicy,
             explicitMappings);
-        if (!useNt51926DpV2)
+        if (!useRegisteredDpV2)
         {
             return Blocked(
                 [
@@ -223,7 +242,7 @@ public static partial class WorkbenchCompositionService
         }
 
         IReadOnlyList<Domain.Firmware.FirmwareImageMap> capabilityMaps =
-            GetNt51926GeneralReplaceSupportMaps(
+            registration.GetMapVariants(
                 out _,
                 out IReadOnlyList<CompositionIssue> capabilityMapIssues);
         Domain.Firmware.FirmwareImageMap? capabilityMap =
@@ -243,7 +262,7 @@ public static partial class WorkbenchCompositionService
         }
 
         var capabilityIdentity = new CapabilityRouteIdentity(
-            icId,
+            registration.IcId,
             Profiles.IcWorkflowIds.GeneralReplace,
             "1-ic",
             capabilityMap.MapId);
@@ -259,8 +278,8 @@ public static partial class WorkbenchCompositionService
                 planningOperations);
         }
 
-        V2CompositionPlanCompileResult compile = CompileNt51926GeneralReplaceDpV2(
-            context,
+        V2CompositionPlanCompileResult compile = registration.Compile(
+            context.Capacity,
             requestAddressSpaces,
             explicitMappings);
         CompiledComposition? compiledComposition = compile.CompiledComposition;
@@ -269,22 +288,15 @@ public static partial class WorkbenchCompositionService
             return Blocked(
                 compile.Issues,
                 planningOperations,
-                "nt51926-general-replace.bin");
+                registration.DefaultOutputFileName);
         }
         ResolvedCapability resolvedCapability =
             capabilityResolution.Route!.BindCompilation(
                 compiledComposition,
-                BuiltInV2BundleRegistry.All[Nt51926GeneralReplaceBundleId]
-                    .CreateMetadataPlan(
-                        Nt51926GeneralReplaceDpProfileId,
-                        Nt51926GeneralReplaceDpProfileVersion,
-                        compiledComposition));
+                registration.CreateMetadataPlan(compiledComposition));
         compiledComposition = resolvedCapability.CompiledComposition;
 
-        if (touchesTpRegion &&
-            StringComparer.Ordinal.Equals(
-                icId,
-                Nt51926GeneralReplaceIcId))
+        if (touchesTpRegion)
         {
             GeneralReplacePostbuildReadinessResult postbuild =
                 await ResolveGeneralReplacePostbuildReadinessAsync(
@@ -333,14 +345,14 @@ public static partial class WorkbenchCompositionService
             return Blocked(
                 materializationIssues,
                 planningOperations,
-                "nt51926-general-replace.bin");
+                registration.DefaultOutputFileName);
         }
 
         InputArtifactBinding[] bindings =
         [
             CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
-                Nt51926GeneralReplaceReferenceSpaceId,
+                GeneralReplaceV2Registration.ReferenceAddressSpaceId,
                 context.BasePath),
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,

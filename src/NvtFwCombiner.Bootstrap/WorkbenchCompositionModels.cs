@@ -170,7 +170,7 @@ public sealed record WorkbenchAbMergeInputInspection(
     public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
 }
 
-/// <summary>One compiled built-in profile summary exposed without its legacy profile model.</summary>
+/// <summary>One compiled built-in profile summary exposed without compiler-internal profile data.</summary>
 public sealed record WorkbenchProfileSummary(
     string ProfileId,
     string IcId,

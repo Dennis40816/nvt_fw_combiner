@@ -163,8 +163,8 @@ public sealed partial class ReplaceCliCommandTests
     public void GeneralReplaceSavedRuleRequiresExactOrderedParentStages()
     {
         SavedRuleV2GeneralReplaceAdmissionContext exact =
-            WorkbenchCompositionService
-                .GetNt51926GeneralReplaceSavedRuleAdmissionContext() with
+            BuiltInV2RegistrationRegistry.GeneralReplaceByIc["NT51926"]
+                .SavedRuleAdmissionContext with
             {
                 ProcessorStageIds = ["stage-a", "stage-b"],
             };

@@ -99,7 +99,7 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
         CompiledComposition composition = compiled.Composition
             .BindCapabilityFingerprint(compiled.CapabilityFingerprint);
 
-        string? mapId = composition.V2Details?.Provenance.ResolvedMap.ImageMap.MapId;
+        string mapId = composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId;
         return !StringComparer.Ordinal.Equals(mapId, route.Identity.MapVariant)
             ? throw new InvalidDataException(
                 $"Compiler map '{mapId}' does not match route '{route.Identity.MapVariant}'.")

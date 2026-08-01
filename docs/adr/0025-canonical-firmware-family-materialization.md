@@ -4,7 +4,7 @@
 - Date: 2026-07-18
 - Owners: Architecture owner + firmware owner
 - Extends: ADR 0022
-- Amended by: ADR 0042 for the `0.10.x` retirement of NT51930
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51930; issue #196 for package trust-index ownership
 
 ## Context
 
@@ -26,9 +26,12 @@ owner and allows the copies to drift even when both manifests claim one hash.
 
 ## Decision
 
-Bootstrap's existing `MaterializeBuiltInProfileBundles` target accepts an explicit
-canonical firmware-family source and bundle-local destination on a declared
-`BuiltInProfileBundle`. The admitted mappings are explicit:
+Bootstrap's `MaterializeBuiltInProfileBundles` target accepts an explicit
+canonical firmware-family source and bundle-local destination from the
+versioned `profiles/built-in/package-trust-index.json`. The trust index is the
+single build, runtime admission, and packaging allowlist; the project file and
+C# registries do not repeat bundle identities. The admitted canonical-family
+mappings are explicit, including these current `0.10.x` projections:
 
 ```text
 profiles/built-in/nt51930-standard-merge/families/nt51930.json
@@ -36,6 +39,19 @@ profiles/built-in/nt51930-standard-merge/families/nt51930.json
 
 profiles/built-in/nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json
   -> materialized nt51917-ctrlram-replace-alias-candidate/families/nt51927-ctrlram-replace.json
+
+profiles/built-in/nt51927-standard-merge/families/nt51927-nt51928.json
+  -> materialized nt51917-nt51927-general-merge-logical-candidate/families/nt51927-nt51928.json
+  -> materialized nt51928-general-merge-logical-candidate/families/nt51927-nt51928.json
+
+profiles/built-in/nt51923-standard-merge/families/nt51923-nt51926.json
+  -> materialized nt51923-nt51926-general-merge-logical-candidate/families/nt51923-nt51926.json
+
+profiles/built-in/nt51928-standard-merge/families/nt51927-nt51928-v1.5.json
+  -> materialized nt51928-dp-replace/families/nt51927-nt51928-v1.5.json
+
+profiles/built-in/nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json
+  -> materialized nt51950-nt51951-general-merge-logical-candidate/families/nt51950-nt51951-dp-perspective.json
 ```
 
 Both metadata values are required together. The source must resolve beneath the
@@ -57,9 +73,9 @@ manifest entry and the pinned bundle hash; it never reads a repository sibling.
   two source owners and an avoidable drift surface.
 - Teach `ProfileBundleLoader` to resolve a sibling family: rejected because it
   would break closed-root deployment and add runtime filesystem authority.
-- Add another manifest field, loader, or family registry: rejected because the
-  existing manifest path/hash and materialization boundary already express the
-  required deployment result.
+- Add another runtime family registry: rejected because the trust index,
+  manifest path/hash, and materialization boundary already express the required
+  deployment result.
 
 ## Consequences
 
@@ -76,7 +92,7 @@ manifest entry and the pinned bundle hash; it never reads a repository sibling.
 
 ## Verification
 
-- Architecture tests lock the two approved mappings, missing/collision/escape
+- Architecture tests lock every approved mapping, missing/collision/escape
   failure checks, each unchanged manifest family path/hash, and absence of
   runtime resolver knowledge.
 - General Merge candidate tests reconstruct a closed test bundle from the same

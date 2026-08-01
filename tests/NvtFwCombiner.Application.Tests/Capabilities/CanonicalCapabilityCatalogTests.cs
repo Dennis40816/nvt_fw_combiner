@@ -329,7 +329,7 @@ public sealed class CanonicalCapabilityCatalogTests
                         [
                             CreateDefinition(CreateCompiledComposition()),
                             CreateDefinition(
-                                CreateCompiledComposition(),
+                                CreateCompiledComposition(alternateRoute.MapVariant),
                                 alternateRoute),
                         ]))));
         _ = catalog.Reload(TestContext.Current.CancellationToken);
@@ -414,7 +414,8 @@ public sealed class CanonicalCapabilityCatalogTests
                 "canonical-golden:nt51929-gen-flash"));
     }
 
-    private static CompiledComposition CreateCompiledComposition()
+    private static CompiledComposition CreateCompiledComposition(
+        string? mapId = null)
     {
         AddressSpace[] addressSpaces =
         [
@@ -445,9 +446,9 @@ public sealed class CanonicalCapabilityCatalogTests
                     OverlapPolicy.Reject,
                     "Copy DP."),
             ]);
-        return CompiledComposition.CreateLegacy(
+        return CompiledCompositionTestFactory.Create(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "synthetic-nt51929-standard-merge",
                 "1.0.0",
                 "NT51929",
@@ -455,13 +456,15 @@ public sealed class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            mapId: mapId ?? Route.MapVariant);
     }
 
     private static CompiledComposition CreateCompiledCompositionWithExternalProcessor()
     {
         AddressSpace[] addressSpaces =
         [
+            new("processor-input", 8, AddressSpaceMutability.Immutable),
             new("output-image", 8, AddressSpaceMutability.Mutable),
         ];
         var invocation = new ExternalProcessorInvocation(
@@ -482,9 +485,9 @@ public sealed class CanonicalCapabilityCatalogTests
                     OverlapPolicy.Reject,
                     "Run the compiled CRC worker."),
             ]);
-        return CompiledComposition.CreateLegacy(
+        return CompiledCompositionTestFactory.Create(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "synthetic-nt51929-standard-merge-with-processor",
                 "1.0.0",
                 "NT51929",
@@ -492,7 +495,8 @@ public sealed class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            CompiledIcNumberPolicy.NotApplicable,
+            mapId: Route.MapVariant);
     }
 
     private sealed class QueueCapabilitySource(

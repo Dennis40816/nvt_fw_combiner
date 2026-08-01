@@ -195,7 +195,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Empty(compactIssues);
         Assert.Empty(extendedIssues);
         Assert.Equal(
-            CanonicalDynamicRouteInventory.Nt51928DualCapacityMapVariantSetId,
+            registration.SelectionGroupMapVariantSetId,
             route.Identity.MapVariant);
         Assert.Equal(
             ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
@@ -567,7 +567,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.NotNull(composition);
         Assert.Equal(
             "nt51919-nt51929-nt51932-perfect-map-256k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(
             "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
             composition.CompilationFingerprint);
@@ -590,7 +590,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CompiledComposition composition,
         string contentHash)
     {
-        V2CompiledCompositionDetails source = composition.V2Details!;
+        V2CompiledCompositionDetails source = composition.V2Details;
         V2CompilationProvenance provenance = source.Provenance;
         var bundle = new ProfileBundleIdentity(
             provenance.Bundle.BundleId,

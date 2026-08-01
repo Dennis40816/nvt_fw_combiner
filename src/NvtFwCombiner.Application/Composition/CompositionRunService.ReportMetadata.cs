@@ -20,7 +20,7 @@ public sealed partial class CompositionRunService
                     plan,
                     authoringRevision: 0,
                     CreateReportMetadataArtifacts(plan, inputBytes),
-                    request.CompiledComposition.V2Details?.Provenance.Context is
+                    request.CompiledComposition.V2Details.Provenance.Context is
                         MapBoundV2CompilationContext context
                             ? context.ResolvedMap.TopologySelection
                             : null));

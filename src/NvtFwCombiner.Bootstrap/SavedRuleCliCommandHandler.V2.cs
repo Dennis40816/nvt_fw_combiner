@@ -202,12 +202,17 @@ internal static partial class SavedRuleCliCommandHandler
             return false;
         }
 
-        SavedRuleV2GeneralReplaceAdmissionContext installed =
-            WorkbenchCompositionService
-                .GetNt51926GeneralReplaceSavedRuleAdmissionContext();
-        if (!StringComparer.Ordinal.Equals(
-                installed.ParentBinding.ProfileId,
-                profileId))
+        SavedRuleV2GeneralReplaceAdmissionContext[] matches =
+        [
+            .. BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Values
+                .Where(registration => StringComparer.Ordinal.Equals(
+                    registration.ProfileId,
+                    profileId))
+                .Select(static registration =>
+                    registration.SavedRuleAdmissionContext)
+                .DistinctBy(static candidate => candidate.ParentBinding),
+        ];
+        if (matches.Length != 1)
         {
             issue = new SavedRuleValidationIssue(
                 SavedRuleIssueCodes.V2ParentNarrowingInvalid,
@@ -216,7 +221,7 @@ internal static partial class SavedRuleCliCommandHandler
             return false;
         }
 
-        context = installed;
+        context = matches[0];
         issue = null;
         return true;
     }

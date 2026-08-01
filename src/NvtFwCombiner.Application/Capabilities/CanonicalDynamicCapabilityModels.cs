@@ -119,28 +119,8 @@ public sealed record CanonicalCapabilityCompilationContract
                 nameof(composition));
         }
 
-        if (composition.Authority is LegacyProfileCompilationAuthority)
-        {
-            if (runtimeReferenceProof is not null)
-            {
-                throw new ArgumentException(
-                    "Legacy compilation cannot retain a runtime-reference proof.",
-                    nameof(runtimeReferenceProof));
-            }
-
-            _ = _allowedMapVariantIds.Contains(
-                    identity.MapVariant,
-                    StringComparer.Ordinal)
-                ? true
-                : throw new ArgumentException(
-                    "Legacy compiled composition selected a route map outside its canonical capability definition.",
-                    nameof(composition));
-            return;
-        }
-
-        V2CompilationProvenance? provenance = composition.V2Details?.Provenance;
-        if (provenance is null ||
-            !StringComparer.Ordinal.Equals(
+        V2CompilationProvenance provenance = composition.V2Details.Provenance;
+        if (!StringComparer.Ordinal.Equals(
                 TrustedDefinitionSha256,
                 provenance.Bundle.ContentHash))
         {
@@ -211,7 +191,7 @@ public sealed record CanonicalCapabilityCompilationContract
     private static IEnumerable<string> GetSelectionGroupBindings(
         CompiledComposition composition)
     {
-        return composition.V2Details!.InputContract.SelectionGroups
+        return composition.V2Details.InputContract.SelectionGroups
             .SelectMany(static group => group.MemberSlotIds);
     }
 
@@ -285,7 +265,7 @@ public sealed record CanonicalCapabilityCompilationContract
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
-        string mapId = composition.V2Details?.Provenance.Context is
+        string mapId = composition.V2Details.Provenance.Context is
             MapBoundV2CompilationContext mapContext
                 ? mapContext.ResolvedMap.ImageMap.MapId
                 : identity.MapVariant;
@@ -299,10 +279,9 @@ public sealed record CanonicalCapabilityCompilationContract
         return new CanonicalCapabilityCompilationContract(
             composition.ProfileId,
             composition.ProfileVersion,
-            composition.V2Details?.Provenance.Bundle.ContentHash ??
-                composition.CompilationFingerprint,
+            composition.V2Details.Provenance.Bundle.ContentHash,
             [validatedMapId],
-            composition.V2Details?.Provenance.Context switch
+            composition.V2Details.Provenance.Context switch
             {
                 RuntimeReferenceReplaceV2CompilationContext =>
                     CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
@@ -310,10 +289,10 @@ public sealed record CanonicalCapabilityCompilationContract
                     CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId,
                 _ => CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
             },
-            composition.V2Details?.InputContract.SelectionGroups
+            composition.V2Details.InputContract.SelectionGroups
                 .SelectMany(static group => group.MemberSlotIds),
             allowsLogicalOutput:
-                composition.V2Details?.Provenance.Context is
+                composition.V2Details.Provenance.Context is
                     LogicalOutputV2CompilationContext);
     }
 }

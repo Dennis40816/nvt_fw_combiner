@@ -152,7 +152,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(new ByteRange(0, Capacity), operation.TargetRange);
         Assert.Equal(
             "nt51926-ctrlram-fw141-full-flash-256k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
 
         CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
             composition.Plan,
@@ -183,13 +183,13 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
         Assert.Equal(
             "f11e8bc970bfebcb803082c9f048b235fd990fba440f5900cbe81e100b3c9cd3",
-            first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
+            first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(
             "d4ca898a8324723a104c690bd64a1db3edf61a217bb6a0a092d600f356a1da27",
             first.CompilationFingerprint);
         Assert.Equal(
-            first.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint,
-            second.V2Details!.Provenance.ResolvedMap.ResolutionFingerprint);
+            first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint,
+            second.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
         Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
     }
 
