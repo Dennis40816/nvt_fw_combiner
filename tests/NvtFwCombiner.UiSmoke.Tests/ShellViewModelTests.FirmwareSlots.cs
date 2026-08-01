@@ -147,7 +147,7 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Verifies NT51951 DPCMI waits for its canonical TP FirmwareConfig prerequisite.</summary>
     [Fact]
-    public async Task BaseFirmwareSlotKeepsDpPendingWithoutTpMetadata()
+    public async Task BaseFirmwareSlotMarksDpUnknownWithoutTpMetadata()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-base-dp-only-facts");
         byte[] bytes = [.. Enumerable.Repeat((byte)0xFF, 0x80000)];
@@ -164,11 +164,23 @@ public sealed partial class ShellViewModelTests
 
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "Pending" &&
-            fact.IsWarning);
+            fact.Value == "Unknown" &&
+            fact.IsUnknown &&
+            fact.UsesLegacyWarningPresentation);
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
         Assert.StartsWith("NT51951_FlashCode_DxxxxTxxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
+        FirmwareSlotFactViewModel localizedUnknown = Assert.Single(
+            viewModel.ReplaceBaseSlot.FirmwareFacts,
+            static fact => fact.IsUnknown);
+        Assert.Equal("未知", localizedUnknown.Value);
+        Assert.Equal("未知", localizedUnknown.StateLabel);
+        Assert.Contains("無法解碼 metadata", localizedUnknown.StateDetail, StringComparison.Ordinal);
+        Assert.Contains("DP", localizedUnknown.StateAutomationText, StringComparison.Ordinal);
+        Assert.Contains("未知", localizedUnknown.StateAutomationText, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>

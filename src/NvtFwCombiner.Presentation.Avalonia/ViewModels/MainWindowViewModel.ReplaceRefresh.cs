@@ -190,6 +190,9 @@ public sealed partial class MainWindowViewModel
                 .Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
+        bool usesSharedSlotPresentation =
+            IsSelectedReplaceModeSupported && SelectedReplaceMode == DpReplaceMode;
+        ReplaceBaseSlot.UsesSharedSlotPresentation = usesSharedSlotPresentation;
         ReplaceSlots.Clear();
         if (IsSelectedReplaceModeSupported &&
             SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
@@ -204,6 +207,7 @@ public sealed partial class MainWindowViewModel
                         SelectedReplaceMode);
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
+                slot.UsesSharedSlotPresentation = usesSharedSlotPresentation;
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
             }

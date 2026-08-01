@@ -8,13 +8,15 @@ public static partial class UiCompositionRunner
     /// <summary>Gets compact firmware facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
         WorkbenchFirmwareInspection inspection,
-        bool includeBaseFacts = false)
+        bool includeBaseFacts = false,
+        ShellTextResources? text = null)
     {
         ArgumentNullException.ThrowIfNull(inspection);
+        text ??= ShellTextResources.For(ShellLanguage.English);
 
         WorkbenchFirmwareConfigMetadata? metadata = inspection.FirmwareConfig;
         IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
-            ? GetDpFirmwareSlotFacts(inspection)
+            ? GetDpFirmwareSlotFacts(inspection, text)
             : [];
         if (metadata is null || (!metadata.IsFirmwareVersionBarValid && !includeBaseFacts))
         {
@@ -24,7 +26,12 @@ public static partial class UiCompositionRunner
         List<FirmwareSlotFactViewModel> facts =
         [
             new("Common FW", metadata.CommonFwVersion),
-            new("TP", FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"), !metadata.IsFirmwareVersionBarValid),
+            new(
+                "TP",
+                FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}-{metadata.FirmwareSubVersion:X2}"),
+                metadata.IsFirmwareVersionBarValid ? FirmwareSlotFactState.Ordinary : FirmwareSlotFactState.Warning,
+                metadata.IsFirmwareVersionBarValid ? null : text.FirmwareSlotWarningLabel,
+                metadata.IsFirmwareVersionBarValid ? null : text.FirmwareSlotWarningFactDetail),
             new("PID", FormattableString.Invariant($"0x{metadata.ProjectId:X4}")),
         ];
         return includeBaseFacts ? [.. dpFacts, .. facts] : facts;
@@ -32,15 +39,25 @@ public static partial class UiCompositionRunner
 
     /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
-        WorkbenchFirmwareInspection inspection)
+        WorkbenchFirmwareInspection inspection,
+        ShellTextResources? text = null)
     {
         ArgumentNullException.ThrowIfNull(inspection);
+        text ??= ShellTextResources.For(ShellLanguage.English);
 
         WorkbenchDpVersionMetadata? legacyMetadata = inspection.DpVersion;
         WorkbenchCmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)
         {
-            return [new FirmwareSlotFactViewModel("DP", "Pending", true)];
+            return
+            [
+                new FirmwareSlotFactViewModel(
+                    "DP",
+                    text.FirmwareSlotUnknownValueLabel,
+                    FirmwareSlotFactState.Unknown,
+                    text.FirmwareSlotUnknownValueLabel,
+                    text.FirmwareSlotUnknownFactDetail),
+            ];
         }
 
         string dpVersion = legacyMetadata is WorkbenchDpVersionMetadata legacy

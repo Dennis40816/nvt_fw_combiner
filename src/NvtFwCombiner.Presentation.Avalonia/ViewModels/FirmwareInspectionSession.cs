@@ -306,7 +306,7 @@ internal static class FirmwareInspectionProjection
         WorkbenchFirmwareInspection inspection,
         ShellTextResources text)
     {
-        slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection));
+        slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection, text));
         slot.SetInputInspection(
             inspection.AbMergeInput!.PrimaryIssue.Severity,
             text.GetAbInputInspectionStatus(inspection.AbMergeInput));
@@ -342,7 +342,8 @@ internal static class FirmwareInspectionProjection
     }
 
     internal static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(
-        WorkbenchFirmwareInspection inspection)
+        WorkbenchFirmwareInspection inspection,
+        ShellTextResources text)
     {
         WorkbenchAbMergeInputInspection abInput = inspection.AbMergeInput ??
             throw new ArgumentException("AB firmware facts require an AB input inspection.", nameof(inspection));
@@ -350,8 +351,12 @@ internal static class FirmwareInspectionProjection
         [
             .. abInput.Versions.Select(version => new FirmwareSlotFactViewModel(
                 ShellTextResources.GetAbVersionLabel(version.Kind),
-                version.JiraBadge is null ? version.Value : $"{version.Value} · {version.JiraBadge}",
-                version.IsUnknown)),
+                version.IsUnknown
+                    ? text.FirmwareSlotUnknownValueLabel
+                    : version.JiraBadge is null ? version.Value : $"{version.Value} · {version.JiraBadge}",
+                version.IsUnknown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
+                version.IsUnknown ? text.FirmwareSlotUnknownValueLabel : null,
+                version.IsUnknown ? text.FirmwareSlotUnknownFactDetail : null)),
             // AB owns the bank-specific TP A/TP B version labels. Reuse the standard
             // typed FWConfig projection for the remaining per-input TP identity facts.
             .. UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
