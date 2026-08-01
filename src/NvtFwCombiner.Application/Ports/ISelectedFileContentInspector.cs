@@ -11,7 +11,31 @@ public interface ISelectedFileContentInspector
     /// <summary>Inspects the complete currently selected file exactly once.</summary>
     ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
+        long maximumBytes,
         CancellationToken cancellationToken);
+}
+
+/// <summary>A selected host file exceeds the caller-resolved inspection ceiling.</summary>
+public sealed class SelectedFileSizeLimitExceededException : Exception
+{
+    /// <summary>Creates one typed pre-hash size rejection.</summary>
+    public SelectedFileSizeLimitExceededException(
+        long observedBytes,
+        long maximumBytes)
+        : base(
+            $"Selected file length {observedBytes} exceeds the resolved maximum {maximumBytes} bytes.")
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(observedBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        ObservedBytes = observedBytes;
+        MaximumBytes = maximumBytes;
+    }
+
+    /// <summary>Whole-file length observed before hashing.</summary>
+    public long ObservedBytes { get; }
+
+    /// <summary>Caller-resolved inclusive whole-file ceiling.</summary>
+    public long MaximumBytes { get; }
 }
 
 /// <summary>

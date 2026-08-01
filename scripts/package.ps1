@@ -124,6 +124,11 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
         sha256 = 'b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff'
     }
 )
+$ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
+    path = 'docs/contracts/canonical-capability-policy-v1.json'
+    role = 'capabilityPolicy'
+    sha256 = '1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034'
+}
 
 function Assert-SupportPublicationPolicyPackageContracts {
     param(
@@ -166,6 +171,8 @@ $ApprovedSupportPublicationPolicyPackagePaths = @(
         ForEach-Object { [string]$_.path } |
         Sort-Object
 )
+$ApprovedCanonicalCapabilityPolicyPackagePath =
+    [string]$ApprovedCanonicalCapabilityPolicyPackageContract.path
 
 function Copy-PackageFile {
     param(
@@ -422,6 +429,49 @@ function Get-SupportPublicationPolicyManifestEntries {
     )
 }
 
+function Copy-CanonicalCapabilityPolicyPackageFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
+
+    $Contract = $ApprovedCanonicalCapabilityPolicyPackageContract
+    $PackagePath = [string]$Contract.path
+    $PublishedPath = Join-Path $PublishedRoot $PackagePath.Replace(
+        '/',
+        [IO.Path]::DirectorySeparatorChar)
+    if (-not (Test-Path -LiteralPath $PublishedPath -PathType Leaf)) {
+        throw "Published canonical capability policy is missing: $PackagePath"
+    }
+    if ((Get-LowerSha256 -Path $PublishedPath) -ne [string]$Contract.sha256) {
+        throw "Published canonical capability policy does not match the approved SHA-256: $PackagePath"
+    }
+    Copy-PackageFileFromRoot `
+        -SourceRoot $PublishedRoot `
+        -RelativePath $PackagePath `
+        -DestinationRoot $DestinationRoot
+}
+
+function Get-CanonicalCapabilityPolicyManifestEntry {
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
+
+    $Contract = $ApprovedCanonicalCapabilityPolicyPackageContract
+    $RelativePath = [string]$Contract.path
+    $Path = Join-Path $PackageRoot $RelativePath.Replace(
+        '/',
+        [IO.Path]::DirectorySeparatorChar)
+    $ActualSha256 = Get-LowerSha256 -Path $Path
+    if ($ActualSha256 -ne [string]$Contract.sha256) {
+        throw "Packaged canonical capability policy does not match the approved SHA-256: $RelativePath"
+    }
+    return [ordered]@{
+        path = $RelativePath
+        size = (Get-Item -LiteralPath $Path).Length
+        sha256 = [string]$Contract.sha256
+        role = [string]$Contract.role
+    }
+}
+
 function Get-BuiltInProfileManifestEntries {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
@@ -498,6 +548,10 @@ function Invoke-ExternalToolPolicyDryRun {
                 -RelativePath $PackagePath `
                 -DestinationRoot $DryRunPublishedRoot
         }
+        Copy-PackageFileFromRoot `
+            -SourceRoot $RepoRoot `
+            -RelativePath $ApprovedCanonicalCapabilityPolicyPackagePath `
+            -DestinationRoot $DryRunPublishedRoot
         $EmptySupportPolicyContractRejected = $false
         try {
             Assert-SupportPublicationPolicyPackageContracts -Contracts @()
@@ -564,6 +618,11 @@ function Invoke-ExternalToolPolicyDryRun {
             -DestinationRoot $DryRunPackageRoot)
         $DryRunSupportPolicyEntries = @(Get-SupportPublicationPolicyManifestEntries `
             -PackageRoot $DryRunPackageRoot)
+        Copy-CanonicalCapabilityPolicyPackageFile `
+            -PublishedRoot $DryRunPublishedRoot `
+            -DestinationRoot $DryRunPackageRoot
+        $DryRunCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
+            -PackageRoot $DryRunPackageRoot
         $DryRunSupportPolicyPathDrift = @(Compare-Object `
                 -ReferenceObject $ApprovedSupportPublicationPolicyPackagePaths `
                 -DifferenceObject @($DryRunSupportPolicyEntries.path))
@@ -587,7 +646,8 @@ function Invoke-ExternalToolPolicyDryRun {
             files =
                 @($DryRunEntries) +
                 @($DryRunProfileEntries) +
-                @($DryRunSupportPolicyEntries)
+                @($DryRunSupportPolicyEntries) +
+                @($DryRunCapabilityPolicyEntry)
         } |
             ConvertTo-Json -Depth 4 |
             Set-Content -LiteralPath $DryRunManifestPath -Encoding utf8NoBOM
@@ -622,6 +682,21 @@ function Invoke-ExternalToolPolicyDryRun {
                     $Entry.sha256 -ne $ExpectedContract[0].sha256
                 }).Count -ne 0) {
             throw 'Persisted release manifest does not pin the approved support publication policy.'
+        }
+        $PersistedCapabilityPolicyEntries = @(
+            $PersistedManifest.files | Where-Object {
+                $_.path -eq $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+                $_.role -eq 'capabilityPolicy'
+            }
+        )
+        if ($PersistedCapabilityPolicyEntries.Count -ne 1 -or
+            $PersistedCapabilityPolicyEntries[0].path -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+            $PersistedCapabilityPolicyEntries[0].role -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.role -or
+            $PersistedCapabilityPolicyEntries[0].sha256 -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.sha256) {
+            throw 'Persisted release manifest does not pin the approved canonical capability policy.'
         }
 
         $FirstBundleDirectory = @(Get-BuiltInProfileBundleDirectories)[0]
@@ -1038,6 +1113,9 @@ $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
 $SupportPublicationPolicyPackagePaths = @(Copy-SupportPublicationPolicyPackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
+Copy-CanonicalCapabilityPolicyPackageFile `
+    -PublishedRoot $AppPublish `
+    -DestinationRoot $PackageRoot
 
 $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
 @'
@@ -1156,6 +1234,8 @@ $BuiltInProfileEntries = @(Get-BuiltInProfileManifestEntries `
     -PackagePaths $BuiltInProfilePackagePaths)
 $SupportPublicationPolicyEntries = @(Get-SupportPublicationPolicyManifestEntries `
     -PackageRoot $PackageRoot)
+$CanonicalCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
+    -PackageRoot $PackageRoot
 $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
 $ReferencePayloadEntries = @(
     $ReferencePayloadFiles | Sort-Object | ForEach-Object {
@@ -1186,7 +1266,8 @@ $FileEntries = @(
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
-) + $BuiltInProfileEntries + $SupportPublicationPolicyEntries + $ExternalToolEntries + $ReferencePayloadEntries
+) + $BuiltInProfileEntries + $SupportPublicationPolicyEntries +
+    @($CanonicalCapabilityPolicyEntry) + $ExternalToolEntries + $ReferencePayloadEntries
 
 $Manifest = [ordered]@{
     schemaVersion = '1.1'
@@ -1272,7 +1353,8 @@ $Expected = (@(
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
 ) + @($BuiltInProfileEntries.path) + @($SupportPublicationPolicyEntries.path) +
-    @($ExternalToolEntries.path) + @($ReferencePayloadEntries.path)) | Sort-Object
+    @($CanonicalCapabilityPolicyEntry.path) + @($ExternalToolEntries.path) +
+    @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(
     Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
         ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |

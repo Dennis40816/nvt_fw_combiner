@@ -183,8 +183,52 @@ public static partial class WorkbenchCompositionService
         GeneralMappingDraftState mappingDraft,
         bool build,
         CancellationToken cancellationToken,
-        string? outputPath = null,
-        GeneralSavedRuleResourcePolicy? savedRulePolicy = null)
+        string? outputPath = null)
+    {
+        return RunGeneralReplaceEphemeralDraftCoreAsync(
+            icId,
+            number,
+            slotPaths,
+            mappingDraft,
+            build,
+            outputPath,
+            savedRulePolicy: null,
+            cancellationToken);
+    }
+
+    /// <summary>Internal Saved Rule boundary after host-resolved lifecycle admission.</summary>
+    internal static ValueTask<WorkbenchRunResult> RunGeneralReplaceEphemeralDraftAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        string? outputPath,
+        GeneralSavedRuleResourcePolicy savedRulePolicy,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(savedRulePolicy);
+        return RunGeneralReplaceEphemeralDraftCoreAsync(
+            icId,
+            number,
+            slotPaths,
+            mappingDraft,
+            build,
+            outputPath,
+            savedRulePolicy,
+            cancellationToken);
+    }
+
+    private static ValueTask<WorkbenchRunResult>
+        RunGeneralReplaceEphemeralDraftCoreAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        string? outputPath,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(number);

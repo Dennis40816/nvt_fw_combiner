@@ -25,7 +25,7 @@ Windows x64 packaging, visible local startup smoke where a desktop is
 available, protected-environment promotion, exact five-asset verification, and
 downloaded-package smoke. Private-runner golden evidence and organizational
 license/legal approval remain separate attestations rather than inferred CI
-results. The published release notes record the 72,004-line runtime metric and
+results. The published release notes record the 72,196-line runtime metric and
 the deferred UI/deletion/Core-convergence scope.
 
 ## 0.10.0 maintainability planning-release candidate

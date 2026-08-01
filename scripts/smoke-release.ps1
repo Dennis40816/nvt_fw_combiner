@@ -41,6 +41,11 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
         sha256 = 'b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff'
     }
 )
+$ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
+    path = 'docs/contracts/canonical-capability-policy-v1.json'
+    role = 'capabilityPolicy'
+    sha256 = '1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034'
+}
 if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {
     throw 'At least one support publication policy package contract is required.'
 }
@@ -228,7 +233,8 @@ try {
             'LICENSE.txt',
             'THIRD-PARTY-NOTICES.txt'
         ) +
-        $ApprovedSupportPublicationPolicyPackagePaths
+        $ApprovedSupportPublicationPolicyPackagePaths +
+        @([string]$ApprovedCanonicalCapabilityPolicyPackageContract.path)
     )
     foreach ($requiredPath in $RequiredPackagePaths) {
         if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $requiredPath) -PathType Leaf)) {
@@ -288,6 +294,31 @@ try {
         if ((Get-LowerSha256 -Path $PolicyPath) -ne [string]$Contract.sha256) {
             throw 'Release package support publication policy does not match the approved SHA-256.'
         }
+    }
+
+    $DeclaredCapabilityPolicyEntries = @(
+        $manifest.files | Where-Object {
+            $_.path -eq $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+            $_.role -eq 'capabilityPolicy'
+        }
+    )
+    if ($DeclaredCapabilityPolicyEntries.Count -ne 1 -or
+        $DeclaredCapabilityPolicyEntries[0].path -ne
+            $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+        $DeclaredCapabilityPolicyEntries[0].role -ne
+            $ApprovedCanonicalCapabilityPolicyPackageContract.role -or
+        $DeclaredCapabilityPolicyEntries[0].sha256 -ne
+            $ApprovedCanonicalCapabilityPolicyPackageContract.sha256) {
+        throw 'Release manifest canonical capability policy identity is inconsistent.'
+    }
+    $CapabilityPolicyPath = Join-Path `
+        $packageRoot `
+        ([string]$ApprovedCanonicalCapabilityPolicyPackageContract.path).Replace(
+            '/',
+            [IO.Path]::DirectorySeparatorChar)
+    if ((Get-LowerSha256 -Path $CapabilityPolicyPath) -ne
+        [string]$ApprovedCanonicalCapabilityPolicyPackageContract.sha256) {
+        throw 'Release package canonical capability policy does not match the approved SHA-256.'
     }
 
     $DeclaredExternalToolEntries = @(

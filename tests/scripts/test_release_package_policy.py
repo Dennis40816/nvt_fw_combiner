@@ -38,6 +38,20 @@ SUPPORT_POLICY_HISTORY = (
     ),
     (SUPPORT_POLICY_RELATIVE_PATH, SUPPORT_POLICY_SHA256),
 )
+CAPABILITY_POLICY_RELATIVE_PATH = Path(
+    "docs/contracts/canonical-capability-policy-v1.json"
+)
+CAPABILITY_POLICY_ROLE = "capabilityPolicy"
+CAPABILITY_POLICY_SHA256 = (
+    "1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034"
+)
+RUNTIME_CAPABILITY_POLICY = (
+    ROOT
+    / "src"
+    / "NvtFwCombiner.Infrastructure"
+    / "Capabilities"
+    / "BuiltInCanonicalCapabilityPolicy.cs"
+)
 APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
@@ -208,6 +222,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         )
 
         self.assertEqual([], errors)
+
+    def test_capability_policy_is_hash_pinned_in_package_and_smoke_allowlists(
+        self,
+    ) -> None:
+        runtime_policy = RUNTIME_CAPABILITY_POLICY.read_text(encoding="utf-8")
+        self.assertIn(CAPABILITY_POLICY_RELATIVE_PATH.as_posix(), runtime_policy)
+        self.assertIn(CAPABILITY_POLICY_SHA256, runtime_policy)
+        for script_path in (PACKAGE_SCRIPT, SMOKE_SCRIPT):
+            script = script_path.read_text(encoding="utf-8")
+            self.assertIn(CAPABILITY_POLICY_RELATIVE_PATH.as_posix(), script)
+            self.assertIn(CAPABILITY_POLICY_ROLE, script)
+            self.assertIn(CAPABILITY_POLICY_SHA256, script)
 
     def test_repository_validator_rejects_support_policy_contract_drift(self) -> None:
         mutations = {
@@ -661,6 +687,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             for required_file in (
                 "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
                 *(path.as_posix() for path, _ in SUPPORT_POLICY_HISTORY),
+                CAPABILITY_POLICY_RELATIVE_PATH.as_posix(),
                 "RELEASE-MANIFEST.json",
                 "SHA256SUMS.txt",
                 "README.txt",
@@ -780,6 +807,64 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout + result.stderr,
         )
 
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_missing_capability_policy(self) -> None:
+        result = self.run_smoke_with_capability_policy(include_policy=False)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{CAPABILITY_POLICY_RELATIVE_PATH.as_posix()}'.",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_repathed_capability_policy(self) -> None:
+        result = self.run_smoke_with_capability_policy(
+            relative_path=Path("canonical-capability-policy-v1.json")
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package is missing required file "
+            f"'{CAPABILITY_POLICY_RELATIVE_PATH.as_posix()}'.",
+            normalize_console_output(result.stdout + result.stderr),
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_wrong_capability_policy_role(self) -> None:
+        result = self.run_smoke_with_capability_policy(role="reference")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest canonical capability policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_release_smoke_rejects_self_consistent_wrong_capability_policy_hash(
+        self,
+    ) -> None:
+        payload = b'{"changed":"but self-consistent"}\n'
+        result = self.run_smoke_with_capability_policy(
+            payload=payload,
+            manifest_sha256=hashlib.sha256(payload).hexdigest(),
+        )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release manifest canonical capability policy identity is inconsistent.",
+            result.stdout + result.stderr,
+        )
+
     def run_smoke_with_manifested_external_tool(
         self, relative_path: Path
     ) -> subprocess.CompletedProcess[str]:
@@ -808,6 +893,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             staged_probe.write_bytes(b"negative release-policy probe\n")
             manifest_entries: list[dict[str, object]] = []
             self.add_valid_support_policy(package_root, manifest_entries)
+            self.add_valid_capability_policy(package_root, manifest_entries)
             manifest_entries.append(
                 {
                     "path": relative_path.as_posix(),
@@ -865,6 +951,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
 
             manifest_entries = []
             self.add_valid_support_policy(package_root, manifest_entries)
+            self.add_valid_capability_policy(package_root, manifest_entries)
             for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
                 external_path = package_root / relative_path
                 external_path.parent.mkdir(parents=True, exist_ok=True)
@@ -934,6 +1021,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 required_path.write_bytes(b"release-policy fixture\n")
 
             manifest_entries: list[dict[str, object]] = []
+            self.add_valid_capability_policy(package_root, manifest_entries)
             for policy_relative_path, policy_sha256 in SUPPORT_POLICY_HISTORY:
                 if policy_relative_path == SUPPORT_POLICY_RELATIVE_PATH:
                     continue
@@ -991,6 +1079,75 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                 "-SkipUiLaunch",
             )
 
+    def run_smoke_with_capability_policy(
+        self,
+        *,
+        include_policy: bool = True,
+        relative_path: Path = CAPABILITY_POLICY_RELATIVE_PATH,
+        role: str = CAPABILITY_POLICY_ROLE,
+        payload: bytes | None = None,
+        manifest_sha256: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-capability-policy-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+
+            for required_file in (
+                "NvtFwCombiner.exe",
+                "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = []
+            self.add_valid_support_policy(package_root, manifest_entries)
+            if include_policy:
+                policy_payload = (
+                    (ROOT / CAPABILITY_POLICY_RELATIVE_PATH).read_bytes()
+                    if payload is None
+                    else payload
+                )
+                policy_path = package_root / relative_path
+                policy_path.parent.mkdir(parents=True, exist_ok=True)
+                policy_path.write_bytes(policy_payload)
+                manifest_entries.append(
+                    {
+                        "path": relative_path.as_posix(),
+                        "size": len(policy_payload),
+                        "sha256": manifest_sha256
+                        or hashlib.sha256(policy_payload).hexdigest(),
+                        "role": role,
+                    }
+                )
+
+            (package_root / "RELEASE-MANIFEST.json").write_text(
+                json.dumps({"files": manifest_entries}),
+                encoding="utf-8",
+            )
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path, "w", compression=zipfile.ZIP_DEFLATED
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            return self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
+
     def add_valid_support_policy(
         self,
         package_root: Path,
@@ -1013,6 +1170,28 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                     "role": SUPPORT_POLICY_ROLE,
                 }
             )
+
+    def add_valid_capability_policy(
+        self,
+        package_root: Path,
+        manifest_entries: list[dict[str, object]],
+    ) -> None:
+        policy_payload = (ROOT / CAPABILITY_POLICY_RELATIVE_PATH).read_bytes()
+        self.assertEqual(
+            CAPABILITY_POLICY_SHA256,
+            hashlib.sha256(policy_payload).hexdigest(),
+        )
+        policy_path = package_root / CAPABILITY_POLICY_RELATIVE_PATH
+        policy_path.parent.mkdir(parents=True, exist_ok=True)
+        policy_path.write_bytes(policy_payload)
+        manifest_entries.append(
+            {
+                "path": CAPABILITY_POLICY_RELATIVE_PATH.as_posix(),
+                "size": len(policy_payload),
+                "sha256": CAPABILITY_POLICY_SHA256,
+                "role": CAPABILITY_POLICY_ROLE,
+            }
+        )
 
 
 if __name__ == "__main__":

@@ -97,9 +97,9 @@ internal static partial class ReplaceCliCommandHandler
                         slotPaths,
                         mappingDraft,
                         build,
-                        token,
                         outputPath,
-                        savedRulePolicy),
+                        savedRulePolicy,
+                        token),
                 output,
                 error,
                 cancellationToken)

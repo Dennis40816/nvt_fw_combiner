@@ -39,12 +39,15 @@ deletion, and Core convergence waves are not part of this release.
   capability fingerprint, while Preview/Build/Report bind the compilation
   fingerprint; selecting an already approved variant no longer creates policy
   churn.
+- Packaging: the portable ZIP now ships the exact hash-pinned
+  `canonical-capability-policy-v1.json`; packaging and smoke reject omission,
+  repathing, role drift, or content-hash drift before publication.
 - Verification: capability census, dynamic compilation, exact processor
   binding, report/naming identity, architecture, firmware-semantic, and full
   repository tests cover every admitted headless route.
 - Limitations: desktop presentation migration and removal of Workbench/legacy
   runtime compatibility owners remain in the next ticket wave. The frozen
-  runtime metric is 72,004 nonblank lines, so the 25,000-line target is not a
+  runtime metric is 72,196 nonblank lines, so the 25,000-line target is not a
   claim of this release.
 
 #### Isolated authoring, General workflows, metadata, and Saved Rule v2
@@ -56,22 +59,28 @@ deletion, and Core convergence waves are not part of this release.
   Rule v2 uses strict identity, controlled storage, exact Trusted Parent
   binding, and typed diagnostic readiness.
 - Affected: all headless Merge/Replace authoring sessions, General Merge,
-  DP-only General Replace Saved Rules, metadata inspection, output naming,
-  Memory Layout projection, CLI Preview/Build, and composition reports.
+  exact Trusted Catalog DP-only General Replace Saved Rules, metadata
+  inspection, output naming, Memory Layout projection, CLI Preview/Build, and
+  composition reports.
 - Support status: support-neutral. General Merge remains blank-image plus
   explicit mappings; General Replace remains immutable-reference plus bounded
   mappings. Diagnostic Preview produces no firmware output when required
   processor authority or runtime readiness is unavailable.
 - Compatibility: Saved Rule v1 remains read-only import compatibility and is
   not silently rewritten. Saved Rule v2 semantic edits invalidate stale
-  compilation identity; existing explicit output paths and normal firmware BIN
-  inputs remain unchanged.
+  compilation identity. A local or imported `--rule` path is always an
+  untrusted Draft and cannot Preview or Build; execution requires the exact
+  approved, evidenced, immutable Trusted Catalog `(ruleId, ruleVersion,
+  contentHash)` identity. Existing explicit output paths and normal firmware
+  BIN inputs remain unchanged.
 - Verification: authoring-session, content-snapshot, initializer, occupancy,
   exact-parent, controlled-storage, CLI, report, metadata, and no-output
   diagnostic tests run through the canonical verifier.
-- Limitations: stage-bearing TP/POSTBUILD Saved Rule execution remains closed
-  pending its own exact processor-range, byte-golden, and firmware-owner gates;
-  native macOS Saved Rule persistence is implemented but not runtime-validated.
+- Limitations: the release has no installed Saved Rule publication catalog, so
+  CLI local/imported Drafts remain validation/mapping inputs only. Stage-bearing
+  TP/POSTBUILD Saved Rule execution remains closed pending its own exact
+  processor-range, byte-golden, and firmware-owner gates; native macOS Saved
+  Rule persistence is implemented but not runtime-validated.
 
 #### Reviewed firmware routes and exact preservation semantics
 
@@ -160,8 +169,8 @@ deletion, and Core convergence waves are not part of this release.
 - Headless canonical foundation is complete, but the full `0.10.x` restructuring
   program is 55.0% complete. Deferred UI, compatibility deletion, legacy
   runtime deletion, and Core convergence remain after this tag.
-- Runtime production size is 72,004 nonblank lines. Reaching 25,000 requires
-  deleting or simplifying 47,004 lines through the approved deletion and Core
+- Runtime production size is 72,196 nonblank lines. Reaching 25,000 requires
+  deleting or simplifying 47,196 lines through the approved deletion and Core
   convergence sequence; `v0.10.1` does not claim that target.
 - Direct AB golden coverage is 2 of 6 cells and support certification is 0 of
   6. NT51919, NT51932, NT51950 Cascade, and NT51951 direct product evidence

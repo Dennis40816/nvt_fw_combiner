@@ -128,13 +128,17 @@ public sealed class GeneralSelectedFileDraftInspectionResult
 public sealed class GeneralSelectedFileInspectionService
 {
     private readonly ISelectedFileContentInspector _inspector;
+    private readonly long _maximumFileBytes;
 
     /// <summary>Creates the shared Application use case over one host adapter.</summary>
     public GeneralSelectedFileInspectionService(
-        ISelectedFileContentInspector inspector)
+        ISelectedFileContentInspector inspector,
+        long maximumFileBytes = int.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(inspector);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFileBytes);
         _inspector = inspector;
+        _maximumFileBytes = maximumFileBytes;
     }
 
     /// <summary>
@@ -262,7 +266,10 @@ public sealed class GeneralSelectedFileInspectionService
         try
         {
             SelectedFileContentInspection inspected =
-                await _inspector.InspectAsync(selectedPath, cancellationToken)
+                await _inspector.InspectAsync(
+                        selectedPath,
+                        _maximumFileBytes,
+                        cancellationToken)
                     .ConfigureAwait(false);
             return new GeneralSelectedFileInspection(
                 definitionId,
@@ -275,6 +282,14 @@ public sealed class GeneralSelectedFileInspectionService
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (SelectedFileSizeLimitExceededException exception)
+        {
+            issues.Add(new GeneralSelectedFileInspectionIssue(
+                GeneralAuthoringIssueCodes.FileSizeExceeded,
+                $"Selected General file is {exception.ObservedBytes} bytes, exceeding the resolved whole-file maximum {exception.MaximumBytes}.",
+                definitionId));
+            return null;
         }
         catch (Exception exception)
         {

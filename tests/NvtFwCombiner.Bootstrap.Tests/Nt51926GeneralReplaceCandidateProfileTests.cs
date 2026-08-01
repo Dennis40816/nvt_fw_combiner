@@ -185,9 +185,17 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 },
                 draft,
                 build: true,
-                TestContext.Current.CancellationToken,
                 outputPath,
-                new GeneralSavedRuleResourcePolicy(forgedIdentity, limits));
+                new GeneralSavedRuleResourcePolicy(
+                    new SavedRuleLifecycleSnapshot(
+                        forgedIdentity,
+                        SavedRuleStorageKind.TrustedCatalog,
+                        SavedRuleLifecycleState.Published,
+                        hasApproval: true,
+                        hasEvidence: true,
+                        isTrusted: true),
+                    limits),
+                TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
         Assert.False(File.Exists(outputPath));

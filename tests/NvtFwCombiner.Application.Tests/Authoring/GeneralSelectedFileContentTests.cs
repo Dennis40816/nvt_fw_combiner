@@ -120,6 +120,35 @@ public sealed class GeneralSelectedFileContentTests
         Assert.Contains(nameof(IOException), issue.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>An inspector size rejection remains the canonical General admission blocker.</summary>
+    [Fact]
+    public async Task InspectionSizeLimitReturnsTypedFileSizeBlocker()
+    {
+        var service = new GeneralSelectedFileInspectionService(
+            new ThrowingSelectedFileContentInspector(
+                new SelectedFileSizeLimitExceededException(5, 4)),
+            maximumFileBytes: 4);
+        var draft = new GeneralMappingDraftState(
+        [
+            FileRow(
+                "mapping-1",
+                sourceStart: 0,
+                targetStart: 0x100,
+                length: 4),
+        ]);
+
+        GeneralSelectedFileDraftInspectionResult result =
+            await service.AcceptDraftAsync(
+                draft,
+                new AuthoringRevision(8),
+                CancellationToken.None);
+
+        GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal(GeneralAuthoringIssueCodes.FileSizeExceeded, issue.Code);
+        Assert.Contains("5 bytes", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("maximum 4", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>An explicit reload cannot silently bind a missing or non-file definition.</summary>
     [Fact]
     public async Task ReloadUnavailableDefinitionAdvancesRevisionWithoutInspecting()
@@ -296,9 +325,11 @@ public sealed class GeneralSelectedFileContentTests
 
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
+            long maximumBytes,
             CancellationToken cancellationToken)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(selectedPath);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             CallCount++;
             return ValueTask.FromResult(_results.Dequeue());
@@ -310,6 +341,7 @@ public sealed class GeneralSelectedFileContentTests
     {
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
+            long maximumBytes,
             CancellationToken cancellationToken)
         {
             return ValueTask.FromException<SelectedFileContentInspection>(exception);

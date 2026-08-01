@@ -206,6 +206,24 @@ public static class SavedRuleLifecycle
     }
 
     /// <summary>
+    /// Returns whether one exact parsed revision was independently resolved as
+    /// the approved, evidenced, immutable Trusted Catalog publication.
+    /// </summary>
+    public static bool IsExecutionAuthorized(
+        SavedRuleExecutionIdentity parsedIdentity,
+        SavedRuleLifecycleSnapshot lifecycle)
+    {
+        ArgumentNullException.ThrowIfNull(parsedIdentity);
+        ArgumentNullException.ThrowIfNull(lifecycle);
+        return lifecycle.Identity == parsedIdentity &&
+            lifecycle.StorageKind == SavedRuleStorageKind.TrustedCatalog &&
+            lifecycle.State == SavedRuleLifecycleState.Published &&
+            lifecycle.HasApproval &&
+            lifecycle.HasEvidence &&
+            lifecycle.IsTrusted;
+    }
+
+    /// <summary>
     /// Determines whether a local save or Catalog-to-working-copy operation is allowed.
     /// Publication into Catalog storage remains a separate gated use case.
     /// </summary>

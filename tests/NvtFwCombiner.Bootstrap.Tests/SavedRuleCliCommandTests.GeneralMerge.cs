@@ -427,6 +427,34 @@ public sealed partial class SavedRuleCliCommandTests
 
     /// <summary>Normal v2 rule consumption closes over output bytes, report values, and Preview/Build identity.</summary>
     [Fact]
+    public async Task GeneralMergePreviewRejectsImportedDraftRuleExecution()
+    {
+        using var workspace = TempWorkspace.Create();
+        string rule = await WriteRuleAsync(
+            workspace,
+            ValidGeneralMergeV2RuleObject());
+        string source = workspace.Write("source.bin", [0x10]);
+
+        CliRunResult result = await RunCliAsync([
+            "general-merge",
+            "preview",
+            "--profile",
+            "NT51950",
+            "--rule",
+            rule,
+            "--slot",
+            $"source-bin={source}",
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            "saved-rule.lifecycle.execution-not-trusted-published",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Normal v2 rule consumption closes over output bytes, report values, and Preview/Build identity.</summary>
+    [Fact]
     public async Task GeneralMergeBuildConsumesV2InitializerAndPreservesPreviewIdentity()
     {
         using var workspace = TempWorkspace.Create();
@@ -436,54 +464,38 @@ public sealed partial class SavedRuleCliCommandTests
         string rule = await WriteRuleAsync(workspace, json);
         string source = workspace.Write("source.bin", [0x10]);
         string output = workspace.PathFor("out.bin");
-        string previewReport = workspace.PathFor("preview-report.json");
-        string buildReport = workspace.PathFor("build-report.json");
+        (GeneralMergeDraftState draft, GeneralSavedRuleResourcePolicy policy) =
+            LoadTrustedGeneralMergeRule(rule, source);
 
-        CliRunResult preview = await RunCliAsync([
-            "general-merge",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--rule",
-            rule,
-            "--slot",
-            $"source-bin={source}",
-            "--report",
-            previewReport,
-        ]);
+        WorkbenchRunResult preview =
+            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+                "NT51950",
+                draft,
+                policy,
+                build: false,
+                TestContext.Current.CancellationToken);
+        WorkbenchRunResult build =
+            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+                "NT51950",
+                draft,
+                policy,
+                build: true,
+                TestContext.Current.CancellationToken,
+                output);
 
-        CliRunResult build = await RunCliAsync([
-            "general-merge",
-            "build",
-            "--profile",
-            "NT51950",
-            "--rule",
-            rule,
-            "--slot",
-            $"source-bin={source}",
-            "--output",
-            output,
-            "--report",
-            buildReport,
-        ]);
-
-        Assert.Equal(0, preview.ExitCode);
-        Assert.Equal(0, build.ExitCode);
+        Assert.True(preview.Succeeded, preview.ReportJson);
+        Assert.True(build.Succeeded, build.ReportJson);
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal([0xA5, 0x10, 0xA5, 0xA5], outputBytes);
 
-        using var previewDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
-            previewReport,
-            TestContext.Current.CancellationToken));
-        using var buildDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
-            buildReport,
-            TestContext.Current.CancellationToken));
+        using var previewDocument = JsonDocument.Parse(preview.ReportJson);
+        using var buildDocument = JsonDocument.Parse(build.ReportJson);
         JsonElement previewRoot = previewDocument.RootElement;
         JsonElement buildRoot = buildDocument.RootElement;
         Assert.Equal(
             previewRoot.GetProperty("CompilationFingerprint").GetString(),
             buildRoot.GetProperty("CompilationFingerprint").GetString());
-        Assert.Contains("PreviewToken: ", preview.Output, StringComparison.Ordinal);
+        Assert.NotNull(preview.PreviewToken);
         JsonElement initialization = buildRoot.GetProperty("ImageInitialization");
         Assert.Equal(4, initialization.GetProperty("Capacity").GetInt64());
         Assert.Equal(0xA5, initialization.GetProperty("FillByte").GetInt32());
@@ -544,21 +556,19 @@ public sealed partial class SavedRuleCliCommandTests
         string rule = await WriteRuleAsync(workspace, json);
         string source = workspace.Write("source.bin", [0x10]);
         string output = workspace.PathFor("out.bin");
+        (GeneralMergeDraftState draft, GeneralSavedRuleResourcePolicy policy) =
+            LoadTrustedGeneralMergeRule(rule, source);
 
-        CliRunResult result = await RunCliAsync([
-            "general-merge",
-            "build",
-            "--profile",
-            "NT51950",
-            "--rule",
-            rule,
-            "--slot",
-            $"source-bin={source}",
-            "--output",
-            output,
-        ]);
+        WorkbenchRunResult result =
+            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+                "NT51950",
+                draft,
+                policy,
+                build: true,
+                TestContext.Current.CancellationToken,
+                output);
 
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.Succeeded, result.ReportJson);
         Assert.Equal(
             [0x00, 0x10, 0x00],
             await File.ReadAllBytesAsync(
@@ -607,39 +617,64 @@ public sealed partial class SavedRuleCliCommandTests
         string secondRule = await WriteRuleAsync(workspace, secondJson, "second-rule.json");
         string source = workspace.Write("source.bin", [0x10]);
 
-        CliRunResult first = await RunCliAsync([
-            "general-merge",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--rule",
-            firstRule,
-            "--slot",
-            $"source-bin={source}",
-        ]);
-        CliRunResult second = await RunCliAsync([
-            "general-merge",
-            "preview",
-            "--profile",
-            "NT51950",
-            "--rule",
-            secondRule,
-            "--slot",
-            $"source-bin={source}",
-        ]);
+        (GeneralMergeDraftState firstDraft, GeneralSavedRuleResourcePolicy firstPolicy) =
+            LoadTrustedGeneralMergeRule(firstRule, source);
+        (GeneralMergeDraftState secondDraft, GeneralSavedRuleResourcePolicy secondPolicy) =
+            LoadTrustedGeneralMergeRule(secondRule, source);
 
-        Assert.Equal(0, first.ExitCode);
-        Assert.Equal(0, second.ExitCode);
-        Assert.NotEqual(ReadPreviewToken(first.Output), ReadPreviewToken(second.Output));
+        WorkbenchRunResult first =
+            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+                "NT51950",
+                firstDraft,
+                firstPolicy,
+                build: false,
+                TestContext.Current.CancellationToken);
+        WorkbenchRunResult second =
+            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+                "NT51950",
+                secondDraft,
+                secondPolicy,
+                build: false,
+                TestContext.Current.CancellationToken);
+
+        Assert.True(first.Succeeded, first.ReportJson);
+        Assert.True(second.Succeeded, second.ReportJson);
+        Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 
-    private static string ReadPreviewToken(string output)
+    private static (
+        GeneralMergeDraftState Draft,
+        GeneralSavedRuleResourcePolicy Policy) LoadTrustedGeneralMergeRule(
+            string rulePath,
+            string sourcePath)
     {
-        const string prefix = "PreviewToken: ";
-        string line = Assert.Single(
-            output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries),
-            static candidate =>
-                candidate.StartsWith(prefix, StringComparison.Ordinal));
-        return line[prefix.Length..];
+        GeneralMergeV2CandidateRegistration registration =
+            BuiltInV2RegistrationRegistry.GeneralMergeByIc["NT51950"];
+        SavedRuleV2DraftLoadResult<GeneralMergeDraftState> load =
+            SavedRuleV2GeneralMergeDraftLoader.Load(
+                rulePath,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["source-bin"] = sourcePath,
+                },
+                registration.Bundle.GetGeneralMergeSavedRuleAdmissionContext(
+                    registration.ProfileId));
+        Assert.True(
+            load.IsValid,
+            string.Join(
+                Environment.NewLine,
+                load.Issues.Select(static issue => issue.Message)));
+        var lifecycle = new SavedRuleLifecycleSnapshot(
+            load.ExecutionIdentity!,
+            SavedRuleStorageKind.TrustedCatalog,
+            SavedRuleLifecycleState.Published,
+            hasApproval: true,
+            hasEvidence: true,
+            isTrusted: true);
+        return (
+            load.Draft!,
+            new GeneralSavedRuleResourcePolicy(
+                lifecycle,
+                load.ResourcePolicy!.Limits));
     }
 }
