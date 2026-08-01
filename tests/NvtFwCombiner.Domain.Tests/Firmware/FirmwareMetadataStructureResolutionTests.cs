@@ -5,7 +5,7 @@ using NvtFwCombiner.Domain.Firmware;
 namespace NvtFwCombiner.Domain.Tests.Firmware;
 
 /// <summary>Tests candidate-scoped locator evaluation against immutable artifact payloads.</summary>
-public sealed class FirmwareMetadataStructureResolutionTests
+public sealed partial class FirmwareMetadataStructureResolutionTests
 {
     private const string FamilyHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
@@ -34,11 +34,16 @@ public sealed class FirmwareMetadataStructureResolutionTests
             result.Resolved);
         Assert.Equal("map", resolved.MapId);
         Assert.Equal(artifact.Identity, resolved.ArtifactIdentity);
+        Assert.Same(structure, resolved.StructureDefinition);
         Assert.Equal(FirmwareMetadataLocatorKind.AbsoluteRange, resolved.LocatorOutcome.LocatorKind);
         Assert.Equal(new ByteRange(4, 2), resolved.LocatorOutcome.ResolvedRange.Range);
         Assert.Null(resolved.LocatorOutcome.MarkerMatchCount);
         Assert.Null(resolved.LocatorOutcome.SelectedMarkerStart);
         Assert.Equal("0001", Assert.Single(resolved.DecodedStructure.Facts).Value.BytesValue?.Hex);
+        FirmwareResolvedMetadataField resolvedField = Assert.Single(resolved.Fields);
+        Assert.Same(structure.Fields[0], resolvedField.Field);
+        Assert.Equal(FirmwareMetadataFieldApplicabilityState.Active, resolvedField.Applicability);
+        Assert.Equal("0001", resolvedField.Value?.BytesValue?.Hex);
     }
 
     /// <summary>Verifies a region-relative result may end at its base-region boundary.</summary>
@@ -221,8 +226,30 @@ public sealed class FirmwareMetadataStructureResolutionTests
 
             Assert.Equal(FirmwareMetadataStructureResolutionStatus.Rejected, result.Status);
             Assert.Equal(FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch, result.Failure);
+            Assert.Equal(
+                selection is FirmwareTerminalMarkerSelection ? 1 : searchBytes.Count(value => value == 0xAA),
+                result.ObservedMarkerMatchCount);
             Assert.Null(result.Resolved);
         }
+    }
+
+    /// <summary>Marker-cardinality count is required exactly for that rejection kind.</summary>
+    [Fact]
+    public void MarkerCardinalityCountCannotBeMissingOrAttachedToAnotherFailure()
+    {
+        FirmwareMetadataStructure structure = Structure(Absolute(0, 2, "allowed"));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            FirmwareMetadataStructureResolution.Rejected(
+                "map",
+                structure,
+                FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch));
+        _ = Assert.Throws<ArgumentException>(() =>
+            FirmwareMetadataStructureResolution.Rejected(
+                "map",
+                structure,
+                FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed,
+                observedMarkerMatchCount: 1));
     }
 
     /// <summary>Verifies marker-selected ranges must stay nonnegative and inside the allowed region.</summary>
@@ -394,9 +421,10 @@ public sealed class FirmwareMetadataStructureResolutionTests
         _ = Assert.IsType<ArgumentException>(startOnly.InnerException);
     }
 
-    private static FirmwareFamilyResolutionDefinition Definition(FirmwareMetadataStructure structure)
+    private static FirmwareFamilyResolutionDefinition Definition(
+        params FirmwareMetadataStructure[] structures)
     {
-        FirmwareMetadataSet metadataSet = MetadataSet("metadata", structure);
+        FirmwareMetadataSet metadataSet = MetadataSet("metadata", structures);
         return Definition([Map("map", [metadataSet])], [metadataSet]);
     }
 
@@ -459,9 +487,12 @@ public sealed class FirmwareMetadataStructureResolutionTests
 
     private static FirmwareMetadataSet MetadataSet(
         string metadataSetId,
-        FirmwareMetadataStructure structure)
+        params FirmwareMetadataStructure[] structures)
     {
-        return new FirmwareMetadataSet(metadataSetId, [structure], ["metadata-evidence"]);
+        return new FirmwareMetadataSet(
+            metadataSetId,
+            structures,
+            ["metadata-evidence"]);
     }
 
     private static FirmwareMetadataStructure Structure(

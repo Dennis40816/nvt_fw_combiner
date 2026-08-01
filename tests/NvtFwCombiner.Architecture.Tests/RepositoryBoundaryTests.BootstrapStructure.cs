@@ -170,16 +170,6 @@ public sealed partial class RepositoryBoundaryTests
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw200-runtime-single.json");
         string fw200CascadeProfile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw200-runtime-cascade.json");
-        string nt51930Profile = ReadText(
-            "profiles/built-in/nt51930-ctrlram-replace-candidate/profiles/nt51930-ctrlram-replace-fw130-cascade3.json");
-        string nt51930SingleProfile = ReadText(
-            "profiles/built-in/nt51930-ctrlram-replace-candidate/profiles/nt51930-ctrlram-replace-fw1x-runtime-single.json");
-        string nt51920SingleProfile = ReadText(
-            "profiles/built-in/nt51920-ctrlram-replace-candidate/profiles/nt51920-ctrlram-replace-fw120-single.json");
-        string nt51920CascadeProfile = ReadText(
-            "profiles/built-in/nt51920-ctrlram-replace-candidate/profiles/nt51920-ctrlram-replace-fw120-cascade2.json");
-        string nt51920Family = ReadText(
-            "profiles/built-in/nt51920-ctrlram-replace-candidate/families/nt51920-ctrlram-replace.json");
         string nt51923SingleProfile = ReadText(
             "profiles/built-in/nt51923-ctrlram-replace-candidate/profiles/nt51923-ctrlram-replace-fw141-single.json");
         string nt51923CascadeProfile = ReadText(
@@ -206,14 +196,8 @@ public sealed partial class RepositoryBoundaryTests
             "profiles/built-in/nt51929-ctrlram-replace-candidate/profiles/nt51919-ctrlram-replace-fw200-single.json");
         string nt51929Family = ReadText(
             "profiles/built-in/nt51929-ctrlram-replace-candidate/families/nt51929-ctrlram-replace.json");
-        string nt51930Family = ReadText(
-            "profiles/built-in/nt51930-ctrlram-replace-candidate/families/nt51930-ctrlram-replace.json");
-        string nt51931Profile = ReadText(
-            "profiles/built-in/nt51931-ctrlram-replace-candidate/profiles/nt51931-ctrlram-replace-fw130-cascade6.json");
-        string nt51931Family = ReadText(
-            "profiles/built-in/nt51931-ctrlram-replace-candidate/families/nt51931-ctrlram-replace.json");
         string nt51932Profile = ReadText(
-            "profiles/built-in/nt51932-ctrlram-replace-candidate/profiles/nt51932-ctrlram-replace-fw200-cascade3.json");
+            "profiles/built-in/nt51932-ctrlram-replace-candidate/profiles/nt51932-ctrlram-replace-fw200-cascade.json");
         string nt51932Family = ReadText(
             "profiles/built-in/nt51932-ctrlram-replace-candidate/families/nt51932-ctrlram-replace.json");
         string nt51950Profile = ReadText(
@@ -231,8 +215,6 @@ public sealed partial class RepositoryBoundaryTests
         string generalProfile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-general-replace-dp-single-candidate.json");
 
-        Assert.DoesNotContain("nt51920-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
-        Assert.DoesNotContain("nt51920-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51923-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51923-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51926-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
@@ -243,24 +225,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("nt51917-ctrlram-replace-alias-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51929-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51929-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
-        Assert.DoesNotContain("nt51930-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
-        Assert.DoesNotContain("nt51930-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
-        Assert.DoesNotContain("nt51931-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
-        Assert.DoesNotContain("nt51931-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51932-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51932-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51950-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51950-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51951-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51951-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
-        Assert.Contains("nt51920-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51923-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51927-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51917-ctrlram-replace-alias-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51929-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51930-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51931-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51932-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51950-ctrlram-replace-candidate", project, StringComparison.Ordinal);
         Assert.Contains("nt51951-ctrlram-replace-candidate", project, StringComparison.Ordinal);
@@ -271,14 +246,20 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("V2RuntimeReferenceReplaceFirmwareVersionEdit", ctrlRamVersionAdapter, StringComparison.Ordinal);
         Assert.Contains(
-            "new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings, firmwareVersionEdit)",
+            "new V2RuntimeReferenceReplaceCompileRequest(",
             ctrlRamV2,
             StringComparison.Ordinal);
+        Assert.Contains("postbuildPolicy", ctrlRamV2, StringComparison.Ordinal);
         Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains(
+            "context.Selection",
+            ctrlRamRuntime,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "ToIcNumberSelection(context.CommandPlan.Selector.Token)",
             ctrlRamRuntime,
             StringComparison.Ordinal);
@@ -286,8 +267,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ProjectId", ctrlRamRoutes, StringComparison.Ordinal);
         Assert.DoesNotContain("ChipNumber", ctrlRamRoutes, StringComparison.Ordinal);
         Assert.Contains("new CtrlRamV2RouteKey(profile.IcId, profile.ProcessorId, branch)", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("Route(\"NT51930\", \"nfc.nt51930.ctrlram-postbuild-fw1.x\", LegacyCombinerPostbuildBranch.SingleChip", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("Route(\"NT51930\", \"nfc.nt51930.ctrlram-postbuild-fw1.x\", LegacyCombinerPostbuildBranch.Cascade", ctrlRamRoutes, StringComparison.Ordinal);
         Assert.DoesNotContain("requiredBaseSha256", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.DoesNotContain("referencePayload.Sha256", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("CompileCtrlRamV2", ctrlRamV2, StringComparison.Ordinal);
@@ -316,13 +295,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-tp-work-240k", fw200CascadeProfile, StringComparison.Ordinal);
         Assert.Contains("nt51926-ctrlram-fw200-full-flash-256k", fw200CascadeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51920SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51920SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("nt51920-ctrlram-fw120-single-full-flash", nt51920SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51920CascadeProfile, StringComparison.Ordinal);
-        Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51920CascadeProfile, StringComparison.Ordinal);
-        Assert.Contains("nt51920-ctrlram-fw120-cascade2-full-flash", nt51920CascadeProfile, StringComparison.Ordinal);
-        Assert.DoesNotContain("metadataPredicates", nt51920Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51923SingleProfile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51923SingleProfile, StringComparison.Ordinal);
         Assert.Contains("nt51923-ctrlram-fw141-single-full-flash", nt51923SingleProfile, StringComparison.Ordinal);
@@ -377,29 +349,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("nfc.nt51919.ctrlram-postbuild-v1", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("nt51929-ctrlram-fw200-single-full-flash", nt51919Profile, StringComparison.Ordinal);
         Assert.Contains("ctrlram-replace-perfect-family-51919-to-51929", nt51919Profile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("\"kind\": \"release\"", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("nfc.nt51930.ctrlram-postbuild-fw1.x", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("nt51930-ctrlram-fw130-cascade3-full-flash", nt51930Profile, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51930SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"firmware-owner-review\"", nt51930SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"icNumberInputMode\": \"single-selector\"", nt51930SingleProfile, StringComparison.Ordinal);
-        Assert.DoesNotContain("diff-ctrlram", nt51930SingleProfile, StringComparison.Ordinal);
-        Assert.Contains("\"topologyRequirement\": { \"kind\": \"none\" }", nt51930Family, StringComparison.Ordinal);
-        Assert.DoesNotContain("metadataPredicates", nt51930Family, StringComparison.Ordinal);
-        Assert.Contains("\"stage\": \"executable-candidate\"", nt51931Profile, StringComparison.Ordinal);
-        Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51931Profile, StringComparison.Ordinal);
-        Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51931Profile, StringComparison.Ordinal);
-        Assert.Contains("nfc.nt51931.ctrlram-postbuild-v1", nt51931Profile, StringComparison.Ordinal);
-        Assert.Contains("nt51931-ctrlram-fw130-cascade6-full-flash", nt51931Profile, StringComparison.Ordinal);
-        Assert.DoesNotContain("metadataPredicates", nt51931Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("\"icNumberInputMode\": \"cascade-selector\"", nt51932Profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51932.ctrlram-postbuild-v1", nt51932Profile, StringComparison.Ordinal);
-        Assert.Contains("nt51932-ctrlram-fw200-cascade3-full-flash", nt51932Profile, StringComparison.Ordinal);
+        Assert.Contains("nt51932-ctrlram-fw200-cascade-full-flash", nt51932Profile, StringComparison.Ordinal);
         Assert.DoesNotContain("metadataPredicates", nt51932Family, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", nt51950Profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-no-promotion\"", nt51950Profile, StringComparison.Ordinal);
@@ -421,7 +375,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsNt51926GeneralReplaceDpV2Route", generalRuntime, StringComparison.Ordinal);
         Assert.Contains("StringComparer.Ordinal.Equals(icId, \"NT51926\")", generalV2, StringComparison.Ordinal);
         Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
-        Assert.Contains("context.SelectedPatches.Length != 0", generalV2, StringComparison.Ordinal);
+        Assert.Contains(
+            "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",
+            generalV2,
+            StringComparison.Ordinal);
         Assert.Contains("region.Range.Contains(mapping.TargetRange)", generalV2, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", generalProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"blockerId\": \"full-route-parity\"", generalProfile, StringComparison.Ordinal);
@@ -542,7 +499,7 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("public const string MergeDp = \"merge-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string MergeTp = \"merge-tp\"", slotIds, StringComparison.Ordinal);
-        Assert.Contains("public const string MergeLd = \"merge-ld\"", slotIds, StringComparison.Ordinal);
+        Assert.Contains("public const string MergeLdc = \"merge-ldc\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceBase = \"replace-base\"", slotIds, StringComparison.Ordinal);
         Assert.Contains("public const string ReplaceDp = \"replace-dp\"", slotIds, StringComparison.Ordinal);
         Assert.Contains(
@@ -553,7 +510,7 @@ public sealed partial class RepositoryBoundaryTests
         {
             "\"merge-dp\"",
             "\"merge-tp\"",
-            "\"merge-ld\"",
+            "\"merge-ldc\"",
             "\"replace-base\"",
             "\"replace-dp\"",
             "\"replace-ctrlram-",

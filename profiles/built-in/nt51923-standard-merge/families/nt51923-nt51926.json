@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51923-nt51926",
-  "familyVersion": "1.0.0",
+  "familyVersion": "1.1.0",
   "members": [
     {
       "memberId": "NT51923",
@@ -72,7 +72,200 @@
       ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "nt51923-normal-tp-flash-header-metadata",
+      "structures": [
+        {
+          "structureId": "nt51923-normal-tp-flash-header",
+          "artifactBindingId": "tp-input",
+          "length": 256,
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 0,
+            "allowedResultRegionId": "tp-code"
+          },
+          "fields": [
+            { "fieldId": "ilm-start-address-in-bin", "offset": 0, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-destination-address-in-sram", "offset": 4, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-size", "offset": 8, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-start-address-in-bin", "offset": 12, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-destination-address-in-sram", "offset": 16, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-size", "offset": 20, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-crc-0", "offset": 24, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "dlm-crc-0", "offset": 28, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "same-code", "offset": 32, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "spi-option", "offset": 33, "widthBytes": 3, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "svn-auto-build-version", "offset": 36, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ov-info", "offset": 40, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-destination-address-in-sram", "offset": 48, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-start-address-in-bin", "offset": 56, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-crc", "offset": 60, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-destination-address-in-sram", "offset": 64, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-start-address-in-bin", "offset": 72, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-crc", "offset": 76, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-destination-address-in-sram", "offset": 80, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-start-address-in-bin", "offset": 88, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-crc", "offset": 92, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-destination-address-in-sram", "offset": 240, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-size", "offset": 244, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-start-address-in-bin", "offset": 248, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-crc", "offset": 252, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" }
+          ],
+          "assertions": [],
+          "relations": [],
+          "structureKind": "tp-flash-header",
+          "tpFlashHeader": {
+            "spans": [
+              { "spanId": "complete-header", "range": { "start": 0, "length": 256 } }
+            ],
+            "fieldSemantics": [
+              { "fieldId": "ilm-start-address-in-bin", "spanId": "complete-header", "subject": "ilm", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "ilm-destination-address-in-sram", "spanId": "complete-header", "subject": "ilm", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "ilm-size", "spanId": "complete-header", "subject": "ilm", "role": "size" },
+              { "fieldId": "data-start-address-in-bin", "spanId": "complete-header", "subject": "data", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "data-destination-address-in-sram", "spanId": "complete-header", "subject": "data", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "data-size", "spanId": "complete-header", "subject": "data", "role": "size" },
+              { "fieldId": "ilm-crc-0", "spanId": "complete-header", "subject": "ilm", "role": "integrity-value" },
+              { "fieldId": "dlm-crc-0", "spanId": "complete-header", "subject": "dlm", "role": "integrity-value" },
+              { "fieldId": "same-code", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "spi-option", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "svn-auto-build-version", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "ov-info", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "fw-config-destination-address-in-sram", "spanId": "complete-header", "subject": "firmware-config", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "fw-config-start-address-in-bin", "spanId": "complete-header", "subject": "firmware-config", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "fw-config-crc", "spanId": "complete-header", "subject": "firmware-config", "role": "integrity-value" },
+              { "fieldId": "ctrlram-destination-address-in-sram", "spanId": "complete-header", "subject": "ctrlram", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "ctrlram-start-address-in-bin", "spanId": "complete-header", "subject": "ctrlram", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "ctrlram-crc", "spanId": "complete-header", "subject": "ctrlram", "role": "integrity-value" },
+              { "fieldId": "mp-ctrlram-destination-address-in-sram", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "mp-ctrlram-start-address-in-bin", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "mp-ctrlram-crc", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "integrity-value" },
+              { "fieldId": "header-destination-address-in-sram", "spanId": "complete-header", "subject": "header", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "header-size", "spanId": "complete-header", "subject": "header", "role": "size" },
+              { "fieldId": "header-start-address-in-bin", "spanId": "complete-header", "subject": "header", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "header-crc", "spanId": "complete-header", "subject": "header", "role": "integrity-value" }
+            ],
+            "fieldSeries": [],
+            "fieldGroups": [
+              {
+                "groupId": "header-integrity-values",
+                "fieldIds": ["ilm-crc-0", "dlm-crc-0", "fw-config-crc", "ctrlram-crc", "mp-ctrlram-crc", "header-crc"],
+                "seriesIds": []
+              },
+              {
+                "groupId": "tp-bin-start-addresses",
+                "fieldIds": ["ilm-start-address-in-bin", "data-start-address-in-bin", "fw-config-start-address-in-bin", "ctrlram-start-address-in-bin", "mp-ctrlram-start-address-in-bin", "header-start-address-in-bin"],
+                "seriesIds": []
+              }
+            ]
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51923-golden",
+        "tddi-flash-header-workbook-920-923"
+      ]
+    },
+    {
+      "metadataSetId": "nt51926-normal-tp-flash-header-metadata",
+      "structures": [
+        {
+          "structureId": "nt51926-normal-tp-flash-header",
+          "artifactBindingId": "tp-input",
+          "length": 256,
+          "locator": {
+            "kind": "region-relative",
+            "regionId": "tp-code",
+            "offset": 0,
+            "allowedResultRegionId": "tp-code"
+          },
+          "fields": [
+            { "fieldId": "ilm-start-address-in-bin", "offset": 0, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-destination-address-in-sram", "offset": 4, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-size", "offset": 8, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-start-address-in-bin", "offset": 12, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-destination-address-in-sram", "offset": 16, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "data-size", "offset": 20, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ilm-crc-0", "offset": 24, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "dlm-crc-0", "offset": 28, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "cascade-info", "offset": 32, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "spi-option", "offset": 33, "widthBytes": 1, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "t6-t4", "offset": 34, "widthBytes": 2, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "svn-auto-build-version", "offset": 36, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ov-info", "offset": 40, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-destination-address-in-sram", "offset": 48, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-start-address-in-bin", "offset": 56, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "fw-config-crc", "offset": 60, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-destination-address-in-sram", "offset": 64, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-start-address-in-bin", "offset": 72, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "ctrlram-crc", "offset": 76, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-destination-address-in-sram", "offset": 80, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-start-address-in-bin", "offset": 88, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "mp-ctrlram-crc", "offset": 92, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-destination-address-in-sram", "offset": 240, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-size", "offset": 244, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-start-address-in-bin", "offset": 248, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" },
+            { "fieldId": "header-crc", "offset": 252, "widthBytes": 4, "encoding": "unsigned-integer", "byteOrder": "little" }
+          ],
+          "assertions": [],
+          "relations": [],
+          "structureKind": "tp-flash-header",
+          "tpFlashHeader": {
+            "spans": [
+              { "spanId": "complete-header", "range": { "start": 0, "length": 256 } }
+            ],
+            "fieldSemantics": [
+              { "fieldId": "ilm-start-address-in-bin", "spanId": "complete-header", "subject": "ilm", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "ilm-destination-address-in-sram", "spanId": "complete-header", "subject": "ilm", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "ilm-size", "spanId": "complete-header", "subject": "ilm", "role": "size" },
+              { "fieldId": "data-start-address-in-bin", "spanId": "complete-header", "subject": "data", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "data-destination-address-in-sram", "spanId": "complete-header", "subject": "data", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "data-size", "spanId": "complete-header", "subject": "data", "role": "size" },
+              { "fieldId": "ilm-crc-0", "spanId": "complete-header", "subject": "ilm", "role": "integrity-value" },
+              { "fieldId": "dlm-crc-0", "spanId": "complete-header", "subject": "dlm", "role": "integrity-value" },
+              { "fieldId": "cascade-info", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "spi-option", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "t6-t4", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "svn-auto-build-version", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "ov-info", "spanId": "complete-header", "subject": "header", "role": "option" },
+              { "fieldId": "fw-config-destination-address-in-sram", "spanId": "complete-header", "subject": "firmware-config", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "fw-config-start-address-in-bin", "spanId": "complete-header", "subject": "firmware-config", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "fw-config-crc", "spanId": "complete-header", "subject": "firmware-config", "role": "integrity-value" },
+              { "fieldId": "ctrlram-destination-address-in-sram", "spanId": "complete-header", "subject": "ctrlram", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "ctrlram-start-address-in-bin", "spanId": "complete-header", "subject": "ctrlram", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "ctrlram-crc", "spanId": "complete-header", "subject": "ctrlram", "role": "integrity-value" },
+              { "fieldId": "mp-ctrlram-destination-address-in-sram", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "mp-ctrlram-start-address-in-bin", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "mp-ctrlram-crc", "spanId": "complete-header", "subject": "mp-ctrlram", "role": "integrity-value" },
+              { "fieldId": "header-destination-address-in-sram", "spanId": "complete-header", "subject": "header", "role": "destination-address", "storedAddress": { "addressSpaceId": "sram", "basis": "absolute" } },
+              { "fieldId": "header-size", "spanId": "complete-header", "subject": "header", "role": "size" },
+              { "fieldId": "header-start-address-in-bin", "spanId": "complete-header", "subject": "header", "role": "tp-bin-start-address", "storedAddress": { "addressSpaceId": "tp-bin", "basis": "tp-bin-offset" } },
+              { "fieldId": "header-crc", "spanId": "complete-header", "subject": "header", "role": "integrity-value" }
+            ],
+            "fieldSeries": [],
+            "fieldGroups": [
+              {
+                "groupId": "header-integrity-values",
+                "fieldIds": ["ilm-crc-0", "dlm-crc-0", "fw-config-crc", "ctrlram-crc", "mp-ctrlram-crc", "header-crc"],
+                "seriesIds": []
+              },
+              {
+                "groupId": "tp-bin-start-addresses",
+                "fieldIds": ["ilm-start-address-in-bin", "data-start-address-in-bin", "fw-config-start-address-in-bin", "ctrlram-start-address-in-bin", "mp-ctrlram-start-address-in-bin", "header-start-address-in-bin"],
+                "seriesIds": []
+              }
+            ]
+          }
+        }
+      ],
+      "evidenceRefs": [
+        "gen-flash-bin-v2-51926-golden",
+        "tddi-flash-header-workbook-925-926"
+      ]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51923-standard-merge-256k",
@@ -93,7 +286,9 @@
       "regionSetIds": [
         "nt51923-nt51926-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51923-normal-tp-flash-header-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51923-golden"
       ]
@@ -117,7 +312,9 @@
       "regionSetIds": [
         "nt51923-nt51926-standard-merge-flash"
       ],
-      "metadataSetIds": [],
+      "metadataSetIds": [
+        "nt51926-normal-tp-flash-header-metadata"
+      ],
       "evidenceRefs": [
         "gen-flash-bin-v2-51926-golden"
       ]
@@ -126,6 +323,8 @@
   "factAliases": [],
   "evidenceRefs": [
     "gen-flash-bin-v2-51923-golden",
-    "gen-flash-bin-v2-51926-golden"
+    "gen-flash-bin-v2-51926-golden",
+    "tddi-flash-header-workbook-920-923",
+    "tddi-flash-header-workbook-925-926"
   ]
 }

@@ -35,16 +35,36 @@ commit.
 - `v0.9.14` — AB architecture re-admission, targeted UI correctness, and release-automation milestone: re-audit the first owner-approved AB family under ADR 0032, add typed load diagnostics and the minimum AB authoring UI, add IC detail disclosure, fix file-hover hit testing, modal/action-rail layering, action-rail consistency, and empty Replace coverage semantics, reduce duplicate Actions work, and move stable tag/release creation behind one protected CI promotion.
 - `v0.9.15` — AB Code function-open, delivery-readiness, and review-automation milestone: start only from the official `v0.9.14` release commit, open the reviewed NT51919/NT51929/NT51932 route plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, complete owner-authorized AB input/output usability and reviewer-facing delivery automation, and retain code size as a non-blocking review metric. Direct-golden debt remains visible for support certification; it does not block these function-open routes. The shared Hex viewport, Changes redesign, and global Button-feedback backlog are deferred to a later owner-selected milestone.
 - `v0.9.16` — exceptional CRC/header-authority hot-fix from official `v0.9.15`: classify owner-approved CRC write windows, correct Replace/AB UI state and coverage, skip DP metadata inspection for TP firmware, and add the owner-approved NT51929 single Normal CtrlRAM golden. The former NT51950 AB certification assignment moved to the active `0.11.0` evidence track.
+- `v0.9.17` — separately approved DiffDLM active-Diff-NF preservation hot-fix
+  from official `v0.9.16`: mask only the 929-like and 950-like Cascade routes,
+  preserve their active NF bytes before existing CRC/Postbuild processing,
+  rename the selector to `DiffDLM`, make every independent NF slot unavailable
+  on those Cascade routes, and hide NT51920/NT51925/NT51930/NT51931 from the
+  `0.9.17` user-facing IC lists. It does not backport the `0.10.x` architecture
+  or certify the 950-like route without its direct golden.
+- `v0.9.18` — independently reviewed NT51928 compatibility hot-fix from
+  `v0.9.17`: make LDC optional in Standard Merge, admit the isolated `0x40000`
+  no-LDC output, and allow Initial Code, LDC, or both against the exact
+  `0x80000` DP Replace reference. It is support-neutral and does not import the
+  `0.10.x` canonical architecture.
 - `v0.10.0` — support-neutral maintainability planning release from official
   `v0.9.16`: publish the approved IC-first architecture, terminology, FlashMap
-  evidence provenance, ADR lifecycle, validation standards, and #170–#197
-  dependency plan. It starts no production refactor and makes no firmware or
-  support-promotion claim.
+  evidence provenance, ADR lifecycle, validation standards, and the canonical
+  `0.10.x` dependency plan. It starts no production refactor and makes no
+  firmware or support-promotion claim.
+- `v0.10.1` — headless canonical foundation release: integrate the reviewed
+  `0.10.x` implementation line after all 78 admitted headless routes converge
+  on canonical capability resolution and one exact compiled composition. It
+  includes the reviewed firmware contracts and retirements allocated through
+  #194, keeps missing golden/support gates explicit, and leaves the desktop UI,
+  compatibility deletion, legacy runtime deletion, and Core convergence waves
+  for later releases.
 
-The untagged `0.9.17` and `0.9.18` planning proposals were superseded before
-release. They are not valid tag or branch names; their former certification and
-family-evidence scope belongs to the active `0.11.0` roadmap after the final
-`0.10.x` integration release.
+The original `0.9.17` certification and `0.9.18` family-model proposals were
+superseded before release. The owner subsequently reused those version numbers
+for the bounded DiffDLM and NT51928 compatibility hot-fixes above; neither
+assignment revives the former certification/family-model scope or becomes
+alternate `0.10.x` architecture authority.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -76,14 +96,26 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.14` starts from stable `v0.9.13`/`main` commit `f9f8dbcd979ecdef43f432016787e57763819492`. It owns AB re-admission as an R3 track under ADR 0032, typed input diagnostics, the minimum AB authoring surface, IC detail disclosure, targeted hover/modal/action-rail/coverage UI fixes, canonical toolchain/CI efficiency, and protected CI-owned stable release promotion. Existing AB candidates remain hidden until their exact route, evidence, review, and firmware-owner gates close.
 - `0.9.15` starts from official `v0.9.14` tag `58f5bbf4cdbfb4e02036c8c1b40c48aa88fa21f7`, peeled commit `9b15d8757ccb44167c471ca4e602036066bcdea9`. It opens the reviewed NT51919/NT51929/NT51932 AB function plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 in UI/CLI, and owns output-name/input-inspection correctness plus delivery-to-review automation. All five routes remain function-open but support certification is not promoted. Direct-golden debt is explicit support-certification evidence, not a function gate. Cross-workflow header/Evidence/Memory coverage unification, the shared viewport, Changes redesign, and global Button feedback must be reassigned to a later owner-selected milestone before implementation.
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns only the exceptional CRC/header-authority, Replace/AB UI correctness, TP inspection, and NT51929 golden hot-fix; it does not certify an AB route or absorb the former NT51950 AB certification assignment.
+- `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns
+  only the DiffDLM active-NF preservation, selector rename, and selector-list
+  retirement compatibility work declared above; it does not broaden support,
+  alter the full-replace routes, or import the `0.10.x` architecture.
+- `0.9.18` is the independently reviewed NT51928 optional-input maintenance
+  branch whose exact head was published as `v0.9.18`; it does not merge its
+  product commits into `main` or redefine the `0.10.x` implementation line.
 - `0.10.0` starts only from the official reviewed `v0.9.16` release tag. It is
   a planning and governance release; later `0.10.x` version allocation follows
-  the approved #170–#197 dependency graph rather than this tag.
+  the canonical dependency plan rather than this tag.
+- `0.10.1` integrates the exact reviewed `0.10.x` head into the protected-main
+  lineage after the headless foundation and its R3 review gates complete. It
+  does not allocate the remaining UI/deletion/Core-convergence tickets or
+  silently promote `ContractOnly`/missing-golden routes.
 
-The former `0.9.17`/`0.9.18` delivery roadmap remains historical evidence only.
-Active post-`0.10.x` sequencing is maintained in the
-[NFC Roadmap](../architecture/nfc_roadmap.md); a release planner must not
-recreate the superseded branch names.
+The former `0.9.17` certification and `0.9.18` family-model delivery roadmap
+remains historical evidence only. The bounded maintenance releases that reused
+those version numbers do not restore the superseded scopes. Active
+post-`0.10.x` sequencing is maintained in the
+[NFC Roadmap](../architecture/nfc_roadmap.md).
 
 Pre-tag `0.9.x` feature development is permitted for candidate-only work under
 the [roadmap policy](../architecture/0.9.x-completion-roadmap.md#pre-tag-candidate-development-policy).
@@ -101,7 +133,15 @@ This exception does not permit direct `main` merges, automatic tags, support pro
 
 ## Milestone scope
 
-Current execution priority: normal Merge and normal Replace for DP Replace and CtrlRAM Replace workflows are pulled forward. The `0.9.15` AB Merge function is open in UI/CLI for NT51919/NT51929/NT51932, NT51950 `1 IC`/`Cascade`, and selector-free NT51951; its profile/IC/topology route is never selected from TP metadata. This remains a function-availability statement, not a support claim: each direct-golden and firmware-owner certification gate stays explicit. Standard Merge has executable profiles for the uploaded golden-backed gen_flash set, owner-confirmed NT51917/NT51919 aliases, NT51930 flash-map, and NT51950/NT51951 DP Perspective cases. NT51930 and NT51950/NT51951 now have owner golden fixtures indexed under `testdata/golden/canonical`; support exposure still requires firmware-owner sign-off. Replace now has profile-driven DP Replace authoring for all 13 selectable ICs; NT51928 non-NB additionally requires its separate full-FlashCode-shaped LDC input. Authoring availability is support-neutral and does not change golden or firmware-owner release gates. CtrlRAM per-region Preview/Build continues through staged Combiner postbuild, and CtrlRAM parity still needs private golden outputs and firmware-owner review.
+Legacy implementation state before the `0.10.x` retirement: normal Merge and
+normal Replace had executable routes across the former 13-IC inventory. The
+`0.9.15` AB Merge function remains open in UI/CLI for NT51919/NT51929/NT51932,
+NT51950 `1 IC`/`Cascade`, and selector-free NT51951; its profile/IC/topology
+route is never selected from TP metadata. This remains a function-availability
+statement, not a support claim. ADR 0042/#221 remove NT51920, NT51925,
+NT51930, and NT51931 from the `0.10.x` target instead of migrating that entire
+legacy inventory. Historical golden and FlashMap evidence stays support-neutral
+and cannot re-admit a retired IC.
 
 | Milestone | Scope | Implementation boundary |
 | --- | --- | --- |
@@ -133,7 +173,10 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.14` | AB re-admission and targeted UI correctness | Deliver separately gated typed AB production authority, the minimum AB authoring UI, IC details, and owner-approved hover, modal/action-rail, and empty Replace coverage fixes. |
 | `v0.9.15` | AB function open, delivery readiness, and review automation | Open NT51919/NT51929/NT51932 plus NT51950 `1 IC`/`Cascade` and selector-free NT51951 AB routes. Direct-golden debt blocks support certification, not function availability. Shared viewport/Changes/Button Presentation work is deferred pending a new owner-selected milestone. |
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
-| `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and dependency-gated #170–#197 execution plan without changing firmware behavior or support truth. |
+| `v0.9.17` | Exceptional DiffDLM active-NF preservation hot-fix | Preserve active reference NF for 929-like and 950-like Cascade DiffDLM routes, rename the selector, make every independent NF slot unavailable on those routes, hide the four retired IC choices, and retain Single/full-replace behavior. |
+| `v0.9.18` | NT51928 optional-input compatibility hot-fix | Make LDC optional in Standard Merge and allow Initial Code, LDC, or both in DP Replace while retaining exact declared capacities and support-neutral status. |
+| `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and canonical dependency-gated execution plan without changing firmware behavior or support truth. |
+| `v0.10.1` | Headless canonical foundation | Complete all 78 admitted headless routes, reviewed capability/per-compilation identity, allocated firmware contracts, and explicit retirements without claiming deferred UI, deletion, Core convergence, or support certification. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -186,7 +229,10 @@ v0.9.13         urgent UI and release stabilization
 v0.9.14         separately gated AB re-admission and targeted UI correctness fixes
 v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         exceptional CRC/header-authority and UI-correctness hot-fix
+v0.9.17         exceptional DiffDLM active-NF preservation hot-fix
+v0.9.18         NT51928 optional-input compatibility hot-fix
 v0.10.0         maintainability planning and dependency-gated execution program
+v0.10.1         headless canonical foundation and reviewed firmware contracts
 v1.0.0          stable
 ```
 

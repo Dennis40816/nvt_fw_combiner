@@ -100,7 +100,9 @@ public static partial class WorkbenchCompositionService
     private static WorkbenchProfileSummary? FindStandardMergeProfileSummaryByIc(string icId)
     {
         ArgumentNullException.ThrowIfNull(icId);
-        return BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(icId)?.CreateProfileSummary();
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
+        return BuiltInV2RegistrationRegistry.StandardMergeByIc
+            .GetValueOrDefault(normalizedIcId)?.CreateProfileSummary();
     }
 
     /// <summary>Gets catalog and tool summary data for the Settings page.</summary>

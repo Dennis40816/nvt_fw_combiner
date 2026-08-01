@@ -7,6 +7,28 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
+    /// <summary>Logical-output compilation identity also references, rather than repeats, capability provenance.</summary>
+    [Fact]
+    public void CapabilityBoundLogicalOutputFingerprintAddsOnlyExactCompilationState()
+    {
+        const string capabilityFingerprint =
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+        CompiledComposition baseline = CreateLogicalOutputCandidate()
+            .BindCapabilityFingerprint(capabilityFingerprint);
+        CompiledComposition changedDefinitionProvenance =
+            CreateLogicalOutputCandidate(
+                    bundleContentHash: new string('e', 64),
+                    profileEvidenceReference: "other-evidence")
+                .BindCapabilityFingerprint(capabilityFingerprint);
+
+        Assert.Equal(
+            "eecd905e3d35caee8b93fc268c6a8853b686811186b771b7e98f2ae33553e879",
+            baseline.CompilationFingerprint);
+        Assert.Equal(
+            baseline.CompilationFingerprint,
+            changedDefinitionProvenance.CompilationFingerprint);
+    }
+
     /// <summary>Verifies the narrow logical-output candidate is admitted without admitting map-bound V2 plan candidates.</summary>
     [Fact]
     public void RequestAcceptsExecutableCandidateLogicalOutputBindings()
@@ -191,7 +213,10 @@ public sealed partial class CompositionRunRequestV2Tests
     }
 
     private static CompiledComposition CreateLogicalOutputCandidate(
-        CompiledProfilePromotionStage stage = CompiledProfilePromotionStage.ExecutableCandidate)
+        CompiledProfilePromotionStage stage = CompiledProfilePromotionStage.ExecutableCandidate,
+        string bundleContentHash =
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        string profileEvidenceReference = "logical-profile-evidence")
     {
         var plan = new CompositionPlan(
             [ImageInitialization.Blank("output-image", 6, 0)],
@@ -225,7 +250,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new ProfileBundleIdentity(
                 "logical-bundle-v2",
                 "1.0.0",
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                bundleContentHash,
                 "release-binding"),
             new ProfileBundleEntryIdentity(
                 "logical-profile-entry",
@@ -236,7 +261,7 @@ public sealed partial class CompositionRunRequestV2Tests
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 "NT-SYNTHETIC"),
             new CompiledProfilePromotion(stage, []),
-            ["logical-profile-evidence"],
+            [profileEvidenceReference],
             [],
             []);
         var identity = new V2CompiledCompositionIdentity(

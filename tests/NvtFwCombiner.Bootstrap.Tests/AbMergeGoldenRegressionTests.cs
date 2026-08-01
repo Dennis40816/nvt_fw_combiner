@@ -16,9 +16,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class AbMergeGoldenRegressionTests
 {
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
-    private const string Nt51929BundleContentHash = "93902043b6e4ea4c8a2023a7f02c798e4497de3523b21115797e9b302ce22292";
+    private const string Nt51929BundleContentHash = "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "abdd907710be94470937f4f6ee9c250e9ec1f90c4cbd1d10134584ef15878206";
+    private const string Nt51950BundleContentHash = "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -41,6 +41,22 @@ public sealed class AbMergeGoldenRegressionTests
         Assert.Empty(result.Issues);
         Assert.Equal(expected, result.OutputBytes.ToArray());
         Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
+        Assert.Equal(
+            inputs["tp-a-input"].AsSpan(0x7000, 0x39000).ToArray(),
+            result.OutputBytes.Span.Slice(0x7000, 0x39000).ToArray());
+        Assert.Equal(
+            [
+                ("relocate-tpb-ilm", "tp-b-work", new ByteRange(0x7164, sizeof(uint))),
+                ("relocate-tpb-dlm", "tp-b-work", new ByteRange(0x7168, sizeof(uint))),
+                ("relocate-tpb-diff", "tp-b-work", new ByteRange(0x716C, sizeof(uint))),
+            ],
+            result.Mutations
+                .Where(static mutation =>
+                    mutation.OperationKind == CompositionOperationKind.TransformScalar)
+                .Select(static mutation => (
+                    mutation.OperationId,
+                    mutation.TargetSpaceId,
+                    mutation.TargetRange)));
         Assert.Equal(originalTpB, inputs["tp-b-input"]);
     }
 
@@ -103,7 +119,7 @@ public sealed class AbMergeGoldenRegressionTests
         CompiledComposition composition = CompileProfile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(Nt51929BundleDirectory, Nt51929BundleContentHash),
             profileId,
-            "0.2.0",
+            "0.4.0",
             icId,
             capacity);
         byte[] dp = CreateAddressSensitivePattern(capacity, 0x31);
@@ -166,7 +182,7 @@ public sealed class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51950-ab-merge",
-            "0.2.0",
+            "0.3.0",
             "NT51950",
             goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
@@ -282,7 +298,7 @@ public sealed class AbMergeGoldenRegressionTests
                 Nt51950BundleDirectory,
                 Nt51950BundleContentHash),
             "nt51951-ab-merge",
-            "0.2.0",
+            "0.3.0",
             "NT51951",
             outputLength);
         byte[] dp = CreatePattern(outputLength, 37, 11);
@@ -380,10 +396,20 @@ public sealed class AbMergeGoldenRegressionTests
         string icId,
         string? profileId = null)
     {
+        string requestedProfileId =
+            profileId ?? goldenCase.GetProperty("profileId").GetString()!;
+        string requestedProfileVersion = requestedProfileId is
+            "nt51919-ab-merge-alias" or
+            "nt51929-ab-merge" or
+            "nt51932-ab-merge"
+                // The 0.4.0 bump derives symmetric-bank coordinates from
+                // family geometry; the independently owned 0.2.0 bytes remain unchanged.
+                ? "0.4.0"
+                : goldenCase.GetProperty("profileVersion").GetString()!;
         return CompileProfile(
             catalog,
-            profileId ?? goldenCase.GetProperty("profileId").GetString()!,
-            goldenCase.GetProperty("profileVersion").GetString()!,
+            requestedProfileId,
+            requestedProfileVersion,
             icId,
             goldenCase.GetProperty("mapCapacity").GetInt64());
     }

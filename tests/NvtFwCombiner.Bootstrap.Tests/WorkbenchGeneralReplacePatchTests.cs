@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -154,8 +153,69 @@ public sealed class WorkbenchGeneralReplacePatchTests
             TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
-        AssertReportHasIssue(result.ReportJson, CompositionIssueCodes.InputAddressSpaceLengthMismatch);
+        AssertReportHasIssue(result.ReportJson, "general.admission.target-out-of-bounds");
+        AssertReportHasIssue(result.ReportJson, "general.admission.inline-materialization-exceeded");
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>File, overwrite, and fill rows share one pre-compilation occupancy ledger.</summary>
+    [Fact]
+    public async Task GeneralReplaceRejectsPatchIntersectionBeforeRouteOrPostbuildSelection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-occupancy");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x75));
+        string filePath = workspace.Write("mapping.bin", [0x10, 0x11, 0x12, 0x13]);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            "NT51926",
+            "single",
+            "General",
+            CreateBaseSlots(basePath),
+            [new WorkbenchGeneralReplaceMappingInput("file", filePath, "0x100", "0x103")],
+            [
+                new WorkbenchGeneralReplacePatchInput(
+                    "overwrite",
+                    "0x102",
+                    "0x104",
+                    WorkbenchGeneralReplacePatchKind.Overwrite,
+                    "AABBCC"),
+                new WorkbenchGeneralReplacePatchInput(
+                    "fill",
+                    "0x104",
+                    "0x105",
+                    WorkbenchGeneralReplacePatchKind.Fill,
+                    "FF"),
+            ],
+            build: false,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        using var report = JsonDocument.Parse(result.ReportJson);
+        JsonElement[] issues =
+        [
+            .. report.RootElement.GetProperty("Issues").EnumerateArray(),
+        ];
+        Assert.Equal(2, issues.Length);
+        Assert.All(
+            issues,
+            issue => Assert.Equal(
+                "general.admission.target-intersection",
+                issue.GetProperty("Code").GetString()));
+        Assert.Contains(
+            issues,
+            issue => issue.GetProperty("Message").GetString()!.Contains(
+                "[0x102, 0x104)",
+                StringComparison.Ordinal));
+        Assert.Contains(
+            issues,
+            issue => issue.GetProperty("Message").GetString()!.Contains(
+                "[0x104, 0x105)",
+                StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            issues,
+            issue => issue.GetProperty("Message").GetString()!.Contains(
+                "postbuild",
+                StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Rejects counts outside an owner-declared range before evaluating DP-only route support.</summary>
@@ -166,8 +226,8 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51930",
-            "14",
+            "NT51929",
+            "9",
             "General",
             CreateBaseSlots(basePath),
             [],

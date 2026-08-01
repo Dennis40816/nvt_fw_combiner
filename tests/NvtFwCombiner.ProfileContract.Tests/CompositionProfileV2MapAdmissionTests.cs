@@ -11,7 +11,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
 {
     private const string FamilyHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-    /// <summary>Verifies exact family identity, effective region graph, and successful metadata outcomes admit a profile.</summary>
+    /// <summary>Verifies exact family identity, effective regions, and declared metadata admit a profile.</summary>
     [Fact]
     public void ValidateAdmitsExactMapIdentityEffectiveRegionAndResolvedMetadata()
     {
@@ -83,7 +83,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
         Assert.Contains("missing-region", result.Issues[0].Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies metadata requirements require successful decode outcomes, not merely a map declaration.</summary>
+    /// <summary>Verifies metadata requirements must be declared by the selected canonical map.</summary>
     [Fact]
     public void ValidateRejectsMissingRequiredMetadataStructure()
     {
@@ -158,6 +158,61 @@ public sealed class CompositionProfileV2MapAdmissionTests
         Assert.Contains(context.ResolvedMap.FactProvenance, static provenance => provenance.AliasChain.Count != 0);
     }
 
+    /// <summary>
+    /// Exact span, field, series, and group references admit without creating
+    /// operations, processor stages, or write authority.
+    /// </summary>
+    [Fact]
+    public void ValidateAdmitsEveryExactTypedMetadataTargetWithoutExecutionAuthority()
+    {
+        CompositionProfileDefinition profile = Profile(
+            metadataBindings:
+            [
+                TypedMetadataBinding(
+                    new(FirmwareMetadataReferenceTargetKind.Span, "complete-header"),
+                    new(FirmwareMetadataReferenceTargetKind.Field, "pid"),
+                    new(FirmwareMetadataReferenceTargetKind.Series, "pid-series"),
+                    new(FirmwareMetadataReferenceTargetKind.Group, "pid-group")),
+            ]);
+
+        CompositionProfileMapAdmissionResult result = Admit(
+            profile,
+            ResolveContext(useTypedMetadata: true));
+
+        Assert.True(result.IsAdmitted);
+        Assert.Empty(result.Issues);
+        _ = Assert.Single(profile.Operations);
+        Assert.Empty(profile.ProcessorStages);
+        Assert.Empty(profile.Validations);
+        Assert.Equal(RegionAccessKind.ReadOnly, Assert.Single(profile.RegionAccessRules).Access);
+    }
+
+    /// <summary>Every typed target kind fails closed when its exact ID is absent.</summary>
+    [Theory]
+    [InlineData(FirmwareMetadataReferenceTargetKind.Span)]
+    [InlineData(FirmwareMetadataReferenceTargetKind.Field)]
+    [InlineData(FirmwareMetadataReferenceTargetKind.Series)]
+    [InlineData(FirmwareMetadataReferenceTargetKind.Group)]
+    public void ValidateRejectsUnknownTypedMetadataTarget(
+        FirmwareMetadataReferenceTargetKind kind)
+    {
+        CompositionProfileDefinition profile = Profile(
+            metadataBindings:
+            [
+                TypedMetadataBinding(
+                    new FirmwareMetadataReferenceTarget(kind, "missing-target")),
+            ]);
+
+        CompositionProfileMapAdmissionResult result = Admit(
+            profile,
+            ResolveContext(useTypedMetadata: true));
+
+        Assert.False(result.IsAdmitted);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.v2.map.metadata-target-missing", issue.Code);
+        Assert.Contains("missing-target", issue.Message, StringComparison.Ordinal);
+    }
+
     private static CompositionProfileMapAdmissionResult Admit(CompositionProfileDefinition profile)
     {
         return Admit(profile, ResolveContext());
@@ -177,7 +232,8 @@ public sealed class CompositionProfileV2MapAdmissionTests
         IEnumerable<string>? mapIds = null,
         IEnumerable<string>? regionIds = null,
         IEnumerable<string>? structureIds = null,
-        IEnumerable<string>? capabilityIds = null)
+        IEnumerable<string>? capabilityIds = null,
+        IReadOnlyList<CompositionProfileMetadataBinding>? metadataBindings = null)
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
         return CompositionProfileV2DefinitionTestData.Create(parts with
@@ -190,13 +246,22 @@ public sealed class CompositionProfileV2MapAdmissionTests
                 regionIds ?? ["dp-code"],
                 structureIds ?? ["firmware-config"],
                 capabilityIds ?? []),
+            MetadataBindings = metadataBindings ?? parts.MetadataBindings,
+            Validations = metadataBindings is null ? parts.Validations : [],
         });
     }
 
     private static ResolutionContext ResolveContext(
         bool useAliasedFacts = false,
+        bool useTypedMetadata = false,
         string familyContentHash = FamilyHash)
     {
+        FirmwareMetadataField pid = new(
+            "pid",
+            0,
+            1,
+            FirmwareMetadataEncoding.UnsignedInteger,
+            FirmwareMetadataByteOrder.LittleEndian);
         FirmwareMetadataSet metadata = new(
             "metadata",
             [new FirmwareMetadataStructure(
@@ -206,13 +271,11 @@ public sealed class CompositionProfileV2MapAdmissionTests
                 new FirmwareAbsoluteRangeLocator(
                     new FirmwareAddressedRange("flash", new ByteRange(0, 1)),
                     "dp-code"),
-                [new FirmwareMetadataField(
-                    "pid",
-                    0,
-                    1,
-                    FirmwareMetadataEncoding.UnsignedInteger,
-                    FirmwareMetadataByteOrder.LittleEndian)],
-                [])],
+                [pid],
+                [],
+                typedDefinition: useTypedMetadata
+                    ? TypedMetadataDefinition()
+                    : null)],
             ["metadata-evidence"]);
         FirmwareMapApplicability applicability = new(
             ["NT-SYNTHETIC"],
@@ -272,6 +335,54 @@ public sealed class CompositionProfileV2MapAdmissionTests
         return new ResolutionContext(
             definition,
             Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap));
+    }
+
+    private static CompositionProfileMetadataBinding TypedMetadataBinding(
+        params FirmwareMetadataReferenceTarget[] targets)
+    {
+        return new CompositionProfileMetadataBinding(
+            "typed-header",
+            "source",
+            "firmware-config",
+            targets,
+            [
+                CompositionProfileMetadataPurpose.Inspection,
+                CompositionProfileMetadataPurpose.Copy,
+                CompositionProfileMetadataPurpose.Relocation,
+                CompositionProfileMetadataPurpose.Integrity,
+                CompositionProfileMetadataPurpose.Processor,
+            ],
+            ["owner-table"]);
+    }
+
+    private static FirmwareTpFlashHeaderDefinition TypedMetadataDefinition()
+    {
+        return new FirmwareTpFlashHeaderDefinition(
+            [new FirmwareMetadataNamedSpan("complete-header", new ByteRange(0, 1))],
+            [
+                new FirmwareTpFlashHeaderFieldSemantics(
+                    "pid",
+                    "complete-header",
+                    TpFlashHeaderFieldSubject.Header,
+                    TpFlashHeaderFieldRole.Option,
+                    logicalIndex: 0),
+            ],
+            [
+                new FirmwareMetadataFieldSeries(
+                    "pid-series",
+                    [new FirmwareMetadataFieldSeriesMember(0, "pid")],
+                    [
+                        new FirmwareMetadataFieldSeriesApplicability(
+                            1,
+                            [0]),
+                    ]),
+            ],
+            [
+                new FirmwareMetadataFieldGroup(
+                    "pid-group",
+                    ["pid"],
+                    []),
+            ]);
     }
 
     private static FirmwareImageMap AliasedMap(

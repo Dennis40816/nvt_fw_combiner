@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.9",
   "profileId": "nt51951-ctrlram-replace-fw1x-cascade",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "executable-candidate",
     "blockers": [
@@ -9,7 +9,7 @@
         "blockerId": "support-neutral-no-promotion",
         "kind": "release",
         "reason": "The owner-approved cascade route uses the same TP layout, offsets, and postbuild command contract as the verified single route while remaining support-neutral.",
-        "evidenceRefs": [ "nt51951-fw200-single-auto-prj-695-owner-golden-20260718" ]
+        "evidenceRefs": [ "nt51951-fw200-cascade2-auto-prj-599-20260731" ]
       }
     ]
   },
@@ -26,8 +26,8 @@
   "compilationContext": { "kind": "runtime-reference-replace" },
   "mapBinding": {
     "familyId": "nt51951-ctrlram-replace",
-    "familyVersion": "0.5.0",
-      "familyContentHash": "a5ecb33e89ef7ad78a9ae75d5188dbbff9443d3438666ec27094459dc9fd5cbf",
+    "familyVersion": "0.6.0",
+      "familyContentHash": "a90570932c0c31218430e096beeda87560c1ac7b66389045b82a64385a4ab2fe",
     "mapIds": [
       "nt51951-ctrlram-fw1x-cascade-tp-work",
       "nt51951-ctrlram-fw1x-cascade-full-flash"
@@ -42,7 +42,8 @@
       "normal-ctrlram",
       "vn-ctrlram",
       "header-copy",
-      "diff-ctrlram"
+      "diff-ctrlram",
+      "fw-config-backup"
     ],
     "requiredMetadataStructureIds": [ "nt51951-fwconfig-backup-envelope" ],
     "requiredCapabilityIds": []
@@ -102,22 +103,23 @@
     { "viewId": "header-crc-a11c-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-a11c" } },
     { "viewId": "header-crc-a130-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-crc-a130" } },
     { "viewId": "header-dlm-crc-a134-a180-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-dlm-crc-a134-a180" } },
-    { "viewId": "nf-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "nf-ctrlram" } },
     { "viewId": "normal-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "normal-ctrlram" } },
     { "viewId": "vn-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "vn-ctrlram" } },
     { "viewId": "header-copy-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "header-copy" } },
-    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } }
+    { "viewId": "diff-ctrlram-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "diff-ctrlram" } },
+    { "viewId": "fw-config-backup-output", "spaceId": "output-image", "selector": { "kind": "map-region", "regionId": "fw-config-backup" } }
   ],
   "metadataBindings": [],
   "regionAccessRules": [
     { "regionId": "header-crc-a11c", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-crc-a130", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate this CRC word." },
     { "regionId": "header-dlm-crc-a134-a180", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may recalculate cascade DLM CRC 1 through 19." },
-    { "regionId": "nf-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x2A10 bytes and preserve the reference tail when the immutable source is shorter." },
+    { "regionId": "nf-ctrlram", "access": "hidden", "reason": "Exact-2-IC Cascade preserves active Diff NF from the immutable reference; no independent NF source is accepted." },
     { "regionId": "normal-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x5C00 bytes; oversized immutable input is truncated by the profile-declared CtrlRAM rule." },
     { "regionId": "vn-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x20FC bytes and preserve the reference tail when the immutable source is shorter." },
     { "regionId": "header-copy", "access": "hidden", "reason": "Only the declared Legacy Combiner processor may refresh the 0x200-byte TP header copy and its CRC words." },
-    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy at most 0x1400 bytes; the cascade postbuild contract uses the same TP flash offset as the verified single route." }
+    { "regionId": "diff-ctrlram", "access": "explicit-range", "reason": "Copy only the active 0x0910-byte Diff CtrlRAM prefix from the required 0x1400-byte source record and preserve its 0x0AF0-byte Diff NF tail." },
+    { "regionId": "fw-config-backup", "access": "hidden", "reason": "Only the declared postbuild processor may copy the primary 0x0780-byte FWConfig to the fixed 0x36000 Backup." }
   ],
   "operations": [
     {
@@ -146,15 +148,15 @@
         "header-crc-a11c-output",
         "header-crc-a130-output",
         "header-dlm-crc-a134-a180-output",
-        "nf-ctrlram-output",
         "normal-ctrlram-output",
         "vn-ctrlram-output",
         "header-copy-output",
-        "diff-ctrlram-output"
+        "diff-ctrlram-output",
+        "fw-config-backup-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],
-      "evidenceRef": "nt51951-fw200-single-auto-prj-695-owner-golden-20260718",
+      "evidenceRef": "nt51951-fw200-cascade2-auto-prj-599-20260731",
       "failurePolicy": "fail-closed"
     }
   ],
@@ -165,6 +167,6 @@
     "requiredTokenIds": []
   },
   "evidenceRefs": [
-    "nt51951-fw200-single-auto-prj-695-owner-golden-20260718"
+    "nt51951-fw200-cascade2-auto-prj-599-20260731"
   ]
 }

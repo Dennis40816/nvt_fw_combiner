@@ -3,7 +3,7 @@
 - Status: Accepted for repository bootstrap
 - Date: 2026-06-25
 - Owners: Product owner + architecture owner + firmware reviewer
-- Amended by: ADR 0015
+- Amended by: ADR 0015; issue #253 plan-only readiness exception
 
 ## Context
 
@@ -45,6 +45,25 @@ general-replace
 
 The executor must not branch on these identifiers. General modes produce normal `copy-range` or `replace-range` operations from typed `explicitMappings`; they do not execute scripts or bypass the profile compiler.
 
+### Plan-only readiness amendment
+
+General Replace may project one explicit diagnostic Preview before execution
+when accepted mappings require POSTBUILD but the exact Parent stage authority
+or its declared runtime dependency is unavailable. This projection is not a
+partial execution: it never calls `CompositionEngine`, clones/mutates the
+Reference, invokes a processor, creates output bytes, or claims final
+Header/CRC/hash validity. It may create only the labelled plan-only workbench
+report defined by the report contract.
+
+Build availability resolves through the Application-owned typed readiness use
+case before any run/report object is created. A disabled Build therefore
+returns its highest-priority blocker without a Run Report. The current
+workflow-facing `bool build` adapter may remain only until every General
+Replace CLI and Presentation caller consumes the typed Preview/Build action
+result; issue #254 owns deletion of that adapter and its workflow-specific
+branching. This amendment does not enable any TP/POSTBUILD execution route or
+change processor authority.
+
 ## Consequences
 
 ### Positive
@@ -71,3 +90,6 @@ The executor must not branch on these identifiers. General modes produce normal 
 - Preview/Build rejects a changed compiled fingerprint, map/profile revision, or normalized input.
 - Equivalent compiled operations produce equivalent output regardless of authoring experience.
 - Property/contract tests cover bounds, overlap, ordering, access policy, processors, and failed-run atomicity.
+- Missing Parent-stage and missing runtime-tool blockers remain distinct; only
+  explicit Preview creates the plan-only report, while disabled Build creates
+  no report or output.

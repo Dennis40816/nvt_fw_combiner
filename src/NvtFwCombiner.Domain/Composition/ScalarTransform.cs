@@ -35,6 +35,74 @@ public enum ScalarTransformOverflowPolicy
     Reject,
 }
 
+/// <summary>Closed source of one already resolved scalar-transform addend.</summary>
+public enum ScalarTransformAddendSourceKind
+{
+    /// <summary>The addend is a fixed profile-owned integer.</summary>
+    Fixed,
+
+    /// <summary>The addend is derived from two declared region-instance bases.</summary>
+    RegionInstanceDelta,
+}
+
+/// <summary>Immutable identity of the authority that produced a compiled scalar addend.</summary>
+public sealed record ScalarTransformAddendSource
+{
+    private ScalarTransformAddendSource(
+        ScalarTransformAddendSourceKind kind,
+        string? sourceRegionInstanceId,
+        string? targetRegionInstanceId)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scalar addend source kind.");
+        }
+
+        if (kind == ScalarTransformAddendSourceKind.Fixed)
+        {
+            if (sourceRegionInstanceId is not null || targetRegionInstanceId is not null)
+            {
+                throw new ArgumentException("Fixed scalar addends cannot name region instances.");
+            }
+        }
+        else
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sourceRegionInstanceId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(targetRegionInstanceId);
+        }
+
+        Kind = kind;
+        SourceRegionInstanceId = sourceRegionInstanceId;
+        TargetRegionInstanceId = targetRegionInstanceId;
+    }
+
+    /// <summary>Singleton identity for one fixed numeric addend.</summary>
+    public static ScalarTransformAddendSource Fixed { get; } = new(
+        ScalarTransformAddendSourceKind.Fixed,
+        null,
+        null);
+
+    /// <summary>Creates one resolved region-instance delta identity.</summary>
+    public static ScalarTransformAddendSource RegionInstanceDelta(
+        string sourceRegionInstanceId,
+        string targetRegionInstanceId)
+    {
+        return new ScalarTransformAddendSource(
+            ScalarTransformAddendSourceKind.RegionInstanceDelta,
+            sourceRegionInstanceId,
+            targetRegionInstanceId);
+    }
+
+    /// <summary>Kind of authority that produced the resolved numeric addend.</summary>
+    public ScalarTransformAddendSourceKind Kind { get; }
+
+    /// <summary>Source instance for a region-instance delta.</summary>
+    public string? SourceRegionInstanceId { get; }
+
+    /// <summary>Target instance for a region-instance delta.</summary>
+    public string? TargetRegionInstanceId { get; }
+}
+
 /// <summary>Immutable generic unsigned scalar relocation transform.</summary>
 public sealed class ScalarTransform
 {
@@ -45,6 +113,24 @@ public sealed class ScalarTransform
         BigInteger addend,
         ulong? expectedBefore,
         ScalarTransformOverflowPolicy overflowPolicy)
+        : this(
+            width,
+            byteOrder,
+            addend,
+            expectedBefore,
+            overflowPolicy,
+            ScalarTransformAddendSource.Fixed)
+    {
+    }
+
+    /// <summary>Creates a checked scalar transform retaining its resolved addend authority.</summary>
+    public ScalarTransform(
+        ScalarTransformWidth width,
+        ScalarTransformByteOrder byteOrder,
+        BigInteger addend,
+        ulong? expectedBefore,
+        ScalarTransformOverflowPolicy overflowPolicy,
+        ScalarTransformAddendSource addendSource)
     {
         if (!Enum.IsDefined(width))
         {
@@ -64,6 +150,7 @@ public sealed class ScalarTransform
                 "Unknown scalar transform overflow policy.");
         }
 
+        ArgumentNullException.ThrowIfNull(addendSource);
         BigInteger maximumValue = GetMaximumValue(width);
         if (addend < -maximumValue || addend > maximumValue)
         {
@@ -95,6 +182,7 @@ public sealed class ScalarTransform
         Width = width;
         ByteOrder = byteOrder;
         Addend = addend;
+        AddendSource = addendSource;
         ExpectedBefore = expectedBefore;
         OverflowPolicy = overflowPolicy;
     }
@@ -107,6 +195,9 @@ public sealed class ScalarTransform
 
     /// <summary>Checked signed value added to the source scalar.</summary>
     public BigInteger Addend { get; }
+
+    /// <summary>Authority that produced the already resolved numeric addend.</summary>
+    public ScalarTransformAddendSource AddendSource { get; }
 
     /// <summary>Optional exact source scalar expected before the transform may write.</summary>
     public ulong? ExpectedBefore { get; }

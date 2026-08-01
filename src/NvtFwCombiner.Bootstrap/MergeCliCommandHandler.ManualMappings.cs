@@ -1,17 +1,21 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
 {
-    private static bool TryCreateMappings(
+    private static bool TryCreateGeneralMergeDraft(
         ParsedOptions options,
         string icId,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput[]? mappings)
+        [NotNullWhen(true)] out GeneralMergeDraftState? draft,
+        out GeneralSavedRuleResourcePolicy? savedRulePolicy)
     {
-        mappings = null;
+        draft = null;
+        savedRulePolicy = null;
         List<string> values = options.GetValues("--mapping");
         bool usesRule = options.Values.TryGetValue("--rule", out string? rulePath);
         if (usesRule)
@@ -22,7 +26,13 @@ internal static partial class MergeCliCommandHandler
                 return false;
             }
 
-            return TryCreateMappingsFromSavedRule(rulePath!, options.GetValues("--slot"), icId, error, out mappings);
+            return TryCreateDraftFromSavedRule(
+                rulePath!,
+                options.GetValues("--slot"),
+                icId,
+                error,
+                out draft,
+                out savedRulePolicy);
         }
 
         if (options.GetValues("--slot").Count > 0)
@@ -37,10 +47,26 @@ internal static partial class MergeCliCommandHandler
             return false;
         }
 
-        List<WorkbenchGeneralMergeMappingInput> items = [];
+        if (!RequireOption(options, "--size", error, out string? outputLength))
+        {
+            return false;
+        }
+
+        if (!new GeneralMergeInitializerInput(
+                outputLength,
+                options.Values.GetValueOrDefault("--fill")).TryResolve(
+                out GeneralMergeOutputInitializer? initializer,
+                out CompositionIssue? initializationIssue))
+        {
+            error.WriteLine(
+                $"error: {initializationIssue!.Code}: {initializationIssue.Message}");
+            return false;
+        }
+
+        List<GeneralMappingDraftRow> items = [];
         for (int index = 0; index < values.Count; index++)
         {
-            if (!TryParseMappingValue(values[index], index + 1, error, out WorkbenchGeneralMergeMappingInput? mapping))
+            if (!TryParseMappingValue(values[index], index + 1, error, out GeneralMappingDraftRow? mapping))
             {
                 return false;
             }
@@ -48,15 +74,25 @@ internal static partial class MergeCliCommandHandler
             items.Add(mapping);
         }
 
-        mappings = [.. items];
-        return true;
+        try
+        {
+            draft = new GeneralMergeDraftState(
+                initializer!,
+                new GeneralMappingDraftState(items));
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            error.WriteLine($"error: {exception.Message}");
+            return false;
+        }
     }
 
     private static bool TryParseMappingValue(
         string value,
         int index,
         TextWriter error,
-        [NotNullWhen(true)] out WorkbenchGeneralMergeMappingInput? mapping)
+        [NotNullWhen(true)] out GeneralMappingDraftRow? mapping)
     {
         mapping = null;
         int separatorIndex = value.IndexOf('=', StringComparison.Ordinal);
@@ -77,21 +113,33 @@ internal static partial class MergeCliCommandHandler
 
         string[] parts = rangeText.Split('+', StringSplitOptions.TrimEntries);
         if (parts.Length != 3 ||
-            !BootstrapRangeText.TryParseNonNegativeLong(parts[0], out long sourceStart) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(parts[1], out long targetStart) ||
-            !BootstrapRangeText.TryParseNonNegativeLong(parts[2], out long length) ||
-            length <= 0)
+            !AuthoringByteRangeCodec.TryParseStartAndLength(
+                parts.ElementAtOrDefault(0),
+                parts.ElementAtOrDefault(2),
+                out ByteRange sourceRange,
+                out _) ||
+            !AuthoringByteRangeCodec.TryParseStartAndLength(
+                parts.ElementAtOrDefault(1),
+                parts.ElementAtOrDefault(2),
+                out ByteRange targetRange,
+                out _))
         {
             error.WriteLine("error: --mapping must use non-negative source start, non-negative target start, and positive length");
             return false;
         }
 
-        mapping = new WorkbenchGeneralMergeMappingInput(
+        mapping = new GeneralMappingDraftRow(
             string.Create(CultureInfo.InvariantCulture, $"general-merge-map-{index}"),
-            Path.GetFullPath(path),
-            BootstrapRangeText.FormatHex(sourceStart),
-            BootstrapRangeText.FormatHex(targetStart),
-            BootstrapRangeText.FormatHex(length));
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File(Path.GetFullPath(path)),
+            sourceRange,
+            CompositionAddressSpaceIds.OutputImage,
+            targetRange,
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Copy explicit General Merge mapping.",
+            WorkbenchGeneralMergeIds.OutputRegionId,
+            fileRangePreset: GeneralMappingFileRangePreset.SourceSlice);
         return true;
     }
 

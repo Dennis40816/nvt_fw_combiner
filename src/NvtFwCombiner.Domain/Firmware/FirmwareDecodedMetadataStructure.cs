@@ -33,15 +33,58 @@ public sealed record FirmwareDecodedMetadataFact
     public FirmwareMetadataValue Value { get; }
 }
 
+/// <summary>Evaluated result of one canonical metadata field relation.</summary>
+public sealed record FirmwareDecodedMetadataRelation
+{
+    internal FirmwareDecodedMetadataRelation(
+        string relationId,
+        FirmwareMetadataFieldRelationKind kind,
+        string sourceFieldId,
+        string relatedFieldId,
+        bool isSatisfied)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relationId);
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata relation kind.");
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relatedFieldId);
+        RelationId = relationId;
+        Kind = kind;
+        SourceFieldId = sourceFieldId;
+        RelatedFieldId = relatedFieldId;
+        IsSatisfied = isSatisfied;
+    }
+
+    /// <summary>Canonical relation identifier.</summary>
+    public string RelationId { get; }
+
+    /// <summary>Closed relation kind.</summary>
+    public FirmwareMetadataFieldRelationKind Kind { get; }
+
+    /// <summary>Canonical source-field identifier.</summary>
+    public string SourceFieldId { get; }
+
+    /// <summary>Canonical related-field identifier.</summary>
+    public string RelatedFieldId { get; }
+
+    /// <summary>Whether the decoded values satisfy the declared relation.</summary>
+    public bool IsSatisfied { get; }
+}
+
 /// <summary>Atomic successful decode of one exact firmware metadata structure slice.</summary>
 public sealed class FirmwareDecodedMetadataStructure
 {
     private readonly FirmwareDecodedMetadataFact[] _facts;
+    private readonly FirmwareDecodedMetadataRelation[] _relations;
 
     internal FirmwareDecodedMetadataStructure(
         string artifactBindingId,
         string metadataStructureId,
-        IEnumerable<FirmwareDecodedMetadataFact> facts)
+        IEnumerable<FirmwareDecodedMetadataFact> facts,
+        IEnumerable<FirmwareDecodedMetadataRelation>? relations = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
@@ -61,9 +104,19 @@ public sealed class FirmwareDecodedMetadataStructure
             throw new ArgumentException("Decoded metadata field ids must be ordinally unique.", nameof(facts));
         }
 
+        _relations = Composition.ImmutableReferenceSnapshot.Create(
+            relations ?? [],
+            "Decoded metadata structures cannot contain null relations.");
+        if (_relations.Select(static relation => relation.RelationId)
+            .Distinct(StringComparer.Ordinal).Count() != _relations.Length)
+        {
+            throw new ArgumentException("Decoded metadata relation ids must be ordinally unique.", nameof(relations));
+        }
+
         ArtifactBindingId = artifactBindingId;
         MetadataStructureId = metadataStructureId;
         Facts = Array.AsReadOnly(_facts);
+        Relations = Array.AsReadOnly(_relations);
     }
 
     /// <summary>Exact runtime artifact binding used by the structure.</summary>
@@ -74,4 +127,7 @@ public sealed class FirmwareDecodedMetadataStructure
 
     /// <summary>Decoded facts in the declaration's canonical field order.</summary>
     public IReadOnlyList<FirmwareDecodedMetadataFact> Facts { get; }
+
+    /// <summary>Evaluated relation results in canonical relation-id order.</summary>
+    public IReadOnlyList<FirmwareDecodedMetadataRelation> Relations { get; }
 }

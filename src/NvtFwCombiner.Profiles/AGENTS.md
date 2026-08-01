@@ -1,7 +1,11 @@
-# Profile Compiler Instructions
+# Compiled profile instructions
 
-- Parse strict schemas and reject unknown fields.
-- Resolve canonical regions plus experience access rules before compiling operations.
-- Do not infer semantics from filenames, labels or UI control ids.
-- General mappings use the same compiler and operation algebra as fixed profiles.
-- Any profile semantic change requires version/evidence/golden decisions.
+- Compile only canonical declarations from `profiles/`; do not invent fallback
+  ranges, family links, topology/count variants, processors, or support.
+- Keep map selection independent of informational PID, filename, and golden
+  identity.
+- Reject unknown integrity, overlap, invalid bounds, and ambiguous processor
+  authority.
+- Preserve one CompiledComposition execution artifact and deterministic plan
+  identity.
+- First tests: `NvtFwCombiner.ProfileContract.Tests`.

@@ -384,7 +384,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
             Request(selection, capacityBytes));
-        Assert.True(preparation.IsAdmitted);
+        Assert.True(
+            preparation.IsAdmitted,
+            string.Join(
+                Environment.NewLine,
+                preparation.Issues.Select(static issue =>
+                    $"{issue.Code}: {issue.Message}")));
         return preparation;
     }
 

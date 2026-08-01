@@ -7,7 +7,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareFamilyResolutionDefinition NormalizeMapBoundFacts(
         FirmwareFamilyDocument document,
-        string familyContentHash)
+        string familyContentHash,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
         IReadOnlyList<FirmwareFamilyMemberDocument> members = RequireList(document.Members, "members");
         Dictionary<string, FirmwareFamilyMemberDocument> membersById = IndexUnique(
@@ -16,9 +17,11 @@ public static partial class FirmwareFamilyResolutionNormalizer
             "members",
             "memberId");
         Dictionary<string, FirmwareRegionSet> regionSetsById = NormalizeRegionSets(
-            RequireList(document.RegionSets, "regionSets"));
+            RequireList(document.RegionSets, "regionSets"),
+            document.SchemaVersion);
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = NormalizeMetadataSets(
-            RequireList(document.MetadataSets, "metadataSets"));
+            RequireList(document.MetadataSets, "metadataSets"),
+            metadataDefinitionResolver);
         ValidateGlobalStructureIds(metadataSetsById.Values);
 
         MapInput[] maps = CreateMaps(
@@ -76,6 +79,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
             structuresByMap,
             mapApplicabilities,
             aliasApplicabilities);
+        FirmwareFamilyRelationship[] familyRelationships = NormalizeFamilyRelationships(
+            document,
+            normalizedMaps,
+            structuresByMap,
+            aliases,
+            capabilities);
 
         return TranslateInvariant("$", () => new FirmwareFamilyResolutionDefinition(
                 document.FamilyId,
@@ -83,7 +92,8 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 familyContentHash,
                 normalizedMaps,
                 metadataSetsById.Values,
-                capabilities));
+                capabilities,
+                familyRelationships));
     }
 
     private static MapInput[] CreateMaps(

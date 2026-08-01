@@ -10,8 +10,9 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateExternalProcessorComposition();
 
+        Assert.NotNull(composition.IntegrityFingerprint);
         Assert.Equal(
-            "73c0d059c0385d1f9c25e65e09889f7afc14d605c998e4ff5665f007534627e4",
+            "7f6978447437adac3da4a8eee08b9027a5ca65d47b165b309ffb8ba061fcf174",
             composition.CompilationFingerprint);
     }
 
@@ -53,10 +54,54 @@ public sealed partial class CompiledCompositionTests
                 ScalarTransformOverflowPolicy.Reject)),
         ];
 
-        Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+        Assert.NotNull(baseline.IntegrityFingerprint);
+        Assert.All(
+            variants,
+            variant =>
+            {
+                Assert.NotEqual(
+                    baseline.CompilationFingerprint,
+                    variant.CompilationFingerprint);
+                Assert.NotEqual(
+                    baseline.IntegrityFingerprint,
+                    variant.IntegrityFingerprint);
+            });
+        CompiledComposition reasonOnly = CreateScalarTransformComposition(
+            baseline.Plan.OrderedOperations.Single().ScalarTransform!,
+            "wording-only change");
+        Assert.NotEqual(
+            baseline.CompilationFingerprint,
+            reasonOnly.CompilationFingerprint);
+        Assert.Equal(
+            baseline.IntegrityFingerprint,
+            reasonOnly.IntegrityFingerprint);
     }
 
-    private static CompiledComposition CreateScalarTransformComposition(ScalarTransform transform)
+    /// <summary>Verifies a resolved instance delta cannot collide with an equal fixed addend.</summary>
+    [Fact]
+    public void CompilationFingerprintBindsScalarTransformAddendSource()
+    {
+        CompiledComposition fixedAddend = CreateScalarTransformComposition(new ScalarTransform(
+            ScalarTransformWidth.FourBytes,
+            ScalarTransformByteOrder.LittleEndian,
+            0x40000,
+            expectedBefore: null,
+            ScalarTransformOverflowPolicy.Reject));
+        CompiledComposition instanceDelta = CreateScalarTransformComposition(new ScalarTransform(
+            ScalarTransformWidth.FourBytes,
+            ScalarTransformByteOrder.LittleEndian,
+            0x40000,
+            expectedBefore: null,
+            ScalarTransformOverflowPolicy.Reject,
+            ScalarTransformAddendSource.RegionInstanceDelta("a-bank", "b-bank")));
+
+        Assert.NotEqual(fixedAddend.CompilationFingerprint, instanceDelta.CompilationFingerprint);
+        Assert.NotEqual(fixedAddend.IntegrityFingerprint, instanceDelta.IntegrityFingerprint);
+    }
+
+    private static CompiledComposition CreateScalarTransformComposition(
+        ScalarTransform transform,
+        string reason = "adjust scalar")
     {
         long width = transform.WidthBytes;
         var plan = new CompositionPlan(
@@ -74,7 +119,7 @@ public sealed partial class CompiledCompositionTests
                 new ByteRange(0, width),
                 transform,
                 OverlapPolicy.Reject,
-                "adjust scalar")]);
+                reason)]);
         return CompiledComposition.CreateLegacy(
             plan,
             CreateMergeIdentity(),

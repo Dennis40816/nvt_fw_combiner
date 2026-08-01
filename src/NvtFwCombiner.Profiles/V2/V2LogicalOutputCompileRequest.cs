@@ -22,28 +22,29 @@ internal sealed class V2LogicalOutputInputBinding
     internal int ExactLengthBytes { get; }
 }
 
-/// <summary>Typed General Merge overlay containing only logical capacities and explicit mappings.</summary>
+/// <summary>Typed General Merge overlay containing one exact initializer and explicit mappings.</summary>
 internal sealed class V2LogicalOutputCompileRequest
 {
     private readonly V2LogicalOutputInputBinding[] _bindings;
     private readonly ExplicitMapping[] _mappings;
 
     internal V2LogicalOutputCompileRequest(
-        int outputCapacity,
+        GeneralMergeOutputInitializer outputInitializer,
         IEnumerable<V2LogicalOutputInputBinding> bindings,
         IEnumerable<ExplicitMapping> mappings)
     {
+        ArgumentNullException.ThrowIfNull(outputInitializer);
         ArgumentNullException.ThrowIfNull(bindings);
         ArgumentNullException.ThrowIfNull(mappings);
         _bindings = [.. bindings];
         _mappings = [.. mappings];
-        OutputCapacity = outputCapacity;
+        OutputInitializer = outputInitializer;
         Bindings = Array.AsReadOnly(_bindings);
         Mappings = Array.AsReadOnly(_mappings);
     }
 
-    /// <summary>Requested final logical output capacity in bytes.</summary>
-    internal int OutputCapacity { get; }
+    /// <summary>Requested exact final logical output initialization.</summary>
+    internal GeneralMergeOutputInitializer OutputInitializer { get; }
 
     /// <summary>Concrete immutable source bindings with no host paths or source bytes.</summary>
     internal IReadOnlyList<V2LogicalOutputInputBinding> Bindings { get; }

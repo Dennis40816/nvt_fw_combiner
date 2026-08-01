@@ -36,7 +36,9 @@ internal static class V2StandardMergeGoldenTestSupport
     {
         AssertSchemaSnapshotsMatchManifest(bundleRoot);
         TrustedProfileBundle bundle = LoadBundle(bundleRoot, bundleContentHash);
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
     }
 
     private static TrustedProfileBundle LoadBundle(string bundleRoot, string bundleContentHash)
@@ -56,7 +58,8 @@ internal static class V2StandardMergeGoldenTestSupport
         string profileId,
         string profileVersion,
         string icId,
-        long? requestedMapCapacity = null)
+        long? requestedMapCapacity = null,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             catalog,
@@ -64,7 +67,9 @@ internal static class V2StandardMergeGoldenTestSupport
             profileVersion,
             icId,
             ExperienceIds.StandardMerge,
-            requestedMapCapacity);
+            requestedMapCapacity,
+            [],
+            selectedInputSlotIds);
         Assert.True(compilation.IsCompiled, FormatIssues(compilation.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
@@ -122,10 +127,13 @@ internal static class V2StandardMergeGoldenTestSupport
     internal static void AssertSuccessfulGoldenOutput(
         CompositionRunResult result,
         CompiledComposition compiledComposition,
-        byte[] expectedOutput)
+        byte[] expectedOutput,
+        IReadOnlyList<string>? expectedIssueCodes = null)
     {
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
-        Assert.Empty(result.Report.Issues);
+        Assert.Equal(
+            expectedIssueCodes ?? [],
+            result.Report.Issues.Select(static issue => issue.Code));
         Assert.Equal(expectedOutput, result.OutputBytes.ToArray());
         Assert.Equal(Hash(expectedOutput), result.Report.Output.Sha256);
         Assert.Equal(compiledComposition.CompilationFingerprint, result.Report.CompilationFingerprint);
@@ -176,7 +184,7 @@ internal static class V2StandardMergeGoldenTestSupport
         {
             "dp-input" => ("dp.bin", CompiledInputArtifactClass.DpFirmware),
             "tp-input" => ("tp.bin", CompiledInputArtifactClass.TpFirmware),
-            "ld-input" => ("ld.bin", CompiledInputArtifactClass.Auxiliary),
+            "ldc-input" => ("ldc.bin", CompiledInputArtifactClass.Auxiliary),
             _ => throw new ArgumentOutOfRangeException(nameof(addressSpaceId), addressSpaceId, "Unsupported Standard Merge input space."),
         };
         return new InputArtifactBinding(

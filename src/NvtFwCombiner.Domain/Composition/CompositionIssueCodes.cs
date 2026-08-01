@@ -15,6 +15,9 @@ public static class CompositionIssueCodes
     /// <summary>Input bytes do not satisfy the declared address-space length policy.</summary>
     public const string InputAddressSpaceLengthMismatch = "input.address-space.length-mismatch";
 
+    /// <summary>A section source ends before the final byte required by its compiled reads.</summary>
+    public const string InputSourceViewIncomplete = "input.source-view.incomplete";
+
     /// <summary>Input bytes were truncated by an explicitly declared oversize policy.</summary>
     public const string InputAddressSpaceTruncated = "input.address-space.truncated";
 

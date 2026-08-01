@@ -1,6 +1,6 @@
 # ADR 0035: Scope AB slot-layout selection to NT51950
 
-- Status: Accepted product and firmware-owner policy for `v0.9.15` on 2026-07-23
+- Status: Accepted product and firmware-owner policy for `v0.9.15` on 2026-07-23; canonical execution amended for `0.10.x` issue #190 on 2026-08-01
 - Owners: Product owner, architecture owner, firmware owner
 - Extends: ADR 0032
 - Amended by: ADR 0036
@@ -20,6 +20,17 @@ the UI displays `1 IC` and `Cascade`, while the typed request and CLI use
 `single` and `cascade`.
 
 ## Decision
+
+### 0.10.x canonical execution amendment
+
+Issue #190 replaces the earlier host-relocation wording for NT51950/NT51951.
+The checked host transform relocates only the TPB DIFF stored BIN-start field.
+The approved legacy Combiner remains the authoritative writer of the staged
+B-bank ILM, DLM, and Header CRC fields. The host admits those three exact
+four-byte ranges after diffing the private staged artifacts and imports only
+those fields into the DP-seeded output. It never imports a whole B bank, and
+the complete DP AB seed remains byte-for-byte authoritative outside the
+declared TP overlays and three admitted B-header fields.
 
 ### Selector and observation policy
 
@@ -49,20 +60,22 @@ longer tail bytes are report evidence but cannot affect metadata, copied bytes,
 or output naming.
 
 TPA is copied verbatim after read-only validation; it is never relocated and
-its CRC is never recalculated or written. TPB alone is cloned into a named
-work buffer. Before postbuild, its declared little-endian four-byte ILM, DLM,
-and DIFF fields at input-relative `[0xA100,0xA104)`, `[0xA110,0xA114)`, and
-`[0xA120,0xA124)` respectively receive the layout-declared addend. The final
-TPB CRC is calculated by the approved, profile-bound staged postbuild route
-over `[0xA100,0xA130)` and written little-endian at `[0xA130,0xA134)`. The C#
-CRC-32/MPEG-2 implementation is an independent equivalence check, not the
-authoritative final writer. The host imports only the approved TPB postbuild
-result back into the B slot after it has independently verified the declared
-TPB-only diff. No external processor may modify DP bytes.
+its CRC is never recalculated or written. TPB is projected from the same
+address-aligned native source window as TPA and placed in the resolved B
+instance. Before postbuild, the checked host transform adds the layout-declared
+delta only to the little-endian four-byte DIFF field at input-relative
+`[0xA120,0xA124)`. The engine then materializes private A/B bank artifacts for
+the approved legacy Combiner. Within the staged B bank, the processor may
+change only ILM `[0xA100,0xA104)`, DLM `[0xA110,0xA114)`, and Header CRC
+`[0xA130,0xA134)`. The host independently diffs those artifacts, rejects every
+other write, and imports only those three fields into the output. The C#
+CRC-32/MPEG-2 implementation remains an independent equivalence check, not the
+authoritative final writer. No whole-bank backfill is permitted, and no
+external processor may modify DP bytes.
 
 ### NT51950 layouts
 
-| Selection | DP input/output | A/B slot boundary | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB ILM/DLM/DIFF addend |
+| Selection | DP input/output | A/B slot boundary | DP CMD/CMI base within each A/B slot | TPA target | TPB target | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
 | `single` | `[0x00000,0x80000)` | `0x40000` | `0x3B000`; A CMI `[0x3B016,0x3B019)`, B CMI `[0x7B016,0x7B019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
 | `cascade` | `[0x00000,0x100000)` | `0x40000` | `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x45016,0x45019)` | `[0x0A000,0x37000)` | `[0x4A000,0x77000)` | `0x40000` |
@@ -77,7 +90,7 @@ Flash Header catalog, and they must remain inside the TPB destination range.
 
 NT51951's single/cascade contexts use one selector-free plan:
 
-| DP input/output | A slot | B slot | TPA target | TPB target | DP CMD/CMI base | TPB ILM/DLM/DIFF addend |
+| DP input/output | A slot | B slot | TPA target | TPB target | DP CMD/CMI base | TPB DIFF addend |
 | --- | --- | --- | --- | --- | --- | --- |
 | `[0x00000,0x100000)` | `[0x00000,0x80000)` | `[0x80000,0x100000)` | `[0x0A000,0x37000)` | `[0x8A000,0xB7000)` | bank-relative `0x05000`; A CMI `[0x05016,0x05019)`, B CMI `[0x85016,0x85019)` | `0x80000` |
 
@@ -101,8 +114,8 @@ certification.
   that metadata cannot silently change a selection.
 - Tests cover short TP rejection, arbitrary longer TP inputs, fixed-prefix NVT
   parsing, ignored-tail independence, the complete DP copy, each slot target,
-  all three TPB relocations, TPA no-write behavior, TPB-only postbuild write
-  ranges, C# versus staged-postbuild CRC equivalence, source immutability, and
-  atomic failure.
+  DIFF-only host relocation, TPA no-write behavior, exact staged ILM/DLM/CRC
+  write and import ranges, C# versus staged-postbuild CRC equivalence, source
+  immutability, and atomic failure.
 - Reports/Support Matrix distinguish function availability, direct golden,
   certification debt, and firmware-owner review without exposing private BINs.

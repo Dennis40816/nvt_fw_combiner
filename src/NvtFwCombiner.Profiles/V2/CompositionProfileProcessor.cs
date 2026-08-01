@@ -319,16 +319,53 @@ internal enum CompositionProfileInvalidCharacterPolicy
     ReplaceUnderscore,
 }
 
+/// <summary>Closed output artifact owned by one typed naming rule.</summary>
+internal enum CompositionProfileOutputArtifactType
+{
+    Unspecified,
+    FlashCode,
+    TpFirmware,
+}
+
+/// <summary>Closed profile declaration for an output-name token source.</summary>
+internal enum CompositionProfileOutputTokenSourceKind
+{
+    CompiledIc,
+    RunDateUtc,
+    DpcmiVersion,
+    FirmwareConfigTpVersion,
+}
+
+/// <summary>Closed profile behavior when an output-name token is unavailable.</summary>
+internal enum CompositionProfileOutputTokenMissingPolicy
+{
+    Block,
+    UsePlaceholder,
+}
+
+/// <summary>One immutable typed output-name token declaration.</summary>
+internal sealed record CompositionProfileOutputTokenRequirement(
+    string TokenId,
+    CompositionProfileOutputTokenSourceKind SourceKind,
+    string? MetadataBindingId,
+    CompositionProfileOutputTokenMissingPolicy MissingPolicy,
+    string? Placeholder);
+
 /// <summary>Immutable profile-controlled output naming policy.</summary>
 internal sealed class CompositionProfileOutput
 {
     private readonly string[] _requiredTokenIds;
+    private readonly CompositionProfileOutputTokenRequirement[] _tokenRequirements;
 
     internal CompositionProfileOutput(
         string fileNameTemplate,
         bool allowOverride,
         CompositionProfileInvalidCharacterPolicy invalidCharacterPolicy,
-        IEnumerable<string> requiredTokenIds)
+        IEnumerable<string> requiredTokenIds,
+        string? ruleId = null,
+        CompositionProfileOutputArtifactType outputArtifactType =
+            CompositionProfileOutputArtifactType.Unspecified,
+        IEnumerable<CompositionProfileOutputTokenRequirement>? tokenRequirements = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileNameTemplate);
         if (!Enum.IsDefined(invalidCharacterPolicy))
@@ -343,10 +380,52 @@ internal sealed class CompositionProfileOutput
             requiredTokenIds,
             nameof(requiredTokenIds),
             requireValue: false);
+        bool hasTypedRule = ruleId is not null;
+        if (hasTypedRule)
+        {
+            RuleId = CompositionProfileValueRules.RequireId(ruleId!, nameof(ruleId));
+            if (outputArtifactType == CompositionProfileOutputArtifactType.Unspecified ||
+                tokenRequirements is null)
+            {
+                throw new ArgumentException(
+                    "Typed output naming requires an artifact type and token requirements.",
+                    nameof(ruleId));
+            }
+        }
+        else if (outputArtifactType != CompositionProfileOutputArtifactType.Unspecified ||
+                 tokenRequirements is not null)
+        {
+            throw new ArgumentException(
+                "Legacy output naming cannot declare partial typed authority.",
+                nameof(ruleId));
+        }
+
+        if (!Enum.IsDefined(outputArtifactType))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(outputArtifactType),
+                outputArtifactType,
+                "Unknown profile output artifact type.");
+        }
+
+        _tokenRequirements = tokenRequirements is null ? [] : [.. tokenRequirements];
+        if (_tokenRequirements.Any(static requirement => requirement is null))
+        {
+            throw new ArgumentException(
+                "Output token requirements cannot contain null.",
+                nameof(tokenRequirements));
+        }
+
+        Array.Sort(
+            _tokenRequirements,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.TokenId, right.TokenId));
         FileNameTemplate = fileNameTemplate;
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
+        OutputArtifactType = outputArtifactType;
         RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
+        TokenRequirements = Array.AsReadOnly(_tokenRequirements);
     }
 
     internal string FileNameTemplate { get; }
@@ -356,4 +435,10 @@ internal sealed class CompositionProfileOutput
     internal CompositionProfileInvalidCharacterPolicy InvalidCharacterPolicy { get; }
 
     internal IReadOnlyList<string> RequiredTokenIds { get; }
+
+    internal string? RuleId { get; }
+
+    internal CompositionProfileOutputArtifactType OutputArtifactType { get; }
+
+    internal IReadOnlyList<CompositionProfileOutputTokenRequirement> TokenRequirements { get; }
 }

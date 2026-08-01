@@ -1,7 +1,8 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
+  "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-standard-merge-dp-perspective",
-  "profileVersion": "0.5.1",
+  "profileVersion": "0.6.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -17,8 +18,8 @@
   },
   "mapBinding": {
     "familyId": "nt51950-nt51951-dp-perspective",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "0bd613266308f512e87a07f62727d8ba9bdb4f73dde0c7adc001ab17f119d60f",
+    "familyVersion": "1.3.0",
+    "familyContentHash": "c9bc25ffe2137c58754f9aa425b63c34ad1f90b946f03a6ffe6e15f2077d5fec",
     "mapIds": [
       "nt51951-standard-merge-256k",
       "nt51951-standard-merge-512k",
@@ -27,9 +28,13 @@
     "requiredRegionIds": [
       "dp-container",
       "tp-overlay",
-      "customer-info"
+      "customer-info",
+      "unmapped-prefix"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "firmware-config-standard-merge",
+      "nt51951-dpcmi-standard-merge"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -53,7 +58,7 @@
       "cardinality": "exactly-one",
       "acceptedExtensions": [".bin"],
       "acceptance": {
-        "lengthRule": { "kind": "tp-maximum-256k", "maximumBytes": 262144 },
+        "lengthRule": { "kind": "source-view-coverage" },
         "normalization": { "kind": "none" }
       }
     }
@@ -90,6 +95,11 @@
       "selector": { "kind": "map-region", "regionId": "dp-container" }
     },
     {
+      "viewId": "dp-identity-source",
+      "spaceId": "dp-input",
+      "selector": { "kind": "map-region", "regionId": "unmapped-prefix" }
+    },
+    {
       "viewId": "tp-overlay-source",
       "spaceId": "tp-input",
       "selector": { "kind": "map-region", "regionId": "tp-overlay" }
@@ -100,7 +110,22 @@
       "selector": { "kind": "map-region", "regionId": "tp-overlay" }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-standard-merge-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-standard-merge",
+      "fieldIds": ["observed-ic-count"],
+      "purposes": ["map-resolution", "validation"]
+    },
+    {
+      "bindingId": "nt51951-dpcmi-standard-merge-inspection",
+      "spaceId": "dp-input",
+      "structureId": "nt51951-dpcmi-standard-merge",
+      "fieldIds": ["jira-low", "dp-major", "dp-minor", "jira-high"],
+      "purposes": ["validation", "output-naming", "display", "version"]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "dp-container",
@@ -128,7 +153,24 @@
       "targetViewId": "tp-overlay-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-identity-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-overlay-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51951-standard-merge-dp-perspective.bin",
@@ -139,6 +181,8 @@
   "evidenceRefs": [
     "dp-perspective-51950-51951-owner-map",
     "standard-merge-51951-512k-golden",
-    "legacy-v2-dp-perspective-parity-matrix"
+    "legacy-v2-dp-perspective-parity-matrix",
+    "ic-flashmap-20260725-51950-tp-firmware-config",
+    "ic-flashmap-20260725-51950-dp-perspective"
   ]
 }

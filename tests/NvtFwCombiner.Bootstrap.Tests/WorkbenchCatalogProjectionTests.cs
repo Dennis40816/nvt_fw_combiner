@@ -14,7 +14,7 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         IReadOnlyList<string> icIds = WorkbenchCompositionService.GetSupportedIcIds();
 
-        Assert.Equal(13, icIds.Count);
+        Assert.Equal(10, icIds.Count);
         Assert.Equal(IcSupportCatalog.IcIds, icIds);
         Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
         Assert.Equal(
@@ -55,6 +55,23 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberSelectionChoices("NT51950")[0]);
     }
 
+    /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
+    [Theory]
+    [InlineData("NT51920")]
+    [InlineData("NT51925")]
+    [InlineData("NT51930")]
+    [InlineData("NT51931")]
+    public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)
+    {
+        Assert.DoesNotContain(icId, WorkbenchCompositionService.GetSupportedIcIds());
+        Assert.DoesNotContain(
+            WorkbenchCompositionService.GetStandardMergeProfileSummaries(),
+            summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
+        Assert.DoesNotContain(
+            WorkbenchCompositionService.GetReplaceProfileSummaries(),
+            summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
+    }
+
     /// <summary>Replace summaries expose only manifest-pinned V2 runtime profiles.</summary>
     [Fact]
     public void ProfileSummariesExcludeSyntheticCompilerFixtures()
@@ -66,18 +83,18 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
-        Assert.Equal(13, settings.CatalogIcCount);
+        Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(13, settings.DpReplaceProfileCount);
-        Assert.Equal(13, settings.CtrlRamReplaceAvailableIcCount);
+        Assert.Equal(10, settings.DpReplaceProfileCount);
+        Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
@@ -106,8 +123,8 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 

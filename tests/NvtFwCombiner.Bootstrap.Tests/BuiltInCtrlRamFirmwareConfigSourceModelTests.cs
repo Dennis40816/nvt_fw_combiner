@@ -11,14 +11,11 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
     private static readonly string[] CtrlRamBundleDirectories =
     [
         "nt51917-ctrlram-replace-alias-candidate",
-        "nt51920-ctrlram-replace-candidate",
         "nt51923-ctrlram-replace-candidate",
         "nt51926-ctrlram-replace-candidate",
         "nt51927-ctrlram-replace-candidate",
         "nt51928-ctrlram-replace-candidate",
         "nt51929-ctrlram-replace-candidate",
-        "nt51930-ctrlram-replace-candidate",
-        "nt51931-ctrlram-replace-candidate",
         "nt51932-ctrlram-replace-candidate",
         "nt51950-ctrlram-replace-candidate",
         "nt51951-ctrlram-replace-candidate",
@@ -27,8 +24,6 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
     private static readonly IReadOnlyDictionary<string, string> ExpectedCtrlRamMapTopologies =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["nt51920-ctrlram-fw120-single-full-flash"] = "single",
-            ["nt51920-ctrlram-fw120-cascade2-full-flash"] = "cascade:2-*",
             ["nt51923-ctrlram-fw141-single-full-flash"] = "single",
             ["nt51923-ctrlram-fw141-cascade3-full-flash"] = "cascade:2-*",
             ["nt51926-ctrlram-fw141-tp-work-240k"] = "none",
@@ -43,19 +38,16 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
             ["nt51928-ctrlram-fw140-threechip-full-flash"] = "exact-count:3",
             ["nt51929-ctrlram-fw200-single-full-flash"] = "single",
             ["nt51929-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-8",
-            ["nt51930-ctrlram-fw130-cascade3-full-flash"] = "none",
-            ["nt51931-ctrlram-fw1x-single-full-flash"] = "single",
-            ["nt51931-ctrlram-fw130-cascade6-full-flash"] = "cascade:2-*",
             ["nt51932-ctrlram-fw1x-single-full-flash"] = "single",
-            ["nt51932-ctrlram-fw200-cascade3-full-flash"] = "cascade:2-8",
+            ["nt51932-ctrlram-fw200-cascade-full-flash"] = "cascade:2-8",
             ["nt51950-ctrlram-fw200-single-tp-work"] = "single",
             ["nt51950-ctrlram-fw200-single-full-flash"] = "single",
-            ["nt51950-ctrlram-fw1x-cascade-tp-work"] = "cascade:2-*",
-            ["nt51950-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-*",
+            ["nt51950-ctrlram-fw1x-cascade-tp-work"] = "exact-count:2",
+            ["nt51950-ctrlram-fw1x-cascade-full-flash"] = "exact-count:2",
             ["nt51951-ctrlram-fw200-single-tp-work"] = "single",
             ["nt51951-ctrlram-fw200-single-full-flash"] = "single",
-            ["nt51951-ctrlram-fw1x-cascade-tp-work"] = "cascade:2-*",
-            ["nt51951-ctrlram-fw1x-cascade-full-flash"] = "cascade:2-*",
+            ["nt51951-ctrlram-fw1x-cascade-tp-work"] = "exact-count:2",
+            ["nt51951-ctrlram-fw1x-cascade-full-flash"] = "exact-count:2",
         };
 
     /// <summary>Production CtrlRAM map admission uses requested topology, never golden fixture metadata.</summary>
@@ -147,11 +139,11 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
             }
         }
 
-        Assert.Equal(32, profileCount);
+        Assert.Equal(26, profileCount);
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51920", "NT51923", "NT51926", "NT51927", "NT51928",
-                "NT51929", "NT51930", "NT51931", "NT51932", "NT51950", "NT51951",
+                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             [.. coveredIcIds.Order(StringComparer.Ordinal)]);
     }

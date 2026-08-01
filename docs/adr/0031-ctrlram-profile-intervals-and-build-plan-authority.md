@@ -2,9 +2,11 @@
 
 - Status: Accepted for v0.9.12
 - Date: 2026-07-21
-- Owner decision: 2026-07-21
+- Owner decision: 2026-07-21; DiffDLM/NF amendment 2026-07-27
 - Risk: R3; implementation and release still require firmware-owner review
 - Amends: ADR 0030 production-admission decision 2
+- Amended by: ADR 0042 for the `0.10.x` retirement of NT51920, NT51925,
+  NT51930, and NT51931
 
 ## Context
 
@@ -55,8 +57,9 @@ Consequently:
 
 - NT51926 uses the profile sourced from 1.4.1 for `[1.0.0, 2.0.0)` and the profile sourced from
   2.0.0 for `[2.0.0, infinity)`.
-- NT51930 has one runtime profile sourced from 1.4.0 and therefore uses it for
-  `[1.0.0, infinity)`. Its inspected 2.0.0 entry remains evidence-only and creates no boundary.
+- In the pre-retirement compatibility runtime, NT51930 had one runtime profile
+  sourced from 1.4.0 over `[1.0.0, infinity)`. Its inspected 2.0.0 entry remains
+  evidence-only. The `0.10.x` target does not migrate NT51930; #221 removes it.
 
 ### Build-plan authority
 
@@ -65,12 +68,13 @@ Consequently:
    non-overlapping count range. A count range exists only when a distinct command plan requires it.
 3. A golden's observed count never creates an exact-count or count-range plan. Generic cascade is
    not narrowed to the count used by a fixture.
-4. Count ranges are non-overlapping and deterministic. NT51930 currently declares only `2..13`;
-   count `14` and above remain unavailable until the owner supplies a distinct command plan.
+4. Count ranges are non-overlapping and deterministic. The retired NT51930
+   compatibility profile declared only `2..13`; this is historical evidence,
+   not `0.10.x` route authority.
 5. NT51927 has exactly three production plans: single, 2-chip, and 3-chip. A storage-level generic
    cascade command collection is not a fourth selectable plan.
-6. NT51930 has exactly two selectable plans: single and `cascade_2to13`; the UI labels them `1 IC`
-   and `2–13 IC` and does not expose a generic Cascade choice.
+6. Before retirement, NT51930 had exactly two selectable plans: single and
+   `cascade_2to13`. #221 removes both from the `0.10.x` UI/CLI and runtime.
 7. Requested Number/topology selects the plan. A decoded FWConfig chip count may cross-check the
    selected topology, but it does not select family or create a plan. A contradiction with an exact
    plan fails closed; missing count remains informational when the requested selector uniquely
@@ -78,11 +82,83 @@ Consequently:
 8. NT51928 non-NB has the same TP layout and single/2-chip/3-chip postbuild plans as NT51927. Its
    distinct DP/LDC content begins at `0x40000` and remains outside CtrlRAM authority, so all three
    matching TP plans route through separate 512 KiB maps. NT51928 NB remains outside this decision.
-9. NT51950 and NT51951 each expose single and generic cascade. Their TP ranges, DiffDLM
-   `[0x33200,0x34600)`, offsets, and postbuild command contract match; their `0x40000` and `0x80000`
-   full-image capacities remain distinct map facts. Unlike NT51928, LDC is already packaged inside
-   each IC's DP payload and therefore creates no separate CtrlRAM or DP input. AB behavior is a
-   separate decision.
+9. NT51950 and NT51951 each expose single and the currently confirmed exact 2-IC cascade. Their TP ranges, offsets, and
+   postbuild command contract match. The owner-confirmed current Cascade shape is exactly 2 IC:
+   target record zero `0x33200`, source/target stride `0x1400`, writable Diff CtrlRAM
+   `[+0x000,+0x910)`, and reference-preserved Diff NF `[+0x910,+0x1400)`. The legacy outer
+   envelope `[0x33200,0x34600)` is one record, not contiguous AE write authority. Their `0x40000`
+   and `0x80000` full-image capacities remain distinct map facts.
+   Unlike NT51928, LDC is already packaged inside each IC's DP payload and therefore creates no
+   separate CtrlRAM or DP input. AB behavior is a separate decision.
+
+### DiffDLM and Diff NF write authority
+
+1. When the canonical firmware map declares a DiffDLM record that includes a Diff NF tail, an
+   AE-provided DiffDLM artifact uses the same full record stride as the target, but that source NF
+   may be uniform `0x00`/`0xFF` filler and is not valid mutation authority. A contiguous artifact
+   copy cannot be the final active-record mutation authority. A compatibility implementation may
+   copy the declared payload first only when the same compiled/verified sequence restores every
+   active Diff NF byte from the immutable reference before integrity processing.
+2. A canonical profile owns the source-record length, target-record stride, target DLM subrange,
+   preserved NF subrange, IC Count applicability, and evidence. The compiled plan lowers those
+   facts into ordinary explicit copy operations; no processor or UI-only mask may expand them.
+   Every DiffDLM declaration must bind at least one explicit preservation-mask subrange. Writable
+   DLM and preservation-mask subranges must be non-overlapping, remain inside the target record,
+   and together cover the complete declared record stride. Missing, `unknown`, overlapping, or
+   incomplete mask authority makes the DiffDLM route unavailable before plan compilation.
+3. NT51919/NT51929/NT51932 share the first owner-confirmed **Dynamic
+   DiffDLM** geometry. “Dynamic” means the active-record count changes the
+   expected postbuild FWConfig Backup placement. For zero-based slave record
+   `i`, the source record base is `i * 0x1400` and the target record base is
+   `0x2D100 + i * 0x1400`; the writable Diff DLM subrange is `[base, base + 0x0B90)` and the
+   preserved Diff NF subrange is `[base + 0x0B90, base + 0x1400)`. Cascade IC Count `N` requires
+   exactly `N - 1` active DLM subranges, so its active target envelope is
+   `[0x2D100, 0x2D100 + (N - 1) * 0x1400)`. Every required `0x0B90` source DLM subrange must
+   contain more than one distinct byte; the validator checks all required records, not only the
+   first. Input admission also requires the complete active source prefix
+   `(N - 1) * 0x1400`; a file ending at the last active DLM end is truncated
+   even though all writable DLM bytes happen to be present. Repeated-byte
+   validation is compiled and evaluated at `InputLoad` against the same
+   immutable bound snapshot later used by the plan; Workbench path reads are
+   not a second validation authority.
+4. AE bytes after the active source prefix are inactive dummy content. They are ignored rather than
+   copied, cannot widen DiffDLM read/write authority, and never replace an inactive target record.
+   Inactive target records remain identical to the immutable reference except for a separately
+   declared postbuild write.
+5. For NT51919/NT51929/NT51932, postbuild alone places the FWConfig Backup. The expected runtime
+   start is `AlignUp(0x2D100 + (N - 1) * 0x1400, 0x1000)`. The host derives the actual start from
+   the unique NVT marker after the attempted processor run. If the actual start differs but remains
+   inside the profile-declared bounded Backup-placement authority, the Build Report records a typed
+   warning; missing/ambiguous Backup, out-of-bounds placement, or any mutation outside declared
+   processor authority fails closed. The bounded range is placement-candidate
+   authority, not permission to mutate every candidate byte. Once the actual
+   marker is known, only the original Reference Backup envelope and the actual
+   Backup envelope may differ; all remaining candidate bytes are compared
+   byte-for-byte with the immutable Reference. The alignment formula does not
+   infer Backup length, source range, or write envelope.
+6. Preview, execution, mutation audit, and golden evidence must prove every active Diff NF byte remains
+   identical to the immutable reference while every requested DLM record is placed at its declared
+   target subrange, every inactive target record is preserved before postbuild, and any FWConfig
+   Backup mutation is processor-owned and separately reported. One contiguous mutation allowance
+   over the outer envelope is forbidden.
+7. Only the NT51919/NT51929/NT51932 and NT51950/NT51951 families currently
+   have owner-confirmed Cascade DiffDLM records with preserved Diff NF. Their
+   Cascade authoring UI hides the independent NF CtrlRAM selector. This does not
+   delete or bypass the declared postbuild `NF_Ctrlram.bin` argument/stage: the
+   profile must resolve a non-user-selected staged source, and a hidden or stale
+   UI selection cannot feed it. Single plans, other IC families, and other
+   non-Diff-NF plans retain their declared NF selector behavior.
+   User-selectable NF0/NF1/... authoring and `DiffNFMerge.exe` remain separately
+   owner-gated.
+8. NT51950 and NT51951 use this same active-record preservation mechanism with their independent
+   owner-confirmed 2-IC geometry: target record zero `0x33200`, stride `0x1400`, writable
+   `[+0x000,+0x910)`, and preserved `[+0x910,+0x1400)`. They are fixed-layout
+   DiffDLM rather than Dynamic DiffDLM: the declared End Flag at `0x36FFC`
+   fixes the marker-derived FWConfig Backup start at `0x36000`, and postbuild
+   copies the primary FWConfig at `0x22200` to that fixed destination. A wider
+   count or the NT51929-family count-derived placement formula must not be
+   copied by analogy. Direct expected output and processor mutation evidence
+   remain promotion gates.
 
 ### Production route key
 
@@ -159,8 +235,10 @@ checks. They validate the selected execution; they do not identify a family.
   traceability.
 - NT51928 partial-family authority is limited to the separately owner-approved NT51927-equivalent
   TP single/2-chip/3-chip plans. The partial alias does not authorize NB or reuse DP/LDC semantics.
-- The route registry now covers all 31 runtime interval/build-plan pairs in the postbuild catalog;
-  there is no golden-derived fail-closed exception list.
+- The pre-retirement compatibility registry covered 31 runtime
+  interval/build-plan pairs. The `0.10.x` target removes every
+  NT51920/NT51925/NT51930/NT51931 route through #221; that historical count is
+  not current catalog or admission authority.
 
 ## Verification
 
@@ -169,12 +247,18 @@ checks. They validate the selected execution; they do not identify a family.
 2. Version tests cover one-profile missing/varied Common FW and every multiple-profile interval
    boundary, including `1.0.0`, representative values below/at/above each boundary, malformed
    input, and evidence-only entries.
-3. NT51926 tests prove 1.x versions use the 1.4.1-sourced profile and 2.x/later versions use the
-   2.0.0-sourced profile. NT51930 tests prove 1.x, 2.x, later, and missing Common FW all select its
-   only runtime profile.
-4. Plan tests prove NT51927 exposes only single/2-chip/3-chip, NT51930 exposes only single/2–13,
-   count 14 and generic Cascade are rejected for NT51930, and generic cascade on other ICs accepts
-   every count above one without inheriting a golden fixture count.
+3. NT51926 tests prove 1.x versions use the 1.4.1-sourced profile and 2.x/later
+   versions use the 2.0.0-sourced profile. Historical NT51930 selection tests
+   may remain as compatibility evidence, while #221 tests prove no NT51930
+   production route or selector survives.
+4. Plan tests prove NT51927 exposes only single/2-chip/3-chip. Generic Cascade
+   accepts every count above one only for a profile that explicitly declares
+   generic Cascade; it is never a fallback. NT51950/NT51951 accept Cascade only
+   at exactly 2 IC and fail closed for 3 or more. Their 2-IC plan writes only
+   `[0x33200,0x33B10)`, preserves `[0x33B10,0x34600)` from the immutable
+   reference, and never applies the NT51929-family dynamic FWConfig Backup
+   formula. #221 proves the retired NT51920/NT51925/NT51930/NT51931 plans are
+   absent.
 5. Production-route tests vary PID, filename, preserved bytes/hash, and informational firmware
    fields while keeping IC, selected profile, plan, map, and processor authority valid.
 6. Existing full-byte golden, processor write-range, immutable-source, atomic-output, and report
@@ -184,5 +268,28 @@ checks. They validate the selected execution; they do not identify a family.
    unscoped family resolution remains ambiguous.
 8. NT51928 tests compile all non-NB single/2-chip/3-chip maps at `0x80000` and retain the DP/LDC
    tail; its DP Replace contract independently requires non-overlapping DP and LDC inputs.
-9. NT51950/NT51951 cascade tests prove identical TP processor write authority and DiffDLM offsets
-   while retaining the distinct `0x40000`/`0x80000` map capacities.
+9. NT51950/NT51951 cascade tests retain the distinct `0x40000`/`0x80000` map
+   capacities, compile exactly one 2-IC active record, write only
+   `[0x33200,0x33B10)`, preserve `[0x33B10,0x34600)`, reject 3 or more ICs, and
+   do not infer NT51929-family FWConfig Backup placement. Direct
+   expected-output and mutation evidence remain promotion gates.
+10. NT51919/NT51929/NT51932 Dynamic DiffDLM tests use distinct sentinels in every DLM and NF subrange, vary
+    cascade IC Count across the admitted `2–8` range, prove full-stride source record ordering,
+    reject an all-identical required DLM subrange, and require byte-identical preservation of every
+    active NF subrange and every inactive target record. The owner-provided NT51932 4-IC golden must
+    exercise three active DLM records. Runtime tests also prove expected Backup starts for each
+    admitted count, marker-derived actual placement, warning-only in-authority mismatch, and
+    fail-closed out-of-authority mutation. The count-resolved Backup may occupy inactive bytes
+    inside the maximum `[0x2D100,0x35D00)` record envelope; the adjacent
+    `[0x35D00,0x37000)` authority tail is not modeled as a fixed Backup region.
+    Boundary tests reject active source lengths `0x338F`, `0x3390`, and
+    `0x3BFF` for 4 IC and accept exactly `0x3C00`; negative processor tests
+    mutate inactive DLM, inactive Diff NF, and upper-extension bytes inside the
+    candidate range and must fail the final immutable-reference audit. A
+    nonproduction oracle also recreates the retired contiguous full-record
+    overlay and proves the documented 3,145-byte corruption class.
+11. UI/Application tests prove only the two owner-confirmed Diff-NF families
+    hide the independent NF selector in Cascade, while their postbuild plan
+    still contains its declared `NF_Ctrlram.bin` stage with a
+    profile-resolved, non-user-selected source. Single and unrelated plans keep
+    their declared NF selector behavior.

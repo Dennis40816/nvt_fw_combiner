@@ -1,5 +1,60 @@
 {
-  "schemaVersion": "2.2",
+  "schemaVersion": "2.3",
+  "diffDlmPolicies": [
+    {
+      "policyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
+      "sourceFileName": "DiffDLM.bin",
+      "stagedArtifactId": "postbuild-diffdlm",
+      "sourceRecordStride": 5120,
+      "targetBase": 184576,
+      "targetRecordStride": 5120,
+      "writableRange": { "start": 0, "length": 2960 },
+      "preservationMasks": [
+        {
+          "kind": "keep-reference",
+          "range": { "start": 2960, "length": 2160 }
+        }
+      ],
+      "minimumIcCount": 2,
+      "maximumIcCount": 8,
+      "activeRecordCountOffset": -1,
+      "independentNfSourceFileName": "NF_Ctrlram.bin",
+      "firmwareConfigBackupAlignment": 4096,
+      "firmwareConfigBackupLength": 4096,
+      "firmwareConfigBackupAuthority": { "start": 192512, "length": 32768 },
+      "evidenceRefs": [
+        "owner-confirmed NT51919/NT51929/NT51932 DiffDLM full-stride contract 2026-07-27",
+        "nt51932-diffdlm-nf-mask-cascade4-20260727"
+      ]
+    },
+    {
+      "policyId": "nt51950-nt51951-preserve-active-diffnf",
+      "sourceFileName": "DiffDLM.bin",
+      "stagedArtifactId": "postbuild-diffdlm",
+      "sourceRecordStride": 5120,
+      "targetBase": 209408,
+      "targetRecordStride": 5120,
+      "writableRange": { "start": 0, "length": 2320 },
+      "preservationMasks": [
+        {
+          "kind": "keep-reference",
+          "range": { "start": 2320, "length": 2800 }
+        }
+      ],
+      "minimumIcCount": 2,
+      "maximumIcCount": 2,
+      "activeRecordCountOffset": -1,
+      "independentNfSourceFileName": "NF_Ctrlram.bin",
+      "firmwareConfigBackupAlignment": 4096,
+      "firmwareConfigBackupLength": 1920,
+      "firmwareConfigBackupAuthority": { "start": 221184, "length": 1920 },
+      "fixedFirmwareConfigBackupStart": 221184,
+      "evidenceRefs": [
+        "owner-confirmed NT51950/NT51951 exact-2-IC PreserveActiveDiffNf geometry 2026-07-31",
+        "nt51951-fw200-cascade2-auto-prj-599-20260731"
+      ]
+    }
+  ],
   "profiles": [
     {
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
@@ -15,6 +70,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -23,6 +79,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -32,6 +89,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -41,6 +99,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -50,6 +109,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -66,6 +126,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -74,6 +135,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -89,6 +151,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -97,6 +160,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -112,6 +176,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -120,6 +185,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -142,6 +208,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -150,6 +217,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -174,6 +242,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -182,6 +251,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -191,6 +261,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -200,6 +271,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -209,6 +281,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -218,6 +291,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -234,6 +308,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -242,6 +317,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -257,6 +333,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -265,6 +342,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -280,6 +358,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -288,6 +367,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -303,6 +383,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -311,6 +392,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -320,6 +402,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -329,6 +412,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -338,6 +422,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -347,6 +432,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -363,6 +449,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -371,6 +458,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -386,6 +474,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -394,6 +483,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -403,6 +493,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -412,6 +503,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -421,6 +513,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -437,6 +530,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -445,6 +539,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -467,6 +562,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -475,6 +571,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -490,6 +587,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -498,6 +596,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -513,6 +612,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -521,6 +621,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -545,6 +646,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -553,6 +655,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -562,6 +665,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -571,6 +675,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -580,6 +685,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -596,6 +702,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -604,6 +711,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -619,6 +727,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -627,6 +736,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -642,6 +752,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -650,6 +761,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -665,6 +777,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -673,6 +786,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -682,6 +796,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -691,6 +806,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -700,6 +816,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -709,6 +826,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -725,6 +843,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -733,6 +852,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -755,6 +875,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -763,6 +884,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -778,6 +900,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -786,6 +909,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -810,6 +934,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -818,6 +943,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -827,6 +953,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -836,6 +963,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -845,6 +973,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -854,6 +983,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -870,6 +1000,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -878,6 +1009,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -893,6 +1025,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -901,6 +1034,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -916,6 +1050,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -924,6 +1059,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -939,6 +1075,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -947,6 +1084,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -956,6 +1094,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -965,6 +1104,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -974,6 +1114,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -983,6 +1124,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -999,6 +1141,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1007,6 +1150,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -1022,6 +1166,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1030,6 +1175,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1039,6 +1185,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -1048,6 +1195,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -1057,6 +1205,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1073,6 +1222,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1081,6 +1231,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1103,6 +1254,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1111,6 +1263,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -1126,6 +1279,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1134,6 +1288,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -1149,6 +1304,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1157,6 +1313,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -1208,6 +1365,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1217,6 +1375,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1226,6 +1385,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1235,6 +1395,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -1251,6 +1412,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -1269,6 +1431,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1278,6 +1441,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -1287,6 +1451,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1296,6 +1461,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1305,6 +1471,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -1321,6 +1488,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -1344,206 +1512,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51919 follows NT51929 and cascade is 2-8 IC"
-    },
-    {
-      "processorId": "nfc.nt51920.ctrlram-postbuild-v1",
-      "icId": "NT51920",
-      "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
-      "firmwareFileName": "nt51920_fw.bin",
-      "singleCommands": [
-        {
-          "commandId": "nt51920-single-merge-crc",
-          "family": "normal-mode",
-          "modeArgument": "CRC_Enable",
-          "blocks": [
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 141184,
-              "targetLength": 10240,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "mp",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 151424,
-              "targetLength": 5888,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 182032,
-              "targetLength": 4120,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 173952,
-              "targetLength": 8080,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "fw-config-backup",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 139264,
-              "targetStart": 192512,
-              "targetLength": 1920
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 157312,
-              "targetLength": 256
-            }
-          ]
-        },
-        {
-          "commandId": "nt51920-single-header-crc",
-          "family": "normal-mode",
-          "modeArgument": "CRC_Enable",
-          "blocks": [
-            {
-              "blockId": "header-copy-final",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 157312,
-              "targetLength": 256
-            }
-          ]
-        }
-      ],
-      "cascadeCommands": [
-        {
-          "commandId": "nt51920-cascade-merge-crc",
-          "family": "normal-mode",
-          "modeArgument": "CRC_Enable",
-          "blocks": [
-            {
-              "blockId": "normal-master",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 141184,
-              "targetLength": 10240,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "normal-slave",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram_S.bin",
-              "sourceOffset": 0,
-              "targetStart": 157568,
-              "targetLength": 10240,
-              "stagedArtifactId": "postbuild-normal-ctrlram-s"
-            },
-            {
-              "blockId": "mp-master",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 151424,
-              "targetLength": 5888,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "mp-slave",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram_S.bin",
-              "sourceOffset": 0,
-              "targetStart": 167808,
-              "targetLength": 5888,
-              "stagedArtifactId": "postbuild-mp-ctrlram-s"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 182032,
-              "targetLength": 4120,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 173952,
-              "targetLength": 8080,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "vector",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Vector_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 186152,
-              "targetLength": 600,
-              "stagedArtifactId": "postbuild-vector-ctrlram"
-            },
-            {
-              "blockId": "fw-config-backup",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 139264,
-              "targetStart": 192512,
-              "targetLength": 1920
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 157312,
-              "targetLength": 256
-            }
-          ]
-        },
-        {
-          "commandId": "nt51920-cascade-header-crc",
-          "family": "normal-mode",
-          "modeArgument": "CRC_Enable",
-          "blocks": [
-            {
-              "blockId": "header-copy-final",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 157312,
-              "targetLength": 256
-            }
-          ]
-        }
-      ],
-      "planSelectors": [
-        {
-          "kind": "single",
-          "branch": "single"
-        },
-        {
-          "kind": "generic-cascade",
-          "branch": "cascade"
-        }
-      ],
-      "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51920_1.3.1.bat"
     },
     {
       "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
@@ -1559,6 +1529,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1568,6 +1539,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1577,6 +1549,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1586,6 +1559,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1595,6 +1569,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -1603,6 +1578,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1618,6 +1594,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1635,6 +1612,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1644,6 +1622,7 @@
             },
             {
               "blockId": "diff-0",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -1653,6 +1632,7 @@
             },
             {
               "blockId": "diff-1",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 5120,
@@ -1662,6 +1642,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1671,6 +1652,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1680,6 +1662,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1689,6 +1672,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -1697,6 +1681,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1712,6 +1697,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1749,6 +1735,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1758,6 +1745,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1767,6 +1755,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1776,6 +1765,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1785,6 +1775,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -1793,6 +1784,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1808,6 +1800,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1825,6 +1818,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1834,6 +1828,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -1843,6 +1838,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1852,6 +1848,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1861,6 +1858,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1870,6 +1868,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -1878,6 +1877,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1893,6 +1893,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1930,6 +1931,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1939,6 +1941,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1948,6 +1951,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1957,6 +1961,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -1966,6 +1971,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -1974,6 +1980,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -1989,6 +1996,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2006,6 +2014,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2015,6 +2024,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -2024,6 +2034,7 @@
             },
             {
               "blockId": "mp",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2033,6 +2044,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2042,6 +2054,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2051,6 +2064,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 139264,
@@ -2059,6 +2073,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2074,6 +2089,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2111,6 +2127,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2119,6 +2136,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2128,6 +2146,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2137,6 +2156,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2146,6 +2166,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2162,6 +2183,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2170,6 +2192,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2185,6 +2208,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2193,6 +2217,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2208,6 +2233,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2216,6 +2242,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2238,6 +2265,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2246,6 +2274,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2270,6 +2299,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2278,6 +2308,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2287,6 +2318,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -2296,6 +2328,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2305,6 +2338,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2314,6 +2348,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2330,6 +2365,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2338,6 +2374,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2353,6 +2390,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2361,6 +2399,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2376,6 +2415,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2384,6 +2424,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2399,6 +2440,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2407,6 +2449,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2416,6 +2459,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -2425,6 +2469,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -2434,6 +2479,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -2443,6 +2489,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2459,6 +2506,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2467,6 +2515,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2482,6 +2531,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2490,6 +2540,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2499,6 +2550,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -2508,6 +2560,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -2517,6 +2570,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2533,6 +2587,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2541,6 +2596,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2563,6 +2619,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2571,6 +2628,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2586,6 +2644,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2594,6 +2653,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2609,6 +2669,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2617,6 +2678,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2641,6 +2703,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2649,6 +2712,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2658,6 +2722,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2667,6 +2732,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2676,6 +2742,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2692,6 +2759,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2700,6 +2768,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2715,6 +2784,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2723,6 +2793,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2738,6 +2809,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2746,6 +2818,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2761,6 +2834,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2769,6 +2843,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2778,6 +2853,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -2787,6 +2863,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -2796,6 +2873,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -2805,6 +2883,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2821,6 +2900,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2829,6 +2909,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2851,6 +2932,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2859,6 +2941,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2874,6 +2957,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2882,6 +2966,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -2906,6 +2991,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2914,6 +3000,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2923,6 +3010,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -2932,6 +3020,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2941,6 +3030,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2950,6 +3040,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -2966,6 +3057,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2974,6 +3066,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -2989,6 +3082,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -2997,6 +3091,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3012,6 +3107,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3020,6 +3116,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3035,6 +3132,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3043,6 +3141,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3052,6 +3151,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -3061,6 +3161,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3070,6 +3171,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3079,6 +3181,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3095,6 +3198,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3103,6 +3207,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3118,6 +3223,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3126,6 +3232,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3135,6 +3242,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -3144,6 +3252,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -3153,6 +3262,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3169,6 +3279,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3177,6 +3288,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3199,6 +3311,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3207,6 +3320,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3222,6 +3336,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3230,6 +3345,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3245,6 +3361,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3253,6 +3370,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3303,6 +3421,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3311,6 +3430,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3320,6 +3440,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3329,6 +3450,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3338,6 +3460,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3354,6 +3477,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3362,6 +3486,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3377,6 +3502,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3385,6 +3511,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3400,6 +3527,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3408,6 +3536,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3430,6 +3559,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3438,6 +3568,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3462,6 +3593,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3470,6 +3602,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3479,6 +3612,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -3488,6 +3622,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3497,6 +3632,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3506,6 +3642,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3522,6 +3659,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3530,6 +3668,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3545,6 +3684,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3553,6 +3693,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3568,6 +3709,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3576,6 +3718,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3591,6 +3734,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3599,6 +3743,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3608,6 +3753,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -3617,6 +3763,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3626,6 +3773,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3635,6 +3783,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3651,6 +3800,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3659,6 +3809,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3674,6 +3825,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3682,6 +3834,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3691,6 +3844,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -3700,6 +3854,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -3709,6 +3864,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3725,6 +3881,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3733,6 +3890,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3755,6 +3913,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3763,6 +3922,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3778,6 +3938,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3786,6 +3947,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3801,6 +3963,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3809,6 +3972,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3833,6 +3997,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3841,6 +4006,7 @@
             },
             {
               "blockId": "nf-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3850,6 +4016,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3859,6 +4026,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3868,6 +4036,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3884,6 +4053,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3892,6 +4062,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3907,6 +4078,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3915,6 +4087,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -3930,6 +4103,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3938,6 +4112,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -3953,6 +4128,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -3961,6 +4137,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -3970,6 +4147,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -3979,6 +4157,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3988,6 +4167,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -3997,6 +4177,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4013,6 +4194,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4021,6 +4203,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4043,6 +4226,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4051,6 +4235,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4066,6 +4251,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4074,6 +4260,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4098,6 +4285,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4106,6 +4294,7 @@
             },
             {
               "blockId": "nf-master-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4115,6 +4304,7 @@
             },
             {
               "blockId": "nf-master-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 4048,
@@ -4124,6 +4314,7 @@
             },
             {
               "blockId": "normal-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4133,6 +4324,7 @@
             },
             {
               "blockId": "mp-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4142,6 +4334,7 @@
             },
             {
               "blockId": "vn-master",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4158,6 +4351,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4166,6 +4360,7 @@
             },
             {
               "blockId": "fw-config-backup",
+              "sectionId": "tp-fw-config-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -4181,6 +4376,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4189,6 +4385,7 @@
             },
             {
               "blockId": "header-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4204,6 +4401,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4212,6 +4410,7 @@
             },
             {
               "blockId": "copy-right-window",
+              "sectionId": "tp-window-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -4227,6 +4426,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4235,6 +4435,7 @@
             },
             {
               "blockId": "nf-right-prefix",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4244,6 +4445,7 @@
             },
             {
               "blockId": "nf-right-body",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 8080,
@@ -4253,6 +4455,7 @@
             },
             {
               "blockId": "normal-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -4262,6 +4465,7 @@
             },
             {
               "blockId": "mp-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_R.bin",
               "sourceOffset": 0,
@@ -4271,6 +4475,7 @@
             },
             {
               "blockId": "vn-right",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4287,6 +4492,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4295,6 +4501,7 @@
             },
             {
               "blockId": "copy-left-window",
+              "sectionId": "tp-window-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 90112,
@@ -4310,6 +4517,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4318,6 +4526,7 @@
             },
             {
               "blockId": "nf-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4327,6 +4536,7 @@
             },
             {
               "blockId": "normal-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -4336,6 +4546,7 @@
             },
             {
               "blockId": "mp-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "MP_Ctrlram_L.bin",
               "sourceOffset": 0,
@@ -4345,6 +4556,7 @@
             },
             {
               "blockId": "vn-left",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4361,6 +4573,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4369,6 +4582,7 @@
             },
             {
               "blockId": "final-header-backup",
+              "sectionId": "tp-header-copy-final-backup",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4391,6 +4605,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4399,6 +4614,7 @@
             },
             {
               "blockId": "header-refresh-master",
+              "sectionId": "tp-header-copy-master",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4414,6 +4630,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4422,6 +4639,7 @@
             },
             {
               "blockId": "header-refresh-right",
+              "sectionId": "tp-header-copy-right",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4437,6 +4655,7 @@
           "blocks": [
             {
               "blockId": "base",
+              "sectionId": "postbuild-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 0,
@@ -4445,6 +4664,7 @@
             },
             {
               "blockId": "header-refresh-left",
+              "sectionId": "tp-header-copy-left",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 512,
@@ -4496,6 +4716,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4505,6 +4726,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4514,6 +4736,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4523,6 +4746,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -4539,6 +4763,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -4557,6 +4782,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4566,6 +4792,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -4575,6 +4802,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4584,6 +4812,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -4593,6 +4822,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -4609,6 +4839,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -4632,453 +4863,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: NT51929 follows NT51932 and cascade is 2-8 IC"
-    },
-    {
-      "processorId": "nfc.nt51930.ctrlram-postbuild-v1",
-      "icId": "NT51930",
-      "effectiveCommonFwVersion": "2.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
-      "firmwareFileName": "NT51930_fw.bin",
-      "singleCommands": [
-        {
-          "commandId": "nt51930-single-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 136784,
-              "targetLength": 11264,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 161360,
-              "targetLength": 6496,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 130048,
-              "targetLength": 6736,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 512
-            }
-          ]
-        },
-        {
-          "commandId": "nt51930-single-header-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "header-copy-final",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 512
-            }
-          ]
-        }
-      ],
-      "cascadeCommands": [
-        {
-          "commandId": "nt51930-cascade-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 136784,
-              "targetLength": 11264,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "diff",
-              "sourceKind": "staged-file",
-              "sourceFileName": "DiffDLM.bin",
-              "sourceOffset": 0,
-              "targetStart": 193024,
-              "targetLength": 65024,
-              "stagedArtifactId": "postbuild-diffdlm"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 161360,
-              "targetLength": 6496,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 130048,
-              "targetLength": 6736,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 512
-            }
-          ]
-        },
-        {
-          "commandId": "nt51930-cascade-header-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "header-copy-final",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 512
-            }
-          ]
-        }
-      ],
-      "planSelectors": [
-        {
-          "kind": "single",
-          "branch": "single"
-        },
-        {
-          "kind": "count-range",
-          "branch": "cascade",
-          "minimumCount": 2,
-          "maximumCount": 13
-        }
-      ],
-      "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "availability": "evidence-only",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_2.0.0.bat"
-    },
-    {
-      "processorId": "nfc.nt51930.ctrlram-postbuild-fw1.x",
-      "icId": "NT51930",
-      "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
-      "firmwareFileName": "nt51930_fw.bin",
-      "singleCommands": [
-        {
-          "commandId": "nt51930-fw1x-single-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 130048,
-              "targetLength": 6736,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 136784,
-              "targetLength": 11264,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "mp",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 148048,
-              "targetLength": 13312,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 161360,
-              "targetLength": 6494,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 256
-            }
-          ]
-        }
-      ],
-      "cascadeCommands": [
-        {
-          "commandId": "nt51930-fw1x-cascade-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51930BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 130048,
-              "targetLength": 6736,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 136784,
-              "targetLength": 11264,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "mp",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 148048,
-              "targetLength": 13312,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 161360,
-              "targetLength": 6494,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 28672,
-              "targetStart": 167856,
-              "targetLength": 256
-            },
-            {
-              "blockId": "diff",
-              "sourceKind": "staged-file",
-              "sourceFileName": "DiffDLM.bin",
-              "sourceOffset": 0,
-              "targetStart": 193024,
-              "targetLength": 65024,
-              "stagedArtifactId": "postbuild-diffdlm"
-            }
-          ]
-        }
-      ],
-      "planSelectors": [
-        {
-          "kind": "single",
-          "branch": "single"
-        },
-        {
-          "kind": "count-range",
-          "branch": "cascade",
-          "minimumCount": 2,
-          "maximumCount": 13
-        }
-      ],
-      "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51930_1.4.0.bat"
-    },
-    {
-      "processorId": "nfc.nt51931.ctrlram-postbuild-v1",
-      "icId": "NT51931",
-      "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
-      "firmwareFileName": "nt51931_fw.bin",
-      "singleCommands": [
-        {
-          "commandId": "nt51931-single-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51931BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 92160,
-              "targetLength": 4048,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 96208,
-              "targetLength": 10240,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "mp",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 106448,
-              "targetLength": 9216,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 115664,
-              "targetLength": 5728,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 121392,
-              "targetLength": 256
-            },
-            {
-              "blockId": "fw-config-backup",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 90112,
-              "targetStart": 241664,
-              "targetLength": 2048
-            }
-          ]
-        }
-      ],
-      "cascadeCommands": [
-        {
-          "commandId": "nt51931-cascade-merge-crc",
-          "family": "ntbased-normal-mode",
-          "modeArgument": "NT51931BASED_NORMAL_MODE",
-          "crcArgument": "CRC8",
-          "blocks": [
-            {
-              "blockId": "nf",
-              "sourceKind": "staged-file",
-              "sourceFileName": "NF_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 92160,
-              "targetLength": 4048,
-              "stagedArtifactId": "postbuild-nf-ctrlram"
-            },
-            {
-              "blockId": "normal",
-              "sourceKind": "staged-file",
-              "sourceFileName": "Normal_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 96208,
-              "targetLength": 10240,
-              "stagedArtifactId": "postbuild-normal-ctrlram"
-            },
-            {
-              "blockId": "mp",
-              "sourceKind": "staged-file",
-              "sourceFileName": "MP_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 106448,
-              "targetLength": 9216,
-              "stagedArtifactId": "postbuild-mp-ctrlram"
-            },
-            {
-              "blockId": "vn",
-              "sourceKind": "staged-file",
-              "sourceFileName": "VN_Ctrlram.bin",
-              "sourceOffset": 0,
-              "targetStart": 115664,
-              "targetLength": 5728,
-              "stagedArtifactId": "postbuild-vn-ctrlram"
-            },
-            {
-              "blockId": "header-copy",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 0,
-              "targetStart": 121392,
-              "targetLength": 256
-            },
-            {
-              "blockId": "fw-config-backup",
-              "sourceKind": "firmware-image",
-              "sourceFileName": "firmware",
-              "sourceOffset": 90112,
-              "targetStart": 241664,
-              "targetLength": 2048
-            },
-            {
-              "blockId": "diff",
-              "sourceKind": "staged-file",
-              "sourceFileName": "DiffDLM.bin",
-              "sourceOffset": 0,
-              "targetStart": 141312,
-              "targetLength": 97280,
-              "stagedArtifactId": "postbuild-diffdlm"
-            }
-          ]
-        }
-      ],
-      "planSelectors": [
-        {
-          "kind": "single",
-          "branch": "single"
-        },
-        {
-          "kind": "generic-cascade",
-          "branch": "cascade"
-        }
-      ],
-      "assemblyKind": "in-place-firmware-image",
-      "firmwareConfigWriteRoute": "command-source-to-canonical-backup",
-      "evidence": "Owner 2026-07-17 NT51931-based BAT plus 2026-07-19 full-byte parity: Combiner 1.13.0 NT51931-based equals Combiner 1.2.0.4 NT51930-based"
     },
     {
       "processorId": "nfc.nt51932.ctrlram-postbuild-v1",
@@ -5095,6 +4881,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5104,6 +4891,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5113,6 +4901,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5122,6 +4911,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -5138,6 +4928,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -5156,6 +4947,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5165,6 +4957,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -5174,6 +4967,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5183,6 +4977,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5192,6 +4987,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -5208,6 +5004,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 28672,
@@ -5231,6 +5028,7 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
+      "diffDlmPolicyId": "nt51919-nt51929-nt51932-preserve-active-diffnf",
       "evidence": "IC FlashMap postbuild/PostbuildSetup_51932_2.0.0.bat; owner confirmation: cascade is 2-8 IC"
     },
     {
@@ -5248,6 +5046,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5257,6 +5056,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5266,6 +5066,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5275,6 +5076,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5291,6 +5093,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5309,6 +5112,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5318,6 +5122,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -5327,6 +5132,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5336,6 +5142,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5345,6 +5152,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5361,6 +5169,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5382,7 +5191,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat"
+      "diffDlmPolicyId": "nt51950-nt51951-preserve-active-diffnf",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; 51950_2.0.0_mmap.h; owner-supplied AUTO_PRJ-599 NT51951 exact-2-IC expected output; owner-confirmed NT51950 fact-scoped geometry applicability"
     },
     {
       "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
@@ -5399,6 +5209,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5408,6 +5219,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5417,6 +5229,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5426,6 +5239,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5442,6 +5256,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5460,6 +5275,7 @@
           "blocks": [
             {
               "blockId": "normal",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "Normal_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5469,6 +5285,7 @@
             },
             {
               "blockId": "diff",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "DiffDLM.bin",
               "sourceOffset": 0,
@@ -5478,6 +5295,7 @@
             },
             {
               "blockId": "vn",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "VN_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5487,6 +5305,7 @@
             },
             {
               "blockId": "nf",
+              "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",
               "sourceFileName": "NF_Ctrlram.bin",
               "sourceOffset": 0,
@@ -5496,6 +5315,7 @@
             },
             {
               "blockId": "header-copy",
+              "sectionId": "tp-header-copy",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5512,6 +5332,7 @@
           "blocks": [
             {
               "blockId": "header-copy-final",
+              "sectionId": "tp-header-copy-final",
               "sourceKind": "firmware-image",
               "sourceFileName": "firmware",
               "sourceOffset": 40960,
@@ -5533,7 +5354,8 @@
       ],
       "assemblyKind": "in-place-firmware-image",
       "firmwareConfigWriteRoute": "primary-to-canonical-backup",
-      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; owner confirmation: NT51951 follows NT51950"
+      "diffDlmPolicyId": "nt51950-nt51951-preserve-active-diffnf",
+      "evidence": "IC FlashMap postbuild/PostbuildSetup_51950_2.0.0.bat; 51950_2.0.0_mmap.h; owner-supplied AUTO_PRJ-599 NT51951 exact-2-IC expected output"
     }
   ]
 }

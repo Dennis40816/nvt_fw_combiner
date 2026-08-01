@@ -5,6 +5,57 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
+    private static Dictionary<string, AddressSpace> LowerAddressSpaces(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        List<CompositionIssue> issues,
+        IReadOnlySet<string>? activeSlotIds = null)
+    {
+        var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
+        foreach (InputArtifactProfileSpace input in profile.Spaces.OfType<InputArtifactProfileSpace>())
+        {
+            if (activeSlotIds is not null && !activeSlotIds.Contains(input.SlotId))
+            {
+                continue;
+            }
+
+            CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
+            if (!TryResolveInputSpaceLength(
+                    profile,
+                    family,
+                    input,
+                    slot,
+                    resolvedMap,
+                    issues,
+                    out long length))
+            {
+                continue;
+            }
+
+            spaces.Add(input.SpaceId, CreateInputAddressSpace(
+                input.SpaceId,
+                length,
+                slot,
+                resolvedMap.CapacityBytes,
+                profile.CompositionKind,
+                IsCloneSourceSlot(profile, input.SlotId)));
+        }
+
+        foreach (MutableCompositionProfileSpace mutableSpace in profile.Spaces.OfType<MutableCompositionProfileSpace>())
+        {
+            spaces.Add(
+                mutableSpace.SpaceId,
+                new AddressSpace(
+                    mutableSpace.SpaceId,
+                    ResolveMutableSpaceCapacity(mutableSpace, resolvedMap.CapacityBytes),
+                    AddressSpaceMutability.Mutable));
+        }
+
+        return spaces;
+    }
+
     private static MutableCompositionProfileSpace AssertOutputSpace(CompositionProfileDefinition profile)
     {
         return profile.Spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
@@ -22,7 +73,8 @@ internal static partial class V2CompositionPlanCompiler
         CompiledIcNumberPolicy icNumberPolicy,
         CompositionProfileMapAdmission? admission = null,
         bool runtimeExecutable = false,
-        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null)
+        IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
+        IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)
     {
         var provenance = new V2CompilationProvenance(
             selection.BundleIdentity,
@@ -43,13 +95,9 @@ internal static partial class V2CompositionPlanCompiler
             profile.CompositionKind,
             new V2CompiledCompositionDetails(
                 provenance,
-                new CompiledInputContract(inputSlots, inputBindings),
+                new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
                 regionAccess,
-                new CompiledOutputNamingRequirement(
-                    profile.Output.FileNameTemplate,
-                    profile.Output.AllowOverride,
-                    MapOutputPolicy(profile.Output.InvalidCharacterPolicy),
-                    profile.Output.RequiredTokenIds)));
+                LowerOutputNaming(profile)));
         CompiledComposition artifact = runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(plan, identity, icNumberPolicy)
             : CompiledComposition.CreateV2(plan, identity, icNumberPolicy);
@@ -58,8 +106,21 @@ internal static partial class V2CompositionPlanCompiler
 
     private static CompiledInputSlotRequirement MapInputSlot(
         CompositionProfileInputSlot slot,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool forceRequired = false)
     {
+        CompiledInputSlotCardinality cardinality = forceRequired
+            ? CompiledInputSlotCardinality.ExactlyOne
+            : slot.Cardinality switch
+            {
+                CompositionProfileSlotCardinality.ExactlyOne => CompiledInputSlotCardinality.ExactlyOne,
+                CompositionProfileSlotCardinality.ZeroOrOne => CompiledInputSlotCardinality.ZeroOrOne,
+                CompositionProfileSlotCardinality.OneOrMore => CompiledInputSlotCardinality.OneOrMore,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(slot),
+                    slot.Cardinality,
+                    "Unknown profile input slot cardinality."),
+            };
         return new CompiledInputSlotRequirement(
             slot.SlotId,
             slot.Role,
@@ -72,14 +133,8 @@ internal static partial class V2CompositionPlanCompiler
                 CompositionProfileArtifactClass.Auxiliary => CompiledInputArtifactClass.Auxiliary,
                 _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.ArtifactClass, "Unknown profile input artifact class."),
             },
-            slot.Required,
-            slot.Cardinality switch
-            {
-                CompositionProfileSlotCardinality.ExactlyOne => CompiledInputSlotCardinality.ExactlyOne,
-                CompositionProfileSlotCardinality.ZeroOrOne => CompiledInputSlotCardinality.ZeroOrOne,
-                CompositionProfileSlotCardinality.OneOrMore => CompiledInputSlotCardinality.OneOrMore,
-                _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.Cardinality, "Unknown profile input slot cardinality."),
-            },
+            slot.Required || forceRequired,
+            cardinality,
             slot.AcceptedExtensions,
             MapInputLengthRequirement(slot.LengthRule, resolvedMap.CapacityBytes),
             MapInputNormalization(slot.Normalization));
@@ -114,6 +169,12 @@ internal static partial class V2CompositionPlanCompiler
                 new CompiledNormalDpExtractWithWarningInputLengthRequirement(
                     normalDp.IssueCode,
                     ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity)),
+            SourceViewCoverageLengthRule sourceView =>
+                new CompiledSourceViewCoverageInputLengthRequirement(
+                    sourceView.ExpectedOuterLengths.Count == 0
+                        ? null
+                        : sourceView.ExpectedOuterLengths,
+                    sourceView.UnexpectedOuterLengthIssueCode),
             DeclaredPrefixWithWarningLengthRule declaredPrefix =>
                 new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
                     declaredPrefix.RequiredEndExclusive,
@@ -185,6 +246,86 @@ internal static partial class V2CompositionPlanCompiler
             CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore => CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
             _ => throw new ArgumentOutOfRangeException(nameof(policy), policy, "Unknown output invalid-character policy."),
         };
+    }
+
+    private static CompiledOutputNamingRequirement LowerOutputNaming(
+        CompositionProfileDefinition profile)
+    {
+        CompositionProfileOutput output = profile.Output;
+        return output.RuleId is null
+            ? new CompiledOutputNamingRequirement(
+                output.FileNameTemplate,
+                output.AllowOverride,
+                MapOutputPolicy(output.InvalidCharacterPolicy),
+                output.RequiredTokenIds)
+            : new CompiledOutputNamingRequirement(
+                output.FileNameTemplate,
+                output.AllowOverride,
+                MapOutputPolicy(output.InvalidCharacterPolicy),
+                output.RequiredTokenIds,
+                output.RuleId,
+                output.OutputArtifactType switch
+                {
+                    CompositionProfileOutputArtifactType.FlashCode =>
+                        CompiledOutputArtifactType.FlashCode,
+                    CompositionProfileOutputArtifactType.TpFirmware =>
+                        CompiledOutputArtifactType.TpFirmware,
+                    CompositionProfileOutputArtifactType.Unspecified =>
+                        throw new InvalidOperationException(
+                            "Typed profile output cannot have an unspecified artifact type."),
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(profile),
+                        output.OutputArtifactType,
+                        "Unknown profile output artifact type."),
+                },
+                output.TokenRequirements.Select(requirement =>
+                    MapOutputTokenRequirement(
+                        requirement,
+                        profile.MetadataBindings)));
+    }
+
+    private static CompiledOutputTokenRequirement MapOutputTokenRequirement(
+        CompositionProfileOutputTokenRequirement requirement,
+        IReadOnlyList<CompositionProfileMetadataBinding> metadataBindings)
+    {
+        CompositionProfileMetadataBinding? metadataBinding =
+            requirement.MetadataBindingId is null
+                ? null
+                : metadataBindings.Single(binding =>
+                    StringComparer.Ordinal.Equals(
+                        binding.BindingId,
+                        requirement.MetadataBindingId));
+        return new CompiledOutputTokenRequirement(
+            requirement.TokenId,
+            requirement.SourceKind switch
+            {
+                CompositionProfileOutputTokenSourceKind.CompiledIc =>
+                    CompiledOutputTokenSourceKind.CompiledIc,
+                CompositionProfileOutputTokenSourceKind.RunDateUtc =>
+                    CompiledOutputTokenSourceKind.RunDateUtc,
+                CompositionProfileOutputTokenSourceKind.DpcmiVersion =>
+                    CompiledOutputTokenSourceKind.DpcmiVersion,
+                CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion =>
+                    CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(requirement),
+                    requirement.SourceKind,
+                    "Unknown profile output token source kind."),
+            },
+            requirement.MetadataBindingId,
+            requirement.MissingPolicy switch
+            {
+                CompositionProfileOutputTokenMissingPolicy.Block =>
+                    CompiledOutputTokenMissingPolicy.Block,
+                CompositionProfileOutputTokenMissingPolicy.UsePlaceholder =>
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(requirement),
+                    requirement.MissingPolicy,
+                    "Unknown profile output token missing policy."),
+            },
+            requirement.Placeholder,
+            metadataBinding?.SpaceId);
     }
 
     private static void AddUnsupported(List<CompositionIssue> issues, string message, string? operationId = null)

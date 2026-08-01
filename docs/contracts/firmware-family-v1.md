@@ -1,8 +1,37 @@
-# Firmware Family Contract 1.1
+# Firmware Family Contract 1.1 through 1.2
 
 The executable schema is [`firmware-family-v1.schema.json`](firmware-family-v1.schema.json).
 It is the canonical source for physical firmware facts shared by Normal, AB, Merge, Replace,
 General, saved-rule, and future Register workflows.
+Bundles that require typed field relations or exact cross-family metadata-definition references use
+the build-selected strict extension
+[`firmware-family-v1-relations.schema.json`](firmware-family-v1-relations.schema.json); it retains the
+same schema id and base ownership rules. The durable ownership, trust, and
+prerequisite-resolution decision is recorded in
+[ADR 0040](../adr/0040-canonical-metadata-definition-references-and-prerequisites.md).
+Bundles that additionally declare typed TP Flash Header metadata use the
+build-selected strict successor
+[`firmware-family-v1.1-tp-header.schema.json`](firmware-family-v1.1-tp-header.schema.json).
+It retains schema version `1.1`, the common firmware-family schema id, every
+relations-schema constraint, and is selected by its exact trusted content
+hash.
+Bundles that need the admitted `data`, `firmware-config`, `ctrlram`, and
+`mp-ctrlram` TP Header subjects select the closed-vocabulary successor
+[`firmware-family-v1.2-tp-header-subjects.schema.json`](firmware-family-v1.2-tp-header-subjects.schema.json).
+It retains schema version `1.1`, the same schema id and every 1.1 invariant;
+the new file extends only the typed Header subject vocabulary and is pinned by
+its own trusted content hash.
+Bundles that additionally require repeated instance-relative bank geometry use
+the build-selected strict successor
+[`firmware-family-v1.2-bank-instances.schema.json`](firmware-family-v1.2-bank-instances.schema.json).
+It retains the common firmware-family schema id and TP Header constraints,
+uses schema version `1.2`, and is selected by its exact trusted content hash.
+
+Migration status: the strict relations schema and TP Header successors implement
+ADR 0041 with exactly two serialized relationship forms:
+`perfect-like-family` and `shared-fact-relationship`. The former dedicated
+`initial-code-shared-family` and `tp-shared-family` discriminators are no longer
+admitted. ADR 0042/#221 excludes retired ICs from this migration.
 
 ## Ownership
 
@@ -21,6 +50,94 @@ A family document never grants execution support, declares operation order, invo
 or exposes a UI action. Newly inventoried regions use `writeConstraint = "forbidden"` until owner
 evidence approves a narrower constraint. A composition profile may further restrict a map but may
 not relax it.
+
+## Region templates and instances
+
+Schema 1.2 permits one region set to own paired `regionTemplates` and
+`regionInstances`. Both properties are present together or absent together.
+A template owns one positive capacity and one or more template-local physical
+regions whose half-open ranges, parent chains, ownership, kind, write
+constraint, and alignment follow the same rules as direct regions.
+
+An instance owns an ordinally unique `instanceId`, one exact template id, a
+nonnegative base offset, an optional direct-region parent for template roots,
+and exactly one `resolvedRegionId` binding for every template-local region id.
+Bindings cannot be omitted, duplicated, or added for an unknown template
+region. Expansion adds the instance base to each relative range, rewrites
+template-local parent ids through the same binding table, and preserves the
+external parent only for template roots.
+
+The normalized region set exposes direct and expanded regions through the same
+physical-region collection. Their resolved ids remain globally unique in that
+set, ranges remain checked and half-open, and all existing hierarchy,
+containment, overlap, map-capacity, and write-constraint rules continue to
+apply. A template or instance is declared family geometry only; it neither
+infers A/B symmetry nor authorizes composition. Profiles may name exact
+instance and template-region ids only through a schema version that explicitly
+admits those selectors or addend sources.
+
+## Family relationships
+
+The strict relations schema permits zero or more owner-declared
+`familyRelationships`. A relationship is a firmware-semantic declaration, not
+an evidence alias, support decision, or runtime selector. Every relationship
+has one ordinally unique `relationshipId`, at least two explicit `memberIds`, a
+nonblank `reason`, and one or more `evidenceRefs`. Membership is never inferred
+from equal bytes, filenames, hashes, versions, PIDs, or golden observations.
+
+There are exactly two serialized relationship forms:
+
+- `perfect-like-family` declares complete semantic equivalence for its members.
+  Its exact shape is `relationshipId`, `relationshipKind`, `memberIds`,
+  `reason`, and `evidenceRefs`. Every map that contains one relationship member
+  contains the exact complete member set; member-scoped fact aliases,
+  capability exceptions, partial region lists, and partial metadata lists are
+  forbidden.
+- `shared-fact-relationship` declares only explicitly referenced facts as
+  shared. Its exact shape is `relationshipId`, `relationshipKind`, `memberIds`,
+  `role`, `applicability`, `sharedFactReferences`, `reason`, and
+  `evidenceRefs`. `applicability.mapIds` is a nonempty exact map-id set; it is
+  never inferred from relationship membership or equal map contents.
+
+The closed author-facing roles for `shared-fact-relationship` are
+`initial-code-shared`, `tp-shared`, `tp-flash-header-shared`, and
+`diffdlm-shared`. A role explains review intent only. Changing it cannot select
+runtime behavior, expand applicability, or add an unreferenced fact.
+
+Each `sharedFactReferences` entry has the exact typed shape
+`{ "factKind": ..., "factId": ... }`. The current closed fact kinds are
+`region` and `metadata-definition`. A region reference selects one canonical
+region fact. A metadata-definition reference selects one canonical logical
+definition identity, not a structure instance or a copied field/offset table.
+The normalizer resolves each reference to the same immutable canonical object.
+A fact not referenced is not shared.
+For `region`, every applicable map must bind the exact same immutable region
+instance through one canonical region set; separately declared value-equal
+regions are rejected. Metadata definitions follow the same reference-identity
+rule.
+
+The old `initial-code-shared-family` and `tp-shared-family` discriminators,
+`sharedRegionIds`, `metadataDefinitionIds`, and every other undeclared
+relationship, applicability, or reference property are rejected by the strict
+schemas. Unknown members, map ids, references, or reference kinds; wrong-kind,
+missing, inapplicable, ambiguous, or unequal facts; conflicting relationship
+scope; member-specific perfect-like aliases or capabilities; and partial
+perfect-like map membership reject normalization.
+
+Unlisted regions, metadata, capacity, topology, LDC, integrity, processor,
+workflow, publication, support, evidence classification, and requested
+identity remain outside a partial relationship. Composition operations,
+processor stages, and product publication remain profile/policy authorities;
+their convergence onto the same family-owned facts is a separate migration
+gate and cannot be inferred from any relationship declaration.
+
+A metadata definition that is globally canonical across its declared
+consumers—`firmware-config-general-parameters` for all ICs, or DPCMI for every
+route that explicitly declares it—is not a partial-family fact. Maps bind that
+one definition through their own structure instances and locators. A
+`shared-fact-relationship` lists such a definition only if the owner explicitly
+establishes that the definition itself is restricted to that relationship;
+ordinary global reuse must not appear in `sharedFactReferences`.
 
 Family identity is resolved before map applicability. The normalized requested IC must name an
 explicit member or owner-declared fact-scoped alias; PID, firmware version, chip count, filename,
@@ -58,6 +175,55 @@ across a family, and field ids are ordinally unique within a structure. Every me
 declares `metadataStructureId`, so predicate resolution uses the exact
 `(artifactBindingId, metadataStructureId, fieldId)` source rather than a global field-name lookup.
 A map predicate may reference only a structure selected through that map's metadata sets.
+
+A located metadata structure is a binding instance: `structureId`, `artifactBindingId`, and
+`locator`. Its locator-independent logical definition (`length`, `fields`, `assertions`, and
+`relations`) is either declared inline exactly once or supplied by one `definitionReference`; the
+two forms are mutually exclusive. A reference pins exact provider `familyId`, `familyVersion`,
+`familyContentHash`, and logical `structureId`. Bootstrap resolves only owner-approved provider
+bundles, and Profiles retains the provider's same immutable definition object. A missing, stale,
+ambiguous, or non-allow-listed reference rejects the family; consumers never copy the provider's
+offsets or field table.
+
+The TP Header successor keeps three closed metadata-structure shapes:
+
+- legacy inline definitions omit both `structureKind` and `tpFlashHeader`;
+- typed inline definitions declare `structureKind = "tp-flash-header"` and
+  one complete `tpFlashHeader` payload; and
+- exact `definitionReference` bindings omit all inline definition facts,
+  including the discriminator and typed payload.
+
+Unknown discriminators, a payload without its discriminator, a discriminator
+without its payload, or any referenced/inline mixture reject schema
+validation. The TP payload requires named structure-relative spans and one
+semantic reference for every common physical field. Repeated fields use
+explicit `{ index, fieldId }` members and explicit `icCount` applicability
+rows; groups reference field or series ids. The payload contains no second
+field geometry: offsets, widths, encodings, and byte order remain declared
+exactly once in the common `fields` array. Duplicate ids, dangling references,
+range containment, applicability membership, and complete field-semantic
+coverage remain normalizer/Domain invariants after schema validation.
+Current TP Flash Header providers declare `assertions: []`: the typed model
+reads field values but imposes no value admission constraint. A CRC, address,
+size, option, `same-code`, or `cascade-info` value therefore cannot reject the
+Header structure merely because its stored value differs.
+
+Address-valued fields also declare `storedAddress`, which describes the
+integer encoded in the field rather than the field's own byte position.
+`destination-address` currently requires an `absolute` basis in its named
+value address space (for example `sram`). `tp-bin-start-address` requires
+address space `tp-bin` with basis `tp-bin-offset`. Non-address roles must omit
+`storedAddress`. This keeps a Header stored address distinct from TP BIN byte
+position, final Flash image position, and a TPB placement delta; profiles may
+reference the fact but do not gain relocation authority from it.
+
+`metadata-field-selected` is the closed dependent-locator form. It names one structure selected by
+the same map, one unsigned prerequisite field, non-overlapping inclusive value branches, and one
+checked signed result offset from each branch's addressed anchor. Every anchor uses the map address
+space; the complete result must remain inside both the anchor and `allowedResultRegionId`.
+Unsupported prerequisite values reject without a fallback. Missing prerequisite artifacts remain
+typed pending requirements, rejected prerequisites block their dependents, and the complete
+structure dependency graph must be acyclic.
 
 ## Typed metadata
 

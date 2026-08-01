@@ -72,7 +72,10 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         LegacyCombinerPostbuildCommandPlan commandPlan;
         try
         {
-            commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, request.IcNumberSelection);
+            commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
+                profile,
+                request.IcNumberSelection,
+                request.ResolvedIcCount);
         }
         catch (ArgumentException exception)
         {

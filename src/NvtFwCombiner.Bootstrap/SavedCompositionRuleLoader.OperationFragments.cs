@@ -115,7 +115,10 @@ internal static partial class SavedCompositionRuleLoader
             if (!string.IsNullOrWhiteSpace(operationId))
             {
                 operationIds.Add(operationId);
-                result.Add(new SavedRuleOperationFragment(operationId, fragmentMappingRowIds));
+                result.Add(new SavedRuleOperationFragment(
+                    operationId,
+                    kind,
+                    fragmentMappingRowIds));
             }
         }
 

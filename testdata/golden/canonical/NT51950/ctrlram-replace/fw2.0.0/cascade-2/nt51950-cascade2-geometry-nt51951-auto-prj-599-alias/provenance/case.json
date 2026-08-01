@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0",
+  "caseId": "nt51950-cascade2-geometry-nt51951-auto-prj-599-alias",
+  "ic": "NT51950",
+  "workflow": "ctrlram-replace",
+  "variantOrVersion": "fw2.0.0",
+  "topology": "cascade-2",
+  "directGolden": false,
+  "sourceClassification": "owner-approved-fact-alias",
+  "ownerApproval": "Repository owner supplied the AUTO_PRJ-599 folder as 950 Cascade expected evidence and approved its use to resolve issue #188 on 2026-07-31.",
+  "alias": {
+    "sourceCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+    "factScope": [
+      "exact 2-IC Cascade applicability",
+      "DiffDLM 0x1400 record stride at target 0x33200",
+      "writable Diff CtrlRAM prefix [0x0000,0x0910) and reference-preserved Diff NF tail [0x0910,0x1400)",
+      "primary FWConfig 0x22200 copied for 0x0780 bytes to fixed Backup 0x36000",
+      "NT51950BASED_NORMAL_MODE CRC8 postbuild command family"
+    ],
+    "exclusions": [
+      "NT51951 0x80000 output identity is not an NT51950 direct product golden",
+      "NT51950 retains its separately declared 0x40000 container capacity",
+      "no support promotion, release publication, or wider IC Count range"
+    ],
+    "evidenceRefs": [
+      "owner-confirmed NT51950/NT51951 shared TP geometry for issue #188",
+      "docs/references/ic-flashmap/mmap/51950_2.0.0_mmap.h"
+    ]
+  },
+  "promotion": "fact-scoped profile geometry evidence only; not a direct NT51950 product golden"
+}

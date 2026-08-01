@@ -33,7 +33,7 @@ public sealed record CompositionProfileSpaceDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     CompositionProfileInitializerDocument? Initializer = null);
 
-/// <summary>DTO for one map-region, map-region-slice, or space-range selector.</summary>
+/// <summary>DTO for one closed logical-view selector.</summary>
 public sealed record CompositionProfileViewSelectorDocument(
     string Kind,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -43,7 +43,11 @@ public sealed record CompositionProfileViewSelectorDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     JsonElement? Length = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    CompositionProfileRelativeRangeDocument? Range = null);
+    CompositionProfileRelativeRangeDocument? Range = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? RegionInstanceId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? TemplateRegionId = null);
 
 /// <summary>DTO for one named logical view over a profile space.</summary>
 public sealed record CompositionProfileViewDocument(
@@ -56,8 +60,20 @@ public sealed record CompositionProfileMetadataBindingDocument(
     string BindingId,
     string SpaceId,
     string StructureId,
-    IReadOnlyList<string> FieldIds,
-    IReadOnlyList<string> Purposes);
+    IReadOnlyList<string>? FieldIds,
+    IReadOnlyList<string> Purposes,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<CompositionProfileMetadataTargetReferenceDocument>? TargetReferences = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? EvidenceRefs = null);
+
+/// <summary>
+/// DTO for one exact read-only span, field, series, or group reference. It
+/// deliberately contains no firmware geometry or execution authority.
+/// </summary>
+public sealed record CompositionProfileMetadataTargetReferenceDocument(
+    string TargetKind,
+    string TargetId);
 
 /// <summary>DTO for deny-by-default authoring access to one canonical region.</summary>
 public sealed record CompositionProfileRegionAccessRuleDocument(

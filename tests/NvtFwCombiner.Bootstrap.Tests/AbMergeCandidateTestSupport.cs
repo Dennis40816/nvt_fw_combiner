@@ -41,6 +41,8 @@ internal static class AbMergeCandidateTestSupport
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
                 new ProfileBundleEntrySnapshotLimits(8, 131072, 262144, 8)));
-        return TrustedProfileBundleCatalogProjection.Create(bundle.CreateDocumentProjection());
+        return TrustedProfileBundleCatalogProjection.Create(
+            bundle.CreateDocumentProjection(),
+            BuiltInCanonicalMetadataDefinitionResolver.Instance);
     }
 }

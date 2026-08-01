@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -15,10 +16,9 @@ public static class AbMergeWorkbenchCompositionService
     public static bool IsAbMergeSupported(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return BuiltInV2RegistrationRegistry.AbMergeByIc.TryGetValue(
+        return WorkbenchCompositionService.HasCanonicalCapability(
             IcSupportCatalog.NormalizeIcId(icId),
-            out BuiltInV2Registration? registration) &&
-            registration.CreateProfileSummary().CompileSucceeded;
+            IcWorkflowIds.AbMerge);
     }
 
     internal static bool TryCompileAbMerge(
@@ -30,14 +30,21 @@ public static class AbMergeWorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         composition = null;
         issues = [];
-        if (!BuiltInV2RegistrationRegistry.AbMergeByIc.TryGetValue(
+        CapabilityResolutionResult resolution =
+            WorkbenchCompositionService.ResolveCanonicalAbMergeCapability(
                 IcSupportCatalog.NormalizeIcId(icId),
-                out BuiltInV2Registration? registration))
+                requestedTopology);
+        if (StringComparer.Ordinal.Equals(
+                resolution.Issue?.Code,
+                CapabilityCatalogIssueCodes.RouteUnavailable))
         {
             return false;
         }
 
-        registration.TryCompile(inputLength: null, requestedTopology, out composition, out issues);
+        composition = resolution.Capability?.CompiledComposition;
+        issues = resolution.Issue is null
+            ? []
+            : [new CompositionIssue(resolution.Issue.Code, resolution.Issue.Message)];
         return composition is not null;
     }
 

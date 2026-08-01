@@ -1,0 +1,142 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
+
+namespace NvtFwCombiner.Application.Composition;
+
+/// <summary>Projected reference disposition without executing any bytes.</summary>
+public enum PlanOnlyCoverageDisposition
+{
+    /// <summary>Reference bytes remain untouched by an accepted mapping.</summary>
+    Kept,
+
+    /// <summary>An accepted mapping plans to replace this reference range.</summary>
+    Changed,
+}
+
+/// <summary>One coherent range in a plan-only Replace coverage projection.</summary>
+public sealed record PlanOnlyCoverageSegment(
+    ByteRange Range,
+    PlanOnlyCoverageDisposition Disposition,
+    string? MappingId);
+
+/// <summary>Explicit non-executing report marker for POSTBUILD-unavailable Preview.</summary>
+public sealed class GeneralReplaceDiagnosticPreviewSummary
+{
+    internal GeneralReplaceDiagnosticPreviewSummary(
+        string? requiredStageId,
+        CapabilityActionBlocker blocker,
+        IReadOnlyList<PlanOnlyCoverageSegment> coverage)
+    {
+        Mode = "diagnostic-plan-only";
+        Message =
+            "POSTBUILD required but unavailable — plan only; no output was produced.";
+        PostbuildRequired = true;
+        RequiredStageId = requiredStageId;
+        Blocker = blocker;
+        Coverage = coverage;
+        OutputProduced = false;
+        ClaimsFinalIntegrity = false;
+    }
+
+    /// <summary>Stable report mode that cannot be confused with executable Preview.</summary>
+    public string Mode { get; }
+
+    /// <summary>Required operator-facing statement from the accepted contract.</summary>
+    public string Message { get; }
+
+    /// <summary>True because this diagnostic exists only for POSTBUILD-dependent targets.</summary>
+    public bool PostbuildRequired { get; }
+
+    /// <summary>Exact compiled stage id, or null when Parent stage authority is absent.</summary>
+    public string? RequiredStageId { get; }
+
+    /// <summary>The same highest-priority typed blocker used by Build readiness.</summary>
+    public CapabilityActionBlocker Blocker { get; }
+
+    /// <summary>Complete projected Kept/Changed reference coverage.</summary>
+    public IReadOnlyList<PlanOnlyCoverageSegment> Coverage { get; }
+
+    /// <summary>No output artifact exists for this result.</summary>
+    public bool OutputProduced { get; }
+
+    /// <summary>No Header, CRC, hash, or final-output validity is claimed.</summary>
+    public bool ClaimsFinalIntegrity { get; }
+}
+
+/// <summary>Projects one coherent General Replace diagnostic without reading or mutating bytes.</summary>
+public static class GeneralReplaceDiagnosticPreviewProjector
+{
+    /// <summary>Creates the report projection from admitted mappings and shared action readiness.</summary>
+    public static GeneralReplaceDiagnosticPreviewSummary Project(
+        long referenceCapacity,
+        GeneralAuthoringAdmissionResult admission,
+        CapabilityActionReadinessSnapshot readiness,
+        string? requiredStageId)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(referenceCapacity, 1);
+        ArgumentNullException.ThrowIfNull(admission);
+        ArgumentNullException.ThrowIfNull(readiness);
+        CapabilityActionBlocker blocker = readiness.Build.PrimaryBlocker ??
+            throw new ArgumentException(
+                "Diagnostic Preview requires one Build blocker.",
+                nameof(readiness));
+        bool missingStage = StringComparer.Ordinal.Equals(
+            blocker.Code,
+            CapabilityActionReadinessIssueCodes.PostbuildStageAuthorityMissing);
+        bool runtimeUnavailable =
+            blocker.Dimension == CapabilityReadinessDimension.RuntimeDependency;
+        if (!admission.IsAdmitted ||
+            !readiness.Preview.IsAvailable ||
+            readiness.Build.IsAvailable ||
+            (!missingStage && !runtimeUnavailable) ||
+            (missingStage != string.IsNullOrWhiteSpace(requiredStageId)))
+        {
+            throw new ArgumentException(
+                "Diagnostic Preview requires coherent admitted mappings and one exact POSTBUILD blocker.");
+        }
+
+        List<PlanOnlyCoverageSegment> coverage = [];
+        long cursor = 0;
+        foreach (GeneralOccupancySegment segment in admission.OccupancySegments)
+        {
+            if (!StringComparer.Ordinal.Equals(
+                    segment.TargetAddressSpaceId,
+                    CompositionAddressSpaceIds.OutputImage) ||
+                segment.TargetRange.Start < cursor ||
+                segment.TargetRange.EndExclusive > referenceCapacity)
+            {
+                throw new ArgumentException(
+                    "Diagnostic Preview occupancy must be ordered, non-overlapping output-image coverage.",
+                    nameof(admission));
+            }
+
+            if (cursor < segment.TargetRange.Start)
+            {
+                coverage.Add(new PlanOnlyCoverageSegment(
+                    new ByteRange(cursor, segment.TargetRange.Start - cursor),
+                    PlanOnlyCoverageDisposition.Kept,
+                    null));
+            }
+
+            coverage.Add(new PlanOnlyCoverageSegment(
+                segment.TargetRange,
+                PlanOnlyCoverageDisposition.Changed,
+                segment.MappingId));
+            cursor = segment.TargetRange.EndExclusive;
+        }
+
+        if (cursor < referenceCapacity)
+        {
+            coverage.Add(new PlanOnlyCoverageSegment(
+                new ByteRange(cursor, referenceCapacity - cursor),
+                PlanOnlyCoverageDisposition.Kept,
+                null));
+        }
+
+        return new GeneralReplaceDiagnosticPreviewSummary(
+            requiredStageId,
+            blocker,
+            coverage.AsReadOnly());
+    }
+}

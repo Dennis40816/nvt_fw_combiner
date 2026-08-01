@@ -112,6 +112,67 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
+$ApprovedSupportPublicationPolicyPackageContracts = @(
+    [pscustomobject]@{
+        path = 'docs/contracts/support-publication-policy-v1.0.0.json'
+        role = 'publicationPolicy'
+        sha256 = '365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2'
+    }
+    [pscustomobject]@{
+        path = 'docs/contracts/support-publication-policy-v1.json'
+        role = 'publicationPolicy'
+        sha256 = 'b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff'
+    }
+)
+$ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
+    path = 'docs/contracts/canonical-capability-policy-v1.json'
+    role = 'capabilityPolicy'
+    sha256 = '1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034'
+}
+
+function Assert-SupportPublicationPolicyPackageContracts {
+    param(
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
+        [object[]]$Contracts
+    )
+
+    if (@($Contracts).Count -eq 0) {
+        throw 'At least one support publication policy package contract is required.'
+    }
+
+    $Paths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($Contract in $Contracts) {
+        $Path = [string]$Contract.path
+        $Role = [string]$Contract.role
+        $Sha256 = [string]$Contract.sha256
+        $Segments = @($Path.Split('/'))
+        if ([string]::IsNullOrWhiteSpace($Path) -or
+            [IO.Path]::IsPathRooted($Path) -or
+            $Path.Contains('\') -or
+            $Path.Contains(':') -or
+            @($Segments | Where-Object { [string]::IsNullOrWhiteSpace($_) -or $_ -in @('.', '..') }).Count -ne 0 -or
+            -not $Paths.Add($Path)) {
+            throw "Support publication policy package contract has an unsafe or repeated path '$Path'."
+        }
+        if ($Role -ne 'publicationPolicy') {
+            throw "Support publication policy package contract has invalid role '$Role'."
+        }
+        if (-not [regex]::IsMatch($Sha256, '^[0-9a-f]{64}$')) {
+            throw "Support publication policy package contract has invalid SHA-256 '$Sha256'."
+        }
+    }
+}
+
+Assert-SupportPublicationPolicyPackageContracts `
+    -Contracts $ApprovedSupportPublicationPolicyPackageContracts
+$ApprovedSupportPublicationPolicyPackagePaths = @(
+    $ApprovedSupportPublicationPolicyPackageContracts |
+        ForEach-Object { [string]$_.path } |
+        Sort-Object
+)
+$ApprovedCanonicalCapabilityPolicyPackagePath =
+    [string]$ApprovedCanonicalCapabilityPolicyPackageContract.path
 
 function Copy-PackageFile {
     param(
@@ -317,6 +378,100 @@ function Copy-BuiltInProfilePackageFiles {
     return $PackagePaths
 }
 
+function Copy-SupportPublicationPolicyPackageFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
+
+    foreach ($Contract in $ApprovedSupportPublicationPolicyPackageContracts) {
+        $PackagePath = [string]$Contract.path
+        $PublishedPath = Join-Path $PublishedRoot $PackagePath.Replace(
+            '/',
+            [IO.Path]::DirectorySeparatorChar)
+        if (-not (Test-Path -LiteralPath $PublishedPath -PathType Leaf)) {
+            throw "Published support publication policy is missing: $PackagePath"
+        }
+        if ((Get-LowerSha256 -Path $PublishedPath) -ne [string]$Contract.sha256) {
+            throw "Published support publication policy does not match the approved SHA-256: $PackagePath"
+        }
+        Copy-PackageFileFromRoot `
+            -SourceRoot $PublishedRoot `
+            -RelativePath $PackagePath `
+            -DestinationRoot $DestinationRoot
+    }
+    return $ApprovedSupportPublicationPolicyPackagePaths
+}
+
+function Get-SupportPublicationPolicyManifestEntries {
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
+
+    return @(
+        $ApprovedSupportPublicationPolicyPackageContracts |
+            Sort-Object path |
+            ForEach-Object {
+            $Contract = $_
+            $RelativePath = [string]$Contract.path
+            $Path = Join-Path $PackageRoot $RelativePath.Replace(
+                '/',
+                [IO.Path]::DirectorySeparatorChar)
+            $ActualSha256 = Get-LowerSha256 -Path $Path
+            if ($ActualSha256 -ne [string]$Contract.sha256) {
+                throw "Packaged support publication policy does not match the approved SHA-256: $RelativePath"
+            }
+            [ordered]@{
+                path = $RelativePath
+                size = (Get-Item -LiteralPath $Path).Length
+                sha256 = [string]$Contract.sha256
+                role = [string]$Contract.role
+            }
+        }
+    )
+}
+
+function Copy-CanonicalCapabilityPolicyPackageFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$PublishedRoot,
+        [Parameter(Mandatory = $true)][string]$DestinationRoot
+    )
+
+    $Contract = $ApprovedCanonicalCapabilityPolicyPackageContract
+    $PackagePath = [string]$Contract.path
+    $PublishedPath = Join-Path $PublishedRoot $PackagePath.Replace(
+        '/',
+        [IO.Path]::DirectorySeparatorChar)
+    if (-not (Test-Path -LiteralPath $PublishedPath -PathType Leaf)) {
+        throw "Published canonical capability policy is missing: $PackagePath"
+    }
+    if ((Get-LowerSha256 -Path $PublishedPath) -ne [string]$Contract.sha256) {
+        throw "Published canonical capability policy does not match the approved SHA-256: $PackagePath"
+    }
+    Copy-PackageFileFromRoot `
+        -SourceRoot $PublishedRoot `
+        -RelativePath $PackagePath `
+        -DestinationRoot $DestinationRoot
+}
+
+function Get-CanonicalCapabilityPolicyManifestEntry {
+    param([Parameter(Mandatory = $true)][string]$PackageRoot)
+
+    $Contract = $ApprovedCanonicalCapabilityPolicyPackageContract
+    $RelativePath = [string]$Contract.path
+    $Path = Join-Path $PackageRoot $RelativePath.Replace(
+        '/',
+        [IO.Path]::DirectorySeparatorChar)
+    $ActualSha256 = Get-LowerSha256 -Path $Path
+    if ($ActualSha256 -ne [string]$Contract.sha256) {
+        throw "Packaged canonical capability policy does not match the approved SHA-256: $RelativePath"
+    }
+    return [ordered]@{
+        path = $RelativePath
+        size = (Get-Item -LiteralPath $Path).Length
+        sha256 = [string]$Contract.sha256
+        role = [string]$Contract.role
+    }
+}
+
 function Get-BuiltInProfileManifestEntries {
     param(
         [Parameter(Mandatory = $true)][string]$PackageRoot,
@@ -387,6 +542,58 @@ function Invoke-ExternalToolPolicyDryRun {
             -PackageRoot $DryRunPackageRoot `
             -ExternalToolsRoot $DryRunExternalToolsRoot)
         New-BuiltInProfilePolicyDryRunFixture -PublishedRoot $DryRunPublishedRoot
+        foreach ($PackagePath in $ApprovedSupportPublicationPolicyPackagePaths) {
+            Copy-PackageFileFromRoot `
+                -SourceRoot $RepoRoot `
+                -RelativePath $PackagePath `
+                -DestinationRoot $DryRunPublishedRoot
+        }
+        Copy-PackageFileFromRoot `
+            -SourceRoot $RepoRoot `
+            -RelativePath $ApprovedCanonicalCapabilityPolicyPackagePath `
+            -DestinationRoot $DryRunPublishedRoot
+        $EmptySupportPolicyContractRejected = $false
+        try {
+            Assert-SupportPublicationPolicyPackageContracts -Contracts @()
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*At least one support publication policy package contract is required*') {
+                throw
+            }
+            $EmptySupportPolicyContractRejected = $true
+        }
+        if (-not $EmptySupportPolicyContractRejected) {
+            throw 'Empty support publication policy package contract was not rejected.'
+        }
+        $DryRunPolicyContract = @($ApprovedSupportPublicationPolicyPackageContracts)[0]
+        $DryRunPublishedPolicyPath = Join-Path `
+            $DryRunPublishedRoot `
+            ([string]$DryRunPolicyContract.path).Replace(
+                '/',
+                [IO.Path]::DirectorySeparatorChar)
+        $DryRunPolicyBytes = [IO.File]::ReadAllBytes($DryRunPublishedPolicyPath)
+        $DryRunPolicyBytes[0] = $DryRunPolicyBytes[0] -bxor 1
+        [IO.File]::WriteAllBytes($DryRunPublishedPolicyPath, $DryRunPolicyBytes)
+        $WrongSupportPolicyHashRejected = $false
+        try {
+            Copy-SupportPublicationPolicyPackageFiles `
+                -PublishedRoot $DryRunPublishedRoot `
+                -DestinationRoot (Join-Path $DryRunRoot 'wrong-policy-package') |
+                Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*does not match the approved SHA-256*') {
+                throw
+            }
+            $WrongSupportPolicyHashRejected = $true
+        }
+        if (-not $WrongSupportPolicyHashRejected) {
+            throw 'Wrong published support publication policy hash was not rejected.'
+        }
+        Copy-PackageFileFromRoot `
+            -SourceRoot $RepoRoot `
+            -RelativePath ([string]$DryRunPolicyContract.path) `
+            -DestinationRoot $DryRunPublishedRoot
         $DryRunProfilePaths = @(Copy-BuiltInProfilePackageFiles `
             -PublishedRoot $DryRunPublishedRoot `
             -DestinationRoot $DryRunPackageRoot)
@@ -406,9 +613,42 @@ function Invoke-ExternalToolPolicyDryRun {
         if (Compare-Object -ReferenceObject $ApprovedRuntimeCatalogPackagePaths -DifferenceObject $DryRunRuntimeCatalogPaths) {
             throw 'Runtime catalog policy dry-run did not produce the approved manifest entries.'
         }
+        $DryRunSupportPolicyPaths = @(Copy-SupportPublicationPolicyPackageFiles `
+            -PublishedRoot $DryRunPublishedRoot `
+            -DestinationRoot $DryRunPackageRoot)
+        $DryRunSupportPolicyEntries = @(Get-SupportPublicationPolicyManifestEntries `
+            -PackageRoot $DryRunPackageRoot)
+        Copy-CanonicalCapabilityPolicyPackageFile `
+            -PublishedRoot $DryRunPublishedRoot `
+            -DestinationRoot $DryRunPackageRoot
+        $DryRunCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
+            -PackageRoot $DryRunPackageRoot
+        $DryRunSupportPolicyPathDrift = @(Compare-Object `
+                -ReferenceObject $ApprovedSupportPublicationPolicyPackagePaths `
+                -DifferenceObject @($DryRunSupportPolicyEntries.path))
+        if ($DryRunSupportPolicyPathDrift.Count -ne 0 -or
+            @($DryRunSupportPolicyEntries |
+                Where-Object {
+                    $Contract = $_
+                    $ExpectedContract = @(
+                        $ApprovedSupportPublicationPolicyPackageContracts |
+                            Where-Object { $_.path -eq $Contract.path }
+                    )
+                    $ExpectedContract.Count -ne 1 -or
+                    $Contract.role -ne $ExpectedContract[0].role -or
+                    $Contract.sha256 -ne $ExpectedContract[0].sha256
+                }).Count -ne 0) {
+            throw 'Support publication policy dry-run did not produce the approved manifest entries.'
+        }
 
         $DryRunManifestPath = Join-Path $DryRunPackageRoot 'RELEASE-MANIFEST.json'
-        [ordered]@{ files = @($DryRunEntries) + @($DryRunProfileEntries) } |
+        [ordered]@{
+            files =
+                @($DryRunEntries) +
+                @($DryRunProfileEntries) +
+                @($DryRunSupportPolicyEntries) +
+                @($DryRunCapabilityPolicyEntry)
+        } |
             ConvertTo-Json -Depth 4 |
             Set-Content -LiteralPath $DryRunManifestPath -Encoding utf8NoBOM
 
@@ -421,6 +661,42 @@ function Invoke-ExternalToolPolicyDryRun {
         $ManifestProbeEntries = @($PersistedManifest.files | Where-Object { $_.path -eq $ProbeRelativePath })
         if ($ManifestProbeEntries.Count -ne 0) {
             throw 'External-tool policy probe entered the release manifest.'
+        }
+        $PersistedSupportPolicyEntries = @(
+            $PersistedManifest.files | Where-Object {
+                $_.path -in $ApprovedSupportPublicationPolicyPackagePaths -or
+                $_.role -eq 'publicationPolicy'
+            }
+        )
+        if ($PersistedSupportPolicyEntries.Count -ne
+                @($ApprovedSupportPublicationPolicyPackageContracts).Count -or
+            @($PersistedSupportPolicyEntries |
+                Where-Object {
+                    $Entry = $_
+                    $ExpectedContract = @(
+                        $ApprovedSupportPublicationPolicyPackageContracts |
+                            Where-Object { $_.path -eq $Entry.path }
+                    )
+                    $ExpectedContract.Count -ne 1 -or
+                    $Entry.role -ne $ExpectedContract[0].role -or
+                    $Entry.sha256 -ne $ExpectedContract[0].sha256
+                }).Count -ne 0) {
+            throw 'Persisted release manifest does not pin the approved support publication policy.'
+        }
+        $PersistedCapabilityPolicyEntries = @(
+            $PersistedManifest.files | Where-Object {
+                $_.path -eq $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+                $_.role -eq 'capabilityPolicy'
+            }
+        )
+        if ($PersistedCapabilityPolicyEntries.Count -ne 1 -or
+            $PersistedCapabilityPolicyEntries[0].path -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.path -or
+            $PersistedCapabilityPolicyEntries[0].role -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.role -or
+            $PersistedCapabilityPolicyEntries[0].sha256 -ne
+                $ApprovedCanonicalCapabilityPolicyPackageContract.sha256) {
+            throw 'Persisted release manifest does not pin the approved canonical capability policy.'
         }
 
         $FirstBundleDirectory = @(Get-BuiltInProfileBundleDirectories)[0]
@@ -459,8 +735,8 @@ function Invoke-ExternalToolPolicyDryRun {
 
         $GoldenPaths = @(Get-DeclaredStandardMergeGoldenPaths)
         $GoldenBinPaths = @($GoldenPaths | Where-Object { $_.EndsWith('.bin', [StringComparison]::OrdinalIgnoreCase) })
-        if ($GoldenBinPaths.Count -ne 34 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 13) {
-            throw 'Standard Merge canonical package selection did not retain 34 direct BIN artifacts and 13 direct/alias cases.'
+        if ($GoldenBinPaths.Count -ne 25 -or $script:StandardMergeGoldenPackageManifest.cases.Count -ne 10) {
+            throw 'Standard Merge canonical package selection did not retain 25 direct BIN artifacts and 10 direct/alias cases.'
         }
         if (@($GoldenPaths | Where-Object {
             $_ -like 'testdata/diagnostics/*' -or
@@ -512,6 +788,27 @@ function Invoke-ExternalToolPolicyDryRun {
             }
         }
 
+        $RetiredGoldenAllowlistPath = Join-Path $DryRunRoot 'invalid-standard-merge-retired-ic.json'
+        $RetiredGoldenAllowlist = Get-Content -LiteralPath $StandardMergeGoldenReleaseAllowlistPath -Raw |
+            ConvertFrom-Json
+        $RetiredGoldenAllowlist.cases[0].caseId = 'nt51920-retired-publication-probe'
+        $RetiredGoldenAllowlist |
+            ConvertTo-Json -Depth 8 |
+            Set-Content -LiteralPath $RetiredGoldenAllowlistPath -Encoding utf8NoBOM
+        $RetiredGoldenAllowlistRejected = $false
+        try {
+            Get-DeclaredStandardMergeGoldenPaths -ReleaseAllowlistPath $RetiredGoldenAllowlistPath | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*cannot publish retired IC NT51920*') {
+                throw
+            }
+            $RetiredGoldenAllowlistRejected = $true
+        }
+        if (-not $RetiredGoldenAllowlistRejected) {
+            throw 'Standard Merge canonical package selection accepted a retired IC publication probe.'
+        }
+
         $UnicodeRelativePath = 'reference/多語/請先看.md'
         $UnicodeFixturePath = Join-Path $DryRunPackageRoot $UnicodeRelativePath
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $UnicodeFixturePath) | Out-Null
@@ -538,7 +835,8 @@ function Invoke-ExternalToolPolicyDryRun {
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
         Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
-        Write-Host 'Canonical golden package policy dry-run passed: 34 direct Standard Merge BIN artifacts and 13 direct/alias cases selected; diagnostics and other workflows excluded.'
+        Write-Host 'Support publication policy package dry-run passed: exact path, role, and SHA-256 pinned; empty contract and wrong published hash rejected.'
+        Write-Host 'Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded.'
         Write-Host 'Canonical golden package policy direct/alias drift and strict-type rejection passed.'
         Write-Host 'Release hash-list policy dry-run passed: Unicode paths round-trip through UTF-8.'
     }
@@ -635,10 +933,22 @@ function Get-DeclaredStandardMergeGoldenPaths {
         throw 'Standard Merge golden release allowlist has invalid schema, workflow, or release status.'
     }
     $ApprovedCases = @{}
+    $RetiredIcTokens = @('51920', '51925', '51930', '51931')
     foreach ($ApprovedCase in $ReleaseAllowlist.cases) {
         $ApprovedCaseId = [string]$ApprovedCase.caseId
         if ([string]::IsNullOrWhiteSpace($ApprovedCaseId) -or $ApprovedCases.ContainsKey($ApprovedCaseId)) {
             throw "Standard Merge golden release allowlist contains an invalid or duplicate case id: '$ApprovedCaseId'"
+        }
+        $PublicationFields = @(
+            $ApprovedCaseId,
+            [string]$ApprovedCase.manifestPath
+        ) + @($ApprovedCase.artifacts | ForEach-Object { [string]$_.path })
+        foreach ($RetiredIcToken in $RetiredIcTokens) {
+            if (@($PublicationFields | Where-Object {
+                $_.IndexOf($RetiredIcToken, [StringComparison]::OrdinalIgnoreCase) -ge 0
+            }).Count -ne 0) {
+                throw "Standard Merge golden release allowlist cannot publish retired IC NT$RetiredIcToken."
+            }
         }
         $ApprovedCases[$ApprovedCaseId] = $ApprovedCase
     }
@@ -800,6 +1110,12 @@ Copy-Item -LiteralPath $PublishedApp -Destination $AppExe
 $BuiltInProfilePackagePaths = @(Copy-BuiltInProfilePackageFiles `
     -PublishedRoot $AppPublish `
     -DestinationRoot $PackageRoot)
+$SupportPublicationPolicyPackagePaths = @(Copy-SupportPublicationPolicyPackageFiles `
+    -PublishedRoot $AppPublish `
+    -DestinationRoot $PackageRoot)
+Copy-CanonicalCapabilityPolicyPackageFile `
+    -PublishedRoot $AppPublish `
+    -DestinationRoot $PackageRoot
 
 $WorkerEntry = Join-Path $WorkRoot 'crc_worker_entry.py'
 @'
@@ -916,6 +1232,10 @@ $ExternalToolEntries = @(Get-ExternalToolManifestEntries `
 $BuiltInProfileEntries = @(Get-BuiltInProfileManifestEntries `
     -PackageRoot $PackageRoot `
     -PackagePaths $BuiltInProfilePackagePaths)
+$SupportPublicationPolicyEntries = @(Get-SupportPublicationPolicyManifestEntries `
+    -PackageRoot $PackageRoot)
+$CanonicalCapabilityPolicyEntry = Get-CanonicalCapabilityPolicyManifestEntry `
+    -PackageRoot $PackageRoot
 $ReferencePayloadFiles = @(Get-ChildItem -LiteralPath $ReferenceDestination -File -Recurse | ForEach-Object FullName)
 $ReferencePayloadEntries = @(
     $ReferencePayloadFiles | Sort-Object | ForEach-Object {
@@ -928,15 +1248,12 @@ $ApprovedProcessorIds = @(
     'nfc.crc32-mpeg2.calculate-v1',
     'nfc.nt51917.ctrlram-postbuild-v1',
     'nfc.nt51919.ctrlram-postbuild-v1',
-    'nfc.nt51920.ctrlram-postbuild-v1',
     'nfc.nt51923.ctrlram-postbuild-v1',
     'nfc.nt51926.ctrlram-postbuild-fw1.4.1',
     'nfc.nt51926.ctrlram-postbuild-v1',
     'nfc.nt51927.ctrlram-postbuild-v1',
     'nfc.nt51928.ctrlram-postbuild-v1',
     'nfc.nt51929.ctrlram-postbuild-v1',
-    'nfc.nt51930.ctrlram-postbuild-fw1.x',
-    'nfc.nt51931.ctrlram-postbuild-v1',
     'nfc.nt51932.ctrlram-postbuild-v1',
     'nfc.nt51950.ctrlram-postbuild-v1',
     'nfc.nt51951.ctrlram-postbuild-v1'
@@ -949,7 +1266,8 @@ $FileEntries = @(
     [ordered]@{ path = 'THIRD-PARTY-NOTICES.txt'; size = (Get-Item $NoticePath).Length; sha256 = (Get-LowerSha256 $NoticePath); role = 'notices' },
     [ordered]@{ path = 'LICENSE.txt'; size = (Get-Item $LicensePath).Length; sha256 = (Get-LowerSha256 $LicensePath); role = 'license' },
     [ordered]@{ path = 'README.txt'; size = (Get-Item $ReadmePath).Length; sha256 = (Get-LowerSha256 $ReadmePath); role = 'readme' }
-) + $BuiltInProfileEntries + $ExternalToolEntries + $ReferencePayloadEntries
+) + $BuiltInProfileEntries + $SupportPublicationPolicyEntries +
+    @($CanonicalCapabilityPolicyEntry) + $ExternalToolEntries + $ReferencePayloadEntries
 
 $Manifest = [ordered]@{
     schemaVersion = '1.1'
@@ -1034,7 +1352,9 @@ $Expected = (@(
     'RELEASE-MANIFEST.json',
     'SHA256SUMS.txt',
     'THIRD-PARTY-NOTICES.txt'
-) + @($BuiltInProfileEntries.path) + @($ExternalToolEntries.path) + @($ReferencePayloadEntries.path)) | Sort-Object
+) + @($BuiltInProfileEntries.path) + @($SupportPublicationPolicyEntries.path) +
+    @($CanonicalCapabilityPolicyEntry.path) + @($ExternalToolEntries.path) +
+    @($ReferencePayloadEntries.path)) | Sort-Object
 $Actual = @(
     Get-ChildItem -LiteralPath $PackageRoot -File -Recurse |
         ForEach-Object { [System.IO.Path]::GetRelativePath($PackageRoot, $_.FullName).Replace('\', '/') } |

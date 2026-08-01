@@ -42,7 +42,9 @@ Shared controls:
 - Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
-- Keep Memory coverage on a light workbench surface with labels and legends instead of a dominant dark banner.
+- Keep Memory coverage on a light workbench surface with direct labels and
+  inspectable details instead of a dominant dark banner. Add a compact legend
+  only when multiple non-obvious states lack an adjacent self-labeling list.
 - Keep command rows and disabled actions visually lighter than primary workflow content.
 - Keep workflow mode selectors as full-width rounded pills rather than small rectangular buttons.
 - Keep Merge and Replace page content independent; reusable components are allowed, mixed workflow content is not.
@@ -54,20 +56,20 @@ Shared controls:
 ### Mode cards
 
 ```text
-Normal Merge
-  Fixed DP/TP/LD profile-driven merge.
+Standard Merge
+  Fixed DP/TP/LDC profile-driven merge.
 
-AB Code Merge
+AB Merge
   A/B bank model with declared container views, relocation patches, and external processing. Deferred for the current implementation phase.
 
 General Merge
   Advanced mapping editor that starts from a blank image. Saved-rule controls remain hidden until reviewed.
 ```
 
-### Normal Merge sections
+### Standard Merge sections
 
 1. Shared IC/profile context from the fixed Device context row.
-2. Slot cards: DP, TP, optional LD/Extra.
+2. Slot cards: DP, TP, optional LDC/Extra.
 3. Output name/version badge preview from catalog-backed firmware metadata.
 4. Visual-first shared Memory coverage before/after preview.
 5. Ordered operation preview table as supporting detail.
@@ -87,12 +89,16 @@ General Merge
 ### General Merge sections
 
 1. Shared IC context from the fixed Device context row; Number is hidden because General Merge v1 has no IC-count branch.
-2. Output length field. The output starts as blank/reserved bytes and does not clone a reference image.
+2. Output length and blank-fill-byte fields. The output starts as
+   blank/reserved bytes and does not clone a reference image; omitted fill
+   defaults to `00`.
 3. Mapping table:
-   - source start;
+   - Source Slice or From File Start preset;
+   - source start (`0` for From File Start);
    - target start;
    - length;
-   - source BIN.
+   - source BIN;
+   - optional explicit Use full file length action.
 4. Visual-first Memory coverage showing reserved output plus explicit Source BIN writes.
 5. Ordered operation preview table as supporting detail.
 6. No postbuild command is invoked by General Merge v1. TP-touching edits that require CRC/header refresh belong to Replace, not Merge.
@@ -104,7 +110,7 @@ General Merge
 
 ```text
 DP Replace
-  DP whole/declared partitions; LD replacement stays here when profile-declared.
+  Initial Code/declared DP parts; LDC replacement stays here when profile-declared.
 
 CtrlRAM Replace
   CtrlRAM named regions only.
@@ -115,11 +121,12 @@ General Replace
 
 ### Replace sections
 
-1. Shared Number selector: two-option profiles use text choices such as `single`/`cascade`; profiles with three or more concrete counts use numeric selection, with future room for Other/custom exceptions.
+1. Shared IC Count selector using operator-readable count options rather than
+   exposing internal topology vocabulary.
 2. Base reference BIN card.
 3. Replace persona selector.
 4. Replaceable region list.
-5. Overlay slot cards; DP Replace may show separate DP and LD cards.
+5. Overlay slot cards; DP Replace may show separate Initial Code and LDC cards.
 6. Visual-first shared Memory coverage before/after preview.
 7. Processor/tool readiness row, including post-replace combiner.exe CRC/header requirement when declared.
 8. Protected range warnings.

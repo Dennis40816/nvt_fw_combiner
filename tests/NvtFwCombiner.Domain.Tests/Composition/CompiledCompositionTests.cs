@@ -12,7 +12,7 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateMerge();
         Assert.Equal(
-            "669860799db585ab3d2064debf4b0a64d2192c1a2a972e431f1d23c09e305bb5",
+            "2504b2afade952c5e2f9ade9323396454f7d65484654704d0c4c268816c997d5",
             composition.CompilationFingerprint);
 
         Assert.Equal("profile-a", composition.ProfileId);
@@ -24,6 +24,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal("output.bin", composition.DefaultOutputFileName);
         Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
         Assert.Equal(CompiledCompositionEligibility.LegacyRuntimeExecutable, composition.Eligibility);
+        Assert.Null(composition.IntegrityFingerprint);
         LegacyProfileCompilationAuthority authority = Assert.IsType<LegacyProfileCompilationAuthority>(
             composition.Authority);
         Assert.Equal("0.2", authority.ModelVersion);
@@ -213,6 +214,112 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, changed.CompilationFingerprint);
     }
 
+    /// <summary>Verifies dynamic FWConfig Backup authority and expected placement remain complete compiled identity.</summary>
+    [Fact]
+    public void FingerprintBindsFirmwareConfigBackupPlacementRequirements()
+    {
+        CompiledValidationRequirement baselineAuthority =
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                4);
+        CompiledValidationRequirement[] authorityVariants =
+        [
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-other-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "other-reference",
+                new ByteRange(4, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(5, 8),
+                4),
+            CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(
+                "verify-nvt-fwconfig-backup-authority",
+                "replace.ctrlram.fwconfig-backup-invalid",
+                "replace.ctrlram.dynamic-diffdlm-inactive-mutation",
+                "reference-image",
+                new ByteRange(4, 8),
+                5),
+        ];
+        string baselineAuthorityFingerprint = CreateMerge(
+            validationRequirements: [baselineAuthority]).CompilationFingerprint;
+        Assert.All(
+            authorityVariants,
+            variant => Assert.NotEqual(
+                baselineAuthorityFingerprint,
+                CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
+
+        CompiledValidationRequirement baselineExpected =
+            CompiledValidationRequirements.FirmwareConfigBackupExpectedAddress(
+                "verify-nvt-fwconfig-backup-expected-address",
+                "replace.ctrlram.fwconfig-backup-unexpected",
+                8);
+        CompiledValidationRequirement changedExpected =
+            CompiledValidationRequirements.FirmwareConfigBackupExpectedAddress(
+                "verify-nvt-fwconfig-backup-expected-address",
+                "replace.ctrlram.fwconfig-backup-unexpected",
+                9);
+        Assert.NotEqual(
+            CreateMerge(validationRequirements: [baselineExpected]).CompilationFingerprint,
+            CreateMerge(validationRequirements: [changedExpected]).CompilationFingerprint);
+
+        CompiledValidationRequirement baselineUniform =
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(0, 2)]);
+        CompiledValidationRequirement[] uniformVariants =
+        [
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Warning,
+                "input.uniform",
+                "input",
+                [new ByteRange(0, 2)]),
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "reject-uniform-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(1, 2)]),
+        ];
+        string baselineUniformFingerprint = CreateMerge(
+            validationRequirements: [baselineUniform]).CompilationFingerprint;
+        Assert.All(
+            uniformVariants,
+            variant => Assert.NotEqual(
+                baselineUniformFingerprint,
+                CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
+
+        CompiledValidationRequirement outsideInput =
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "outside-input",
+                CompiledValidationSeverity.Error,
+                "input.uniform",
+                "input",
+                [new ByteRange(3, 2)]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            CreateMerge(validationRequirements: [outsideInput]));
+    }
+
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
     [Fact]
     public void FingerprintBindsPlanSemantics()
@@ -266,13 +373,25 @@ public sealed partial class CompiledCompositionTests
             CreateProcessorComposition(writeSectionSourceStart: 1),
             CreateProcessorComposition(stagedSourceStart: 1),
             CreateProcessorComposition(stagedFirmwareStart: 1),
+            CreateProcessorComposition(stagedArtifactId: "artifact-b"),
+            CreateProcessorComposition(
+                stagedArtifactSourceSpaceId: "output-image"),
+            CreateProcessorComposition(stagedArtifactSourceStart: 1),
             CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(2, 1), [0xA2])),
             CreateProcessorComposition(outputAssertion: new ExternalProcessorOutputAssertion(new ByteRange(1, 1), [0xA1])),
         ];
 
         Assert.All(
             variants,
-            variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
+            variant =>
+            {
+                Assert.NotEqual(
+                    baseline.CompilationFingerprint,
+                    variant.CompilationFingerprint);
+                Assert.NotEqual(
+                    baseline.IntegrityFingerprint,
+                    variant.IntegrityFingerprint);
+            });
     }
 
     private static CompiledComposition CreateMerge(
@@ -420,6 +539,9 @@ public sealed partial class CompiledCompositionTests
         long writeSectionSourceStart = 0,
         long stagedSourceStart = 0,
         long stagedFirmwareStart = 0,
+        string stagedArtifactId = "artifact-a",
+        string stagedArtifactSourceSpaceId = "source",
+        long stagedArtifactSourceStart = 0,
         ExternalProcessorOutputAssertion? outputAssertion = null)
     {
         var invocation = new ExternalProcessorInvocation(
@@ -438,6 +560,12 @@ public sealed partial class CompiledCompositionTests
                     writeSectionId,
                     new ByteRange(writeStart, 2),
                     new ByteRange(writeSectionSourceStart, 2)),
+            ],
+            [
+                new ExternalProcessorStagedArtifactBinding(
+                    stagedArtifactId,
+                    stagedArtifactSourceSpaceId,
+                    new ByteRange(stagedArtifactSourceStart, 1)),
             ],
             outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
         var identity = new LegacyCompiledCompositionIdentity(

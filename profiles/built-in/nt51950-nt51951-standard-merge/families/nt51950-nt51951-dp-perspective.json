@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1",
   "familyId": "nt51950-nt51951-dp-perspective",
-  "familyVersion": "1.0.0",
+  "familyVersion": "1.3.0",
   "members": [
     { "memberId": "NT51950", "displayName": "NT51950" },
     { "memberId": "NT51951", "displayName": "NT51951" }
@@ -27,15 +27,6 @@
           "kind": "unmapped",
           "range": { "start": 0, "length": 40960 },
           "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "tp-overlay",
-          "parentRegionId": "dp-container",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
-          "writeConstraint": "whole-region",
           "alignment": 1
         },
         {
@@ -81,15 +72,6 @@
           "alignment": 1
         },
         {
-          "regionId": "tp-overlay",
-          "parentRegionId": "dp-container",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
-          "writeConstraint": "whole-region",
-          "alignment": 1
-        },
-        {
           "regionId": "customer-info",
           "parentRegionId": "dp-container",
           "owner": "customer",
@@ -132,15 +114,6 @@
           "alignment": 1
         },
         {
-          "regionId": "tp-overlay",
-          "parentRegionId": "dp-container",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
-          "writeConstraint": "whole-region",
-          "alignment": 1
-        },
-        {
           "regionId": "customer-info",
           "parentRegionId": "dp-container",
           "owner": "customer",
@@ -160,9 +133,239 @@
         }
       ],
       "evidenceRefs": ["dp-perspective-51950-51951-owner-map"]
+    },
+    {
+      "regionSetId": "dp-perspective-shared-tp-overlay",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "tp-overlay",
+          "parentRegionId": "dp-container",
+          "owner": "tp",
+          "kind": "code",
+          "range": { "start": 40960, "length": 184320 },
+          "writeConstraint": "whole-region",
+          "alignment": 1
+        }
+      ],
+      "evidenceRefs": [
+        "adr-0041-owner-accepted-2026-07-27",
+        "dp-perspective-51950-51951-owner-map"
+      ]
     }
   ],
-  "metadataSets": [],
+  "metadataSets": [
+    {
+      "metadataSetId": "firmware-config-standard-merge",
+      "structures": [
+        {
+          "structureId": "firmware-config-standard-merge",
+          "artifactBindingId": "tp-input",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": {
+              "addressSpaceId": "flash",
+              "start": 40960,
+              "length": 184320
+            },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "tp-overlay"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-tp-firmware-config"]
+    },
+    {
+      "metadataSetId": "firmware-config-dp-replace",
+      "structures": [
+        {
+          "structureId": "firmware-config-dp-replace",
+          "artifactBindingId": "reference-base",
+          "definitionReference": {
+            "familyId": "nt51917-nt51927-nt51928-canonical-container",
+            "familyVersion": "1.4.0",
+            "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
+            "structureId": "firmware-config-general-parameters"
+          },
+          "locator": {
+            "kind": "marker-relative",
+            "searchRange": {
+              "addressSpaceId": "flash",
+              "start": 40960,
+              "length": 184320
+            },
+            "markerHex": "004e5654",
+            "selection": { "kind": "unique" },
+            "resultOffset": -4092,
+            "allowedResultRegionId": "tp-overlay"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-tp-firmware-config"]
+    },
+    {
+      "metadataSetId": "nt51950-dpcmi-standard-merge",
+      "structures": [
+        {
+          "structureId": "nt51950-dpcmi-standard-merge",
+          "artifactBindingId": "dp-input",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          },
+          "locator": {
+            "kind": "metadata-field-selected",
+            "prerequisiteStructureId": "firmware-config-standard-merge",
+            "prerequisiteFieldId": "observed-ic-count",
+            "branches": [
+              {
+                "minimumValue": 1,
+                "maximumValue": 1,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 241664,
+                  "length": 4096
+                }
+              },
+              {
+                "minimumValue": 2,
+                "maximumValue": 255,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 20480,
+                  "length": 4096
+                }
+              }
+            ],
+            "resultOffset": 22,
+            "allowedResultRegionId": "dp-container"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-dp-perspective"]
+    },
+    {
+      "metadataSetId": "nt51950-dpcmi-dp-replace",
+      "structures": [
+        {
+          "structureId": "nt51950-dpcmi-dp-replace",
+          "artifactBindingId": "dp-replacement",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          },
+          "locator": {
+            "kind": "metadata-field-selected",
+            "prerequisiteStructureId": "firmware-config-dp-replace",
+            "prerequisiteFieldId": "observed-ic-count",
+            "branches": [
+              {
+                "minimumValue": 1,
+                "maximumValue": 1,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 241664,
+                  "length": 4096
+                }
+              },
+              {
+                "minimumValue": 2,
+                "maximumValue": 255,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 20480,
+                  "length": 4096
+                }
+              }
+            ],
+            "resultOffset": 22,
+            "allowedResultRegionId": "dp-container"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-dp-perspective"]
+    },
+    {
+      "metadataSetId": "nt51951-dpcmi-standard-merge",
+      "structures": [
+        {
+          "structureId": "nt51951-dpcmi-standard-merge",
+          "artifactBindingId": "dp-input",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          },
+          "locator": {
+            "kind": "metadata-field-selected",
+            "prerequisiteStructureId": "firmware-config-standard-merge",
+            "prerequisiteFieldId": "observed-ic-count",
+            "branches": [
+              {
+                "minimumValue": 1,
+                "maximumValue": 255,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 20480,
+                  "length": 4096
+                }
+              }
+            ],
+            "resultOffset": 22,
+            "allowedResultRegionId": "dp-container"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-dp-perspective"]
+    },
+    {
+      "metadataSetId": "nt51951-dpcmi-dp-replace",
+      "structures": [
+        {
+          "structureId": "nt51951-dpcmi-dp-replace",
+          "artifactBindingId": "dp-replacement",
+          "definitionReference": {
+            "familyId": "nt51929-nt51932",
+            "familyVersion": "1.3.0",
+            "familyContentHash": "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
+            "structureId": "dpcmi"
+          },
+          "locator": {
+            "kind": "metadata-field-selected",
+            "prerequisiteStructureId": "firmware-config-dp-replace",
+            "prerequisiteFieldId": "observed-ic-count",
+            "branches": [
+              {
+                "minimumValue": 1,
+                "maximumValue": 255,
+                "anchorRange": {
+                  "addressSpaceId": "flash",
+                  "start": 20480,
+                  "length": 4096
+                }
+              }
+            ],
+            "resultOffset": 22,
+            "allowedResultRegionId": "dp-container"
+          }
+        }
+      ],
+      "evidenceRefs": ["ic-flashmap-20260725-51950-dp-perspective"]
+    }
+  ],
   "imageMaps": [
     {
       "mapId": "nt51950-standard-merge-256k",
@@ -174,8 +377,16 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-256k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-256k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51950-dpcmi-standard-merge",
+        "nt51950-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["standard-merge-51950-256k-golden"]
     },
     {
@@ -188,8 +399,16 @@
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-512k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-512k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51950-dpcmi-standard-merge",
+        "nt51950-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
     {
@@ -202,8 +421,16 @@
         "capacityBytes": 1048576
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-1024k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-1024k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51950-dpcmi-standard-merge",
+        "nt51950-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
     {
@@ -216,8 +443,16 @@
         "capacityBytes": 262144
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-256k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-256k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51951-dpcmi-standard-merge",
+        "nt51951-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     },
     {
@@ -230,8 +465,16 @@
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-512k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-512k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51951-dpcmi-standard-merge",
+        "nt51951-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["standard-merge-51951-512k-golden"]
     },
     {
@@ -244,16 +487,59 @@
         "capacityBytes": 1048576
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": ["dp-perspective-1024k"],
-      "metadataSetIds": [],
+      "regionSetIds": [
+        "dp-perspective-1024k",
+        "dp-perspective-shared-tp-overlay"
+      ],
+      "metadataSetIds": [
+        "firmware-config-standard-merge",
+        "firmware-config-dp-replace",
+        "nt51951-dpcmi-standard-merge",
+        "nt51951-dpcmi-dp-replace"
+      ],
       "evidenceRefs": ["legacy-v2-dp-perspective-parity-matrix"]
     }
   ],
   "factAliases": [],
+  "familyRelationships": [
+    {
+      "relationshipId": "nt51950-nt51951-tp-shared-family",
+      "relationshipKind": "shared-fact-relationship",
+      "memberIds": [
+        "NT51950",
+        "NT51951"
+      ],
+      "role": "tp-shared",
+      "applicability": {
+        "mapIds": [
+          "nt51950-standard-merge-256k",
+          "nt51950-standard-merge-512k",
+          "nt51950-standard-merge-1024k",
+          "nt51951-standard-merge-256k",
+          "nt51951-standard-merge-512k",
+          "nt51951-standard-merge-1024k"
+        ]
+      },
+      "sharedFactReferences": [
+        {
+          "factKind": "region",
+          "factId": "tp-overlay"
+        }
+      ],
+      "reason": "The firmware owner confirmed NT51950 and NT51951 share TP geometry only; Initial Code, DPCMI placement, LDC, capacity, topology, and AB behavior remain explicit. The all-IC FirmwareConfig definition is canonical independently of this partial family relationship.",
+      "evidenceRefs": [
+        "adr-0039-owner-accepted-2026-07-26",
+        "dp-perspective-51950-51951-owner-map"
+      ]
+    }
+  ],
   "evidenceRefs": [
+    "adr-0039-owner-accepted-2026-07-26",
     "dp-perspective-51950-51951-owner-map",
     "standard-merge-51950-256k-golden",
     "standard-merge-51951-512k-golden",
-    "legacy-v2-dp-perspective-parity-matrix"
+    "legacy-v2-dp-perspective-parity-matrix",
+    "ic-flashmap-20260725-51950-tp-firmware-config",
+    "ic-flashmap-20260725-51950-dp-perspective"
   ]
 }

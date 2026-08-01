@@ -158,11 +158,20 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-35d00",
+          "regionId": "dynamic-diffdlm-layout-authority-tail",
+          "parentRegionId": "flash-image",
+          "owner": "shared",
+          "kind": "data",
+          "range": { "start": 220416, "length": 4864 },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-37000",
           "parentRegionId": "flash-image",
           "owner": "unknown",
           "kind": "unmapped",
-          "range": { "start": 220416, "length": 37632 },
+          "range": { "start": 225280, "length": 32768 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -262,7 +271,7 @@
       ]
     },
     {
-      "mapId": "nt51932-ctrlram-fw200-cascade3-full-flash",
+      "mapId": "nt51932-ctrlram-fw200-cascade-full-flash",
       "addressSpaceId": "flash",
       "applicability": {
         "memberIds": [ "NT51932" ],

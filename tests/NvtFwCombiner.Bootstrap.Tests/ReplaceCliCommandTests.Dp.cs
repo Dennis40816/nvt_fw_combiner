@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -5,38 +6,93 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Verifies every NT51930 selector reaches the canonical-map V2 DP Replace route.</summary>
-    [Theory]
-    [InlineData("NT51930")]
-    [InlineData("51930")]
-    [InlineData("nt51930-dp-replace-flashmap")]
-    public async Task DpReplaceBuildUsesNt51930CanonicalDpRange(string profileSelector)
+    /// <summary>NT51928 CLI uses generic selection-group cardinality instead of a route-specific branch.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRequiresOneSelectionThroughApplicationReadiness()
     {
         using var workspace = TempWorkspace.Create();
-        string output = workspace.PathFor("nt51930-dp-replace.bin");
+        string reference = workspace.Write("reference.bin", new byte[0x80000]);
+
         CliRunResult result = await RunCliAsync([
             "dp-replace",
-            "build",
+            "preview",
             "--profile",
-            profileSelector,
+            "NT51928",
             "--ic-num",
             "single",
             "--base",
-            workspace.Write("reference.bin", [.. Enumerable.Repeat((byte)0xA5, 0x40000)]),
-            "--dp",
-            workspace.Write("dp.bin", [.. Enumerable.Repeat((byte)0x11, 0x40000)]),
-            "--output",
-            output,
+            reference,
         ]);
 
-        Assert.Equal(0, result.ExitCode);
-        Assert.Contains("nt51930-dp-replace-flashmap", result.Output, StringComparison.Ordinal);
-        byte[] bytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
-        Assert.Equal(0x40000, bytes.Length);
-        Assert.Equal(0x11, bytes[0]);
-        Assert.Equal(0x11, bytes[0x5FFF]);
-        Assert.Equal(0xA5, bytes[0x6000]);
-        Assert.Equal(0xA5, bytes[^1]);
+        Assert.Equal(64, result.ExitCode);
+        Assert.Contains(
+            InputSelectionReadinessIssueCodes.SelectionPending,
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "requires at least 1 applicable selection",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51928 CLI exposes the profile-owned reason for LDC on a 256-KiB Reference.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRejectsLdcForNoLdcReference()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x40000]);
+        string ldc = workspace.Write("ldc.bin", new byte[0x80000]);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--ldc",
+            ldc,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            InputSelectionReadinessIssueCodes.SelectionNotApplicable,
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Reference length does not include LDC",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>NT51928 selected LDC must cover the complete compiled LDC source view.</summary>
+    [Fact]
+    public async Task Nt51928DpReplaceRejectsSelectedLdcWithWrongLength()
+    {
+        using var workspace = TempWorkspace.Create();
+        string reference = workspace.Write("reference.bin", new byte[0x80000]);
+        string ldc = workspace.Write("ldc.bin", new byte[0x40000]);
+
+        CliRunResult result = await RunCliAsync([
+            "dp-replace",
+            "preview",
+            "--profile",
+            "NT51928",
+            "--ic-num",
+            "single",
+            "--base",
+            reference,
+            "--ldc",
+            ldc,
+        ]);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            CompositionIssueCodes.InputSourceViewIncomplete,
+            result.Error,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores TP only while customer information follows replacement DP.</summary>

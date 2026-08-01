@@ -239,7 +239,6 @@ public static class IcSupportCatalog
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.PerfectAlias,
             familyScope: "Perfect alias in the NT51919/NT51929/NT51932 family."),
-        Entry("NT51920"),
         Entry("NT51923"),
         Entry("NT51926", notes: "CtrlRAM postbuild category is selected by Common FW version."),
         Entry(
@@ -265,13 +264,6 @@ public static class IcSupportCatalog
             familySourceIcId: "NT51929",
             familyRelationship: IcFamilyRelationship.Canonical,
             familyScope: "Canonical single-product member for NT51919/NT51929/NT51932 family facts."),
-        Entry(
-            "NT51930",
-            notes: "DP Replace reuses the canonical 256 KiB Standard Merge map and remains Evidence open pending direct golden parity; the sole CtrlRAM runtime profile covers Common FW 1.0.0 and later."),
-        Entry(
-            "NT51931",
-            workflowIds: [IcWorkflowIds.StandardMerge, IcWorkflowIds.DpReplace, IcWorkflowIds.CtrlRamReplace, IcWorkflowIds.GeneralMerge],
-            notes: "DP Replace is backed by the canonical 256 KiB Standard Merge map. CtrlRAM single and generic cascade plans are executable candidates and remain support-neutral; AUTO_PRJ-158 cascade-6 is regression evidence, not an admission gate."),
         Entry(
             "NT51932",
             workflowIds: AbPilotWorkflowIds,

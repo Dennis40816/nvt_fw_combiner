@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1",
+  "schemaVersion": "1.2",
   "familyId": "nt51950-ab-merge",
-  "familyVersion": "0.2.0",
+  "familyVersion": "0.3.0",
   "members": [
     {
       "memberId": "NT51950",
@@ -15,7 +15,7 @@
   "capabilities": [],
   "regionSets": [
     {
-      "regionSetId": "nt51950-ab-merge-512k-flash",
+      "regionSetId": "nt51950-ab-merge-512k-seed-anchors",
       "addressSpaceId": "flash",
       "regions": [
         {
@@ -24,42 +24,6 @@
           "kind": "image",
           "range": { "start": 0, "length": 524288 },
           "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-bank",
-          "parentRegionId": "ab-image",
-          "owner": "system",
-          "kind": "image",
-          "range": { "start": 0, "length": 262144 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-control-prefix",
-          "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 0, "length": 40960 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-tp-code",
-          "parentRegionId": "a-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-control-before-cmi",
-          "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 225280, "length": 16406 },
-          "writeConstraint": "forbidden",
           "alignment": 1
         },
         {
@@ -72,47 +36,29 @@
           "alignment": 1
         },
         {
-          "regionId": "a-control-after-cmi",
+          "regionId": "a-opaque-before-tp",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 40960 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-opaque-after-tp-before-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 225280, "length": 16406 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-opaque-after-cmi",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
           "range": { "start": 241689, "length": 20455 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-bank",
-          "parentRegionId": "ab-image",
-          "owner": "system",
-          "kind": "image",
-          "range": { "start": 262144, "length": 262144 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-control-prefix",
-          "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 262144, "length": 40960 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-tp-code",
-          "parentRegionId": "b-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 303104, "length": 184320 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-control-before-cmi",
-          "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 487424, "length": 16406 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -126,7 +72,25 @@
           "alignment": 1
         },
         {
-          "regionId": "b-control-after-cmi",
+          "regionId": "b-opaque-before-tp",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 262144, "length": 40960 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-opaque-after-tp-before-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 487424, "length": 16406 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-opaque-after-cmi",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -138,17 +102,9 @@
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
-      "regionSetId": "nt51950-ab-merge-1024k-flash",
+      "regionSetId": "nt51950-ab-merge-shared-bank-placement",
       "addressSpaceId": "flash",
       "regions": [
-        {
-          "regionId": "ab-image",
-          "owner": "system",
-          "kind": "image",
-          "range": { "start": 0, "length": 1048576 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
         {
           "regionId": "a-bank",
           "parentRegionId": "ab-image",
@@ -159,30 +115,63 @@
           "alignment": 1
         },
         {
-          "regionId": "a-control-prefix",
-          "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 0, "length": 20480 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-tp-code",
-          "parentRegionId": "a-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
+          "regionId": "b-bank",
+          "parentRegionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 262144, "length": 262144 },
           "writeConstraint": "explicit-range",
           "alignment": 1
+        }
+      ],
+      "regionTemplates": [
+        {
+          "templateId": "tp-placement",
+          "capacityBytes": 225280,
+          "regions": [
+            {
+              "regionId": "tp-code",
+              "owner": "tp",
+              "kind": "code",
+              "range": { "start": 40960, "length": 184320 },
+              "writeConstraint": "explicit-range",
+              "alignment": 1
+            }
+          ]
+        }
+      ],
+      "regionInstances": [
+        {
+          "instanceId": "a-tp-placement",
+          "templateId": "tp-placement",
+          "baseOffset": 0,
+          "parentRegionId": "a-bank",
+          "resolvedRegionIds": [
+            { "templateRegionId": "tp-code", "resolvedRegionId": "a-tp-code" }
+          ]
         },
         {
-          "regionId": "a-control-before-cmi",
-          "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 20480, "length": 22 },
-          "writeConstraint": "forbidden",
+          "instanceId": "b-tp-placement",
+          "templateId": "tp-placement",
+          "baseOffset": 262144,
+          "parentRegionId": "b-bank",
+          "resolvedRegionIds": [
+            { "templateRegionId": "tp-code", "resolvedRegionId": "b-tp-code" }
+          ]
+        }
+      ],
+      "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
+    },
+    {
+      "regionSetId": "nt51950-ab-merge-1024k-seed-anchors",
+      "addressSpaceId": "flash",
+      "regions": [
+        {
+          "regionId": "ab-image",
+          "owner": "system",
+          "kind": "image",
+          "range": { "start": 0, "length": 1048576 },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {
@@ -195,7 +184,16 @@
           "alignment": 1
         },
         {
-          "regionId": "a-control-after-cmi",
+          "regionId": "a-opaque-before-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-opaque-after-cmi-before-tp",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -204,47 +202,11 @@
           "alignment": 1
         },
         {
-          "regionId": "b-bank",
-          "parentRegionId": "ab-image",
-          "owner": "system",
-          "kind": "image",
-          "range": { "start": 262144, "length": 262144 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-control-tail",
+          "regionId": "a-opaque-after-tp",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
           "range": { "start": 225280, "length": 36864 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-control-prefix",
-          "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 262144, "length": 20480 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-tp-code",
-          "parentRegionId": "b-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 303104, "length": 184320 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "b-control-before-cmi",
-          "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 282624, "length": 22 },
           "writeConstraint": "forbidden",
           "alignment": 1
         },
@@ -258,7 +220,16 @@
           "alignment": 1
         },
         {
-          "regionId": "b-control-after-cmi",
+          "regionId": "b-opaque-before-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 262144, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-opaque-after-cmi-before-tp",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -267,7 +238,7 @@
           "alignment": 1
         },
         {
-          "regionId": "b-control-tail",
+          "regionId": "b-opaque-after-tp",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -276,19 +247,19 @@
           "alignment": 1
         },
         {
-          "regionId": "dp-preserved-tail",
+          "regionId": "opaque-container-tail",
           "parentRegionId": "ab-image",
-          "owner": "dp",
-          "kind": "data",
+          "owner": "unknown",
+          "kind": "unmapped",
           "range": { "start": 524288, "length": 524288 },
-          "writeConstraint": "explicit-range",
+          "writeConstraint": "forbidden",
           "alignment": 1
         }
       ],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
     {
-      "regionSetId": "nt51951-ab-merge-1024k-flash",
+      "regionSetId": "nt51951-ab-merge-1024k-seed-and-placement",
       "addressSpaceId": "flash",
       "regions": [
         {
@@ -309,15 +280,6 @@
           "alignment": 1
         },
         {
-          "regionId": "a-control-before-cmi",
-          "parentRegionId": "a-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 0, "length": 20502 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
           "regionId": "a-cmi-dp-version",
           "parentRegionId": "a-bank",
           "owner": "dp",
@@ -327,7 +289,16 @@
           "alignment": 1
         },
         {
-          "regionId": "a-control-after-cmi",
+          "regionId": "a-opaque-before-cmi",
+          "parentRegionId": "a-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 0, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "a-opaque-after-cmi-before-tp",
           "parentRegionId": "a-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -336,21 +307,12 @@
           "alignment": 1
         },
         {
-          "regionId": "a-tp-code",
+          "regionId": "a-opaque-after-tp",
           "parentRegionId": "a-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 40960, "length": 184320 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
-        },
-        {
-          "regionId": "a-dp-preserved-tail",
-          "parentRegionId": "a-bank",
-          "owner": "dp",
-          "kind": "data",
+          "owner": "unknown",
+          "kind": "unmapped",
           "range": { "start": 225280, "length": 299008 },
-          "writeConstraint": "explicit-range",
+          "writeConstraint": "forbidden",
           "alignment": 1
         },
         {
@@ -363,15 +325,6 @@
           "alignment": 1
         },
         {
-          "regionId": "b-control-before-cmi",
-          "parentRegionId": "b-bank",
-          "owner": "unknown",
-          "kind": "unmapped",
-          "range": { "start": 524288, "length": 20502 },
-          "writeConstraint": "forbidden",
-          "alignment": 1
-        },
-        {
           "regionId": "b-cmi-dp-version",
           "parentRegionId": "b-bank",
           "owner": "dp",
@@ -381,7 +334,16 @@
           "alignment": 1
         },
         {
-          "regionId": "b-control-after-cmi",
+          "regionId": "b-opaque-before-cmi",
+          "parentRegionId": "b-bank",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 524288, "length": 20502 },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "b-opaque-after-cmi-before-tp",
           "parentRegionId": "b-bank",
           "owner": "unknown",
           "kind": "unmapped",
@@ -390,22 +352,49 @@
           "alignment": 1
         },
         {
-          "regionId": "b-tp-code",
+          "regionId": "b-opaque-after-tp",
           "parentRegionId": "b-bank",
-          "owner": "tp",
-          "kind": "code",
-          "range": { "start": 565248, "length": 184320 },
-          "writeConstraint": "explicit-range",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": { "start": 749568, "length": 299008 },
+          "writeConstraint": "forbidden",
           "alignment": 1
+        }
+      ],
+      "regionTemplates": [
+        {
+          "templateId": "tp-placement",
+          "capacityBytes": 225280,
+          "regions": [
+            {
+              "regionId": "tp-code",
+              "owner": "tp",
+              "kind": "code",
+              "range": { "start": 40960, "length": 184320 },
+              "writeConstraint": "explicit-range",
+              "alignment": 1
+            }
+          ]
+        }
+      ],
+      "regionInstances": [
+        {
+          "instanceId": "a-tp-placement",
+          "templateId": "tp-placement",
+          "baseOffset": 0,
+          "parentRegionId": "a-bank",
+          "resolvedRegionIds": [
+            { "templateRegionId": "tp-code", "resolvedRegionId": "a-tp-code" }
+          ]
         },
         {
-          "regionId": "b-dp-preserved-tail",
+          "instanceId": "b-tp-placement",
+          "templateId": "tp-placement",
+          "baseOffset": 524288,
           "parentRegionId": "b-bank",
-          "owner": "dp",
-          "kind": "data",
-          "range": { "start": 749568, "length": 299008 },
-          "writeConstraint": "explicit-range",
-          "alignment": 1
+          "resolvedRegionIds": [
+            { "templateRegionId": "tp-code", "resolvedRegionId": "b-tp-code" }
+          ]
         }
       ],
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
@@ -423,7 +412,10 @@
         "capacityBytes": 524288
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51950-ab-merge-512k-flash" ],
+      "regionSetIds": [
+        "nt51950-ab-merge-512k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
       "metadataSetIds": [],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
@@ -437,7 +429,10 @@
         "capacityBytes": 1048576
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51950-ab-merge-1024k-flash" ],
+      "regionSetIds": [
+        "nt51950-ab-merge-1024k-seed-anchors",
+        "nt51950-ab-merge-shared-bank-placement"
+      ],
       "metadataSetIds": [],
       "evidenceRefs": [ "nt51950-ab-combiner-audit-2026-07-14" ]
     },
@@ -451,7 +446,7 @@
         "capacityBytes": 1048576
       },
       "coveragePolicy": "complete-with-explicit-gaps",
-      "regionSetIds": [ "nt51951-ab-merge-1024k-flash" ],
+      "regionSetIds": [ "nt51951-ab-merge-1024k-seed-and-placement" ],
       "metadataSetIds": [],
       "evidenceRefs": [ "nt51951-ab-combiner-topology-regression-2026-07-15" ]
     }

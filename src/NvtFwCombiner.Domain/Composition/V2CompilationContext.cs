@@ -111,16 +111,29 @@ public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationConte
 /// <summary>Context for the closed map-bound runtime reference-replace candidate shape.</summary>
 public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2CompilationContext
 {
+    private readonly string[] _processorWriteViewIds;
+
     internal RuntimeReferenceReplaceV2CompilationContext(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        bool allowsConditionalProcessor)
+        bool allowsConditionalProcessor,
+        IEnumerable<string>? processorWriteViewIds = null)
         : base(V2CompilationContextKind.RuntimeReferenceReplace, resolvedMap)
     {
+        _processorWriteViewIds = ImmutableStringSnapshot.Create(
+            processorWriteViewIds ?? [],
+            nameof(processorWriteViewIds),
+            requiredMessage: null,
+            "Runtime-reference processor write-view ids must be non-empty.",
+            "Runtime-reference processor write-view ids must be ordinally unique.");
         AllowsConditionalProcessor = allowsConditionalProcessor;
+        ProcessorWriteViewIds = Array.AsReadOnly(_processorWriteViewIds);
     }
 
     /// <summary>Whether the trusted profile contract can append one mapping-triggered processor stage.</summary>
     public bool AllowsConditionalProcessor { get; }
+
+    /// <summary>Exact profile view identities that grant processor write authority before runtime narrowing.</summary>
+    public IReadOnlyList<string> ProcessorWriteViewIds { get; }
 }
 
 /// <summary>Context for a General Merge logical output that intentionally makes no physical map claim.</summary>

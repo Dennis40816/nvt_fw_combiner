@@ -1,4 +1,5 @@
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -6,7 +7,9 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>Structural Bootstrap-only bridge from Infrastructure's trusted JSON projection to Profiles normalization.</summary>
 internal static class TrustedProfileBundleCatalogProjection
 {
-    internal static TrustedProfileBundleCatalog Create(TrustedProfileBundleDocumentProjection projection)
+    internal static TrustedProfileBundleCatalog Create(
+        TrustedProfileBundleDocumentProjection projection,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(projection);
         return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
@@ -20,7 +23,8 @@ internal static class TrustedProfileBundleCatalogProjection
                 family.Document)),
             projection.Profiles.Select(static profile => new TrustedCompositionProfileJsonSource(
                 CopyIdentity(profile.Identity),
-                profile.Document))));
+                profile.Document))),
+            metadataDefinitionResolver);
     }
 
     private static TrustedProfileBundleCatalogEntryIdentity CopyIdentity(

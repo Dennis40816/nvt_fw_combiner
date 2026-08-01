@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace NvtFwCombiner.Infrastructure;
 
@@ -17,11 +18,7 @@ internal static class PinnedJsonCatalogLoader
         string emptyMessage)
         where T : class
     {
-        string actualHash = ComputeCanonicalSha256(bytes);
-        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
-        {
-            throw new InvalidDataException($"{catalogName} hash mismatch: {actualHash}.");
-        }
+        VerifyHash(bytes, expectedSha256, catalogName);
 
         try
         {
@@ -32,6 +29,81 @@ internal static class PinnedJsonCatalogLoader
         {
             throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
         }
+    }
+
+    /// <summary>Loads generated JSON metadata only after the exact source bytes match.</summary>
+    internal static T LoadExact<T>(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName,
+        string emptyMessage,
+        JsonTypeInfo<T> typeInfo)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        VerifyExactHash(bytes, expectedSha256, catalogName);
+        try
+        {
+            return JsonSerializer.Deserialize(bytes, typeInfo) ??
+                throw new InvalidDataException(emptyMessage);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
+        }
+    }
+
+    /// <summary>Loads one hash-pinned catalog through generated JSON metadata.</summary>
+    internal static T Load<T>(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName,
+        string emptyMessage,
+        JsonTypeInfo<T> typeInfo)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        VerifyHash(bytes, expectedSha256, catalogName);
+        try
+        {
+            return JsonSerializer.Deserialize(bytes, typeInfo) ??
+                throw new InvalidDataException(emptyMessage);
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
+        }
+    }
+
+    private static void VerifyHash(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName)
+    {
+        string actualHash = ComputeCanonicalSha256(bytes);
+        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
+        {
+            throw new InvalidDataException($"{catalogName} hash mismatch: {actualHash}.");
+        }
+    }
+
+    private static void VerifyExactHash(
+        ReadOnlySpan<byte> bytes,
+        string expectedSha256,
+        string catalogName)
+    {
+        string actualHash = ComputeSha256(bytes);
+        if (!StringComparer.Ordinal.Equals(actualHash, expectedSha256))
+        {
+            throw new InvalidDataException($"{catalogName} hash mismatch: {actualHash}.");
+        }
+    }
+
+    internal static string ComputeSha256(ReadOnlySpan<byte> bytes)
+    {
+        Span<byte> hashBytes = stackalloc byte[SHA256.HashSizeInBytes];
+        _ = SHA256.HashData(bytes, hashBytes);
+        return Convert.ToHexStringLower(hashBytes);
     }
 
     internal static string ComputeCanonicalSha256(ReadOnlySpan<byte> bytes)

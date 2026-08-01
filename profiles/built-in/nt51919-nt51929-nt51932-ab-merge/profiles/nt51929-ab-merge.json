@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "2.10",
+  "schemaVersion": "2.14",
   "profileId": "nt51929-ab-merge",
-  "profileVersion": "0.2.0",
+  "profileVersion": "0.4.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -20,8 +20,8 @@
   },
   "mapBinding": {
     "familyId": "nt51919-nt51929-nt51932-ab-merge",
-    "familyVersion": "0.1.0",
-    "familyContentHash": "282e6b1c6ba8ed5af648dfab255190207718a430989d0539539742f802891ad5",
+    "familyVersion": "0.3.0",
+    "familyContentHash": "e8cc3a6425bcac065e53f9cd0026c390c47ec9af4788c9e45460d9ab86ed9d35",
     "mapIds": [
       "nt51929-ab-merge-512k"
     ],
@@ -32,7 +32,10 @@
       "tpa-code",
       "tpb-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "type-ab-tpa-tp-flash-header",
+      "type-ab-tpb-tp-flash-header"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -47,13 +50,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 524288,
-          "expectedOuterLengths": [
-            524288
-          ],
-          "shortInputIssueCode": "AB_DP_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_DP_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "exact-resolved-map-capacity"
         },
         "normalization": {
           "kind": "none"
@@ -71,13 +68,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [
-            262144
-          ],
-          "shortInputIssueCode": "AB_TPA_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -95,13 +86,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "declared-prefix-with-warning",
-          "requiredEndExclusive": 262144,
-          "expectedOuterLengths": [
-            262144
-          ],
-          "shortInputIssueCode": "AB_TPB_INPUT_TOO_SHORT",
-          "unexpectedOuterLengthIssueCode": "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED"
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -173,8 +158,9 @@
       "viewId": "tp-a-source",
       "spaceId": "tp-a-input",
       "selector": {
-        "kind": "map-region",
-        "regionId": "tpa-code"
+        "kind": "region-template-range",
+        "regionInstanceId": "a-bank",
+        "templateRegionId": "tp-code"
       }
     },
     {
@@ -222,11 +208,9 @@
       "viewId": "tp-b-source",
       "spaceId": "tp-b-work",
       "selector": {
-        "kind": "space-range",
-        "range": {
-          "start": 28672,
-          "length": 233472
-        }
+        "kind": "region-template-range",
+        "regionInstanceId": "b-bank",
+        "templateRegionId": "tp-code"
       }
     },
     {
@@ -238,7 +222,128 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "type-ab-tpa-tp-flash-header-read-model",
+      "spaceId": "tp-a-input",
+      "structureId": "type-ab-tpa-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "series",
+          "targetId": "dlm-crc-series"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-tp-flash-header-read-model",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        },
+        {
+          "targetKind": "series",
+          "targetId": "dlm-crc-series"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "header-integrity-values"
+        },
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpa-header-copy-reference",
+      "spaceId": "tp-a-input",
+      "structureId": "type-ab-tpa-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-header-copy-reference",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "span",
+          "targetId": "complete-header"
+        }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    },
+    {
+      "bindingId": "type-ab-tpb-header-relocation-reference",
+      "spaceId": "tp-b-input",
+      "structureId": "type-ab-tpb-tp-flash-header",
+      "targetReferences": [
+        {
+          "targetKind": "group",
+          "targetId": "tp-bank-relative-start-addresses"
+        }
+      ],
+      "purposes": [
+        "relocation"
+      ],
+      "evidenceRefs": [
+        "uploaded-ab-combiner-51929",
+        "tddi-flash-header-workbook-932-owner-classification-2026-07-24"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "ab-image",
@@ -279,42 +384,54 @@
       "operationId": "relocate-tpb-ilm",
       "sequence": 300,
       "overlapPolicy": "reject",
-      "reason": "Relocate the TPB ILM address by the fixed B-bank offset.",
+      "reason": "Relocate the TPB ILM address by the resolved A-to-B bank instance delta.",
       "kind": "transform-scalar",
       "sourceViewId": "tp-b-ilm",
       "targetViewId": "tp-b-ilm",
       "widthBytes": 4,
       "byteOrder": "little",
       "valueInterpretation": "unsigned",
-      "addend": 262144,
+      "addend": {
+        "kind": "region-instance-delta",
+        "sourceRegionInstanceId": "a-bank",
+        "targetRegionInstanceId": "b-bank"
+      },
       "overflowPolicy": "reject"
     },
     {
       "operationId": "relocate-tpb-dlm",
       "sequence": 400,
       "overlapPolicy": "reject",
-      "reason": "Relocate the TPB DLM address by the fixed B-bank offset.",
+      "reason": "Relocate the TPB DLM address by the resolved A-to-B bank instance delta.",
       "kind": "transform-scalar",
       "sourceViewId": "tp-b-dlm",
       "targetViewId": "tp-b-dlm",
       "widthBytes": 4,
       "byteOrder": "little",
       "valueInterpretation": "unsigned",
-      "addend": 262144,
+      "addend": {
+        "kind": "region-instance-delta",
+        "sourceRegionInstanceId": "a-bank",
+        "targetRegionInstanceId": "b-bank"
+      },
       "overflowPolicy": "reject"
     },
     {
       "operationId": "relocate-tpb-diff",
       "sequence": 500,
       "overlapPolicy": "reject",
-      "reason": "Relocate the TPB difference address by the fixed B-bank offset.",
+      "reason": "Relocate the TPB difference address by the resolved A-to-B bank instance delta.",
       "kind": "transform-scalar",
       "sourceViewId": "tp-b-diff",
       "targetViewId": "tp-b-diff",
       "widthBytes": 4,
       "byteOrder": "little",
       "valueInterpretation": "unsigned",
-      "addend": 262144,
+      "addend": {
+        "kind": "region-instance-delta",
+        "sourceRegionInstanceId": "a-bank",
+        "targetRegionInstanceId": "b-bank"
+      },
       "overflowPolicy": "reject"
     },
     {

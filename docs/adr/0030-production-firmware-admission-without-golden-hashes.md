@@ -4,6 +4,8 @@
 - Date: 2026-07-21
 - Risk: R3; firmware-owner review remains required for firmware facts and release evidence
 - Amended by: [ADR 0031](0031-ctrlram-profile-intervals-and-build-plan-authority.md)
+  and ADR 0042 for the `0.10.x` retirement of NT51920, NT51925, NT51930,
+  and NT51931
 
 ## Context
 
@@ -12,6 +14,10 @@ complete reference image SHA-256 with one golden artifact hash. That made one pr
 fixture a production allowlist: a valid customer or engineering build with the same reviewed IC,
 processor, Common FW, topology, project id, capacity, and structural markers was sent to the legacy
 fallback merely because unrelated preserved bytes differed.
+
+ADR 0042 removes NT51920, NT51925, NT51930, and NT51931 from the `0.10.x`
+production capability set. Their cases below remain legacy admission
+characterization only and cannot be used to retain or re-create a target route.
 
 SHA-256 still has important roles, but those roles have different trust boundaries:
 

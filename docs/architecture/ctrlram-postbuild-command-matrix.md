@@ -2,6 +2,15 @@
 
 This matrix records the normalized Combiner command sequences used after CtrlRAM Replace. The living experiment and conclusion tracker is [`ctrlram-replace-status-report.md`](ctrlram-replace-status-report.md).
 
+`0.10.x` target amendment (2026-07-27): ADR 0042/#221 retire NT51920,
+NT51925, NT51930, and NT51931; their rows remain legacy `0.9.x` command
+evidence only. For #219/#188, composition scatters only the declared `N - 1`
+active DLM prefixes from the selected DiffDLM payload. The AE suffix after the
+active prefix does not enter the read set or write set. Every active Diff NF
+tail and every inactive target record remains byte-identical to the immutable
+reference before the command sequence below runs. NT51923/NT51926 and the
+NT51927 TP family retain full-artifact DiffDLM replacement.
+
 Evidence order:
 
 1. owner postbuild script command order;
@@ -26,8 +35,8 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 | NT51930 | single/range | sole `[1.0.0,infinity)` profile: single, cascade `2..13` | `NT51930BASED_NORMAL_MODE CRC8` | 1 / 1 | One runtime profile sourced from 1.4.0 covers every Common FW version from 1.0.0 onward and does not require the informational version to select it. The cascade plan consumes MP and `DiffDLM` length `0xFE00`; count 14 and above are unavailable because no distinct owner plan is implemented. The inspected 2.0.0 BAT and `0x23000` extended branch remain hash-pinned evidence only. |
 | NT51931 | single/cascade | single, cascade | `NT51931BASED_NORMAL_MODE CRC8` | 1 / 1 | Registered Combiner 1.13.0 selected after full-byte equality with the owner 1.2.0.4/51930-based control. Exact AUTO_PRJ-158/PID `0x131B`/cascade-6 V1/V2 parity is materialized; support remains neutral. |
 | NT51932 | single/cascade | single, cascade | `NT51932BASED_NORMAL_MODE CRC8` | 2 / 2 | Direct postbuild reference. |
-| NT51950 | single/cascade | single, cascade | `NT51950BASED_NORMAL_MODE CRC8` | 2 / 2 | Direct postbuild reference. |
-| NT51951 | single/cascade | single, cascade | `NT51950BASED_NORMAL_MODE CRC8` | 2 / 2 | Owner-approved alias of NT51950 reference flow. |
+| NT51950 | single/cascade | single, exact 2-IC cascade | `NT51950BASED_NORMAL_MODE CRC8` | 2 / 2 | Cascade uses the owner-approved NT51951 fact alias: write only `[0x33200,0x33B10)`, preserve `[0x33B10,0x34600)`, and copy `0x0780` FWConfig bytes to fixed Backup `0x36000`. Its `0x40000` output identity remains separate. |
+| NT51951 | single/cascade | single, exact 2-IC cascade | `NT51950BASED_NORMAL_MODE CRC8` | 2 / 2 | Direct AUTO_PRJ-599 cascade golden locks the same masked record and fixed Backup contract in the distinct `0x80000` container. |
 
 ## Tester Coverage
 
@@ -45,6 +54,7 @@ For per-IC Merge/Replace flowcharts, see [`ic-workflow-flowcharts.md`](ic-workfl
 - `LegacyCombinerPostbuildRealToolSmokeTests.RealToolRunsNt51927GoldenCrcOnlyWithoutUnexpectedChanges` runs the committed Combiner 1.13.0 executable on Windows against the owner-approved NT51927 golden output. This is a smoke test for the real tool binding, not a Replace golden parity claim.
 - `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolSixteenByteCasesMatchForSingleAndMultipleCtrlRamSelfReplacement` locks the accepted 16-byte self-replacement behavior for NT51920, NT51923, NT51929, NT51932, NT51950, and NT51951 single/cascade cases. This is still direct-combiner smoke evidence, not production CtrlRAM Replace parity.
 - `LegacyCombinerPostbuildRealToolSmokeTests.DirectRealToolPureCombinerPastebackMatchesPrePasteFlow` verifies representative NT51920, NT51923, NT51926, NT51927, and NT51950 cases produce identical output when replacement CtrlRAM bytes are pre-pasted into the work image versus supplied only as Combiner staged source bytes. The production adapter uses the staged-source path.
+- `Nt51950Nt51951DiffDlmMaskCascade2GoldenTests` locks the direct NT51951 complete expected bytes, nonzero active-prefix placement, reference-preserved Diff NF, ignored mixed inactive source content, fixed FWConfig Backup, stale independent-NF rejection, inactive-target mutation rejection, and the registered Combiner's four approved CRC-word differences. The NT51950 case is explicitly a geometry/postbuild alias, not a direct output identity.
 - `ShellViewModelTests.CtrlRamReplacePreviewSelfReplacementRunsPostbuild` and `CtrlRamReplaceBuildCommitsGoldenBackedSelfReplacementOutput` now inspect the generated Replace report from golden-backed self-replacement: postbuild drift must be accepted `PostbuildCrcHeader` only, and a postbuild-clean self-replacement must produce no output-difference rows.
 
 ## Open Evidence Gaps

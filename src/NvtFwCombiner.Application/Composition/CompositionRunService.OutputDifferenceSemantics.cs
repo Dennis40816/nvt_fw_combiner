@@ -1,6 +1,8 @@
-using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -8,13 +10,18 @@ public sealed partial class CompositionRunService
 {
     private static OutputDifferenceSemantic CreateOutputDifferenceSemantic(
         CompositionRunRequest request,
+        MetadataInspectionSnapshot? reportMetadata,
         OutputDifferenceExpectation expectation,
         ByteRange range)
     {
         return expectation.Classification switch
         {
             OutputDifferenceClassifications.PostbuildCrcHeader =>
-                CreatePostbuildDifferenceSemantic(request.CompiledComposition.IcId, expectation, range),
+                CreatePostbuildDifferenceSemantic(
+                    request.CompiledComposition.IcId,
+                    reportMetadata,
+                    expectation,
+                    range),
             OutputDifferenceClassifications.DeclaredReplacement =>
                 CreateDeclaredReplacementSemantic(expectation),
             OutputDifferenceClassifications.PreservedReference => new OutputDifferenceSemantic(
@@ -40,63 +47,67 @@ public sealed partial class CompositionRunService
     {
         bool isCtrlRam = string.Equals(
             expectation.SectionId,
-            TpHeaderSectionIds.CtrlRamReplacement,
+            PostbuildWriteSectionIds.CtrlRamReplacement,
             StringComparison.Ordinal);
         return new OutputDifferenceSemantic(
-            isCtrlRam ? TpSemanticCategoryIds.CtrlRam : "replacement-data",
+            isCtrlRam ? OutputDifferenceSemanticCategoryIds.CtrlRam : "replacement-data",
             isCtrlRam ? "CtrlRAM" : "Replacement data",
             expectation.SectionId ?? "declared-replacement",
             expectation.SectionLabel,
             $"Expected: this run replaced {expectation.SectionLabel}.",
-            expectation.SectionId ?? (isCtrlRam ? TpSemanticCategoryIds.CtrlRam : "replacement-data"),
+            expectation.SectionId ?? (isCtrlRam ? OutputDifferenceSemanticCategoryIds.CtrlRam : "replacement-data"),
             expectation.SectionLabel);
     }
 
     private static OutputDifferenceSemantic CreatePostbuildDifferenceSemantic(
         string icId,
+        MetadataInspectionSnapshot? reportMetadata,
         OutputDifferenceExpectation expectation,
         ByteRange range)
     {
         ByteRange fieldRange = MapDifferenceToHeaderSourceRange(expectation, range);
         (string parentId, string parentLabel) = CreatePostbuildDifferenceParent(expectation);
-        if (TpHeaderCatalog.IsHeaderSection(expectation.SectionId) &&
-            TpHeaderCatalog.TryFindField(icId, fieldRange, out TpHeaderField? field))
+        if (PostbuildWriteSectionSemantics.IsHeaderSection(expectation.SectionId) &&
+            TryFindActiveTpHeaderField(reportMetadata, fieldRange, out FirmwareMetadataField? field))
         {
+            string displayName = FirmwareMetadataFieldDisplayName.Format(
+                field!.FieldId,
+                field.SourceName);
             string explanation = expectation.SourceRange is null
-                ? $"Expected: postbuild recalculated {field!.DisplayName}."
-                : $"Expected: postbuild refreshed {field!.DisplayName} and copied it to {expectation.SectionLabel}.";
+                ? $"Expected: postbuild recalculated {displayName}."
+                : $"Expected: postbuild refreshed {displayName} and copied it to {expectation.SectionLabel}.";
             return new OutputDifferenceSemantic(
-                TpSemanticCategoryIds.TpFlashHeader,
+                OutputDifferenceSemanticCategoryIds.TpFlashHeader,
                 "TP Flash Header",
                 $"{icId.ToLowerInvariant()}-header:{field!.FieldId}",
-                field.DisplayName,
+                displayName,
                 explanation,
                 parentId,
                 parentLabel);
         }
 
-        bool isHeaderCopy = TpHeaderCatalog.IsHeaderSection(expectation.SectionId) ||
-                            expectation.SectionId is TpHeaderSectionIds.WindowCopyRight or TpHeaderSectionIds.WindowCopyLeft;
+        bool isHeaderCopy = PostbuildWriteSectionSemantics.IsHeaderSection(expectation.SectionId) ||
+                            expectation.SectionId is PostbuildWriteSectionIds.WindowCopyRight or PostbuildWriteSectionIds.WindowCopyLeft;
         return isHeaderCopy
             ? new OutputDifferenceSemantic(
-                TpSemanticCategoryIds.TpFlashHeader,
+                OutputDifferenceSemanticCategoryIds.TpFlashHeader,
                 "TP Flash Header",
                 expectation.SectionId ?? "header-refresh",
                 expectation.SectionLabel,
                 $"Expected: postbuild updated {expectation.SectionLabel}.",
                 parentId,
                 parentLabel)
-            : string.Equals(expectation.SectionId, TpHeaderSectionIds.FirmwareConfigBackup, StringComparison.Ordinal)
+            : string.Equals(expectation.SectionId, PostbuildWriteSectionIds.FirmwareConfigBackup, StringComparison.Ordinal)
                 ? new OutputDifferenceSemantic(
-                TpSemanticCategoryIds.FirmwareConfiguration,
+                OutputDifferenceSemanticCategoryIds.FirmwareConfiguration,
                 "FW Configuration",
-                TpHeaderSectionIds.FirmwareConfigBackup,
+                PostbuildWriteSectionIds.FirmwareConfigBackup,
                 expectation.SectionLabel,
                 $"Expected: postbuild updated {expectation.SectionLabel}.",
-                TpHeaderSectionIds.FirmwareConfigBackup,
+                PostbuildWriteSectionIds.FirmwareConfigBackup,
                 expectation.SectionLabel)
             : new OutputDifferenceSemantic(
-                TpSemanticCategoryIds.OtherDocumentedRegion,
+                OutputDifferenceSemanticCategoryIds.OtherDocumentedRegion,
                 "Other documented regions",
                 expectation.SectionId ?? "postbuild-copy",
                 expectation.SectionLabel,
@@ -108,13 +119,13 @@ public sealed partial class CompositionRunService
     private static (string ParentId, string ParentLabel) CreatePostbuildDifferenceParent(
         OutputDifferenceExpectation expectation)
     {
-        if (string.Equals(expectation.SectionId, TpHeaderSectionIds.FlashHeaderCrc, StringComparison.Ordinal))
+        if (string.Equals(expectation.SectionId, PostbuildWriteSectionIds.FlashHeaderCrc, StringComparison.Ordinal))
         {
             return ("tp-header", "Header");
         }
 
-        bool isHeaderCopy = TpHeaderCatalog.IsHeaderSection(expectation.SectionId) ||
-                            expectation.SectionId is TpHeaderSectionIds.WindowCopyRight or TpHeaderSectionIds.WindowCopyLeft;
+        bool isHeaderCopy = PostbuildWriteSectionSemantics.IsHeaderSection(expectation.SectionId) ||
+                            expectation.SectionId is PostbuildWriteSectionIds.WindowCopyRight or PostbuildWriteSectionIds.WindowCopyLeft;
         return isHeaderCopy
             ? (expectation.SectionId ?? "header-copy", expectation.SectionLabel)
             : (expectation.SectionId ?? "postbuild-copy", expectation.SectionLabel);

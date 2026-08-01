@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles;
@@ -11,19 +12,16 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyCollection<BuiltInV2Registration> StandardMerge { get; } =
         Array.AsReadOnly(
         [
-            new BuiltInV2Registration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51920", "nt51920-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51920-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51917", "nt51917-standard-merge-gen-flash-alias", "0.6.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51919", "nt51919-standard-merge-gen-flash-alias", "0.6.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51923", "nt51923-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
             new BuiltInV2Registration("NT51926", "nt51926-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51923-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51929", "nt51929-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51930", "nt51930-standard-merge-flashmap", "0.5.1", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51931", "nt51931-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51931-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51932", "nt51932-standard-merge-gen-flash", "0.5.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
-            new BuiltInV2Registration("NT51951", "nt51951-standard-merge-dp-perspective", "0.5.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51927", "nt51927-standard-merge-gen-flash", "0.7.0", BuiltInV2BundleRegistry.All["nt51927-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51928", "nt51928-standard-merge-gen-flash", "0.8.0", BuiltInV2BundleRegistry.All["nt51928-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51929", "nt51929-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51932", "nt51932-standard-merge-gen-flash", "0.6.0", BuiltInV2BundleRegistry.All["nt51929-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51950", "nt51950-standard-merge-dp-perspective", "0.6.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
+            new BuiltInV2Registration("NT51951", "nt51951-standard-merge-dp-perspective", "0.6.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Merge),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
@@ -32,11 +30,11 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
         Array.AsReadOnly(
         [
-            new BuiltInV2Registration("NT51919", "nt51919-ab-merge-alias", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51929", "nt51929-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51932", "nt51932-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51950", "nt51950-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
-            new BuiltInV2Registration("NT51951", "nt51951-ab-merge", "0.2.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51919", "nt51919-ab-merge-alias", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51929", "nt51929-ab-merge", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51932", "nt51932-ab-merge", "0.4.0", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51950", "nt51950-ab-merge", "0.3.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
+            new BuiltInV2Registration("NT51951", "nt51951-ab-merge", "0.3.0", BuiltInV2BundleRegistry.All["nt51950-ab-merge"], CompositionKind.Merge, IcWorkflowIds.AbMerge),
         ]);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
@@ -48,16 +46,13 @@ internal static class BuiltInV2RegistrationRegistry
     internal static ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> GeneralMergeByIc { get; } = new(
         new GeneralMergeV2CandidateRegistration[]
         {
-            new("NT51917", "nt51927", "nt51917-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
+            new("NT51917", "nt51917-nt51927-nt51928-canonical-container", "nt51917-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
             new("NT51919", "nt51929-nt51932", "nt51919-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-general-merge-logical-candidate"]),
-            new("NT51920", "nt51920", "nt51920-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51920-general-merge-logical-candidate"]),
             new("NT51923", "nt51923-nt51926", "nt51923-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51923-nt51926-general-merge-logical-candidate"]),
             new("NT51926", "nt51923-nt51926", "nt51926-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51923-nt51926-general-merge-logical-candidate"]),
-            new("NT51927", "nt51927", "nt51927-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
-            new("NT51928", "nt51928", "nt51928-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51928-general-merge-logical-candidate"]),
+            new("NT51927", "nt51917-nt51927-nt51928-canonical-container", "nt51927-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51917-nt51927-general-merge-logical-candidate"]),
+            new("NT51928", "nt51917-nt51927-nt51928-canonical-container", "nt51928-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51928-general-merge-logical-candidate"]),
             new("NT51929", "nt51929-nt51932", "nt51929-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-general-merge-logical-candidate"]),
-            new("NT51930", "nt51930", "nt51930-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51930-general-merge-logical-candidate"]),
-            new("NT51931", "nt51931", "nt51931-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51931-general-merge-logical-candidate"]),
             new("NT51932", "nt51929-nt51932", "nt51932-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51919-nt51929-nt51932-general-merge-logical-candidate"]),
             new("NT51950", "nt51950-nt51951-dp-perspective", "nt51950-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51950-nt51951-general-merge-logical-candidate"]),
             new("NT51951", "nt51950-nt51951-dp-perspective", "nt51951-general-merge-logical-candidate", BuiltInV2BundleRegistry.All["nt51950-nt51951-general-merge-logical-candidate"]),
@@ -68,19 +63,16 @@ internal static class BuiltInV2RegistrationRegistry
         return new ReadOnlyDictionary<string, BuiltInV2Registration>(
             new BuiltInV2Registration[]
             {
-                new("NT51917", "nt51917-dp-replace-gen-flash-alias", "0.1.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
-                new("NT51919", "nt51919-dp-replace-gen-flash-alias", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
-                new("NT51920", "nt51920-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51920-dp-replace"], CompositionKind.Replace),
-                new("NT51923", "nt51923-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
-                new("NT51926", "nt51926-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
-                new("NT51927", "nt51927-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
-                new("NT51928", "nt51928-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51928-dp-replace"], CompositionKind.Replace),
-                new("NT51929", "nt51929-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
-                new("NT51930", "nt51930-dp-replace-flashmap", "0.1.0", BuiltInV2BundleRegistry.All["nt51930-standard-merge"], CompositionKind.Replace),
-                new("NT51931", "nt51931-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51931-dp-replace"], CompositionKind.Replace),
-                new("NT51932", "nt51932-dp-replace-gen-flash", "0.1.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
-                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
-                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.6.1", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
+                new("NT51917", "nt51917-dp-replace-gen-flash-alias", "0.2.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
+                new("NT51919", "nt51919-dp-replace-gen-flash-alias", "0.2.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51923", "nt51923-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
+                new("NT51926", "nt51926-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51923-dp-replace"], CompositionKind.Replace),
+                new("NT51927", "nt51927-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51927-dp-replace"], CompositionKind.Replace),
+                new("NT51928", "nt51928-dp-replace-gen-flash", "0.3.0", BuiltInV2BundleRegistry.All["nt51928-dp-replace"], CompositionKind.Replace),
+                new("NT51929", "nt51929-dp-replace-gen-flash", "0.3.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51932", "nt51932-dp-replace-gen-flash", "0.2.0", BuiltInV2BundleRegistry.All["nt51929-dp-replace"], CompositionKind.Replace),
+                new("NT51950", "nt51950-dp-replace-dp-perspective", "0.7.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
+                new("NT51951", "nt51951-dp-replace-dp-perspective", "0.7.0", BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"], CompositionKind.Replace),
             }.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
     }
 }
@@ -89,7 +81,6 @@ internal sealed class BuiltInV2Registration
 {
     private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
     private readonly BuiltInV2Bundle _bundle;
-    private readonly string _profileVersion;
 
     internal BuiltInV2Registration(
         string icId,
@@ -106,7 +97,7 @@ internal sealed class BuiltInV2Registration
 
         IcId = icId;
         ProfileId = profileId;
-        _profileVersion = profileVersion;
+        ProfileVersion = profileVersion;
         _bundle = bundle;
         CompositionKind = compositionKind;
         WorkflowId = workflowId ?? (compositionKind == CompositionKind.Merge
@@ -130,7 +121,17 @@ internal sealed class BuiltInV2Registration
 
     private CompositionKind CompositionKind { get; }
 
-    private string WorkflowId { get; }
+    internal string WorkflowId { get; }
+
+    internal string ProfileVersion { get; }
+
+    internal string BundleContentHash => _bundle.ContentHash;
+
+    internal bool HasReportClassificationMetadata =>
+        _bundle.ProfileDeclaresMetadataPurpose(
+            ProfileId,
+            ProfileVersion,
+            CompositionProfileMetadataPurpose.ReportClassification);
 
     private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
 
@@ -155,6 +156,9 @@ internal sealed class BuiltInV2Registration
         }
     }
 
+    internal IReadOnlyList<string> InputSelectionGroupMemberSlotIds =>
+        _bundle.GetInputSelectionGroupMemberSlotIds(ProfileId, ProfileVersion);
+
     internal bool MatchesSelector(string selector)
     {
         return string.Equals(ProfileId, selector, StringComparison.OrdinalIgnoreCase) ||
@@ -164,7 +168,20 @@ internal sealed class BuiltInV2Registration
 
     internal IReadOnlyList<long> GetMapCapacities(out IReadOnlyList<CompositionIssue> issues)
     {
-        return _bundle.GetMapCapacities(ProfileId, _profileVersion, IcId, WorkflowId, out issues);
+        return _bundle.GetMapCapacities(ProfileId, ProfileVersion, IcId, WorkflowId, out issues);
+    }
+
+    internal IReadOnlyList<FirmwareImageMap> GetMapVariants(
+        out IcNumberInputMode? icNumberInputMode,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return _bundle.GetMapVariants(
+            ProfileId,
+            ProfileVersion,
+            IcId,
+            WorkflowId,
+            out icNumberInputMode,
+            out issues);
     }
 
     internal bool TryGetContainerPolicy(
@@ -190,12 +207,46 @@ internal sealed class BuiltInV2Registration
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        TryCompile(inputLength, requestedTopology: null, out composition, out issues);
+        TryCompile(
+            inputLength,
+            requestedTopology: null,
+            selectedInputSlotIds: null,
+            out composition,
+            out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        TryCompile(
+            inputLength,
+            requestedTopology: null,
+            selectedInputSlotIds,
+            out composition,
+            out issues);
     }
 
     internal void TryCompile(
         long? inputLength,
         TopologySelection? requestedTopology,
+        out CompiledComposition? composition,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        TryCompile(
+            inputLength,
+            requestedTopology,
+            selectedInputSlotIds: null,
+            out composition,
+            out issues);
+    }
+
+    internal void TryCompile(
+        long? inputLength,
+        TopologySelection? requestedTopology,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -222,9 +273,13 @@ internal sealed class BuiltInV2Registration
         TopologySelection? effectiveTopology = requestedTopology;
         if ((IsStandardMerge || IsAbMerge) && capacities.Count > 1)
         {
-            if (inputLength is null)
+            if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count != 0)
             {
-                if (IsStandardMerge)
+                requestedCapacity = null;
+            }
+            else if (inputLength is null)
+            {
+                if (IsStandardMerge && InputSelectionGroupMemberSlotIds.Count == 0)
                 {
                     composition = null;
                     issues = [];
@@ -269,7 +324,10 @@ internal sealed class BuiltInV2Registration
             requestedCapacity = inputLength;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(requestedCapacity, effectiveTopology);
+        V2CompositionPlanCompileResult compilation = CompileExecutable(
+            requestedCapacity,
+            effectiveTopology,
+            selectedInputSlotIds);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -309,6 +367,15 @@ internal sealed class BuiltInV2Registration
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
     }
 
+    internal MetadataPlanDefinition CreateMetadataPlan(
+        CompiledComposition composition)
+    {
+        return _bundle.CreateMetadataPlan(
+            ProfileId,
+            ProfileVersion,
+            composition);
+    }
+
     private V2CompositionPlanCompileResult CompileSummary()
     {
         IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
@@ -327,23 +394,25 @@ internal sealed class BuiltInV2Registration
 
     private V2CompositionPlanCompileResult CompileExecutable(
         long? requestedMapCapacity,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
                 ProfileId,
-                _profileVersion,
+                ProfileVersion,
                 IcId,
                 requestedMapCapacity,
                 requestedTopology,
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.")
             : _bundle.CompileExecutable(
                 ProfileId,
-                _profileVersion,
+                ProfileVersion,
                 IcId,
                 WorkflowId,
                 requestedMapCapacity,
-                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.");
+                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                selectedInputSlotIds);
     }
 
     private static TopologySelection CreateSummaryTopology()

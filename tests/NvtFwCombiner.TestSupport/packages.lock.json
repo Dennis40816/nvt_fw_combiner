@@ -24,8 +24,8 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.9.8, )",
-          "NvtFwCombiner.Domain": "[0.9.8, )"
+          "NvtFwCombiner.Contracts": "[0.10.0, )",
+          "NvtFwCombiner.Domain": "[0.10.0, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -38,9 +38,9 @@
         "type": "Project",
         "dependencies": {
           "JsonSchema.Net": "[8.0.5, )",
-          "NvtFwCombiner.Application": "[0.9.8, )",
-          "NvtFwCombiner.Contracts": "[0.9.8, )",
-          "NvtFwCombiner.Domain": "[0.9.8, )"
+          "NvtFwCombiner.Application": "[0.10.0, )",
+          "NvtFwCombiner.Contracts": "[0.10.0, )",
+          "NvtFwCombiner.Domain": "[0.10.0, )"
         }
       },
       "JsonSchema.Net": {

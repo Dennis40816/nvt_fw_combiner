@@ -11,10 +11,23 @@ public sealed class CtrlRamV2RouteRegistryTests
     [Fact]
     public void ProductionRouteKeysAreUnique()
     {
-        Assert.Equal(31, CtrlRamV2RouteRegistry.All.Count);
+        Assert.Equal(25, CtrlRamV2RouteRegistry.All.Count);
         Assert.Equal(
             CtrlRamV2RouteRegistry.All.Count,
             CtrlRamV2RouteRegistry.All.Select(static route => route.Key).Distinct().Count());
+    }
+
+    /// <summary>Retired ICs have no production CtrlRAM route, bundle, profile, or processor owner.</summary>
+    [Theory]
+    [InlineData("NT51920")]
+    [InlineData("NT51925")]
+    [InlineData("NT51930")]
+    [InlineData("NT51931")]
+    public void RetiredIcIdsHaveNoCtrlRamV2Route(string icId)
+    {
+        Assert.DoesNotContain(
+            CtrlRamV2RouteRegistry.All,
+            route => StringComparer.Ordinal.Equals(route.Key.IcId, icId));
     }
 
     /// <summary>Both owner-modeled NT51926 Common FW 1.x plans have explicit V2 routes.</summary>
@@ -37,27 +50,6 @@ public sealed class CtrlRamV2RouteRegistryTests
         Assert.Equal(expectedBranch, plan.Branch);
         Assert.True(CtrlRamV2RouteRegistry.TryResolve(plan, out CtrlRamV2Route? route));
         Assert.NotNull(route);
-        Assert.Equal(expectedProfileId, route.ProfileId);
-    }
-
-    /// <summary>Both owner-modeled NT51930 plans resolve without golden metadata admission.</summary>
-    [Theory]
-    [InlineData(IcNumberInputMode.SingleSelector, IcNumberSelectionTokens.SingleChip, "nt51930-ctrlram-replace-fw1x-runtime-single")]
-    [InlineData(IcNumberInputMode.CascadeSelector, WorkbenchIcNumberTokens.CascadeTwoToThirteen, "nt51930-ctrlram-replace-fw130-cascade3")]
-    public void Nt51930PlanResolvesWithoutGoldenTuple(
-        IcNumberInputMode mode,
-        string token,
-        string expectedProfileId)
-    {
-        LegacyCombinerPostbuildProfile profile = Assert.Single(
-            LegacyCombinerPostbuildCatalog.GetProfiles("NT51930"));
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            profile,
-            new IcNumberSelection(mode, [token]));
-
-        Assert.True(CtrlRamV2RouteRegistry.TryResolve(plan, out CtrlRamV2Route? route));
-        Assert.NotNull(route);
-        Assert.Equal("nt51930-ctrlram-replace-candidate", route.BundleId);
         Assert.Equal(expectedProfileId, route.ProfileId);
     }
 
@@ -117,7 +109,7 @@ public sealed class CtrlRamV2RouteRegistryTests
             out CtrlRamV2Route? route));
         Assert.NotNull(route);
         Assert.Equal(expectedProfileId, route.ProfileId);
-        Assert.Equal("0.5.0", route.ProfileVersion);
+        Assert.Equal("0.6.0", route.ProfileVersion);
     }
 
     private static CtrlRamV2RouteKey Key(

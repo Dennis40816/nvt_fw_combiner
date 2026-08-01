@@ -1,12 +1,15 @@
 {
-  "schemaVersion": "2.0",
+  "schemaVersion": "2.13",
   "profileId": "nt51927-standard-merge-gen-flash",
-  "profileVersion": "0.5.0",
+  "profileVersion": "0.7.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
   },
   "compositionKind": "merge",
+  "compilationContext": {
+    "kind": "resolved-map"
+  },
   "experience": {
     "experienceId": "standard-merge",
     "audience": "system",
@@ -16,9 +19,9 @@
     "displayNameKey": "profile.nt51927.standard-merge"
   },
   "mapBinding": {
-    "familyId": "nt51927",
-    "familyVersion": "1.0.0",
-    "familyContentHash": "4eb967a44906205202e1a6d07418637562a6576dc2943ce7cb2b6b518d064360",
+    "familyId": "nt51917-nt51927-nt51928-canonical-container",
+    "familyVersion": "1.4.0",
+    "familyContentHash": "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761",
     "mapIds": [
       "nt51927-standard-merge-256k"
     ],
@@ -26,7 +29,11 @@
       "tp-code",
       "dp-code"
     ],
-    "requiredMetadataStructureIds": [],
+    "requiredMetadataStructureIds": [
+      "firmware-config-general-parameters",
+      "dpcmi",
+      "nt51927-927-tp-flash-header"
+    ],
     "requiredCapabilityIds": []
   },
   "inputSlots": [
@@ -41,8 +48,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "tp-maximum-256k",
-          "maximumBytes": 262144
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -60,11 +66,7 @@
       ],
       "acceptance": {
         "lengthRule": {
-          "kind": "normal-dp-extract-with-warning",
-          "issueCode": "DP_SIZE_WARNING",
-          "expectedInputLengths": [
-            2097152
-          ]
+          "kind": "source-view-coverage"
         },
         "normalization": {
           "kind": "none"
@@ -131,7 +133,97 @@
       }
     }
   ],
-  "metadataBindings": [],
+  "metadataBindings": [
+    {
+      "bindingId": "firmware-config-general-parameters-inspection",
+      "spaceId": "tp-input",
+      "structureId": "firmware-config-general-parameters",
+      "fieldIds": [
+        "tp-firmware-version",
+        "tp-firmware-version-complement",
+        "sensor-count-x",
+        "sensor-count-y",
+        "display-resolution-x",
+        "display-resolution-y",
+        "maximum-operable-fingers",
+        "report-irq-type",
+        "tp-firmware-subversion",
+        "tp-resolution-x",
+        "tp-resolution-y",
+        "observed-ic-count",
+        "outermost-ic-master-enable",
+        "common-firmware-major-version",
+        "common-firmware-minor-version",
+        "common-firmware-additional-version",
+        "pid"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    },
+    {
+      "bindingId": "dpcmi-inspection",
+      "spaceId": "dp-input",
+      "structureId": "dpcmi",
+      "fieldIds": [
+        "jira-low",
+        "dp-major",
+        "dp-minor",
+        "jira-high"
+      ],
+      "purposes": [
+        "validation",
+        "output-naming",
+        "display",
+        "version"
+      ]
+    },
+    {
+      "bindingId": "nt51927-927-tp-flash-header-read-model",
+      "spaceId": "tp-input",
+      "structureId": "nt51927-927-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "global-header" },
+        { "targetKind": "span", "targetId": "modeled-instance-headers" },
+        { "targetKind": "series", "targetId": "ilm-crc-series" },
+        { "targetKind": "series", "targetId": "dlm-crc-series" },
+        { "targetKind": "series", "targetId": "header-crc-series" },
+        { "targetKind": "group", "targetId": "header-integrity-values" },
+        { "targetKind": "group", "targetId": "tp-bin-start-addresses" }
+      ],
+      "purposes": [
+        "inspection",
+        "formatting",
+        "memory-projection",
+        "report-classification"
+      ],
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "gen-flash-bin-v2-51927-golden",
+        "tddi-flash-header-workbook-927"
+      ]
+    },
+    {
+      "bindingId": "nt51927-927-tp-flash-header-copy-reference",
+      "spaceId": "tp-input",
+      "structureId": "nt51927-927-tp-flash-header",
+      "targetReferences": [
+        { "targetKind": "span", "targetId": "header-refresh-source" },
+        { "targetKind": "span", "targetId": "final-header-backup-source" }
+      ],
+      "purposes": [
+        "copy"
+      ],
+      "evidenceRefs": [
+        "adr-0013-tp-binary-model-owner-gate",
+        "gen-flash-bin-v2-51927-golden",
+        "tddi-flash-header-workbook-927"
+      ]
+    }
+  ],
   "regionAccessRules": [
     {
       "regionId": "tp-code",
@@ -164,7 +256,24 @@
       "targetViewId": "dp-output"
     }
   ],
-  "validations": [],
+  "validations": [
+    {
+      "ruleId": "dp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "DP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "dp-source"
+    },
+    {
+      "ruleId": "tp-content-plausibility",
+      "stage": "input-load",
+      "severity": "warning",
+      "issueCode": "TP_UNIFORM_CONTENT_WARNING",
+      "kind": "non-uniform-region",
+      "viewId": "tp-source"
+    }
+  ],
   "processorStages": [],
   "output": {
     "fileNameTemplate": "nt51927-standard-merge-gen-flash.bin",

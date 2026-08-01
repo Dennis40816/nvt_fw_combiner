@@ -3,21 +3,25 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-/// <summary>Normalizes schema-validated v1.1 family facts into one map-bound Domain definition.</summary>
+/// <summary>Normalizes schema-validated v1 family facts into one map-bound Domain definition.</summary>
 public static partial class FirmwareFamilyResolutionNormalizer
 {
     /// <summary>Normalizes direct and aliased family facts without inferring maps, workflows, or execution support.</summary>
     public static FirmwareFamilyResolutionDefinition Normalize(
         FirmwareFamilyDocument document,
-        string familyContentHash)
+        string familyContentHash,
+        IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
-        _ = StringComparer.Ordinal.Equals(document.SchemaVersion, "1.1")
+        _ = document.SchemaVersion is "1.1" or "1.2"
             ? true
-            : throw Error("schemaVersion", "Expected firmware-family schema version '1.1'.");
+            : throw Error("schemaVersion", "Expected firmware-family schema version '1.1' or '1.2'.");
 
-        return NormalizeMapBoundFacts(document, familyContentHash);
+        return NormalizeMapBoundFacts(
+            document,
+            familyContentHash,
+            metadataDefinitionResolver);
     }
 
     private static FirmwareMapApplicability NormalizeApplicability(

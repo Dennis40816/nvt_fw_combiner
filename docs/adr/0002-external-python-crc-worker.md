@@ -21,6 +21,14 @@ Use one bundled one-shot Python worker executable with two versioned authority l
 
 The host remains the final mutation-policy authority. For transform mode it records the original bytes/hash, independently computes the resulting byte diff, and rejects any changed byte outside profile-declared `allowedWriteRanges`. The transformed bytes are imported into a named work buffer or output only after all checks pass. User inputs and the final output path remain immutable until atomic promotion.
 
+This worker has one protocol-family host adapter, not one adapter per IC,
+workflow, algorithm, or processor id. Processor-specific differences are
+versioned declarations consumed through Protocol 1.x/2.x. The shared staged
+execution host owns process lifecycle, timeout/cancellation, staging identity,
+and independent mutation audit. A new IC using either existing protocol changes
+no production host code; a new executable protocol requires a separately
+reviewed adapter rather than another IC runner.
+
 ## Applicability
 
 CRC/header behavior is declared per profile stage, not by `needsCrc: bool`. Two orthogonal fields are required:

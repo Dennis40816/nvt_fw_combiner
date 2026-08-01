@@ -10,7 +10,12 @@ public sealed class FirmwareMetadataFieldTests
     [Fact]
     public void ConstructorCreatesClosedFieldShapes()
     {
-        var bytes = new FirmwareMetadataField("pid-bytes", 0, 2, FirmwareMetadataEncoding.Bytes);
+        var bytes = new FirmwareMetadataField(
+            "pid-bytes",
+            0,
+            2,
+            FirmwareMetadataEncoding.Bytes,
+            sourceName: "PID");
         var text = new FirmwareMetadataField("label", 2, 4, FirmwareMetadataEncoding.PrintableAscii);
         var unsigned = new FirmwareMetadataField(
             "minor-version",
@@ -27,6 +32,7 @@ public sealed class FirmwareMetadataFieldTests
             FirmwareMetadataByteOrder.LittleEndian);
 
         Assert.Equal(new ByteRange(0, 2), bytes.Range);
+        Assert.Equal("PID", bytes.SourceName);
         Assert.Equal(FirmwareMetadataValueKind.Bytes, bytes.ValueKind);
         Assert.Null(bytes.EffectiveBitCount);
         Assert.Equal(FirmwareMetadataValueKind.Text, text.ValueKind);
@@ -310,6 +316,12 @@ public sealed class FirmwareMetadataFieldTests
             0,
             1,
             FirmwareMetadataEncoding.Bytes));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataField(
+            "source-name",
+            0,
+            1,
+            FirmwareMetadataEncoding.Bytes,
+            sourceName: " "));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FirmwareMetadataField(
             "bad-encoding",
             0,

@@ -30,6 +30,7 @@
     "description": { "type": "string", "minLength": 1 },
     "compositionKind": { "enum": ["merge", "replace"] },
     "sourceExperienceId": { "enum": ["general-merge", "general-replace"] },
+    "imageInitialization": { "$ref": "#/$defs/generalMergeInitialization" },
     "parentBinding": { "$ref": "#/$defs/parentBinding" },
     "promotion": { "$ref": "#/$defs/promotion" },
     "slotTemplates": {
@@ -72,6 +73,7 @@
         "required": ["compositionKind"]
       },
       "then": {
+        "required": ["imageInitialization"],
         "properties": {
           "sourceExperienceId": { "const": "general-merge" },
           "mappingFragments": {
@@ -88,6 +90,7 @@
         "required": ["compositionKind"]
       },
       "then": {
+        "not": { "required": ["imageInitialization"] },
         "properties": {
           "sourceExperienceId": { "const": "general-replace" },
           "mappingFragments": {
@@ -119,6 +122,25 @@
       "properties": {
         "start": { "type": "integer", "minimum": 0 },
         "length": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "generalMergeInitialization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "capacity"],
+      "properties": {
+        "kind": { "const": "blank" },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "fillByte": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "default": 0
+        }
       }
     },
     "parentBinding": {

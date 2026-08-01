@@ -15,7 +15,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [Fact]
     public void LoadReadsEveryBuiltInProfile()
     {
-        Assert.Equal(13, BuiltInTpFlashMapCatalog.IcIds.Count);
+        Assert.Equal(10, BuiltInTpFlashMapCatalog.IcIds.Count);
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds.Count, BuiltInTpFlashMapCatalog.IcIds.Distinct().Count());
     }
 
@@ -23,14 +23,11 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [Theory]
     [InlineData("NT51917", 0x35000, 0x40000)]
     [InlineData("NT51919", 0x40000, 0x40000)]
-    [InlineData("NT51920", 0x30000, 0x40000)]
     [InlineData("NT51923", 0x3C000, 0x40000)]
     [InlineData("NT51926", 0x3C000, 0x40000)]
     [InlineData("NT51927", 0x35000, 0x40000)]
     [InlineData("NT51928", 0x35000, 0x80000)]
     [InlineData("NT51929", 0x40000, 0x40000)]
-    [InlineData("NT51930", 0x40000, 0x40000)]
-    [InlineData("NT51931", 0x3C000, 0x40000)]
     [InlineData("NT51932", 0x40000, 0x40000)]
     [InlineData("NT51950", 0x37000, 0x40000)]
     [InlineData("NT51951", 0x37000, 0x80000)]
@@ -51,10 +48,15 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
         foreach (JsonElement fixtureCase in manifest.RootElement.GetProperty("cases").EnumerateArray())
         {
             string icId = $"NT{fixtureCase.GetProperty("ic").GetString()}";
+            if (!BuiltInTpFlashMapCatalog.TryFind(icId, out Application.FlashMaps.TpFlashMapProfile? profile))
+            {
+                // Retired fixtures remain immutable historical evidence, not production map admission.
+                continue;
+            }
+
             long tpLength = fixtureCase.GetProperty("inputs").GetProperty("tp-input").GetProperty("size").GetInt64();
             long flashLength = fixtureCase.GetProperty("expectedOutput").GetProperty("size").GetInt64();
 
-            Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out Application.FlashMaps.TpFlashMapProfile? profile));
             Assert.Equal(tpLength, profile!.TpPrefixLength);
             Assert.Contains(flashLength, profile.FullFlashCapacities);
         }

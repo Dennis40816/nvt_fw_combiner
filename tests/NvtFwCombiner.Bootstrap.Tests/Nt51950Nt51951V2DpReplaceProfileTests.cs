@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "65987f6b1e41feaca92e7b258bca282df9ae133f90db6877ba6b97c04d91f0f4";
+    private const string BundleContentHash = "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
@@ -108,7 +108,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             $"nt{icId[2..]}-dp-replace-dp-perspective",
-            "0.6.1",
+            "0.7.0",
             icId,
             ExperienceIds.DpReplace,
             capacity);

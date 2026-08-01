@@ -19,13 +19,43 @@ public sealed record FirmwareMetadataSetDocument(
 /// <param name="Locator">Closed locator declaration shape.</param>
 /// <param name="Fields">Typed field declarations.</param>
 /// <param name="Assertions">Structure-relative byte assertions.</param>
+/// <param name="Relations">Optional typed relationships between declared fields.</param>
+/// <param name="DefinitionReference">Optional exact canonical metadata-definition reference.</param>
+/// <param name="StructureKind">Optional closed typed-structure discriminator.</param>
+/// <param name="TpFlashHeader">Optional typed TP Flash Header payload.</param>
 public sealed record FirmwareMetadataStructureDocument(
     string StructureId,
     string ArtifactBindingId,
     JsonElement Length,
     FirmwareMetadataLocatorDocument Locator,
     IReadOnlyList<FirmwareMetadataFieldDocument> Fields,
-    IReadOnlyList<FirmwareByteAssertionDocument> Assertions);
+    IReadOnlyList<FirmwareByteAssertionDocument> Assertions,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareMetadataFieldRelationDocument>? Relations = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    FirmwareMetadataStructureDefinitionReferenceDocument? DefinitionReference = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? StructureKind = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    FirmwareTpFlashHeaderDocument? TpFlashHeader = null);
+
+/// <summary>DTO for one exact canonical metadata-definition reference.</summary>
+public sealed record FirmwareMetadataStructureDefinitionReferenceDocument(
+    string FamilyId,
+    string FamilyVersion,
+    string FamilyContentHash,
+    string StructureId);
+
+/// <summary>DTO for one typed relationship between fields in a metadata structure.</summary>
+/// <param name="RelationId">Stable relation identifier.</param>
+/// <param name="Kind">Closed relation-kind token.</param>
+/// <param name="SourceFieldId">Canonical source-field identifier.</param>
+/// <param name="RelatedFieldId">Canonical related-field identifier.</param>
+public sealed record FirmwareMetadataFieldRelationDocument(
+    string RelationId,
+    string Kind,
+    string SourceFieldId,
+    string RelatedFieldId);
 
 /// <summary>DTO for one closed metadata field declaration.</summary>
 /// <param name="FieldId">Stable field identifier.</param>
@@ -34,6 +64,7 @@ public sealed record FirmwareMetadataStructureDocument(
 /// <param name="Encoding">Closed field encoding token.</param>
 /// <param name="ByteOrder">Integer byte-order token when declared.</param>
 /// <param name="BitSlice">Optional unsigned integer projection.</param>
+/// <param name="SourceName">Optional retained source declaration name.</param>
 public sealed record FirmwareMetadataFieldDocument(
     string FieldId,
     JsonElement Offset,
@@ -42,7 +73,9 @@ public sealed record FirmwareMetadataFieldDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? ByteOrder = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    FirmwareMetadataBitSliceDocument? BitSlice = null);
+    FirmwareMetadataBitSliceDocument? BitSlice = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? SourceName = null);
 
 /// <summary>DTO for one unsigned integer bit projection.</summary>
 /// <param name="LeastSignificantBit">First selected normalized carrier bit.</param>
@@ -71,6 +104,9 @@ public sealed record FirmwareByteAssertionDocument(
 /// <param name="MarkerHex">Exact marker bytes when declared.</param>
 /// <param name="Selection">Marker cardinality and terminal selection when declared.</param>
 /// <param name="ResultOffset">Signed marker-relative result offset when declared.</param>
+/// <param name="PrerequisiteStructureId">Map-selected prerequisite structure binding.</param>
+/// <param name="PrerequisiteFieldId">Unsigned prerequisite field selecting one branch.</param>
+/// <param name="Branches">Closed prerequisite-value branches.</param>
 public sealed record FirmwareMetadataLocatorDocument(
     string Kind,
     string AllowedResultRegionId,
@@ -87,7 +123,19 @@ public sealed record FirmwareMetadataLocatorDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     FirmwareMarkerSelectionDocument? Selection = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    JsonElement? ResultOffset = null);
+    JsonElement? ResultOffset = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? PrerequisiteStructureId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? PrerequisiteFieldId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<FirmwareMetadataFieldSelectedBranchDocument>? Branches = null);
+
+/// <summary>DTO for one inclusive prerequisite-value branch and logical-address anchor.</summary>
+public sealed record FirmwareMetadataFieldSelectedBranchDocument(
+    JsonElement MinimumValue,
+    JsonElement MaximumValue,
+    FirmwareAddressedRangeDocument AnchorRange);
 
 /// <summary>DTO for one unique or evidenced terminal marker selection.</summary>
 /// <param name="Kind">Closed marker-selection kind token.</param>

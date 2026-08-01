@@ -29,7 +29,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
     }
 
-    /// <summary>The desktop adapter exposes compiler-owned slots with each profile's declared prefix authority.</summary>
+    /// <summary>The desktop adapter exposes compiler-owned exact-container and source-view authority.</summary>
     [Theory]
     [InlineData("NT51919", DpLength, TpLength)]
     [InlineData("NT51929", DpLength, TpLength)]
@@ -41,11 +41,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         int expectedDpLength,
         int expectedTpPrefixLength)
     {
-        IReadOnlyList<WorkbenchAbMergeInputSlot> slots = WorkbenchCompositionService.GetAbMergeInputSlots(icId);
-        IReadOnlyList<long> expectedTpOuterLengths = icId is "NT51950" or "NT51951"
-            ? [0x37000, 0x40000]
-            : [TpLength];
-
+        IReadOnlyList<WorkbenchAbMergeInputSlot> slots =
+            WorkbenchCompositionService.GetAbMergeInputSlots(
+                icId,
+                abMergeTopologyToken: icId == "NT51950" ? "single" : null);
         Assert.Collection(
             slots,
             slot => AssertAbSlot(
@@ -59,13 +58,13 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 CompositionAddressSpaceIds.TpAInput,
                 WorkbenchAbMergeInputRole.TpA,
                 expectedTpPrefixLength,
-                expectedTpOuterLengths),
+                []),
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.TpBInput,
                 WorkbenchAbMergeInputRole.TpB,
                 expectedTpPrefixLength,
-                expectedTpOuterLengths));
+                []));
     }
 
     /// <summary>Only NT51950's AB profile exposes symbolic map topology selection.</summary>
@@ -204,7 +203,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             inspection.Versions);
     }
 
-    /// <summary>Ignored tails warn immediately while metadata remains bounded to the accepted prefix.</summary>
+    /// <summary>Non-authoritative tails remain accepted while metadata stays bounded to the compiled source view.</summary>
     [Fact]
     public void WorkbenchLoadInspectionBoundsMetadataToAcceptedPrefix()
     {
@@ -217,8 +216,8 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a-oversized.bin", oversized));
 
-        Assert.Equal(WorkbenchInputInspectionSeverity.Warning, inspection.PrimaryIssue.Severity);
-        Assert.Equal("AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED", inspection.PrimaryIssue.Code);
+        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, inspection.PrimaryIssue.Severity);
+        Assert.Equal("input.inspection.ready", inspection.PrimaryIssue.Code);
         Assert.False(inspection.BlocksBuild);
         Assert.Equal(TpLength, inspection.IgnoredTrailingBytes);
         Assert.Equal(
@@ -238,18 +237,18 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         Assert.True(inspection.BlocksBuild);
         Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, inspection.PrimaryIssue.Severity);
-        Assert.Equal("AB_DP_INPUT_TOO_SHORT", inspection.PrimaryIssue.Code);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, inspection.PrimaryIssue.Code);
         Assert.All(inspection.Versions, static version => Assert.True(version.IsUnknown));
         Assert.DoesNotContain(
             inspection.Issues,
             static issue => issue.Code == WorkbenchIssueCodes.AbInputVersionUnknown);
     }
 
-    /// <summary>Each selected source that ends one byte early blocks before execution with its profile issue code.</summary>
+    /// <summary>Each selected source that ends one byte early blocks under its canonical input geometry.</summary>
     [Theory]
-    [InlineData(CompositionAddressSpaceIds.DpAbInput, DpLength - 1, "AB_DP_INPUT_TOO_SHORT")]
-    [InlineData(CompositionAddressSpaceIds.TpAInput, TpLength - 1, "AB_TPA_INPUT_TOO_SHORT")]
-    [InlineData(CompositionAddressSpaceIds.TpBInput, TpLength - 1, "AB_TPB_INPUT_TOO_SHORT")]
+    [InlineData(CompositionAddressSpaceIds.DpAbInput, DpLength - 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [InlineData(CompositionAddressSpaceIds.TpAInput, TpLength - 1, CompositionIssueCodes.InputSourceViewIncomplete)]
+    [InlineData(CompositionAddressSpaceIds.TpBInput, TpLength - 1, CompositionIssueCodes.InputSourceViewIncomplete)]
     public async Task OneByteShortInputBlocksWithoutOutputAsync(
         string shortAddressSpaceId,
         int shortLength,
@@ -282,14 +281,12 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Each accepted oversized source warns, preserves full identity, and produces exact-prefix output.</summary>
+    /// <summary>Each accepted TP source view preserves full identity and ignores its non-authoritative tail.</summary>
     [Theory]
-    [InlineData(CompositionAddressSpaceIds.DpAbInput, "AB_DP_INPUT_OUTER_LENGTH_UNEXPECTED")]
-    [InlineData(CompositionAddressSpaceIds.TpAInput, "AB_TPA_INPUT_OUTER_LENGTH_UNEXPECTED")]
-    [InlineData(CompositionAddressSpaceIds.TpBInput, "AB_TPB_INPUT_OUTER_LENGTH_UNEXPECTED")]
-    public async Task OversizedInputWarnsWithoutChangingOutputAsync(
-        string oversizedAddressSpaceId,
-        string expectedIssueCode)
+    [InlineData(CompositionAddressSpaceIds.TpAInput)]
+    [InlineData(CompositionAddressSpaceIds.TpBInput)]
+    public async Task TpSourceViewIgnoresTrailingBytesWithoutChangingOutputAsync(
+        string oversizedAddressSpaceId)
     {
         using var workspace = TempWorkspace.Create("nfc-ab-oversize");
         Dictionary<string, string> paths = WriteInputs(workspace);
@@ -314,10 +311,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(tailed.Succeeded, tailed.ReportJson);
         Assert.Equal(exact.OutputSha256, tailed.OutputSha256);
         using var report = JsonDocument.Parse(tailed.ReportJson);
-        JsonElement issue = Assert.Single(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == expectedIssueCode);
-        Assert.Equal("warning", issue.GetProperty("Severity").GetString());
+        Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
         JsonElement input = Assert.Single(
             report.RootElement.GetProperty("Inputs").EnumerateArray(),
             input => input.GetProperty("AddressSpaceId").GetString() == oversizedAddressSpaceId);

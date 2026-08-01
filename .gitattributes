@@ -24,4 +24,5 @@ testdata/golden/ctrlram-replace/fixtures/20260718/** binary
 
 # Preserve owner-supplied provenance payloads after canonical migration.
 testdata/golden/canonical/**/provenance/*.bat binary
+testdata/golden/canonical/**/provenance/*.config binary
 testdata/golden/canonical/**/provenance/*.txt binary

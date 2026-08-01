@@ -1,4 +1,4 @@
-using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -16,7 +16,7 @@ public sealed partial class CompositionRunService
     {
         return string.IsNullOrWhiteSpace(sectionId)
             ? "Header / CRC refresh"
-            : TpHeaderCatalog.GetDisplayName(sectionId);
+            : PostbuildWriteSectionSemantics.GetDisplayName(sectionId);
     }
 
     private static string FormatDifferenceSectionLabel(string? sourceSpaceId, string reason)

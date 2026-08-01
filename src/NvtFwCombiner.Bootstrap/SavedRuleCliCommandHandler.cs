@@ -1,10 +1,9 @@
 using System.Globalization;
-
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Bootstrap;
 
-internal static class SavedRuleCliCommandHandler
+internal static partial class SavedRuleCliCommandHandler
 {
     private const int Success = 0;
     private const int CompositionFailed = 1;
@@ -36,6 +35,15 @@ internal static class SavedRuleCliCommandHandler
             return UsageError;
         }
 
+        if (HasV2SchemaVersion(args[1]))
+        {
+            return await RunV2Async(
+                action,
+                args[1],
+                output,
+                error).ConfigureAwait(false);
+        }
+
         SavedCompositionRuleLoadResult result = SavedCompositionRuleLoader.Load(args[1]);
         if (!result.IsValid)
         {
@@ -47,7 +55,17 @@ internal static class SavedRuleCliCommandHandler
         await PrintSummaryAsync(rule, output).ConfigureAwait(false);
         if (action == "mappings")
         {
-            await PrintMappingsAsync(rule, output).ConfigureAwait(false);
+            if (!SavedRuleGeneralMappingDraftAdapter.TryCreate(
+                    rule,
+                    static row => row.SourceReference,
+                    out GeneralMappingDraftState? draft,
+                    out IReadOnlyList<SavedRuleValidationIssue> projectionIssues))
+            {
+                await PrintIssuesAsync(projectionIssues, error).ConfigureAwait(false);
+                return CompositionFailed;
+            }
+
+            await PrintMappingsAsync(draft, output).ConfigureAwait(false);
         }
 
         return Success;
@@ -67,41 +85,46 @@ internal static class SavedRuleCliCommandHandler
             .ConfigureAwait(false);
     }
 
-    private static async Task PrintMappingsAsync(SavedCompositionRule rule, TextWriter output)
+    private static async Task PrintMappingsAsync(
+        GeneralMappingDraftState draft,
+        TextWriter output)
     {
         await output.WriteLineAsync("Mapping rows:").ConfigureAwait(false);
-        foreach (SavedRuleMappingRow row in rule.MappingRows)
+        foreach (GeneralMappingDraftRow row in draft.Rows)
         {
-            string sourceRange = row.SourceRange is null ? "(entire replacement file)" : FormatRange(row.SourceRange.Value);
             await output.WriteLineAsync(
-                    $"  {row.RowId}: {row.SourceReference} {sourceRange} -> {row.TargetAddressSpaceId} {FormatRange(row.TargetRange)}")
+                    $"  {row.MappingId}: {row.Source.Reference} {FormatRange(row.SourceRange)} -> {row.TargetAddressSpaceId} {FormatRange(row.TargetRange)}")
                 .ConfigureAwait(false);
         }
 
         await output.WriteLineAsync("CLI mapping fragments:").ConfigureAwait(false);
-        foreach (SavedRuleMappingRow row in rule.MappingRows)
+        foreach (GeneralMappingDraftRow row in draft.Rows)
         {
-            string fragment = rule.SourceExperience == IcWorkflowIds.GeneralMerge
-                ? FormatGeneralMergeMapping(row)
-                : FormatGeneralReplaceMapping(row);
+            string fragment = row.OperationKind switch
+            {
+                Domain.Composition.ExplicitMappingOperationKind.CopyRange =>
+                    FormatGeneralMergeMapping(row),
+                Domain.Composition.ExplicitMappingOperationKind.ReplaceRange =>
+                    FormatGeneralReplaceMapping(row),
+                _ => throw new InvalidOperationException(
+                    $"Unsupported General mapping operation kind '{row.OperationKind}'."),
+            };
             await output.WriteLineAsync($"  {fragment}").ConfigureAwait(false);
         }
     }
 
-    private static string FormatGeneralMergeMapping(SavedRuleMappingRow row)
-    {
-        return row.SourceRange is { } sourceRange
-            ? string.Create(
-                CultureInfo.InvariantCulture,
-                $"--mapping 0x{sourceRange.Start:X}+0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.SourceReference}>")
-            : $"# unsupported: {row.RowId} has no sourceRange";
-    }
-
-    private static string FormatGeneralReplaceMapping(SavedRuleMappingRow row)
+    private static string FormatGeneralMergeMapping(GeneralMappingDraftRow row)
     {
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"--mapping 0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.SourceReference}>");
+            $"--mapping 0x{row.SourceRange.Start:X}+0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.Source.Reference}>");
+    }
+
+    private static string FormatGeneralReplaceMapping(GeneralMappingDraftRow row)
+    {
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"--mapping 0x{row.TargetRange.Start:X}+0x{row.TargetRange.Length:X}=<{row.Source.Reference}>");
     }
 
     private static async Task PrintIssuesAsync(IReadOnlyList<SavedRuleValidationIssue> issues, TextWriter error)

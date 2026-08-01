@@ -211,7 +211,7 @@ LDC/LD is Display/DP-side data, not CtrlRAM:
 
 - `test_ic_config.json` declares `extra_bins` item `LD`;
 - range is `[0x40000, 0x62000)`;
-- Standard Merge profile declares `ld-input`;
+- Standard Merge profile declares `ldc-input`;
 - hash-pinned `flash-map.json` classifies `dp-ldc-51928` as `TpFlashMapRegionKind.Dp`;
 - UI exposes NT51928 LDC under DP Replace, not CtrlRAM Replace.
 

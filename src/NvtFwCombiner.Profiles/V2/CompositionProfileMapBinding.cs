@@ -5,6 +5,7 @@ internal sealed class CompositionProfileMapBinding
 {
     private readonly string[] _mapIds;
     private readonly string[] _requiredRegionIds;
+    private readonly string[] _optionalRegionIds;
     private readonly string[] _requiredMetadataStructureIds;
     private readonly string[] _requiredCapabilityIds;
 
@@ -15,7 +16,8 @@ internal sealed class CompositionProfileMapBinding
         IEnumerable<string> mapIds,
         IEnumerable<string> requiredRegionIds,
         IEnumerable<string> requiredMetadataStructureIds,
-        IEnumerable<string> requiredCapabilityIds)
+        IEnumerable<string> requiredCapabilityIds,
+        IEnumerable<string>? optionalRegionIds = null)
     {
         FamilyId = CompositionProfileValueRules.RequireId(familyId, nameof(familyId));
         FamilyVersion = CompositionProfileValueRules.RequireSemanticVersion(
@@ -34,6 +36,16 @@ internal sealed class CompositionProfileMapBinding
             requiredRegionIds,
             nameof(requiredRegionIds),
             requireValue: true);
+        _optionalRegionIds = CompositionProfileValueRules.SnapshotIds(
+            optionalRegionIds ?? [],
+            nameof(optionalRegionIds),
+            requireValue: false);
+        if (_requiredRegionIds.Intersect(_optionalRegionIds, StringComparer.Ordinal).Any())
+        {
+            throw new ArgumentException(
+                "Required and optional map regions must be disjoint.",
+                nameof(optionalRegionIds));
+        }
         _requiredMetadataStructureIds = CompositionProfileValueRules.SnapshotIds(
             requiredMetadataStructureIds,
             nameof(requiredMetadataStructureIds),
@@ -46,6 +58,7 @@ internal sealed class CompositionProfileMapBinding
         FamilyContentHash = familyContentHash;
         MapIds = Array.AsReadOnly(_mapIds);
         RequiredRegionIds = Array.AsReadOnly(_requiredRegionIds);
+        OptionalRegionIds = Array.AsReadOnly(_optionalRegionIds);
         RequiredMetadataStructureIds = Array.AsReadOnly(_requiredMetadataStructureIds);
         RequiredCapabilityIds = Array.AsReadOnly(_requiredCapabilityIds);
     }
@@ -59,6 +72,8 @@ internal sealed class CompositionProfileMapBinding
     internal IReadOnlyList<string> MapIds { get; }
 
     internal IReadOnlyList<string> RequiredRegionIds { get; }
+
+    internal IReadOnlyList<string> OptionalRegionIds { get; }
 
     internal IReadOnlyList<string> RequiredMetadataStructureIds { get; }
 

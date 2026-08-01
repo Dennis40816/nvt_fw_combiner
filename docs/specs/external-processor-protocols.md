@@ -22,6 +22,19 @@ This document expands the safety contract summarized in `SPEC.md` section 9. Ver
 - Default timeout is five seconds and must terminate the complete process tree.
 - Bound stdout/stderr and validate machine-readable results against their schema.
 - After a transform, independently verify file count, file name, length, SHA-256, changed ranges, and postconditions.
+- A processor-owned dynamic placement uses a profile-declared bounded write
+  authority plus an independently calculated expected postcondition. For the
+  NT51919/NT51929/NT51932 DiffDLM route, postbuild chooses the actual FWConfig
+  Backup address; runtime compares it with the count-derived, `0x1000`-aligned
+  expected address. An in-authority mismatch is a typed Build Report warning,
+  while a missing/ambiguous Backup or out-of-authority mutation fails closed.
+  The bounded range is placement-candidate authority, not blanket final
+  mutation permission: only the original Reference Backup envelope and the
+  marker-derived actual Backup envelope may differ. All other candidate bytes
+  are checked against the immutable Reference.
+- NT51950/NT51951 are not dynamic-placement routes. Their declared End Flag
+  `0x36FFC` fixes the canonical FWConfig Backup start at `0x36000`; a different
+  marker-derived location fails the fixed postbuild contract.
 - Tool failure cannot fall back to a different algorithm or an unreviewed C# rewrite.
 
 ## Applicability Model
@@ -66,6 +79,28 @@ public interface IFirmwarePostProcessor
 ```
 
 Application owns policy, diff verdict, and mutation trace. Infrastructure owns process and filesystem details.
+
+## Runtime Dependency Readiness
+
+- A refresh request contains only processor/tool references already selected
+  by the compiled capability. Discovery cannot grant processor authority.
+- The Application host supplies a positive monotonic environment generation to
+  every probe. Snapshots additionally retain the exact route, capability
+  fingerprint, catalog resolution token, and authoring revision.
+- Ordinary Preview/Build attempts acquire the current generation without
+  replacing it, so parallel attempts do not invalidate each other. Only the
+  explicit runtime-dependency refresh command advances discovery generation.
+- One action acquires its readiness provider and processor executor from the
+  same environment generation. Replacing discovery advances the generation;
+  an old construction or probe must retry or be rejected as stale rather than
+  publish after the replacement.
+- Missing manifests, missing executables, hash mismatch, unsupported platform,
+  or unavailable staging are typed blocked dependencies. Installing or
+  correcting the tool is observed by the next explicit refresh without
+  restarting the process.
+- Readiness is preflight only. The external processor still validates its
+  manifest, executable identity, staging, mutation bounds, and output
+  postconditions during the actual execution.
 
 ## Acceptance Expectations
 

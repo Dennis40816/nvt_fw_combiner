@@ -234,7 +234,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         AssertReportIdentity(report.RootElement, "nt51950-ctrlram-replace-fw200-single");
     }
 
-    /// <summary>Proves the owner-approved cascade TP layout builds through its dedicated V2 route.</summary>
+    /// <summary>Proves the exact-2-IC Cascade route maps only active DLM bytes and preserves DiffNF.</summary>
     [Fact]
     public async Task CascadeSelectorBuildsThroughSharedTpLayoutAsync()
     {
@@ -248,6 +248,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         byte[] diffBytes = [.. Enumerable.Range(0, 0x1400).Select(static index => unchecked((byte)(index * 17)))];
         File.WriteAllBytes(diffPath, diffBytes);
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
+        _ = slots.Remove(WorkbenchSlotIds.CreateReplaceCtrlRam("nf"));
         slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
 
         string outputPath = workspace.PathFor("cascade.bin");
@@ -257,7 +258,11 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
 
         Assert.True(result.Succeeded, result.ReportJson);
         Assert.True(File.Exists(outputPath));
-        Assert.Equal(diffBytes, File.ReadAllBytes(outputPath).AsSpan(0x33200, 0x1400).ToArray());
+        byte[] output = File.ReadAllBytes(outputPath);
+        Assert.Equal(diffBytes.AsSpan(0, 0x0910).ToArray(), output.AsSpan(0x33200, 0x0910).ToArray());
+        Assert.Equal(
+            cascadeReference.AsSpan(0x33B10, 0x0AF0).ToArray(),
+            output.AsSpan(0x33B10, 0x0AF0).ToArray());
         using var report = JsonDocument.Parse(result.ReportJson);
         AssertReportIdentity(report.RootElement, "nt51950-ctrlram-replace-fw1x-cascade");
     }
