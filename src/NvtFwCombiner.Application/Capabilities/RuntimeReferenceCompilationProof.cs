@@ -12,6 +12,7 @@ public sealed class RuntimeReferenceCompilationProof
 {
     private readonly ByteRange[] _allowedWriteRanges;
     private readonly WriteRangeSectionIdentity[] _allowedWriteRangeSections;
+    private readonly string[] _processorWriteViewIds;
     private readonly string _compilationFingerprint;
     private readonly string _processorId;
     private readonly string _toolBindingId;
@@ -22,7 +23,8 @@ public sealed class RuntimeReferenceCompilationProof
         string toolBindingId,
         string selectorToken,
         string planFingerprint,
-        ExternalProcessorInvocation invocation)
+        ExternalProcessorInvocation invocation,
+        IEnumerable<string> processorWriteViewIds)
     {
         _allowedWriteRanges = [.. invocation.AllowedWriteRanges];
         _allowedWriteRangeSections =
@@ -33,6 +35,7 @@ public sealed class RuntimeReferenceCompilationProof
                     section.Range,
                     section.SourceRange)),
         ];
+        _processorWriteViewIds = [.. processorWriteViewIds];
         _compilationFingerprint = compilationFingerprint;
         _processorId = processorId;
         _toolBindingId = toolBindingId;
@@ -117,7 +120,8 @@ public sealed class RuntimeReferenceCompilationProof
             LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
                 reviewedPlan,
                 capacity),
-            invocation);
+            invocation,
+            context.ProcessorWriteViewIds);
     }
 
     internal IReadOnlyList<string> ValidateAndGetSemanticBindings(
@@ -134,7 +138,7 @@ public sealed class RuntimeReferenceCompilationProof
             StringComparer.Ordinal.Equals(
                 _toolBindingId,
                 invocation.ToolBindingId) &&
-            WriteAuthorityMatches(invocation)
+            WriteAuthorityMatches(composition, invocation)
             ? true
             : throw new ArgumentException(
                 "The runtime-reference proof is not bound to this exact compiled processor plan.",
@@ -159,7 +163,7 @@ public sealed class RuntimeReferenceCompilationProof
             StringComparer.Ordinal.Equals(
                 _toolBindingId,
                 invocation.ToolBindingId) &&
-            WriteAuthorityMatches(invocation)
+            WriteAuthorityMatches(bound, invocation)
             ? true
             : throw new ArgumentException(
                 "Capability binding changed the compiled processor plan.",
@@ -171,16 +175,24 @@ public sealed class RuntimeReferenceCompilationProof
             _toolBindingId,
             SelectorToken,
             PlanFingerprint,
-            invocation);
+            invocation,
+            ((RuntimeReferenceReplaceV2CompilationContext)
+                bound.V2Details!.Provenance.Context).ProcessorWriteViewIds);
     }
 
     internal string SelectorToken { get; }
 
     internal string PlanFingerprint { get; }
 
-    private bool WriteAuthorityMatches(ExternalProcessorInvocation invocation)
+    private bool WriteAuthorityMatches(
+        CompiledComposition composition,
+        ExternalProcessorInvocation invocation)
     {
-        return _allowedWriteRanges.SequenceEqual(invocation.AllowedWriteRanges) &&
+        var context = (RuntimeReferenceReplaceV2CompilationContext)
+            composition.V2Details!.Provenance.Context;
+        return _processorWriteViewIds.SequenceEqual(
+                context.ProcessorWriteViewIds) &&
+            _allowedWriteRanges.SequenceEqual(invocation.AllowedWriteRanges) &&
             _allowedWriteRangeSections.SequenceEqual(
                 invocation.AllowedWriteRangeSections.Select(static section =>
                     new WriteRangeSectionIdentity(
@@ -237,9 +249,7 @@ public sealed class RuntimeReferenceCompilationProof
                 .Concat(GetCompleteMappingWriteRanges(composition))
                 .Concat(GetCompiledPostbuildAuthorityRanges(composition))
                 .Concat(GetFirmwareVersionBackupWriteRanges(composition))
-                .Concat(composition.V2Details!.RegionAccessContract.ResolvedViews
-                    .Select(static view => view.Range)
-                    .Where(invocation.AllowedWriteRanges.Contains))
+                .Concat(GetProcessorWriteViewRanges(composition, invocation))
                 .Distinct()
                 .OrderBy(static range => range.Start)
                 .ThenBy(static range => range.Length),
@@ -283,6 +293,19 @@ public sealed class RuntimeReferenceCompilationProof
         return composition.ValidationRequirements
             .OfType<CompiledFirmwareConfigBackupPlacementAuthorityValidation>()
             .Select(static requirement => requirement.AuthorityRange);
+    }
+
+    private static IEnumerable<ByteRange> GetProcessorWriteViewRanges(
+        CompiledComposition composition,
+        ExternalProcessorInvocation invocation)
+    {
+        var context = (RuntimeReferenceReplaceV2CompilationContext)
+            composition.V2Details!.Provenance.Context;
+        var resolvedViews = composition.V2Details.RegionAccessContract.ResolvedViews
+            .ToDictionary(static view => view.ViewId, StringComparer.Ordinal);
+        return context.ProcessorWriteViewIds
+            .Select(viewId => resolvedViews[viewId].Range)
+            .Where(invocation.AllowedWriteRanges.Contains);
     }
 
     private static ByteRange[] GetFirmwareVersionBackupWriteRanges(

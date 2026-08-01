@@ -139,6 +139,21 @@ public sealed partial class CompositionRunRequestV2Tests
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 driftedSections,
                 postbuildPlan));
+        CompiledComposition broadenedToReadView = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.System,
+            rootKind: FirmwareRegionKind.Image,
+            processorId: "nfc.synthetic.postbuild",
+            processorAdditionalWriteRanges: [new ByteRange(0, 4)],
+            useNestedCtrlRamMap: true);
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                broadenedToReadView,
+                postbuildPlan));
 
         ResolvedCapabilityRoute reportRoute = CreateRoute(
         [
@@ -367,20 +382,35 @@ public sealed partial class CompositionRunRequestV2Tests
         string? processorId = null,
         string processorToolBindingId = "synthetic-postbuild-tool",
         ByteRange? processorWriteRange = null,
-        string? processorWriteSectionId = null)
+        string? processorWriteSectionId = null,
+        IReadOnlyList<ByteRange>? processorAdditionalWriteRanges = null,
+        bool useNestedCtrlRamMap = false)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
             FirmwareWriteConstraint.ExplicitRange,
             rootOwner: rootOwner,
-            rootKind: rootKind);
-        CompiledPhysicalRegionConstraint[] chain =
+            rootKind: rootKind,
+            includeNestedCtrlRamRegion: useNestedCtrlRamMap);
+        var rootConstraint = new CompiledPhysicalRegionConstraint(
+            "root",
+            FirmwareWriteConstraint.ExplicitRange,
+            alignment: 1);
+        CompiledPhysicalRegionConstraint[] rootChain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.ExplicitRange,
-                alignment: 1),
+            rootConstraint,
         ];
+        CompiledPhysicalRegionConstraint[] writeChain = useNestedCtrlRamMap
+            ?
+            [
+                rootConstraint,
+                new CompiledPhysicalRegionConstraint(
+                    "ctrlram",
+                    FirmwareWriteConstraint.ExplicitRange,
+                    alignment: 1),
+            ]
+            : rootChain;
+        string writeRegionId = useNestedCtrlRamMap ? "ctrlram" : "root";
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 "bundle-v2",
@@ -393,7 +423,8 @@ public sealed partial class CompositionRunRequestV2Tests
             useRuntimeContext
                 ? new RuntimeReferenceReplaceV2CompilationContext(
                     resolvedMap,
-                    allowsConditionalProcessor || processorId is not null)
+                    allowsConditionalProcessor || processorId is not null,
+                    processorId is null ? [] : ["processor-write"])
                 : new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.ExecutableCandidate, []),
             ["runtime-reference-evidence"],
@@ -435,18 +466,26 @@ public sealed partial class CompositionRunRequestV2Tests
         var regionAccess = new CompiledRegionAccessContract(
             [
                 new CompiledRegionAccessRequirement(
-                    "root",
+                    writeRegionId,
                     CompiledRegionAccessKind.ExplicitRange,
                     "Synthetic runtime reference-replace target.",
                     [],
-                    chain),
+                    writeChain),
             ],
             includeProcessorView || processorId is not null
-                ? [new CompiledResolvedPhysicalView(
-                    "processor-output",
-                    "output-image",
-                    new ByteRange(0, 4),
-                    chain)]
+                ?
+                [
+                    new CompiledResolvedPhysicalView(
+                        "processor-image",
+                        "output-image",
+                        new ByteRange(0, 4),
+                        rootChain),
+                    new CompiledResolvedPhysicalView(
+                        "processor-write",
+                        "output-image",
+                        new ByteRange(1, 2),
+                        writeChain),
+                ]
                 : []);
         var identity = new V2CompiledCompositionIdentity(
             "runtime-reference-profile",
@@ -508,7 +547,10 @@ public sealed partial class CompositionRunRequestV2Tests
                         processorId,
                         processorToolBindingId,
                         [new ByteRange(0, 4)],
-                        [processorWriteRange ?? new ByteRange(1, 2)],
+                        [
+                            processorWriteRange ?? new ByteRange(1, 2),
+                            .. processorAdditionalWriteRanges ?? [],
+                        ],
                         allowedWriteRangeSections:
                             CreateSyntheticPostbuildWriteSections(
                                 processorWriteRange ?? new ByteRange(1, 2),

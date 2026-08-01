@@ -129,13 +129,12 @@ public sealed partial class CompiledComposition
         {
             AppendV2ProfileIdentity(builder, composition);
         }
-        if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
+        if (context is RuntimeReferenceReplaceV2CompilationContext runtimeReference)
         {
-            AppendEnum(builder, "compilation-context", context.Kind);
-            if (((RuntimeReferenceReplaceV2CompilationContext)context).AllowsConditionalProcessor)
-            {
-                AppendInteger(builder, "compilation-context.conditional-processor", 1);
-            }
+            AppendRuntimeReferenceCompilationContext(
+                builder,
+                runtimeReference,
+                capabilityBound);
         }
         if (!capabilityBound)
         {

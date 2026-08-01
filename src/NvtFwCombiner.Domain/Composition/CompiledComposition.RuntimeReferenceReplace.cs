@@ -236,9 +236,15 @@ public sealed partial class CompiledComposition
         AddressSpace output = plan.AddressSpaces.Single(space =>
             StringComparer.Ordinal.Equals(space.AddressSpaceId, plan.OutputSpaceId));
         if ((!runtimeContext.AllowsConditionalProcessor && resolvedViews.Count != 0) ||
+            (!runtimeContext.AllowsConditionalProcessor &&
+             runtimeContext.ProcessorWriteViewIds.Count != 0) ||
             resolvedViews.Any(view =>
                 !StringComparer.Ordinal.Equals(view.AddressSpaceId, plan.OutputSpaceId) ||
-                !output.Contains(view.Range)))
+                !output.Contains(view.Range)) ||
+            runtimeContext.ProcessorWriteViewIds.Any(writeViewId =>
+                !resolvedViews.Any(view => StringComparer.Ordinal.Equals(
+                    view.ViewId,
+                    writeViewId))))
         {
             throw new ArgumentException(
                 "Runtime reference Replace processor views must be profile-owned physical ranges inside the cloned output image.",
@@ -272,6 +278,13 @@ public sealed partial class CompiledComposition
         if (processorOperations.Length == 0)
         {
             return;
+        }
+
+        if (runtimeContext.ProcessorWriteViewIds.Count == 0)
+        {
+            throw new ArgumentException(
+                "Runtime reference Replace processor authority requires exact profile write-view identities.",
+                nameof(processorOperations));
         }
 
         CompositionOperation processor = processorOperations[0];

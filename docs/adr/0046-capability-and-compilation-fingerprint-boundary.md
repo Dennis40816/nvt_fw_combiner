@@ -61,11 +61,12 @@ authority comes only from the compiled invocation, report projection and source
 identity come only from report-classification entries in the metadata plan, and
 the postbuild proof is bound to the exact compilation. The proof also verifies
 that compiled write ranges are the closed union of exact planner sections,
-complete compiler mappings, exact profile-resolved physical views, typed
+complete compiler mappings, processor-authorized resolved write views, typed
 postbuild validation authority, and metadata-located firmware-version backup
-fields, while write-section identities remain planner-derived. A profile with no declared
-report-classification entry contributes no report binding to its reviewed
-capability fingerprint. No channel may fill a missing binding owned by another.
+fields, while write-section identities remain planner-derived. A profile with
+no declared report-classification entry contributes no report binding to its
+reviewed capability fingerprint. No channel may fill a missing binding owned
+by another.
 
 ### CompilationFingerprint
 

@@ -1190,7 +1190,7 @@ version.
    projection/source identity is derived only from metadata-plan entries with
    the declared report-classification purpose; and the postbuild proof is bound
    to the exact `CompilationFingerprint`, planner-derived write sections,
-   complete compiler mappings, exact profile-resolved physical views, typed
+   complete compiler mappings, processor-authorized resolved write views, typed
    postbuild validation authority, and metadata-located firmware-version
    backup fields.
    Routes whose reviewed profile has no report-classification entry omit those

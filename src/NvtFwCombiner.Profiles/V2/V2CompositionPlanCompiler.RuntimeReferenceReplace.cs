@@ -186,13 +186,25 @@ internal static partial class V2CompositionPlanCompiler
                         sourcePolicy.RequiredNonuniformSourceRanges),
                 ]
                 : [];
+        string[] processorWriteViewIds = shape.ProcessorOperation is null
+            ? []
+            :
+            [
+                .. profile.ProcessorStages
+                    .OfType<LegacyCombinerProfileProcessorStage>()
+                    .Single(stage => StringComparer.Ordinal.Equals(
+                        stage.ProcessorStageId,
+                        shape.ProcessorOperation.ProcessorStageId))
+                    .AllowedWriteViewIds,
+            ];
         return Succeed(
             profile,
             preparation.Selection,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
-                    .AllowsConditionalProcessor),
+                    .AllowsConditionalProcessor,
+                processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
             bindings.Values.Select(binding => new CompiledInputSpaceBinding(
