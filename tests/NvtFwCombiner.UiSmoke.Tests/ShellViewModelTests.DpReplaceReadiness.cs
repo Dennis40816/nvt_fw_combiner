@@ -58,6 +58,11 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel ldc = Assert.Single(
             viewModel.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceLdc);
+        FirmwareSlotViewModel initialCode = Assert.Single(
+            viewModel.ReplaceSlots,
+            static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
+        Assert.All(viewModel.ReplaceSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
+        Assert.Equal(referenceLength != 0x40000, initialCode.IsOptional);
         Assert.Equal(WorkbenchAddressSpaceIds.LdcReplacement, ldc.AddressSpaceId);
         Assert.Equal(expectedLdcState, ldc.SelectionReadinessState);
         Assert.Equal(expectedCanBuild, viewModel.CanBuildReplace);
@@ -67,11 +72,21 @@ public sealed partial class ShellViewModelTests
         {
             Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
             Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+            Assert.Equal(FirmwareSlotSemanticState.Checking, ldc.SemanticState);
+            Assert.Equal(ldc.SelectionReadinessDetail, ldc.SemanticStateDetail);
         }
         else if (referenceLength == 0x40000 && !selectLdc)
         {
+            if (!selectInitialCode)
+            {
+                Assert.True(initialCode.IsRequirementLabelVisible);
+                Assert.Equal("Required", initialCode.RequirementLabel);
+            }
+
             Assert.Equal("Not applicable", ldc.SelectionReadinessLabel);
             Assert.Equal("Reference length does not include LDC.", ldc.SelectionReadinessDetail);
+            Assert.Equal(FirmwareSlotSemanticState.NotApplicable, ldc.SemanticState);
+            Assert.False(ldc.IsRequirementLabelVisible);
         }
         else if (referenceLength == 0x40000)
         {
@@ -80,10 +95,18 @@ public sealed partial class ShellViewModelTests
                 "Reference length does not include LDC.",
                 ldc.SelectionReadinessDetail,
                 StringComparison.Ordinal);
+            Assert.Equal(FirmwareSlotSemanticState.Error, ldc.SemanticState);
         }
         else
         {
             Assert.Equal("Applicable", ldc.SelectionReadinessLabel);
+            Assert.True(ldc.IsOptional);
+            if (!selectLdc)
+            {
+                Assert.Equal(FirmwareSlotSemanticState.Empty, ldc.SemanticState);
+                Assert.False(ldc.HasSemanticState);
+                Assert.True(ldc.IsRequirementLabelVisible);
+            }
         }
 
         Assert.Equal(
@@ -91,28 +114,49 @@ public sealed partial class ShellViewModelTests
             ldc.SelectionReadinessAutomationText);
     }
 
+    /// <summary>Keeps shared slot adoption scoped to the DP Replace pilot until issue #208.</summary>
+    [Fact]
+    public void SharedSlotPresentationDoesNotPrematurelyAdoptOtherDesktopRoutes()
+    {
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+
+        Assert.All(viewModel.ReplaceSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+
+        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.ShowMergeCommand.Execute(null);
+
+        Assert.All(viewModel.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+    }
+
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>
     [Fact]
     public void Nt51928DpReplaceSelectionReadinessIsLocalized()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness-zh");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create(
-            language: ShellLanguage.ChineseTraditional);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         FirmwareSlotViewModel ldc = Assert.Single(
             viewModel.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceLdc);
-        Assert.Equal("等待輸入", ldc.SelectionReadinessLabel);
-        Assert.Contains("請先載入 Reference", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
+        Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
+        Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
 
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceBase,
             workspace.Write("reference-40000.bin", new byte[0x40000]));
 
+        Assert.Equal("Not applicable", ldc.SelectionReadinessLabel);
+
+        viewModel.SelectedLanguage = "Traditional Chinese";
+
         Assert.Equal("不適用", ldc.SelectionReadinessLabel);
         Assert.Equal("Reference 長度不包含 LDC。", ldc.SelectionReadinessDetail);
+        Assert.Equal("不適用", ldc.SemanticStateLabel);
+        Assert.Equal(FirmwareSlotSemanticState.NotApplicable, ldc.SemanticState);
         Assert.Equal(
             $"{ldc.SelectionReadinessLabel}。{ldc.SelectionReadinessDetail}",
             ldc.SelectionReadinessAutomationText);

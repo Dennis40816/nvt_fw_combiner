@@ -19,8 +19,8 @@ public sealed partial class ShellTextResources
         return mode switch
         {
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                "Replace DP and optional LD payloads without CRC postbuild.",
-                "取代 DP 與選用 LD payload；不執行 CRC postbuild。"),
+                "Replace DP and optional LDC payloads without CRC postbuild.",
+                "取代 DP 與選用 LDC payload；不執行 CRC postbuild。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
                 "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
                 "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。"),

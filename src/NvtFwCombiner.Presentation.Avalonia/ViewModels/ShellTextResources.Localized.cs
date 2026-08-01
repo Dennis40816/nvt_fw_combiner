@@ -52,7 +52,7 @@ public sealed partial class ShellTextResources
                     "Standard, AB Code, and Customized workflows.",
                     [
                         "Profile: built-in Standard Merge",
-                        "Slots: DP, TP, optional LD",
+                        "Slots: DP, TP, optional LDC",
                         "950/951 DP Perspective policy",
                     ],
                     "Build wired"),
@@ -61,7 +61,7 @@ public sealed partial class ShellTextResources
                     "Standard、AB Code 與 Customized 流程。",
                     [
                         "Profile：內建 Standard Merge",
-                        "Slots：DP、TP、選用 LD",
+                        "Slots：DP、TP、選用 LDC",
                         "950/951 DP Perspective policy",
                     ],
                     "Build 已串接")),
@@ -71,7 +71,7 @@ public sealed partial class ShellTextResources
                     "DP, CtrlRAM, and Customized policies.",
                     [
                         "Device context: shared IC and Number",
-                        "DP Replace includes separate DP and LD payloads",
+                        "DP Replace includes separate DP and LDC payloads",
                         "CtrlRAM Replace uses approved CtrlRAM regions",
                         "CRC/header: combiner.exe postbuild core",
                     ],
@@ -81,7 +81,7 @@ public sealed partial class ShellTextResources
                     "DP、CtrlRAM 與 Customized policy。",
                     [
                         "裝置條件：共用 IC 與數量",
-                        "DP Replace 包含分開的 DP 與 LD payload",
+                        "DP Replace 包含分開的 DP 與 LDC payload",
                         "CtrlRAM Replace 使用核准的 CtrlRAM regions",
                         "CRC/header：combiner.exe postbuild core",
                     ],
@@ -130,6 +130,28 @@ public sealed partial class ShellTextResources
             RequiredLabel = Pick("Required", "必填"),
             OptionalLabel = Pick("Optional", "選填"),
             NoBinSelectedLabel = Pick("No BIN selected", "尚未選擇 BIN"),
+            FirmwareSlotCheckingLabel = Pick("Checking", "檢查中"),
+            FirmwareSlotVerifiedLabel = Pick("Verified", "已驗證"),
+            FirmwareSlotWarningLabel = Pick("Warning", "警告"),
+            FirmwareSlotErrorLabel = Pick("Error", "錯誤"),
+            FirmwareSlotNotApplicableLabel = Pick("Not applicable", "不適用"),
+            FirmwareSlotUnknownValueLabel = Pick("Unknown", "未知"),
+            FirmwareSlotUnknownFactDetail = Pick(
+                "Metadata could not be decoded; review the selected file and report details.",
+                "無法解碼 metadata；請檢查選定檔案與 report 詳細資料。"),
+            FirmwareSlotPendingFactDetail = Pick(
+                "Load the prerequisite input, then inspect again.",
+                "請載入必要的前置輸入後重新檢查。"),
+            FirmwareSlotWarningFactDetail = Pick(
+                "This metadata value requires review; inspect the selected file and report details.",
+                "此 metadata 值需要確認；請檢查選定檔案與 report 詳細資料。"),
+            FirmwareSlotErrorFactDetail = Pick(
+                "This metadata value blocks the workflow; resolve the reported issue.",
+                "此 metadata 值會阻擋流程；請解決 report 中的問題。"),
+            FirmwareSlotShowDetailsLabel = Pick("Show details", "顯示詳細資料"),
+            FirmwareSlotHideDetailsLabel = Pick("Hide details", "隱藏詳細資料"),
+            FirmwareSlotShowMoreFactsTemplate = Pick("Show {0} more details", "顯示另外 {0} 項詳細資料"),
+            FirmwareSlotShowFewerFactsLabel = Pick("Show fewer details", "收合詳細資料"),
             MergeDpSlotDescription = Pick("Display payload for Standard Merge", "Standard Merge 的 Display payload"),
             MergeTpSlotDescription = Pick("Touch payload for Standard Merge", "Standard Merge 的 Touch payload"),
             MergeLdcSlotDescription = Pick("Optional LDC input when the selected profile exposes an LDC region", "選定 profile 包含 LDC 區域時可選擇 LDC 輸入"),

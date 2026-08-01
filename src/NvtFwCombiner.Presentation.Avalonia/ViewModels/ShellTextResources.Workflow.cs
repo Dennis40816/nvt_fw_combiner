@@ -61,6 +61,34 @@ public sealed partial class ShellTextResources
 
     public string NoBinSelectedLabel { get; private init; } = string.Empty;
 
+    public string FirmwareSlotCheckingLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotVerifiedLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotWarningLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotErrorLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotNotApplicableLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotUnknownValueLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotUnknownFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotPendingFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotWarningFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotErrorFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowDetailsLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotHideDetailsLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowFewerFactsLabel { get; private init; } = string.Empty;
+
     public string MergeDpSlotDescription { get; private init; } = string.Empty;
 
     public string MergeTpSlotDescription { get; private init; } = string.Empty;
