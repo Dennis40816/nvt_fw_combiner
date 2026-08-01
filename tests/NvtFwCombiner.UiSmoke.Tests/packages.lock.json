@@ -149,21 +149,21 @@
       },
       "Humanizer.Core": {
         "type": "Transitive",
-        "resolved": "3.0.1",
-        "contentHash": "scB3+KcxNmEjZK5V8rKCW2gIiL8m8KH91w14FuuExyhi9xTyAJ+jr+DDxGdy12mHmioe2uvjxTfMgM7WmSUFlw=="
+        "resolved": "3.0.10",
+        "contentHash": "yZIhtw8sYuvsONzQbZxWpR60tMWYHXoo0DL6nyOqSFiU5POjBTSEyWFpTQtJEZuy+oqiYTXKXY/Mjx7KnqIQFw=="
       },
       "Json.More.Net": {
         "type": "Transitive",
-        "resolved": "2.2.0",
-        "contentHash": "fiyEZJNgiCzDa7/N9bZ+CnM5qnawyJ54+CkHNZ2svwxWBWNNFzydJ7RlroqMdOjokGBiLcKIxdajNvOklzlYqQ=="
+        "resolved": "3.0.1",
+        "contentHash": "fRctF2J2SILYG6wqP21drmeEODmCVkVQ/b3MndDu2fT1swfySyUgq7ePCk+aENGlDcIm05fyfjh9vcuqDEfv3w=="
       },
       "JsonPointer.Net": {
         "type": "Transitive",
-        "resolved": "6.0.1",
-        "contentHash": "EbSJkd/1y9r0WBIptjUctA6BzjgKh1aNU/g6QGgdMZVZ8wc0S/ysQhfiQerP9/VFTeENFHFdCQaoOk9fZqwnFQ==",
+        "resolved": "7.0.2",
+        "contentHash": "oClYHv2ooeRrtPZyC9sb/Za/ie5pGhjTbNHlAyFg4XOCyU+606FdoZKS7UdaWvtsPlrF+U2w0Ja3TRvn5+spyA==",
         "dependencies": {
-          "Humanizer.Core": "3.0.1",
-          "Json.More.Net": "2.2.0"
+          "Humanizer.Core": "3.0.10",
+          "Json.More.Net": "3.0.1"
         }
       },
       "MicroCom.Runtime": {
@@ -344,16 +344,16 @@
       "nvtfwcombiner.application": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.0, )",
-          "NvtFwCombiner.Domain": "[0.10.0, )"
+          "NvtFwCombiner.Contracts": "[0.10.1, )",
+          "NvtFwCombiner.Domain": "[0.10.1, )"
         }
       },
       "nvtfwcombiner.bootstrap": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.0, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.0, )",
-          "NvtFwCombiner.Profiles": "[0.10.0, )"
+          "NvtFwCombiner.Application": "[0.10.1, )",
+          "NvtFwCombiner.Infrastructure": "[0.10.1, )",
+          "NvtFwCombiner.Profiles": "[0.10.1, )"
         }
       },
       "nvtfwcombiner.contracts": {
@@ -365,10 +365,10 @@
       "nvtfwcombiner.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "JsonSchema.Net": "[8.0.5, )",
-          "NvtFwCombiner.Application": "[0.10.0, )",
-          "NvtFwCombiner.Contracts": "[0.10.0, )",
-          "NvtFwCombiner.Domain": "[0.10.0, )"
+          "JsonSchema.Net": "[9.4.0, )",
+          "NvtFwCombiner.Application": "[0.10.1, )",
+          "NvtFwCombiner.Contracts": "[0.10.1, )",
+          "NvtFwCombiner.Domain": "[0.10.1, )"
         }
       },
       "nvtfwcombiner.presentation.avalonia": {
@@ -379,22 +379,22 @@
           "Avalonia.Fonts.Inter": "[12.0.5, )",
           "Avalonia.Themes.Fluent": "[12.0.5, )",
           "CommunityToolkit.Mvvm": "[8.4.2, )",
-          "NvtFwCombiner.Application": "[0.10.0, )",
-          "NvtFwCombiner.Bootstrap": "[0.10.0, )"
+          "NvtFwCombiner.Application": "[0.10.1, )",
+          "NvtFwCombiner.Bootstrap": "[0.10.1, )"
         }
       },
       "nvtfwcombiner.profiles": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Contracts": "[0.10.0, )",
-          "NvtFwCombiner.Domain": "[0.10.0, )"
+          "NvtFwCombiner.Contracts": "[0.10.1, )",
+          "NvtFwCombiner.Domain": "[0.10.1, )"
         }
       },
       "nvtfwcombiner.testsupport": {
         "type": "Project",
         "dependencies": {
-          "NvtFwCombiner.Application": "[0.10.0, )",
-          "NvtFwCombiner.Infrastructure": "[0.10.0, )"
+          "NvtFwCombiner.Application": "[0.10.1, )",
+          "NvtFwCombiner.Infrastructure": "[0.10.1, )"
         }
       },
       "Avalonia": {
@@ -448,11 +448,11 @@
       },
       "JsonSchema.Net": {
         "type": "CentralTransitive",
-        "requested": "[8.0.5, )",
-        "resolved": "8.0.5",
-        "contentHash": "QoEqdoAUgAkbzuFAiHySjGuh8lJs8L8DxkEDGJLEebtlZ6+EbEr0wmYlidErSS2ASNFOModueb83DLNIRLqshg==",
+        "requested": "[9.4.0, )",
+        "resolved": "9.4.0",
+        "contentHash": "muE4nPuzbD9x5XA1mkXJNqX4mhz47oF3EY8qFLY1pyUY7lhXFKq65t/dSKIHeNSLBV17zwZuq24MD1em90rMNg==",
         "dependencies": {
-          "JsonPointer.Net": "6.0.1"
+          "JsonPointer.Net": "7.0.2"
         }
       }
     }
