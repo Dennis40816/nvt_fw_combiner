@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -9,6 +10,8 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 public sealed class RuntimeReferenceCompilationProof
 {
+    private readonly ByteRange[] _allowedWriteRanges;
+    private readonly WriteRangeSectionIdentity[] _allowedWriteRangeSections;
     private readonly string _compilationFingerprint;
     private readonly string _processorId;
     private readonly string _toolBindingId;
@@ -18,8 +21,18 @@ public sealed class RuntimeReferenceCompilationProof
         string processorId,
         string toolBindingId,
         string selectorToken,
-        string planFingerprint)
+        string planFingerprint,
+        ExternalProcessorInvocation invocation)
     {
+        _allowedWriteRanges = [.. invocation.AllowedWriteRanges];
+        _allowedWriteRangeSections =
+        [
+            .. invocation.AllowedWriteRangeSections.Select(static section =>
+                new WriteRangeSectionIdentity(
+                    section.SectionId,
+                    section.Range,
+                    section.SourceRange)),
+        ];
         _compilationFingerprint = compilationFingerprint;
         _processorId = processorId;
         _toolBindingId = toolBindingId;
@@ -86,6 +99,12 @@ public sealed class RuntimeReferenceCompilationProof
                 nameof(plan));
         }
 
+        ValidateProcessorWriteAuthority(
+            composition,
+            invocation,
+            resolvedPlan,
+            capacity);
+
         LegacyCombinerPostbuildCommandPlan reviewedPlan =
             LegacyCombinerPostbuildPlanner.CreatePlan(
                 plan.Profile,
@@ -97,7 +116,8 @@ public sealed class RuntimeReferenceCompilationProof
             plan.Selector.Token,
             LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
                 reviewedPlan,
-                capacity));
+                capacity),
+            invocation);
     }
 
     internal IReadOnlyList<string> ValidateAndGetSemanticBindings(
@@ -113,7 +133,8 @@ public sealed class RuntimeReferenceCompilationProof
                 invocation.ProcessorId) &&
             StringComparer.Ordinal.Equals(
                 _toolBindingId,
-                invocation.ToolBindingId)
+                invocation.ToolBindingId) &&
+            WriteAuthorityMatches(invocation)
             ? true
             : throw new ArgumentException(
                 "The runtime-reference proof is not bound to this exact compiled processor plan.",
@@ -137,7 +158,8 @@ public sealed class RuntimeReferenceCompilationProof
                 invocation.ProcessorId) &&
             StringComparer.Ordinal.Equals(
                 _toolBindingId,
-                invocation.ToolBindingId)
+                invocation.ToolBindingId) &&
+            WriteAuthorityMatches(invocation)
             ? true
             : throw new ArgumentException(
                 "Capability binding changed the compiled processor plan.",
@@ -148,12 +170,190 @@ public sealed class RuntimeReferenceCompilationProof
             _processorId,
             _toolBindingId,
             SelectorToken,
-            PlanFingerprint);
+            PlanFingerprint,
+            invocation);
     }
 
     internal string SelectorToken { get; }
 
     internal string PlanFingerprint { get; }
+
+    private bool WriteAuthorityMatches(ExternalProcessorInvocation invocation)
+    {
+        return _allowedWriteRanges.SequenceEqual(invocation.AllowedWriteRanges) &&
+            _allowedWriteRangeSections.SequenceEqual(
+                invocation.AllowedWriteRangeSections.Select(static section =>
+                    new WriteRangeSectionIdentity(
+                        section.SectionId,
+                        section.Range,
+                        section.SourceRange)));
+    }
+
+    private static void ValidateProcessorWriteAuthority(
+        CompiledComposition composition,
+        ExternalProcessorInvocation invocation,
+        LegacyCombinerPostbuildCommandPlan plan,
+        long capacity)
+    {
+        ByteRange[] stagedTargetRanges =
+        [
+            .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .Select(static block => block.FirmwareRange)
+                .Distinct()
+                .OrderBy(static range => range.Start)
+                .ThenBy(static range => range.Length),
+        ];
+        ExternalProcessorWriteRangeSection[] plannerStagedSections =
+        [
+            .. LegacyCombinerPostbuildPlanner
+                .GetAllowedWriteRangeSectionsForStagedSources(
+                    plan,
+                    capacity,
+                    stagedTargetRanges,
+                    stagedTargetRanges),
+        ];
+        WriteRangeSectionIdentity[] expectedSectionIdentities =
+        [
+            .. plannerStagedSections
+                .Where(section => invocation.AllowedWriteRanges.Any(range =>
+                    range.Contains(section.Range)))
+                .Select(static section => new WriteRangeSectionIdentity(
+                    section.SectionId,
+                    section.Range,
+                    section.SourceRange)),
+        ];
+        WriteRangeSectionIdentity[] actualSectionIdentities =
+        [
+            .. invocation.AllowedWriteRangeSections.Select(static section =>
+                new WriteRangeSectionIdentity(
+                    section.SectionId,
+                    section.Range,
+                    section.SourceRange)),
+        ];
+        ByteRange[] expectedRanges =
+        [
+            .. actualSectionIdentities
+                .Select(static section => section.Range)
+                .Concat(GetCompleteMappingWriteRanges(composition))
+                .Concat(GetCompiledPostbuildAuthorityRanges(composition))
+                .Concat(GetFirmwareVersionBackupWriteRanges(composition))
+                .Concat(composition.V2Details!.RegionAccessContract.ResolvedViews
+                    .Select(static view => view.Range)
+                    .Where(invocation.AllowedWriteRanges.Contains))
+                .Distinct()
+                .OrderBy(static range => range.Start)
+                .ThenBy(static range => range.Length),
+        ];
+        if (!expectedRanges.SequenceEqual(invocation.AllowedWriteRanges) ||
+            !expectedSectionIdentities.SequenceEqual(actualSectionIdentities))
+        {
+            throw new ArgumentException(
+                "The compiled processor write ranges and sections do not match the exact planner-owned postbuild authority. " +
+                $"Expected ranges [{string.Join(", ", expectedRanges)}], actual [{string.Join(", ", invocation.AllowedWriteRanges)}]; " +
+                $"expected sections [{string.Join(", ", expectedSectionIdentities)}], actual [{string.Join(", ", actualSectionIdentities)}].",
+                nameof(composition));
+        }
+    }
+
+    private static IEnumerable<ByteRange> GetCompleteMappingWriteRanges(
+        CompiledComposition composition)
+    {
+        var spaces =
+            composition.Plan.AddressSpaces.ToDictionary(
+                static space => space.AddressSpaceId,
+                StringComparer.Ordinal);
+        return composition.Plan.OrderedOperations
+            .Where(static operation =>
+                operation.Kind == CompositionOperationKind.ReplaceRange)
+            .GroupBy(
+                static operation => operation.SourceSpaceId!,
+                StringComparer.Ordinal)
+            .Where(group =>
+                CoversCompleteSource(
+                    group.Select(static operation =>
+                        operation.SourceRange!.Value),
+                    spaces[group.Key].Length))
+            .SelectMany(static group =>
+                group.Select(static operation => operation.TargetRange));
+    }
+
+    private static IEnumerable<ByteRange> GetCompiledPostbuildAuthorityRanges(
+        CompiledComposition composition)
+    {
+        return composition.ValidationRequirements
+            .OfType<CompiledFirmwareConfigBackupPlacementAuthorityValidation>()
+            .Select(static requirement => requirement.AuthorityRange);
+    }
+
+    private static ByteRange[] GetFirmwareVersionBackupWriteRanges(
+        CompiledComposition composition)
+    {
+        CompositionOperation[] patches =
+        [
+            .. composition.Plan.OrderedOperations.Where(static operation =>
+                operation.Kind == CompositionOperationKind.PatchScalar),
+        ];
+        if (patches.Length == 0)
+        {
+            return [];
+        }
+
+        CompositionOperation version = patches.Single(static patch =>
+            patch.TargetRange.Length == 2);
+        CompositionOperation subVersion = patches.Single(static patch =>
+            patch.TargetRange.Length == 1);
+        var context =
+            (RuntimeReferenceReplaceV2CompilationContext)
+                composition.V2Details!.Provenance.Context;
+        FirmwareRegion sourceRegion = context.ResolvedMap.ImageMap.Regions.Single(
+            region =>
+                region.Owner == FirmwareRegionOwner.Tp &&
+                region.Kind == FirmwareRegionKind.FirmwareConfig &&
+                region.Range.Contains(version.TargetRange) &&
+                region.Range.Contains(subVersion.TargetRange));
+        long versionOffset = checked(
+            version.TargetRange.Start - sourceRegion.Range.Start);
+        long subVersionOffset = checked(
+            subVersion.TargetRange.Start - sourceRegion.Range.Start);
+        return
+        [
+            .. context.ResolvedMap.ResolvedMetadataStructures.SelectMany(
+                structure =>
+                {
+                    ByteRange envelope = structure.LocatorOutcome.ResolvedRange.Range;
+                    ByteRange backupVersion = new(
+                        checked(envelope.Start + versionOffset),
+                        version.TargetRange.Length);
+                    ByteRange backupSubVersion = new(
+                        checked(envelope.Start + subVersionOffset),
+                        subVersion.TargetRange.Length);
+                    return envelope.Contains(backupVersion) &&
+                        envelope.Contains(backupSubVersion)
+                            ? [backupVersion, backupSubVersion]
+                            : Array.Empty<ByteRange>();
+                }),
+        ];
+    }
+
+    private static bool CoversCompleteSource(
+        IEnumerable<ByteRange> ranges,
+        long capacity)
+    {
+        long coveredEnd = 0;
+        foreach (ByteRange range in ranges
+                     .OrderBy(static range => range.Start)
+                     .ThenBy(static range => range.Length))
+        {
+            if (range.Start > coveredEnd)
+            {
+                return false;
+            }
+
+            coveredEnd = Math.Max(coveredEnd, range.EndExclusive);
+        }
+
+        return coveredEnd == capacity;
+    }
 
     private static ExternalProcessorInvocation GetSingleProcessor(
         CompiledComposition composition)
@@ -178,4 +378,9 @@ public sealed class RuntimeReferenceCompilationProof
                 "A postbuild runtime-reference proof requires exactly one compiled external processor.",
                 nameof(composition));
     }
+
+    private sealed record WriteRangeSectionIdentity(
+        string SectionId,
+        ByteRange Range,
+        ByteRange? SourceRange);
 }

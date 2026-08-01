@@ -61,6 +61,43 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
                 allowsLogicalOutput: true));
     }
 
+    /// <summary>CtrlRAM report semantics exist only when the reviewed Standard Merge profile declares them.</summary>
+    [Fact]
+    public void DynamicCtrlRamReportBindingsRequireProfileDeclaration()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new CanonicalCapabilityCatalogMigrationSource());
+        CapabilityCatalogReloadResult reload = catalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute[] reportless =
+        [
+            .. reload.Snapshot!.DynamicRoutes.Where(route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+                route.Identity.IcId is "NT51919" or "NT51950" or "NT51951"),
+        ];
+        ResolvedCapabilityRoute[] reportful =
+        [
+            .. reload.Snapshot.DynamicRoutes.Where(route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace &&
+                route.Identity.IcId == "NT51929"),
+        ];
+
+        Assert.True(reload.Succeeded);
+        Assert.NotEmpty(reportless);
+        Assert.NotEmpty(reportful);
+        Assert.All(reportless, route => Assert.DoesNotContain(
+            route.CompilationContract.SemanticBindingIds,
+            static binding => binding.StartsWith(
+                "report-metadata-",
+                StringComparison.Ordinal)));
+        Assert.All(reportful, route => Assert.Equal(
+            3,
+            route.CompilationContract.SemanticBindingIds.Count(binding =>
+                binding.StartsWith(
+                    "report-metadata-",
+                    StringComparison.Ordinal))));
+    }
+
     /// <summary>Map, compiler, and selection-group drift are independent admission failures.</summary>
     [Fact]
     public void DynamicCompilationContractRejectsExactSemanticDrift()

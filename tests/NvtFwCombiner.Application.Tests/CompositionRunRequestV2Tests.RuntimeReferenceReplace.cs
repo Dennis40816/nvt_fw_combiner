@@ -121,6 +121,24 @@ public sealed partial class CompositionRunRequestV2Tests
                 driftedWrites,
                 MetadataPlanDefinition.Empty,
                 proof));
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                driftedWrites,
+                postbuildPlan));
+        CompiledComposition driftedSections = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorWriteSectionId: "fabricated-section");
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                driftedSections,
+                postbuildPlan));
 
         ResolvedCapabilityRoute reportRoute = CreateRoute(
         [
@@ -133,6 +151,17 @@ public sealed partial class CompositionRunRequestV2Tests
             reportRoute.BindCompilation(
                 composition,
                 MetadataPlanDefinition.Empty,
+                proof));
+        var sourceOnlyReportPlan = new MetadataPlanDefinition(
+            [],
+            new MetadataPlanSourceIdentity(
+                "synthetic-report",
+                "1.0.0",
+                new string('e', 64)));
+        _ = Assert.Throws<ArgumentException>(() =>
+            reportRoute.BindCompilation(
+                composition,
+                sourceOnlyReportPlan,
                 proof));
         ResolvedCapability resolved = route.BindCompilation(
             composition,
@@ -337,7 +366,8 @@ public sealed partial class CompositionRunRequestV2Tests
         FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
         string? processorId = null,
         string processorToolBindingId = "synthetic-postbuild-tool",
-        ByteRange? processorWriteRange = null)
+        ByteRange? processorWriteRange = null,
+        string? processorWriteSectionId = null)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
@@ -478,7 +508,11 @@ public sealed partial class CompositionRunRequestV2Tests
                         processorId,
                         processorToolBindingId,
                         [new ByteRange(0, 4)],
-                        [processorWriteRange ?? new ByteRange(1, 2)]),
+                        [processorWriteRange ?? new ByteRange(1, 2)],
+                        allowedWriteRangeSections:
+                            CreateSyntheticPostbuildWriteSections(
+                                processorWriteRange ?? new ByteRange(1, 2),
+                                processorWriteSectionId)),
                     OverlapPolicy.ReplaceExisting,
                     "Run the synthetic postbuild processor."),
             ];
@@ -490,6 +524,37 @@ public sealed partial class CompositionRunRequestV2Tests
             plan,
             identity,
             CompiledIcNumberPolicy.SingleSelector);
+
+        static IReadOnlyList<ExternalProcessorWriteRangeSection>
+            CreateSyntheticPostbuildWriteSections(
+                ByteRange allowedWriteRange,
+                string? sectionId)
+        {
+            LegacyCombinerPostbuildCommandPlan plan =
+                CreateSyntheticPostbuildPlan();
+            ByteRange[] stagedTargetRanges =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                    .Select(static block => block.FirmwareRange),
+            ];
+            return
+            [
+                .. LegacyCombinerPostbuildPlanner
+                    .GetAllowedWriteRangeSectionsForStagedSources(
+                        plan,
+                        4,
+                        stagedTargetRanges,
+                        stagedTargetRanges)
+                    .Where(section =>
+                        allowedWriteRange.Contains(section.Range))
+                    .Select(section => sectionId is null
+                        ? section
+                        : new ExternalProcessorWriteRangeSection(
+                            sectionId,
+                            section.Range,
+                            section.SourceRange)),
+            ];
+        }
     }
 
     private static LegacyCombinerPostbuildCommandPlan

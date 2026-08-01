@@ -506,6 +506,26 @@ internal sealed class BuiltInV2Bundle
                 ContentHash));
     }
 
+    /// <summary>Returns whether one trusted profile declares an exact metadata purpose.</summary>
+    internal bool ProfileDeclaresMetadataPurpose(
+        string profileId,
+        string profileVersion,
+        CompositionProfileMetadataPurpose purpose)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        return _catalog.Value.Profiles
+            .Single(entry =>
+                StringComparer.Ordinal.Equals(
+                    entry.Profile.ProfileId,
+                    profileId) &&
+                StringComparer.Ordinal.Equals(
+                    entry.Profile.ProfileVersion,
+                    profileVersion))
+            .Profile.MetadataBindings.Any(binding =>
+                binding.Purposes.Contains(purpose));
+    }
+
     private static MetadataPlanEntry CreateMetadataPlanEntry(
         FirmwareFamilyResolutionDefinition family,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,

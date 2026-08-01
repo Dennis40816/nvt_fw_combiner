@@ -79,10 +79,7 @@ public static partial class WorkbenchCompositionService
         ];
         return new MetadataPlanDefinition(
             entries,
-            sourceMetadataPlan.SourceIdentity,
-            [new MetadataPlanReportProjection(
-                CompositionAddressSpaceIds.TpInput,
-                CompositionAddressSpaceIds.ReferenceBase)]);
+            sourceMetadataPlan.SourceIdentity);
     }
 
     private static IEnumerable<IReadOnlyCollection<string>>

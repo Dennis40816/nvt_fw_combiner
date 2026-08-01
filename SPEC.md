@@ -1187,9 +1187,15 @@ version.
    compiler result rejects missing selection groups, logical-family drift,
    processor drift, or missing typed selector/plan/report bindings. Runtime
    processor authority is derived only from the compiled invocation; report
-   projection/source identity is derived only from the metadata plan; and the
-   postbuild proof is bound to the exact `CompilationFingerprint`. No raw
-   adapter binding may compensate for another owner's missing semantics.
+   projection/source identity is derived only from metadata-plan entries with
+   the declared report-classification purpose; and the postbuild proof is bound
+   to the exact `CompilationFingerprint`, planner-derived write sections,
+   complete compiler mappings, exact profile-resolved physical views, typed
+   postbuild validation authority, and metadata-located firmware-version
+   backup fields.
+   Routes whose reviewed profile has no report-classification entry omit those
+   report bindings. No raw adapter binding may compensate for another owner's
+   missing semantics.
    Preview and Build require the same compiled object instance retained by the
    accepted `ResolvedCapability`; matching fingerprint strings do not permit
    cross-publication substitution.

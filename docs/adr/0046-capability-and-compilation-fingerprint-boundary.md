@@ -58,8 +58,14 @@ selection groups may not disappear, logical output retains its reviewed family,
 and runtime-reference routes retain their declared processor plus independently
 derived typed selector, plan-template, and report-metadata bindings. Processor
 authority comes only from the compiled invocation, report projection and source
-identity come only from the metadata plan, and the postbuild proof is bound to
-the exact compilation; no channel may fill a missing binding owned by another.
+identity come only from report-classification entries in the metadata plan, and
+the postbuild proof is bound to the exact compilation. The proof also verifies
+that compiled write ranges are the closed union of exact planner sections,
+complete compiler mappings, exact profile-resolved physical views, typed
+postbuild validation authority, and metadata-located firmware-version backup
+fields, while write-section identities remain planner-derived. A profile with no declared
+report-classification entry contributes no report binding to its reviewed
+capability fingerprint. No channel may fill a missing binding owned by another.
 
 ### CompilationFingerprint
 

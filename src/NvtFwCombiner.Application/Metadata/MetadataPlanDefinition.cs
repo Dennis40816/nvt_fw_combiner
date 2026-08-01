@@ -122,12 +122,18 @@ public sealed class MetadataPlanDefinition
             StringComparer.Ordinal.Compare(left.BindingId, right.BindingId));
         Array.Sort(_reportProjections, CompareReportProjections);
         Array.Sort(entryReportProjections, CompareReportProjections);
-        if (entryReportProjections.Length != 0 &&
-            !entryReportProjections.SequenceEqual(_reportProjections))
+        if (!_reportProjections.SequenceEqual(entryReportProjections))
         {
             throw new ArgumentException(
                 "Explicit report projections must match every report-classification metadata entry.",
                 nameof(reportProjections));
+        }
+
+        if (_reportProjections.Length != 0 && sourceIdentity is null)
+        {
+            throw new ArgumentException(
+                "Metadata report projections require an exact trusted source identity.",
+                nameof(sourceIdentity));
         }
 
         SourceIdentity = sourceIdentity;

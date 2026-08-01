@@ -212,6 +212,22 @@ internal static class CanonicalDynamicRouteInventory
                 match.Route.Key.IcId) ??
             throw new InvalidDataException(
                 $"CtrlRAM route '{identity.RouteId}' has no reviewed Standard Merge metadata definition.");
+        var semanticBindings = new List<string>
+        {
+            $"postbuild-processor:{match.Route.Key.PostbuildProcessorId}",
+            $"postbuild-selector:{match.Selector.Token}",
+            $"postbuild-plan:{match.PlanFingerprint}",
+        };
+        if (reportMetadataRegistration.HasReportClassificationMetadata)
+        {
+            semanticBindings.Add(
+                $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}");
+            semanticBindings.Add(
+                $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}");
+            semanticBindings.Add(
+                $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}");
+        }
+
         return Create(
             identity,
             match.Route.ProfileId,
@@ -219,14 +235,7 @@ internal static class CanonicalDynamicRouteInventory
             bundle.ContentHash,
             [match.Map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            [
-                $"postbuild-processor:{match.Route.Key.PostbuildProcessorId}",
-                $"postbuild-selector:{match.Selector.Token}",
-                $"postbuild-plan:{match.PlanFingerprint}",
-                $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}",
-                $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}",
-                $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}",
-            ]);
+            semanticBindings);
     }
 
     private static IEnumerable<CanonicalCtrlRamDefinition>
