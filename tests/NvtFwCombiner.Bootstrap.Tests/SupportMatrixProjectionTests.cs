@@ -287,7 +287,7 @@ public sealed class SupportMatrixProjectionTests
                 row.Route.Identity.IcId == "NT51928" &&
                 row.Route.Identity.WorkflowId == IcWorkflowIds.StandardMerge);
         Assert.Equal(
-            "nt51928-standard-merge-512k",
+            "nt51928-dual-capacity-256k-512k",
             nt51928StandardMerge.Route.Identity.MapVariant);
         Assert.Equal(
             first.Rows.Count,

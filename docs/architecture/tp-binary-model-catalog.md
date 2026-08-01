@@ -344,14 +344,14 @@ This avoids falsely calling a copied header target `DLM CRC 0` before source-to-
 
 - `926NB` and NT51928 NB are not aliases of the normal layouts.
 - NT51932 variant-specific Type A/B/C field order requires firmware-owner evidence before it can be selected by IC number or Common FW category.
-- Header copy destination fields are intentionally generic until a verified mapping relates each copy target back to a source header field.
+- Header copy destinations receive a field title only when the compiled postbuild section carries an exact source range; unmapped copies intentionally remain generic.
 - This catalog is not golden evidence. It does not change the current per-IC self-replacement conclusions or promote parity.
 - Firmware-owner review is required before a new header range, a copy relationship, or an alias is allowed to affect execution rather than report naming.
 
 ## Executable Evidence
 
-- `TpHeaderCatalogTests.Nt51926HeaderModelsIlmStartAddressInBin`
-- `TpHeaderCatalogTests.Nt51927HeaderModelsDlmCrcZero`
-- `TpHeaderCatalogTests.EveryIcExposesOneHeaderLayout`
-- `CompositionRunServiceTests.ReplaceReportNamesNt51926DlmCrcZero`
+- `FirmwareTpFlashHeaderDefinitionTests.TypeAbHeaderKeepsPhysicalFieldsOnceAndSeriesReferencesThem`
+- `FirmwareTpFlashHeaderDefinitionTests.TypeAbHeaderExpandsFieldReferencesWithoutCopiedMembership`
+- `LegacyTpFlashHeaderCanonicalMetadataTests.Nt51917Nt51927Nt51928ShareOne927HeaderDefinition`
+- `Nt51927CtrlRamFw132TwoChipEvidenceTests.ExactExpectedDerivedCaseProducesLockedV2EvidenceAsync`
 - `ShellViewModelTests.ReportReviewShowsAcceptedOutputDifferences`

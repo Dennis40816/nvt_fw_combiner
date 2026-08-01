@@ -318,59 +318,6 @@ public sealed class MetadataPlanEntry
     }
 }
 
-/// <summary>Immutable pre-publication metadata plan definition.</summary>
-public sealed class MetadataPlanDefinition
-{
-    private readonly MetadataPlanEntry[] _entries;
-
-    /// <summary>Creates one deterministic plan from canonical references.</summary>
-    public MetadataPlanDefinition(IEnumerable<MetadataPlanEntry> entries)
-    {
-        ArgumentNullException.ThrowIfNull(entries);
-        _entries = [.. entries];
-        if (_entries.Any(static entry => entry is null) ||
-            _entries.Select(static entry => entry.BindingId)
-                .Distinct(StringComparer.Ordinal).Count() != _entries.Length)
-        {
-            throw new ArgumentException(
-                "Metadata plan bindings must be non-null and unique.",
-                nameof(entries));
-        }
-
-        if (_entries.Length != 0)
-        {
-            MetadataPlanEntry first = _entries[0];
-            if (_entries.Any(entry =>
-                    !ReferenceEquals(
-                        entry.FamilyDefinition,
-                        first.FamilyDefinition) ||
-                    !ReferenceEquals(entry.ResolvedMap, first.ResolvedMap)))
-            {
-                throw new ArgumentException(
-                    "One metadata plan cannot mix family or map resolutions.",
-                    nameof(entries));
-            }
-        }
-
-        Array.Sort(_entries, static (left, right) =>
-            StringComparer.Ordinal.Compare(left.BindingId, right.BindingId));
-        Entries = Array.AsReadOnly(_entries);
-    }
-
-    /// <summary>An empty plan for compatibility routes with no migrated metadata.</summary>
-    public static MetadataPlanDefinition Empty { get; } = new([]);
-
-    /// <summary>Canonical reference-only entries in stable binding order.</summary>
-    public IReadOnlyList<MetadataPlanEntry> Entries { get; }
-
-    /// <summary>Binds the plan to one immutable catalog publication.</summary>
-    public ResolvedMetadataPlan Resolve(ResolutionToken resolutionToken)
-    {
-        resolutionToken.EnsureValid(nameof(resolutionToken));
-        return new ResolvedMetadataPlan(this, resolutionToken);
-    }
-}
-
 /// <summary>One publication-bound metadata entry with initial prerequisite state.</summary>
 public sealed record ResolvedMetadataPlanEntry(
     MetadataPlanEntry Definition,
@@ -426,7 +373,8 @@ public sealed class MetadataInspectionRequest
     public MetadataInspectionRequest(
         ResolvedMetadataPlan plan,
         long authoringRevision,
-        IEnumerable<FirmwareArtifactPayload> artifacts)
+        IEnumerable<FirmwareArtifactPayload> artifacts,
+        TopologySelection? topologySelection = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
@@ -444,6 +392,7 @@ public sealed class MetadataInspectionRequest
         Plan = plan;
         AuthoringRevision = authoringRevision;
         Artifacts = Array.AsReadOnly(_artifacts);
+        TopologySelection = topologySelection;
     }
 
     /// <summary>Exact publication-bound metadata plan.</summary>
@@ -454,6 +403,11 @@ public sealed class MetadataInspectionRequest
 
     /// <summary>Immutable artifact payload snapshots.</summary>
     public IReadOnlyList<FirmwareArtifactPayload> Artifacts { get; }
+
+    /// <summary>
+    /// Optional exact compilation selection used for topology-scoped fields.
+    /// </summary>
+    public TopologySelection? TopologySelection { get; }
 }
 
 /// <summary>Immutable result of inspecting one resolved plan against artifact snapshots.</summary>
@@ -545,13 +499,13 @@ public static class FirmwareMetadataInspector
         }
 
         MetadataPlanEntry first = plan.Entries[0].Definition;
-        TopologySelection? requestedTopology =
-            first.ResolvedMap.TopologySelection is
+        TopologySelection? requestedTopology = request.TopologySelection ??
+            (first.ResolvedMap.TopologySelection is
             {
                 Source: TopologySelectionSource.Requested,
             } topology
                 ? topology
-                : null;
+                : null);
         var inputs = new FirmwareMapResolutionInputs(
             first.ResolvedMap.MemberId,
             first.ResolvedMap.ModeId,

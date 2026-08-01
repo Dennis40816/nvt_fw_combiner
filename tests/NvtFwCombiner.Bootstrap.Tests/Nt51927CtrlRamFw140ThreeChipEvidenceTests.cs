@@ -107,6 +107,14 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         JsonElement[] differences = [.. v2Report.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
         Assert.Equal(CrcRanges.Length, differences.Count(IsPostbuildCrc));
         Assert.Equal(DeclaredReplacementRanges.Length, differences.Count(IsDeclaredReplacement));
+        JsonElement firstCrcSemantic = differences.Single(difference =>
+                difference.GetProperty("Range").GetProperty("Start").GetInt64() == 0x22C)
+            .GetProperty("Semantic");
+        Assert.Equal("tp-flash-header", firstCrcSemantic.GetProperty("CategoryId").GetString());
+        Assert.Equal(
+            $"{icId.ToLowerInvariant()}-header:header-0-ilm-crc",
+            firstCrcSemantic.GetProperty("SubjectId").GetString());
+        Assert.Equal("ILM CRC 0", firstCrcSemantic.GetProperty("SubjectLabel").GetString());
         Assert.All(differences, difference => Assert.True(difference.GetProperty("IsAccepted").GetBoolean()));
         Assert.All(
             ownerCase.Artifacts,

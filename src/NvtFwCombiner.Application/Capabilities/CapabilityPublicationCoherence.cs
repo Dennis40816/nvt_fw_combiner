@@ -9,9 +9,32 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 internal static class CapabilityPublicationCoherence
 {
+    internal static bool IsExecutionAdmitted(
+        CompiledComposition composition)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        return (composition.Eligibility is
+                   CompiledCompositionEligibility.LegacyRuntimeExecutable or
+                   CompiledCompositionEligibility.V2RuntimeExecutable) ||
+               (composition.Eligibility ==
+                   CompiledCompositionEligibility.V2PlanCompiled &&
+               composition.Authority is ProfileBundleV2CompilationAuthority &&
+               composition.V2Details is
+               {
+                   Provenance.Promotion.Stage:
+                       CompiledProfilePromotionStage.ExecutableCandidate,
+               } details &&
+               ((details.Provenance.Context is
+                     LogicalOutputV2CompilationContext or
+                     RuntimeReferenceReplaceV2CompilationContext) ||
+                composition.IsV2AbFunctionOpenCandidate));
+    }
+
     internal static void ValidateDefinition(
         CapabilityRouteIdentity identity,
+        string capabilityFingerprint,
         CompiledComposition compiledComposition,
+        CanonicalCapabilityCompilationContract compilationContract,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
@@ -20,12 +43,14 @@ internal static class CapabilityPublicationCoherence
         ArgumentNullException.ThrowIfNull(metadataPlan);
         ValidateCore(
             identity,
-            compiledComposition.CompilationFingerprint,
+            capabilityFingerprint,
             compiledComposition,
+            compilationContract,
             authoring,
             publication,
             evidence,
-            metadataPlan.Entries);
+            metadataPlan,
+            runtimeReferenceProof: null);
     }
 
     internal static void ValidateResolved(ResolvedCapability capability)
@@ -35,22 +60,26 @@ internal static class CapabilityPublicationCoherence
             capability.Identity,
             capability.CapabilityFingerprint,
             capability.CompiledComposition,
+            capability.CompilationContract,
             capability.Authoring,
             capability.Publication,
             capability.Evidence,
             capability.MetadataPlan,
-            capability.ResolutionToken);
+            capability.ResolutionToken,
+            capability.RuntimeReferenceProof);
     }
 
     internal static void ValidateResolved(
         CapabilityRouteIdentity identity,
         string capabilityFingerprint,
         CompiledComposition compiledComposition,
+        CanonicalCapabilityCompilationContract compilationContract,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
-        ResolutionToken resolutionToken)
+        ResolutionToken resolutionToken,
+        RuntimeReferenceCompilationProof? runtimeReferenceProof = null)
     {
         ArgumentNullException.ThrowIfNull(metadataPlan);
         resolutionToken.EnsureValid(nameof(resolutionToken));
@@ -66,44 +95,44 @@ internal static class CapabilityPublicationCoherence
             identity,
             capabilityFingerprint,
             compiledComposition,
+            compilationContract,
             authoring,
             publication,
             evidence,
-            metadataPlan.Definition.Entries);
+            metadataPlan.Definition,
+            runtimeReferenceProof);
     }
 
     private static void ValidateCore(
         CapabilityRouteIdentity identity,
         string capabilityFingerprint,
         CompiledComposition compiledComposition,
+        CanonicalCapabilityCompilationContract compilationContract,
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
-        IReadOnlyList<MetadataPlanEntry> metadataEntries)
+        MetadataPlanDefinition metadataPlan,
+        RuntimeReferenceCompilationProof? runtimeReferenceProof)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
+        ArgumentNullException.ThrowIfNull(compilationContract);
         ArgumentNullException.ThrowIfNull(authoring);
         ArgumentNullException.ThrowIfNull(publication);
         ArgumentNullException.ThrowIfNull(evidence);
-        ArgumentNullException.ThrowIfNull(metadataEntries);
-        if (!StringComparer.Ordinal.Equals(identity.IcId, compiledComposition.IcId) ||
-            !StringComparer.Ordinal.Equals(
-                identity.WorkflowId,
-                compiledComposition.ExperienceId))
-        {
-            throw new ArgumentException(
-                "Capability route identity must match the compiled IC and workflow.",
-                nameof(identity));
-        }
-
+        ArgumentNullException.ThrowIfNull(metadataPlan);
+        compilationContract.ValidateCompilation(
+            identity,
+            compiledComposition,
+            metadataPlan,
+            runtimeReferenceProof);
         if (!StringComparer.Ordinal.Equals(
                 capabilityFingerprint,
-                compiledComposition.CompilationFingerprint))
+                compiledComposition.CapabilityFingerprint))
         {
             throw new ArgumentException(
-                "Capability fingerprint must match the exact compiled composition.",
-                nameof(capabilityFingerprint));
+                "Canonical compiled compositions must reference their reviewed capability fingerprint.",
+                nameof(compiledComposition));
         }
 
         ValidateDecision(
@@ -122,17 +151,8 @@ internal static class CapabilityPublicationCoherence
             evidence,
             "evidence decision");
         V2CompiledCompositionDetails? details = compiledComposition.V2Details;
-        if (details?.Provenance.Context is MapBoundV2CompilationContext mapContext &&
-            !StringComparer.Ordinal.Equals(
-                identity.MapVariant,
-                mapContext.ResolvedMap.ImageMap.MapId))
-        {
-            throw new ArgumentException(
-                "Capability route map variant must match the compiled resolved map.",
-                nameof(identity));
-        }
 
-        ValidateOutputNamingMetadata(details, metadataEntries);
+        ValidateOutputNamingMetadata(details, metadataPlan.Entries);
     }
 
     private static void ValidateDecision<TValue>(

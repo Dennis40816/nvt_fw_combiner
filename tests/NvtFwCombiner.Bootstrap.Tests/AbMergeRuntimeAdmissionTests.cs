@@ -41,7 +41,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         int expectedDpLength,
         int expectedTpPrefixLength)
     {
-        IReadOnlyList<WorkbenchAbMergeInputSlot> slots = WorkbenchCompositionService.GetAbMergeInputSlots(icId);
+        IReadOnlyList<WorkbenchAbMergeInputSlot> slots =
+            WorkbenchCompositionService.GetAbMergeInputSlots(
+                icId,
+                abMergeTopologyToken: icId == "NT51950" ? "single" : null);
         Assert.Collection(
             slots,
             slot => AssertAbSlot(

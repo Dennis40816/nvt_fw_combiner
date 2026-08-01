@@ -193,9 +193,15 @@ public sealed partial class ShellViewModelTests
             difference =>
             {
                 JsonElement semantic = difference.GetProperty("Semantic");
-                Assert.Equal("other-documented-region", semantic.GetProperty("CategoryId").GetString());
-                Assert.Equal("postbuild-copy", semantic.GetProperty("SubjectId").GetString());
-                Assert.Equal("Header / CRC refresh", semantic.GetProperty("SubjectLabel").GetString());
+                Assert.Equal("tp-flash-header", semantic.GetProperty("CategoryId").GetString());
+                Assert.StartsWith(
+                    "nt51927-header:",
+                    semantic.GetProperty("SubjectId").GetString(),
+                    StringComparison.Ordinal);
+                Assert.Contains(
+                    "CRC",
+                    semantic.GetProperty("SubjectLabel").GetString(),
+                    StringComparison.Ordinal);
             });
         Assert.All(
             differences.Where(difference =>

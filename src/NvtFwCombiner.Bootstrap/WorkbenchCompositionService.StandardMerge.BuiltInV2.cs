@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -10,14 +11,35 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        return TryCompilePublishedStandardMergeCapability(
+        return TryGetBuiltInV2StandardMergeCompilation(
+            icId,
+            dpInputLength,
+            out composition,
+            out _,
+            out issues);
+    }
+
+    private static bool TryGetBuiltInV2StandardMergeCompilation(
+        string icId,
+        long? dpInputLength,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        return TryCompilePublishedDynamicCapability(
                 icId,
+                Profiles.IcWorkflowIds.StandardMerge,
+                "selector-free",
+                dpInputLength,
+                selectedInputSlotIds: null,
                 out composition,
+                out resolvedCapability,
                 out issues) ||
-            TryCompileStandardMergeThroughMigrationAdapter(
+            TryCompilePublishedStandardMergeCapability(
                 icId,
                 dpInputLength,
                 out composition,
+                out resolvedCapability,
                 out issues);
     }
 
@@ -26,63 +48,31 @@ public static partial class WorkbenchCompositionService
         long? dpInputLength,
         IReadOnlyCollection<string> selectedInputSlotIds,
         out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        return TryCompilePublishedStandardMergeCapability(
+        return TryCompilePublishedDynamicCapability(
                 icId,
-                out composition,
-                out issues) ||
-            TryCompileStandardMergeThroughMigrationAdapter(
-                icId,
+                Profiles.IcWorkflowIds.StandardMerge,
+                "selector-free",
                 dpInputLength,
                 selectedInputSlotIds,
                 out composition,
+                out resolvedCapability,
+                out issues) ||
+            TryCompilePublishedStandardMergeCapability(
+                icId,
+                dpInputLength,
+                out composition,
+                out resolvedCapability,
                 out issues);
-    }
-
-    private static bool TryCompileStandardMergeThroughMigrationAdapter(
-        string icId,
-        long? dpInputLength,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        registration.TryCompile(dpInputLength, out composition, out issues);
-        return true;
-    }
-
-    private static bool TryCompileStandardMergeThroughMigrationAdapter(
-        string icId,
-        long? dpInputLength,
-        IReadOnlyCollection<string> selectedInputSlotIds,
-        out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        if (!BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        registration.TryCompile(dpInputLength, selectedInputSlotIds, out composition, out issues);
-        return true;
     }
 
     private static bool IsBuiltInV2StandardMergeMapCapacityPending(string icId)
     {
+        string normalizedIcId = Profiles.IcSupportCatalog.NormalizeIcId(icId);
         return BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                icId,
+                normalizedIcId,
                 out BuiltInV2Registration? registration) &&
             registration.HasMultipleMapCapacities;
     }

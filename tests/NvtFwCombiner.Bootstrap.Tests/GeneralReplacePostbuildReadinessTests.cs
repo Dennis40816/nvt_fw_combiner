@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Contracts.Bundles;
 using NvtFwCombiner.Domain.Composition;
@@ -19,13 +19,13 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Workbench evidence for pre-run General Replace POSTBUILD readiness.</summary>
 public sealed class GeneralReplacePostbuildReadinessTests
 {
-    /// <summary>A declared stage with a missing tool yields only a plan-only diagnostic.</summary>
+    /// <summary>An uncompiled POSTBUILD target fails before runtime readiness can claim Build identity.</summary>
     [Fact]
     public async Task MissingRuntimeToolCreatesDiagnosticWithoutEngineOutputOrMutation()
     {
         using var workspace = TempWorkspace.Create(
             "nfc-general-replace-runtime-diagnostic");
-        byte[] referenceBytes = CreatePattern(0x40000, 0x31);
+        byte[] referenceBytes = CreatePostbuildReference(0x31);
         byte[] sourceBytes = [0xA5, 0x5A];
         string referencePath = workspace.Write("reference.bin", referenceBytes);
         string sourcePath = workspace.Write("source.bin", sourceBytes);
@@ -55,9 +55,9 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("DiagnosticPlanOnly", result.Status);
+        Assert.Equal("Blocked", result.Status);
         Assert.True(result.HasRunReport);
-        Assert.Equal(1, provider.CallCount);
+        Assert.Equal(0, provider.CallCount);
         Assert.Equal(referenceBytes, await File.ReadAllBytesAsync(
             referencePath,
             TestContext.Current.CancellationToken));
@@ -66,23 +66,21 @@ public sealed class GeneralReplacePostbuildReadinessTests
             TestContext.Current.CancellationToken));
         using var report = JsonDocument.Parse(result.ReportJson);
         JsonElement root = report.RootElement;
-        JsonElement diagnostic = root.GetProperty("DiagnosticPreview");
         Assert.Equal(
-            "test-general-postbuild",
-            diagnostic.GetProperty("RequiredStageId").GetString());
-        Assert.Equal(
-            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
-            diagnostic.GetProperty("Blocker").GetProperty("Code").GetString());
-        Assert.False(diagnostic.GetProperty("OutputProduced").GetBoolean());
-        Assert.False(diagnostic.GetProperty("ClaimsFinalIntegrity").GetBoolean());
+            WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+            Assert.Single(root.GetProperty("Issues").EnumerateArray())
+                .GetProperty("Code").GetString());
         Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
-        Assert.Equal(JsonValueKind.Null, root.GetProperty("Output").ValueKind);
-        Assert.Empty(result.OutputFileName);
-        Assert.Empty(result.OutputSha256);
+        Assert.Equal(0, root.GetProperty("Output").GetProperty("Size").GetInt64());
+        Assert.Null(result.ActionReadiness);
+        Assert.Equal("nt51926-general-replace.bin", result.OutputFileName);
+        Assert.Equal(
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            result.OutputSha256);
         Assert.False(progress.IsAttached);
     }
 
-    /// <summary>The same blocker disables Build before a report or BIN exists.</summary>
+    /// <summary>Build also fails before a runtime probe when no exact compilation exists.</summary>
     [Fact]
     public async Task MissingRuntimeToolDisablesBuildWithoutCreatingRunReport()
     {
@@ -90,7 +88,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
             "nfc-general-replace-runtime-build");
         string referencePath = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x32));
+            CreatePostbuildReference(0x32));
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         string outputPath = workspace.PathFor("must-not-exist.bin");
         var provider = new TestReadinessProvider(isReady: false);
@@ -116,18 +114,16 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("BuildUnavailable", result.Status);
-        Assert.False(result.HasRunReport);
-        Assert.Empty(result.ReportJson);
+        Assert.Equal("Blocked", result.Status);
+        Assert.True(result.HasRunReport);
+        Assert.NotEmpty(result.ReportJson);
         Assert.False(File.Exists(outputPath));
-        Assert.Equal(1, provider.CallCount);
-        Assert.Equal(
-            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
-            result.ActionReadiness!.Build.PrimaryBlocker!.Code);
+        Assert.Equal(0, provider.CallCount);
+        Assert.Null(result.ActionReadiness);
         Assert.False(progress.IsAttached);
     }
 
-    /// <summary>A refreshed tool result from a superseded generation remains diagnostic-only.</summary>
+    /// <summary>An unsupported target never starts a refresh whose generation could become stale.</summary>
     [Fact]
     public async Task StaleRuntimeGenerationCannotReachEngineExecution()
     {
@@ -135,7 +131,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
             "nfc-general-replace-runtime-stale");
         string referencePath = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x33));
+            CreatePostbuildReference(0x33));
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         var provider = new TestReadinessProvider(isReady: true);
         TrustedProfileBundleCatalog exactParent =
@@ -159,21 +155,15 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 outputPath: null,
                 TestContext.Current.CancellationToken);
 
-        Assert.Equal("DiagnosticPlanOnly", result.Status);
-        Assert.Equal(1, provider.CallCount);
-        Assert.Equal(
-            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
-            result.ActionReadiness!.Build.PrimaryBlocker!.Code);
+        Assert.Equal("Blocked", result.Status);
+        Assert.Equal(0, provider.CallCount);
+        Assert.Null(result.ActionReadiness);
         using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Equal(
-            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
-            report.RootElement.GetProperty("DiagnosticPreview")
-                .GetProperty("Blocker")
+            WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+            Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray())
                 .GetProperty("Code")
                 .GetString());
-        Assert.Equal(
-            JsonValueKind.Null,
-            report.RootElement.GetProperty("Output").ValueKind);
         Assert.False(progress.IsAttached);
     }
 
@@ -187,6 +177,23 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 provider,
                 Generation: 1,
                 generation => generationIsCurrent && generation == 1);
+    }
+
+    private static byte[] CreatePostbuildReference(byte seed)
+    {
+        byte[] image = CreatePattern(0x40000, seed);
+        const int backupStart = 0x3F000;
+        const int markerStart = 0x3FFFC;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x20;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xDF;
+        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 2;
+        image[backupStart + FirmwareConfigLayout.CommonFwMinorVersionOffset] = 0;
+        image[backupStart + FirmwareConfigLayout.CommonFwAdditionalVersionOffset] = 0;
+        image[markerStart] = 0x00;
+        image[markerStart + 1] = (byte)'N';
+        image[markerStart + 2] = (byte)'V';
+        image[markerStart + 3] = (byte)'T';
+        return image;
     }
 
     private static TrustedProfileBundleCatalog CreateStageBearingExactParent(
@@ -374,6 +381,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
             return ValueTask.FromResult(new RuntimeDependencyReadinessSnapshot(
                 request.RouteId,
                 request.CapabilityFingerprint,
+                request.CompilationFingerprint,
                 request.ResolutionToken,
                 request.AuthoringRevision,
                 generation,

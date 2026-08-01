@@ -21,11 +21,13 @@ public static partial class WorkbenchCompositionService
         ResolveGeneralReplacePostbuildReadinessAsync(
             GeneralAuthoringAdmissionResult admission,
             SavedRuleV2GeneralReplaceRuntimeAuthority authority,
+            ResolvedCapability resolvedCapability,
             GeneralReplacePostbuildReadinessOverride? runtimeOverride,
             CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(admission);
         ArgumentNullException.ThrowIfNull(authority);
+        ArgumentNullException.ThrowIfNull(resolvedCapability);
 
         SavedRuleV2ParentBinding parent = authority.ParentBinding;
         bool hasStageAuthority = authority.ProcessorStageIds.Count != 0;
@@ -39,15 +41,16 @@ public static partial class WorkbenchCompositionService
                 "Selected General Replace targets require POSTBUILD, but the exact Parent does not declare the required stage.",
                 CapabilityReadinessNextAction.ReviewCompilation);
         var capability = new CapabilityAdmissionSnapshot(
-            $"general-replace:{parent.ProfileId}",
-            parent.ProfileContentHash,
-            new ResolutionToken(
-                $"bundle:{parent.BundleId}:{parent.BundleVersion}:{parent.BundleContentHash}"),
+            resolvedCapability.Identity.RouteId,
+            resolvedCapability.CapabilityFingerprint,
+            resolvedCapability.CompiledComposition.CompilationFingerprint,
+            resolvedCapability.ResolutionToken,
             new AuthoringRevision(1),
-            CapabilityAuthoringAvailability.Available,
-            executionAdmitted: hasStageAuthority,
-            CapabilityEvidenceStatus.Missing,
-            CapabilityPublicationStatus.Internal,
+            resolvedCapability.Authoring.Value,
+            executionAdmitted:
+                resolvedCapability.ExecutionAdmitted && hasStageAuthority,
+            resolvedCapability.Evidence.Value,
+            resolvedCapability.Publication.Value,
             executionBlocker);
         CapabilityChildReadiness[] inputs =
         [
@@ -67,6 +70,7 @@ public static partial class WorkbenchCompositionService
             var runtime = new RuntimeDependencyReadinessSnapshot(
                 capability.RouteId,
                 capability.CapabilityFingerprint,
+                capability.CompilationFingerprint,
                 capability.ResolutionToken,
                 capability.AuthoringRevision,
                 generation: 1,
@@ -93,6 +97,7 @@ public static partial class WorkbenchCompositionService
         var request = new RuntimeDependencyReadinessRequest(
             capability.RouteId,
             capability.CapabilityFingerprint,
+            capability.CompilationFingerprint,
             capability.ResolutionToken,
             capability.AuthoringRevision,
             authority.RuntimeDependencies);

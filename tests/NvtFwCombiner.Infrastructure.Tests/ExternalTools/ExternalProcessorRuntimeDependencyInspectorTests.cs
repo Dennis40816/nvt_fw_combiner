@@ -72,6 +72,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         var request = new RuntimeDependencyReadinessRequest(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             new ResolutionToken("catalog:1"),
             new AuthoringRevision(4),
             [
@@ -178,6 +179,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         var request = new RuntimeDependencyReadinessRequest(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             new ResolutionToken("catalog:1"),
             new AuthoringRevision(5),
             [
@@ -212,6 +214,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         var request = new RuntimeDependencyReadinessRequest(
             "route-no-processor",
             new string('b', 64),
+            new string('c', 64),
             new ResolutionToken("catalog:1"),
             new AuthoringRevision(6),
             []);

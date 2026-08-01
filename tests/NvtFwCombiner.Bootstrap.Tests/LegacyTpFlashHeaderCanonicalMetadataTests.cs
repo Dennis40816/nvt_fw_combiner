@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -17,31 +16,6 @@ public sealed class LegacyTpFlashHeaderCanonicalMetadataTests
         [0, 1, 2],
         [0, 1, 2, 3],
     ];
-
-    /// <summary>
-    /// This temporary differential protects #187 while report classification
-    /// still consumes the read-only legacy adapter. #194 deletes both together
-    /// after the report consumes canonical resolved fields.
-    /// </summary>
-    [Theory]
-    [InlineData("NT51917", "nt51927-927-tp-flash-header-read-model")]
-    [InlineData("NT51923", "nt51923-normal-tp-flash-header-read-model")]
-    [InlineData("NT51926", "nt51926-normal-tp-flash-header-read-model")]
-    [InlineData("NT51927", "nt51927-927-tp-flash-header-read-model")]
-    [InlineData("NT51928", "nt51927-927-tp-flash-header-read-model")]
-    public void CanonicalDefinitionsMatchLegacyReadOnlyReportAdapterUntil194(
-        string icId,
-        string bindingId)
-    {
-        MetadataPlanEntry entry = HeaderEntry(icId, bindingId);
-        Assert.True(TpHeaderCatalog.TryGetLayout(icId, out TpHeaderLayout? layout));
-        TpHeaderLayout legacy = Assert.IsType<TpHeaderLayout>(layout);
-
-        Assert.Equal(
-            legacy.Fields.Select(static field => (field.FieldId, field.Range)),
-            entry.StructureDefinition.Definition.Fields.Select(
-                static field => (field.FieldId, field.Range)));
-    }
 
     /// <summary>
     /// NT51917/27/28 reuse one 927 definition through the approved perfect and

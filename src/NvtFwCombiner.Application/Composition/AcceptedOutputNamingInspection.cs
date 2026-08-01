@@ -12,12 +12,12 @@ public sealed class AcceptedOutputNamingInspection
 {
     internal AcceptedOutputNamingInspection(
         string routeId,
-        string capabilityFingerprint,
+        string compilationFingerprint,
         ResolvedMetadataPlan plan,
         MetadataInspectionSnapshot snapshot)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
-        ValidateFingerprint(capabilityFingerprint, nameof(capabilityFingerprint));
+        ValidateFingerprint(compilationFingerprint, nameof(compilationFingerprint));
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(snapshot);
         if (snapshot.ResolutionToken != plan.ResolutionToken)
@@ -37,7 +37,7 @@ public sealed class AcceptedOutputNamingInspection
         }
 
         RouteId = routeId;
-        CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         Plan = plan;
         Snapshot = snapshot;
     }
@@ -68,7 +68,7 @@ public sealed class AcceptedOutputNamingInspection
                 nameof(snapshot))
             : new AcceptedOutputNamingInspection(
                 capability.Identity.RouteId,
-                capability.CapabilityFingerprint,
+                capability.CompiledComposition.CompilationFingerprint,
                 capability.MetadataPlan,
                 snapshot);
     }
@@ -76,8 +76,8 @@ public sealed class AcceptedOutputNamingInspection
     /// <summary>Stable exact route of the accepted capability publication.</summary>
     public string RouteId { get; }
 
-    /// <summary>Fingerprint of the exact compiled capability used for naming.</summary>
-    public string CapabilityFingerprint { get; }
+    /// <summary>Fingerprint of the exact compiled composition used for naming.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Publication token shared by the accepted plan and inspection.</summary>
     public ResolutionToken ResolutionToken => Plan.ResolutionToken;
@@ -223,7 +223,7 @@ public sealed class AcceptedOutputNamingInspection
                 character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f')))
         {
             throw new ArgumentException(
-                "Capability fingerprint must be 64 lowercase hexadecimal characters.",
+                "Compilation fingerprint must be 64 lowercase hexadecimal characters.",
                 parameterName);
         }
     }

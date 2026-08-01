@@ -1,4 +1,7 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.TestSupport;
@@ -7,6 +10,224 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
+    /// <summary>Runtime-reference publication requires independently derived processor, metadata, and typed plan proof.</summary>
+    [Fact]
+    public void DynamicRuntimeReferenceCapabilityRequiresTypedOwnerBindings()
+    {
+        CompiledComposition composition = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild");
+        LegacyCombinerPostbuildCommandPlan postbuildPlan =
+            CreateSyntheticPostbuildPlan();
+        var proof =
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                composition,
+                postbuildPlan);
+        var identity = new CapabilityRouteIdentity(
+            "NT-SYNTHETIC",
+            ExperienceIds.CtrlRamReplace,
+            "1-ic",
+            "map");
+        string[] reviewedBindings =
+        [
+            "postbuild-processor:nfc.synthetic.postbuild",
+            "postbuild-selector:single",
+            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
+        ];
+        ResolvedCapabilityRoute route = CreateRoute(reviewedBindings);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(
+                composition,
+                MetadataPlanDefinition.Empty));
+        CompiledComposition wrongProcessor = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.other-postbuild");
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                wrongProcessor,
+                postbuildPlan));
+        CompiledComposition wrongTool = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorToolBindingId: "synthetic-other-tool");
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                wrongTool,
+                postbuildPlan));
+        var fabricatedCommand = new LegacyCombinerPostbuildCommand(
+            "fabricated-command",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Disable",
+            crcArgument: null,
+            [new LegacyCombinerBlockArgument(
+                "fabricated-block",
+                LegacyCombinerBlockSourceKind.StagedFile,
+                "source.bin",
+                0,
+                new ByteRange(1, 1))]);
+        var fabricatedPlan = new LegacyCombinerPostbuildCommandPlan(
+            postbuildPlan.Profile,
+            postbuildPlan.Selector,
+            [fabricatedCommand]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                composition,
+                fabricatedPlan));
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                CreateRuntimeReferenceCandidate(),
+                postbuildPlan));
+        _ = Assert.Throws<ArgumentException>(() =>
+            CreateRuntimeReferenceCandidate(
+                allowsConditionalProcessor: true,
+                includeProcessorView: true,
+                modeId: ExperienceIds.CtrlRamReplace,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                sourceArtifactClass:
+                    CompiledInputArtifactClass.CtrlRamReplacement,
+                rootOwner: FirmwareRegionOwner.Tp,
+                rootKind: FirmwareRegionKind.CtrlRam));
+        CompiledComposition driftedWrites = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorWriteRange: new ByteRange(1, 1));
+        _ = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(
+                driftedWrites,
+                MetadataPlanDefinition.Empty,
+                proof));
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                driftedWrites,
+                postbuildPlan));
+        CompiledComposition driftedSections = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorWriteSectionId: "fabricated-section");
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                driftedSections,
+                postbuildPlan));
+        CompiledComposition broadenedToReadView = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.System,
+            rootKind: FirmwareRegionKind.Image,
+            processorId: "nfc.synthetic.postbuild",
+            processorAdditionalWriteRanges: [new ByteRange(0, 4)],
+            useNestedCtrlRamMap: true);
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                broadenedToReadView,
+                postbuildPlan));
+
+        ResolvedCapabilityRoute reportRoute = CreateRoute(
+        [
+            .. reviewedBindings,
+            "report-metadata-profile:synthetic-report@1.0.0",
+            $"report-metadata-bundle:{new string('e', 64)}",
+            "report-metadata-slot:tp-input<-reference",
+        ]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            reportRoute.BindCompilation(
+                composition,
+                MetadataPlanDefinition.Empty,
+                proof));
+        var sourceOnlyReportPlan = new MetadataPlanDefinition(
+            [],
+            new MetadataPlanSourceIdentity(
+                "synthetic-report",
+                "1.0.0",
+                new string('e', 64)));
+        _ = Assert.Throws<ArgumentException>(() =>
+            reportRoute.BindCompilation(
+                composition,
+                sourceOnlyReportPlan,
+                proof));
+        ResolvedCapability resolved = route.BindCompilation(
+            composition,
+            MetadataPlanDefinition.Empty,
+            proof);
+
+        Assert.NotNull(resolved.RuntimeReferenceProof);
+
+        ResolvedCapabilityRoute CreateRoute(IReadOnlyList<string> bindings)
+        {
+            var contract = new CanonicalCapabilityCompilationContract(
+                composition.ProfileId,
+                composition.ProfileVersion,
+                composition.V2Details!.Provenance.Bundle.ContentHash,
+                ["map"],
+                CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
+                bindings);
+            string fingerprint = CapabilityDefinitionFingerprint.Compute(
+                identity,
+                contract.ProfileId,
+                contract.ProfileVersion,
+                contract.TrustedDefinitionSha256,
+                contract.AllowedMapVariantIds,
+                contract.CompilerSemanticId,
+                contract.SemanticBindingIds);
+            var definition = new CanonicalDynamicCapabilityDefinition(
+                identity,
+                fingerprint,
+                contract,
+                Decision("authoring", CapabilityAuthoringAvailability.Available),
+                Decision("publication", CapabilityPublicationStatus.Candidate),
+                Decision("evidence", CapabilityEvidenceStatus.ContractOnly));
+            return new ResolvedCapabilityRoute(
+                definition,
+                new ResolutionToken("synthetic-runtime-reference"));
+
+            PinnedCapabilityDecision<TValue> Decision<TValue>(
+                string decisionId,
+                TValue value)
+                where TValue : struct, Enum
+            {
+                return new PinnedCapabilityDecision<TValue>(
+                    decisionId,
+                    identity.RouteId,
+                    fingerprint,
+                    value,
+                    "synthetic-runtime-reference");
+            }
+        }
+    }
+
     /// <summary>Verifies the explicit runtime-reference candidate is admitted without broadening other map-bound V2 plans.</summary>
     [Fact]
     public async Task RuntimeReferenceCandidateRunsThroughTheSharedApplicationEngine()
@@ -155,18 +376,41 @@ public sealed partial class CompositionRunRequestV2Tests
         bool includeProcessorView = false,
         string modeId = ExperienceIds.GeneralReplace,
         string experienceId = ExperienceIds.GeneralReplace,
-        CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.Auxiliary)
+        CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.Auxiliary,
+        FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
+        FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
+        string? processorId = null,
+        string processorToolBindingId = "synthetic-postbuild-tool",
+        ByteRange? processorWriteRange = null,
+        string? processorWriteSectionId = null,
+        IReadOnlyList<ByteRange>? processorAdditionalWriteRanges = null,
+        bool useNestedCtrlRamMap = false)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
-            FirmwareWriteConstraint.ExplicitRange);
-        CompiledPhysicalRegionConstraint[] chain =
+            FirmwareWriteConstraint.ExplicitRange,
+            rootOwner: rootOwner,
+            rootKind: rootKind,
+            includeNestedCtrlRamRegion: useNestedCtrlRamMap);
+        var rootConstraint = new CompiledPhysicalRegionConstraint(
+            "root",
+            FirmwareWriteConstraint.ExplicitRange,
+            alignment: 1);
+        CompiledPhysicalRegionConstraint[] rootChain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.ExplicitRange,
-                alignment: 1),
+            rootConstraint,
         ];
+        CompiledPhysicalRegionConstraint[] writeChain = useNestedCtrlRamMap
+            ?
+            [
+                rootConstraint,
+                new CompiledPhysicalRegionConstraint(
+                    "ctrlram",
+                    FirmwareWriteConstraint.ExplicitRange,
+                    alignment: 1),
+            ]
+            : rootChain;
+        string writeRegionId = useNestedCtrlRamMap ? "ctrlram" : "root";
         var provenance = new V2CompilationProvenance(
             new ProfileBundleIdentity(
                 "bundle-v2",
@@ -179,7 +423,8 @@ public sealed partial class CompositionRunRequestV2Tests
             useRuntimeContext
                 ? new RuntimeReferenceReplaceV2CompilationContext(
                     resolvedMap,
-                    allowsConditionalProcessor)
+                    allowsConditionalProcessor || processorId is not null,
+                    processorId is null ? [] : ["processor-write"])
                 : new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.ExecutableCandidate, []),
             ["runtime-reference-evidence"],
@@ -202,7 +447,11 @@ public sealed partial class CompositionRunRequestV2Tests
             CompiledInputSlotCardinality.OneOrMore,
             [".bin"],
             new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
-            new CompiledNoInputNormalization());
+            sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
+                ? new CompiledTruncateCtrlRamInputNormalization(
+                    "synthetic.ctrlram-truncated",
+                    "synthetic-ctrlram-normalization")
+                : new CompiledNoInputNormalization());
         var referenceBinding = new CompiledInputSpaceBinding(
             "reference",
             "reference-slot",
@@ -217,18 +466,26 @@ public sealed partial class CompositionRunRequestV2Tests
         var regionAccess = new CompiledRegionAccessContract(
             [
                 new CompiledRegionAccessRequirement(
-                    "root",
+                    writeRegionId,
                     CompiledRegionAccessKind.ExplicitRange,
                     "Synthetic runtime reference-replace target.",
                     [],
-                    chain),
+                    writeChain),
             ],
-            includeProcessorView
-                ? [new CompiledResolvedPhysicalView(
-                    "processor-output",
-                    "output-image",
-                    new ByteRange(0, 4),
-                    chain)]
+            includeProcessorView || processorId is not null
+                ?
+                [
+                    new CompiledResolvedPhysicalView(
+                        "processor-image",
+                        "output-image",
+                        new ByteRange(0, 4),
+                        rootChain),
+                    new CompiledResolvedPhysicalView(
+                        "processor-write",
+                        "output-image",
+                        new ByteRange(1, 2),
+                        writeChain),
+                ]
                 : []);
         var identity = new V2CompiledCompositionIdentity(
             "runtime-reference-profile",
@@ -248,7 +505,14 @@ public sealed partial class CompositionRunRequestV2Tests
             ?
             [
                 new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
-                new AddressSpace("source-a", 2, AddressSpaceMutability.Immutable),
+                new AddressSpace(
+                    "source-a",
+                    2,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy:
+                        sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
+                            ? InputOversizePolicy.TruncateWithWarning
+                            : InputOversizePolicy.Reject),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ]
             :
@@ -256,25 +520,112 @@ public sealed partial class CompositionRunRequestV2Tests
                 new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ];
-        CompositionOperation[] operations = includeAuxiliarySource
+        ByteRange effectiveMappingRange =
+            processorWriteRange ?? new ByteRange(1, 2);
+        CompositionOperation[] mappingOperations = includeAuxiliarySource
             ?
             [CompositionOperation.ReplaceRange(
                 "replace-source",
                 10,
                 "source-a",
-                new ByteRange(0, 2),
+                new ByteRange(0, effectiveMappingRange.Length),
                 "output-image",
-                new ByteRange(1, 2),
+                effectiveMappingRange,
                 OverlapPolicy.Reject,
                 "Replace synthetic runtime source.")]
             : [];
+        CompositionOperation[] processorOperations = processorId is null
+            ? []
+            :
+            [
+                CompositionOperation.RunExternalProcessor(
+                    "run-postbuild",
+                    int.MaxValue,
+                    "output-image",
+                    new ByteRange(0, 4),
+                    new ExternalProcessorInvocation(
+                        processorId,
+                        processorToolBindingId,
+                        [new ByteRange(0, 4)],
+                        [
+                            processorWriteRange ?? new ByteRange(1, 2),
+                            .. processorAdditionalWriteRanges ?? [],
+                        ],
+                        allowedWriteRangeSections:
+                            CreateSyntheticPostbuildWriteSections(
+                                processorWriteRange ?? new ByteRange(1, 2),
+                                processorWriteSectionId)),
+                    OverlapPolicy.ReplaceExisting,
+                    "Run the synthetic postbuild processor."),
+            ];
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference", 4),
             spaces,
-            operations);
+            [.. mappingOperations, .. processorOperations]);
         return CompiledComposition.CreateV2(
             plan,
             identity,
             CompiledIcNumberPolicy.SingleSelector);
+
+        static IReadOnlyList<ExternalProcessorWriteRangeSection>
+            CreateSyntheticPostbuildWriteSections(
+                ByteRange allowedWriteRange,
+                string? sectionId)
+        {
+            LegacyCombinerPostbuildCommandPlan plan =
+                CreateSyntheticPostbuildPlan();
+            ByteRange[] stagedTargetRanges =
+            [
+                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                    .Select(static block => block.FirmwareRange),
+            ];
+            return
+            [
+                .. LegacyCombinerPostbuildPlanner
+                    .GetAllowedWriteRangeSectionsForStagedSources(
+                        plan,
+                        4,
+                        stagedTargetRanges,
+                        stagedTargetRanges)
+                    .Where(section =>
+                        allowedWriteRange.Contains(section.Range))
+                    .Select(section => sectionId is null
+                        ? section
+                        : new ExternalProcessorWriteRangeSection(
+                            sectionId,
+                            section.Range,
+                            section.SourceRange)),
+            ];
+        }
+    }
+
+    private static LegacyCombinerPostbuildCommandPlan
+        CreateSyntheticPostbuildPlan()
+    {
+        var block = new LegacyCombinerBlockArgument(
+            "synthetic-block",
+            LegacyCombinerBlockSourceKind.StagedFile,
+            "source.bin",
+            0,
+            new ByteRange(1, 2));
+        var command = new LegacyCombinerPostbuildCommand(
+            "synthetic-command",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Disable",
+            crcArgument: null,
+            [block]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "nfc.synthetic.postbuild",
+            "NT-SYNTHETIC",
+            "synthetic-postbuild-tool",
+            "firmware.bin",
+            [command],
+            [command],
+            "synthetic-evidence");
+        LegacyCombinerPostbuildPlanSelector selector =
+            profile.PlanSelectors.Single(static candidate =>
+                candidate.Kind ==
+                    LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
+        return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selector);
     }
 }

@@ -125,6 +125,14 @@ internal sealed class BuiltInV2Registration
 
     internal string ProfileVersion { get; }
 
+    internal string BundleContentHash => _bundle.ContentHash;
+
+    internal bool HasReportClassificationMetadata =>
+        _bundle.ProfileDeclaresMetadataPurpose(
+            ProfileId,
+            ProfileVersion,
+            CompositionProfileMetadataPurpose.ReportClassification);
+
     private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
 
     private bool IsAbMerge => WorkflowId == IcWorkflowIds.AbMerge;

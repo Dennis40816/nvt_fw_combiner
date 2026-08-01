@@ -10,23 +10,23 @@ public sealed record OutputNamingAdmissionIdentity
 {
     internal OutputNamingAdmissionIdentity(
         string routeId,
-        string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         long authoringRevision)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
-        if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
         {
             throw new ArgumentException(
-                "Output naming admission requires a lowercase SHA-256 capability fingerprint.",
-                nameof(capabilityFingerprint));
+                "Output naming admission requires a lowercase SHA-256 compilation fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         resolutionToken.EnsureValid(nameof(resolutionToken));
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
         RouteId = routeId;
-        CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
     }
@@ -41,7 +41,7 @@ public sealed record OutputNamingAdmissionIdentity
         CapabilityPublicationCoherence.ValidateResolved(capability);
         return new OutputNamingAdmissionIdentity(
             capability.Identity.RouteId,
-            capability.CapabilityFingerprint,
+            capability.CompiledComposition.CompilationFingerprint,
             capability.ResolutionToken,
             currentAuthoringRevision);
     }
@@ -49,8 +49,8 @@ public sealed record OutputNamingAdmissionIdentity
     /// <summary>Stable exact capability route.</summary>
     public string RouteId { get; }
 
-    /// <summary>Executable semantic fingerprint for the publication.</summary>
-    public string CapabilityFingerprint { get; }
+    /// <summary>Exact compiled-composition fingerprint admitted for naming.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Exact capability and metadata-plan publication token.</summary>
     public ResolutionToken ResolutionToken { get; }

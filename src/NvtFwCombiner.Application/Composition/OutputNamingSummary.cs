@@ -70,23 +70,23 @@ public sealed record OutputNamingAdmissionSummary
     /// <summary>Creates one checked report-safe publication identity.</summary>
     public OutputNamingAdmissionSummary(
         string routeId,
-        string capabilityFingerprint,
+        string compilationFingerprint,
         string resolutionToken,
         long authoringRevision)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
-        if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
         {
             throw new ArgumentException(
-                "Output naming admission summary requires a lowercase SHA-256 capability fingerprint.",
-                nameof(capabilityFingerprint));
+                "Output naming admission summary requires a lowercase SHA-256 compilation fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(resolutionToken);
         ArgumentOutOfRangeException.ThrowIfNegative(authoringRevision);
         RouteId = routeId;
-        CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
     }
@@ -94,8 +94,8 @@ public sealed record OutputNamingAdmissionSummary
     /// <summary>Stable exact capability route.</summary>
     public string RouteId { get; }
 
-    /// <summary>Executable semantic fingerprint.</summary>
-    public string CapabilityFingerprint { get; }
+    /// <summary>Exact compiled-composition fingerprint admitted for naming.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Exact publication token value.</summary>
     public string ResolutionToken { get; }

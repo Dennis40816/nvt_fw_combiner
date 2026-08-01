@@ -44,6 +44,38 @@ public sealed class FirmwareTpFlashHeaderDefinitionTests
                 group.GroupId == "dlm-integrity-values").SeriesIds);
     }
 
+    /// <summary>Typed plan targets resolve their exact canonical physical fields.</summary>
+    [Fact]
+    public void TypeAbHeaderExpandsFieldReferencesWithoutCopiedMembership()
+    {
+        FirmwareMetadataStructureDefinition definition = CreateTypeAbDefinition();
+        FirmwareMetadataField dlmCrc = definition.Fields.Single(static field =>
+            field.FieldId == "dlm-crc-0");
+        FirmwareMetadataField option = definition.Fields.Single(static field =>
+            field.FieldId == "spi-option");
+
+        Assert.True(definition.ReferenceTargetContainsField(
+            new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Span,
+                "complete-header"),
+            dlmCrc));
+        Assert.True(definition.ReferenceTargetContainsField(
+            new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Series,
+                "dlm-crc-series"),
+            dlmCrc));
+        Assert.True(definition.ReferenceTargetContainsField(
+            new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Group,
+                "dlm-integrity-values"),
+            dlmCrc));
+        Assert.False(definition.ReferenceTargetContainsField(
+            new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Group,
+                "dlm-integrity-values"),
+            option));
+    }
+
     /// <summary>
     /// Owner-declared IC Count rows select Active versus Unused repeated fields;
     /// fixed fields stay active and no formula is inferred from the index.

@@ -67,8 +67,8 @@ public sealed partial class CompositionRunService
         AppendTokenField(builder, "output.admission.route", admission.RouteId);
         AppendTokenField(
             builder,
-            "output.admission.fingerprint",
-            admission.CapabilityFingerprint);
+            "output.admission.compilation-fingerprint",
+            admission.CompilationFingerprint);
         AppendTokenField(
             builder,
             "output.admission.resolution",

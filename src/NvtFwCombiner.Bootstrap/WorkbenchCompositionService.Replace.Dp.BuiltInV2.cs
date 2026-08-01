@@ -14,26 +14,21 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        if (TryCompilePublishedDpReplaceCapability(
+        return TryCompilePublishedDynamicCapability(
+                icId,
+                IcWorkflowIds.DpReplace,
+                "1-ic",
+                baseCapacity,
+                selectedInputSlotIds: null,
+                out composition,
+                out _,
+                out issues) ||
+            TryCompilePublishedDpReplaceCapability(
                 icId,
                 baseCapacity,
                 out composition,
-                out issues))
-        {
-            return true;
-        }
-
-        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
-
-        registration.TryCompile(baseCapacity, out composition, out issues);
-        return true;
+                out _,
+                out issues);
     }
 
     internal static bool TryCompileBuiltInV2DpReplace(
@@ -43,18 +38,39 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
-        if (!BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.TryGetValue(
-                icId,
-                out BuiltInV2Registration? registration))
-        {
-            composition = null;
-            issues = [];
-            return false;
-        }
+        return TryCompileBuiltInV2DpReplace(
+            icId,
+            baseCapacity,
+            selectedInputSlotIds,
+            out composition,
+            out _,
+            out issues);
+    }
 
-        registration.TryCompile(baseCapacity, selectedInputSlotIds, out composition, out issues);
-        return true;
+    internal static bool TryCompileBuiltInV2DpReplace(
+        string icId,
+        long baseCapacity,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
+        return TryCompilePublishedDynamicCapability(
+                icId,
+                IcWorkflowIds.DpReplace,
+                "1-ic",
+                baseCapacity,
+                selectedInputSlotIds,
+                out composition,
+                out resolvedCapability,
+                out issues) ||
+            TryCompilePublishedDpReplaceCapability(
+                icId,
+                baseCapacity,
+                out composition,
+                out resolvedCapability,
+                out issues);
     }
 
     private static bool IsDpReplaceSelectionGroupMember(string icId, string addressSpaceId)

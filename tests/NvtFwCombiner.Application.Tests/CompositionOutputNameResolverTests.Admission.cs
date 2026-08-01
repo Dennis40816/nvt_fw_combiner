@@ -13,10 +13,12 @@ public sealed partial class CompositionOutputNameResolverTests
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
         CompiledComposition composition = CreateRuntimeComposition(fixture);
-        _ = Assert.Throws<ArgumentException>(() =>
+        CompiledComposition differentlyBound = composition.BindCapabilityFingerprint(
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        _ = Assert.Throws<InvalidOperationException>(() =>
             CreateAdmissionCapability(
                 fixture,
-                composition,
+                differentlyBound,
                 CapabilityFingerprint,
                 fixture.Plan.ResolutionToken));
         _ = Assert.Throws<ArgumentException>(() =>
@@ -25,6 +27,40 @@ public sealed partial class CompositionOutputNameResolverTests
                 composition,
                 composition.CompilationFingerprint,
                 new ResolutionToken("different-capability-publication")));
+    }
+
+    /// <summary>An executable compilation cannot enter Preview or Build under unavailable authoring policy.</summary>
+    [Fact]
+    public void RunRequestRejectsUnavailableResolvedCapability()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledComposition unbound = CreateRuntimeComposition(fixture);
+        ResolvedCapability capability = CreateAdmissionCapability(
+            fixture,
+            unbound,
+            CapabilityFingerprint,
+            fixture.Plan.ResolutionToken,
+            authoring: CapabilityAuthoringAvailability.Unavailable);
+        CompiledComposition composition = capability.CompiledComposition;
+        var inspection = new AcceptedOutputNamingInspection(
+            capability.Identity.RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan,
+            fixture.Snapshot);
+        var admission = new OutputNamingAdmissionIdentity(
+            capability.Identity.RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan.ResolutionToken,
+            fixture.Snapshot.AuthoringRevision);
+
+        _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
+            "unavailable-capability",
+            composition,
+            [CreateInputBinding()],
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            outputNamingInspection: inspection,
+            outputNamingAdmission: admission,
+            resolvedCapability: capability));
     }
 
     /// <summary>Capability route IC, workflow, and map are all compiled facts.</summary>
@@ -181,7 +217,9 @@ public sealed partial class CompositionOutputNameResolverTests
         string capabilityFingerprint,
         ResolutionToken capabilityResolutionToken,
         ResolvedMetadataPlan? metadataPlan = null,
-        CapabilityRouteIdentity? route = null)
+        CapabilityRouteIdentity? route = null,
+        CapabilityAuthoringAvailability authoring =
+            CapabilityAuthoringAvailability.Available)
     {
         route ??= new CapabilityRouteIdentity(
                 "NT51929",
@@ -194,7 +232,7 @@ public sealed partial class CompositionOutputNameResolverTests
             composition,
             Decision(
                 "authoring",
-                CapabilityAuthoringAvailability.Available),
+                authoring),
             Decision(
                 "publication",
                 CapabilityPublicationStatus.Supported),
@@ -230,6 +268,7 @@ public sealed partial class CompositionOutputNameResolverTests
         string fingerprint = composition.CompilationFingerprint;
         return new CanonicalCapabilityDefinition(
             route,
+            fingerprint,
             composition,
             Decision(
                 "authoring",

@@ -6,7 +6,8 @@
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 architecture contract; NT51928 profile and byte migrations remain R3
 - Builds on: ADR 0015, ADR 0020, ADR 0041
-- Amended by: ADR 0045 for source projection and FlashCode admission
+- Amended by: ADR 0045 for source projection and FlashCode admission; ADR 0046
+  for capability-definition versus per-compilation identity and evidence status
 
 ## Context
 
@@ -157,6 +158,11 @@ UI contracts do not introduce `LD` synonyms.
   firmware-owner-authorized build.
 - Existing fixed-profile compatibility lowering is migration scaffolding only
   and cannot become the canonical `0.10.x` architecture.
+
+No current project supplies an owner-approved complete golden for this
+dual-capacity capability. Standard Merge and DP Replace therefore remain
+`ContractOnly`, not `DirectGolden`. The verification byte oracles below are
+regression evidence and do not promote publication, support, or golden status.
 
 Ticket #239 owns the headless canonical family/profile, selection-group,
 resolution/compiler, Application/CLI/report, and evidence slice. Ticket #194

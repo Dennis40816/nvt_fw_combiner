@@ -107,6 +107,25 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
     }
 
+    /// <summary>A dynamic Standard Merge route projects DP DPCMI from its canonical metadata plan.</summary>
+    [Fact]
+    public void Nt51926StandardMergeInspectionProjectsCanonicalDpcmi()
+    {
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            dpPath,
+            tpPath);
+
+        Assert.Equal("0100", Assert.IsType<WorkbenchDpVersionMetadata>(inspection.DpVersion).VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal((byte)0x01, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)597, cmi.JiraNumber);
+    }
+
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
     [Fact]
     public void InspectionMatchesExistingFirmwareAndCtrlRamDisplayReaders()
@@ -191,8 +210,13 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             "tp.bin",
             ctrlRamRequest: null,
             readFirmwareImage: Read);
-        Assert.Null(distinctPaths.DpVersion);
-        _ = Assert.NotNull(distinctPaths.CmiDpCode);
+        Assert.Equal("CC00", distinctPaths.DpVersion?.VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
+            distinctPaths.CmiDpCode);
+        Assert.Equal((byte)0xCC, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)0x0240, cmi.JiraNumber);
+        Assert.Equal(0x3B016, cmi.Register16Offset);
         Assert.Equal(["dp.bin", "tp.bin"], reads);
 
         reads.Clear();
@@ -295,7 +319,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         }
     }
 
-    /// <summary>A full 256 KiB header probe does not allocate a whole decoded text copy.</summary>
+    /// <summary>A full 256 KiB probe plus its canonical snapshot does not allocate a decoded text copy.</summary>
     [Fact]
     public void InspectionHeaderHintAvoidsWholeProbeTextAllocation()
     {
@@ -319,7 +343,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal("NT51926", inspection.DetectedIcId);
-        Assert.InRange(allocatedBytes, 0, 64 * 1024);
+        Assert.InRange(allocatedBytes, 0, 384 * 1024);
     }
 
     /// <summary>FW/bar validity is independent from Common FW interval selection.</summary>

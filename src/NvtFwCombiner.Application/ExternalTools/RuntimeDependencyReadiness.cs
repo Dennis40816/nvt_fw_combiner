@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
@@ -33,18 +32,27 @@ public sealed class RuntimeDependencyReadinessRequest
     public RuntimeDependencyReadinessRequest(
         string routeId,
         string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
         IEnumerable<ExternalProcessorDependencyReference> dependencies)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
         ArgumentNullException.ThrowIfNull(dependencies);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
         {
             throw new ArgumentException(
                 "Runtime dependency readiness requires a capability SHA-256 fingerprint.",
                 nameof(capabilityFingerprint));
+        }
+
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Runtime dependency readiness requires a compilation SHA-256 fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         if (string.IsNullOrWhiteSpace(resolutionToken.Value))
@@ -73,6 +81,7 @@ public sealed class RuntimeDependencyReadinessRequest
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         Dependencies = Array.AsReadOnly(_dependencies);
@@ -81,8 +90,11 @@ public sealed class RuntimeDependencyReadinessRequest
     /// <summary>Stable exact-route identity.</summary>
     public string RouteId { get; }
 
-    /// <summary>Firmware-semantic identity of the compiled capability.</summary>
+    /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition fingerprint.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Catalog publication identity.</summary>
     public ResolutionToken ResolutionToken { get; }
@@ -102,6 +114,7 @@ public sealed class RuntimeDependencyReadinessRequest
         return new RuntimeDependencyReadinessRequest(
             capability.Identity.RouteId,
             capability.CapabilityFingerprint,
+            capability.CompiledComposition.CompilationFingerprint,
             capability.ResolutionToken,
             authoringRevision,
             capability.CompiledComposition.Plan.OrderedOperations
@@ -112,34 +125,6 @@ public sealed class RuntimeDependencyReadinessRequest
                     invocation.ToolBindingId)));
     }
 
-    /// <summary>
-    /// Temporary one-way extraction for a compiled V2 migration route. It
-    /// copies only processor/tool references already present in the plan.
-    /// </summary>
-    public static RuntimeDependencyReadinessRequest FromCompiledMigration(
-        CapabilityAdmissionSnapshot admission,
-        CompiledComposition compiledComposition)
-    {
-        ArgumentNullException.ThrowIfNull(admission);
-        ArgumentNullException.ThrowIfNull(compiledComposition);
-        return StringComparer.Ordinal.Equals(
-            admission.CapabilityFingerprint,
-            compiledComposition.CompilationFingerprint)
-            ? new RuntimeDependencyReadinessRequest(
-            admission.RouteId,
-            admission.CapabilityFingerprint,
-            admission.ResolutionToken,
-            admission.AuthoringRevision,
-            compiledComposition.Plan.OrderedOperations
-                .Select(static operation => operation.ExternalProcessorInvocation)
-                .Where(static invocation => invocation is not null)
-                .Select(static invocation => new ExternalProcessorDependencyReference(
-                    invocation!.ProcessorId,
-                    invocation.ToolBindingId)))
-            : throw new ArgumentException(
-                "The readiness admission fingerprint must match the compiled composition.",
-                nameof(compiledComposition));
-    }
 }
 
 /// <summary>One refresh-time environment result for a compiled dependency.</summary>
@@ -230,6 +215,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
     public RuntimeDependencyReadinessSnapshot(
         string routeId,
         string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
         long generation,
@@ -238,6 +224,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
         ArgumentOutOfRangeException.ThrowIfLessThan(generation, 1);
         ArgumentNullException.ThrowIfNull(entries);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
@@ -245,6 +232,13 @@ public sealed class RuntimeDependencyReadinessSnapshot
             throw new ArgumentException(
                 "Runtime dependency snapshots require a capability SHA-256 fingerprint.",
                 nameof(capabilityFingerprint));
+        }
+
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Runtime dependency snapshots require a compilation SHA-256 fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         if (checkedAtUtc.Offset != TimeSpan.Zero)
@@ -285,6 +279,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         Generation = generation;
@@ -295,8 +290,11 @@ public sealed class RuntimeDependencyReadinessSnapshot
     /// <summary>Stable exact-route identity.</summary>
     public string RouteId { get; }
 
-    /// <summary>Firmware-semantic identity evaluated by this refresh.</summary>
+    /// <summary>Reviewed capability-definition fingerprint evaluated by this refresh.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition fingerprint evaluated by this refresh.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Catalog publication evaluated by this refresh.</summary>
     public ResolutionToken ResolutionToken { get; }
@@ -326,6 +324,9 @@ public sealed class RuntimeDependencyReadinessSnapshot
             StringComparer.Ordinal.Equals(
                 CapabilityFingerprint,
                 admission.CapabilityFingerprint) &&
+            StringComparer.Ordinal.Equals(
+                CompilationFingerprint,
+                admission.CompilationFingerprint) &&
             ResolutionToken == admission.ResolutionToken &&
             AuthoringRevision == admission.AuthoringRevision &&
             Generation == currentGeneration;

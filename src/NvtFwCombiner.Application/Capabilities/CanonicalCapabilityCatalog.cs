@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Firmware;
+
 namespace NvtFwCombiner.Application.Capabilities;
 
 /// <summary>Stable issue returned by catalog loading, publication, or resolution.</summary>
@@ -179,6 +181,28 @@ public sealed class CanonicalCapabilityCatalog
             : Resolve(snapshot, routeId);
     }
 
+    /// <summary>Resolves a policy-bound dynamic definition before compiling current authoring state.</summary>
+    public CapabilityRouteResolutionResult ResolveDynamicRoute(string routeId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
+        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        return snapshot is null
+            ? DynamicFailure(
+                CapabilityCatalogIssueCodes.CatalogUnavailable,
+                "No valid canonical capability catalog is loaded.")
+            : !snapshot.TryGetDynamic(routeId, out ResolvedCapabilityRoute? route)
+            ? DynamicFailure(
+                CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The requested dynamic route is not present in the current catalog.",
+                routeId)
+            : route!.Authoring.Value == CapabilityAuthoringAvailability.Unavailable
+            ? DynamicFailure(
+                CapabilityCatalogIssueCodes.AuthoringUnavailable,
+                "The requested dynamic route is unavailable for authoring.",
+                routeId)
+            : new CapabilityRouteResolutionResult(route, null);
+    }
+
     /// <summary>
     /// Resolves the sole published map variant for selection axes that do not
     /// restate a firmware map fact.
@@ -187,6 +211,23 @@ public sealed class CanonicalCapabilityCatalog
         string icId,
         string workflowId,
         string icCountVariant)
+    {
+        return ResolveUniqueRoute(
+            icId,
+            workflowId,
+            icCountVariant,
+            outputCapacity: null);
+    }
+
+    /// <summary>
+    /// Resolves the sole published map whose compiled output capacity matches
+    /// an already observed container length.
+    /// </summary>
+    public CapabilityResolutionResult ResolveUniqueRoute(
+        string icId,
+        string workflowId,
+        string icCountVariant,
+        long? outputCapacity)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
@@ -208,7 +249,10 @@ public sealed class CanonicalCapabilityCatalog
                     workflowId) &&
                 StringComparer.Ordinal.Equals(
                     capability.Identity.IcCountVariant,
-                    icCountVariant)),
+                    icCountVariant) &&
+                (outputCapacity is null ||
+                 capability.CompiledComposition.Plan.OutputInitialization.Capacity ==
+                 outputCapacity.Value)),
         ];
         return matches.Length switch
         {
@@ -218,6 +262,44 @@ public sealed class CanonicalCapabilityCatalog
             > 1 => Failure(
                 CapabilityCatalogIssueCodes.RouteAmbiguous,
                 "The requested selection resolves to more than one map variant."),
+            _ => Resolve(snapshot, matches[0].Identity.RouteId),
+        };
+    }
+
+    /// <summary>Resolves the sole published map admitted by an exact topology selection.</summary>
+    public CapabilityResolutionResult ResolveUniqueTopologyRoute(
+        string icId,
+        string workflowId,
+        TopologySelection? topology)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        if (snapshot is null)
+        {
+            return Failure(
+                CapabilityCatalogIssueCodes.CatalogUnavailable,
+                "No valid canonical capability catalog is loaded.");
+        }
+
+        ResolvedCapability[] matches =
+        [
+            .. snapshot.Capabilities.Where(capability =>
+                StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.WorkflowId,
+                    workflowId) &&
+                capability.CompiledComposition.V2Details?.Provenance.ResolvedMap
+                    .ImageMap.Applicability.TopologyRequirement.Matches(topology) == true),
+        ];
+        return matches.Length switch
+        {
+            0 => Failure(
+                CapabilityCatalogIssueCodes.RouteUnavailable,
+                "The requested topology is not present in the current catalog."),
+            > 1 => Failure(
+                CapabilityCatalogIssueCodes.RouteAmbiguous,
+                "The requested topology resolves to more than one map variant."),
             _ => Resolve(snapshot, matches[0].Identity.RouteId),
         };
     }
@@ -249,14 +331,21 @@ public sealed class CanonicalCapabilityCatalog
     {
         if (candidate.Definitions.Count == 0)
         {
-            throw new ArgumentException(
-                "A canonical capability candidate must contain at least one exact route.",
-                nameof(candidate));
+            if (candidate.DynamicDefinitions.Count == 0)
+            {
+                throw new ArgumentException(
+                    "A canonical capability candidate must contain at least one exact route.",
+                    nameof(candidate));
+            }
         }
 
         if (candidate.Definitions.Any(static definition => definition is null) ||
+            candidate.DynamicDefinitions.Any(static definition => definition is null) ||
             candidate.Definitions.Select(static definition => definition.Identity.RouteId)
-                .Distinct(StringComparer.Ordinal).Count() != candidate.Definitions.Count)
+                .Concat(candidate.DynamicDefinitions.Select(
+                    static definition => definition.Identity.RouteId))
+                .Distinct(StringComparer.Ordinal).Count() !=
+                    candidate.Definitions.Count + candidate.DynamicDefinitions.Count)
         {
             throw new ArgumentException(
                 "Canonical capability routes must be non-null and unique.",
@@ -281,6 +370,16 @@ public sealed class CanonicalCapabilityCatalog
         string? subject = null)
     {
         return new CapabilityResolutionResult(
+            null,
+            new CapabilityCatalogIssue(code, message, subject));
+    }
+
+    private static CapabilityRouteResolutionResult DynamicFailure(
+        string code,
+        string message,
+        string? subject = null)
+    {
+        return new CapabilityRouteResolutionResult(
             null,
             new CapabilityCatalogIssue(code, message, subject));
     }

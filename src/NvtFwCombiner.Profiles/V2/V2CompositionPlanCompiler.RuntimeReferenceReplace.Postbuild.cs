@@ -10,6 +10,7 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyList<CompositionOperation> mappingOperations,
         IReadOnlyList<ByteRange> postbuildFirmwareVersionWrites,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy,
+        IReadOnlyList<ExternalProcessorWriteRangeSection> postbuildWriteRangeSections,
         CompositionOperation[] processorOperations)
     {
         if (!StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) ||
@@ -71,8 +72,11 @@ internal static partial class V2CompositionPlanCompiler
             declared.AllowedReadRanges,
             resolvedAllowedWrites,
             declared.StagedSourceBindings,
-            declared.AllowedWriteRangeSections.Where(section =>
-                resolvedAllowedWrites.Any(range => range.Contains(section.Range))),
+            declared.AllowedWriteRangeSections
+                .Concat(postbuildWriteRangeSections)
+                .Where(section =>
+                    resolvedAllowedWrites.Any(range => range.Contains(section.Range)))
+                .DistinctBy(section => (section.SectionId, section.Range, section.SourceRange)),
             declared.StagedArtifactBindings,
             declared.OutputAssertions);
         return

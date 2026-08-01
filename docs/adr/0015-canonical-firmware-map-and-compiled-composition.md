@@ -2,12 +2,14 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-07-30
+- Last amended: 2026-08-01
 - Owners: Product owner + architecture owner + firmware reviewers
-- Supersedes: ADR 0008 catalog-join ownership after compatibility migration
+- Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
+  ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
+  meanings and evidence gates remain accepted
 - Amends: ADR 0003, ADR 0004, ADR 0005, ADR 0006, and ADR 0007
 - Amended by: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020, ADR 0023,
-  ADR 0024, ADR 0032, ADR 0042, and ADR 0045
+  ADR 0024, ADR 0032, ADR 0042, ADR 0045, and ADR 0046
 
 ## Context
 
@@ -167,6 +169,14 @@ format version; affected authoring, publication, and evidence policy becomes
 stale and is reviewed and repinned rather than silently accepted.
 Cross-language vectors lock the canonical encoding and chain.
 
+The #194 capability-bound formats are
+`nfc.compiled-composition.profile-v2.v7` and
+`nfc.compiled-composition.profile-v2-logical-output.v3`. They reference the
+reviewed `CapabilityFingerprint` and append exact compilation state; they do
+not repeat trusted bundle/profile definition provenance already covered by the
+capability identity. The unbound migration formats remain v5/v1 only for
+artifacts that have no capability admission identity.
+
 Every runtime invariant has one validating owner:
 
 1. schema/Contracts intake validates serialized shape, required fields,
@@ -177,7 +187,9 @@ Every runtime invariant has one validating owner:
 3. resolution/compiler validates only unique selection and lowering against an
    already valid canonical definition;
 4. Application validates selected inputs, authoring revision, readiness,
-   stale-result identity, and runtime dependencies; and
+   stale-result identity, and runtime dependencies. Runtime-dependency requests
+   and snapshots bind both `CapabilityFingerprint` and the exact
+   `CompilationFingerprint`; and
 5. the processor host validates staging, actual before/after mutation,
    declared write authority, and tool identity.
 

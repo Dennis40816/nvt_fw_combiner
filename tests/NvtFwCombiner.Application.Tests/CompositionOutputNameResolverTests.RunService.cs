@@ -101,7 +101,7 @@ public sealed partial class CompositionOutputNameResolverTests
 
     /// <summary>A naming inspection from a different compiled capability cannot enter a run request.</summary>
     [Fact]
-    public void DifferentCapabilityFingerprintIsRejectedAtRequestBoundary()
+    public void DifferentCompilationFingerprintIsRejectedAtRequestBoundary()
     {
         InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
         CompiledComposition composition = CreateRuntimeComposition(fixture);
@@ -114,7 +114,7 @@ public sealed partial class CompositionOutputNameResolverTests
             outputNamingInspection: fixture.AcceptedInspection,
             outputNamingAdmission: new OutputNamingAdmissionIdentity(
                 fixture.AcceptedInspection.RouteId,
-                fixture.AcceptedInspection.CapabilityFingerprint,
+                fixture.AcceptedInspection.CompilationFingerprint,
                 fixture.AcceptedInspection.ResolutionToken,
                 fixture.AcceptedInspection.AuthoringRevision)));
     }
@@ -244,7 +244,7 @@ public sealed partial class CompositionOutputNameResolverTests
         OutputNamingAdmissionSummary summaryA = Assert.IsType<OutputNamingAdmissionSummary>(
             previewA.Report.OutputNaming?.Admission);
         Assert.Equal(admissionA.RouteId, summaryA.RouteId);
-        Assert.Equal(admissionA.CapabilityFingerprint, summaryA.CapabilityFingerprint);
+        Assert.Equal(admissionA.CompilationFingerprint, summaryA.CompilationFingerprint);
         Assert.Equal(admissionA.ResolutionToken.Value, summaryA.ResolutionToken);
         Assert.Equal(admissionA.AuthoringRevision, summaryA.AuthoringRevision);
 

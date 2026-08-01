@@ -24,9 +24,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionOperation.", applicationCapabilitySources, StringComparison.Ordinal);
     }
 
-    /// <summary>Canonical routing is IC-neutral and delegates legacy facts through one named adapter.</summary>
+    /// <summary>Canonical routing is IC-neutral and materializes only reviewed compiled or dynamic inventory entries.</summary>
     [Fact]
-    public void CanonicalRouteUsesIcNeutralOneWayFactFreeMigrationAdapter()
+    public void CanonicalRouteUsesIcNeutralOneWayInventoryAdapter()
     {
         string source = ReadText(
             "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityCatalogMigrationSource.cs");
@@ -38,10 +38,14 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string presentation = ReadPresentationSources();
 
-        Assert.Contains("BuiltInV2RegistrationRegistry.StandardMergeByIc", source, StringComparison.Ordinal);
-        Assert.Contains("registration.TryCompile", source, StringComparison.Ordinal);
-        Assert.Contains("composition.CompilationFingerprint", source, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMergeThroughMigrationAdapter", routing, StringComparison.Ordinal);
+        Assert.Contains("CanonicalCompiledRouteInventory.Resolve", source, StringComparison.Ordinal);
+        Assert.Contains("CanonicalDynamicRouteInventory.Resolve", source, StringComparison.Ordinal);
+        Assert.Contains("BindCapabilityFingerprint", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("BuiltInV2RegistrationRegistry", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("registration.TryCompile", source, StringComparison.Ordinal);
+        Assert.Contains("TryCompilePublishedDynamicCapability", routing, StringComparison.Ordinal);
+        Assert.Contains("TryCompilePublishedStandardMergeCapability", routing, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileStandardMergeThroughMigrationAdapter", routing, StringComparison.Ordinal);
         Assert.Contains("CapabilityCatalogIssueCodes.RouteUnavailable", canonicalRouting, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51929", routing, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51929", canonicalRouting, StringComparison.Ordinal);

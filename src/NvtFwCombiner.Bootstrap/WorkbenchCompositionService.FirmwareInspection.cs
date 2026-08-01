@@ -122,11 +122,6 @@ public static partial class WorkbenchCompositionService
                 ? image
                 : readFirmwareImage(tpPath);
         FirmwareConfigMetadata? firmwareConfig = ReadFirmwareConfigMetadataValue(icId, image);
-        FirmwareConfigMetadata? tpFirmwareConfig = string.Equals(path, tpPath, StringComparison.Ordinal)
-            ? firmwareConfig
-            : ReadFirmwareConfigMetadataValue(icId, tpImage);
-        FirmwareConfigMetadata? cmiFirmwareConfig = tpFirmwareConfig ??
-            (string.IsNullOrWhiteSpace(tpPath) ? firmwareConfig : null);
         CompiledFirmwareArtifactClassification? artifactClassification =
             ClassifyBaseFirmwareArtifact(icId, image);
         WorkbenchBaseFirmwareArtifactKind artifactKind = artifactClassification?.Kind switch
@@ -148,7 +143,10 @@ public static partial class WorkbenchCompositionService
             : null;
         (WorkbenchDpVersionMetadata? Version, WorkbenchCmiDpCodeMetadata? Cmi)
             dpMetadata = shouldProjectDpMetadata
-                ? ReadDpMetadata(icId, image, cmiFirmwareConfig?.ChipNumber)
+                ? ReadDpMetadata(
+                    icId,
+                    image,
+                    string.Equals(path, tpPath, StringComparison.Ordinal) ? null : tpImage)
                 : (null, null);
         return new WorkbenchFirmwareInspection(
             detectedIcId ?? DetectFirmwareIcHintFromHeader(image),
@@ -181,17 +179,17 @@ public static partial class WorkbenchCompositionService
         return CreateCtrlRamInspectionDisplay(icId, number, postbuildProfile);
     }
 
-    private static WorkbenchDpVersionMetadata? ReadDpVersionMetadata(string icId, ReadOnlySpan<byte> image)
+    private static WorkbenchDpVersionMetadata? ReadDpVersionMetadata(string icId, byte[] image)
     {
-        return ReadDpMetadata(icId, image, firmwareConfigChipNumber: null).Version;
+        return ReadDpMetadata(icId, image, tpImage: null).Version;
     }
 
     private static WorkbenchCmiDpCodeMetadata? ReadCmiDpCodeMetadata(
         string icId,
-        ReadOnlySpan<byte> image,
-        byte? firmwareConfigChipNumber)
+        byte[] image,
+        byte[]? tpImage)
     {
-        return ReadDpMetadata(icId, image, firmwareConfigChipNumber).Cmi;
+        return ReadDpMetadata(icId, image, tpImage).Cmi;
     }
 
     private static (
@@ -199,10 +197,14 @@ public static partial class WorkbenchCompositionService
         WorkbenchCmiDpCodeMetadata? Cmi)
         ReadDpMetadata(
             string icId,
-            ReadOnlySpan<byte> image,
-            byte? firmwareConfigChipNumber)
+            byte[] image,
+            byte[]? tpImage)
     {
-        if (TryReadCanonicalDpcmi(icId, image, out DpcmiMetadataFacts? dpcmi))
+        if (TryReadCanonicalDpcmi(
+                icId,
+                image,
+                tpImage,
+                out DpcmiMetadataFacts? dpcmi))
         {
             return dpcmi is null
                 ? (null, null)
@@ -215,49 +217,83 @@ public static partial class WorkbenchCompositionService
                         checked((int)dpcmi.ResolvedRange.Start)));
         }
 
-        WorkbenchDpVersionMetadata? version =
-            GenFlashVersionCatalog.TryReadDpVersion(
-                icId,
-                image,
-                out GenFlashDpVersionMetadata versionMetadata)
-                ? new WorkbenchDpVersionMetadata(versionMetadata.VersionToken)
-                : null;
-        WorkbenchCmiDpCodeMetadata? cmi =
-            GenFlashVersionCatalog.TryReadCmiDpCode(
-                icId,
-                image,
-                firmwareConfigChipNumber,
-                out CmiDpCodeMetadata cmiMetadata)
-                ? new WorkbenchCmiDpCodeMetadata(
-                    cmiMetadata.MajorVersionByte,
-                    cmiMetadata.MinorVersionNibble,
-                    cmiMetadata.JiraNumber,
-                    cmiMetadata.Register16Offset)
-                : null;
-        return (version, cmi);
+        return (null, null);
     }
 
     private static bool TryReadCanonicalDpcmi(
         string icId,
-        ReadOnlySpan<byte> image,
+        byte[] image,
+        byte[]? tpImage,
         out DpcmiMetadataFacts? facts)
     {
         facts = null;
-        CapabilityResolutionResult resolution = ResolveCanonicalDpReplaceCapability(
-            IcSupportCatalog.NormalizeIcId(icId));
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
+        CapabilityResolutionResult resolution;
+        if (tpImage is null)
+        {
+            resolution = ResolveCanonicalDpReplaceCapability(normalizedIcId);
+            if (StringComparer.Ordinal.Equals(
+                    resolution.Issue?.Code,
+                    CapabilityCatalogIssueCodes.RouteAmbiguous))
+            {
+                resolution = ResolveCanonicalDpReplaceCapability(
+                    normalizedIcId,
+                    image.LongLength);
+            }
+        }
+        else
+        {
+            resolution = ResolveCanonicalStandardMergeCapability(
+                normalizedIcId,
+                image.LongLength);
+        }
+
         ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
-        bool declaresDpcmi = plan?.Entries.Any(entry =>
-            StringComparer.Ordinal.Equals(
-                entry.Definition.StructureDefinition.Definition.DefinitionId,
-                DpcmiMetadataContract.StructureId)) == true;
+        bool declaresDpcmi = DeclaresDpcmi(plan);
+        if (!declaresDpcmi && tpImage is not null)
+        {
+            CapabilityResolutionResult dpResolution =
+                ResolveCanonicalDpReplaceCapability(normalizedIcId);
+            if (StringComparer.Ordinal.Equals(
+                    dpResolution.Issue?.Code,
+                    CapabilityCatalogIssueCodes.RouteAmbiguous))
+            {
+                dpResolution = ResolveCanonicalDpReplaceCapability(
+                    normalizedIcId,
+                    image.LongLength);
+            }
+
+            plan = dpResolution.Capability?.MetadataPlan;
+            declaresDpcmi = DeclaresDpcmi(plan);
+        }
+
         if (!declaresDpcmi)
         {
             return false;
         }
 
+        if (image.Length == 0)
+        {
+            return true;
+        }
+
+        FirmwareArtifactPayload[] artifacts =
+        [
+            .. plan!.Entries
+                .Select(static entry => entry.Definition.SpaceId)
+                .Distinct(StringComparer.Ordinal)
+                .Select(spaceId => new FirmwareArtifactPayload(
+                    spaceId,
+                    StringComparer.Ordinal.Equals(
+                            spaceId,
+                            CompositionAddressSpaceIds.TpInput) &&
+                        tpImage is not null
+                            ? tpImage
+                            : image)),
+        ];
         MetadataInspectionSnapshot snapshot = FirmwareMetadataInspector.Inspect(
-            plan!,
-            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, image)]);
+            plan,
+            artifacts);
         if (DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts projected))
         {
             facts = projected;
@@ -266,6 +302,14 @@ public static partial class WorkbenchCompositionService
         // A declared canonical DPCMI route owns both success and failure. Never
         // fall back to a second physical-offset interpretation for that route.
         return true;
+    }
+
+    private static bool DeclaresDpcmi(ResolvedMetadataPlan? plan)
+    {
+        return plan?.Entries.Any(entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.StructureDefinition.Definition.DefinitionId,
+                DpcmiMetadataContract.StructureId)) == true;
     }
 
     private static WorkbenchFirmwareConfigMetadata? ReadFirmwareConfigMetadata(

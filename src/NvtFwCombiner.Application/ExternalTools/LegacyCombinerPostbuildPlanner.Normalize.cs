@@ -1,12 +1,11 @@
-using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
 public static partial class LegacyCombinerPostbuildPlanner
 {
-    private static IReadOnlyList<LegacyCombinerPostbuildWriteRange> NormalizeCandidateWriteRangeSections(
-        List<LegacyCombinerPostbuildWriteRange> candidateRanges,
+    private static IReadOnlyList<ExternalProcessorWriteRangeSection> NormalizeCandidateWriteRangeSections(
+        List<ExternalProcessorWriteRangeSection> candidateRanges,
         IReadOnlyList<ByteRange> stagedTargetRanges)
     {
         if (candidateRanges.Count == 0)
@@ -15,7 +14,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         }
 
         SortedSet<long> splitPoints = [];
-        foreach (LegacyCombinerPostbuildWriteRange candidate in candidateRanges)
+        foreach (ExternalProcessorWriteRangeSection candidate in candidateRanges)
         {
             ByteRange range = candidate.Range;
             _ = splitPoints.Add(range.Start);
@@ -32,16 +31,16 @@ public static partial class LegacyCombinerPostbuildPlanner
         }
 
         long[] points = [.. splitPoints];
-        List<LegacyCombinerPostbuildWriteRange> ranges = [];
+        List<ExternalProcessorWriteRangeSection> ranges = [];
         for (int index = 0; index < points.Length - 1; index++)
         {
             var segment = ByteRange.FromStartEndExclusive(points[index], points[index + 1]);
             if (candidateRanges.Any(candidate => candidate.Range.Contains(segment)))
             {
-                LegacyCombinerPostbuildWriteRange selected = SelectWriteRangeSection(candidateRanges, segment);
-                ranges.Add(new LegacyCombinerPostbuildWriteRange(
-                    segment,
+                ExternalProcessorWriteRangeSection selected = SelectWriteRangeSection(candidateRanges, segment);
+                ranges.Add(new ExternalProcessorWriteRangeSection(
                     selected.SectionId,
+                    segment,
                     selected.TryMapRangeToSourceRange(segment, out ByteRange sourceRange)
                         ? sourceRange
                         : null));
@@ -58,13 +57,13 @@ public static partial class LegacyCombinerPostbuildPlanner
         ];
     }
 
-    private static LegacyCombinerPostbuildWriteRange SelectWriteRangeSection(
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> candidates,
+    private static ExternalProcessorWriteRangeSection SelectWriteRangeSection(
+        IReadOnlyList<ExternalProcessorWriteRangeSection> candidates,
         ByteRange segment)
     {
         return candidates
             .Where(candidate => candidate.Range.Contains(segment))
-            .OrderByDescending(candidate => TpHeaderCatalog.GetPriority(candidate.SectionId))
+            .OrderByDescending(candidate => PostbuildWriteSectionSemantics.GetOverlapPriority(candidate.SectionId))
             .ThenBy(candidate => candidate.Range.Length)
             .ThenBy(candidate => candidate.Range.Start)
             .First();

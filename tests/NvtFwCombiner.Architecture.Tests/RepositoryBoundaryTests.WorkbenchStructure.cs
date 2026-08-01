@@ -275,7 +275,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("ReadDpVersionMetadata(icId, image)", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("GenFlashVersionCatalog.TryReadDpVersion", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("TryReadCanonicalDpcmi", firmwareInspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("GenFlashVersionCatalog", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("DisplayCategory", firmwareInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);

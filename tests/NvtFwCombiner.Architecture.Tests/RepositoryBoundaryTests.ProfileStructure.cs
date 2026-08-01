@@ -395,8 +395,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
-            "src/NvtFwCombiner.Application/FlashMaps/TpHeaderCatalog.Layouts.cs",
-            "src/NvtFwCombiner.Application/FlashMaps/GenFlashVersionCatalog.cs",
+            "src/NvtFwCombiner.Application/ExternalTools/PostbuildWriteSections.cs",
+            "src/NvtFwCombiner.Application/Composition/CompositionRunService.ReportMetadata.cs",
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog.Loader.cs",
@@ -410,6 +410,19 @@ public sealed partial class RepositoryBoundaryTests
             Assert.All(retiredIds, retiredId =>
                 Assert.DoesNotContain(retiredId, source, StringComparison.Ordinal));
         }
+
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "FlashMaps",
+            "TpHeaderCatalog.Layouts.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "FlashMaps",
+            "GenFlashVersionCatalog.cs")));
 
         string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
         Assert.DoesNotContain(

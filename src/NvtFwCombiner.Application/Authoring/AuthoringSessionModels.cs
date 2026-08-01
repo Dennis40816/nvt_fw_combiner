@@ -154,7 +154,7 @@ public sealed record AuthoringCapabilityRoute
     /// <summary>Exact canonical selection identity.</summary>
     public CapabilityRouteIdentity Identity { get; }
 
-    /// <summary>Firmware-semantic identity of the resolved capability.</summary>
+    /// <summary>Reviewed capability-definition fingerprint of the resolved route.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Whether the compiler admitted execution for this exact route.</summary>

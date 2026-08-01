@@ -1,10 +1,10 @@
 namespace NvtFwCombiner.Application.FlashMaps;
 
 /// <summary>
-/// Compatibility offsets used by the legacy FWConfig reader and version-write
-/// routes during #194 migration. The canonical all-IC General Parameters field
-/// table is declared once in profile data; this class is not a second profile
-/// or TP Flash Header definition.
+/// Compatibility offsets used by the bounded FWConfig reader and version-write
+/// adapter. The canonical all-IC General Parameters field table is declared
+/// once in profile data; this class is not a second profile or TP Flash Header
+/// definition.
 /// </summary>
 public static class FirmwareConfigLayout
 {

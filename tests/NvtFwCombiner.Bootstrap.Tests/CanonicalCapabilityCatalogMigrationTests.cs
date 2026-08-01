@@ -3,12 +3,22 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Capabilities;
+using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
+/// <summary>Serializes tests that intentionally replace the process-wide catalog publication.</summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class CanonicalCapabilityCatalogPublicationGroup
+{
+    /// <summary>Stable xUnit collection name for the process-wide publication boundary.</summary>
+    public const string Name = "Canonical capability catalog publication";
+}
+
 /// <summary>Tests the first canonical route and the remaining one-way migration seam.</summary>
-public sealed class CanonicalCapabilityCatalogMigrationTests
+[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
+public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
     /// <summary>
     /// The trusted source joins policy references and exact canonical TP Header
@@ -28,12 +38,18 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.IcId == "NT51929" &&
                 candidate.Identity.WorkflowId == "standard-merge");
         CompiledComposition composition = definition.CompiledComposition;
 
         Assert.Equal("NT51929", definition.Identity.IcId);
         Assert.Equal("nt51929-standard-merge-256k", definition.Identity.MapVariant);
-        Assert.Equal(definition.CapabilityFingerprint, composition.CompilationFingerprint);
+        Assert.Equal(
+            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
+            definition.CapabilityFingerprint);
+        Assert.NotEqual(
+            definition.CapabilityFingerprint,
+            composition.CompilationFingerprint);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
         Assert.Equal(0x40000, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(
@@ -111,6 +127,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 loaded.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CanonicalCapabilityDefinition definition =
             loaded.Candidate!.Definitions.Single(candidate =>
+                candidate.Identity.IcId == "NT51929" &&
                 candidate.Identity.WorkflowId == "dp-replace");
         MetadataPlanEntry entry = Assert.Single(definition.MetadataPlan.Entries);
 
@@ -144,6 +161,145 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             entry.Purposes);
     }
 
+    /// <summary>One reviewed NT51928 capability binds both admitted maps to distinct exact compilations.</summary>
+    [Fact]
+    public void Nt51928DualCapacityKeepsDefinitionIdentityAndChangesCompilationIdentity()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new CanonicalCapabilityCatalogMigrationSource());
+        CapabilityCatalogReloadResult reload = catalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
+            candidate =>
+                candidate.Identity.IcId == "NT51928" &&
+                candidate.Identity.WorkflowId == "dp-replace");
+        BuiltInV2Registration registration =
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+
+        registration.TryCompile(
+            0x40000,
+            requestedTopology: null,
+            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            out CompiledComposition? compact,
+            out IReadOnlyList<CompositionIssue> compactIssues);
+        registration.TryCompile(
+            0x80000,
+            requestedTopology: null,
+            registration.InputSelectionGroupMemberSlotIds,
+            out CompiledComposition? extended,
+            out IReadOnlyList<CompositionIssue> extendedIssues);
+        ResolvedCapability compactCapability = route.BindCompilation(compact!);
+        ResolvedCapability extendedCapability = route.BindCompilation(extended!);
+
+        Assert.True(reload.Succeeded);
+        Assert.Empty(compactIssues);
+        Assert.Empty(extendedIssues);
+        Assert.Equal(
+            CanonicalDynamicRouteInventory.Nt51928DualCapacityMapVariantSetId,
+            route.Identity.MapVariant);
+        Assert.Equal(
+            ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
+            route.CompilationContract.AllowedMapVariantIds);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
+        Assert.Equal(
+            route.CapabilityFingerprint,
+            compactCapability.CompiledComposition.CapabilityFingerprint);
+        Assert.Equal(
+            route.CapabilityFingerprint,
+            extendedCapability.CompiledComposition.CapabilityFingerprint);
+        Assert.NotEqual(
+            compactCapability.CompiledComposition.CompilationFingerprint,
+            extendedCapability.CompiledComposition.CompilationFingerprint);
+    }
+
+    /// <summary>A dynamic route rejects a compilation minted from a different trusted bundle definition.</summary>
+    [Fact]
+    public void DynamicRouteRejectsDifferentTrustedBundleDefinition()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new CanonicalCapabilityCatalogMigrationSource());
+        CapabilityCatalogReloadResult reload = catalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
+            candidate =>
+                candidate.Identity.IcId == "NT51928" &&
+                candidate.Identity.WorkflowId == "dp-replace");
+        BuiltInV2Registration registration =
+            BuiltInV2RegistrationRegistry.DpReplaceByIc.Value["NT51928"];
+        registration.TryCompile(
+            0x40000,
+            requestedTopology: null,
+            [.. registration.InputSelectionGroupMemberSlotIds.Take(1)],
+            out CompiledComposition? compiled,
+            out IReadOnlyList<CompositionIssue> issues);
+        CompiledComposition drifted = WithBundleContentHash(
+            compiled!,
+            new string('e', 64));
+
+        Assert.True(reload.Succeeded);
+        Assert.Empty(issues);
+        _ = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(drifted));
+    }
+
+    /// <summary>A reload cannot rebind an old compiled object to a different publication token.</summary>
+    [Fact]
+    public void ReloadDoesNotRebindOldCompilationToCurrentPublication()
+    {
+        CapabilityCatalogReloadResult first =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+        ResolvedCapability old = WorkbenchCompositionService
+            .ResolveCanonicalStandardMergeCapability("NT51929")
+            .Capability!;
+        CapabilityCatalogReloadResult second =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+
+        ResolvedCapability? rebound =
+            WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+                old.CompiledComposition);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(old.ResolutionToken, second.Snapshot!.ResolutionToken);
+        Assert.Null(rebound);
+    }
+
+    /// <summary>A dynamic exact compilation is rejected after its catalog publication is replaced.</summary>
+    [Fact]
+    public void ReloadRejectsOldDynamicCompilationAndAcceptedCapability()
+    {
+        CapabilityCatalogReloadResult first =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            "NT51928",
+            0x40000,
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+            out CompiledComposition? composition,
+            out ResolvedCapability? acceptedCapability,
+            out IReadOnlyList<CompositionIssue> issues);
+        CapabilityCatalogReloadResult second =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+
+        ResolvedCapability? rebound =
+            WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+                composition!,
+                acceptedCapability);
+
+        Assert.True(first.Succeeded);
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        Assert.NotNull(acceptedCapability);
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(
+            acceptedCapability.ResolutionToken,
+            second.Snapshot!.ResolutionToken);
+        Assert.Null(rebound);
+    }
+
     /// <summary>A stale policy fingerprint rejects the complete candidate.</summary>
     [Fact]
     public void SourceRejectsStaleCapabilityFingerprint()
@@ -151,6 +307,7 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         CanonicalCapabilityPolicySnapshot current =
             BuiltInCanonicalCapabilityPolicy.Load();
         CanonicalCapabilityPolicyRoute route = current.Routes.Single(candidate =>
+            candidate.Identity.IcId == "NT51929" &&
             candidate.Identity.WorkflowId == "standard-merge");
         string staleFingerprint = new('0', 64);
         CanonicalCapabilityPolicyRoute staleRoute = route with
@@ -209,6 +366,56 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal(
             resolution.Capability.ResolutionToken,
             afterCompile.Capability!.ResolutionToken);
+    }
+
+    /// <summary>Dynamic Standard Merge availability is catalog-owned, alias-safe, and fails closed.</summary>
+    [Fact]
+    public void Nt51928AvailabilityUsesCurrentDynamicPolicyWithoutFallback()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new CanonicalCapabilityCatalogMigrationSource());
+        CapabilityCatalogReloadResult loaded = catalog.Reload(
+            TestContext.Current.CancellationToken);
+        ResolvedCapabilityRoute route = loaded.Snapshot!.DynamicRoutes.Single(
+            candidate =>
+                candidate.Identity.IcId == "NT51928" &&
+                candidate.Identity.WorkflowId == IcWorkflowIds.StandardMerge);
+        var unavailable = new CanonicalDynamicCapabilityDefinition(
+            route.Identity,
+            route.CapabilityFingerprint,
+            route.CompilationContract,
+            new PinnedCapabilityDecision<CapabilityAuthoringAvailability>(
+                route.Authoring.DecisionId,
+                route.Identity.RouteId,
+                route.CapabilityFingerprint,
+                CapabilityAuthoringAvailability.Unavailable,
+                route.Authoring.SourceReference),
+            route.Publication,
+            route.Evidence);
+        var unavailableCatalog = new CanonicalCapabilityCatalog(
+            new SingleCandidateSource(new CanonicalCapabilityCatalogCandidate(
+                "unavailable-test",
+                "1.0.0",
+                new string('a', 64),
+                [],
+                [unavailable])));
+        CapabilityCatalogReloadResult unavailableReload = unavailableCatalog.Reload(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(loaded.Succeeded);
+        Assert.True(WorkbenchCompositionService.HasCanonicalCapability(
+            loaded.Snapshot,
+            " 51928 ",
+            IcWorkflowIds.StandardMerge));
+        Assert.False(WorkbenchCompositionService.HasCanonicalCapability(
+            snapshot: null,
+            "NT51928",
+            IcWorkflowIds.StandardMerge));
+        Assert.True(unavailableReload.Succeeded);
+        Assert.False(WorkbenchCompositionService.HasCanonicalCapability(
+            unavailableReload.Snapshot,
+            "nt51928",
+            IcWorkflowIds.StandardMerge));
     }
 
     /// <summary>NT51929 DP Replace compilation and metadata inspection share one published capability snapshot.</summary>
@@ -290,9 +497,9 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             path));
     }
 
-    /// <summary>Non-pilot routes remain executable only through the named migration adapter.</summary>
+    /// <summary>Every static Standard Merge route resolves and compiles through one canonical snapshot.</summary>
     [Fact]
-    public void OtherStandardMergeRoutesRemainBehindMigrationAdapter()
+    public void OtherStandardMergeRoutesUsePublishedCanonicalSnapshot()
     {
         bool recognized = WorkbenchCompositionService.TryCompileStandardMerge(
             "NT51923",
@@ -304,10 +511,9 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
                 "NT51923");
 
         Assert.True(recognized);
-        Assert.NotNull(composition);
         Assert.Empty(issues);
-        Assert.False(canonical.Succeeded);
-        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, canonical.Issue!.Code);
+        Assert.True(canonical.Succeeded);
+        Assert.Same(canonical.Capability!.CompiledComposition, composition);
     }
 
     /// <summary>Retired ICs resolve to the same stable unsupported result and cannot compile through migration adapters.</summary>
@@ -378,5 +584,53 @@ public sealed class CanonicalCapabilityCatalogMigrationTests
             fingerprint,
             decision.Value,
             decision.SourceReference);
+    }
+
+    private static CompiledComposition WithBundleContentHash(
+        CompiledComposition composition,
+        string contentHash)
+    {
+        V2CompiledCompositionDetails source = composition.V2Details!;
+        V2CompilationProvenance provenance = source.Provenance;
+        var bundle = new ProfileBundleIdentity(
+            provenance.Bundle.BundleId,
+            provenance.Bundle.BundleVersion,
+            contentHash,
+            provenance.Bundle.TrustAnchorBindingId);
+        var changedProvenance = new V2CompilationProvenance(
+            bundle,
+            provenance.ProfileEntry,
+            provenance.Context,
+            provenance.Promotion,
+            provenance.ProfileEvidenceRefs,
+            provenance.ValidationRequirements,
+            provenance.RequiredCapabilities);
+        var details = new V2CompiledCompositionDetails(
+            changedProvenance,
+            source.InputContract,
+            source.RegionAccessContract,
+            source.OutputNamingRequirement);
+        var identity = new V2CompiledCompositionIdentity(
+            composition.ProfileId,
+            composition.ProfileVersion,
+            composition.ExperienceId,
+            composition.CompositionKind,
+            details);
+        return CompiledComposition.CreateV2RuntimeExecutable(
+            composition.Plan,
+            identity,
+            composition.IcNumberPolicy);
+    }
+
+    private sealed class SingleCandidateSource(
+        CanonicalCapabilityCatalogCandidate candidate) :
+        ICanonicalCapabilityCatalogSource
+    {
+        public CapabilityCatalogLoadResult Load(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return CapabilityCatalogLoadResult.Success(candidate);
+        }
     }
 }

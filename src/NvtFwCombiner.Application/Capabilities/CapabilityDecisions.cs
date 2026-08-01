@@ -13,6 +13,9 @@ public enum CapabilityAuthoringAvailability
 /// <summary>Owner-approved publication classification, independent from Build.</summary>
 public enum CapabilityPublicationStatus
 {
+    /// <summary>No owner-approved publication classification exists yet.</summary>
+    Unclassified,
+
     /// <summary>The route is publicly supported.</summary>
     Supported,
 
@@ -89,7 +92,7 @@ public sealed record PinnedCapabilityDecision<TValue>
     /// <summary>Stable exact route pinned by this decision.</summary>
     public string RouteId { get; }
 
-    /// <summary>Executable semantic revision pinned by this decision.</summary>
+    /// <summary>Reviewed capability-definition fingerprint pinned by this decision.</summary>
     public string CapabilityFingerprint { get; }
 
     /// <summary>Typed decision value.</summary>

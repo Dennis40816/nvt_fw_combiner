@@ -165,6 +165,56 @@ public sealed class FirmwareMetadataInspectorTests
             new MetadataPlanDefinition([first, second]));
         _ = Assert.Throws<ArgumentException>(() =>
             new MetadataPlanDefinition([first, sameFamilyOtherResolution]));
+
+        var source = new MetadataPlanSourceIdentity(
+            "synthetic-profile",
+            "1.0.0",
+            new string('a', 64));
+        var projection = new MetadataPlanReportProjection(
+            CompositionAddressSpaceIds.TpInput,
+            CompositionAddressSpaceIds.ReferenceBase);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanSourceIdentity(
+                "synthetic-profile",
+                "1.0.0",
+                "not-a-sha256"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanReportProjection(
+                " ",
+                CompositionAddressSpaceIds.ReferenceBase));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [],
+                source,
+                [projection, projection]));
+        MetadataPlanEntry reportEntry = CreateDpcmiEntry(
+            firstFixture,
+            purposes: [MetadataReferencePurpose.ReportClassification]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [reportEntry],
+                source,
+                [projection]));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [],
+                source,
+                [projection]));
+        var matchingProjection = new MetadataPlanReportProjection(
+            reportEntry.SpaceId,
+            reportEntry.SlotId);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [reportEntry],
+                reportProjections: [matchingProjection]));
+        var reportPlan = new MetadataPlanDefinition(
+            [reportEntry],
+            source,
+            [matchingProjection]);
+        Assert.Same(source, reportPlan.SourceIdentity);
+        Assert.Equal(
+            matchingProjection,
+            Assert.Single(reportPlan.ReportProjections));
     }
 
     /// <summary>Empty declarations stay empty, while zero Jira is a valid value without a badge.</summary>

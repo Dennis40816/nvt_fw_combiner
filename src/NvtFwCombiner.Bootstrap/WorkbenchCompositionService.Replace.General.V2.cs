@@ -8,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private const string Nt51926GeneralReplaceBundleId =
+    internal const string Nt51926GeneralReplaceBundleId =
         "nt51926-ctrlram-replace-candidate";
     internal const string Nt51926GeneralReplaceDpProfileId =
         "nt51926-general-replace-dp-single-candidate";

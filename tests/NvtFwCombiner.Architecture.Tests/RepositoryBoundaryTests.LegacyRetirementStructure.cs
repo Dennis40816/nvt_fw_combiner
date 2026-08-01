@@ -32,6 +32,7 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInPostbuildProfileCatalog",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
+                "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs",
                 "src/NvtFwCombiner.Bootstrap/CurrentSupportMatrixCatalog.CtrlRam.cs",
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",

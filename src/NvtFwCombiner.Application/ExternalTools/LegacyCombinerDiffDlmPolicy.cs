@@ -323,7 +323,8 @@ public sealed class LegacyCombinerDiffDlmPolicy
                 new ByteRange(
                     checked(TargetBase + (index * TargetRecordStride) + WritableRange.Start),
                     WritableRange.Length),
-                template.StagedArtifactId);
+                template.StagedArtifactId,
+                template.SectionId);
         }
 
         return Array.AsReadOnly(blocks);

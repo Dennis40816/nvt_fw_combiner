@@ -49,14 +49,14 @@ public sealed class WorkbenchOutputNamingTests
         Assert.Empty(gaps);
     }
 
-    /// <summary>Every direct CtrlRAM owner golden retains its exact full-flash D/T metadata bytes.</summary>
+    /// <summary>Every direct CtrlRAM owner golden projects its canonical DPCMI and TP version facts.</summary>
     [Theory]
-    [InlineData("NT51923", "nt51923-fw141-single-auto-prj-662-20260717", "8001", "8100")]
-    [InlineData("NT51923", "nt51923-fw141-cascade3-auto-prj-734-20260717", "8202", "8100")]
-    [InlineData("NT51926", "nt51926-fw141-single-auto-prj-747-20260717", "8002", "8000")]
-    [InlineData("NT51926", "nt51926-fw141-cascade2-auto-prj-597-20260717", "0202", "0600")]
-    [InlineData("NT51926", "nt51926-fw200-single-auto-prj-597-20260718", "0202", "FF00")]
-    [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0202", "0000")]
+    [InlineData("NT51923", "nt51923-fw141-single-auto-prj-662-20260717", "8000", "8100")]
+    [InlineData("NT51923", "nt51923-fw141-cascade3-auto-prj-734-20260717", "8200", "8100")]
+    [InlineData("NT51926", "nt51926-fw141-single-auto-prj-747-20260717", "8000", "8000")]
+    [InlineData("NT51926", "nt51926-fw141-cascade2-auto-prj-597-20260717", "0200", "0600")]
+    [InlineData("NT51926", "nt51926-fw200-single-auto-prj-597-20260718", "0200", "FF00")]
+    [InlineData("NT51926", "nt51926-fw200-cascade3-auto-prj-597-20260718", "0200", "0000")]
     [InlineData("NT51927", "nt51927-fw141-single-auto-prj-529-20260717", "0400", "0100")]
     [InlineData("NT51929", "nt51929-fw200-single-auto-prj-594-20260717", "0600", "0500")]
     [InlineData("NT51932", "nt51932-fw200-cascade3-auto-prj-525-20260718", "0200", "8800")]
@@ -76,7 +76,7 @@ public sealed class WorkbenchOutputNamingTests
 
     /// <summary>Verifies FlashCode output naming reads DP/FWConfig metadata outside the UI layer.</summary>
     [Fact]
-    public void FlashCodeOutputNameUsesCatalogBackedDpAndTpMetadata()
+    public void FlashCodeOutputNameUsesCanonicalDpAndTpMetadata()
     {
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
@@ -89,8 +89,8 @@ public sealed class WorkbenchOutputNamingTests
             ],
             new DateOnly(2026, 7, 8));
 
-        Assert.Equal("NT51926_FlashCode_D0102T0100_20260708.bin", suggestion.FileName);
-        Assert.Equal("0102", suggestion.DpVersionToken);
+        Assert.Equal("NT51926_FlashCode_D0100T0100_20260708.bin", suggestion.FileName);
+        Assert.Equal("0100", suggestion.DpVersionToken);
         Assert.True(suggestion.HasDpVersion);
         Assert.Equal("0100", suggestion.TpVersionToken);
         Assert.True(suggestion.HasTpVersion);
@@ -158,9 +158,9 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(inspected.HasDpVersion);
     }
 
-    /// <summary>NT51951 uses its fixed CMI location without requiring an IC-count context.</summary>
+    /// <summary>NT51951 keeps DP naming pending until its declared TP prerequisite is available.</summary>
     [Fact]
-    public void Nt51951OutputNameUsesFixedCmiDpVersion()
+    public void Nt51951OutputNameWithoutTpKeepsDpVersionUnknown()
     {
         string dpPath = GoldenArtifactPath("51951", "dp-input");
 
@@ -169,9 +169,9 @@ public sealed class WorkbenchOutputNamingTests
             [new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath)],
             new DateOnly(2026, 7, 20));
 
-        Assert.Equal("0500", suggestion.DpVersionToken);
-        Assert.Equal("NT51951_FlashCode_D0500Txxxx_20260720.bin", suggestion.FileName);
-        Assert.True(suggestion.HasDpVersion);
+        Assert.Equal("xxxx", suggestion.DpVersionToken);
+        Assert.Equal("NT51951_FlashCode_DxxxxTxxxx_20260720.bin", suggestion.FileName);
+        Assert.False(suggestion.HasDpVersion);
     }
 
     /// <summary>CtrlRAM-style workflows preserve DP, so their base is the version source when no DP input exists.</summary>
@@ -228,7 +228,7 @@ public sealed class WorkbenchOutputNamingTests
         Assert.True(ctrlRam.HasDpVersion);
         Assert.Equal("xxxx", unreadableDp.DpVersionToken);
         Assert.False(unreadableDp.HasDpVersion);
-        Assert.Equal("0102", pathBackedCtrlRam.DpVersionToken);
+        Assert.Equal("0100", pathBackedCtrlRam.DpVersionToken);
         Assert.True(pathBackedCtrlRam.HasDpVersion);
     }
 
