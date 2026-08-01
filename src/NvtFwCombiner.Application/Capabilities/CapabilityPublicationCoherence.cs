@@ -49,7 +49,8 @@ internal static class CapabilityPublicationCoherence
             authoring,
             publication,
             evidence,
-            metadataPlan.Entries);
+            metadataPlan,
+            adapterSemanticBindingIds: null);
     }
 
     internal static void ValidateResolved(ResolvedCapability capability)
@@ -64,7 +65,8 @@ internal static class CapabilityPublicationCoherence
             capability.Publication,
             capability.Evidence,
             capability.MetadataPlan,
-            capability.ResolutionToken);
+            capability.ResolutionToken,
+            capability.AdapterSemanticBindingIds);
     }
 
     internal static void ValidateResolved(
@@ -76,7 +78,8 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
-        ResolutionToken resolutionToken)
+        ResolutionToken resolutionToken,
+        IEnumerable<string>? adapterSemanticBindingIds = null)
     {
         ArgumentNullException.ThrowIfNull(metadataPlan);
         resolutionToken.EnsureValid(nameof(resolutionToken));
@@ -96,7 +99,8 @@ internal static class CapabilityPublicationCoherence
             authoring,
             publication,
             evidence,
-            metadataPlan.Definition.Entries);
+            metadataPlan.Definition,
+            adapterSemanticBindingIds);
     }
 
     private static void ValidateCore(
@@ -107,7 +111,8 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
-        IReadOnlyList<MetadataPlanEntry> metadataEntries)
+        MetadataPlanDefinition metadataPlan,
+        IEnumerable<string>? adapterSemanticBindingIds)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -115,8 +120,12 @@ internal static class CapabilityPublicationCoherence
         ArgumentNullException.ThrowIfNull(authoring);
         ArgumentNullException.ThrowIfNull(publication);
         ArgumentNullException.ThrowIfNull(evidence);
-        ArgumentNullException.ThrowIfNull(metadataEntries);
-        compilationContract.ValidateCompilation(identity, compiledComposition);
+        ArgumentNullException.ThrowIfNull(metadataPlan);
+        compilationContract.ValidateCompilation(
+            identity,
+            compiledComposition,
+            metadataPlan,
+            adapterSemanticBindingIds);
         if (!StringComparer.Ordinal.Equals(
                 capabilityFingerprint,
                 compiledComposition.CapabilityFingerprint))
@@ -143,7 +152,7 @@ internal static class CapabilityPublicationCoherence
             "evidence decision");
         V2CompiledCompositionDetails? details = compiledComposition.V2Details;
 
-        ValidateOutputNamingMetadata(details, metadataEntries);
+        ValidateOutputNamingMetadata(details, metadataPlan.Entries);
     }
 
     private static void ValidateDecision<TValue>(

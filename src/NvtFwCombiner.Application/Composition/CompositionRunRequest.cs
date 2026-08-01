@@ -172,6 +172,9 @@ public sealed class CompositionRunRequest
         if (resolvedCapability.Authoring.Value !=
                 CapabilityAuthoringAvailability.Available ||
             !resolvedCapability.ExecutionAdmitted ||
+            !ReferenceEquals(
+                resolvedCapability.CompiledComposition,
+                compiledComposition) ||
             !StringComparer.Ordinal.Equals(
                 resolvedCapability.CapabilityFingerprint,
                 compiledComposition.CapabilityFingerprint) ||

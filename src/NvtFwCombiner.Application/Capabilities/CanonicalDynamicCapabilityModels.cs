@@ -60,6 +60,15 @@ public sealed record CanonicalCapabilityCompilationContract
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
+        bool compilerProducesLogicalOutput = StringComparer.Ordinal.Equals(
+            compilerSemanticId,
+            CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId);
+        if (allowsLogicalOutput != compilerProducesLogicalOutput)
+        {
+            throw new ArgumentException(
+                "Logical-output admission must match the reviewed compiler semantic id.",
+                nameof(allowsLogicalOutput));
+        }
 
         ProfileId = profileId;
         ProfileVersion = profileVersion;
@@ -93,10 +102,13 @@ public sealed record CanonicalCapabilityCompilationContract
 
     internal void ValidateCompilation(
         CapabilityRouteIdentity identity,
-        CompiledComposition composition)
+        CompiledComposition composition,
+        MetadataPlanDefinition metadataPlan,
+        IEnumerable<string>? adapterSemanticBindingIds)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
+        ArgumentNullException.ThrowIfNull(metadataPlan);
         if (!StringComparer.Ordinal.Equals(identity.IcId, composition.IcId) ||
             !StringComparer.Ordinal.Equals(identity.WorkflowId, composition.ExperienceId) ||
             !StringComparer.Ordinal.Equals(ProfileId, composition.ProfileId) ||
@@ -153,11 +165,19 @@ public sealed record CanonicalCapabilityCompilationContract
                     nameof(composition));
             }
 
-            ValidateSelectionGroupBindings(composition);
+            ValidateSemanticBindings(
+                expectedSemantic ==
+                    CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId
+                    ? GetSelectionGroupBindings(composition)
+                    : GetRuntimeReferenceBindings(
+                        composition,
+                        metadataPlan,
+                        adapterSemanticBindingIds),
+                composition);
             return;
         }
 
-        if (context is not LogicalOutputV2CompilationContext ||
+        if (context is not LogicalOutputV2CompilationContext logicalContext ||
             !AllowsLogicalOutput ||
             !StringComparer.Ordinal.Equals(
                 CompilerSemanticId,
@@ -168,22 +188,70 @@ public sealed record CanonicalCapabilityCompilationContract
                 "Compiled composition context is outside its canonical capability definition.",
                 nameof(composition));
         }
+
+        ValidateSemanticBindings(
+            [$"family:{logicalContext.FamilyId}"],
+            composition);
     }
 
-    private void ValidateSelectionGroupBindings(CompiledComposition composition)
+    private static IEnumerable<string> GetSelectionGroupBindings(
+        CompiledComposition composition)
     {
-        string[] compiledMembers =
+        return composition.V2Details!.InputContract.SelectionGroups
+            .SelectMany(static group => group.MemberSlotIds);
+    }
+
+    private static IEnumerable<string> GetRuntimeReferenceBindings(
+        CompiledComposition composition,
+        MetadataPlanDefinition metadataPlan,
+        IEnumerable<string>? adapterSemanticBindingIds)
+    {
+        string[] processorBindings =
         [
-            .. composition.V2Details!.InputContract.SelectionGroups
-                .SelectMany(static group => group.MemberSlotIds)
+            .. composition.Plan.OrderedOperations
+                .Where(static operation =>
+                    operation.Kind == CompositionOperationKind.RunExternalProcessor)
+                .Select(static operation =>
+                    $"postbuild-processor:{operation.ExternalProcessorInvocation!.ProcessorId}"),
+        ];
+        string[] reportMetadataBindings =
+        [
+            .. metadataPlan.Entries
+                .Where(static entry => entry.Purposes.Contains(
+                    MetadataReferencePurpose.ReportClassification))
+                .Select(static entry =>
+                    $"report-metadata-slot:{entry.SpaceId}<-{entry.SlotId}"),
+        ];
+        return
+        [
+            .. processorBindings,
+            .. reportMetadataBindings,
+            .. adapterSemanticBindingIds ?? [],
+        ];
+    }
+
+    private void ValidateSemanticBindings(
+        IEnumerable<string> actualBindings,
+        CompiledComposition composition)
+    {
+        ArgumentNullException.ThrowIfNull(actualBindings);
+        string[] normalized =
+        [
+            .. actualBindings
+                .Select(value => string.IsNullOrWhiteSpace(value)
+                    ? throw new ArgumentException(
+                        "Compilation semantic bindings must be non-empty.",
+                        nameof(composition))
+                    : value)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
-        if (compiledMembers.Length != 0 &&
-            !compiledMembers.SequenceEqual(_semanticBindingIds, StringComparer.Ordinal))
+        if (!normalized.SequenceEqual(_semanticBindingIds, StringComparer.Ordinal))
         {
             throw new ArgumentException(
-                "Compiled selection groups do not match their reviewed capability bindings.",
+                "Compiled semantic bindings do not match their reviewed capability definition " +
+                $"(expected [{string.Join(", ", _semanticBindingIds)}], " +
+                $"actual [{string.Join(", ", normalized)}]).",
                 nameof(composition));
         }
     }
@@ -242,6 +310,23 @@ public sealed record CanonicalDynamicCapabilityDefinition
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compilationContract);
         ValidateFingerprint(capabilityFingerprint);
+        string expectedFingerprint = CapabilityDefinitionFingerprint.Compute(
+            identity,
+            compilationContract.ProfileId,
+            compilationContract.ProfileVersion,
+            compilationContract.TrustedDefinitionSha256,
+            compilationContract.AllowedMapVariantIds,
+            compilationContract.CompilerSemanticId,
+            compilationContract.SemanticBindingIds);
+        if (!StringComparer.Ordinal.Equals(
+                capabilityFingerprint,
+                expectedFingerprint))
+        {
+            throw new ArgumentException(
+                "Dynamic capability fingerprint does not match its compilation contract.",
+                nameof(capabilityFingerprint));
+        }
+
         ValidateDecision(identity, capabilityFingerprint, authoring);
         ValidateDecision(identity, capabilityFingerprint, publication);
         ValidateDecision(identity, capabilityFingerprint, evidence);
@@ -341,12 +426,19 @@ public sealed record ResolvedCapabilityRoute
     /// <summary>Binds one compiler-produced artifact to this definition and publication.</summary>
     public ResolvedCapability BindCompilation(
         CompiledComposition composition,
-        MetadataPlanDefinition? metadataPlan = null)
+        MetadataPlanDefinition? metadataPlan = null,
+        IEnumerable<string>? adapterSemanticBindingIds = null)
     {
         ArgumentNullException.ThrowIfNull(composition);
+        MetadataPlanDefinition resolvedMetadataPlan =
+            metadataPlan ?? MetadataPlanDefinition.Empty;
         CompiledComposition bound = composition.BindCapabilityFingerprint(
             CapabilityFingerprint);
-        CompilationContract.ValidateCompilation(Identity, bound);
+        CompilationContract.ValidateCompilation(
+            Identity,
+            bound,
+            resolvedMetadataPlan,
+            adapterSemanticBindingIds);
         return new ResolvedCapability(
             Identity,
             CapabilityFingerprint,
@@ -354,9 +446,10 @@ public sealed record ResolvedCapabilityRoute
             Authoring,
             Publication,
             Evidence,
-            (metadataPlan ?? MetadataPlanDefinition.Empty).Resolve(ResolutionToken),
+            resolvedMetadataPlan.Resolve(ResolutionToken),
             ResolutionToken,
-            CompilationContract);
+            CompilationContract,
+            adapterSemanticBindingIds);
     }
 }
 

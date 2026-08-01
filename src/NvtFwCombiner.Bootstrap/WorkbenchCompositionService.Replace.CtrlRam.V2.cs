@@ -80,6 +80,32 @@ public static partial class WorkbenchCompositionService
             : new MetadataPlanDefinition(entries);
     }
 
+    private static IReadOnlyList<string> CreateCtrlRamCapabilitySemanticBindings(
+        CtrlRamV2Route route,
+        LegacyCombinerPostbuildCommandPlan commandPlan,
+        long referenceCapacity)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentNullException.ThrowIfNull(commandPlan);
+        BuiltInV2Registration reportMetadataRegistration =
+            BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
+                route.Key.IcId) ??
+            throw new InvalidDataException(
+                $"CtrlRAM report metadata requires the reviewed {route.Key.IcId} Standard Merge definition.");
+        LegacyCombinerPostbuildCommandPlan reviewedPlan =
+            LegacyCombinerPostbuildPlanner.CreatePlan(
+                commandPlan.Profile,
+                commandPlan.Selector);
+        return
+        [
+            $"postbuild-selector:{commandPlan.Selector.Token}",
+            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(reviewedPlan, referenceCapacity)}",
+            $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}",
+            $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}",
+            $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}",
+        ];
+    }
+
     private static IEnumerable<IReadOnlyCollection<string>>
         CreateStandardMergeMetadataSelectionCandidates(
             BuiltInV2Registration registration)

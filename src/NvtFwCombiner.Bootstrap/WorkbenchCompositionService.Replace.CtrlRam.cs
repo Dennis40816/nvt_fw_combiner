@@ -190,11 +190,17 @@ public static partial class WorkbenchCompositionService
 
             CompiledComposition unboundComposition =
                 v2Compile.CompiledComposition!;
+            MetadataPlanDefinition metadataPlan =
+                CreateCtrlRamReportMetadataPlan(
+                    route.Key.IcId,
+                    referencePayload.LengthBytes);
             ResolvedCapability resolvedCapability =
                 capabilityResolution.Route!.BindCompilation(
                     unboundComposition,
-                    CreateCtrlRamReportMetadataPlan(
-                        route.Key.IcId,
+                    metadataPlan,
+                    CreateCtrlRamCapabilitySemanticBindings(
+                        route,
+                        context.CommandPlan,
                         referencePayload.LengthBytes));
             CompiledComposition compiledComposition =
                 resolvedCapability.CompiledComposition;

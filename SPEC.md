@@ -1182,6 +1182,13 @@ version.
    selection-scoped Application projection; `SupportMatrix` is its enumerated
    reporting/CI projection. Neither projection is an independently maintained
    support list.
+   Dynamic publication recomputes `CapabilityFingerprint` from its compilation
+   contract and rejects an incoherent supplied fingerprint. Binding the exact
+   compiler result rejects missing selection groups, logical-family drift,
+   processor drift, or missing trusted adapter selector/plan/report bindings.
+   Preview and Build require the same compiled object instance retained by the
+   accepted `ResolvedCapability`; matching fingerprint strings do not permit
+   cross-publication substitution.
 7. `ResolvedArtifactPlan`, `ResolvedMetadataPlan`, and
    `ResolvedCompositionCapability` retain canonical references plus
    applicability, prerequisites, readiness, and permitted per-run state. They
@@ -1560,7 +1567,7 @@ version.
     is never inferred globally from artifact class, filename, or hash.
 
 Runtime readiness is valid only for the exact tuple `(RouteId,
-CapabilityFingerprint, ResolutionToken, AuthoringRevision,
+CapabilityFingerprint, CompilationFingerprint, ResolutionToken, AuthoringRevision,
 RuntimeDependencyGeneration)`. Every refresh receives the current
 environment-owned generation explicitly; there is no implicit/default
 generation and no revision-zero compatibility overload in the canonical

@@ -266,6 +266,40 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Null(rebound);
     }
 
+    /// <summary>A dynamic exact compilation is rejected after its catalog publication is replaced.</summary>
+    [Fact]
+    public void ReloadRejectsOldDynamicCompilationAndAcceptedCapability()
+    {
+        CapabilityCatalogReloadResult first =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+            "NT51928",
+            0x40000,
+            [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+            out CompiledComposition? composition,
+            out ResolvedCapability? acceptedCapability,
+            out IReadOnlyList<CompositionIssue> issues);
+        CapabilityCatalogReloadResult second =
+            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+                TestContext.Current.CancellationToken);
+
+        ResolvedCapability? rebound =
+            WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+                composition!,
+                acceptedCapability);
+
+        Assert.True(first.Succeeded);
+        Assert.True(compiled, string.Join(Environment.NewLine, issues.Select(static issue => issue.Message)));
+        Assert.Empty(issues);
+        Assert.NotNull(acceptedCapability);
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(
+            acceptedCapability.ResolutionToken,
+            second.Snapshot!.ResolutionToken);
+        Assert.Null(rebound);
+    }
+
     /// <summary>A stale policy fingerprint rejects the complete candidate.</summary>
     [Fact]
     public void SourceRejectsStaleCapabilityFingerprint()

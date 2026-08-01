@@ -508,7 +508,9 @@ public sealed partial class CompositionRunRequestV2Tests
         string modeId = "standard",
         FirmwareWriteConstraint rootWriteConstraint = FirmwareWriteConstraint.Forbidden,
         TopologyRequirement? topologyRequirement = null,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
+        FirmwareRegionKind rootKind = FirmwareRegionKind.Image)
     {
         FirmwareImageMap map = FirmwareImageMapTestFactory.CreateDirect(
             "map",
@@ -525,8 +527,8 @@ public sealed partial class CompositionRunRequestV2Tests
                 [new FirmwareRegion(
                     "root",
                     parentRegionId: null,
-                    FirmwareRegionOwner.System,
-                    FirmwareRegionKind.Image,
+                    rootOwner,
+                    rootKind,
                     new ByteRange(0, 4),
                     rootWriteConstraint)],
                 ["map-evidence"])],

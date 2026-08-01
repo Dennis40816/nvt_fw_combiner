@@ -50,6 +50,14 @@ fingerprint and makes all three decisions stale until reviewed supersession.
 Selecting another already admitted variant or editing valid per-run authoring
 state does not repin policy.
 
+Publication recomputes the fingerprint from the dynamic compilation contract;
+an independently supplied fingerprint cannot bless a different map set,
+compiler semantic, or semantic-binding set. Binding a compiler result then
+requires exact equality with its reviewed compiler-specific semantics:
+selection groups may not disappear, logical output retains its reviewed family,
+and runtime-reference routes retain their declared processor plus trusted
+adapter selector, plan-template, and report-metadata bindings.
+
 ### CompilationFingerprint
 
 `CompilationFingerprint` is the existing
@@ -77,6 +85,11 @@ Another compilation under the same capability cannot reuse the snapshot. A
 run must retain the exact current `ResolvedCapability` that supplied the
 compiled instance; catalog reload cannot reconstruct or rebind an old dynamic
 compilation from matching strings.
+
+For CtrlRAM, the capability-level postbuild binding identifies the reviewed
+profile/selector plan template. A concrete topology may expand that template;
+the resulting processor invocation, write sections, validations, and other
+topology-specific state belong to the exact `CompilationFingerprint`.
 
 The capability-bound V2 formats implemented by #194 are
 `nfc.compiled-composition.profile-v2.v7` for map-bound compilation and
@@ -149,6 +162,12 @@ binding before evidence can be upgraded.
   relationship.
 - Same-capability/different-compilation readiness snapshots are stale, and a
   catalog reload cannot rebind the old compiled instance.
+- Dynamic publication rejects fingerprint/contract incoherence; compilation
+  rejects missing selection groups, logical-family drift, processor drift, or
+  missing adapter plan/report bindings.
+- Application Preview/Build admission requires the exact compiled object owned
+  by the accepted `ResolvedCapability`, not another instance with matching
+  fingerprint strings.
 - NT51928 Support Matrix evidence remains `ContractOnly` until an approved
   complete project golden exists.
 

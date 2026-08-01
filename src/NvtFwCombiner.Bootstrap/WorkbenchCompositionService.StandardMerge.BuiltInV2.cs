@@ -70,8 +70,9 @@ public static partial class WorkbenchCompositionService
 
     private static bool IsBuiltInV2StandardMergeMapCapacityPending(string icId)
     {
+        string normalizedIcId = Profiles.IcSupportCatalog.NormalizeIcId(icId);
         return BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
-                icId,
+                normalizedIcId,
                 out BuiltInV2Registration? registration) &&
             registration.HasMultipleMapCapacities;
     }

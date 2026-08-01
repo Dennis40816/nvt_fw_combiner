@@ -254,6 +254,7 @@ public sealed class CanonicalCapabilityCatalogTests
     [Theory]
     [InlineData("capability")]
     [InlineData("compilation")]
+    [InlineData("instance")]
     public void RunRequestRejectsResolvedCapabilityFingerprintDrift(string drift)
     {
         var catalog = new CanonicalCapabilityCatalog(
@@ -266,6 +267,8 @@ public sealed class CanonicalCapabilityCatalogTests
             "capability" => CreateCompiledComposition()
                 .BindCapabilityFingerprint(new string('b', 64)),
             "compilation" => CreateCompiledCompositionWithExternalProcessor()
+                .BindCapabilityFingerprint(capability.CapabilityFingerprint),
+            "instance" => CreateCompiledComposition()
                 .BindCapabilityFingerprint(capability.CapabilityFingerprint),
             _ => throw new InvalidOperationException($"Unknown drift '{drift}'."),
         };

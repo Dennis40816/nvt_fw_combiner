@@ -92,9 +92,11 @@ public sealed class BuiltInV2StandardMergeRoutingTests
 
     /// <summary>Exact byte oracles cover the no-LDC 256-KiB and selected-LDC 512-KiB Standard Merge variants.</summary>
     [Theory]
-    [InlineData(false, 0x40000)]
-    [InlineData(true, 0x80000)]
+    [InlineData("NT51928", false, 0x40000)]
+    [InlineData("NT51928", true, 0x80000)]
+    [InlineData(" 51928 ", false, 0x40000)]
     public async Task Nt51928StandardMergeBuildsTheSelectedCapacityWithoutImplicitLdcAsync(
+        string icId,
         bool selectLdc,
         int expectedCapacity)
     {
@@ -114,7 +116,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         }
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
-            "NT51928",
+            icId,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,

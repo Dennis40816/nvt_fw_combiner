@@ -169,6 +169,8 @@ public readonly record struct ResolutionToken
 /// <summary>Application-owned resolved capability bound to one catalog publication.</summary>
 public sealed record ResolvedCapability
 {
+    private readonly string[] _adapterSemanticBindingIds;
+
     /// <summary>Creates one checked capability bound to one exact publication.</summary>
     public ResolvedCapability(
         CapabilityRouteIdentity identity,
@@ -179,9 +181,21 @@ public sealed record ResolvedCapability
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
         ResolutionToken resolutionToken,
-        CanonicalCapabilityCompilationContract? compilationContract = null)
+        CanonicalCapabilityCompilationContract? compilationContract = null,
+        IEnumerable<string>? adapterSemanticBindingIds = null)
     {
         ArgumentNullException.ThrowIfNull(compiledComposition);
+        _adapterSemanticBindingIds =
+        [
+            .. (adapterSemanticBindingIds ?? [])
+                .Select(value => string.IsNullOrWhiteSpace(value)
+                    ? throw new ArgumentException(
+                        "Adapter semantic binding ids must be non-empty.",
+                        nameof(adapterSemanticBindingIds))
+                    : value)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
         CompiledComposition boundComposition = compiledComposition
             .BindCapabilityFingerprint(capabilityFingerprint);
         CanonicalCapabilityCompilationContract effectiveCompilationContract =
@@ -198,7 +212,8 @@ public sealed record ResolvedCapability
             publication,
             evidence,
             metadataPlan,
-            resolutionToken);
+            resolutionToken,
+            _adapterSemanticBindingIds);
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
         CompiledComposition = boundComposition;
@@ -208,6 +223,8 @@ public sealed record ResolvedCapability
         Evidence = evidence;
         MetadataPlan = metadataPlan;
         ResolutionToken = resolutionToken;
+        AdapterSemanticBindingIds = Array.AsReadOnly(
+            _adapterSemanticBindingIds);
     }
 
     /// <summary>Stable exact route identity.</summary>
@@ -221,6 +238,9 @@ public sealed record ResolvedCapability
 
     /// <summary>Definition-level bounds which admitted this exact compilation.</summary>
     public CanonicalCapabilityCompilationContract CompilationContract { get; }
+
+    /// <summary>Trusted adapter bindings needed to close non-compiler plan semantics.</summary>
+    public IReadOnlyList<string> AdapterSemanticBindingIds { get; }
 
     /// <summary>Shared UI/CLI authoring decision.</summary>
     public PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring { get; }

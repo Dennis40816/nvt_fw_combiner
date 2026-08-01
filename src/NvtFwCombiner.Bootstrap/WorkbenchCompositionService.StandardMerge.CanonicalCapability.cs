@@ -244,10 +244,13 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<CompositionIssue> issues)
     {
         resolvedCapability = null;
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         ResolvedCapabilityRoute? publishedRoute =
             s_canonicalCapabilityCatalog.CurrentSnapshot?.DynamicRoutes
                 .SingleOrDefault(route =>
-                    StringComparer.Ordinal.Equals(route.Identity.IcId, icId) &&
+                    StringComparer.Ordinal.Equals(
+                        route.Identity.IcId,
+                        normalizedIcId) &&
                     StringComparer.Ordinal.Equals(
                         route.Identity.WorkflowId,
                         workflowId) &&
@@ -279,9 +282,9 @@ public static partial class WorkbenchCompositionService
         BuiltInV2Registration registration = workflowId switch
         {
             IcWorkflowIds.StandardMerge =>
-                BuiltInV2RegistrationRegistry.StandardMergeByIc[icId],
+                BuiltInV2RegistrationRegistry.StandardMergeByIc[normalizedIcId],
             IcWorkflowIds.DpReplace =>
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
+                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[normalizedIcId],
             _ => throw new InvalidOperationException(
                 "Only registered map-bound dynamic routes use this compiler adapter."),
         };
@@ -308,13 +311,16 @@ public static partial class WorkbenchCompositionService
         string icId,
         string workflowId)
     {
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         IReadOnlyList<ResolvedCapability> capabilities =
             s_canonicalCapabilityCatalog.CurrentSnapshot?.Capabilities ?? [];
         return
         [
             .. capabilities
                 .Where(capability =>
-                    StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
+                    StringComparer.Ordinal.Equals(
+                        capability.Identity.IcId,
+                        normalizedIcId) &&
                     StringComparer.Ordinal.Equals(
                         capability.Identity.WorkflowId,
                         workflowId))
