@@ -14,8 +14,8 @@ internal static class CompiledOutputNameResolver
         DateTimeOffset startedAtUtc)
     {
         ArgumentNullException.ThrowIfNull(request);
-        CompiledOutputNamingRequirement? output =
-            request.CompiledComposition.V2Details?.OutputNamingRequirement;
+        CompiledOutputNamingRequirement output =
+            request.CompiledComposition.V2Details.OutputNamingRequirement;
         return output?.RendererKind switch
         {
             null or CompiledOutputNameRendererKind.Static =>

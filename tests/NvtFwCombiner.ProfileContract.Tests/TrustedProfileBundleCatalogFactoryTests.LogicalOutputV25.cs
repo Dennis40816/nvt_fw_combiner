@@ -25,7 +25,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        _ = Assert.IsType<LogicalOutputV2CompilationContext>(composition.V2Details!.Provenance.Context);
+        _ = Assert.IsType<LogicalOutputV2CompilationContext>(composition.V2Details.Provenance.Context);
         Assert.Empty(composition.V2Details.RegionAccessContract.Requirements);
         Assert.Empty(composition.V2Details.RegionAccessContract.ResolvedViews);
 

@@ -46,10 +46,10 @@ public sealed class InputArtifactBinding
     /// <summary>Infrastructure-specific artifact locator used only by artifact reader adapters.</summary>
     public string ArtifactId { get; }
 
-    /// <summary>Original plain file name retained for V2 profile acceptance and traceability; null for legacy bindings.</summary>
+    /// <summary>Original plain file name retained for profile acceptance and traceability; null before authoring projection.</summary>
     public string? OriginalFileName { get; }
 
-    /// <summary>Caller-declared typed slot assertion matched to a V2 compiled input slot; null for legacy bindings.</summary>
+    /// <summary>Caller-declared typed slot assertion matched to a compiled input slot; null before authoring projection.</summary>
     public CompiledInputArtifactClass? ArtifactClass { get; }
 
     /// <summary>

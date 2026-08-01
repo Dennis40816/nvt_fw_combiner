@@ -117,9 +117,9 @@ internal static partial class ReplaceCliCommandHandler
     {
         mappingDraft = null;
         savedRulePolicy = null;
-        if (!StringComparer.Ordinal.Equals(
-                icId,
-                WorkbenchCompositionService.Nt51926GeneralReplaceIcId))
+        if (!BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
+                IcSupportCatalog.NormalizeIcId(icId),
+                out GeneralReplaceV2Registration? registration))
         {
             error.WriteLine(
                 $"error: no exact trusted {icId} / General Replace Saved Rule parent is registered");
@@ -134,8 +134,7 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        const string parentReferenceSlotId =
-            WorkbenchCompositionService.Nt51926GeneralReplaceReferenceSlotId;
+        string parentReferenceSlotId = registration.ReferenceSlotId;
         if (slotsById.ContainsKey(parentReferenceSlotId))
         {
             error.WriteLine(
@@ -149,8 +148,7 @@ internal static partial class ReplaceCliCommandHandler
             SavedRuleV2GeneralMergeDraftLoader.LoadGeneralReplace(
                 rulePath,
                 slotsById,
-                WorkbenchCompositionService
-                    .GetNt51926GeneralReplaceSavedRuleAdmissionContext());
+                registration.SavedRuleAdmissionContext);
         if (!load.IsValid)
         {
             SavedRuleCliSupport.PrintIssues(load.Issues, error);

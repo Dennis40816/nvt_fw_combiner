@@ -28,7 +28,7 @@ public sealed partial class ReplaceCliCommandTests
     {
         var bindings = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchCompositionService.Nt51926GeneralReplaceReferenceSlotId] =
+            [BuiltInV2RegistrationRegistry.GeneralReplaceByIc["NT51926"].ReferenceSlotId] =
                 referencePath,
         };
         if (sourcePath is not null)
@@ -40,8 +40,8 @@ public sealed partial class ReplaceCliCommandTests
             SavedRuleV2GeneralMergeDraftLoader.LoadGeneralReplace(
                 rulePath,
                 bindings,
-                WorkbenchCompositionService
-                    .GetNt51926GeneralReplaceSavedRuleAdmissionContext());
+                BuiltInV2RegistrationRegistry.GeneralReplaceByIc["NT51926"]
+                    .SavedRuleAdmissionContext);
         Assert.True(
             load.IsValid,
             string.Join(

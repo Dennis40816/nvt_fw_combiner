@@ -17,7 +17,10 @@ public sealed class CompositionRunResultOwnershipTests
     {
         _ = await PreviewAsync(outputByteCount: 1);
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["ownership-input-artifact"] = [0],
+            }),
             new FakeClock([StartedAtUtc, StartedAtUtc.AddSeconds(1)]));
         CompositionRunRequest request = CreateRequest(OutputByteCount);
 
@@ -58,7 +61,10 @@ public sealed class CompositionRunResultOwnershipTests
     private static ValueTask<CompositionRunResult> PreviewAsync(int outputByteCount)
     {
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["ownership-input-artifact"] = [0],
+            }),
             new FakeClock([StartedAtUtc, StartedAtUtc.AddSeconds(1)]));
         return service.PreviewAsync(CreateRequest(outputByteCount), CancellationToken.None);
     }
@@ -67,7 +73,10 @@ public sealed class CompositionRunResultOwnershipTests
     {
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", outputByteCount, 0xFF),
-            [new AddressSpace("output-image", outputByteCount, AddressSpaceMutability.Mutable)],
+            [
+                new AddressSpace("ownership-input", 1, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", outputByteCount, AddressSpaceMutability.Mutable),
+            ],
             [
                 CompositionOperation.FillRange(
                     "fill-first-byte",
@@ -78,9 +87,9 @@ public sealed class CompositionRunResultOwnershipTests
                     OverlapPolicy.Reject,
                     "Create a deterministic non-empty mutation."),
             ]);
-        var compiled = CompiledComposition.CreateLegacy(
+        CompiledComposition compiled = CompiledCompositionTestFactory.Create(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "run-result-ownership",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -92,7 +101,12 @@ public sealed class CompositionRunResultOwnershipTests
         return new CompositionRunRequest(
             "run-result-ownership",
             compiled,
-            [],
+            [new InputArtifactBinding(
+                "ownership-input",
+                "ownership-input",
+                "ownership-input-artifact",
+                "ownership-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "run-result-ownership.bin");
     }
 }

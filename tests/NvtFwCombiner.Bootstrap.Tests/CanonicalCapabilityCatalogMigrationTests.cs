@@ -20,6 +20,33 @@ public sealed class CanonicalCapabilityCatalogPublicationGroup
 [Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
+    /// <summary>Static trust-index initialization failures become typed catalog issues.</summary>
+    [Theory]
+    [InlineData(false, false, CapabilityCatalogIssueCodes.SourceInvalid)]
+    [InlineData(true, false, CapabilityCatalogIssueCodes.SourceUnavailable)]
+    [InlineData(false, true, CapabilityCatalogIssueCodes.SourceInvalid)]
+    public void SourceTranslatesTrustIndexTypeInitializationFailure(
+        bool unavailable,
+        bool malformedJson,
+        string expectedCode)
+    {
+        Exception cause = unavailable
+            ? new FileNotFoundException("The package trust index is missing.")
+            : malformedJson
+            ? new System.Text.Json.JsonException("The package trust index is malformed JSON.")
+            : new InvalidDataException("The package trust index is malformed.");
+        var source = new CanonicalCapabilityCatalogMigrationSource(() =>
+            throw new TypeInitializationException("BuiltInV2BundleRegistry", cause));
+
+        CapabilityCatalogLoadResult loaded =
+            source.Load(TestContext.Current.CancellationToken);
+
+        Assert.False(loaded.Succeeded);
+        CapabilityCatalogIssue issue = Assert.Single(loaded.Issues);
+        Assert.Equal(expectedCode, issue.Code);
+        Assert.Equal(cause.Message, issue.Message);
+    }
+
     /// <summary>
     /// The trusted source joins policy references and exact canonical TP Header
     /// references to the existing compiler output without copying geometry.
@@ -195,7 +222,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Empty(compactIssues);
         Assert.Empty(extendedIssues);
         Assert.Equal(
-            CanonicalDynamicRouteInventory.Nt51928DualCapacityMapVariantSetId,
+            registration.SelectionGroupMapVariantSetId,
             route.Identity.MapVariant);
         Assert.Equal(
             ["nt51928-standard-merge-256k", "nt51928-standard-merge-512k"],
@@ -567,7 +594,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.NotNull(composition);
         Assert.Equal(
             "nt51919-nt51929-nt51932-perfect-map-256k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(
             "3d937f93a0cf0714b8d13ab5480d7f65a27da04a5c78aaab7a53ba25fb8a200c",
             composition.CompilationFingerprint);
@@ -590,7 +617,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CompiledComposition composition,
         string contentHash)
     {
-        V2CompiledCompositionDetails source = composition.V2Details!;
+        V2CompiledCompositionDetails source = composition.V2Details;
         V2CompilationProvenance provenance = source.Provenance;
         var bundle = new ProfileBundleIdentity(
             provenance.Bundle.BundleId,

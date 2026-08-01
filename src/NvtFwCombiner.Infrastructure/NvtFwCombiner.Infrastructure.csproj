@@ -15,6 +15,9 @@
       Include="..\..\docs\contracts\profile-bundle-v1.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-v1.schema.json" />
     <EmbeddedResource
+      Include="..\..\docs\contracts\profile-bundle-package-trust-index-v1.schema.json"
+      LogicalName="NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-package-trust-index-v1.schema.json" />
+    <EmbeddedResource
       Include="..\..\docs\contracts\saved-composition-rule-v2.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Contracts.Schemas.saved-composition-rule-v2.schema.json" />
     <Content

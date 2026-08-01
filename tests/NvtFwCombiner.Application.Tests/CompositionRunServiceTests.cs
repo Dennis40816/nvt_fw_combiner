@@ -201,26 +201,18 @@ public sealed partial class CompositionRunServiceTests
 
     /// <summary>Verifies missing fixed standard merge input fails before output commit after preview gate passes.</summary>
     [Fact]
-    public async Task MissingStandardMergeBindingFailsClosed()
+    public void MissingStandardMergeBindingFailsClosed()
     {
-        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
-        {
-            ["dp-artifact"] = [1, 2, 3, 4],
-        });
-        var writer = new FakeOutputWriter();
-        var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]), writer);
-        CompositionRunRequest request = CreateRequest(
-            [new InputArtifactBinding("dp-input", "dp-input", "dp-artifact")],
-            approvedPreviewToken: "approved-preview-token");
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateRequest(
+            [new InputArtifactBinding(
+                "dp-input",
+                "dp-input",
+                "dp-artifact",
+                "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
+            approvedPreviewToken: "approved-preview-token"));
 
-        CompositionRunResult result = await service.BuildAsync(request, CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        Assert.Null(result.CommittedOutputId);
-        Assert.False(writer.WasCalled);
-        CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal("input.binding.missing", issue.Code);
-        Assert.All(result.Report.Operations, operation => Assert.Equal(OperationRunStatus.Skipped, operation.Status));
+        Assert.Contains("exactly match", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies reports use safe binding ids instead of host artifact locators.</summary>
@@ -238,8 +230,12 @@ public sealed partial class CompositionRunServiceTests
             new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateRequest(bindings:
         [
-            new InputArtifactBinding("dp-input", "dp-safe", hostLocator),
-            new InputArtifactBinding("tp-input", "tp-safe", "tp-artifact"),
+            new InputArtifactBinding(
+                "dp-input", "dp-safe", hostLocator, "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-input", "tp-safe", "tp-artifact", "tp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -255,6 +251,7 @@ public sealed partial class CompositionRunServiceTests
     {
         var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
         {
+            ["padding-reference-artifact"] = [0, 0, 0, 0],
             ["short-artifact"] = [0x11, 0x22],
         });
         var service = new CompositionRunService(
@@ -267,7 +264,9 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0x11, 0x22, 0xFF, 0xFF], result.OutputBytes.ToArray());
-        InputArtifactSummary input = Assert.Single(result.Report.Inputs);
+        InputArtifactSummary input = Assert.Single(
+            result.Report.Inputs,
+            static input => input.AddressSpaceId == "short-input");
         Assert.Equal(2, input.Size);
     }
 
@@ -301,7 +300,10 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task PreviewUsesEngineInitializedMutableAddressSpace()
     {
-        var reader = new FakeArtifactReader([]);
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["v2-test-input-artifact"] = [0],
+        });
         var service = new CompositionRunService(reader, new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateScratchRequest();
 
@@ -309,49 +311,7 @@ public sealed partial class CompositionRunServiceTests
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal([0, 3, 0, 0], result.OutputBytes.ToArray());
-        Assert.Empty(result.Report.Inputs);
-    }
-
-    /// <summary>Verifies mutable artifact bindings fail before the artifact reader is invoked.</summary>
-    [Fact]
-    public async Task PreviewRejectsMutableAddressSpaceBindingBeforeArtifactRead()
-    {
-        var service = new CompositionRunService(
-            new FakeArtifactReader([]),
-            new FakeClock([FirstTimestamp, SecondTimestamp]));
-        CompositionRunRequest request = CreateScratchRequest(
-        [
-            new InputArtifactBinding("scratch", "scratch-safe", "missing-artifact"),
-        ]);
-
-        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal(CompositionIssueCodes.InputMutableAddressSpaceNotAllowed, issue.Code);
-        Assert.Equal("scratch", issue.OperationId);
-        Assert.Empty(result.Report.Inputs);
-    }
-
-    /// <summary>Verifies undeclared artifact bindings fail before the artifact reader is invoked.</summary>
-    [Fact]
-    public async Task PreviewRejectsUnknownAddressSpaceBindingBeforeArtifactRead()
-    {
-        var service = new CompositionRunService(
-            new FakeArtifactReader([]),
-            new FakeClock([FirstTimestamp, SecondTimestamp]));
-        CompositionRunRequest request = CreateScratchRequest(
-        [
-            new InputArtifactBinding("unknown", "unknown-safe", "missing-artifact"),
-        ]);
-
-        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
-
-        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
-        CompositionIssue issue = Assert.Single(result.Report.Issues);
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceUnknown, issue.Code);
-        Assert.Equal("unknown", issue.OperationId);
-        Assert.Empty(result.Report.Inputs);
+        Assert.Equal("v2-test-input", Assert.Single(result.Report.Inputs).AddressSpaceId);
     }
 
     /// <summary>Verifies preview approval fingerprints every initializer and explicit output selection.</summary>
@@ -359,7 +319,10 @@ public sealed partial class CompositionRunServiceTests
     public async Task PreviewTokenFingerprintsAllInitializersAndOutputSelection()
     {
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["v2-test-input-artifact"] = [0],
+            }),
             new FakeClock(Enumerable.Range(0, 6).Select(offset => FirstTimestamp.AddSeconds(offset))));
 
         CompositionRunResult baseline = await service.PreviewAsync(
@@ -387,8 +350,12 @@ public sealed partial class CompositionRunServiceTests
             new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateRequest(bindings:
         [
-            new InputArtifactBinding("dp-input", "dp-safe", "missing-dp"),
-            new InputArtifactBinding("tp-input", "tp-safe", "missing-tp"),
+            new InputArtifactBinding(
+                "dp-input", "dp-safe", "missing-dp", "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-input", "tp-safe", "missing-tp", "tp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -410,8 +377,12 @@ public sealed partial class CompositionRunServiceTests
             new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateRequest(bindings:
         [
-            new InputArtifactBinding("dp-input", "dp-safe", "shared-artifact"),
-            new InputArtifactBinding("tp-input", "tp-safe", "shared-artifact"),
+            new InputArtifactBinding(
+                "dp-input", "dp-safe", "shared-artifact", "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-input", "tp-safe", "shared-artifact", "tp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
@@ -433,8 +404,12 @@ public sealed partial class CompositionRunServiceTests
             new FakeClock([FirstTimestamp, SecondTimestamp]));
         CompositionRunRequest request = CreateRequest(bindings:
         [
-            new InputArtifactBinding("dp-input", "dp-safe", "missing-shared-artifact"),
-            new InputArtifactBinding("tp-input", "tp-safe", "missing-shared-artifact"),
+            new InputArtifactBinding(
+                "dp-input", "dp-safe", "missing-shared-artifact", "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-input", "tp-safe", "missing-shared-artifact", "tp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
         ]);
 
         CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);

@@ -24,7 +24,7 @@ public sealed partial class RepositoryBoundaryTests
             bundleSnapshot,
             StringComparison.Ordinal);
         Assert.Equal(
-            1,
+            2,
             CountOccurrences(infrastructureSource, "StrictJsonDocumentReader.ParseOwnedSnapshot("));
     }
 

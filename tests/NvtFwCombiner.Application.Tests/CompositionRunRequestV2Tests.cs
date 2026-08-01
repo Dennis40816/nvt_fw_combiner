@@ -88,6 +88,34 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal(topology, request.AbMergeTopologySelection);
     }
 
+    /// <summary>Automatic rendered naming retains its compiled template until accepted inputs are read.</summary>
+    [Fact]
+    public void AutomaticOutputNamingRejectsPreRenderedRequestName()
+    {
+        var topology = new TopologySelection(
+            1,
+            "1 IC",
+            TopologySelectionSource.Requested,
+            "test");
+        CompiledComposition composition = CreateV2RuntimeExecutable(
+            outputTemplate: CompiledOutputNamingRequirement.AbCodeV1Template,
+            requiredTokenIds: ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"],
+            modeId: ExperienceIds.AbMerge,
+            experienceId: ExperienceIds.AbMerge,
+            topologyRequirement: TopologyRequirement.RequireSingleChip(),
+            requestedTopology: topology);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "pre-rendered-automatic-name",
+                composition,
+                [CreateBinding()],
+                "caller-rendered.bin",
+                abMergeTopologySelection: topology));
+
+        Assert.Equal("outputFileName", exception.ParamName);
+    }
+
     /// <summary>Verifies a token-free V2 artifact can allow a safe plain-file-name output override.</summary>
     [Fact]
     public void RuntimeArtifactAllowsStaticOutputOverridePolicy()

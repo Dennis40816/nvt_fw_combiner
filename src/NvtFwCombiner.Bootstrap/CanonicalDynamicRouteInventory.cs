@@ -10,15 +10,11 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>Definition-level inventory for routes compiled from current bounded authoring state.</summary>
 internal static class CanonicalDynamicRouteInventory
 {
-    internal const string Nt51928DualCapacityMapVariantSetId =
-        "nt51928-dual-capacity-256k-512k";
-
     internal static bool IsDynamic(CapabilityRouteIdentity identity)
     {
         ArgumentNullException.ThrowIfNull(identity);
-        return (StringComparer.Ordinal.Equals(identity.IcId, "NT51928") &&
-               identity.WorkflowId is
-                   IcWorkflowIds.StandardMerge or IcWorkflowIds.DpReplace) ||
+        return (TryGetMapBoundRegistration(identity, out BuiltInV2Registration? registration) &&
+                registration.SelectionGroupMapVariantSetId is not null) ||
                identity.WorkflowId is
                    IcWorkflowIds.GeneralMerge or
                    IcWorkflowIds.GeneralReplace or
@@ -29,17 +25,19 @@ internal static class CanonicalDynamicRouteInventory
         CapabilityRouteIdentity identity)
     {
         ArgumentNullException.ThrowIfNull(identity);
-        return identity.WorkflowId switch
-        {
-            IcWorkflowIds.StandardMerge or IcWorkflowIds.DpReplace
-                when StringComparer.Ordinal.Equals(identity.IcId, "NT51928") =>
-                ResolveNt51928(identity),
-            IcWorkflowIds.GeneralMerge => ResolveGeneralMerge(identity),
-            IcWorkflowIds.GeneralReplace => ResolveGeneralReplace(identity),
-            IcWorkflowIds.CtrlRamReplace => ResolveCtrlRam(identity),
-            _ => throw new InvalidDataException(
-                $"No dynamic capability definition matches route '{identity.RouteId}'."),
-        };
+        return TryGetMapBoundRegistration(
+                   identity,
+                   out BuiltInV2Registration? registration) &&
+               registration.SelectionGroupMapVariantSetId is not null
+            ? ResolveSelectionGroup(identity, registration)
+            : identity.WorkflowId switch
+            {
+                IcWorkflowIds.GeneralMerge => ResolveGeneralMerge(identity),
+                IcWorkflowIds.GeneralReplace => ResolveGeneralReplace(identity),
+                IcWorkflowIds.CtrlRamReplace => ResolveCtrlRam(identity),
+                _ => throw new InvalidDataException(
+                    $"No dynamic capability definition matches route '{identity.RouteId}'."),
+            };
     }
 
     internal static CapabilityRouteIdentity ResolveCtrlRamIdentity(
@@ -79,13 +77,10 @@ internal static class CanonicalDynamicRouteInventory
             map.MapId);
     }
 
-    private static CanonicalDynamicRoute ResolveNt51928(
-        CapabilityRouteIdentity identity)
+    private static CanonicalDynamicRoute ResolveSelectionGroup(
+        CapabilityRouteIdentity identity,
+        BuiltInV2Registration registration)
     {
-        BuiltInV2Registration registration = identity.WorkflowId ==
-            IcWorkflowIds.StandardMerge
-                ? BuiltInV2RegistrationRegistry.StandardMergeByIc[identity.IcId]
-                : BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[identity.IcId];
         IReadOnlyList<FirmwareImageMap> maps = registration.GetMapVariants(
             out IcNumberInputMode? inputMode,
             out IReadOnlyList<CompositionIssue> issues);
@@ -98,19 +93,19 @@ internal static class CanonicalDynamicRouteInventory
                     map.Applicability.TopologyRequirement,
                     inputMode) ??
                 throw new InvalidDataException(
-                    $"NT51928 route '{identity.RouteId}' has an unresolved IC Count axis."))
+                    $"Selection-group route '{identity.RouteId}' has an unresolved IC Count axis."))
                 .Distinct(StringComparer.Ordinal),
         ];
         _ = countVariants.Length == 1 &&
             StringComparer.Ordinal.Equals(
                 identity.MapVariant,
-                Nt51928DualCapacityMapVariantSetId) &&
+                registration.SelectionGroupMapVariantSetId) &&
             StringComparer.Ordinal.Equals(
                 identity.IcCountVariant,
                 countVariants[0])
             ? true
             : throw new InvalidDataException(
-                $"NT51928 dynamic route '{identity.RouteId}' does not match its reviewed map-set axes.");
+                $"Selection-group route '{identity.RouteId}' does not match its reviewed map-set axes.");
 
         return Create(
             identity,
@@ -120,6 +115,22 @@ internal static class CanonicalDynamicRouteInventory
             allowedMapIds,
             CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
             registration.InputSelectionGroupMemberSlotIds);
+    }
+
+    private static bool TryGetMapBoundRegistration(
+        CapabilityRouteIdentity identity,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out BuiltInV2Registration? registration)
+    {
+        IReadOnlyDictionary<string, BuiltInV2Registration>? registrations =
+            identity.WorkflowId switch
+            {
+                IcWorkflowIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
+                IcWorkflowIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
+                _ => null,
+            };
+        registration = registrations?.GetValueOrDefault(identity.IcId);
+        return registration is not null;
     }
 
     private static CanonicalDynamicRoute ResolveGeneralMerge(
@@ -141,7 +152,7 @@ internal static class CanonicalDynamicRouteInventory
         return Create(
             identity,
             registration.ProfileId,
-            WorkbenchCompositionService.GeneralMergeV2CandidateProfileVersion,
+            registration.ProfileVersion,
             registration.Bundle.ContentHash,
             ["generic"],
             CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId,
@@ -151,16 +162,16 @@ internal static class CanonicalDynamicRouteInventory
     private static CanonicalDynamicRoute ResolveGeneralReplace(
         CapabilityRouteIdentity identity)
     {
-        if (!StringComparer.Ordinal.Equals(
+        if (!BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
                 identity.IcId,
-                WorkbenchCompositionService.Nt51926GeneralReplaceIcId))
+                out GeneralReplaceV2Registration? registration))
         {
             throw new InvalidDataException(
                 $"No General Replace definition matches route '{identity.RouteId}'.");
         }
 
         IReadOnlyList<FirmwareImageMap> maps =
-            WorkbenchCompositionService.GetNt51926GeneralReplaceSupportMaps(
+            registration.GetMapVariants(
                 out IcNumberInputMode? inputMode,
                 out IReadOnlyList<CompositionIssue> issues);
         FirmwareImageMap map = issues.Count == 0
@@ -173,19 +184,16 @@ internal static class CanonicalDynamicRouteInventory
         string? countVariant = HeadlessRouteSelection.TryFormatIcCountVariant(
             map.Applicability.TopologyRequirement,
             inputMode);
-        if (!StringComparer.Ordinal.Equals(countVariant, identity.IcCountVariant))
-        {
-            throw new InvalidDataException(
+        _ = StringComparer.Ordinal.Equals(countVariant, identity.IcCountVariant)
+            ? true
+            : throw new InvalidDataException(
                 $"General Replace route '{identity.RouteId}' has invalid IC Count axes.");
-        }
 
-        BuiltInV2Bundle bundle = BuiltInV2BundleRegistry.All[
-            WorkbenchCompositionService.Nt51926GeneralReplaceBundleId];
         return Create(
             identity,
-            WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileId,
-            WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileVersion,
-            bundle.ContentHash,
+            registration.ProfileId,
+            registration.ProfileVersion,
+            registration.BundleContentHash,
             [map.MapId],
             CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
             []);

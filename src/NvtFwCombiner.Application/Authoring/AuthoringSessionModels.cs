@@ -237,9 +237,8 @@ public sealed class AuthoringCapabilityCatalogSnapshot
                         CapabilityAuthoringAvailability.Available)
                 .Select(static capability =>
                 {
-                    CompiledInputContract inputContract = capability.CompiledComposition.V2Details?
-                        .InputContract ?? throw new InvalidOperationException(
-                            "Authoring routes require one canonical compiled V2 input contract.");
+                    CompiledInputContract inputContract =
+                        capability.CompiledComposition.V2Details.InputContract;
                     return new AuthoringCapabilityRoute(
                         capability.Identity,
                         capability.CapabilityFingerprint,

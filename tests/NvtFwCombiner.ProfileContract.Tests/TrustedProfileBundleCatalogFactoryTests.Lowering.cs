@@ -18,7 +18,6 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.True(result.IsCompiled);
         Assert.Empty(result.Issues);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(composition.Authority);
         Assert.Equal("{original-name}_merged.bin", composition.DefaultOutputFileName);
         Assert.Equal("output", composition.Plan.OutputSpaceId);
         Assert.Equal(2, composition.Plan.AddressSpaces.Count);
@@ -247,7 +246,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 FamilyJsonWithSplitRoot("declared-subregions")));
 
         CompiledRegionAccessRequirement access = Assert.Single(
-            result.CompiledComposition!.V2Details!.RegionAccessContract.Requirements);
+            result.CompiledComposition!.V2Details.RegionAccessContract.Requirements);
         Assert.Equal(CompiledRegionAccessKind.Parts, access.Access);
         Assert.Equal(["left"], access.AllowedSubregionIds);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
@@ -321,7 +320,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 FamilyJsonWithSplitRoot("explicit-range")));
 
         CompiledRegionAccessRequirement rule = Assert.Single(
-            readOnly.CompiledComposition!.V2Details!.RegionAccessContract.Requirements,
+            readOnly.CompiledComposition!.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "left");
         Assert.Equal(CompiledRegionAccessKind.ReadOnly, rule.Access);
         Assert.NotEqual(readOnly.CompiledComposition.CompilationFingerprint, hidden.CompiledComposition!.CompilationFingerprint);

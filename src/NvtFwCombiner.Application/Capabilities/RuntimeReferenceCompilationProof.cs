@@ -54,7 +54,7 @@ public sealed class RuntimeReferenceCompilationProof
         ArgumentNullException.ThrowIfNull(composition);
         ArgumentNullException.ThrowIfNull(plan);
         RuntimeReferenceReplaceV2CompilationContext context =
-            composition.V2Details?.Provenance.Context as
+            composition.V2Details.Provenance.Context as
                 RuntimeReferenceReplaceV2CompilationContext ??
             throw new ArgumentException(
                 "A runtime-reference proof requires an exact runtime-reference compilation.",
@@ -177,7 +177,7 @@ public sealed class RuntimeReferenceCompilationProof
             PlanFingerprint,
             invocation,
             ((RuntimeReferenceReplaceV2CompilationContext)
-                bound.V2Details!.Provenance.Context).ProcessorWriteViewIds);
+                bound.V2Details.Provenance.Context).ProcessorWriteViewIds);
     }
 
     internal string SelectorToken { get; }
@@ -189,7 +189,7 @@ public sealed class RuntimeReferenceCompilationProof
         ExternalProcessorInvocation invocation)
     {
         var context = (RuntimeReferenceReplaceV2CompilationContext)
-            composition.V2Details!.Provenance.Context;
+            composition.V2Details.Provenance.Context;
         return _processorWriteViewIds.SequenceEqual(
                 context.ProcessorWriteViewIds) &&
             _allowedWriteRanges.SequenceEqual(invocation.AllowedWriteRanges) &&
@@ -300,7 +300,7 @@ public sealed class RuntimeReferenceCompilationProof
         ExternalProcessorInvocation invocation)
     {
         var context = (RuntimeReferenceReplaceV2CompilationContext)
-            composition.V2Details!.Provenance.Context;
+            composition.V2Details.Provenance.Context;
         var resolvedViews = composition.V2Details.RegionAccessContract.ResolvedViews
             .ToDictionary(static view => view.ViewId, StringComparer.Ordinal);
         return context.ProcessorWriteViewIds
@@ -327,7 +327,7 @@ public sealed class RuntimeReferenceCompilationProof
             patch.TargetRange.Length == 1);
         var context =
             (RuntimeReferenceReplaceV2CompilationContext)
-                composition.V2Details!.Provenance.Context;
+                composition.V2Details.Provenance.Context;
         FirmwareRegion sourceRegion = context.ResolvedMap.ImageMap.Regions.Single(
             region =>
                 region.Owner == FirmwareRegionOwner.Tp &&
@@ -381,7 +381,7 @@ public sealed class RuntimeReferenceCompilationProof
     private static ExternalProcessorInvocation GetSingleProcessor(
         CompiledComposition composition)
     {
-        if (composition.V2Details?.Provenance.Context is not
+        if (composition.V2Details.Provenance.Context is not
                 RuntimeReferenceReplaceV2CompilationContext)
         {
             throw new ArgumentException(

@@ -91,7 +91,7 @@ public sealed partial class CompositionRunServiceTests
                 [new ByteRange(0, 2)]);
         CompiledComposition compiled = CreateCompiledComposition(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "uniform-input-validation",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -103,7 +103,9 @@ public sealed partial class CompositionRunServiceTests
         return new CompositionRunRequest(
             "run-uniform-input-validation",
             compiled,
-            [new InputArtifactBinding("input", "input", "uniform-artifact")],
+            [new InputArtifactBinding(
+                "input", "input", "uniform-artifact", "input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "uniform.bin");
     }
 }

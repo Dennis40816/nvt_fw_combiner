@@ -12,6 +12,8 @@
   <ItemGroup>
     <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
              Link="LegacyCombinerPostbuildCatalogAlias.cs" />
+    <Compile Include="..\NvtFwCombiner.Application.Tests\CompiledCompositionTestFactory.cs"
+             Link="CompiledCompositionTestFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

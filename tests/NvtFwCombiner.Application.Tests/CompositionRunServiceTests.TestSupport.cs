@@ -25,24 +25,36 @@ public sealed partial class CompositionRunServiceTests
     {
         return
         [
-            new InputArtifactBinding("dp-input", "dp-input", "dp-artifact"),
-            new InputArtifactBinding("tp-input", "tp-input", "tp-artifact"),
+            new InputArtifactBinding(
+                "dp-input",
+                "dp-input",
+                "dp-artifact",
+                "dp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
+            new InputArtifactBinding(
+                "tp-input",
+                "tp-input",
+                "tp-artifact",
+                "tp-input.bin",
+                CompiledInputArtifactClass.TpFirmware),
         ];
     }
 
     private static CompiledComposition CreateCompiledComposition(
         CompositionPlan plan,
-        LegacyCompiledCompositionIdentity identity,
+        TestCompiledCompositionIdentity identity,
         string defaultOutputFileName,
         CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
-        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
+        bool allowOutputOverride = false)
     {
-        return CompiledComposition.CreateLegacy(
+        return CompiledCompositionTestFactory.Create(
             plan,
             identity,
             defaultOutputFileName,
             icNumberPolicy,
-            validationRequirements);
+            validationRequirements,
+            allowOutputOverride: allowOutputOverride);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

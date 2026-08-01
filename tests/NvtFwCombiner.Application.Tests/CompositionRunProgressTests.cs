@@ -74,7 +74,10 @@ public sealed partial class CompositionRunServiceTests
         var processor = new FakeExternalProcessor(request =>
             ExternalProcessorResult.Success(request.InputBytes, []));
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["progress-input-artifact"] = [0],
+            }),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             null,
             processor);
@@ -165,7 +168,7 @@ public sealed partial class CompositionRunServiceTests
             ExternalProcessorResult.Success(request.InputBytes, []));
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             writer,
             processor);
@@ -231,7 +234,10 @@ public sealed partial class CompositionRunServiceTests
     {
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
-            [new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
+            [
+                new AddressSpace("progress-input", 1, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+            ],
             [
                 CreateExternalOperation("processor-a", 10, OverlapPolicy.Reject),
                 CreateExternalOperation("processor-b", 20, OverlapPolicy.ReplaceExisting),
@@ -240,7 +246,7 @@ public sealed partial class CompositionRunServiceTests
             "run-progress-multiple-processors",
             CreateCompiledComposition(
                 plan,
-                new LegacyCompiledCompositionIdentity(
+                new TestCompiledCompositionIdentity(
                     "progress-multiple-processors",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -248,7 +254,12 @@ public sealed partial class CompositionRunServiceTests
                     "standard-merge",
                     CompositionKind.Merge),
                 "progress.bin"),
-            [],
+            [new InputArtifactBinding(
+                "progress-input",
+                "progress-input",
+                "progress-input-artifact",
+                "progress-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "progress.bin");
     }
 

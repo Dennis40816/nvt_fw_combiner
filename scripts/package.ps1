@@ -53,6 +53,28 @@ function Get-LowerSha256 {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Get-ProfileBundleEntryArrayHash {
+    param([Parameter(Mandatory = $true)][object[]]$Entries)
+
+    $CanonicalEntries = @(
+        $Entries |
+            Sort-Object entryId, kind, path, schemaId, contentHash |
+            ForEach-Object {
+                [ordered]@{
+                    contentHash = [string]$_.contentHash
+                    entryId = [string]$_.entryId
+                    kind = [string]$_.kind
+                    path = [string]$_.path
+                    schemaId = [string]$_.schemaId
+                }
+            }
+    )
+    $Canonical = ConvertTo-Json -InputObject $CanonicalEntries -Compress -Depth 4
+    $Bytes = [Text.Encoding]::UTF8.GetBytes($Canonical)
+    return [Convert]::ToHexString(
+        [Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
+}
+
 function Get-TreeDigest {
     param([Parameter(Mandatory = $true)][string[]]$Paths)
     $Lines = foreach ($Path in ($Paths | Sort-Object)) {
@@ -112,6 +134,7 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $ApprovedRuntimeCatalogDirectories = @('ctrlram-postbuild-v2')
+$PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.0.0.json'
@@ -239,15 +262,18 @@ function Get-ExternalToolManifestEntries {
 }
 
 function Get-BuiltInProfileBundleDirectories {
-    $ProjectPath = Join-Path $RepoRoot 'src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj'
-    $Project = [xml](Get-Content -LiteralPath $ProjectPath -Raw)
+    $TrustIndexPath = Join-Path $RepoRoot $PackageTrustIndexPackagePath
+    if (-not (Test-Path -LiteralPath $TrustIndexPath -PathType Leaf)) {
+        throw 'Repository does not contain the built-in profile package trust index.'
+    }
+    $TrustIndex = Get-Content -LiteralPath $TrustIndexPath -Raw | ConvertFrom-Json -Depth 32
     $BundleDirectories = @(
-        $Project.SelectNodes("//*[local-name()='BuiltInProfileBundle'][@Include]") |
-            ForEach-Object { [string]$_.GetAttribute('Include') } |
+        @($TrustIndex.bundles) |
+            ForEach-Object { [string]$_.bundleDirectory } |
             Sort-Object
     )
     if ($BundleDirectories.Count -eq 0) {
-        throw 'Bootstrap project does not declare any built-in profile bundles.'
+        throw 'Package trust index does not declare any built-in profile bundles.'
     }
 
     $UniqueDirectories = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -256,10 +282,10 @@ function Get-BuiltInProfileBundleDirectories {
             $BundleDirectory.Contains('/') -or
             $BundleDirectory.Contains('\') -or
             $BundleDirectory -in @('.', '..')) {
-            throw "Bootstrap project declares an unsafe built-in profile bundle directory '$BundleDirectory'."
+            throw "Package trust index declares an unsafe built-in profile bundle directory '$BundleDirectory'."
         }
         if (-not $UniqueDirectories.Add($BundleDirectory)) {
-            throw "Bootstrap project repeats built-in profile bundle directory '$BundleDirectory'."
+            throw "Package trust index repeats built-in profile bundle directory '$BundleDirectory'."
         }
     }
 
@@ -300,6 +326,20 @@ function Get-BuiltInProfilePackagePaths {
     }
 
     $PackagePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $PublishedTrustIndexPath = Join-Path $PublishedRoot $PackageTrustIndexPackagePath
+    $SourceTrustIndexPath = Join-Path $RepoRoot $PackageTrustIndexPackagePath
+    if (-not (Test-Path -LiteralPath $PublishedTrustIndexPath -PathType Leaf) -or
+        (Get-LowerSha256 -Path $PublishedTrustIndexPath) -ne
+            (Get-LowerSha256 -Path $SourceTrustIndexPath)) {
+        throw 'Published package trust index is missing or differs from reviewed source material.'
+    }
+    $PublishedTrustIndex = Get-Content -LiteralPath $PublishedTrustIndexPath -Raw |
+        ConvertFrom-Json -Depth 32
+    if ([string]$PublishedTrustIndex.schemaVersion -ne '1.0' -or
+        [string]$PublishedTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
+        throw 'Published package trust index has an unsupported schema or trust anchor.'
+    }
+    [void]$PackagePaths.Add($PackageTrustIndexPackagePath)
     foreach ($BundleDirectory in $BundleDirectories) {
         $BundleRoot = Join-Path $BuiltInRoot $BundleDirectory
         $ManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
@@ -311,6 +351,21 @@ function Get-BuiltInProfilePackagePaths {
         $Entries = @($Manifest.entries)
         if ($Entries.Count -eq 0) {
             throw "Published built-in profile bundle '$BundleDirectory' has no manifest entries."
+        }
+        $TrustEntries = @($PublishedTrustIndex.bundles | Where-Object {
+            [string]$_.bundleDirectory -eq $BundleDirectory
+        })
+        if ($TrustEntries.Count -ne 1) {
+            throw "Published package trust index does not uniquely bind '$BundleDirectory'."
+        }
+        $TrustEntry = $TrustEntries[0]
+        if ([string]$Manifest.schemaVersion -ne [string]$TrustEntry.bundleSchemaVersion -or
+            [string]$Manifest.bundleVersion -ne [string]$TrustEntry.bundleVersion -or
+            [string]$Manifest.contentHash -ne [string]$TrustEntry.contentHash -or
+            [string]$Manifest.trustAnchorBindingId -ne [string]$PublishedTrustIndex.trustAnchorBindingId -or
+            [string]$Manifest.hashAlgorithm -ne 'sha256-rfc8785-entry-array-v1' -or
+            (Get-ProfileBundleEntryArrayHash -Entries $Entries) -ne [string]$Manifest.contentHash) {
+            throw "Published built-in profile bundle '$BundleDirectory' differs from its trust-index identity."
         }
 
         $DeclaredBundlePaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -330,6 +385,10 @@ function Get-BuiltInProfilePackagePaths {
             $PublishedPath = Join-Path $BundleRoot $EntryPath.Replace('/', [IO.Path]::DirectorySeparatorChar)
             if (-not (Test-Path -LiteralPath $PublishedPath -PathType Leaf)) {
                 throw "Published built-in profile bundle file is missing: $BundleDirectory/$EntryPath"
+            }
+            if ([string]$Entry.contentHash -notmatch '^[0-9a-f]{64}$' -or
+                (Get-LowerSha256 -Path $PublishedPath) -ne [string]$Entry.contentHash) {
+                throw "Published built-in profile bundle file hash differs: $BundleDirectory/$EntryPath"
             }
             [void]$PackagePaths.Add("profiles/built-in/$BundleDirectory/$EntryPath")
         }
@@ -494,7 +553,17 @@ function Get-BuiltInProfileManifestEntries {
 function New-BuiltInProfilePolicyDryRunFixture {
     param([Parameter(Mandatory = $true)][string]$PublishedRoot)
 
+    $TrustIndex = Get-Content -LiteralPath (Join-Path $RepoRoot $PackageTrustIndexPackagePath) -Raw |
+        ConvertFrom-Json -Depth 32
+    Copy-PackageFileFromRoot `
+        -SourceRoot $RepoRoot `
+        -RelativePath $PackageTrustIndexPackagePath `
+        -DestinationRoot $PublishedRoot
+
     foreach ($BundleDirectory in (Get-BuiltInProfileBundleDirectories)) {
+        $TrustEntry = @($TrustIndex.bundles | Where-Object {
+            [string]$_.bundleDirectory -eq $BundleDirectory
+        })[0]
         $SourceManifestPath = Join-Path $RepoRoot "profiles/built-in/$BundleDirectory/profile-bundle.json"
         $FixtureBundleRoot = Join-Path $PublishedRoot "profiles/built-in/$BundleDirectory"
         New-Item -ItemType Directory -Force -Path $FixtureBundleRoot | Out-Null
@@ -506,8 +575,23 @@ function New-BuiltInProfilePolicyDryRunFixture {
             Assert-SafeBuiltInProfileManifestPath -RelativePath $EntryPath
             $FixturePath = Join-Path $FixtureBundleRoot $EntryPath.Replace('/', [IO.Path]::DirectorySeparatorChar)
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $FixturePath) | Out-Null
-            "built-in profile policy fixture: $BundleDirectory/$EntryPath" |
-                Set-Content -LiteralPath $FixturePath -Encoding utf8NoBOM
+            $SourcePath = Join-Path $RepoRoot "profiles/built-in/$BundleDirectory/$EntryPath"
+            if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+                if ($EntryPath -eq 'schemas/composition-profile-v2.schema.json') {
+                    $SourcePath = Join-Path $RepoRoot "docs/contracts/$($TrustEntry.materialization.compositionProfileSchemaFile)"
+                }
+                elseif ($EntryPath -eq 'schemas/firmware-family-v1.schema.json') {
+                    $SourcePath = Join-Path $RepoRoot "docs/contracts/$($TrustEntry.materialization.firmwareFamilySchemaFile)"
+                }
+                elseif ($null -ne $TrustEntry.materialization.canonicalFirmwareFamily -and
+                    $EntryPath -eq [string]$TrustEntry.materialization.canonicalFirmwareFamily.destination) {
+                    $SourcePath = Join-Path $RepoRoot "profiles/built-in/$($TrustEntry.materialization.canonicalFirmwareFamily.source)"
+                }
+            }
+            if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+                throw "Dry-run fixture cannot materialize '$BundleDirectory/$EntryPath'."
+            }
+            Copy-Item -LiteralPath $SourcePath -Destination $FixturePath
         }
     }
 
@@ -717,6 +801,29 @@ function Invoke-ExternalToolPolicyDryRun {
         }
         Remove-Item -LiteralPath $UnexpectedProfilePath -Force
 
+        $FirstManifestPath = Join-Path $DryRunPublishedRoot "profiles/built-in/$FirstBundleDirectory/profile-bundle.json"
+        $FirstManifest = Get-Content -LiteralPath $FirstManifestPath -Raw | ConvertFrom-Json
+        $FirstEntryPath = Join-Path `
+            (Split-Path -Parent $FirstManifestPath) `
+            ([string]$FirstManifest.entries[0].path).Replace('/', [IO.Path]::DirectorySeparatorChar)
+        $FirstEntryBytes = [IO.File]::ReadAllBytes($FirstEntryPath)
+        $FirstEntryBytes[0] = $FirstEntryBytes[0] -bxor 1
+        [IO.File]::WriteAllBytes($FirstEntryPath, $FirstEntryBytes)
+        $ProfileHashDriftRejected = $false
+        try {
+            Get-BuiltInProfilePackagePaths -PublishedRoot $DryRunPublishedRoot | Out-Null
+        }
+        catch {
+            if ($_.Exception.Message -notlike '*bundle file hash differs*') {
+                throw
+            }
+            $ProfileHashDriftRejected = $true
+        }
+        if (-not $ProfileHashDriftRejected) {
+            throw 'Built-in profile entry hash drift was not rejected.'
+        }
+        New-BuiltInProfilePolicyDryRunFixture -PublishedRoot $DryRunPublishedRoot
+
         $UnexpectedRuntimeCatalogPath = Join-Path $DryRunPublishedRoot 'profiles/built-in/ctrlram-postbuild-v2/unexpected.json'
         '{}' | Set-Content -LiteralPath $UnexpectedRuntimeCatalogPath -Encoding ascii
         $UnexpectedRuntimeCatalogRejected = $false
@@ -833,7 +940,7 @@ function Invoke-ExternalToolPolicyDryRun {
         }
 
         Write-Host 'External-tool package policy dry-run passed: probe excluded from staging and manifest.'
-        Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included and unexpected file rejected.'
+        Write-Host 'Built-in profile package policy dry-run passed: manifest-pinned materialized files included, entry hashes closed, and unexpected file rejected.'
         Write-Host 'Runtime catalog package policy dry-run passed: approved files included and unexpected file rejected.'
         Write-Host 'Support publication policy package dry-run passed: exact path, role, and SHA-256 pinned; empty contract and wrong published hash rejected.'
         Write-Host 'Canonical golden package policy dry-run passed: 25 direct Standard Merge BIN artifacts and 10 direct/alias cases selected; diagnostics and other workflows excluded.'
@@ -1207,7 +1314,7 @@ Distribution owner: $DistributionOwner
 Contents:
 - NvtFwCombiner.exe: self-contained Windows x64 desktop application
 - external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe: constrained external checksum/header worker
-- profiles/built-in/: manifest-pinned bundles materialized by the Bootstrap build; profile stage and runtime routing remain authoritative
+- profiles/built-in/: exact package trust index plus its manifest-pinned materialized bundles; profile stage and support publication remain independently authoritative
 - external-tools/: generated CRC Worker and approved legacy Combiner runtime packages
 - reference/: owner-approved flash-map, postbuild, flash-header, and golden fixture evidence
 - RELEASE-MANIFEST.json: source and file integrity metadata

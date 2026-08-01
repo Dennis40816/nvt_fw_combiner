@@ -25,7 +25,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.Equal(profileId, composition.ProfileId);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             composition.Plan.OrderedOperations.Single(static operation =>
                 operation.Kind == CompositionOperationKind.RunExternalProcessor).ExternalProcessorInvocation);
@@ -46,7 +46,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal(profileId, composition.ProfileId);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details!.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -90,7 +90,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(
             "nt51926-ctrlram-fw141-full-flash-256k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(FullFlashCapacity, composition.Plan.OutputInitialization.Capacity);
         CompositionOperation processor = Assert.Single(
             composition.Plan.OrderedOperations,

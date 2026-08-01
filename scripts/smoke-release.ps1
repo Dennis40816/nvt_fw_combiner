@@ -29,6 +29,8 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/catalog.json',
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
+$PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
+$ApprovedPackageTrustIndexSha256 = 'd0429edbb15e3341bacf3fc166e49f7d92f8b43fa6485a5e1600304c98c2e4f4'
 $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.0.0.json'
@@ -59,6 +61,41 @@ function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-ProfileBundleEntryArrayHash {
+    param([Parameter(Mandatory = $true)][object[]]$Entries)
+
+    $CanonicalEntries = @(
+        $Entries |
+            Sort-Object entryId, kind, path, schemaId, contentHash |
+            ForEach-Object {
+                [ordered]@{
+                    contentHash = [string]$_.contentHash
+                    entryId = [string]$_.entryId
+                    kind = [string]$_.kind
+                    path = [string]$_.path
+                    schemaId = [string]$_.schemaId
+                }
+            }
+    )
+    $Canonical = ConvertTo-Json -InputObject $CanonicalEntries -Compress -Depth 4
+    return [Convert]::ToHexString(
+        [Security.Cryptography.SHA256]::HashData(
+            [Text.Encoding]::UTF8.GetBytes($Canonical))).ToLowerInvariant()
+}
+
+function Assert-SafeProfileBundlePath {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    $Segments = @($RelativePath.Split('/'))
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or
+        [IO.Path]::IsPathRooted($RelativePath) -or
+        $RelativePath.Contains('\') -or
+        $RelativePath.Contains(':') -or
+        @($Segments | Where-Object { [string]::IsNullOrWhiteSpace($_) -or $_ -in @('.', '..') }).Count -ne 0) {
+        throw "Profile bundle contains an unsafe path '$RelativePath'."
+    }
 }
 
 function Get-RelativePackagePath {
@@ -360,6 +397,24 @@ try {
     if ($InvalidBuiltInProfileEntries.Count -ne 0) {
         throw 'Release manifest built-in profile paths and roles are inconsistent.'
     }
+    $PackageTrustIndexEntries = @(
+        $DeclaredBuiltInProfileEntries | Where-Object {
+            ([string]$_.path) -eq $PackageTrustIndexPackagePath
+        }
+    )
+    if ($PackageTrustIndexEntries.Count -ne 1) {
+        throw 'Release manifest must contain exactly one package trust index.'
+    }
+    $PackageTrustIndexPath = Join-Path $packageRoot $PackageTrustIndexPackagePath
+    if ((Get-LowerSha256 -Path $PackageTrustIndexPath) -ne $ApprovedPackageTrustIndexSha256) {
+        throw 'Release package trust index does not match the exact reviewed identity.'
+    }
+    $PackageTrustIndex = Get-Content -LiteralPath $PackageTrustIndexPath -Raw |
+        ConvertFrom-Json -Depth 32
+    if ([string]$PackageTrustIndex.schemaVersion -ne '1.0' -or
+        [string]$PackageTrustIndex.trustAnchorBindingId -ne 'built-in-profile-bundle-v2') {
+        throw 'Release package trust index has an unsupported schema or trust anchor.'
+    }
     $BuiltInProfileBundleManifests = @(
         $DeclaredBuiltInProfileEntries | Where-Object {
             ([string]$_.path) -match '^profiles/built-in/[^/]+/profile-bundle\.json$'
@@ -367,6 +422,46 @@ try {
     )
     if ($BuiltInProfileBundleManifests.Count -eq 0) {
         throw 'Release manifest has no built-in profile bundle manifest.'
+    }
+    $IndexedManifestPaths = @(
+        @($PackageTrustIndex.bundles) | ForEach-Object {
+            "profiles/built-in/$([string]$_.bundleDirectory)/profile-bundle.json"
+        } | Sort-Object
+    )
+    $DeclaredManifestPaths = @(
+        $BuiltInProfileBundleManifests | ForEach-Object { [string]$_.path } | Sort-Object
+    )
+    if (Compare-Object -ReferenceObject $IndexedManifestPaths -DifferenceObject $DeclaredManifestPaths) {
+        throw 'Release package trust index and bundle manifest inventory differ.'
+    }
+    foreach ($TrustEntry in @($PackageTrustIndex.bundles)) {
+        $BundleDirectory = [string]$TrustEntry.bundleDirectory
+        if ($BundleDirectory -notmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$') {
+            throw "Release package trust index has an unsafe bundle directory '$BundleDirectory'."
+        }
+        $BundleRoot = Join-Path $packageRoot "profiles/built-in/$BundleDirectory"
+        $BundleManifestPath = Join-Path $BundleRoot 'profile-bundle.json'
+        $BundleManifest = Get-Content -LiteralPath $BundleManifestPath -Raw | ConvertFrom-Json
+        $BundleEntries = @($BundleManifest.entries)
+        if ($BundleEntries.Count -eq 0 -or
+            [string]$BundleManifest.schemaVersion -ne [string]$TrustEntry.bundleSchemaVersion -or
+            [string]$BundleManifest.bundleVersion -ne [string]$TrustEntry.bundleVersion -or
+            [string]$BundleManifest.contentHash -ne [string]$TrustEntry.contentHash -or
+            [string]$BundleManifest.trustAnchorBindingId -ne [string]$PackageTrustIndex.trustAnchorBindingId -or
+            [string]$BundleManifest.hashAlgorithm -ne 'sha256-rfc8785-entry-array-v1' -or
+            (Get-ProfileBundleEntryArrayHash -Entries $BundleEntries) -ne [string]$BundleManifest.contentHash) {
+            throw "Release built-in profile bundle '$BundleDirectory' differs from its trust-index identity."
+        }
+        foreach ($BundleEntry in $BundleEntries) {
+            $EntryPath = [string]$BundleEntry.path
+            Assert-SafeProfileBundlePath -RelativePath $EntryPath
+            $EntryFile = Join-Path $BundleRoot $EntryPath.Replace('/', [IO.Path]::DirectorySeparatorChar)
+            if (-not (Test-Path -LiteralPath $EntryFile -PathType Leaf) -or
+                [string]$BundleEntry.contentHash -notmatch '^[0-9a-f]{64}$' -or
+                (Get-LowerSha256 -Path $EntryFile) -ne [string]$BundleEntry.contentHash) {
+                throw "Release built-in profile bundle file hash differs: $BundleDirectory/$EntryPath"
+            }
+        }
     }
     $DeclaredRuntimeCatalogPaths = @(
         $DeclaredBuiltInProfileEntries |

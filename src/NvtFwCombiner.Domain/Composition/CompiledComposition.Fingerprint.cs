@@ -8,14 +8,12 @@ namespace NvtFwCombiner.Domain.Composition;
 
 public sealed partial class CompiledComposition
 {
-    private const string LegacyFingerprintFormat = "nfc.compiled-composition.legacy.v3";
-    private const string CapabilityBoundLegacyFingerprintFormat =
-        "nfc.compiled-composition.legacy.v4";
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
     private const string CapabilityBoundV2FingerprintFormat =
         "nfc.compiled-composition.profile-v2.v7";
     private const string IntegrityFingerprintFormat =
         "nfc.compiled-composition.integrity.v1";
+    private const string V2CompilerModelVersion = "1.0";
 
     private static string? CalculateIntegrityFingerprint(CompositionPlan plan)
     {
@@ -53,49 +51,12 @@ public sealed partial class CompiledComposition
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
-        return composition.Authority switch
-        {
-            LegacyProfileCompilationAuthority => CalculateLegacyCompilationFingerprint(composition),
-            ProfileBundleV2CompilationAuthority => CalculateV2CompilationFingerprint(composition),
-            _ => throw new InvalidOperationException("Unknown compiled composition authority."),
-        };
-    }
-
-    private static string CalculateLegacyCompilationFingerprint(CompiledComposition composition)
-    {
-        var builder = new StringBuilder();
-        AppendField(
-            builder,
-            "format",
-            composition.CapabilityFingerprint is null
-                ? LegacyFingerprintFormat
-                : CapabilityBoundLegacyFingerprintFormat);
-        AppendCapabilityFingerprint(builder, composition);
-        AppendField(builder, "authority.kind", "legacy-profile");
-        AppendField(
-            builder,
-            "authority.model-version",
-            ((LegacyProfileCompilationAuthority)composition.Authority).ModelVersion);
-        AppendField(builder, "profile.id", composition.ProfileId);
-        AppendField(builder, "profile.version", composition.ProfileVersion);
-        AppendField(builder, "profile.ic", composition.IcId);
-        AppendField(builder, "profile.mode", composition.ModeId);
-        AppendField(builder, "profile.experience", composition.ExperienceId);
-        AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
-        AppendField(builder, "output.default-file-name", composition.DefaultOutputFileName);
-        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
-        AppendEnum(builder, "eligibility", composition.Eligibility);
-        AppendValidationRequirements(builder, composition.ValidationRequirements);
-        AppendPlan(builder, composition.Plan);
-
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
-            .ToLowerInvariant();
+        return CalculateV2CompilationFingerprint(composition);
     }
 
     private static string CalculateV2CompilationFingerprint(CompiledComposition composition)
     {
-        V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
-            "Profile-bundle-v2 artifacts require paired v2 details.");
+        V2CompiledCompositionDetails details = composition.V2Details;
         return details.Provenance.Context switch
         {
             RuntimeReferenceReplaceV2CompilationContext runtimeReference => CalculateMapBoundV2CompilationFingerprint(composition, runtimeReference),
@@ -109,8 +70,7 @@ public sealed partial class CompiledComposition
         CompiledComposition composition,
         MapBoundV2CompilationContext context)
     {
-        V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
-            "Profile-bundle-v2 artifacts require paired v2 details.");
+        V2CompiledCompositionDetails details = composition.V2Details;
         V2CompilationProvenance provenance = details.Provenance;
         bool capabilityBound = composition.CapabilityFingerprint is not null;
         var builder = new StringBuilder();
@@ -157,7 +117,7 @@ public sealed partial class CompiledComposition
         AppendField(
             builder,
             "authority.model-version",
-            ((ProfileBundleV2CompilationAuthority)composition.Authority).ModelVersion);
+            V2CompilerModelVersion);
         AppendField(builder, "profile.id", composition.ProfileId);
         AppendField(builder, "profile.version", composition.ProfileVersion);
         AppendField(builder, "profile.ic", composition.IcId);
@@ -224,7 +184,7 @@ public sealed partial class CompiledComposition
             AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         }
 
-        AppendValidationRequirements(builder, provenance.ValidationRequirements);
+        AppendValidationRequirements(builder, composition.ValidationRequirements);
         AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
         AppendInputContract(builder, details.InputContract);
         AppendRegionAccessContract(builder, details.RegionAccessContract);

@@ -1,6 +1,6 @@
+
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
@@ -149,238 +149,76 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("all three TPB relocations", adr, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies built-in bundle materialization remains an explicit identity allowlist, never source discovery.</summary>
+    /// <summary>Verifies package admission is one explicit, hash-closed data index.</summary>
     [Fact]
-    public void BuiltInBundleMaterializationUsesExplicitIdentityAllowlist()
+    public void BuiltInBundleMaterializationUsesPackageTrustIndex()
     {
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
-        var document = XDocument.Parse(project);
-        XElement[] bundles = [
-            .. document.Descendants("BuiltInProfileBundle")
-                .Where(static bundle => bundle.Attribute("Include") is not null),
-        ];
-        string[] expectedBundleIds =
+        string builtInRoot = Path.Combine(Root.FullName, "profiles", "built-in");
+        using var index = JsonDocument.Parse(
+            ReadText("profiles/built-in/package-trust-index.json"));
+        JsonElement[] bundles = [.. index.RootElement.GetProperty("bundles").EnumerateArray()];
+        string[] indexedDirectories =
         [
-            "nt51917-nt51927-general-merge-logical-candidate",
-            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-            "nt51923-nt51926-general-merge-logical-candidate",
-            "nt51928-general-merge-logical-candidate",
-            "nt51950-nt51951-general-merge-logical-candidate",
-            "nt51923-ctrlram-replace-candidate",
-            "nt51926-ctrlram-replace-candidate",
-            "nt51917-ctrlram-replace-alias-candidate",
-            "nt51927-ctrlram-replace-candidate",
-            "nt51928-ctrlram-replace-candidate",
-            "nt51929-ctrlram-replace-candidate",
-            "nt51932-ctrlram-replace-candidate",
-            "nt51950-ctrlram-replace-candidate",
-            "nt51951-ctrlram-replace-candidate",
-            "nt51923-dp-replace",
-            "nt51923-standard-merge",
-            "nt51927-dp-replace",
-            "nt51927-standard-merge",
-            "nt51928-dp-replace",
-            "nt51928-standard-merge",
-            "nt51929-dp-replace",
-            "nt51929-standard-merge",
-            "nt51919-nt51929-nt51932-ab-merge",
-            "nt51950-ab-merge",
-            "nt51950-nt51951-standard-merge",
+            .. bundles
+                .Select(static bundle => bundle.GetProperty("bundleDirectory").GetString()!)
+                .Order(StringComparer.Ordinal),
         ];
-        string[] logicalOutputCandidateBundleIds =
+        string[] sourceDirectories =
         [
-            "nt51917-nt51927-general-merge-logical-candidate",
-            "nt51919-nt51929-nt51932-general-merge-logical-candidate",
-            "nt51923-nt51926-general-merge-logical-candidate",
-            "nt51928-general-merge-logical-candidate",
-            "nt51950-nt51951-general-merge-logical-candidate",
-        ];
-        string[] relationshipSchemaBundleIds =
-        [
-            "nt51950-nt51951-general-merge-logical-candidate",
-            "nt51923-dp-replace",
-            "nt51927-dp-replace",
-            "nt51929-dp-replace",
-            "nt51950-nt51951-standard-merge",
-        ];
-        string[] tpHeaderSubjectSchemaBundleIds =
-        [
-            "nt51917-nt51927-general-merge-logical-candidate",
-            "nt51923-nt51926-general-merge-logical-candidate",
-            "nt51928-general-merge-logical-candidate",
-            "nt51923-standard-merge",
-            "nt51927-standard-merge",
-            "nt51928-dp-replace",
-            "nt51928-standard-merge",
-        ];
-        string[] sourceProjectionSchemaBundleIds =
-        [
-            "nt51923-dp-replace",
-            "nt51923-standard-merge",
-            "nt51927-dp-replace",
-            "nt51927-standard-merge",
-            "nt51928-dp-replace",
-            "nt51928-standard-merge",
-            "nt51929-dp-replace",
-            "nt51929-standard-merge",
-            "nt51950-ab-merge",
-            "nt51950-nt51951-standard-merge",
+            .. Directory.EnumerateDirectories(builtInRoot)
+                .Where(static directory => File.Exists(Path.Combine(directory, "profile-bundle.json")))
+                .Select(Path.GetFileName)
+                .Order(StringComparer.Ordinal)!,
         ];
 
-        Assert.Equal(
-            expectedBundleIds,
-            bundles.Select(bundle => bundle.Attribute("Include")?.Value));
-        foreach (XElement bundle in bundles)
+        Assert.Equal("1.0", index.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal(sourceDirectories, indexedDirectories);
+        Assert.All(bundles, bundle =>
         {
-            XAttribute include = Assert.Single(bundle.Attributes());
+            string directory = bundle.GetProperty("bundleDirectory").GetString()!;
+            string contentHash = bundle.GetProperty("contentHash").GetString()!;
+            JsonElement materialization = bundle.GetProperty("materialization");
+            using var manifest = JsonDocument.Parse(
+                ReadText($"profiles/built-in/{directory}/profile-bundle.json"));
 
-            Assert.Equal("Include", include.Name.LocalName);
-            if (include.Value is "nt51919-nt51929-nt51932-ab-merge" or "nt51950-ab-merge")
-            {
-                Assert.Equal(
-                    "composition-profile-v2.14.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else if (sourceProjectionSchemaBundleIds.Contains(
-                    bundle.Attribute("Include")?.Value,
-                    StringComparer.Ordinal))
-            {
-                Assert.Equal(
-                    "composition-profile-v2.13.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else if (logicalOutputCandidateBundleIds.Contains(
-                    bundle.Attribute("Include")?.Value,
-                    StringComparer.Ordinal))
-            {
-                Assert.Equal(
-                    "composition-profile-v2.5.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else if (bundle.Attribute("Include")?.Value is
-                         "nt51923-ctrlram-replace-candidate" or
-                         "nt51926-ctrlram-replace-candidate" or
-                         "nt51917-ctrlram-replace-alias-candidate" or
-                         "nt51927-ctrlram-replace-candidate" or
-                         "nt51928-ctrlram-replace-candidate" or
-                         "nt51929-ctrlram-replace-candidate" or
-                         "nt51932-ctrlram-replace-candidate" or
-                         "nt51950-ctrlram-replace-candidate" or
-                         "nt51951-ctrlram-replace-candidate")
-            {
-                Assert.Equal(
-                    "composition-profile-v2.9.schema.json",
-                    Assert.Single(bundle.Elements("CompositionProfileSchemaFile")).Value);
-            }
-            else
-            {
-                Assert.Empty(bundle.Elements("CompositionProfileSchemaFile"));
-            }
+            Assert.DoesNotContain('/', directory);
+            Assert.DoesNotContain('\\', directory);
+            Assert.DoesNotContain("..", directory, StringComparison.Ordinal);
+            Assert.Equal(64, contentHash.Length);
+            Assert.All(contentHash, static character =>
+                Assert.True(character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
+            Assert.Equal(
+                bundle.GetProperty("bundleSchemaVersion").GetString(),
+                manifest.RootElement.GetProperty("schemaVersion").GetString());
+            Assert.Equal(
+                bundle.GetProperty("bundleVersion").GetString(),
+                manifest.RootElement.GetProperty("bundleVersion").GetString());
+            Assert.True(File.Exists(Path.Combine(
+                Root.FullName,
+                "docs",
+                "contracts",
+                materialization.GetProperty("compositionProfileSchemaFile").GetString()!)));
+            Assert.True(File.Exists(Path.Combine(
+                Root.FullName,
+                "docs",
+                "contracts",
+                materialization.GetProperty("firmwareFamilySchemaFile").GetString()!)));
+        });
 
-            if (include.Value is "nt51919-nt51929-nt51932-ab-merge" or "nt51950-ab-merge")
-            {
-                Assert.Equal(
-                    "firmware-family-v1.2-bank-instances.schema.json",
-                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
-            }
-            else if (tpHeaderSubjectSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
-            {
-                Assert.Equal(
-                    "firmware-family-v1.2-tp-header-subjects.schema.json",
-                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
-            }
-            else if (include.Value is
-                    "nt51919-nt51929-nt51932-general-merge-logical-candidate" or
-                    "nt51929-standard-merge")
-            {
-                Assert.Equal(
-                    "firmware-family-v1.1-tp-header.schema.json",
-                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
-            }
-            else if (relationshipSchemaBundleIds.Contains(include.Value, StringComparer.Ordinal))
-            {
-                Assert.Equal(
-                    "firmware-family-v1-relations.schema.json",
-                    Assert.Single(bundle.Elements("FirmwareFamilySchemaFile")).Value);
-            }
-            else
-            {
-                Assert.Empty(bundle.Elements("FirmwareFamilySchemaFile"));
-            }
-
-            (string? canonicalSource, string? canonicalDestination) = include.Value switch
-            {
-                "nt51917-nt51927-general-merge-logical-candidate" or
-                "nt51928-general-merge-logical-candidate" => (
-                    "nt51927-standard-merge\\families\\nt51927-nt51928.json",
-                    "families\\nt51927-nt51928.json"),
-                "nt51923-nt51926-general-merge-logical-candidate" => (
-                    "nt51923-standard-merge\\families\\nt51923-nt51926.json",
-                    "families\\nt51923-nt51926.json"),
-                "nt51928-dp-replace" => (
-                    "nt51928-standard-merge\\families\\nt51927-nt51928-v1.5.json",
-                    "families\\nt51927-nt51928-v1.5.json"),
-                "nt51950-nt51951-general-merge-logical-candidate" => (
-                    "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
-                    "families\\nt51950-nt51951-dp-perspective.json"),
-                "nt51917-ctrlram-replace-alias-candidate" => (
-                    "nt51927-ctrlram-replace-candidate\\families\\nt51927-ctrlram-replace.json",
-                    "families\\nt51927-ctrlram-replace.json"),
-                _ => (null, null),
-            };
-            if (canonicalSource is null)
-            {
-                Assert.Empty(bundle.Elements("CanonicalFirmwareFamilySource"));
-                Assert.Empty(bundle.Elements("CanonicalFirmwareFamilyDestination"));
-            }
-            else
-            {
-                Assert.Equal(
-                    canonicalSource,
-                    Assert.Single(bundle.Elements("CanonicalFirmwareFamilySource")).Value);
-                Assert.Equal(
-                    canonicalDestination,
-                    Assert.Single(bundle.Elements("CanonicalFirmwareFamilyDestination")).Value);
-            }
-            Assert.DoesNotContain("*", include.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("$(", include.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("@(", include.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("%(", include.Value, StringComparison.Ordinal);
-        }
-
-        Assert.Contains("$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\**\\*", project, StringComparison.Ordinal);
+        Assert.Contains("LoadProfileBundleTrustIndex", project, StringComparison.Ordinal);
+        Assert.Contains("package-trust-index.json", project, StringComparison.Ordinal);
+        Assert.Contains(
+            "$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\**\\*",
+            project,
+            StringComparison.Ordinal);
         Assert.Contains(
             "Exclude=\"$(BuiltInProfileSourceRoot)\\%(BuiltInProfileBundle.Identity)\\schemas\\**\\*\"",
             project,
             StringComparison.Ordinal);
-        Assert.Contains(
-            "<DefaultCompositionProfileSchemaFile>composition-profile-v2.schema.json</DefaultCompositionProfileSchemaFile>",
-            project,
-            StringComparison.Ordinal);
-        Assert.Equal(
-            "$(DefaultCompositionProfileSchemaFile)",
-            Assert.Single(document.Descendants("ItemDefinitionGroup")
-                .Descendants("BuiltInProfileBundle"))
-                .Element("CompositionProfileSchemaFile")?.Value);
-        Assert.Equal(
-            "firmware-family-v1.schema.json",
-            Assert.Single(document.Descendants("ItemDefinitionGroup")
-                .Descendants("BuiltInProfileBundle"))
-                .Element("FirmwareFamilySchemaFile")?.Value);
-        Assert.Contains(
-            "$(ProfileContractRoot)\\%(BuiltInProfileBundle.CompositionProfileSchemaFile)",
-            project,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "$(ProfileContractRoot)\\%(BuiltInProfileBundle.FirmwareFamilySchemaFile)",
-            project,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
-        string retiredSchemaSource = Path.Combine(Root.FullName, "profiles", "schema-source");
-        Assert.False(Directory.Exists(retiredSchemaSource) &&
-            Directory.EnumerateFiles(retiredSchemaSource, "*", SearchOption.AllDirectories).Any());
-        Assert.DoesNotContain(bundles, static bundle => bundle.Element("SourceRoot") is not null);
+        Assert.DoesNotContain("<BuiltInProfileBundle Include=", project, StringComparison.Ordinal);
         Assert.DoesNotContain("**\\profile-bundle.json", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProfileSchemaSourceRoot", project, StringComparison.Ordinal);
     }
 
     /// <summary>Retired ICs have no production profile, route, processor, package, or catalog owner.</summary>
@@ -441,152 +279,75 @@ public sealed partial class RepositoryBoundaryTests
             Assert.Contains($"'{retiredId}'", packagePolicy, StringComparison.Ordinal));
     }
 
-    /// <summary>Verifies each approved canonical firmware-family reuse is explicit and closed-root.</summary>
+    /// <summary>Verifies each approved canonical family reuse is explicit and hash-closed.</summary>
     [Fact]
     public void CandidateBundlesMaterializeOnlyApprovedCanonicalFirmwareFamilies()
     {
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
-        var document = XDocument.Parse(project);
-        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilySource").Count(static element =>
-            !string.IsNullOrWhiteSpace(element.Value)));
-        Assert.Equal(6, document.Descendants("CanonicalFirmwareFamilyDestination").Count(static element =>
-            !string.IsNullOrWhiteSpace(element.Value)));
+        using var index = JsonDocument.Parse(
+            ReadText("profiles/built-in/package-trust-index.json"));
+        JsonElement[] bundles = [.. index.RootElement.GetProperty("bundles").EnumerateArray()];
+        (string Bundle, string Source, string Destination)[] expected =
+        [
+            ("nt51917-nt51927-general-merge-logical-candidate", "nt51927-standard-merge/families/nt51927-nt51928.json", "families/nt51927-nt51928.json"),
+            ("nt51928-general-merge-logical-candidate", "nt51927-standard-merge/families/nt51927-nt51928.json", "families/nt51927-nt51928.json"),
+            ("nt51923-nt51926-general-merge-logical-candidate", "nt51923-standard-merge/families/nt51923-nt51926.json", "families/nt51923-nt51926.json"),
+            ("nt51928-dp-replace", "nt51928-standard-merge/families/nt51927-nt51928-v1.5.json", "families/nt51927-nt51928-v1.5.json"),
+            ("nt51950-nt51951-general-merge-logical-candidate", "nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "families/nt51950-nt51951-dp-perspective.json"),
+            ("nt51917-ctrlram-replace-alias-candidate", "nt51927-ctrlram-replace-candidate/families/nt51927-ctrlram-replace.json", "families/nt51927-ctrlram-replace.json"),
+        ];
+        JsonElement[] canonicalEntries =
+        [
+            .. bundles.Where(static bundle =>
+                bundle.GetProperty("materialization")
+                    .TryGetProperty("canonicalFirmwareFamily", out _)),
+        ];
 
-        foreach (string bundleId in new[]
-                 {
-                     "nt51917-nt51927-general-merge-logical-candidate",
-                     "nt51928-general-merge-logical-candidate",
-                 })
+        Assert.Equal(expected.Length, canonicalEntries.Length);
+        foreach ((string bundleId, string source, string destination) in expected)
         {
-            XElement sharedPartsConsumer = Assert.Single(
-                document.Descendants("BuiltInProfileBundle"),
-                bundle => StringComparer.Ordinal.Equals(
-                    bundle.Attribute("Include")?.Value,
+            JsonElement bundle = Assert.Single(
+                bundles,
+                candidate => StringComparer.Ordinal.Equals(
+                    candidate.GetProperty("bundleDirectory").GetString(),
                     bundleId));
-            Assert.Equal(
-                "nt51927-standard-merge\\families\\nt51927-nt51928.json",
-                sharedPartsConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
-            Assert.Equal(
-                "families\\nt51927-nt51928.json",
-                sharedPartsConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
-            Assert.False(File.Exists(Path.Combine(
+            JsonElement canonical = bundle
+                .GetProperty("materialization")
+                .GetProperty("canonicalFirmwareFamily");
+            Assert.Equal(source, canonical.GetProperty("source").GetString());
+            Assert.Equal(destination, canonical.GetProperty("destination").GetString());
+
+            string sourcePath = Path.Combine(
+                Root.FullName,
+                "profiles",
+                "built-in",
+                source.Replace('/', Path.DirectorySeparatorChar));
+            string destinationPath = Path.Combine(
                 Root.FullName,
                 "profiles",
                 "built-in",
                 bundleId,
-                "families",
-                "nt51927-nt51928.json")));
+                destination.Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(File.Exists(sourcePath));
+            Assert.False(File.Exists(destinationPath));
+
+            using var manifest = JsonDocument.Parse(
+                ReadText($"profiles/built-in/{bundleId}/profile-bundle.json"));
+            JsonElement familyEntry = Assert.Single(
+                manifest.RootElement.GetProperty("entries").EnumerateArray(),
+                entry => StringComparer.Ordinal.Equals(
+                    entry.GetProperty("path").GetString(),
+                    destination));
+            Assert.Equal(
+                familyEntry.GetProperty("contentHash").GetString(),
+                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant());
         }
 
-        XElement normalHeaderConsumer = Assert.Single(
-            document.Descendants("BuiltInProfileBundle"),
-            static bundle => StringComparer.Ordinal.Equals(
-                bundle.Attribute("Include")?.Value,
-                "nt51923-nt51926-general-merge-logical-candidate"));
-        Assert.Equal(
-            "nt51923-standard-merge\\families\\nt51923-nt51926.json",
-            normalHeaderConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
-        Assert.Equal(
-            "families\\nt51923-nt51926.json",
-            normalHeaderConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51923-nt51926-general-merge-logical-candidate",
-            "families",
-            "nt51923-nt51926.json")));
-
-        XElement nt51928DpReplace = Assert.Single(
-            document.Descendants("BuiltInProfileBundle"),
-            static bundle => StringComparer.Ordinal.Equals(
-                bundle.Attribute("Include")?.Value,
-                "nt51928-dp-replace"));
-        Assert.Equal(
-            "nt51928-standard-merge\\families\\nt51927-nt51928-v1.5.json",
-            nt51928DpReplace.Element("CanonicalFirmwareFamilySource")?.Value);
-        Assert.Equal(
-            "families\\nt51927-nt51928-v1.5.json",
-            nt51928DpReplace.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.True(File.Exists(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51928-standard-merge",
-            "families",
-            "nt51927-nt51928-v1.5.json")));
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51928-dp-replace",
-            "families",
-            "nt51927-nt51928-v1.5.json")));
-
-        XElement dpPerspectiveConsumer = Assert.Single(
-            document.Descendants("BuiltInProfileBundle"),
-            static bundle => StringComparer.Ordinal.Equals(
-                bundle.Attribute("Include")?.Value,
-                "nt51950-nt51951-general-merge-logical-candidate"));
-        Assert.Equal(
-            "nt51950-nt51951-standard-merge\\families\\nt51950-nt51951-dp-perspective.json",
-            dpPerspectiveConsumer.Element("CanonicalFirmwareFamilySource")?.Value);
-        Assert.Equal(
-            "families\\nt51950-nt51951-dp-perspective.json",
-            dpPerspectiveConsumer.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        Assert.False(File.Exists(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51950-nt51951-general-merge-logical-candidate",
-            "families",
-            "nt51950-nt51951-dp-perspective.json")));
-
-        XElement nt51917Candidate = Assert.Single(document.Descendants("BuiltInProfileBundle"), static bundle =>
-            StringComparer.Ordinal.Equals(
-                bundle.Attribute("Include")?.Value,
-                "nt51917-ctrlram-replace-alias-candidate"));
-        Assert.Equal(
-            "nt51927-ctrlram-replace-candidate\\families\\nt51927-ctrlram-replace.json",
-            nt51917Candidate.Element("CanonicalFirmwareFamilySource")?.Value);
-        Assert.Equal(
-            "families\\nt51927-ctrlram-replace.json",
-            nt51917Candidate.Element("CanonicalFirmwareFamilyDestination")?.Value);
-        string canonicalCtrlRamFamilyPath = Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51927-ctrlram-replace-candidate",
-            "families",
-            "nt51927-ctrlram-replace.json");
-        string aliasFamilyPath = Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "nt51917-ctrlram-replace-alias-candidate",
-            "families",
-            "nt51927-ctrlram-replace.json");
-        Assert.True(File.Exists(canonicalCtrlRamFamilyPath));
-        Assert.False(File.Exists(aliasFamilyPath));
-        using var aliasManifest = JsonDocument.Parse(ReadText(
-            "profiles/built-in/nt51917-ctrlram-replace-alias-candidate/profile-bundle.json"));
-        JsonElement aliasFamilyEntry = Assert.Single(
-            aliasManifest.RootElement.GetProperty("entries").EnumerateArray(),
-            static entry => StringComparer.Ordinal.Equals(
-                entry.GetProperty("kind").GetString(),
-                "firmware-family"));
-        Assert.Equal("families/nt51927-ctrlram-replace.json", aliasFamilyEntry.GetProperty("path").GetString());
-        Assert.Equal(
-            aliasFamilyEntry.GetProperty("contentHash").GetString(),
-            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(canonicalCtrlRamFamilyPath))).ToLowerInvariant());
-
+        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         Assert.Contains("Built-in profile canonical firmware-family metadata must declare both source and destination", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source escapes the approved source root", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family destination escapes the bundle families root", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family source is missing", project, StringComparison.Ordinal);
         Assert.Contains("Built-in profile canonical firmware-family destination collides", project, StringComparison.Ordinal);
-        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(SourceFile)')", project, StringComparison.Ordinal);
-        Assert.Contains("@(_BuiltInProfileCanonicalFamily->'%(DestinationFile)')", project, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CanonicalFirmwareFamily",
             ReadText("src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundleLoader.cs"),

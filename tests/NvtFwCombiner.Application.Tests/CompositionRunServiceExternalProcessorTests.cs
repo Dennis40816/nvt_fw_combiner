@@ -32,7 +32,7 @@ public sealed partial class CompositionRunServiceTests
                 ]);
         });
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateExternalProcessorArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             null,
             processor);
@@ -92,7 +92,7 @@ public sealed partial class CompositionRunServiceTests
         });
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
             writer,
             processor);
@@ -125,7 +125,7 @@ public sealed partial class CompositionRunServiceTests
         var processor = new FakeExternalProcessor(request =>
             ExternalProcessorResult.Success(request.InputBytes, []));
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             null,
             processor);
@@ -150,7 +150,7 @@ public sealed partial class CompositionRunServiceTests
             ExternalProcessorResult.Success(request.InputBytes, []));
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             writer,
             processor);
@@ -175,7 +175,7 @@ public sealed partial class CompositionRunServiceTests
             new CompositionIssue("external-tool.process.failed", "synthetic Combiner failure", "postbuild"),
         ]));
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             null,
             processor);
@@ -428,7 +428,7 @@ public sealed partial class CompositionRunServiceTests
                     ["CRC_Enable", "C:\\staging\\run-external.run-crc\\output\\firmware.bin"]),
             ]));
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            CreateExternalProcessorArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
             null,
             processor);

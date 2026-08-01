@@ -233,7 +233,7 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, roleVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, capabilityVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, aliasVariant.CompilationFingerprint);
-        CompiledCapabilityAdmission aliased = Assert.Single(aliasVariant.V2Details!.Provenance.RequiredCapabilities);
+        CompiledCapabilityAdmission aliased = Assert.Single(aliasVariant.V2Details.Provenance.RequiredCapabilities);
         Assert.Equal("source-member", aliased.Binding.DirectSourceKey.MemberId);
         Assert.Equal(["capability-alias"], aliased.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
     }

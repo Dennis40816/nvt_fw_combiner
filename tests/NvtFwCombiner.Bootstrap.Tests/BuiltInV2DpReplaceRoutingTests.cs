@@ -37,7 +37,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(profileId, artifact.ProfileId);
-        Assert.Equal(bundleContentHash, artifact.V2Details!.Provenance.Bundle.ContentHash);
+        Assert.Equal(bundleContentHash, artifact.V2Details.Provenance.Bundle.ContentHash);
         Assert.Equal(
             [CompositionAddressSpaceIds.DpReplacement, CompositionAddressSpaceIds.ReferenceBase],
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
@@ -86,7 +86,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             Assert.Equal(expectedRange, operation.TargetRange);
             Assert.Equal(operation.TargetRange, operation.SourceRange);
         });
-        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details!.InputContract.SelectionGroups);
+        CompiledInputSelectionGroup group = Assert.Single(artifact.V2Details.InputContract.SelectionGroups);
         Assert.Equal(selectedInputIds.Split(',').Order(StringComparer.Ordinal), group.SelectedSlotIds);
         Assert.Equal(
             referenceCapacity == 0x40000
@@ -388,7 +388,6 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(artifact.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal("45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);

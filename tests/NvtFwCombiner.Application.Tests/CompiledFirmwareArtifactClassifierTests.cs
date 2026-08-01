@@ -85,18 +85,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
             Signal(result, CompiledFirmwareArtifactSignalKind.TpContentPlausibility).Status);
     }
 
-    /// <summary>A legacy artifact has no resolved-map authority and therefore exposes only NotDeclared evidence.</summary>
-    [Fact]
-    public void LegacyCompositionFailsClosedAsUnknown()
-    {
-        CompiledFirmwareArtifactClassification result =
-            CompiledFirmwareArtifactClassifier.Classify(LegacyComposition(), [0x5A]);
-
-        Assert.Equal(CompiledFirmwareArtifactKind.Unknown, result.Kind);
-        Assert.All(result.Signals, static signal =>
-            Assert.Equal(CompiledFirmwareArtifactSignalStatus.NotDeclared, signal.Status));
-    }
-
     /// <summary>A candidate that cannot cover either declared source range remains Unknown with exact failed ranges.</summary>
     [Fact]
     public void ShortCandidateReportsMissingSectionCoverage()
@@ -139,7 +127,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         CompiledComposition composition = Composition();
         _ = Assert.Throws<ArgumentException>(() =>
             CompiledInputArtifactInspectionService.Inspect(
-                composition.V2Details!.InputContract,
+                composition.V2Details.InputContract,
                 "dp-input",
                 new byte[4]));
         _ = Assert.Throws<ArgumentException>(() =>
@@ -147,11 +135,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                 composition,
                 "missing-input",
                 new byte[4]));
-        _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.Inspect(
-                LegacyComposition(),
-                "missing-input",
-                ReadOnlyMemory<byte>.Empty));
     }
 
     /// <summary>Classification evidence must contain exactly one signal of every closed kind.</summary>
@@ -189,25 +172,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         CompiledFirmwareArtifactSignalKind kind)
     {
         return Assert.Single(result.Signals, signal => signal.Kind == kind);
-    }
-
-    private static CompiledComposition LegacyComposition()
-    {
-        var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", 1, 0),
-            [new AddressSpace("output-image", 1, AddressSpaceMutability.Mutable)],
-            []);
-        return CompiledComposition.CreateLegacy(
-            plan,
-            new LegacyCompiledCompositionIdentity(
-                "legacy-profile",
-                "1.0.0",
-                "NT-SYNTHETIC",
-                "standard",
-                ExperienceIds.StandardMerge,
-                CompositionKind.Merge),
-            "legacy.bin",
-            CompiledIcNumberPolicy.NotApplicable);
     }
 
     private static byte[] Candidate(bool dpProgrammed, bool tpProgrammed, int length)

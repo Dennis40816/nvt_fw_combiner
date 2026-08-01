@@ -23,7 +23,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(composition.V2Details!.Provenance.Context);
+        _ = Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(composition.V2Details.Provenance.Context);
         Assert.Equal(ImageInitializationKind.Reference, composition.Plan.OutputInitialization.Kind);
         Assert.Equal("base", composition.Plan.OutputInitialization.ReferenceSpaceId);
         Assert.Equal("output-image", composition.Plan.OutputSpaceId);

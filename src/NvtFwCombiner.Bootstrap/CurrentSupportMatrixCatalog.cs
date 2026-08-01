@@ -58,7 +58,7 @@ internal static partial class CurrentSupportMatrixCatalog
                 IcWorkflowIds.GeneralMerge,
                 executionAdmitted: true,
                 $"built-in-v2-general-merge:{registration.ProfileId}@" +
-                WorkbenchCompositionService.GeneralMergeV2CandidateProfileVersion));
+                registration.ProfileVersion));
         }
     }
 
@@ -66,8 +66,20 @@ internal static partial class CurrentSupportMatrixCatalog
         List<SupportRouteDescriptor> routes,
         List<SupportUnresolvedScope> unresolved)
     {
+        foreach (GeneralReplaceV2Registration registration in
+                 BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Values)
+        {
+            AddGeneralReplaceRoutes(registration, routes, unresolved);
+        }
+    }
+
+    private static void AddGeneralReplaceRoutes(
+        GeneralReplaceV2Registration registration,
+        List<SupportRouteDescriptor> routes,
+        List<SupportUnresolvedScope> unresolved)
+    {
         IReadOnlyList<Domain.Firmware.FirmwareImageMap> maps =
-            WorkbenchCompositionService.GetNt51926GeneralReplaceSupportMaps(
+            registration.GetMapVariants(
                 out Domain.Composition.IcNumberInputMode?
                     icNumberInputMode,
                 out IReadOnlyList<Domain.Composition.CompositionIssue>
@@ -75,7 +87,7 @@ internal static partial class CurrentSupportMatrixCatalog
         if (issues.Count != 0 || maps.Count == 0)
         {
             unresolved.Add(Unresolved(
-                WorkbenchCompositionService.Nt51926GeneralReplaceIcId,
+                registration.IcId,
                 IcWorkflowIds.GeneralReplace,
                 "general-replace-v2",
                 $"Exact General Replace maps could not be resolved: {IssueCodes(issues)}."));
@@ -90,7 +102,7 @@ internal static partial class CurrentSupportMatrixCatalog
             if (countVariant is null)
             {
                 unresolved.Add(Unresolved(
-                    WorkbenchCompositionService.Nt51926GeneralReplaceIcId,
+                    registration.IcId,
                     IcWorkflowIds.GeneralReplace,
                     map.MapId,
                     "General Replace numeric IC Count has no exact map topology binding."));
@@ -99,16 +111,16 @@ internal static partial class CurrentSupportMatrixCatalog
 
             routes.Add(Route(
                 new SupportRouteIdentity(
-                    WorkbenchCompositionService.Nt51926GeneralReplaceIcId,
+                    registration.IcId,
                     IcWorkflowIds.GeneralReplace,
                     countVariant,
                     map.MapId),
-                WorkbenchCompositionService.Nt51926GeneralReplaceIcId,
+                registration.IcId,
                 IcWorkflowIds.GeneralReplace,
                 executionAdmitted: true,
                 $"built-in-v2-general-replace:" +
-                $"{WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileId}@" +
-                $"{WorkbenchCompositionService.Nt51926GeneralReplaceDpProfileVersion}:" +
+                $"{registration.ProfileId}@" +
+                $"{registration.ProfileVersion}:" +
                 map.MapId));
         }
     }

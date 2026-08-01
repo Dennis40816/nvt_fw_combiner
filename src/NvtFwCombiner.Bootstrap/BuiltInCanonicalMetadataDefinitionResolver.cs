@@ -1,11 +1,11 @@
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>
-/// Bootstrap-owned allow-list that links consumer bindings to exact trusted
-/// canonical metadata providers.
+/// Resolves exact metadata identities from the hash-closed built-in bundle set.
 /// </summary>
 internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
     IFirmwareMetadataStructureDefinitionResolver
@@ -21,25 +21,14 @@ internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
         out FirmwareMetadataStructureDefinition? definition)
     {
         ArgumentNullException.ThrowIfNull(reference);
-        string? providerBundle = (reference.FamilyId, reference.FamilyVersion) switch
-        {
-            ("nt51917-nt51927-nt51928-canonical-container", "1.4.0") =>
-                "nt51927-standard-merge",
-            ("nt51923-nt51926", "1.1.0") =>
-                "nt51923-standard-merge",
-            ("nt51929-nt51932", "1.3.0") =>
-                "nt51929-dp-replace",
-            ("nt51929-nt51932", "1.1.0") =>
-                "nt51929-standard-merge",
-            _ => null,
-        };
-        if (providerBundle is null)
-        {
-            definition = null;
-            return false;
-        }
-
-        return BuiltInV2BundleRegistry.All[providerBundle]
-            .TryResolveMetadataDefinition(reference, out definition);
+        ProfileBundlePackageTrustEntry? providerBundle =
+            BuiltInV2BundleRegistry.TrustIndex.Bundles.SingleOrDefault(entry =>
+                entry.MetadataProviderFamilies.Any(provider =>
+                    StringComparer.Ordinal.Equals(provider.FamilyId, reference.FamilyId) &&
+                    StringComparer.Ordinal.Equals(provider.FamilyVersion, reference.FamilyVersion)));
+        definition = null;
+        return providerBundle is not null &&
+            BuiltInV2BundleRegistry.All[providerBundle.BundleDirectory]
+                .TryResolveMetadataDefinition(reference, out definition);
     }
 }

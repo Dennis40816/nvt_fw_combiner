@@ -54,7 +54,7 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(baseline.IcNumberPolicy, composition.IcNumberPolicy);
         Assert.Equal(
             new ByteRange(0x0A000, 0x2D000),
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
                 .Single(static region => region.RegionId == "tp-overlay").Range);
         Assert.Equal(
             new ByteRange(0x37000, 0x1000),

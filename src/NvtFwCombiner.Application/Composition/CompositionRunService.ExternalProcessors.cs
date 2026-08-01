@@ -83,7 +83,7 @@ public sealed partial class CompositionRunService
 
     private static int? ResolveExternalProcessorIcCount(CompiledComposition compiledComposition)
     {
-        return compiledComposition.V2Details?.Provenance.Context is MapBoundV2CompilationContext mapContext
+        return compiledComposition.V2Details.Provenance.Context is MapBoundV2CompilationContext mapContext
             ? mapContext.ResolvedMap.TopologySelection?.ChipCount
             : null;
     }

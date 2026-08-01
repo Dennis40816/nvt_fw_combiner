@@ -14,7 +14,7 @@ internal static class AbCodeOutputNameResolver
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         DateTimeOffset startedAtUtc)
     {
-        CompiledOutputNamingRequirement? output = request.CompiledComposition.V2Details?.OutputNamingRequirement;
+        CompiledOutputNamingRequirement output = request.CompiledComposition.V2Details.OutputNamingRequirement;
         if (output?.RendererKind != CompiledOutputNameRendererKind.AbCodeV1)
         {
             return OutputNameResolution.Static(request.OutputFileName);
@@ -112,7 +112,7 @@ internal static class AbCodeOutputNameResolver
         out int offset)
     {
         offset = 0;
-        FirmwareRegion? region = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
+        FirmwareRegion? region = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
             StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
         if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
             region.Range.EndExclusive > snapshotLength || region.Range.Start > int.MaxValue)
@@ -230,12 +230,12 @@ internal static class AbCodeOutputNameResolver
         // Exact contracts accept the complete immutable input; they deliberately have no
         // declared-prefix execution snapshot.  The profile contract, not an IC, PID, or
         // version value, is the sole authority for this fallback.
-        CompiledInputSpaceBinding? spaceBinding = request.CompiledComposition.V2Details?
+        CompiledInputSpaceBinding? spaceBinding = request.CompiledComposition.V2Details
             .InputContract.SpaceBindings
             .SingleOrDefault(binding => StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId));
         CompiledInputSlotRequirement? slot = spaceBinding is null
             ? null
-            : request.CompiledComposition.V2Details!.InputContract.Slots.SingleOrDefault(candidate =>
+            : request.CompiledComposition.V2Details.InputContract.Slots.SingleOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.SlotId, spaceBinding.SlotId));
         long? exactBytes = slot?.LengthRequirement switch
         {

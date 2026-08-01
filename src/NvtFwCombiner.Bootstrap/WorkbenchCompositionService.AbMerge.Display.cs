@@ -124,7 +124,7 @@ public static partial class WorkbenchCompositionService
         };
         FirmwareRegion[] tpCodeRegions =
         [
-            .. composition.V2Details!.Provenance.ResolvedMap.ImageMap.Regions
+            .. composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
                 .Where(static region =>
                     region.Owner == FirmwareRegionOwner.Tp &&
                     region.Kind == FirmwareRegionKind.Code)

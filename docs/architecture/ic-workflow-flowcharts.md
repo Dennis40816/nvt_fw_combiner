@@ -15,9 +15,10 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 
 Update this document in the same change when any of these sources change:
 
-- `src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs`; this owns the explicit Standard Merge, AB pilot, and DP Replace registration lists plus non-routed General Merge candidates.
-- `src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs`; production profiles are manifest-pinned V2 bundles. Synthetic compiler fixtures remain test-only under `tests/NvtFwCombiner.TestSupport/`.
-- `src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs`; this binds each admitted runtime postbuild profile and typed Number plan to one trusted V2 profile.
+- `profiles/built-in/package-trust-index.json`; this owns hash-pinned bundle materialization and runtime admission for Standard Merge, AB Merge, DP Replace, General Merge, General Replace, and CtrlRAM Replace.
+- `src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs`; this generically projects non-CtrlRAM registrations from the package trust index without IC route literals.
+- `src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs`; production profiles are manifest-pinned V2 bundles admitted by the package trust index. Synthetic compiler fixtures remain test-only under `tests/NvtFwCombiner.TestSupport/`.
+- `src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs`; this generically projects each admitted runtime postbuild profile and typed Number plan from the same trust index.
 - `profiles/built-in/ctrlram-postbuild-v2/catalog.json`; Infrastructure validates its pinned hash and projects typed runtime profiles.
 - [`../adr/0031-ctrlram-profile-intervals-and-build-plan-authority.md`](../adr/0031-ctrlram-profile-intervals-and-build-plan-authority.md)
 - `docs/architecture/nt51950-nt51951-dp-length-policy.md`
@@ -26,7 +27,10 @@ Update this document in the same change when any of these sources change:
 - `docs/architecture/supported-ic-matrix.md`
 - `docs/architecture/adding-ic-merge-replace-workflow.md`
 
-The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks that this document lists every IC from the built-in Standard Merge and AB Merge profiles, plus the CtrlRAM postbuild catalog. The test is a sync guard only; the C# catalog and owner evidence remain the source of behavior truth.
+The architecture test `IcWorkflowFlowchartReferenceCoversBuiltInIcLists` checks
+that this document lists every admitted IC from the package trust index and the
+CtrlRAM postbuild catalog. The test is a sync guard only; profile/family data,
+the package trust index, and owner evidence remain the behavior authorities.
 
 ## Notation
 

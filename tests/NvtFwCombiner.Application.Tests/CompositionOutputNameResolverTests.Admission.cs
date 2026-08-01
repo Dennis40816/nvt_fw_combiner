@@ -63,6 +63,68 @@ public sealed partial class CompositionOutputNameResolverTests
             resolvedCapability: capability));
     }
 
+    /// <summary>A capability-bound compilation cannot discard its current publication identity.</summary>
+    [Fact]
+    public void RunRequestRejectsMissingResolvedCapability()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledComposition unbound = CreateRuntimeComposition(fixture);
+        ResolvedCapability capability = CreateAdmissionCapability(
+            fixture,
+            unbound,
+            CapabilityFingerprint,
+            fixture.Plan.ResolutionToken);
+        CompiledComposition composition = capability.CompiledComposition;
+        var inspection = new AcceptedOutputNamingInspection(
+            capability.Identity.RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan,
+            fixture.Snapshot);
+        var admission = new OutputNamingAdmissionIdentity(
+            capability.Identity.RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan.ResolutionToken,
+            fixture.Snapshot.AuthoringRevision);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "missing-resolved-capability",
+                composition,
+                [CreateInputBinding()],
+                CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+                outputNamingInspection: inspection,
+                outputNamingAdmission: admission));
+
+        Assert.Equal("resolvedCapability", exception.ParamName);
+    }
+
+    /// <summary>Accepted normal-name inspection cannot run without current publication admission.</summary>
+    [Fact]
+    public void RunRequestRejectsMissingOutputNamingAdmission()
+    {
+        InspectionFixture fixture = CreateInspectionFixture(includeDpcmi: true);
+        CompiledComposition composition = CreateRuntimeComposition(fixture);
+        var inspection = new AcceptedOutputNamingInspection(
+            new CapabilityRouteIdentity(
+                "NT51929",
+                "standard-merge",
+                "none",
+                "map").RouteId,
+            composition.CompilationFingerprint,
+            fixture.Plan,
+            fixture.Snapshot);
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            new CompositionRunRequest(
+                "missing-output-naming-admission",
+                composition,
+                [CreateInputBinding()],
+                CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+                outputNamingInspection: inspection));
+
+        Assert.Equal("admission", exception.ParamName);
+    }
+
     /// <summary>Capability route IC, workflow, and map are all compiled facts.</summary>
     [Theory]
     [InlineData("ic")]

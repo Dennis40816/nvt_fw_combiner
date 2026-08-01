@@ -134,7 +134,6 @@ public sealed class GeneralMergeV2CandidateProfileTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
         Assert.True(compile.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(composition.Authority);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         LogicalOutputV2CompilationContext context = Assert.IsType<LogicalOutputV2CompilationContext>(
             details.Provenance.Context);

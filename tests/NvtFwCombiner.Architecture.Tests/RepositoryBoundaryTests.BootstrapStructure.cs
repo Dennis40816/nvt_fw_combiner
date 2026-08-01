@@ -115,6 +115,7 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs"));
         string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
 
         Assert.Contains("TryCompileBuiltInV2DpReplace", replaceDp, StringComparison.Ordinal);
         Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
@@ -125,8 +126,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowIds.DpReplace", registrations, StringComparison.Ordinal);
         Assert.Contains(
-            "BuiltInV2BundleRegistry.All[\"nt51950-nt51951-standard-merge\"]",
-            registrations,
+            "nt51950-nt51951-standard-merge",
+            packageTrustIndex,
             StringComparison.Ordinal);
         Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", v2Resolution, StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", v2Display, StringComparison.Ordinal);
@@ -161,7 +162,7 @@ public sealed partial class RepositoryBoundaryTests
         string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
         string diagnosticProfile = ReadText(
             "profiles/built-in/nt51926-ctrlram-replace-candidate/profiles/nt51926-ctrlram-replace-fw141-cascade.json");
         string runtimeProfile = ReadText(
@@ -231,14 +232,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("nt51950-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51951-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51951-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
-        Assert.Contains("nt51923-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51926-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51927-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51917-ctrlram-replace-alias-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51929-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51932-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51950-ctrlram-replace-candidate", project, StringComparison.Ordinal);
-        Assert.Contains("nt51951-ctrlram-replace-candidate", project, StringComparison.Ordinal);
+        Assert.Contains("nt51923-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51927-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51917-ctrlram-replace-alias-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51929-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51932-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51950-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51951-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"runtime-route\"", diagnosticProfile, StringComparison.Ordinal);
         Assert.Contains(
             "CtrlRamV2FirmwareVersionAdapter.Create(context.FirmwareVersionWritePlan)",
@@ -271,13 +272,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("referencePayload.Sha256", ctrlRamRuntime, StringComparison.Ordinal);
         Assert.Contains("CompileCtrlRamV2", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2BundleRegistry.All[route.BundleId]", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("nt51917-ctrlram-replace-alias-candidate", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51929-ctrlram-replace-candidate", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51926-ctrlram-replace-fw141-runtime-cascade", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51926-ctrlram-replace-fw200-runtime-single", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51926-ctrlram-replace-fw200-runtime-cascade", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51950-ctrlram-replace-fw1x-cascade", ctrlRamRoutes, StringComparison.Ordinal);
-        Assert.Contains("nt51951-ctrlram-replace-fw1x-cascade", ctrlRamRoutes, StringComparison.Ordinal);
+        Assert.Contains("nt51917-ctrlram-replace-alias-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51929-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-fw141-runtime-cascade", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-fw200-runtime-single", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51926-ctrlram-replace-fw200-runtime-cascade", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51950-ctrlram-replace-fw1x-cascade", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("nt51951-ctrlram-replace-fw1x-cascade", packageTrustIndex, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", runtimeProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"blockerId\": \"direct-golden-evidence\"", runtimeProfile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"blockerId\": \"runtime-route\"", runtimeProfile, StringComparison.Ordinal);
@@ -372,8 +373,20 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51926-general-replace-dp-single-candidate", cli, StringComparison.Ordinal);
-        Assert.Contains("IsNt51926GeneralReplaceDpV2Route", generalRuntime, StringComparison.Ordinal);
-        Assert.Contains("StringComparer.Ordinal.Equals(icId, \"NT51926\")", generalV2, StringComparison.Ordinal);
+        Assert.Contains("IsGeneralReplaceDpV2Route", generalRuntime, StringComparison.Ordinal);
+        Assert.Contains(
+            "BuiltInV2RegistrationRegistry.GeneralReplaceByIc",
+            generalRuntime,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51926", generalV2, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "nt51926-general-replace-dp-single-candidate",
+            generalV2,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "nt51926-ctrlram-replace-candidate",
+            generalV2,
+            StringComparison.Ordinal);
         Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
         Assert.Contains(
             "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",

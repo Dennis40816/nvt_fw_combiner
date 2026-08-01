@@ -21,7 +21,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(ImageInitializationKind.Reference, initialization.Kind);
         Assert.Equal("reference-source", initialization.ReferenceSpaceId);
         CompiledInputSlotRequirement referenceSlot = Assert.Single(
-            composition.V2Details!.InputContract.Slots,
+            composition.V2Details.InputContract.Slots,
             static slot => slot.SlotId == "reference-input");
         Assert.Equal(CompiledInputArtifactClass.ReferenceImage, referenceSlot.ArtifactClass);
         _ = Assert.IsType<CompiledExactResolvedMapCapacityInputLengthRequirement>(referenceSlot.LengthRequirement);
