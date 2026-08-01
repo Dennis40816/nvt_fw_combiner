@@ -30,6 +30,7 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
+$ApprovedPackageTrustIndexSha256 = 'd0429edbb15e3341bacf3fc166e49f7d92f8b43fa6485a5e1600304c98c2e4f4'
 $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.0.0.json'
@@ -405,6 +406,9 @@ try {
         throw 'Release manifest must contain exactly one package trust index.'
     }
     $PackageTrustIndexPath = Join-Path $packageRoot $PackageTrustIndexPackagePath
+    if ((Get-LowerSha256 -Path $PackageTrustIndexPath) -ne $ApprovedPackageTrustIndexSha256) {
+        throw 'Release package trust index does not match the exact reviewed identity.'
+    }
     $PackageTrustIndex = Get-Content -LiteralPath $PackageTrustIndexPath -Raw |
         ConvertFrom-Json -Depth 32
     if ([string]$PackageTrustIndex.schemaVersion -ne '1.0' -or

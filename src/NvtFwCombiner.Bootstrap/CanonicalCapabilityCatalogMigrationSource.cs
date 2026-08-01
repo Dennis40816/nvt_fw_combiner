@@ -69,6 +69,19 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
         {
             return Failure(CapabilityCatalogIssueCodes.SourceUnavailable, exception.Message);
         }
+        catch (TypeInitializationException exception)
+        {
+            Exception? sourceFailure = FindSourceFailure(exception);
+            if (sourceFailure is null)
+            {
+                throw;
+            }
+
+            string code = sourceFailure is IOException or UnauthorizedAccessException
+                ? CapabilityCatalogIssueCodes.SourceUnavailable
+                : CapabilityCatalogIssueCodes.SourceInvalid;
+            return Failure(code, sourceFailure.Message);
+        }
     }
 
     private static CanonicalDynamicCapabilityDefinition MaterializeDynamic(
@@ -125,5 +138,22 @@ internal sealed class CanonicalCapabilityCatalogMigrationSource :
     {
         return CapabilityCatalogLoadResult.Failure(
             new CapabilityCatalogIssue(code, message));
+    }
+
+    private static Exception? FindSourceFailure(TypeInitializationException exception)
+    {
+        Exception? current = exception.InnerException;
+        while (current is TypeInitializationException nested)
+        {
+            current = nested.InnerException;
+        }
+
+        return current is System.Text.Json.JsonException or
+            InvalidDataException or
+            ArgumentException or
+            IOException or
+            UnauthorizedAccessException
+                ? current
+                : null;
     }
 }

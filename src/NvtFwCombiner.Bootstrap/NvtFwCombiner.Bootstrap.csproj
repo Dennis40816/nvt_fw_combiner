@@ -28,6 +28,8 @@
     <ParameterGroup>
       <TrustIndexPath ParameterType="System.String" Required="true" />
       <TrustIndexSchemaPath ParameterType="System.String" Required="true" />
+      <BuiltInProfileSourceRoot ParameterType="System.String" Required="true" />
+      <ProfileContractRoot ParameterType="System.String" Required="true" />
       <Bundles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
     </ParameterGroup>
     <Task>
@@ -37,40 +39,97 @@
       <Using Namespace="System.IO" />
       <Using Namespace="System.Linq" />
       <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="System.Text" />
       <Using Namespace="System.Text.RegularExpressions" />
       <Using Namespace="Newtonsoft.Json" />
       <Using Namespace="Newtonsoft.Json.Linq" />
       <Using Namespace="Microsoft.Build.Framework" />
       <Using Namespace="Microsoft.Build.Utilities" />
       <Code Type="Fragment" Language="cs"><![CDATA[
-        if (new FileInfo(TrustIndexPath).Length > 131072)
+        Func<string, int, byte[]> readBoundedFile =
+            (path, maximumBytes) =>
+            {
+                using (var stream = new FileStream(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read,
+                    4096,
+                    FileOptions.SequentialScan))
+                {
+                    long length = stream.Length;
+                    if (length > maximumBytes)
+                    {
+                        throw new InvalidDataException(
+                            path + " exceeds its " + maximumBytes + "-byte materialization bound.");
+                    }
+                    var bytes = new byte[checked((int)length)];
+                    int total = 0;
+                    while (total < bytes.Length)
+                    {
+                        int read = stream.Read(bytes, total, bytes.Length - total);
+                        if (read == 0)
+                        {
+                            throw new EndOfStreamException(path + " changed while it was being read.");
+                        }
+                        total += read;
+                    }
+                    if (stream.ReadByte() != -1)
+                    {
+                        throw new IOException(path + " changed while it was being read.");
+                    }
+                    return bytes;
+                }
+            };
+        Func<byte[], string> sha256Hex = bytes =>
         {
-            throw new InvalidDataException("Profile bundle package trust index exceeds its bounded size.");
-        }
+            using (var sha256 = SHA256.Create())
+            {
+                return BitConverter.ToString(sha256.ComputeHash(bytes))
+                    .Replace("-", string.Empty)
+                    .ToLowerInvariant();
+            }
+        };
 
         var loadSettings = new JsonLoadSettings
         {
             DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error,
         };
+        byte[] trustIndexBytes = readBoundedFile(TrustIndexPath, 131072);
         JObject root;
-        using (var reader = new JsonTextReader(File.OpenText(TrustIndexPath)) { MaxDepth = 16 })
+        using (var memory = new MemoryStream(trustIndexBytes, writable: false))
+        using (var textReader = new StreamReader(
+            memory,
+            new UTF8Encoding(false, true),
+            detectEncodingFromByteOrderMarks: false,
+            bufferSize: 1024))
+        using (var reader = new JsonTextReader(textReader) { MaxDepth = 16 })
         {
             root = JObject.Load(reader, loadSettings);
+            if (reader.Read())
+            {
+                throw new InvalidDataException(
+                    "Profile bundle package trust index contains trailing JSON content.");
+            }
         }
         const string expectedSchemaSha256 =
             "82c013193c028e0a5db34a79f4bb20ba2fbc6a9d1ae844762819ee70268fdb92";
-        string actualSchemaSha256;
-        using (var stream = File.OpenRead(TrustIndexSchemaPath))
-        using (var sha256 = SHA256.Create())
-        {
-            actualSchemaSha256 = BitConverter.ToString(sha256.ComputeHash(stream))
-                .Replace("-", string.Empty)
-                .ToLowerInvariant();
-        }
+        string actualSchemaSha256 = sha256Hex(readBoundedFile(TrustIndexSchemaPath, 131072));
         if (!string.Equals(actualSchemaSha256, expectedSchemaSha256, StringComparison.Ordinal))
         {
             throw new InvalidDataException(
                 "Profile bundle package trust-index validator is not bound to the normative schema bytes.");
+        }
+        const string expectedProfileBundleSchemaSha256 =
+            "7aa5e063c0c7f8f059e1032f6719f3cd5be778217f75e6e843f29e04dd6ae47e";
+        string profileBundleSchemaPath = Path.Combine(
+            ProfileContractRoot,
+            "profile-bundle-v1.schema.json");
+        if (sha256Hex(readBoundedFile(profileBundleSchemaPath, 131072)) !=
+            expectedProfileBundleSchemaSha256)
+        {
+            throw new InvalidDataException(
+                "Profile bundle materialization validator is not bound to the normative schema bytes.");
         }
 
         JObject normativeSchema;
@@ -120,16 +179,54 @@
                 }
                 return (string)property.Value;
             };
+        Func<string, string, string> resolveUnderRoot =
+            (rootPath, relativePath) =>
+            {
+                string closedRoot = Path.GetFullPath(
+                    rootPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                    Path.DirectorySeparatorChar);
+                string fullPath = Path.GetFullPath(Path.Combine(
+                    closedRoot,
+                    relativePath.Replace('/', Path.DirectorySeparatorChar)));
+                if (!fullPath.StartsWith(closedRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        "Materialization source escapes its approved root: " + relativePath);
+                }
+                return fullPath;
+            };
         Func<string, bool> isToken = value =>
             value != null && Regex.IsMatch(value, "^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant);
         Func<string, bool> isFileName = value =>
             value != null && Regex.IsMatch(value, "^[A-Za-z0-9][A-Za-z0-9._-]*\\.json$", RegexOptions.CultureInvariant);
         Func<string, bool> isRelativeJsonPath = value =>
             value != null &&
-            value.EndsWith(".json", StringComparison.Ordinal) &&
-            !value.Contains('\\') &&
+            Regex.IsMatch(
+                value,
+                "^[A-Za-z0-9][A-Za-z0-9._/-]*\\.json$",
+                RegexOptions.CultureInvariant) &&
             !Path.IsPathRooted(value) &&
             value.Split('/').All(segment => segment.Length != 0 && segment != "." && segment != "..");
+        Func<string, bool> isBundleId = value =>
+            value != null && Regex.IsMatch(
+                value,
+                "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+                RegexOptions.CultureInvariant);
+        Func<string, bool> isBundleVersion = value =>
+            value != null && Regex.IsMatch(
+                value,
+                "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+                RegexOptions.CultureInvariant);
+        Func<string, bool> isManifestEntryPath = value =>
+            value != null && Regex.IsMatch(
+                value,
+                "^(?:schemas|families|profiles|evidence|saved-rules)/(?:[a-z0-9][a-z0-9.-]*/)*[a-z0-9][a-z0-9.-]*\\.json$",
+                RegexOptions.CultureInvariant);
+        Func<string, bool> isManifestSchemaId = value =>
+            value != null && Regex.IsMatch(
+                value,
+                "^https://example\\.invalid/nfc/schemas/[a-z0-9-]+\\.schema\\.json$",
+                RegexOptions.CultureInvariant);
 
         requireProperties(
             root,
@@ -310,6 +407,149 @@
                 }
             }
 
+            string manifestPath = resolveUnderRoot(
+                BuiltInProfileSourceRoot,
+                directory + "/profile-bundle.json");
+            byte[] manifestBytes = readBoundedFile(manifestPath, 16384);
+            JObject manifest;
+            using (var memory = new MemoryStream(manifestBytes, writable: false))
+            using (var textReader = new StreamReader(
+                memory,
+                new UTF8Encoding(false, true),
+                detectEncodingFromByteOrderMarks: false,
+                bufferSize: 1024))
+            using (var jsonReader = new JsonTextReader(textReader) { MaxDepth = 16 })
+            {
+                manifest = JObject.Load(jsonReader, loadSettings);
+                if (jsonReader.Read())
+                {
+                    throw new InvalidDataException(
+                        "Bundle manifest contains trailing JSON content.");
+                }
+            }
+            requireProperties(
+                manifest,
+                "bundle manifest",
+                new[] { "schemaVersion", "bundleId", "bundleVersion", "hashAlgorithm", "contentHash", "trustAnchorBindingId", "entries" },
+                new string[0]);
+            string manifestSchemaVersion = readRequiredString(
+                manifest,
+                "schemaVersion",
+                "bundle manifest");
+            string manifestBundleId = readRequiredString(manifest, "bundleId", "bundle manifest");
+            string manifestBundleVersion = readRequiredString(
+                manifest,
+                "bundleVersion",
+                "bundle manifest");
+            string manifestHashAlgorithm = readRequiredString(
+                manifest,
+                "hashAlgorithm",
+                "bundle manifest");
+            string manifestContentHash = readRequiredString(
+                manifest,
+                "contentHash",
+                "bundle manifest");
+            string manifestTrustAnchor = readRequiredString(
+                manifest,
+                "trustAnchorBindingId",
+                "bundle manifest");
+            if (manifestSchemaVersion != bundleSchemaVersion ||
+                !isBundleId(manifestBundleId) ||
+                !isBundleVersion(manifestBundleVersion) ||
+                manifestBundleVersion != bundleVersion ||
+                manifestHashAlgorithm != "sha256-rfc8785-entry-array-v1" ||
+                manifestContentHash != contentHash ||
+                !isBundleId(manifestTrustAnchor) ||
+                manifestTrustAnchor != trustAnchorBindingId ||
+                !(manifest["entries"] is JArray manifestEntries) ||
+                manifestEntries.Count == 0 ||
+                manifestEntries.Count > 16)
+            {
+                throw new InvalidDataException(
+                    "Bundle manifest identity does not match its package trust-index entry.");
+            }
+
+            var entryIds = new HashSet<string>(StringComparer.Ordinal);
+            var entryPaths = new HashSet<string>(StringComparer.Ordinal);
+            var canonicalEntries = new List<JObject>();
+            int totalEntryBytes = 0;
+            foreach (JToken entryToken in manifestEntries)
+            {
+                if (!(entryToken is JObject entry))
+                {
+                    throw new InvalidDataException("Bundle manifest entries must be objects.");
+                }
+                requireProperties(
+                    entry,
+                    "bundle manifest entry",
+                    new[] { "entryId", "kind", "path", "schemaId", "contentHash" },
+                    new string[0]);
+                string entryId = readRequiredString(entry, "entryId", "bundle manifest entry");
+                string entryKind = readRequiredString(entry, "kind", "bundle manifest entry");
+                string entryPath = readRequiredString(entry, "path", "bundle manifest entry");
+                string entrySchemaId = readRequiredString(entry, "schemaId", "bundle manifest entry");
+                string entryContentHash = readRequiredString(
+                    entry,
+                    "contentHash",
+                    "bundle manifest entry");
+                string entryRoot = entryKind == "schema"
+                    ? "schemas"
+                    : entryKind == "firmware-family"
+                    ? "families"
+                    : entryKind == "composition-profile"
+                    ? "profiles"
+                    : null;
+                if (!entryIds.Add(entryId) ||
+                    !entryPaths.Add(entryPath) ||
+                    !isBundleId(entryId) ||
+                    entryRoot == null ||
+                    !isManifestEntryPath(entryPath) ||
+                    !entryPath.StartsWith(entryRoot + "/", StringComparison.Ordinal) ||
+                    !isManifestSchemaId(entrySchemaId) ||
+                    !Regex.IsMatch(entryContentHash, "^[0-9a-f]{64}$"))
+                {
+                    throw new InvalidDataException(
+                        "Bundle manifest entry identity is not closed and canonical.");
+                }
+
+                string entrySourcePath = entryPath == "schemas/composition-profile-v2.schema.json"
+                    ? resolveUnderRoot(ProfileContractRoot, compositionProfileSchemaFile)
+                    : entryPath == "schemas/firmware-family-v1.schema.json"
+                    ? resolveUnderRoot(ProfileContractRoot, firmwareFamilySchemaFile)
+                    : canonicalDestination != null && entryPath == canonicalDestination
+                    ? resolveUnderRoot(BuiltInProfileSourceRoot, canonicalSource)
+                    : resolveUnderRoot(
+                        BuiltInProfileSourceRoot,
+                        directory + "/" + entryPath);
+                byte[] entryBytes = readBoundedFile(entrySourcePath, 131072);
+                totalEntryBytes = checked(totalEntryBytes + entryBytes.Length);
+                if (totalEntryBytes > 262144 || sha256Hex(entryBytes) != entryContentHash)
+                {
+                    throw new InvalidDataException(
+                        "Bundle materialization source content hash differs: " +
+                        directory + "/" + entryPath);
+                }
+                canonicalEntries.Add(new JObject(
+                    new JProperty("contentHash", entryContentHash),
+                    new JProperty("entryId", entryId),
+                    new JProperty("kind", entryKind),
+                    new JProperty("path", entryPath),
+                    new JProperty("schemaId", entrySchemaId)));
+            }
+            JArray canonicalEntryArray = new JArray(canonicalEntries
+                .OrderBy(entry => (string)entry["entryId"], StringComparer.Ordinal)
+                .ThenBy(entry => (string)entry["kind"], StringComparer.Ordinal)
+                .ThenBy(entry => (string)entry["path"], StringComparer.Ordinal)
+                .ThenBy(entry => (string)entry["schemaId"], StringComparer.Ordinal)
+                .ThenBy(entry => (string)entry["contentHash"], StringComparer.Ordinal));
+            string calculatedContentHash = sha256Hex(
+                Encoding.UTF8.GetBytes(canonicalEntryArray.ToString(Formatting.None)));
+            if (calculatedContentHash != manifestContentHash)
+            {
+                throw new InvalidDataException(
+                    "Bundle manifest canonical entry-array content hash differs from its trust-index identity.");
+            }
+
             var item = new TaskItem(directory);
             item.SetMetadata(
                 "CompositionProfileSchemaFile",
@@ -338,7 +578,9 @@
   <Target Name="MaterializeBuiltInProfileBundles" BeforeTargets="AssignTargetPaths">
     <LoadProfileBundleTrustIndex
       TrustIndexPath="$(BuiltInProfileTrustIndex)"
-      TrustIndexSchemaPath="$(ProfileContractRoot)\profile-bundle-package-trust-index-v1.schema.json">
+      TrustIndexSchemaPath="$(ProfileContractRoot)\profile-bundle-package-trust-index-v1.schema.json"
+      BuiltInProfileSourceRoot="$(BuiltInProfileSourceRoot)"
+      ProfileContractRoot="$(ProfileContractRoot)">
       <Output TaskParameter="Bundles" ItemName="BuiltInProfileBundle" />
     </LoadProfileBundleTrustIndex>
     <PropertyGroup>

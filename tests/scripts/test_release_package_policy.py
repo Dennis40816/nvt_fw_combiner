@@ -994,6 +994,28 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
+    def test_release_smoke_rejects_mutated_trust_index_with_updated_release_hash(
+        self,
+    ) -> None:
+        trust_index = json.loads(
+            (ROOT / "profiles/built-in/package-trust-index.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        trust_index["executablePath"] = "forbidden.exe"
+        payload = json.dumps(trust_index).encode("utf-8")
+
+        result = self.run_smoke_with_trust_index(payload)
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn(
+            "Release package trust index does not match the exact reviewed identity.",
+            result.stdout + result.stderr,
+        )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
     def test_release_smoke_rejects_profile_entry_drift_with_updated_release_hash(
         self,
     ) -> None:
@@ -1027,7 +1049,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                     self.manifest_entry(external_path, package_root, "externalTool")
                 )
 
-            profile_paths = self.stage_single_profile_bundle(package_root)
+            profile_paths = self.stage_profile_bundles(package_root)
             drift_path = next(
                 path for path in profile_paths if "/schemas/" in path.as_posix()
             )
@@ -1061,39 +1083,29 @@ class ReleasePackagePolicyTests(unittest.TestCase):
             result.stdout + result.stderr,
         )
 
-    def stage_single_profile_bundle(self, package_root: Path) -> tuple[Path, ...]:
-        source_index = json.loads(
-            (ROOT / "profiles/built-in/package-trust-index.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        trust_entry = next(
-            entry
-            for entry in source_index["bundles"]
-            if entry["bundleDirectory"] == "nt51928-standard-merge"
-        )
-        package_index = {
-            key: value for key, value in source_index.items() if key != "bundles"
-        }
-        package_index["bundles"] = [trust_entry]
+    def stage_profile_bundles(self, package_root: Path) -> tuple[Path, ...]:
+        source_index_path = ROOT / "profiles/built-in/package-trust-index.json"
+        source_index = json.loads(source_index_path.read_text(encoding="utf-8"))
         index_path = package_root / "profiles/built-in/package-trust-index.json"
         index_path.parent.mkdir(parents=True, exist_ok=True)
-        index_path.write_text(json.dumps(package_index), encoding="utf-8")
+        index_path.write_bytes(source_index_path.read_bytes())
 
-        bundle_directory = trust_entry["bundleDirectory"]
-        source_bundle_root = ROOT / "profiles/built-in" / bundle_directory
-        bundle_root = package_root / "profiles/built-in" / bundle_directory
-        bundle_root.mkdir(parents=True)
-        manifest = json.loads(
-            (source_bundle_root / "profile-bundle.json").read_text(encoding="utf-8")
-        )
-        manifest_path = bundle_root / "profile-bundle.json"
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        staged = [index_path, manifest_path]
-        for entry in manifest["entries"]:
-            relative_path = Path(entry["path"])
-            source_path = source_bundle_root / relative_path
-            if not source_path.is_file():
+        staged = [index_path]
+        for trust_entry in source_index["bundles"]:
+            bundle_directory = trust_entry["bundleDirectory"]
+            source_bundle_root = ROOT / "profiles/built-in" / bundle_directory
+            bundle_root = package_root / "profiles/built-in" / bundle_directory
+            bundle_root.mkdir(parents=True)
+            source_manifest_path = source_bundle_root / "profile-bundle.json"
+            manifest = json.loads(source_manifest_path.read_text(encoding="utf-8"))
+            manifest_path = bundle_root / "profile-bundle.json"
+            manifest_path.write_bytes(source_manifest_path.read_bytes())
+            staged.append(manifest_path)
+            canonical = trust_entry["materialization"].get(
+                "canonicalFirmwareFamily"
+            )
+            for entry in manifest["entries"]:
+                relative_path = Path(entry["path"])
                 if entry["path"] == "schemas/composition-profile-v2.schema.json":
                     source_path = (
                         ROOT
@@ -1106,11 +1118,75 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                         / "docs/contracts"
                         / trust_entry["materialization"]["firmwareFamilySchemaFile"]
                     )
-            destination = bundle_root / relative_path
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(source_path.read_bytes())
-            staged.append(destination)
+                elif canonical and entry["path"] == canonical["destination"]:
+                    source_path = ROOT / "profiles/built-in" / canonical["source"]
+                else:
+                    source_path = source_bundle_root / relative_path
+                destination = bundle_root / relative_path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(source_path.read_bytes())
+                staged.append(destination)
         return tuple(staged)
+
+    def run_smoke_with_trust_index(
+        self,
+        payload: bytes,
+    ) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory(
+            prefix="nvt-release-trust-index-test-"
+        ) as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            package_name = "NvtFwCombiner-v0.0.0-win-x64"
+            package_root = temporary_root / package_name
+            package_root.mkdir()
+            for required_file in (
+                "NvtFwCombiner.exe",
+                "SHA256SUMS.txt",
+                "README.txt",
+                "LICENSE.txt",
+                "THIRD-PARTY-NOTICES.txt",
+            ):
+                required_path = package_root / required_file
+                required_path.parent.mkdir(parents=True, exist_ok=True)
+                required_path.write_bytes(b"release-policy fixture\n")
+
+            manifest_entries: list[dict[str, object]] = []
+            self.add_valid_support_policy(package_root, manifest_entries)
+            self.add_valid_capability_policy(package_root, manifest_entries)
+            for relative_path in APPROVED_EXTERNAL_TOOL_PATHS:
+                external_path = package_root / relative_path
+                external_path.parent.mkdir(parents=True, exist_ok=True)
+                external_path.write_bytes(b"external-tool policy fixture\n")
+                manifest_entries.append(
+                    self.manifest_entry(external_path, package_root, "externalTool")
+                )
+
+            index_path = package_root / "profiles/built-in/package-trust-index.json"
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            index_path.write_bytes(payload)
+            manifest_entries.append(
+                self.manifest_entry(index_path, package_root, "builtInProfile")
+            )
+            (package_root / "RELEASE-MANIFEST.json").write_text(
+                json.dumps({"files": manifest_entries}),
+                encoding="utf-8",
+            )
+            package_path = temporary_root / f"{package_name}.zip"
+            with zipfile.ZipFile(
+                package_path,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+            ) as archive:
+                for path in sorted(package_root.rglob("*")):
+                    if path.is_file():
+                        archive.write(path, path.relative_to(temporary_root))
+
+            return self.run_powershell(
+                SMOKE_SCRIPT,
+                "-PackagePath",
+                str(package_path),
+                "-SkipUiLaunch",
+            )
 
     @staticmethod
     def manifest_entry(path: Path, package_root: Path, role: str) -> dict[str, object]:

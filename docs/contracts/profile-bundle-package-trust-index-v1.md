@@ -60,6 +60,18 @@ the listed bundle directories, manifest-pinned bundle entries, and separately
 allowlisted runtime catalogs. A published index that differs from the reviewed
 source is rejected before packaging.
 
+Before copying materialized bytes, the build validates each source bundle's
+manifest identity, canonical entry-array hash, and every actual entry source
+(including contract schemas and canonical-family projections) against the
+trust-index and manifest hashes. Standalone release smoke pins the exact
+reviewed trust-index file SHA-256, so updating a package-local release manifest
+cannot self-authorize index or route drift.
+
+The build parses the trust index from one pre-allocation-bounded immutable
+snapshot. Its manifest validator is bound to the exact reviewed
+`profile-bundle-v1.schema.json` SHA-256 and may be stricter, but cannot admit a
+manifest path, identifier, version, or schema identity rejected by that schema.
+
 The build materializer's bounded validator is pinned to the exact SHA-256 of
 this normative schema. Every scalar is type-checked before value validation;
 wrong JSON types fail closed rather than being coerced. A schema-byte change
@@ -73,6 +85,9 @@ Scripts, plugins, dynamic assemblies, executable paths, watch paths, mutable UI
 state, environment overrides, network locations, and hot reload are outside
 this contract. The index is immutable package data loaded from the deployed
 application root; it is not a discovery or extension mechanism.
+The runtime reads it through a pre-allocation byte bound. An explicit
+capability-catalog publication reload does not re-read or hot-swap the package
+trust index or bundle bytes; observing a new package requires a new process.
 
 `trustIndexVersion` changes whenever admitted bundle materialization or runtime
 registrations change. Schema-compatible data changes keep `schemaVersion`

@@ -111,14 +111,24 @@ public static partial class WorkbenchCompositionService
         _ = BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
             normalizedIcId,
             out GeneralReplaceV2Registration? registration);
-        // Preserve route-independent authoring diagnostics for unsupported ICs.
-        // This parent is never compiled or capability-bound; multiple registered
-        // parents fail closed instead of choosing one by order.
-        GeneralReplaceV2Registration validationRegistration = registration ??
-            BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Values.Single();
+        // Preserve route-independent authoring diagnostics only while one exact
+        // diagnostic parent exists. Never choose among multiple registered maps.
+        GeneralReplaceV2Registration? validationRegistration = registration;
+        if (validationRegistration is null &&
+            BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Count == 1)
+        {
+            validationRegistration = BuiltInV2RegistrationRegistry.GeneralReplaceByIc.Values.First();
+        }
+        if (exactParentOverride is null && validationRegistration is null)
+        {
+            return Blocked([new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                "The selected General Replace shape has no unique validation authority.",
+                "mapping")]);
+        }
 
         SavedRuleV2GeneralReplaceExactParent exactParent =
-            exactParentOverride ?? validationRegistration.ExactParent;
+            exactParentOverride ?? validationRegistration!.ExactParent;
         admission = AdmitGeneralMappingDraft(
             context.MappingDraft,
             context.Capacity,

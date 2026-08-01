@@ -20,6 +20,33 @@ public sealed class CanonicalCapabilityCatalogPublicationGroup
 [Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
+    /// <summary>Static trust-index initialization failures become typed catalog issues.</summary>
+    [Theory]
+    [InlineData(false, false, CapabilityCatalogIssueCodes.SourceInvalid)]
+    [InlineData(true, false, CapabilityCatalogIssueCodes.SourceUnavailable)]
+    [InlineData(false, true, CapabilityCatalogIssueCodes.SourceInvalid)]
+    public void SourceTranslatesTrustIndexTypeInitializationFailure(
+        bool unavailable,
+        bool malformedJson,
+        string expectedCode)
+    {
+        Exception cause = unavailable
+            ? new FileNotFoundException("The package trust index is missing.")
+            : malformedJson
+            ? new System.Text.Json.JsonException("The package trust index is malformed JSON.")
+            : new InvalidDataException("The package trust index is malformed.");
+        var source = new CanonicalCapabilityCatalogMigrationSource(() =>
+            throw new TypeInitializationException("BuiltInV2BundleRegistry", cause));
+
+        CapabilityCatalogLoadResult loaded =
+            source.Load(TestContext.Current.CancellationToken);
+
+        Assert.False(loaded.Succeeded);
+        CapabilityCatalogIssue issue = Assert.Single(loaded.Issues);
+        Assert.Equal(expectedCode, issue.Code);
+        Assert.Equal(cause.Message, issue.Message);
+    }
+
     /// <summary>
     /// The trusted source joins policy references and exact canonical TP Header
     /// references to the existing compiler output without copying geometry.

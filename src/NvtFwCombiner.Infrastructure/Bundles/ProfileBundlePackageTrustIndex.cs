@@ -131,7 +131,7 @@ internal static class ProfileBundlePackageTrustIndexLoader
     internal static ProfileBundlePackageTrustIndex Load(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = ReadBoundedSnapshot(path);
         using JsonDocument document = StrictJsonDocumentReader.ParseOwnedSnapshot(
             bytes,
             MaximumBytes,
@@ -152,6 +152,29 @@ internal static class ProfileBundlePackageTrustIndexLoader
             root.GetProperty("trustIndexVersion").GetString()!,
             root.GetProperty("trustAnchorBindingId").GetString()!,
             root.GetProperty("bundles").EnumerateArray().Select(ParseBundle));
+    }
+
+    private static byte[] ReadBoundedSnapshot(string path)
+    {
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            FileOptions.SequentialScan);
+        long length = stream.Length;
+        if (length > MaximumBytes)
+        {
+            throw new InvalidDataException(
+                $"Package trust index exceeds the {MaximumBytes}-byte limit.");
+        }
+
+        byte[] bytes = new byte[checked((int)length)];
+        stream.ReadExactly(bytes);
+        return stream.ReadByte() != -1
+            ? throw new IOException("Package trust index changed while it was being read.")
+            : bytes;
     }
 
     private static ProfileBundlePackageTrustEntry ParseBundle(JsonElement element)

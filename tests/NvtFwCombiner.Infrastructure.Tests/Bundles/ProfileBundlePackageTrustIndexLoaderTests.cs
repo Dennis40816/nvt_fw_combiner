@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.TestSupport;
@@ -7,6 +8,25 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 /// <summary>Tests the package-owned exact bundle admission boundary.</summary>
 public sealed class ProfileBundlePackageTrustIndexLoaderTests
 {
+    /// <summary>The file-size gate rejects an oversized index before allocating its snapshot.</summary>
+    [Fact]
+    public void LoadRejectsOversizedIndexAtFileBoundary()
+    {
+        using var workspace = TempWorkspace.Create("package-trust-index-oversized");
+        string path = workspace.Write(
+            "package-trust-index.json",
+            new byte[ProfileBundlePackageTrustIndexLoader.MaximumBytes + 1]);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundlePackageTrustIndexLoader.Load(path));
+
+        Assert.Contains("exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            ProfileBundlePackageTrustIndexLoader.MaximumBytes.ToString(CultureInfo.InvariantCulture),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
     /// <summary>The checked-in index admits every reviewed bundle through immutable hash pins.</summary>
     [Fact]
     public void LoadReturnsVersionedHashClosedIndex()
