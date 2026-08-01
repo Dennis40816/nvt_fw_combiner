@@ -26,7 +26,9 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 `CompositionRunReport` is an Application/workbench projection and is not the canonical `composition-report-v1` wire model. Its Replace-only `OutputDifferences[]` rows may carry an optional `Semantic` object with category, field/section subject, and plain-language explanation. This allows a report renderer to show `TP Flash Header` / `DLM CRC 0` without calculating firmware meaning from an address.
 
 For an explicit General Replace Preview blocked by unavailable required
-POSTBUILD, that workbench projection may instead carry `DiagnosticPreview`.
+POSTBUILD, that workbench projection may instead carry `DiagnosticPreview`,
+but only after the exact canonical route has produced the one accepted
+`CompiledComposition` and its compilation-bound readiness snapshot.
 `Mode = diagnostic-plan-only`, `OutputProduced = false`, and
 `ClaimsFinalIntegrity = false` distinguish it from executable Preview. It
 retains the shared Build-readiness blocker, accepted mapping operations,
@@ -36,7 +38,9 @@ or empty-content SHA-256 can be mistaken for a produced artifact. The canonical
 report-v1 schema is unchanged.
 A disabled General Replace Build action returns only the shared typed readiness
 snapshot; it creates neither `CompositionRunReport` nor report JSON/file. Only
-an explicit coherent Preview may create the diagnostic plan-only report.
+an explicit coherent, exactly compiled Preview may create the diagnostic
+plan-only report. Route-unavailable targets fail admission before runtime
+inspection and create no report.
 
 `Validations[]` is another optional projection field. Each immutable row contains `RuleId`, `Stage`, `Status`, `Severity`, and the requirement's declared or emitted `IssueCode`. `Passed` and `Failed` mean the rule evaluated against the completed image; an `Error`-severity failure blocks publication. `Skipped` means an earlier stage produced no image suitable for that rule, so it neither passes nor fails. Older report JSON that lacks `Semantic` or `Validations` is interpreted as an empty collection for the absent field.
 

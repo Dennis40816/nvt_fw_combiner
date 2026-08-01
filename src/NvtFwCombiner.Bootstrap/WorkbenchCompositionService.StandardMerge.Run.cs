@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
@@ -72,6 +73,7 @@ public static partial class WorkbenchCompositionService
                         .Select(static pair => pair.Key),
                 ],
                 out CompiledComposition? compiledComposition,
+                out ResolvedCapability? resolvedCapability,
                 out IReadOnlyList<CompositionIssue> issues))
         {
             throw new InvalidOperationException(FormatIssues(issues));
@@ -100,7 +102,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: null,
             cancellationToken,
-            progress: progress).ConfigureAwait(false);
+            progress: progress,
+            resolvedCapability: resolvedCapability).ConfigureAwait(false);
     }
 
     private static bool TryGetStandardMergeDpInputLength(

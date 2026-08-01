@@ -248,7 +248,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             LegacyCombinerPostbuildCatalog.Nt51927,
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
 
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+        IReadOnlyList<ExternalProcessorWriteRangeSection> sections =
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, 0x40000);
 
         Assert.Contains(sections, section =>
@@ -295,7 +295,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         var normalRange = new ByteRange(0x22800, 11264);
         var vnRange = new ByteRange(0x315D0, 5728);
 
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+        IReadOnlyList<ExternalProcessorWriteRangeSection> sections =
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
             plan,
             0x40000,
@@ -375,7 +375,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
             LegacyCombinerPostbuildCatalog.Nt51950,
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
 
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> sections =
+        IReadOnlyList<ExternalProcessorWriteRangeSection> sections =
             LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(plan, 0x100000);
         ByteRange[] ranges = [.. sections.Select(section => section.Range)];
 

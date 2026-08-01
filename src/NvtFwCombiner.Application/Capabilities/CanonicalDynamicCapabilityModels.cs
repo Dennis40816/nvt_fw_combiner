@@ -7,17 +7,30 @@ namespace NvtFwCombiner.Application.Capabilities;
 public sealed record CanonicalCapabilityCompilationContract
 {
     private readonly string[] _allowedMapVariantIds;
+    private readonly string[] _semanticBindingIds;
 
     /// <summary>Creates one immutable generic compiler admission contract.</summary>
     public CanonicalCapabilityCompilationContract(
         string profileId,
         string profileVersion,
+        string trustedDefinitionSha256,
         IEnumerable<string> allowedMapVariantIds,
+        string compilerSemanticId,
+        IEnumerable<string>? semanticBindingIds = null,
         bool allowsLogicalOutput = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        ArgumentNullException.ThrowIfNull(trustedDefinitionSha256);
         ArgumentNullException.ThrowIfNull(allowedMapVariantIds);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilerSemanticId);
+        if (!CapabilityRouteIdentity.IsSha256(trustedDefinitionSha256))
+        {
+            throw new ArgumentException(
+                "Compilation contracts require an exact lowercase SHA-256 trusted definition.",
+                nameof(trustedDefinitionSha256));
+        }
+
         _allowedMapVariantIds =
         [
             .. allowedMapVariantIds
@@ -36,9 +49,24 @@ public sealed record CanonicalCapabilityCompilationContract
                 nameof(allowedMapVariantIds));
         }
 
+        _semanticBindingIds =
+        [
+            .. (semanticBindingIds ?? [])
+                .Select(value => string.IsNullOrWhiteSpace(value)
+                    ? throw new ArgumentException(
+                        "Semantic binding ids must be non-empty.",
+                        nameof(semanticBindingIds))
+                    : value)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+
         ProfileId = profileId;
         ProfileVersion = profileVersion;
+        TrustedDefinitionSha256 = trustedDefinitionSha256;
         AllowedMapVariantIds = Array.AsReadOnly(_allowedMapVariantIds);
+        CompilerSemanticId = compilerSemanticId;
+        SemanticBindingIds = Array.AsReadOnly(_semanticBindingIds);
         AllowsLogicalOutput = allowsLogicalOutput;
     }
 
@@ -48,8 +76,17 @@ public sealed record CanonicalCapabilityCompilationContract
     /// <summary>Exact trusted profile version selected by this capability.</summary>
     public string ProfileVersion { get; }
 
+    /// <summary>Exact trusted bundle/definition identity admitted by this capability.</summary>
+    public string TrustedDefinitionSha256 { get; }
+
     /// <summary>Closed physical-map set, or the logical route's generic axis.</summary>
     public IReadOnlyList<string> AllowedMapVariantIds { get; }
+
+    /// <summary>Reviewed compiler/lowering semantics admitted by this capability.</summary>
+    public string CompilerSemanticId { get; }
+
+    /// <summary>Closed definition-level bindings that constrain compilation.</summary>
+    public IReadOnlyList<string> SemanticBindingIds { get; }
 
     /// <summary>Whether the contract admits the closed logical-output compiler context.</summary>
     public bool AllowsLogicalOutput { get; }
@@ -82,7 +119,18 @@ public sealed record CanonicalCapabilityCompilationContract
             return;
         }
 
-        V2CompilationContext? context = composition.V2Details?.Provenance.Context;
+        V2CompilationProvenance? provenance = composition.V2Details?.Provenance;
+        if (provenance is null ||
+            !StringComparer.Ordinal.Equals(
+                TrustedDefinitionSha256,
+                provenance.Bundle.ContentHash))
+        {
+            throw new ArgumentException(
+                "Compiled composition trusted definition does not match its canonical capability definition.",
+                nameof(composition));
+        }
+
+        V2CompilationContext context = provenance.Context;
         if (context is MapBoundV2CompilationContext mapContext)
         {
             string mapId = mapContext.ResolvedMap.ImageMap.MapId;
@@ -93,15 +141,49 @@ public sealed record CanonicalCapabilityCompilationContract
                     nameof(composition));
             }
 
+            string expectedSemantic = context is RuntimeReferenceReplaceV2CompilationContext
+                ? CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId
+                : CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId;
+            if (!StringComparer.Ordinal.Equals(
+                    CompilerSemanticId,
+                    expectedSemantic))
+            {
+                throw new ArgumentException(
+                    "Compiled composition context does not match its reviewed compiler semantics.",
+                    nameof(composition));
+            }
+
+            ValidateSelectionGroupBindings(composition);
             return;
         }
 
         if (context is not LogicalOutputV2CompilationContext ||
             !AllowsLogicalOutput ||
+            !StringComparer.Ordinal.Equals(
+                CompilerSemanticId,
+                CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId) ||
             !_allowedMapVariantIds.Contains("generic", StringComparer.Ordinal))
         {
             throw new ArgumentException(
                 "Compiled composition context is outside its canonical capability definition.",
+                nameof(composition));
+        }
+    }
+
+    private void ValidateSelectionGroupBindings(CompiledComposition composition)
+    {
+        string[] compiledMembers =
+        [
+            .. composition.V2Details!.InputContract.SelectionGroups
+                .SelectMany(static group => group.MemberSlotIds)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
+        if (compiledMembers.Length != 0 &&
+            !compiledMembers.SequenceEqual(_semanticBindingIds, StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                "Compiled selection groups do not match their reviewed capability bindings.",
                 nameof(composition));
         }
     }
@@ -126,7 +208,19 @@ public sealed record CanonicalCapabilityCompilationContract
         return new CanonicalCapabilityCompilationContract(
             composition.ProfileId,
             composition.ProfileVersion,
+            composition.V2Details?.Provenance.Bundle.ContentHash ??
+                composition.CompilationFingerprint,
             [validatedMapId],
+            composition.V2Details?.Provenance.Context switch
+            {
+                RuntimeReferenceReplaceV2CompilationContext =>
+                    CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
+                LogicalOutputV2CompilationContext =>
+                    CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId,
+                _ => CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId,
+            },
+            composition.V2Details?.InputContract.SelectionGroups
+                .SelectMany(static group => group.MemberSlotIds),
             allowsLogicalOutput:
                 composition.V2Details?.Provenance.Context is
                     LogicalOutputV2CompilationContext);

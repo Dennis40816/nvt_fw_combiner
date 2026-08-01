@@ -71,23 +71,55 @@ public static partial class WorkbenchCompositionService
         string icId,
         string workflowId)
     {
-        return s_canonicalCapabilityCatalog.CurrentSnapshot?.Capabilities.Any(
+        return HasCanonicalCapability(
+            s_canonicalCapabilityCatalog.CurrentSnapshot,
+            icId,
+            workflowId);
+    }
+
+    internal static bool HasCanonicalCapability(
+        CanonicalCapabilityCatalogSnapshot? snapshot,
+        string icId,
+        string workflowId)
+    {
+        if (snapshot is null ||
+            string.IsNullOrWhiteSpace(icId) ||
+            string.IsNullOrWhiteSpace(workflowId))
+        {
+            return false;
+        }
+
+        string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
+        return snapshot.Capabilities.Any(
             capability =>
-                StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&
+                StringComparer.Ordinal.Equals(
+                    capability.Identity.IcId,
+                    normalizedIcId) &&
                 StringComparer.Ordinal.Equals(
                     capability.Identity.WorkflowId,
                     workflowId) &&
                 capability.Authoring.Value ==
                     CapabilityAuthoringAvailability.Available &&
-                capability.ExecutionAdmitted) == true;
+                capability.ExecutionAdmitted) ||
+            snapshot.DynamicRoutes.Any(route =>
+                StringComparer.Ordinal.Equals(
+                    route.Identity.IcId,
+                    normalizedIcId) &&
+                StringComparer.Ordinal.Equals(
+                    route.Identity.WorkflowId,
+                    workflowId) &&
+                route.Authoring.Value ==
+                    CapabilityAuthoringAvailability.Available);
     }
 
     private static bool TryCompilePublishedStandardMergeCapability(
         string icId,
         long? outputCapacity,
         out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        resolvedCapability = null;
         CapabilityResolutionResult resolution =
             ResolveCanonicalStandardMergeCapability(icId, outputCapacity);
         if (outputCapacity is null &&
@@ -128,6 +160,7 @@ public static partial class WorkbenchCompositionService
         }
 
         composition = resolution.Capability?.CompiledComposition;
+        resolvedCapability = resolution.Capability;
         issues = resolution.Issue is null
             ? []
             :
@@ -143,8 +176,10 @@ public static partial class WorkbenchCompositionService
         string icId,
         long baseCapacity,
         out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        resolvedCapability = null;
         CapabilityResolutionResult resolution =
             ResolveCanonicalDpReplaceCapability(icId, baseCapacity);
         if (StringComparer.Ordinal.Equals(
@@ -186,6 +221,7 @@ public static partial class WorkbenchCompositionService
             return true;
         }
 
+        resolvedCapability = resolution.Capability;
         issues = resolution.Issue is null
             ? []
             :
@@ -204,8 +240,10 @@ public static partial class WorkbenchCompositionService
         long? requestedMapCapacity,
         IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        resolvedCapability = null;
         ResolvedCapabilityRoute? publishedRoute =
             s_canonicalCapabilityCatalog.CurrentSnapshot?.DynamicRoutes
                 .SingleOrDefault(route =>
@@ -259,9 +297,10 @@ public static partial class WorkbenchCompositionService
             return true;
         }
 
-        composition = resolution.Route!.BindCompilation(
+        resolvedCapability = resolution.Route!.BindCompilation(
             compiled,
-            registration.CreateMetadataPlan(compiled)).CompiledComposition;
+            registration.CreateMetadataPlan(compiled));
+        composition = resolvedCapability.CompiledComposition;
         return true;
     }
 
@@ -287,7 +326,8 @@ public static partial class WorkbenchCompositionService
     }
 
     internal static ResolvedCapability? ResolveCanonicalCapabilityForRun(
-        CompiledComposition composition)
+        CompiledComposition composition,
+        ResolvedCapability? acceptedCapability = null)
     {
         ArgumentNullException.ThrowIfNull(composition);
         CanonicalCapabilityCatalogSnapshot? snapshot =
@@ -297,43 +337,60 @@ public static partial class WorkbenchCompositionService
             return null;
         }
 
-        ResolvedCapability? fixedCapability = snapshot.Capabilities.SingleOrDefault(
-            capability =>
-                StringComparer.Ordinal.Equals(
-                    capability.CapabilityFingerprint,
-                    composition.CapabilityFingerprint) &&
-                StringComparer.Ordinal.Equals(
-                    capability.CompiledComposition.CompilationFingerprint,
-                    composition.CompilationFingerprint));
-        if (fixedCapability is not null)
+        if (acceptedCapability is not null)
         {
-            return fixedCapability;
+            if (!ReferenceEquals(
+                    acceptedCapability.CompiledComposition,
+                    composition) ||
+                acceptedCapability.ResolutionToken != snapshot.ResolutionToken ||
+                acceptedCapability.Authoring.Value !=
+                    CapabilityAuthoringAvailability.Available)
+            {
+                return null;
+            }
+
+            CapabilityResolutionResult fixedResolution =
+                s_canonicalCapabilityCatalog.Resolve(
+                    acceptedCapability.Identity.RouteId);
+            if (fixedResolution.Succeeded)
+            {
+                return ReferenceEquals(
+                        fixedResolution.Capability!.CompiledComposition,
+                        composition) &&
+                    fixedResolution.Capability.ResolutionToken ==
+                        acceptedCapability.ResolutionToken
+                            ? acceptedCapability
+                            : null;
+            }
+
+            CapabilityRouteResolutionResult dynamicResolution =
+                s_canonicalCapabilityCatalog.ResolveDynamicRoute(
+                    acceptedCapability.Identity.RouteId);
+            return dynamicResolution.Succeeded &&
+                dynamicResolution.Route!.ResolutionToken ==
+                    acceptedCapability.ResolutionToken &&
+                StringComparer.Ordinal.Equals(
+                    dynamicResolution.Route.CapabilityFingerprint,
+                    acceptedCapability.CapabilityFingerprint)
+                        ? acceptedCapability
+                        : null;
         }
 
-        ResolvedCapabilityRoute? dynamicRoute = snapshot.DynamicRoutes.SingleOrDefault(
-            route => StringComparer.Ordinal.Equals(
-                route.CapabilityFingerprint,
-                composition.CapabilityFingerprint));
-        if (dynamicRoute is null)
+        ResolvedCapability? fixedCapability = snapshot.Capabilities.SingleOrDefault(
+            capability => ReferenceEquals(
+                capability.CompiledComposition,
+                composition));
+        if (fixedCapability is null)
         {
             return null;
         }
 
-        BuiltInV2Registration? registration = dynamicRoute.Identity.WorkflowId switch
-        {
-            IcWorkflowIds.StandardMerge =>
-                BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
-                    dynamicRoute.Identity.IcId),
-            IcWorkflowIds.DpReplace =>
-                BuiltInV2RegistrationRegistry.DpReplaceByIc.Value.GetValueOrDefault(
-                    dynamicRoute.Identity.IcId),
-            _ => null,
-        };
-        return registration is null
-            ? null
-            : dynamicRoute.BindCompilation(
-                composition,
-                registration.CreateMetadataPlan(composition));
+        CapabilityResolutionResult current = s_canonicalCapabilityCatalog.Resolve(
+            fixedCapability.Identity.RouteId);
+        return current.Succeeded &&
+            ReferenceEquals(current.Capability!.CompiledComposition, composition)
+                ? current.Capability
+                : null;
     }
 
     private static CanonicalCapabilityCatalog CreateCanonicalCapabilityCatalog()

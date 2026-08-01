@@ -160,7 +160,9 @@ public static partial class WorkbenchCompositionService
                 additionalOutputPreflight)
             : null;
         CompositionRunService service = new(reader, new SystemClock(), writer, externalProcessor);
-        resolvedCapability ??= ResolveCanonicalCapabilityForRun(compiledComposition);
+        resolvedCapability = ResolveCanonicalCapabilityForRun(
+            compiledComposition,
+            resolvedCapability);
         CompositionRunRequest request = new(
             CreateWorkbenchRunId(runIdPrefix, build),
             compiledComposition,

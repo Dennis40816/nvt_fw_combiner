@@ -159,10 +159,19 @@ public sealed class CompositionRunRequest
     {
         if (resolvedCapability is null)
         {
+            if (compiledComposition.CapabilityFingerprint is not null)
+            {
+                throw new ArgumentException(
+                    "Capability-bound compilations require their exact current resolved capability.",
+                    nameof(resolvedCapability));
+            }
+
             return;
         }
 
-        if (!resolvedCapability.ExecutionAdmitted ||
+        if (resolvedCapability.Authoring.Value !=
+                CapabilityAuthoringAvailability.Available ||
+            !resolvedCapability.ExecutionAdmitted ||
             !StringComparer.Ordinal.Equals(
                 resolvedCapability.CapabilityFingerprint,
                 compiledComposition.CapabilityFingerprint) ||

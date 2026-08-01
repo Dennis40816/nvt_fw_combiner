@@ -5,14 +5,14 @@ namespace NvtFwCombiner.Application.ExternalTools;
 public static partial class LegacyCombinerPostbuildPlanner
 {
     /// <summary>Returns known CRC/header word writes with TP flash-header section identifiers.</summary>
-    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetKnownIntegrityWriteRangeSections(
+    public static IReadOnlyList<ExternalProcessorWriteRangeSection> GetKnownIntegrityWriteRangeSections(
         LegacyCombinerPostbuildCommandPlan plan,
         long capacity)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
-        List<LegacyCombinerPostbuildWriteRange> ranges = [];
+        List<ExternalProcessorWriteRangeSection> ranges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             switch (command.Family)
@@ -46,7 +46,7 @@ public static partial class LegacyCombinerPostbuildPlanner
     }
 
     /// <summary>Returns allowed write ranges with TP flash/header section identifiers for staged-source postbuild.</summary>
-    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetAllowedWriteRangeSectionsForStagedSources(
+    public static IReadOnlyList<ExternalProcessorWriteRangeSection> GetAllowedWriteRangeSectionsForStagedSources(
         LegacyCombinerPostbuildCommandPlan plan,
         long capacity,
         IEnumerable<ByteRange> allowedStagedTargetRanges,
@@ -59,7 +59,7 @@ public static partial class LegacyCombinerPostbuildPlanner
 
         ByteRange[] allowedStagedRanges = [.. allowedStagedTargetRanges];
         ByteRange[] stagedRanges = [.. allStagedTargetRanges];
-        List<LegacyCombinerPostbuildWriteRange> candidateRanges = [];
+        List<ExternalProcessorWriteRangeSection> candidateRanges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             foreach (LegacyCombinerBlockArgument block in command.Blocks)
@@ -76,9 +76,9 @@ public static partial class LegacyCombinerPostbuildPlanner
                         ByteRange? overlap = block.FirmwareRange.Intersect(allowedStagedRange);
                         if (overlap is not null)
                         {
-                            candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
-                                overlap.Value,
-                                GetPostbuildBlockSectionId(block)));
+                            candidateRanges.Add(new ExternalProcessorWriteRangeSection(
+                                GetPostbuildBlockSectionId(block),
+                                overlap.Value));
                         }
                     }
 
@@ -87,9 +87,9 @@ public static partial class LegacyCombinerPostbuildPlanner
 
                 if (block.SourceOffset != block.FirmwareRange.Start)
                 {
-                    candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
-                        block.FirmwareRange,
+                    candidateRanges.Add(new ExternalProcessorWriteRangeSection(
                         GetPostbuildBlockSectionId(block),
+                        block.FirmwareRange,
                         new ByteRange(block.SourceOffset, block.FirmwareRange.Length)));
                 }
             }
@@ -100,14 +100,14 @@ public static partial class LegacyCombinerPostbuildPlanner
     }
 
     /// <summary>Returns in-place refresh write ranges with TP flash/header section identifiers.</summary>
-    public static IReadOnlyList<LegacyCombinerPostbuildWriteRange> GetAllowedWriteRangeSectionsForInPlaceRefresh(
+    public static IReadOnlyList<ExternalProcessorWriteRangeSection> GetAllowedWriteRangeSectionsForInPlaceRefresh(
         LegacyCombinerPostbuildCommandPlan plan,
         long capacity)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
-        List<LegacyCombinerPostbuildWriteRange> candidateRanges = [];
+        List<ExternalProcessorWriteRangeSection> candidateRanges = [];
         foreach (LegacyCombinerPostbuildCommand command in plan.Commands)
         {
             foreach (LegacyCombinerBlockArgument block in command.Blocks)
@@ -120,9 +120,9 @@ public static partial class LegacyCombinerPostbuildPlanner
                 if (block.SourceKind == LegacyCombinerBlockSourceKind.FirmwareImage &&
                     block.SourceOffset != block.FirmwareRange.Start)
                 {
-                    candidateRanges.Add(new LegacyCombinerPostbuildWriteRange(
-                        block.FirmwareRange,
+                    candidateRanges.Add(new ExternalProcessorWriteRangeSection(
                         GetPostbuildBlockSectionId(block),
+                        block.FirmwareRange,
                         new ByteRange(block.SourceOffset, block.FirmwareRange.Length)));
                 }
             }

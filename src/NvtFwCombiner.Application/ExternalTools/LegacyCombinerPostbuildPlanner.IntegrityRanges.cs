@@ -8,7 +8,7 @@ public static partial class LegacyCombinerPostbuildPlanner
         LegacyCombinerPostbuildCommandPlan plan,
         LegacyCombinerPostbuildCommand command,
         long capacity,
-        List<LegacyCombinerPostbuildWriteRange> ranges)
+        List<ExternalProcessorWriteRangeSection> ranges)
     {
         long[] crcWordOffsets = command.ModeArgument switch
         {
@@ -62,7 +62,7 @@ public static partial class LegacyCombinerPostbuildPlanner
     private static void AddNt51927BasedCrcOnlyIntegrityRanges(
         LegacyCombinerPostbuildBranch branch,
         long capacity,
-        List<LegacyCombinerPostbuildWriteRange> ranges)
+        List<ExternalProcessorWriteRangeSection> ranges)
     {
         AddIfWithin(ranges, capacity, new ByteRange(0x23C, 4), PostbuildWriteSectionIds.FlashHeaderCrc);
         AddIfWithin(ranges, capacity, new ByteRange(0x24C, 4), PostbuildWriteSectionIds.FlashHeaderCrc);
@@ -82,14 +82,14 @@ public static partial class LegacyCombinerPostbuildPlanner
     }
 
     private static void AddIfWithin(
-        List<LegacyCombinerPostbuildWriteRange> ranges,
+        List<ExternalProcessorWriteRangeSection> ranges,
         long capacity,
         ByteRange range,
         string sectionId)
     {
         if (range.EndExclusive <= capacity)
         {
-            ranges.Add(new LegacyCombinerPostbuildWriteRange(range, sectionId));
+            ranges.Add(new ExternalProcessorWriteRangeSection(sectionId, range));
         }
     }
 }

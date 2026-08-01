@@ -74,6 +74,7 @@ public static partial class WorkbenchCompositionService
                 context!.Capacity,
                 selectedInputSlotIds,
                 out CompiledComposition? compiledComposition,
+                out ResolvedCapability? resolvedCapability,
                 out IReadOnlyList<CompositionIssue> issues))
         {
             return CreatePlanningRunResult(
@@ -128,7 +129,8 @@ public static partial class WorkbenchCompositionService
             externalProcessor: null,
             icNumberSelection: context.Selection,
             cancellationToken,
-            progress: progress).ConfigureAwait(false);
+            progress: progress,
+            resolvedCapability: resolvedCapability).ConfigureAwait(false);
     }
 
     private static List<WorkbenchReplaceInputSlot> GetDpReplaceInputSlots(string icId)

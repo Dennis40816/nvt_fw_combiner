@@ -10,7 +10,7 @@ namespace NvtFwCombiner.Infrastructure.Tests.Capabilities;
 /// <summary>Tests the exact, hash-pinned canonical capability policy source.</summary>
 public sealed class BuiltInCanonicalCapabilityPolicyTests
 {
-    /// <summary>The checked-in NT51929 pilot policy loads with all decisions pinned.</summary>
+    /// <summary>The checked-in full policy retains the reviewed NT51929 Standard Merge decision.</summary>
     [Fact]
     public void LoadsCheckedInNt51929Policy()
     {
@@ -19,11 +19,17 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         CanonicalCapabilityPolicyRoute route = Assert.Single(
             policy.Routes,
             static candidate => StringComparer.Ordinal.Equals(
+                candidate.Identity.IcId,
+                "NT51929") &&
+                StringComparer.Ordinal.Equals(
                 candidate.Identity.WorkflowId,
-                "standard-merge"));
+                "standard-merge") &&
+                StringComparer.Ordinal.Equals(
+                    candidate.Identity.MapVariant,
+                    "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.3.0", policy.CatalogVersion);
+        Assert.Equal("1.4.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -32,7 +38,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
         Assert.Equal(
-            "2e09330b709941985ac3986d02bdcb1dd69cccddd32e1f7d8b91197a091a14b7",
+            "c8f1268a871cfd571ff41694a71c85e6364bbe1fca6f3a7264cce77103b214a9",
             route.CapabilityFingerprint);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
@@ -71,19 +77,43 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
 
         Assert.True(File.Exists(deployedPath), deployedPath);
         Assert.Equal(
+            BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
+            PinnedJsonCatalogLoader.ComputeSha256(
+                File.ReadAllBytes(deployedPath)));
+        Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.RelativePath,
             NormalizePath((string?)content.Attribute("Link")));
         Assert.Equal("PreserveNewest", (string?)content.Attribute("CopyToOutputDirectory"));
         Assert.Equal("PreserveNewest", (string?)content.Attribute("CopyToPublishDirectory"));
     }
 
-    /// <summary>Raw-byte identity rejects a CRLF rewrite of the reviewed LF policy.</summary>
+    /// <summary>The pinned hash is the LF byte identity produced by Git clean export.</summary>
+    [Fact]
+    public void PinnedHashMatchesGitCleanExportBytes()
+    {
+        byte[] policy = ReadPolicy();
+        string text = Encoding.UTF8.GetString(policy);
+        byte[] cleanExportBytes = Encoding.UTF8.GetBytes(
+            text.Replace("\r\n", "\n", StringComparison.Ordinal));
+        string attributes = File.ReadAllText(
+            RepositoryPaths.FromRepositoryRoot(".gitattributes"));
+
+        Assert.Contains("*.json text eol=lf", attributes, StringComparison.Ordinal);
+        Assert.Equal(
+            BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
+            PinnedJsonCatalogLoader.ComputeSha256(cleanExportBytes));
+    }
+
+    /// <summary>Raw-byte identity rejects rewriting the reviewed line endings.</summary>
     [Fact]
     public void RejectsLineEndingRewrite()
     {
         byte[] policy = ReadPolicy();
+        string text = Encoding.UTF8.GetString(policy);
         byte[] rewritten = Encoding.UTF8.GetBytes(
-            Encoding.UTF8.GetString(policy).ReplaceLineEndings("\r\n"));
+            text.Contains("\r\n", StringComparison.Ordinal)
+                ? text.Replace("\r\n", "\n", StringComparison.Ordinal)
+                : text.Replace("\n", "\r\n", StringComparison.Ordinal));
 
         Assert.NotEqual(policy, rewritten);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

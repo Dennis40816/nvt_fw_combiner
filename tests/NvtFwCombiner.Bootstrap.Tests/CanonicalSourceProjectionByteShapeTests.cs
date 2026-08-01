@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
@@ -96,6 +97,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             golden.ExpectedOutput.LongLength,
             [replacementAddressSpaceId],
             out CompiledComposition? compiledComposition,
+            out ResolvedCapability? resolvedCapability,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(registered);
         Assert.Empty(issues);
@@ -145,7 +147,8 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             new Dictionary<string, byte[]>(StringComparer.Ordinal)
             {
                 [CompositionAddressSpaceIds.ReferenceBase] = reference,
-            });
+            },
+            Assert.IsType<ResolvedCapability>(resolvedCapability));
     }
 
     private static async ValueTask AssertEquivalentSourceShapesAsync(
@@ -154,7 +157,8 @@ public sealed class CanonicalSourceProjectionByteShapeTests
         IReadOnlyDictionary<string, byte[]> standaloneSourceArtifacts,
         Dictionary<string, byte[]> compatibleFlashCodeArtifacts,
         IReadOnlyList<ExpectedOperation> expectedOperations,
-        IReadOnlyDictionary<string, byte[]>? fixedInputs = null)
+        IReadOnlyDictionary<string, byte[]>? fixedInputs = null,
+        ResolvedCapability? resolvedCapability = null)
     {
         string[] projectedAddressSpaceIds =
         [
@@ -181,7 +185,10 @@ public sealed class CanonicalSourceProjectionByteShapeTests
                 inputs[addressSpaceId] = source;
             }
 
-            CompositionRunResult result = await PreviewAsync(composition, inputs);
+            CompositionRunResult result = await PreviewAsync(
+                composition,
+                inputs,
+                resolvedCapability);
             V2StandardMergeGoldenTestSupport.AssertSuccessfulGoldenOutput(
                 result,
                 composition,
@@ -232,7 +239,8 @@ public sealed class CanonicalSourceProjectionByteShapeTests
 
     private static async ValueTask<CompositionRunResult> PreviewAsync(
         CompiledComposition composition,
-        IReadOnlyDictionary<string, byte[]> inputs)
+        IReadOnlyDictionary<string, byte[]> inputs,
+        ResolvedCapability? resolvedCapability)
     {
         var reader = new FakeArtifactReader(inputs.ToDictionary(
             item => $"{composition.ProfileId}:{item.Key}",
@@ -258,7 +266,8 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             composition,
             bindings,
             composition.DefaultOutputFileName,
-            icNumberSelection: icNumberSelection);
+            icNumberSelection: icNumberSelection,
+            resolvedCapability: resolvedCapability);
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);
     }
 

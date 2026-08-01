@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-10
-- Amended: 2026-07-17 for the v0.9.9 code-size convergence gate; 2026-07-24 for owner-confirmed Type A/B and DIFF-CRC field semantics
+- Amended: 2026-07-17 for the v0.9.9 code-size convergence gate; 2026-07-24 for owner-confirmed Type A/B and DIFF-CRC field semantics; 2026-08-01 for canonical metadata and write-section convergence
 - Risk class: R2
 
 ## Context
@@ -13,11 +13,13 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 ## Decision
 
-1. `NvtFwCombiner.Application.FlashMaps.TpHeaderCatalog` owns one workbook-derived
-   `TpHeaderLayout` for every supported IC and the stable semantic category ids
-   actually emitted by output-difference reports. The previously materialized
-   `TpBinaryModelCatalog` root/category tree is retired in v0.9.9 because no
-   UI, CLI, report, or runtime consumer ever read it.
+1. Canonical `firmware-family-v1` `tp-flash-header` structures own the
+   workbook-derived layouts and fields. Exact `composition-profile-v2`
+   metadata/behavior bindings select their permitted report and compilation
+   uses. The Application `TpHeaderCatalog`, `TpHeaderLayout`, and
+   `TpHeaderField` parity adapter is retired by #194. The previously
+   materialized `TpBinaryModelCatalog` root/category tree was already retired
+   in v0.9.9 because no UI, CLI, report, or runtime consumer ever read it.
 
 2. Each layout contains named half-open header field ranges. TP Overview regions
    remain owned by hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`;
@@ -43,6 +45,15 @@ The UI must not infer a firmware field from an output address. Doing so would du
    Type C remains excluded. The same review classifies 950/951 workbook
    `Reserved (DIFF CRC)` words `[0xA134,0xA180)` as DLM CRC 1 through 19.
 
+8. A postbuild write carries one Domain
+   `ExternalProcessorWriteRangeSection`: stable `SectionId`, destination
+   half-open `Range`, and optional equal-length `SourceRange` for copy
+   provenance. The planner, compiled processor invocation, output diff, and
+   report projection share that one value. `PostbuildWriteSectionIds` supplies
+   the closed identifiers and presentation/overlap semantics; it does not own
+   geometry. No parallel postbuild write-range record may duplicate this
+   contract.
+
 ## Consequences
 
 - A normal NT51926 difference in `[0x001C, 0x0020)` is reported as `TP Flash Header` / `DLM CRC 0` rather than a generic CRC bucket.
@@ -51,6 +62,9 @@ The UI must not infer a firmware field from an output address. Doing so would du
   rule. It removes only a public projection with no production caller.
 - The current report file remains backward-compatible because `Semantic` is optional when parsing older JSON.
 - Copy provenance is retained as report metadata on the existing processor write-section declaration. It grants no additional processor read/write authority and does not alter the selected Combiner command line.
+- Deleting the Application parity adapter and duplicate planner range type does
+  not change any declared half-open range, section id, CRC/header byte, or
+  processor authority.
 - The canonical `composition-report-v1` schema is not expanded by this ADR. `CompositionRunReport` is an Application/workbench report projection and must be documented separately from the versioned wire schema.
 - NT51928 NB remains intentionally unmodeled. NT51932 uses the owner-confirmed
   Type A/B layout for the bounded 1–8 IC product scope; Type C (9–16 IC)
@@ -59,7 +73,8 @@ The UI must not infer a firmware field from an output address. Doing so would du
 
 ## Verification
 
-- Catalog tests require every supported IC to expose one evidenced header layout.
+- Canonical metadata contract tests require every supported IC to expose one
+  evidenced header definition through its admitted family/profile binding.
 - Catalog tests pin NT51926 `[0x0000, 0x0004)` to `ILM start address in BIN`,
   NT51927 `[0x023C, 0x0240)` to `DLM CRC 0`, NT51932 Type A/B DLM CRC
   1 through 7, and NT51950/51 DLM CRC 1 through 19.

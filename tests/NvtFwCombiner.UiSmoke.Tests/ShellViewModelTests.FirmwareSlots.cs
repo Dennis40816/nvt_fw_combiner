@@ -118,7 +118,7 @@ public sealed partial class ShellViewModelTests
 
     /// <summary>Verifies a full FlashCode base exposes both DP and TP facts instead of treating it as TP-only.</summary>
     [Fact]
-    public void BaseFirmwareSlotShowsFwConfigFacts()
+    public async Task BaseFirmwareSlotShowsFwConfigFacts()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
@@ -126,11 +126,12 @@ public sealed partial class ShellViewModelTests
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
         viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D01-02");
+            fact.Value == "D01-00");
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-597");
@@ -144,9 +145,9 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
     }
 
-    /// <summary>Verifies readable DP facts remain visible when a base has no canonical TP NVT Backup.</summary>
+    /// <summary>Verifies NT51951 DPCMI waits for its canonical TP FirmwareConfig prerequisite.</summary>
     [Fact]
-    public void BaseFirmwareSlotKeepsDpFactsWithoutTpMetadata()
+    public async Task BaseFirmwareSlotKeepsDpPendingWithoutTpMetadata()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-base-dp-only-facts");
         byte[] bytes = [.. Enumerable.Repeat((byte)0xFF, 0x80000)];
@@ -159,16 +160,20 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
+        await viewModel.FirmwareInspectionRefreshTask;
 
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "DP" && fact.Value == "DCC-00");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira" && fact.Value == "AUTO_PRJ-576");
+        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+            fact.Label == "DP" &&
+            fact.Value == "Pending" &&
+            fact.IsWarning);
+        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
         Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
-        Assert.StartsWith("NT51951_FlashCode_DCC00Txxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
+        Assert.StartsWith("NT51951_FlashCode_DxxxxTxxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies DP BIN slots expose gen_flash DP version facts and mark missing evidence.</summary>
     [Fact]
-    public void DpFirmwareSlotShowsGenFlashVersionOrTodo()
+    public async Task DpFirmwareSlotShowsGenFlashVersionOrTodo()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51926";
@@ -179,18 +184,19 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("merge-dp", dpPath);
         viewModel.SetSlotFile("merge-tp", tpPath);
+        await viewModel.FirmwareInspectionRefreshTask;
 
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
-            fact.Value == "D01-02" &&
+            fact.Value == "D01-00" &&
             !fact.IsWarning);
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-597" &&
             !fact.IsWarning);
         Assert.StartsWith(
-            "NT51926_FlashCode_D0102T0100_",
+            "NT51926_FlashCode_D0100T0100_",
             viewModel.MergeOutputFileName,
             StringComparison.Ordinal);
         Assert.StartsWith(
@@ -204,6 +210,7 @@ public sealed partial class ShellViewModelTests
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-dp", nt51950DpPath);
         viewModel.SetSlotFile("merge-tp", nt51950TpPath);
+        await viewModel.FirmwareInspectionRefreshTask;
 
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>

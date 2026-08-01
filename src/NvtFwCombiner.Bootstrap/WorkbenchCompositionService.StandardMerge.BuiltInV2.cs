@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -10,6 +11,21 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        return TryGetBuiltInV2StandardMergeCompilation(
+            icId,
+            dpInputLength,
+            out composition,
+            out _,
+            out issues);
+    }
+
+    private static bool TryGetBuiltInV2StandardMergeCompilation(
+        string icId,
+        long? dpInputLength,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
         return TryCompilePublishedDynamicCapability(
                 icId,
                 Profiles.IcWorkflowIds.StandardMerge,
@@ -17,11 +33,13 @@ public static partial class WorkbenchCompositionService
                 dpInputLength,
                 selectedInputSlotIds: null,
                 out composition,
+                out resolvedCapability,
                 out issues) ||
             TryCompilePublishedStandardMergeCapability(
                 icId,
                 dpInputLength,
                 out composition,
+                out resolvedCapability,
                 out issues);
     }
 
@@ -30,6 +48,7 @@ public static partial class WorkbenchCompositionService
         long? dpInputLength,
         IReadOnlyCollection<string> selectedInputSlotIds,
         out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
         return TryCompilePublishedDynamicCapability(
@@ -39,11 +58,13 @@ public static partial class WorkbenchCompositionService
                 dpInputLength,
                 selectedInputSlotIds,
                 out composition,
+                out resolvedCapability,
                 out issues) ||
             TryCompilePublishedStandardMergeCapability(
                 icId,
                 dpInputLength,
                 out composition,
+                out resolvedCapability,
                 out issues);
     }
 

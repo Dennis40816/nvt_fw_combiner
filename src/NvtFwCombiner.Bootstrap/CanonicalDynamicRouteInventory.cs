@@ -322,7 +322,10 @@ internal static class CanonicalDynamicRouteInventory
             new CanonicalCapabilityCompilationContract(
                 profileId,
                 profileVersion,
+                trustedDefinitionSha256,
                 allowedMapIds,
+                compilerSemanticId,
+                semanticBindingIds,
                 allowsLogicalOutput: StringComparer.Ordinal.Equals(
                     compilerSemanticId,
                     CapabilityDefinitionFingerprint.LogicalOutputCompilerSemanticId)));

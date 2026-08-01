@@ -122,6 +122,7 @@ public sealed class CapabilityActionReadinessTests
         var stale = new RuntimeDependencyReadinessSnapshot(
             admission.RouteId,
             admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
             new ResolutionToken("catalog:stale"),
             admission.AuthoringRevision,
             generation: 2,
@@ -149,6 +150,7 @@ public sealed class CapabilityActionReadinessTests
         var stale = new RuntimeDependencyReadinessSnapshot(
             admission.RouteId,
             admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
             admission.ResolutionToken,
             new AuthoringRevision(1),
             generation: 3,
@@ -176,6 +178,7 @@ public sealed class CapabilityActionReadinessTests
         var stale = new RuntimeDependencyReadinessSnapshot(
             admission.RouteId,
             admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
             admission.ResolutionToken,
             admission.AuthoringRevision,
             generation: 7,
@@ -195,6 +198,35 @@ public sealed class CapabilityActionReadinessTests
         Assert.Equal(8, result.RuntimeDependencyGeneration);
     }
 
+    /// <summary>A refresh for another compilation cannot enable Build under the same capability.</summary>
+    [Fact]
+    public void DifferentCompilationFingerprintBlocksBuildWithinSameCapability()
+    {
+        CapabilityAdmissionSnapshot admission = Admission();
+        var stale = new RuntimeDependencyReadinessSnapshot(
+            admission.RouteId,
+            admission.CapabilityFingerprint,
+            new string('c', 64),
+            admission.ResolutionToken,
+            admission.AuthoringRevision,
+            generation: 1,
+            DateTimeOffset.UnixEpoch,
+            []);
+
+        CapabilityActionReadinessSnapshot result =
+            CapabilityActionReadinessResolver.Resolve(
+                admission,
+                [],
+                stale,
+                currentRuntimeDependencyGeneration: 1);
+
+        Assert.False(result.Build.IsAvailable);
+        Assert.Equal(
+            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+            result.Build.PrimaryBlocker!.Code);
+        Assert.Equal(admission.CompilationFingerprint, result.CompilationFingerprint);
+    }
+
     /// <summary>Exact execution blockers survive projection while non-applicable work stays ignored.</summary>
     [Fact]
     public void ExactExecutionBlockerAndClosedNonApplicableStatesRemainDeterministic()
@@ -208,6 +240,7 @@ public sealed class CapabilityActionReadinessTests
         var admission = new CapabilityAdmissionSnapshot(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             CapabilityAuthoringAvailability.Available,
@@ -257,6 +290,36 @@ public sealed class CapabilityActionReadinessTests
         Assert.True(result.Build.IsAvailable);
     }
 
+    /// <summary>Only ready and not-applicable dependency entries make the exact snapshot ready.</summary>
+    [Theory]
+    [InlineData(ResolvedChildReadiness.Ready, true)]
+    [InlineData(ResolvedChildReadiness.NotApplicable, true)]
+    [InlineData(ResolvedChildReadiness.PendingInput, false)]
+    [InlineData(ResolvedChildReadiness.Blocked, false)]
+    public void RuntimeSnapshotReadinessUsesClosedDependencyStates(
+        ResolvedChildReadiness readiness,
+        bool expected)
+    {
+        RuntimeDependencyEntry entry = readiness switch
+        {
+            ResolvedChildReadiness.Ready =>
+                RuntimeDependencyEntry.Ready("processor", "tool"),
+            ResolvedChildReadiness.NotApplicable =>
+                new RuntimeDependencyEntry("processor", "tool", readiness),
+            ResolvedChildReadiness.PendingInput =>
+                new RuntimeDependencyEntry("processor", "tool", readiness),
+            ResolvedChildReadiness.Blocked =>
+                RuntimeDependencyEntry.Blocked(
+                    "processor",
+                    "tool",
+                    "runtime.blocked",
+                    "The runtime dependency is blocked."),
+            _ => throw new ArgumentOutOfRangeException(nameof(readiness)),
+        };
+
+        Assert.Equal(expected, Runtime(entry).IsReady);
+    }
+
     /// <summary>Only the four accepted child readiness values are part of the public contract.</summary>
     [Fact]
     public void ChildReadinessVocabularyRemainsClosed()
@@ -278,6 +341,7 @@ public sealed class CapabilityActionReadinessTests
         _ = Assert.Throws<ArgumentException>(() => new CapabilityAdmissionSnapshot(
             "route-ctrlram",
             "not-a-sha256",
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             CapabilityAuthoringAvailability.Available,
@@ -287,6 +351,17 @@ public sealed class CapabilityActionReadinessTests
         _ = Assert.Throws<ArgumentException>(() => new CapabilityAdmissionSnapshot(
             "route-ctrlram",
             new string('a', 64),
+            "not-a-sha256",
+            Token,
+            new AuthoringRevision(0),
+            CapabilityAuthoringAvailability.Available,
+            executionAdmitted: true,
+            CapabilityEvidenceStatus.DirectGolden,
+            CapabilityPublicationStatus.Supported));
+        _ = Assert.Throws<ArgumentException>(() => new CapabilityAdmissionSnapshot(
+            "route-ctrlram",
+            new string('a', 64),
+            new string('b', 64),
             default,
             new AuthoringRevision(0),
             CapabilityAuthoringAvailability.Available,
@@ -296,6 +371,7 @@ public sealed class CapabilityActionReadinessTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CapabilityAdmissionSnapshot(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             (CapabilityAuthoringAvailability)int.MaxValue,
@@ -342,18 +418,28 @@ public sealed class CapabilityActionReadinessTests
         _ = Assert.Throws<ArgumentException>(() => new RuntimeDependencyReadinessRequest(
             "route-ctrlram",
             "not-a-sha256",
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             []));
         _ = Assert.Throws<ArgumentException>(() => new RuntimeDependencyReadinessRequest(
             "route-ctrlram",
             new string('a', 64),
+            "not-a-sha256",
+            Token,
+            new AuthoringRevision(0),
+            []));
+        _ = Assert.Throws<ArgumentException>(() => new RuntimeDependencyReadinessRequest(
+            "route-ctrlram",
+            new string('a', 64),
+            new string('b', 64),
             default,
             new AuthoringRevision(0),
             []));
         _ = Assert.Throws<ArgumentException>(() => new RuntimeDependencyReadinessRequest(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             [null!]));
@@ -376,6 +462,7 @@ public sealed class CapabilityActionReadinessTests
             new RuntimeDependencyReadinessSnapshot(
                 "route-ctrlram",
                 "not-a-sha256",
+                new string('b', 64),
                 Token,
                 new AuthoringRevision(0),
                 generation: 1,
@@ -385,6 +472,17 @@ public sealed class CapabilityActionReadinessTests
             new RuntimeDependencyReadinessSnapshot(
                 "route-ctrlram",
                 new string('a', 64),
+                "not-a-sha256",
+                Token,
+                new AuthoringRevision(0),
+                generation: 1,
+                DateTimeOffset.UnixEpoch,
+                [entry]));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new RuntimeDependencyReadinessSnapshot(
+                "route-ctrlram",
+                new string('a', 64),
+                new string('b', 64),
                 Token,
                 new AuthoringRevision(0),
                 generation: 1,
@@ -394,6 +492,7 @@ public sealed class CapabilityActionReadinessTests
             new RuntimeDependencyReadinessSnapshot(
                 "route-ctrlram",
                 new string('a', 64),
+                new string('b', 64),
                 default,
                 new AuthoringRevision(0),
                 generation: 1,
@@ -403,6 +502,7 @@ public sealed class CapabilityActionReadinessTests
             new RuntimeDependencyReadinessSnapshot(
                 "route-ctrlram",
                 new string('a', 64),
+                new string('b', 64),
                 Token,
                 new AuthoringRevision(0),
                 generation: 1,
@@ -412,6 +512,7 @@ public sealed class CapabilityActionReadinessTests
             new RuntimeDependencyReadinessSnapshot(
                 "route-ctrlram",
                 new string('a', 64),
+                new string('b', 64),
                 Token,
                 new AuthoringRevision(0),
                 generation: 1,
@@ -429,6 +530,7 @@ public sealed class CapabilityActionReadinessTests
         return new CapabilityAdmissionSnapshot(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(authoringRevision),
             authoring,
@@ -455,6 +557,7 @@ public sealed class CapabilityActionReadinessTests
         return new RuntimeDependencyReadinessSnapshot(
             "route-ctrlram",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(0),
             generation: 1,

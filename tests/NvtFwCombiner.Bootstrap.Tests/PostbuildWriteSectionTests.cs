@@ -72,7 +72,7 @@ public sealed class PostbuildWriteSectionTests
             long capacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
                 plan,
                 stagedRanges);
-            LegacyCombinerPostbuildWriteRange[] sections =
+            ExternalProcessorWriteRangeSection[] sections =
             [
                 .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
                     plan,

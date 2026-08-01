@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -309,14 +310,14 @@ public sealed partial class ReplaceCliCommandTests
         await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, outputPath: null);
     }
 
-    /// <summary>NT51926 TP mappings produce only the explicit missing-Parent-stage diagnostic plan.</summary>
+    /// <summary>NT51926 TP mappings without an exact compilation fail before a diagnostic Preview.</summary>
     [Fact]
-    public async Task Nt51926GeneralReplaceTpPreviewIsDiagnosticPlanOnly()
+    public async Task Nt51926GeneralReplaceTpPreviewRequiresExactCompilation()
     {
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x29));
+            CreatePostbuildReference(0x29));
         string input = workspace.Write("input.bin", [0xA5, 0x5A]);
         string report = workspace.PathFor("diagnostic-plan.json");
 
@@ -335,52 +336,20 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Status: DiagnosticPlanOnly", result.Output);
-        Assert.Contains("Output: not produced", result.Output);
-        Assert.DoesNotContain("SHA256:", result.Output);
-        using var document = JsonDocument.Parse(
-            await File.ReadAllTextAsync(
-                report,
-                TestContext.Current.CancellationToken));
-        JsonElement root = document.RootElement;
-        JsonElement diagnostic = root.GetProperty("DiagnosticPreview");
-        Assert.Equal(
-            "diagnostic-plan-only",
-            diagnostic.GetProperty("Mode").GetString());
-        Assert.False(diagnostic.GetProperty("OutputProduced").GetBoolean());
-        Assert.False(
-            diagnostic.GetProperty("ClaimsFinalIntegrity").GetBoolean());
-        Assert.True(diagnostic.GetProperty("PostbuildRequired").GetBoolean());
-        Assert.Contains(
-            "no output was produced",
-            diagnostic.GetProperty("Message").GetString(),
-            StringComparison.Ordinal);
-        Assert.Equal(
-            JsonValueKind.Null,
-            diagnostic.GetProperty("RequiredStageId").ValueKind);
-        Assert.Equal(
-            "capability.readiness.postbuild-stage-authority-missing",
-            diagnostic.GetProperty("Blocker").GetProperty("Code").GetString());
-        Assert.Contains(
-            diagnostic.GetProperty("Coverage").EnumerateArray(),
-            segment =>
-                segment.GetProperty("Disposition").GetString() == "Changed" &&
-                segment.GetProperty("Range").GetProperty("Start").GetInt64() ==
-                0x22800);
-        _ = Assert.Single(root.GetProperty("Operations").EnumerateArray());
-        Assert.Empty(root.GetProperty("Mutations").EnumerateArray());
-        Assert.Equal(JsonValueKind.Null, root.GetProperty("Output").ValueKind);
+        await AssertGeneralReplaceWorkflowNotSupportedAsync(
+            result,
+            report,
+            outputPath: null);
     }
 
-    /// <summary>Build exposes readiness without creating a Run Report or BIN.</summary>
+    /// <summary>Build also rejects a TP target before runtime readiness or output.</summary>
     [Fact]
-    public async Task Nt51926GeneralReplaceTpBuildRemainsBlocked()
+    public async Task Nt51926GeneralReplaceTpBuildRequiresExactCompilation()
     {
         using var workspace = TempWorkspace.Create();
         string reference = workspace.Write(
             "reference.bin",
-            CreatePattern(0x40000, 0x2A));
+            CreatePostbuildReference(0x2A));
         string input = workspace.Write("input.bin", [0xA5, 0x5A]);
         string output = workspace.PathFor("must-not-exist.bin");
         string report = workspace.PathFor("blocked-build.json");
@@ -402,16 +371,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("Status: BuildUnavailable", result.Output);
-        Assert.Contains("Output: not produced", result.Output);
-        Assert.DoesNotContain("SHA256:", result.Output);
-        Assert.Contains(
-            "capability.readiness.postbuild-stage-authority-missing",
-            result.Error,
-            StringComparison.Ordinal);
-        Assert.False(File.Exists(output));
-        Assert.False(File.Exists(report));
+        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
     }
 
     /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
@@ -589,6 +549,21 @@ public sealed partial class ReplaceCliCommandTests
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
         Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    private static byte[] CreatePostbuildReference(byte seed)
+    {
+        byte[] image = CreatePattern(0x40000, seed);
+        const int backupStart = 0x3F000;
+        const int markerStart = 0x3FFFC;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x20;
+        image[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xDF;
+        image[backupStart + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 2;
+        image[markerStart] = 0x00;
+        image[markerStart + 1] = (byte)'N';
+        image[markerStart + 2] = (byte)'V';
+        image[markerStart + 3] = (byte)'T';
+        return image;
     }
 
     private static async Task<string> WriteGeneralReplaceRuleAsync(

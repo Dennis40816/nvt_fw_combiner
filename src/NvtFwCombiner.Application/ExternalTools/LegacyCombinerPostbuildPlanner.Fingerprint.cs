@@ -103,7 +103,7 @@ public static partial class LegacyCombinerPostbuildPlanner
                 .OrderBy(static range => range.Start)
                 .ThenBy(static range => range.Length),
         ];
-        IReadOnlyList<LegacyCombinerPostbuildWriteRange> writeSections =
+        IReadOnlyList<ExternalProcessorWriteRangeSection> writeSections =
             GetAllowedWriteRangeSectionsForStagedSources(
                 plan,
                 capacity,
@@ -115,7 +115,7 @@ public static partial class LegacyCombinerPostbuildPlanner
             writeSections.Count);
         for (int index = 0; index < writeSections.Count; index++)
         {
-            LegacyCombinerPostbuildWriteRange section = writeSections[index];
+            ExternalProcessorWriteRangeSection section = writeSections[index];
             string prefix =
                 FormattableString.Invariant($"write-section.{index}");
             AppendFingerprintField(builder, $"{prefix}.id", section.SectionId);

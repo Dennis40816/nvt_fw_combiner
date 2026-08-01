@@ -249,10 +249,24 @@ public static partial class WorkbenchCompositionService
         }
 
         ResolvedMetadataPlan? plan = resolution.Capability?.MetadataPlan;
-        bool declaresDpcmi = plan?.Entries.Any(entry =>
-            StringComparer.Ordinal.Equals(
-                entry.Definition.StructureDefinition.Definition.DefinitionId,
-                DpcmiMetadataContract.StructureId)) == true;
+        bool declaresDpcmi = DeclaresDpcmi(plan);
+        if (!declaresDpcmi && tpImage is not null)
+        {
+            CapabilityResolutionResult dpResolution =
+                ResolveCanonicalDpReplaceCapability(normalizedIcId);
+            if (StringComparer.Ordinal.Equals(
+                    dpResolution.Issue?.Code,
+                    CapabilityCatalogIssueCodes.RouteAmbiguous))
+            {
+                dpResolution = ResolveCanonicalDpReplaceCapability(
+                    normalizedIcId,
+                    image.LongLength);
+            }
+
+            plan = dpResolution.Capability?.MetadataPlan;
+            declaresDpcmi = DeclaresDpcmi(plan);
+        }
+
         if (!declaresDpcmi)
         {
             return false;
@@ -288,6 +302,14 @@ public static partial class WorkbenchCompositionService
         // A declared canonical DPCMI route owns both success and failure. Never
         // fall back to a second physical-offset interpretation for that route.
         return true;
+    }
+
+    private static bool DeclaresDpcmi(ResolvedMetadataPlan? plan)
+    {
+        return plan?.Entries.Any(entry =>
+            StringComparer.Ordinal.Equals(
+                entry.Definition.StructureDefinition.Definition.DefinitionId,
+                DpcmiMetadataContract.StructureId)) == true;
     }
 
     private static WorkbenchFirmwareConfigMetadata? ReadFirmwareConfigMetadata(

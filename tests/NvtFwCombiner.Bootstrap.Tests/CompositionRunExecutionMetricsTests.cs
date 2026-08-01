@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
@@ -250,7 +251,9 @@ public sealed class CompositionRunExecutionMetricsTests
         bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
             "NT51950",
             outputLength,
+            selectedInputSlotIds: [],
             out CompiledComposition? composition,
+            out ResolvedCapability? resolvedCapability,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(registered);
         Assert.Empty(issues);
@@ -267,7 +270,8 @@ public sealed class CompositionRunExecutionMetricsTests
                     CompositionAddressSpaceIds.DpReplacement,
                     "replacement-artifact.bin"),
             ],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            Assert.IsType<ResolvedCapability>(resolvedCapability));
     }
 
     private static CompositionRunRequest CreateCtrlRamReplaceRequest(int outputLength, int ctrlRamLength)
@@ -374,14 +378,16 @@ public sealed class CompositionRunExecutionMetricsTests
     private static CompositionRunRequest CreateRequest(
         CompiledComposition composition,
         IReadOnlyList<InputArtifactBinding> bindings,
-        IcNumberSelection selection)
+        IcNumberSelection selection,
+        ResolvedCapability? resolvedCapability = null)
     {
         return new CompositionRunRequest(
             "run-performance-baseline",
             composition,
             bindings,
             composition.DefaultOutputFileName,
-            icNumberSelection: selection);
+            icNumberSelection: selection,
+            resolvedCapability: resolvedCapability);
     }
 
     private static byte[] CreateExpectedDpReplaceOutput(

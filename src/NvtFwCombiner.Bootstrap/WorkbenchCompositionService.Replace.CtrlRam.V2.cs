@@ -179,11 +179,7 @@ public static partial class WorkbenchCompositionService
                     commandPlan,
                     referencePayload.LengthBytes,
                     stagedTargetRanges,
-                    stagedTargetRanges)
-                .Select(static section => new ExternalProcessorWriteRangeSection(
-                    section.SectionId,
-                    section.Range,
-                    section.SourceRange)),
+                    stagedTargetRanges),
         ];
 
         return BuiltInV2BundleRegistry.All[route.BundleId].CompileRuntimeReferenceReplace(

@@ -98,11 +98,16 @@ identity.
 
 Every admitted `requiredCapabilityIds` binding is retained in compilation provenance as the exact
 effective/direct `FirmwareMapFactBinding`, including capability value, applicability, alias chain, and
-evidence. The V2 compilation fingerprint format is `nfc.compiled-composition.profile-v2.v5` and binds
-these compiled input and capability-admission decisions as well as bundle, map, promotion, validation,
-output, and plan facts. Version 5 also frames the complete staged-artifact binding count and each
+evidence. The capability-bound V2 compilation fingerprint format is
+`nfc.compiled-composition.profile-v2.v7`; it references the reviewed
+`CapabilityFingerprint` and binds only exact compiled selection, input,
+admission, map, validation, output, and plan state introduced by this
+compilation. It does not repeat definition provenance already bound by the
+capability. The unbound migration format remains v5. Version 5 and its bound
+successor also frame the complete staged-artifact binding count and each
 artifact id, source space, and source range for external-processor operations. The paired legacy
-compilation format is `nfc.compiled-composition.legacy.v3`; these format revisions prevent artifacts
+compilation formats are unbound v3 and capability-bound v4. Logical-output
+formats are unbound v1 and capability-bound v3. These format revisions prevent artifacts
 serialized under the earlier incomplete fingerprint grammar from retaining the same identity.
 
 The current runtime lowering subset compiles every `regionAccessRules` declaration with the complete canonical

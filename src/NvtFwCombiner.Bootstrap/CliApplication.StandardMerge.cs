@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
@@ -108,6 +109,7 @@ public static partial class CliApplication
                         .Select(static pair => pair.Key),
                 ],
                 out CompiledComposition? compiledComposition,
+                out ResolvedCapability? resolvedCapability,
                 out IReadOnlyList<CompositionIssue> issues))
         {
             await CliCompositionRunSupport.PrintIssuesAsync(error, issues).ConfigureAwait(false);
@@ -158,7 +160,8 @@ public static partial class CliApplication
             bindings,
             outputTarget.FileName,
             resolvedCapability: WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
-                compiledComposition));
+                compiledComposition,
+                resolvedCapability));
 
         CompositionRunResult result = await service
             .PreviewOrBuildAsync(request, action == "build", cancellationToken)

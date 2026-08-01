@@ -32,18 +32,27 @@ public sealed class RuntimeDependencyReadinessRequest
     public RuntimeDependencyReadinessRequest(
         string routeId,
         string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
         IEnumerable<ExternalProcessorDependencyReference> dependencies)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
         ArgumentNullException.ThrowIfNull(dependencies);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
         {
             throw new ArgumentException(
                 "Runtime dependency readiness requires a capability SHA-256 fingerprint.",
                 nameof(capabilityFingerprint));
+        }
+
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Runtime dependency readiness requires a compilation SHA-256 fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         if (string.IsNullOrWhiteSpace(resolutionToken.Value))
@@ -72,6 +81,7 @@ public sealed class RuntimeDependencyReadinessRequest
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         Dependencies = Array.AsReadOnly(_dependencies);
@@ -82,6 +92,9 @@ public sealed class RuntimeDependencyReadinessRequest
 
     /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition fingerprint.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Catalog publication identity.</summary>
     public ResolutionToken ResolutionToken { get; }
@@ -101,6 +114,7 @@ public sealed class RuntimeDependencyReadinessRequest
         return new RuntimeDependencyReadinessRequest(
             capability.Identity.RouteId,
             capability.CapabilityFingerprint,
+            capability.CompiledComposition.CompilationFingerprint,
             capability.ResolutionToken,
             authoringRevision,
             capability.CompiledComposition.Plan.OrderedOperations
@@ -201,6 +215,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
     public RuntimeDependencyReadinessSnapshot(
         string routeId,
         string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
         long generation,
@@ -209,6 +224,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
         ArgumentOutOfRangeException.ThrowIfLessThan(generation, 1);
         ArgumentNullException.ThrowIfNull(entries);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
@@ -216,6 +232,13 @@ public sealed class RuntimeDependencyReadinessSnapshot
             throw new ArgumentException(
                 "Runtime dependency snapshots require a capability SHA-256 fingerprint.",
                 nameof(capabilityFingerprint));
+        }
+
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Runtime dependency snapshots require a compilation SHA-256 fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         if (checkedAtUtc.Offset != TimeSpan.Zero)
@@ -256,6 +279,7 @@ public sealed class RuntimeDependencyReadinessSnapshot
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         Generation = generation;
@@ -268,6 +292,9 @@ public sealed class RuntimeDependencyReadinessSnapshot
 
     /// <summary>Reviewed capability-definition fingerprint evaluated by this refresh.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition fingerprint evaluated by this refresh.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Catalog publication evaluated by this refresh.</summary>
     public ResolutionToken ResolutionToken { get; }
@@ -297,6 +324,9 @@ public sealed class RuntimeDependencyReadinessSnapshot
             StringComparer.Ordinal.Equals(
                 CapabilityFingerprint,
                 admission.CapabilityFingerprint) &&
+            StringComparer.Ordinal.Equals(
+                CompilationFingerprint,
+                admission.CompilationFingerprint) &&
             ResolutionToken == admission.ResolutionToken &&
             AuthoringRevision == admission.AuthoringRevision &&
             Generation == currentGeneration;

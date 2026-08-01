@@ -300,6 +300,7 @@ public static partial class WorkbenchCompositionService
             return ValueTask.FromResult(new RuntimeDependencyReadinessSnapshot(
                 request.RouteId,
                 request.CapabilityFingerprint,
+                request.CompilationFingerprint,
                 request.ResolutionToken,
                 request.AuthoringRevision,
                 generation,

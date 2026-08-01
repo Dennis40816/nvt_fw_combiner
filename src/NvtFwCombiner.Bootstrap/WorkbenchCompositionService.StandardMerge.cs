@@ -7,8 +7,7 @@ public static partial class WorkbenchCompositionService
     /// <summary>Returns true when the selected IC has a built-in standard merge profile.</summary>
     public static bool IsStandardMergeSupported(string icId)
     {
-        return HasCanonicalCapability(icId, IcWorkflowIds.StandardMerge) ||
-            StringComparer.Ordinal.Equals(icId, "NT51928");
+        return HasCanonicalCapability(icId, IcWorkflowIds.StandardMerge);
     }
 
     /// <summary>Gets the built-in standard merge profile id for the selected IC, if any.</summary>

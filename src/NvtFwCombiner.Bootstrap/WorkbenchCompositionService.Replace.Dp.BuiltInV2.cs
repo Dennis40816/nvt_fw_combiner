@@ -21,11 +21,13 @@ public static partial class WorkbenchCompositionService
                 baseCapacity,
                 selectedInputSlotIds: null,
                 out composition,
+                out _,
                 out issues) ||
             TryCompilePublishedDpReplaceCapability(
                 icId,
                 baseCapacity,
                 out composition,
+                out _,
                 out issues);
     }
 
@@ -36,6 +38,23 @@ public static partial class WorkbenchCompositionService
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        return TryCompileBuiltInV2DpReplace(
+            icId,
+            baseCapacity,
+            selectedInputSlotIds,
+            out composition,
+            out _,
+            out issues);
+    }
+
+    internal static bool TryCompileBuiltInV2DpReplace(
+        string icId,
+        long baseCapacity,
+        IReadOnlyCollection<string> selectedInputSlotIds,
+        out CompiledComposition? composition,
+        out ResolvedCapability? resolvedCapability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
         ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
         return TryCompilePublishedDynamicCapability(
                 icId,
@@ -44,11 +63,13 @@ public static partial class WorkbenchCompositionService
                 baseCapacity,
                 selectedInputSlotIds,
                 out composition,
+                out resolvedCapability,
                 out issues) ||
             TryCompilePublishedDpReplaceCapability(
                 icId,
                 baseCapacity,
                 out composition,
+                out resolvedCapability,
                 out issues);
     }
 

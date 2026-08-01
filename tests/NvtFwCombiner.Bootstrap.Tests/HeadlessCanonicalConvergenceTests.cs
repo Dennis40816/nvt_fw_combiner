@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -17,18 +18,7 @@ public sealed class HeadlessCanonicalConvergenceTests
             reload.Succeeded,
             string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
 
-        string[] expected =
-        [
-            .. CurrentSupportMatrixCatalog.Create().Rows
-                .Where(static row => row.Route.ExecutionAdmitted)
-                .Select(static row => FormatAxes(
-                    row.Route.Identity.IcId,
-                    row.Route.Identity.WorkflowId,
-                    row.Route.Identity.IcCountVariant,
-                    row.Route.Identity.MapVariant))
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
+        string[] expected = ReadFrozenRouteAxes();
         string[] actual =
         [
             .. reload.Snapshot!.Capabilities
@@ -43,11 +33,55 @@ public sealed class HeadlessCanonicalConvergenceTests
                 .Order(StringComparer.Ordinal),
         ];
 
+        (string[] missing, string[] unexpected) = Compare(expected, actual);
+        Assert.Equal(78, expected.Length);
+        Assert.Equal(expected.Length, expected.Distinct(StringComparer.Ordinal).Count());
         Assert.True(
-            expected.SequenceEqual(actual, StringComparer.Ordinal),
-            $"Expected {expected.Length} admitted routes but canonical catalog has {actual.Length}." +
+            missing.Length == 0 && unexpected.Length == 0,
+            $"Frozen denominator has {expected.Length} routes; catalog has {actual.Length}." +
             Environment.NewLine +
-            string.Join(Environment.NewLine, expected));
+            $"Missing: {string.Join(", ", missing)}" + Environment.NewLine +
+            $"Unexpected: {string.Join(", ", unexpected)}");
+    }
+
+    /// <summary>The independent denominator reports one dropped route rather than adapting to it.</summary>
+    [Fact]
+    public void FrozenRouteInventoryDetectsOneOmission()
+    {
+        string[] expected = ReadFrozenRouteAxes();
+        string[] omitted = [.. expected.Skip(1)];
+
+        (string[] missing, string[] unexpected) = Compare(expected, omitted);
+
+        Assert.Equal([expected[0]], missing);
+        Assert.Empty(unexpected);
+    }
+
+    private static string[] ReadFrozenRouteAxes()
+    {
+        return
+        [
+            .. File.ReadAllLines(RepositoryPaths.FromRepositoryRoot(
+                    "tests",
+                    "NvtFwCombiner.Bootstrap.Tests",
+                    "Fixtures",
+                    "canonical-route-axes-v1.txt"))
+                .Where(static line =>
+                    !string.IsNullOrWhiteSpace(line) &&
+                    !line.StartsWith('#'))
+                .Order(StringComparer.Ordinal),
+        ];
+    }
+
+    private static (string[] Missing, string[] Unexpected) Compare(
+        IEnumerable<string> expected,
+        IEnumerable<string> actual)
+    {
+        HashSet<string> expectedSet = [.. expected];
+        HashSet<string> actualSet = [.. actual];
+        return (
+            [.. expectedSet.Except(actualSet).Order(StringComparer.Ordinal)],
+            [.. actualSet.Except(expectedSet).Order(StringComparer.Ordinal)]);
     }
 
     private static string FormatAxes(

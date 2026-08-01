@@ -107,6 +107,25 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
     }
 
+    /// <summary>A dynamic Standard Merge route projects DP DPCMI from its canonical metadata plan.</summary>
+    [Fact]
+    public void Nt51926StandardMergeInspectionProjectsCanonicalDpcmi()
+    {
+        string dpPath = GoldenArtifactPath("51926", "dp-input");
+        string tpPath = GoldenArtifactPath("51926", "tp-input");
+
+        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+            "NT51926",
+            dpPath,
+            tpPath);
+
+        Assert.Equal("0100", Assert.IsType<WorkbenchDpVersionMetadata>(inspection.DpVersion).VersionToken);
+        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal((byte)0x01, cmi.MajorVersionByte);
+        Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
+        Assert.Equal((ushort)597, cmi.JiraNumber);
+    }
+
     /// <summary>The consolidated snapshot preserves existing metadata and CtrlRAM display projections.</summary>
     [Fact]
     public void InspectionMatchesExistingFirmwareAndCtrlRamDisplayReaders()

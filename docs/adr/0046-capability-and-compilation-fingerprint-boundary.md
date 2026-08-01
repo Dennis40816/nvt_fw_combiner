@@ -71,6 +71,19 @@ output naming, and the typed report consume that same instance and bind its
 `CompilationFingerprint`. They do not recompile or substitute the capability
 fingerprint for the compiled-plan identity.
 
+Runtime-dependency inspection/readiness is also requested and published for
+that exact pair of `CapabilityFingerprint` and `CompilationFingerprint`.
+Another compilation under the same capability cannot reuse the snapshot. A
+run must retain the exact current `ResolvedCapability` that supplied the
+compiled instance; catalog reload cannot reconstruct or rebind an old dynamic
+compilation from matching strings.
+
+The capability-bound V2 formats implemented by #194 are
+`nfc.compiled-composition.profile-v2.v7` for map-bound compilation and
+`nfc.compiled-composition.profile-v2-logical-output.v3` for logical output.
+Both append only exact compilation state after the capability fingerprint.
+Unbound v5/v1 remain migration formats and do not carry capability admission.
+
 The semantic chain is therefore:
 
 ```text
@@ -115,6 +128,11 @@ binding before evidence can be upgraded.
 - The pilot equality between capability and compilation fingerprints is a
   migration defect. Ticket #194 removes it before dynamic routes become
   canonical.
+- A General Replace diagnostic Preview is available only after one exact
+  canonical route has compiled and its required stage/runtime readiness can be
+  evaluated for that compilation. A target with no canonical General Replace
+  route or golden evidence fails route admission before any runtime probe and
+  cannot fabricate a plan-only report.
 - This decision does not change firmware ranges, output bytes, processor write
   authority, evidence rank, publication status, or support.
 
@@ -129,6 +147,8 @@ binding before evidence can be upgraded.
   UI, and CLI share the same immutable artifact.
 - Deterministic vectors cover both fingerprint formats and the chained
   relationship.
+- Same-capability/different-compilation readiness snapshots are stale, and a
+  catalog reload cannot rebind the old compiled instance.
 - NT51928 Support Matrix evidence remains `ContractOnly` until an approved
   complete project golden exists.
 

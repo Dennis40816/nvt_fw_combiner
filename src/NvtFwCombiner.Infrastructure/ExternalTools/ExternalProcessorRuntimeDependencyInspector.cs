@@ -67,6 +67,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspector :
         return new RuntimeDependencyReadinessSnapshot(
             request.RouteId,
             request.CapabilityFingerprint,
+            request.CompilationFingerprint,
             request.ResolutionToken,
             request.AuthoringRevision,
             generation,

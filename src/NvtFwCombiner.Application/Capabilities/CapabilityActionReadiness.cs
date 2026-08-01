@@ -12,6 +12,7 @@ public sealed record CapabilityAdmissionSnapshot
     public CapabilityAdmissionSnapshot(
         string routeId,
         string capabilityFingerprint,
+        string compilationFingerprint,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
         CapabilityAuthoringAvailability authoringAvailability,
@@ -22,11 +23,19 @@ public sealed record CapabilityAdmissionSnapshot
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(compilationFingerprint);
         if (!CapabilityRouteIdentity.IsSha256(capabilityFingerprint))
         {
             throw new ArgumentException(
                 "Capability admission requires a SHA-256 capability fingerprint.",
                 nameof(capabilityFingerprint));
+        }
+
+        if (!CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Capability admission requires a SHA-256 compilation fingerprint.",
+                nameof(compilationFingerprint));
         }
 
         if (string.IsNullOrWhiteSpace(resolutionToken.Value))
@@ -57,6 +66,7 @@ public sealed record CapabilityAdmissionSnapshot
 
         RouteId = routeId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         AuthoringAvailability = authoringAvailability;
@@ -71,6 +81,9 @@ public sealed record CapabilityAdmissionSnapshot
 
     /// <summary>Reviewed capability-definition fingerprint.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition fingerprint.</summary>
+    public string CompilationFingerprint { get; }
 
     /// <summary>Catalog publication identity.</summary>
     public ResolutionToken ResolutionToken { get; }
@@ -102,6 +115,7 @@ public sealed record CapabilityAdmissionSnapshot
         return new CapabilityAdmissionSnapshot(
             capability.Identity.RouteId,
             capability.CapabilityFingerprint,
+            capability.CompiledComposition.CompilationFingerprint,
             capability.ResolutionToken,
             authoringRevision,
             capability.Authoring.Value,
@@ -262,6 +276,7 @@ public sealed class CapabilityActionAvailability
 public sealed record CapabilityActionReadinessSnapshot(
     string RouteId,
     string CapabilityFingerprint,
+    string CompilationFingerprint,
     ResolutionToken ResolutionToken,
     AuthoringRevision AuthoringRevision,
     long RuntimeDependencyGeneration,
@@ -350,6 +365,7 @@ public static class CapabilityActionReadinessResolver
         return new CapabilityActionReadinessSnapshot(
             admission.RouteId,
             admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
             admission.ResolutionToken,
             admission.AuthoringRevision,
             currentRuntimeDependencyGeneration,

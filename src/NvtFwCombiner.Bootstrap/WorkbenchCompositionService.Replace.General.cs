@@ -148,51 +148,8 @@ public static partial class WorkbenchCompositionService
             CreateExplicitMappingPlanningOperations(
                 explicitMappings,
                 CompositionOperationKind.ReplaceRange);
-        if (touchesTpRegion &&
-            StringComparer.Ordinal.Equals(
-                icId,
-                Nt51926GeneralReplaceIcId))
-        {
-            GeneralReplacePostbuildReadinessResult postbuild =
-                await ResolveGeneralReplacePostbuildReadinessAsync(
-                    admission,
-                    exactParent.Runtime,
-                    postbuildReadinessOverride,
-                    cancellationToken).ConfigureAwait(false);
-            CapabilityActionReadinessSnapshot readiness = postbuild.Readiness;
-            if (!readiness.Build.IsAvailable)
-            {
-                CapabilityActionBlocker blocker =
-                    readiness.Build.PrimaryBlocker!;
-                CompositionIssue issue = new(
-                    blocker.Code,
-                    blocker.Message,
-                    blocker.SubjectId);
-                GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
-                    ? null
-                    : GeneralReplaceDiagnosticPreviewProjector.Project(
-                        context.Capacity,
-                        admission,
-                        readiness,
-                        postbuild.RequiredStageId);
-                return build
-                    ? CreateReplaceReadinessOnlyResult(
-                        icId,
-                        WorkbenchReplaceModes.General,
-                        readiness) with
-                    {
-                        AcceptedGeneralMappingDraft = context.MappingDraft,
-                    }
-                    : Blocked(
-                        [issue],
-                        planningOperations,
-                        diagnosticPreview: diagnostic,
-                        readiness: readiness);
-            }
-        }
-
         LegacyCombinerPostbuildCommandPlan? commandPlan = null;
-        List<LegacyCombinerPostbuildWriteRange> postbuildWriteRangeSections = [];
+        List<ExternalProcessorWriteRangeSection> postbuildWriteRangeSections = [];
         if (touchesTpRegion)
         {
             if (!postbuildProfileResolved)
@@ -323,6 +280,50 @@ public static partial class WorkbenchCompositionService
                         Nt51926GeneralReplaceDpProfileVersion,
                         compiledComposition));
         compiledComposition = resolvedCapability.CompiledComposition;
+
+        if (touchesTpRegion &&
+            StringComparer.Ordinal.Equals(
+                icId,
+                Nt51926GeneralReplaceIcId))
+        {
+            GeneralReplacePostbuildReadinessResult postbuild =
+                await ResolveGeneralReplacePostbuildReadinessAsync(
+                    admission,
+                    exactParent.Runtime,
+                    resolvedCapability,
+                    postbuildReadinessOverride,
+                    cancellationToken).ConfigureAwait(false);
+            CapabilityActionReadinessSnapshot readiness = postbuild.Readiness;
+            if (!readiness.Build.IsAvailable)
+            {
+                CapabilityActionBlocker blocker =
+                    readiness.Build.PrimaryBlocker!;
+                CompositionIssue issue = new(
+                    blocker.Code,
+                    blocker.Message,
+                    blocker.SubjectId);
+                GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
+                    ? null
+                    : GeneralReplaceDiagnosticPreviewProjector.Project(
+                        context.Capacity,
+                        admission,
+                        readiness,
+                        postbuild.RequiredStageId);
+                return build
+                    ? CreateReplaceReadinessOnlyResult(
+                        icId,
+                        WorkbenchReplaceModes.General,
+                        readiness) with
+                    {
+                        AcceptedGeneralMappingDraft = context.MappingDraft,
+                    }
+                    : Blocked(
+                        [issue],
+                        planningOperations,
+                        diagnosticPreview: diagnostic,
+                        readiness: readiness);
+            }
+        }
 
         if (!TryMaterializeGeneralReplacePatchArtifacts(
                 patchArtifacts,

@@ -127,6 +127,7 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
         var admission = new CapabilityAdmissionSnapshot(
             "general-replace:diagnostic",
             new string('a', 64),
+            new string('b', 64),
             Token,
             new AuthoringRevision(1),
             CapabilityAuthoringAvailability.Available,
@@ -137,6 +138,7 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
         var runtime = new RuntimeDependencyReadinessSnapshot(
             admission.RouteId,
             admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
             admission.ResolutionToken,
             admission.AuthoringRevision,
             generation: 1,

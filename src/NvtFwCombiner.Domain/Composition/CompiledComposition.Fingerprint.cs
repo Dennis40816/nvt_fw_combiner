@@ -13,7 +13,7 @@ public sealed partial class CompiledComposition
         "nfc.compiled-composition.legacy.v4";
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
     private const string CapabilityBoundV2FingerprintFormat =
-        "nfc.compiled-composition.profile-v2.v6";
+        "nfc.compiled-composition.profile-v2.v7";
     private const string IntegrityFingerprintFormat =
         "nfc.compiled-composition.integrity.v1";
 
@@ -112,15 +112,23 @@ public sealed partial class CompiledComposition
         V2CompiledCompositionDetails details = composition.V2Details ?? throw new InvalidOperationException(
             "Profile-bundle-v2 artifacts require paired v2 details.");
         V2CompilationProvenance provenance = details.Provenance;
+        bool capabilityBound = composition.CapabilityFingerprint is not null;
         var builder = new StringBuilder();
         AppendField(
             builder,
             "format",
-            composition.CapabilityFingerprint is null
+            !capabilityBound
                 ? V2FingerprintFormat
                 : CapabilityBoundV2FingerprintFormat);
         AppendCapabilityFingerprint(builder, composition);
-        AppendV2ProfileIdentity(builder, composition);
+        if (capabilityBound)
+        {
+            AppendV2CompilationAdmission(builder, composition);
+        }
+        else
+        {
+            AppendV2ProfileIdentity(builder, composition);
+        }
         if (context.Kind == V2CompilationContextKind.RuntimeReferenceReplace)
         {
             AppendEnum(builder, "compilation-context", context.Kind);
@@ -129,10 +137,17 @@ public sealed partial class CompiledComposition
                 AppendInteger(builder, "compilation-context.conditional-processor", 1);
             }
         }
-        AppendV2ProfileAdmission(builder, composition, provenance);
+        if (!capabilityBound)
+        {
+            AppendV2ProfileAdmission(builder, composition, provenance);
+        }
         AppendField(builder, "resolved-map.fingerprint", provenance.ResolvedMap.ResolutionFingerprint);
 
-        return CompleteV2Fingerprint(builder, composition, details);
+        return CompleteV2Fingerprint(
+            builder,
+            composition,
+            details,
+            includeDefinitionProvenance: !capabilityBound);
     }
 
     private static void AppendV2ProfileIdentity(
@@ -177,26 +192,39 @@ public sealed partial class CompiledComposition
         AppendField(builder, "profile-entry.content-hash", provenance.ProfileEntry.ContentHash);
     }
 
+    private static void AppendV2CompilationAdmission(
+        StringBuilder builder,
+        CompiledComposition composition)
+    {
+        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendEnum(builder, "eligibility", composition.Eligibility);
+    }
+
     private static string CompleteV2Fingerprint(
         StringBuilder builder,
         CompiledComposition composition,
-        V2CompiledCompositionDetails details)
+        V2CompiledCompositionDetails details,
+        bool includeDefinitionProvenance)
     {
         V2CompilationProvenance provenance = details.Provenance;
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        AppendEnum(builder, "promotion.stage", provenance.Promotion.Stage);
-        AppendInteger(builder, "promotion.blocker.count", provenance.Promotion.Blockers.Count);
-        for (int index = 0; index < provenance.Promotion.Blockers.Count; index++)
+        if (includeDefinitionProvenance)
         {
-            CompiledProfilePromotionBlocker blocker = provenance.Promotion.Blockers[index];
-            string prefix = FormattableString.Invariant($"promotion.blocker.{index}");
-            AppendField(builder, $"{prefix}.id", blocker.BlockerId);
-            AppendEnum(builder, $"{prefix}.kind", blocker.Kind);
-            AppendField(builder, $"{prefix}.reason", blocker.Reason);
-            AppendStringList(builder, $"{prefix}.evidence", blocker.EvidenceRefs);
+            AppendEnum(builder, "promotion.stage", provenance.Promotion.Stage);
+            AppendInteger(builder, "promotion.blocker.count", provenance.Promotion.Blockers.Count);
+            for (int index = 0; index < provenance.Promotion.Blockers.Count; index++)
+            {
+                CompiledProfilePromotionBlocker blocker = provenance.Promotion.Blockers[index];
+                string prefix = FormattableString.Invariant($"promotion.blocker.{index}");
+                AppendField(builder, $"{prefix}.id", blocker.BlockerId);
+                AppendEnum(builder, $"{prefix}.kind", blocker.Kind);
+                AppendField(builder, $"{prefix}.reason", blocker.Reason);
+                AppendStringList(builder, $"{prefix}.evidence", blocker.EvidenceRefs);
+            }
+
+            AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         }
 
-        AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         AppendValidationRequirements(builder, provenance.ValidationRequirements);
         AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
         AppendInputContract(builder, details.InputContract);
