@@ -1185,7 +1185,11 @@ version.
    Dynamic publication recomputes `CapabilityFingerprint` from its compilation
    contract and rejects an incoherent supplied fingerprint. Binding the exact
    compiler result rejects missing selection groups, logical-family drift,
-   processor drift, or missing trusted adapter selector/plan/report bindings.
+   processor drift, or missing typed selector/plan/report bindings. Runtime
+   processor authority is derived only from the compiled invocation; report
+   projection/source identity is derived only from the metadata plan; and the
+   postbuild proof is bound to the exact `CompilationFingerprint`. No raw
+   adapter binding may compensate for another owner's missing semantics.
    Preview and Build require the same compiled object instance retained by the
    accepted `ResolvedCapability`; matching fingerprint strings do not permit
    cross-publication substitution.

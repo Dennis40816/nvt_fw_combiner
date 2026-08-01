@@ -165,6 +165,43 @@ public sealed class FirmwareMetadataInspectorTests
             new MetadataPlanDefinition([first, second]));
         _ = Assert.Throws<ArgumentException>(() =>
             new MetadataPlanDefinition([first, sameFamilyOtherResolution]));
+
+        var source = new MetadataPlanSourceIdentity(
+            "synthetic-profile",
+            "1.0.0",
+            new string('a', 64));
+        var projection = new MetadataPlanReportProjection(
+            CompositionAddressSpaceIds.TpInput,
+            CompositionAddressSpaceIds.ReferenceBase);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanSourceIdentity(
+                "synthetic-profile",
+                "1.0.0",
+                "not-a-sha256"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanReportProjection(
+                " ",
+                CompositionAddressSpaceIds.ReferenceBase));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [],
+                source,
+                [projection, projection]));
+        MetadataPlanEntry reportEntry = CreateDpcmiEntry(
+            firstFixture,
+            purposes: [MetadataReferencePurpose.ReportClassification]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            new MetadataPlanDefinition(
+                [reportEntry],
+                source,
+                [projection]));
+
+        var projectedEmpty = new MetadataPlanDefinition(
+            [],
+            source,
+            [projection]);
+        Assert.Same(source, projectedEmpty.SourceIdentity);
+        Assert.Equal(projection, Assert.Single(projectedEmpty.ReportProjections));
     }
 
     /// <summary>Empty declarations stay empty, while zero Jira is a valid value without a badge.</summary>

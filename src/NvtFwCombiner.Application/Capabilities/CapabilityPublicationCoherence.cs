@@ -50,7 +50,7 @@ internal static class CapabilityPublicationCoherence
             publication,
             evidence,
             metadataPlan,
-            adapterSemanticBindingIds: null);
+            runtimeReferenceProof: null);
     }
 
     internal static void ValidateResolved(ResolvedCapability capability)
@@ -66,7 +66,7 @@ internal static class CapabilityPublicationCoherence
             capability.Evidence,
             capability.MetadataPlan,
             capability.ResolutionToken,
-            capability.AdapterSemanticBindingIds);
+            capability.RuntimeReferenceProof);
     }
 
     internal static void ValidateResolved(
@@ -79,7 +79,7 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         ResolvedMetadataPlan metadataPlan,
         ResolutionToken resolutionToken,
-        IEnumerable<string>? adapterSemanticBindingIds = null)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof = null)
     {
         ArgumentNullException.ThrowIfNull(metadataPlan);
         resolutionToken.EnsureValid(nameof(resolutionToken));
@@ -100,7 +100,7 @@ internal static class CapabilityPublicationCoherence
             publication,
             evidence,
             metadataPlan.Definition,
-            adapterSemanticBindingIds);
+            runtimeReferenceProof);
     }
 
     private static void ValidateCore(
@@ -112,7 +112,7 @@ internal static class CapabilityPublicationCoherence
         PinnedCapabilityDecision<CapabilityPublicationStatus> publication,
         PinnedCapabilityDecision<CapabilityEvidenceStatus> evidence,
         MetadataPlanDefinition metadataPlan,
-        IEnumerable<string>? adapterSemanticBindingIds)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(compiledComposition);
@@ -125,7 +125,7 @@ internal static class CapabilityPublicationCoherence
             identity,
             compiledComposition,
             metadataPlan,
-            adapterSemanticBindingIds);
+            runtimeReferenceProof);
         if (!StringComparer.Ordinal.Equals(
                 capabilityFingerprint,
                 compiledComposition.CapabilityFingerprint))

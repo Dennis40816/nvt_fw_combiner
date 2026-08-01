@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -9,9 +10,9 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunRequestV2Tests
 {
-    /// <summary>Runtime-reference publication requires the exact processor and every adapter plan binding.</summary>
+    /// <summary>Runtime-reference publication requires independently derived processor, metadata, and typed plan proof.</summary>
     [Fact]
-    public void DynamicRuntimeReferenceCapabilityRejectsProcessorOrAdapterPlanDrift()
+    public void DynamicRuntimeReferenceCapabilityRequiresTypedOwnerBindings()
     {
         CompiledComposition composition = CreateRuntimeReferenceCandidate(
             allowsConditionalProcessor: true,
@@ -22,60 +23,29 @@ public sealed partial class CompositionRunRequestV2Tests
             rootOwner: FirmwareRegionOwner.Tp,
             rootKind: FirmwareRegionKind.CtrlRam,
             processorId: "nfc.synthetic.postbuild");
+        LegacyCombinerPostbuildCommandPlan postbuildPlan =
+            CreateSyntheticPostbuildPlan();
+        var proof =
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                composition,
+                postbuildPlan);
         var identity = new CapabilityRouteIdentity(
             "NT-SYNTHETIC",
             ExperienceIds.CtrlRamReplace,
             "1-ic",
             "map");
-        string[] adapterBindings =
-        [
-            "postbuild-selector:single",
-            $"postbuild-plan:{new string('d', 64)}",
-            "report-metadata-profile:synthetic-report@1.0.0",
-            $"report-metadata-bundle:{new string('e', 64)}",
-            "report-metadata-slot:tp-input<-reference",
-        ];
         string[] reviewedBindings =
         [
             "postbuild-processor:nfc.synthetic.postbuild",
-            .. adapterBindings,
+            "postbuild-selector:single",
+            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
         ];
-        var contract = new CanonicalCapabilityCompilationContract(
-            composition.ProfileId,
-            composition.ProfileVersion,
-            composition.V2Details!.Provenance.Bundle.ContentHash,
-            ["map"],
-            CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
-            reviewedBindings);
-        string fingerprint = CapabilityDefinitionFingerprint.Compute(
-            identity,
-            contract.ProfileId,
-            contract.ProfileVersion,
-            contract.TrustedDefinitionSha256,
-            contract.AllowedMapVariantIds,
-            contract.CompilerSemanticId,
-            contract.SemanticBindingIds);
-        var definition = new CanonicalDynamicCapabilityDefinition(
-            identity,
-            fingerprint,
-            contract,
-            Decision("authoring", CapabilityAuthoringAvailability.Available),
-            Decision("publication", CapabilityPublicationStatus.Candidate),
-            Decision("evidence", CapabilityEvidenceStatus.ContractOnly));
-        var route = new ResolvedCapabilityRoute(
-            definition,
-            new ResolutionToken("synthetic-runtime-reference"));
+        ResolvedCapabilityRoute route = CreateRoute(reviewedBindings);
 
         _ = Assert.Throws<ArgumentException>(() =>
             route.BindCompilation(
                 composition,
-                MetadataPlanDefinition.Empty,
-                adapterBindings[..^1]));
-        _ = Assert.Throws<ArgumentException>(() =>
-            route.BindCompilation(
-                composition,
-                MetadataPlanDefinition.Empty,
-                [" "]));
+                MetadataPlanDefinition.Empty));
         CompiledComposition wrongProcessor = CreateRuntimeReferenceCandidate(
             allowsConditionalProcessor: true,
             includeProcessorView: true,
@@ -86,42 +56,131 @@ public sealed partial class CompositionRunRequestV2Tests
             rootKind: FirmwareRegionKind.CtrlRam,
             processorId: "nfc.synthetic.other-postbuild");
         _ = Assert.Throws<ArgumentException>(() =>
-            route.BindCompilation(
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 wrongProcessor,
+                postbuildPlan));
+        CompiledComposition wrongTool = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorToolBindingId: "synthetic-other-tool");
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                wrongTool,
+                postbuildPlan));
+        var fabricatedCommand = new LegacyCombinerPostbuildCommand(
+            "fabricated-command",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Disable",
+            crcArgument: null,
+            [new LegacyCombinerBlockArgument(
+                "fabricated-block",
+                LegacyCombinerBlockSourceKind.StagedFile,
+                "source.bin",
+                0,
+                new ByteRange(1, 1))]);
+        var fabricatedPlan = new LegacyCombinerPostbuildCommandPlan(
+            postbuildPlan.Profile,
+            postbuildPlan.Selector,
+            [fabricatedCommand]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                composition,
+                fabricatedPlan));
+        _ = Assert.Throws<ArgumentException>(() =>
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                CreateRuntimeReferenceCandidate(),
+                postbuildPlan));
+        _ = Assert.Throws<ArgumentException>(() =>
+            CreateRuntimeReferenceCandidate(
+                allowsConditionalProcessor: true,
+                includeProcessorView: true,
+                modeId: ExperienceIds.CtrlRamReplace,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                sourceArtifactClass:
+                    CompiledInputArtifactClass.CtrlRamReplacement,
+                rootOwner: FirmwareRegionOwner.Tp,
+                rootKind: FirmwareRegionKind.CtrlRam));
+        CompiledComposition driftedWrites = CreateRuntimeReferenceCandidate(
+            allowsConditionalProcessor: true,
+            includeProcessorView: true,
+            modeId: ExperienceIds.CtrlRamReplace,
+            experienceId: ExperienceIds.CtrlRamReplace,
+            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            rootOwner: FirmwareRegionOwner.Tp,
+            rootKind: FirmwareRegionKind.CtrlRam,
+            processorId: "nfc.synthetic.postbuild",
+            processorWriteRange: new ByteRange(1, 1));
+        _ = Assert.Throws<ArgumentException>(() =>
+            route.BindCompilation(
+                driftedWrites,
                 MetadataPlanDefinition.Empty,
-                adapterBindings));
+                proof));
+
+        ResolvedCapabilityRoute reportRoute = CreateRoute(
+        [
+            .. reviewedBindings,
+            "report-metadata-profile:synthetic-report@1.0.0",
+            $"report-metadata-bundle:{new string('e', 64)}",
+            "report-metadata-slot:tp-input<-reference",
+        ]);
+        _ = Assert.Throws<ArgumentException>(() =>
+            reportRoute.BindCompilation(
+                composition,
+                MetadataPlanDefinition.Empty,
+                proof));
         ResolvedCapability resolved = route.BindCompilation(
             composition,
             MetadataPlanDefinition.Empty,
-            adapterBindings);
-        _ = Assert.Throws<ArgumentException>(() =>
-            new ResolvedCapability(
+            proof);
+
+        Assert.NotNull(resolved.RuntimeReferenceProof);
+
+        ResolvedCapabilityRoute CreateRoute(IReadOnlyList<string> bindings)
+        {
+            var contract = new CanonicalCapabilityCompilationContract(
+                composition.ProfileId,
+                composition.ProfileVersion,
+                composition.V2Details!.Provenance.Bundle.ContentHash,
+                ["map"],
+                CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
+                bindings);
+            string fingerprint = CapabilityDefinitionFingerprint.Compute(
+                identity,
+                contract.ProfileId,
+                contract.ProfileVersion,
+                contract.TrustedDefinitionSha256,
+                contract.AllowedMapVariantIds,
+                contract.CompilerSemanticId,
+                contract.SemanticBindingIds);
+            var definition = new CanonicalDynamicCapabilityDefinition(
                 identity,
                 fingerprint,
-                composition,
-                definition.Authoring,
-                definition.Publication,
-                definition.Evidence,
-                MetadataPlanDefinition.Empty.Resolve(
-                    new ResolutionToken("synthetic-invalid-adapter")),
-                new ResolutionToken("synthetic-invalid-adapter"),
                 contract,
-                [" "]));
+                Decision("authoring", CapabilityAuthoringAvailability.Available),
+                Decision("publication", CapabilityPublicationStatus.Candidate),
+                Decision("evidence", CapabilityEvidenceStatus.ContractOnly));
+            return new ResolvedCapabilityRoute(
+                definition,
+                new ResolutionToken("synthetic-runtime-reference"));
 
-        Assert.Equal(fingerprint, resolved.CapabilityFingerprint);
-        Assert.Equal(adapterBindings.Order(StringComparer.Ordinal), resolved.AdapterSemanticBindingIds);
-
-        PinnedCapabilityDecision<TValue> Decision<TValue>(
-            string decisionId,
-            TValue value)
-            where TValue : struct, Enum
-        {
-            return new PinnedCapabilityDecision<TValue>(
-                decisionId,
-                identity.RouteId,
-                fingerprint,
-                value,
-                "synthetic-runtime-reference");
+            PinnedCapabilityDecision<TValue> Decision<TValue>(
+                string decisionId,
+                TValue value)
+                where TValue : struct, Enum
+            {
+                return new PinnedCapabilityDecision<TValue>(
+                    decisionId,
+                    identity.RouteId,
+                    fingerprint,
+                    value,
+                    "synthetic-runtime-reference");
+            }
         }
     }
 
@@ -276,7 +335,9 @@ public sealed partial class CompositionRunRequestV2Tests
         CompiledInputArtifactClass sourceArtifactClass = CompiledInputArtifactClass.Auxiliary,
         FirmwareRegionOwner rootOwner = FirmwareRegionOwner.System,
         FirmwareRegionKind rootKind = FirmwareRegionKind.Image,
-        string? processorId = null)
+        string? processorId = null,
+        string processorToolBindingId = "synthetic-postbuild-tool",
+        ByteRange? processorWriteRange = null)
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
             modeId,
@@ -390,15 +451,17 @@ public sealed partial class CompositionRunRequestV2Tests
                 new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
                 new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
             ];
+        ByteRange effectiveMappingRange =
+            processorWriteRange ?? new ByteRange(1, 2);
         CompositionOperation[] mappingOperations = includeAuxiliarySource
             ?
             [CompositionOperation.ReplaceRange(
                 "replace-source",
                 10,
                 "source-a",
-                new ByteRange(0, 2),
+                new ByteRange(0, effectiveMappingRange.Length),
                 "output-image",
-                new ByteRange(1, 2),
+                effectiveMappingRange,
                 OverlapPolicy.Reject,
                 "Replace synthetic runtime source.")]
             : [];
@@ -413,9 +476,9 @@ public sealed partial class CompositionRunRequestV2Tests
                     new ByteRange(0, 4),
                     new ExternalProcessorInvocation(
                         processorId,
-                        "synthetic-postbuild-tool",
+                        processorToolBindingId,
                         [new ByteRange(0, 4)],
-                        [new ByteRange(1, 2)]),
+                        [processorWriteRange ?? new ByteRange(1, 2)]),
                     OverlapPolicy.ReplaceExisting,
                     "Run the synthetic postbuild processor."),
             ];
@@ -427,5 +490,35 @@ public sealed partial class CompositionRunRequestV2Tests
             plan,
             identity,
             CompiledIcNumberPolicy.SingleSelector);
+    }
+
+    private static LegacyCombinerPostbuildCommandPlan
+        CreateSyntheticPostbuildPlan()
+    {
+        var block = new LegacyCombinerBlockArgument(
+            "synthetic-block",
+            LegacyCombinerBlockSourceKind.StagedFile,
+            "source.bin",
+            0,
+            new ByteRange(1, 2));
+        var command = new LegacyCombinerPostbuildCommand(
+            "synthetic-command",
+            LegacyCombinerCommandFamily.NormalMode,
+            "CRC_Disable",
+            crcArgument: null,
+            [block]);
+        var profile = new LegacyCombinerPostbuildProfile(
+            "nfc.synthetic.postbuild",
+            "NT-SYNTHETIC",
+            "synthetic-postbuild-tool",
+            "firmware.bin",
+            [command],
+            [command],
+            "synthetic-evidence");
+        LegacyCombinerPostbuildPlanSelector selector =
+            profile.PlanSelectors.Single(static candidate =>
+                candidate.Kind ==
+                    LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
+        return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selector);
     }
 }

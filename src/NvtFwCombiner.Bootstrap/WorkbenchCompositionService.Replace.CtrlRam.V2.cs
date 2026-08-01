@@ -9,7 +9,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static MetadataPlanDefinition CreateCtrlRamReportMetadataPlan(
+    internal static MetadataPlanDefinition CreateCtrlRamReportMetadataPlan(
         string icId,
         long referenceCapacity)
     {
@@ -58,9 +58,11 @@ public static partial class WorkbenchCompositionService
             ? matches[0]
             : throw new InvalidDataException(
                 $"CtrlRAM report metadata resolved {matches.Length} reviewed {icId} Standard Merge maps for capacity 0x{referenceCapacity:X}.");
+        MetadataPlanDefinition sourceMetadataPlan =
+            registration.CreateMetadataPlan(metadataComposition);
         MetadataPlanEntry[] entries =
         [
-            .. registration.CreateMetadataPlan(metadataComposition).Entries
+            .. sourceMetadataPlan.Entries
                 .Where(static entry => entry.Purposes.Contains(
                     MetadataReferencePurpose.ReportClassification))
                 .Select(static entry => new MetadataPlanEntry(
@@ -75,35 +77,12 @@ public static partial class WorkbenchCompositionService
                     entry.Purposes,
                     entry.EvidenceRefs)),
         ];
-        return entries.Length == 0
-            ? MetadataPlanDefinition.Empty
-            : new MetadataPlanDefinition(entries);
-    }
-
-    private static IReadOnlyList<string> CreateCtrlRamCapabilitySemanticBindings(
-        CtrlRamV2Route route,
-        LegacyCombinerPostbuildCommandPlan commandPlan,
-        long referenceCapacity)
-    {
-        ArgumentNullException.ThrowIfNull(route);
-        ArgumentNullException.ThrowIfNull(commandPlan);
-        BuiltInV2Registration reportMetadataRegistration =
-            BuiltInV2RegistrationRegistry.StandardMergeByIc.GetValueOrDefault(
-                route.Key.IcId) ??
-            throw new InvalidDataException(
-                $"CtrlRAM report metadata requires the reviewed {route.Key.IcId} Standard Merge definition.");
-        LegacyCombinerPostbuildCommandPlan reviewedPlan =
-            LegacyCombinerPostbuildPlanner.CreatePlan(
-                commandPlan.Profile,
-                commandPlan.Selector);
-        return
-        [
-            $"postbuild-selector:{commandPlan.Selector.Token}",
-            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(reviewedPlan, referenceCapacity)}",
-            $"report-metadata-profile:{reportMetadataRegistration.ProfileId}@{reportMetadataRegistration.ProfileVersion}",
-            $"report-metadata-bundle:{reportMetadataRegistration.BundleContentHash}",
-            $"report-metadata-slot:{CompositionAddressSpaceIds.TpInput}<-{CompositionAddressSpaceIds.ReferenceBase}",
-        ];
+        return new MetadataPlanDefinition(
+            entries,
+            sourceMetadataPlan.SourceIdentity,
+            [new MetadataPlanReportProjection(
+                CompositionAddressSpaceIds.TpInput,
+                CompositionAddressSpaceIds.ReferenceBase)]);
     }
 
     private static IEnumerable<IReadOnlyCollection<string>>

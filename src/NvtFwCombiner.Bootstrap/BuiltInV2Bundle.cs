@@ -498,9 +498,12 @@ internal sealed class BuiltInV2Bundle
                     profile,
                     binding)),
         ];
-        return entries.Length == 0
-            ? MetadataPlanDefinition.Empty
-            : new MetadataPlanDefinition(entries);
+        return new MetadataPlanDefinition(
+            entries,
+            new MetadataPlanSourceIdentity(
+                profileId,
+                profileVersion,
+                ContentHash));
     }
 
     private static MetadataPlanEntry CreateMetadataPlanEntry(

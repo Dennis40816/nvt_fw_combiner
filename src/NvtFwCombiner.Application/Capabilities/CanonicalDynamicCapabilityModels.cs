@@ -104,7 +104,7 @@ public sealed record CanonicalCapabilityCompilationContract
         CapabilityRouteIdentity identity,
         CompiledComposition composition,
         MetadataPlanDefinition metadataPlan,
-        IEnumerable<string>? adapterSemanticBindingIds)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
@@ -121,6 +121,13 @@ public sealed record CanonicalCapabilityCompilationContract
 
         if (composition.Authority is LegacyProfileCompilationAuthority)
         {
+            if (runtimeReferenceProof is not null)
+            {
+                throw new ArgumentException(
+                    "Legacy compilation cannot retain a runtime-reference proof.",
+                    nameof(runtimeReferenceProof));
+            }
+
             _ = _allowedMapVariantIds.Contains(
                     identity.MapVariant,
                     StringComparer.Ordinal)
@@ -172,9 +179,16 @@ public sealed record CanonicalCapabilityCompilationContract
                     : GetRuntimeReferenceBindings(
                         composition,
                         metadataPlan,
-                        adapterSemanticBindingIds),
+                        runtimeReferenceProof),
                 composition);
             return;
+        }
+
+        if (runtimeReferenceProof is not null)
+        {
+            throw new ArgumentException(
+                "Only runtime-reference compilation can retain a runtime-reference proof.",
+                nameof(runtimeReferenceProof));
         }
 
         if (context is not LogicalOutputV2CompilationContext logicalContext ||
@@ -204,7 +218,7 @@ public sealed record CanonicalCapabilityCompilationContract
     private static IEnumerable<string> GetRuntimeReferenceBindings(
         CompiledComposition composition,
         MetadataPlanDefinition metadataPlan,
-        IEnumerable<string>? adapterSemanticBindingIds)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof)
     {
         string[] processorBindings =
         [
@@ -216,17 +230,26 @@ public sealed record CanonicalCapabilityCompilationContract
         ];
         string[] reportMetadataBindings =
         [
-            .. metadataPlan.Entries
-                .Where(static entry => entry.Purposes.Contains(
-                    MetadataReferencePurpose.ReportClassification))
-                .Select(static entry =>
-                    $"report-metadata-slot:{entry.SpaceId}<-{entry.SlotId}"),
+            .. metadataPlan.ReportProjections.Select(static projection =>
+                $"report-metadata-slot:{projection.SpaceId}<-{projection.SlotId}"),
         ];
+        MetadataPlanSourceIdentity? sourceIdentity =
+            reportMetadataBindings.Length == 0
+                ? null
+                : metadataPlan.SourceIdentity;
         return
         [
             .. processorBindings,
             .. reportMetadataBindings,
-            .. adapterSemanticBindingIds ?? [],
+            .. sourceIdentity is null
+                ? []
+                : new[]
+                {
+                    $"report-metadata-profile:{sourceIdentity.ProfileId}@{sourceIdentity.ProfileVersion}",
+                    $"report-metadata-bundle:{sourceIdentity.TrustedDefinitionSha256}",
+                },
+            .. runtimeReferenceProof?.ValidateAndGetSemanticBindings(
+                composition) ?? [],
         ];
     }
 
@@ -427,18 +450,22 @@ public sealed record ResolvedCapabilityRoute
     public ResolvedCapability BindCompilation(
         CompiledComposition composition,
         MetadataPlanDefinition? metadataPlan = null,
-        IEnumerable<string>? adapterSemanticBindingIds = null)
+        RuntimeReferenceCompilationProof? runtimeReferenceProof = null)
     {
         ArgumentNullException.ThrowIfNull(composition);
         MetadataPlanDefinition resolvedMetadataPlan =
             metadataPlan ?? MetadataPlanDefinition.Empty;
         CompiledComposition bound = composition.BindCapabilityFingerprint(
             CapabilityFingerprint);
+        RuntimeReferenceCompilationProof? boundRuntimeReferenceProof =
+            runtimeReferenceProof?.BindCapabilityCompilation(
+                composition,
+                bound);
         CompilationContract.ValidateCompilation(
             Identity,
             bound,
             resolvedMetadataPlan,
-            adapterSemanticBindingIds);
+            boundRuntimeReferenceProof);
         return new ResolvedCapability(
             Identity,
             CapabilityFingerprint,
@@ -449,7 +476,7 @@ public sealed record ResolvedCapabilityRoute
             resolvedMetadataPlan.Resolve(ResolutionToken),
             ResolutionToken,
             CompilationContract,
-            adapterSemanticBindingIds);
+            boundRuntimeReferenceProof);
     }
 }
 

@@ -55,8 +55,11 @@ an independently supplied fingerprint cannot bless a different map set,
 compiler semantic, or semantic-binding set. Binding a compiler result then
 requires exact equality with its reviewed compiler-specific semantics:
 selection groups may not disappear, logical output retains its reviewed family,
-and runtime-reference routes retain their declared processor plus trusted
-adapter selector, plan-template, and report-metadata bindings.
+and runtime-reference routes retain their declared processor plus independently
+derived typed selector, plan-template, and report-metadata bindings. Processor
+authority comes only from the compiled invocation, report projection and source
+identity come only from the metadata plan, and the postbuild proof is bound to
+the exact compilation; no channel may fill a missing binding owned by another.
 
 ### CompilationFingerprint
 
@@ -164,7 +167,8 @@ binding before evidence can be upgraded.
   catalog reload cannot rebind the old compiled instance.
 - Dynamic publication rejects fingerprint/contract incoherence; compilation
   rejects missing selection groups, logical-family drift, processor drift, or
-  missing adapter plan/report bindings.
+  missing typed plan/report bindings. Raw adapter strings cannot attest
+  processor, report-slot, tool-binding, or write-range authority.
 - Application Preview/Build admission requires the exact compiled object owned
   by the accepted `ResolvedCapability`, not another instance with matching
   fingerprint strings.

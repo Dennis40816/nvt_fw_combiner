@@ -198,10 +198,9 @@ public static partial class WorkbenchCompositionService
                 capabilityResolution.Route!.BindCompilation(
                     unboundComposition,
                     metadataPlan,
-                    CreateCtrlRamCapabilitySemanticBindings(
-                        route,
-                        context.CommandPlan,
-                        referencePayload.LengthBytes));
+                    RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                        unboundComposition,
+                        context.CommandPlan));
             CompiledComposition compiledComposition =
                 resolvedCapability.CompiledComposition;
             IReadOnlyList<InputArtifactBinding> bindings =
