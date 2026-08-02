@@ -27,7 +27,7 @@ public sealed partial class XamlControlStyleContractTests
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
 
         Assert.Contains("<views:AbAFlashCodeDeliveryPromptModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding AcceptAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding DeclineAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
         Assert.Contains("Classes=\"danger\"", prompt, StringComparison.Ordinal);

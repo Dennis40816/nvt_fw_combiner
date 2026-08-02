@@ -47,7 +47,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
         Reports.IsReportModalOpen ||
-        IsAbAFlashCodeDeliveryPromptOpen ||
+        Merge.IsAbAFlashCodeDeliveryPromptOpen ||
         BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
@@ -56,8 +56,7 @@ public sealed partial class MainWindowViewModel
     {
         if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
             nameof(IsCtrlRamFirmwareVersionModalOpen) or
-            nameof(IsNavigationClearConfirmationOpen) or
-            nameof(IsAbAFlashCodeDeliveryPromptOpen))
+            nameof(IsNavigationClearConfirmationOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }

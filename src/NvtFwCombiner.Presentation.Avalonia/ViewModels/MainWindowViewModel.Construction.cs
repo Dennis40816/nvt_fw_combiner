@@ -96,6 +96,8 @@ public sealed partial class MainWindowViewModel
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         Settings = new SettingsViewModel(appVersion);
+        Merge = new MergePresentationViewModel(() => Text);
+        Merge.PropertyChanged += Merge_OnPropertyChanged;
         CompositionProgress = new CompositionRunProgressViewModel(language);
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
@@ -182,8 +184,6 @@ public sealed partial class MainWindowViewModel
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
-        AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
-        DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;

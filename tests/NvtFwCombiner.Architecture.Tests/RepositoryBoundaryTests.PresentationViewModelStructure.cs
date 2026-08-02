@@ -2,6 +2,32 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Merge-only presentation lifetime belongs to a focused child rather than the shell.</summary>
+    [Fact]
+    public void MergePresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellMerge = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs");
+        string mergePrompt = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbAFlashCodeDeliveryPrompt.cs");
+
+        Assert.Contains("Merge = new MergePresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public MergePresentationViewModel Merge", shellMerge, StringComparison.Ordinal);
+        Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", mergePrompt, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "public bool IsAbAFlashCodeDeliveryPromptOpen",
+            ReadViewModelPartials(),
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "MainWindowViewModel.AbAFlashCodeDeliveryPrompt.cs")));
+    }
+
     /// <summary>Workflow context and firmware mismatch prompts belong to the shared session child.</summary>
     [Fact]
     public void WorkflowSessionPresentationLivesBehindFocusedChild()

@@ -124,18 +124,18 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task<bool> yes = viewModel.PromptForAbAFlashCodeDeliveryAsync();
-        Assert.True(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
-        viewModel.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
+        Task<bool> yes = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
+        Assert.True(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
+        viewModel.Merge.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
 
         Assert.True(await yes);
-        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
 
-        Task<bool> no = viewModel.PromptForAbAFlashCodeDeliveryAsync();
-        viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+        Task<bool> no = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
+        viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
 
         Assert.False(await no);
-        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
     }
 
     /// <summary>Completion shows the already-delivered A FlashCode rather than offering a second post-Build export action.</summary>
@@ -317,7 +317,7 @@ public sealed partial class ShellViewModelTests
                     build: true));
                 break;
             case "ab-a-flashcode-delivery":
-                _ = viewModel.PromptForAbAFlashCodeDeliveryAsync();
+                _ = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
@@ -359,7 +359,7 @@ public sealed partial class ShellViewModelTests
                 viewModel.BuildResult.Close();
                 break;
             case "ab-a-flashcode-delivery":
-                viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+                viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
@@ -383,7 +383,7 @@ public sealed partial class ShellViewModelTests
             "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
             "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
             "report" => viewModel.Reports.IsReportModalOpen,
-            "ab-a-flashcode-delivery" => viewModel.IsAbAFlashCodeDeliveryPromptOpen,
+            "ab-a-flashcode-delivery" => viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
             "build-completed" => viewModel.BuildResult.IsOpen,
             "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
             "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,

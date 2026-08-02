@@ -74,6 +74,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationPath));
         OnPropertyChanged(nameof(NavigationClearRoute));
         Reports.ApplyLanguageChanged();
+        Merge.ApplyLanguageChanged();
         WorkflowSession.ApplyLanguageChanged();
         _deferredState.RefreshLoaded(
             RefreshSettingsState,

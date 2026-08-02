@@ -279,7 +279,9 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
         LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
-        LoadContent(AbAFlashCodeDeliveryPromptModalHost, viewModel.IsAbAFlashCodeDeliveryPromptOpen, viewModel);
+        LoadContent(AbAFlashCodeDeliveryPromptModalHost,
+            viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
+            viewModel.Merge);
         LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);

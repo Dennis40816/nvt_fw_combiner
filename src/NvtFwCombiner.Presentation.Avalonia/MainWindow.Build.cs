@@ -33,7 +33,7 @@ public sealed partial class MainWindow
 
         WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
         bool exportAFlashCode = aFlashCodePlan is not null &&
-            await viewModel.PromptForAbAFlashCodeDeliveryAsync();
+            await viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
             preparation.SuggestedFileName);

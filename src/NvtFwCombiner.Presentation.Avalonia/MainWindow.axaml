@@ -396,9 +396,9 @@
     <ContentControl
         x:Name="AbAFlashCodeDeliveryPromptModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsAbAFlashCodeDeliveryPromptOpen}">
+        IsVisible="{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:MergePresentationViewModel">
           <views:AbAFlashCodeDeliveryPromptModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
