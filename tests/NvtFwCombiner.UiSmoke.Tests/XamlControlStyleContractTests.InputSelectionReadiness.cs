@@ -12,7 +12,7 @@ public sealed partial class XamlControlStyleContractTests
             "IsVisible=\"{Binding HasSemanticState}\"",
             slotCard,
             StringComparison.Ordinal);
-        Assert.DoesNotContain(
+        Assert.Contains(
             "Text=\"{Binding SemanticStateLabel}\"",
             slotCard,
             StringComparison.Ordinal);

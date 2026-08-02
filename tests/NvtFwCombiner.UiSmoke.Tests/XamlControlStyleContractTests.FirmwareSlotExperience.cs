@@ -41,8 +41,11 @@ public sealed partial class XamlControlStyleContractTests
             "AutomationProperties.Name=\"{Binding SemanticStateAutomationText}\"",
             slotCard,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("Text=\"{Binding SemanticStateLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding SemanticStateLabel}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding SemanticStateAutomationText}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.pendingInput=\"{Binding IsSemanticStatePendingInput}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.AllowDrop=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesSharedSlotPresentation}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesLegacySlotPresentation}\"", slotCard, StringComparison.Ordinal);
     }
@@ -85,6 +88,21 @@ public sealed partial class XamlControlStyleContractTests
     public void FirmwareSlotSemanticActionOwnsEveryInteractiveVisualState()
     {
         string styles = ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
+        string selected = ExtractStyle(
+            styles,
+            "Border.fileDropZone.firmwareSlot.compactExperience.hasFile");
+        string required = ExtractStyle(
+            styles,
+            "Label.slotBadge.firmwareSlotRequirement.availableInput");
+        string pending = ExtractStyle(
+            styles,
+            "ToggleButton.slotStateAction.pendingInput /template/ ContentPresenter#PART_ContentPresenter");
+        Assert.Contains("NfcAccentSurfaceSubtleBrush", selected, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentBorderStrongBrush", selected, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceSubtleBrush", required, StringComparison.Ordinal);
+        Assert.DoesNotContain("NfcCritical", required, StringComparison.Ordinal);
+        Assert.Contains("NfcWarningSurfaceBrush", pending, StringComparison.Ordinal);
+        Assert.Contains("NfcWarningTextBrush", pending, StringComparison.Ordinal);
         string pinned = ExtractStyle(styles, "ToggleButton.slotStateAction:checked /template/ ContentPresenter#PART_ContentPresenter");
         string hover = ExtractStyle(styles, "ToggleButton.slotStateAction:pointerover");
         string pressed = ExtractStyle(styles, "ToggleButton.slotStateAction:pressed");
@@ -136,6 +154,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("DP 與 LD payload", localized, StringComparison.Ordinal);
         Assert.Contains("optional LDC", localized, StringComparison.Ordinal);
         Assert.Contains("選用 LDC", localized, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchAddressSpaceIds.LdcReplacement", dynamicText, StringComparison.Ordinal);
+        Assert.DoesNotContain("InputSelectionNextActionKind.LoadPrerequisite", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("InputSelectionNextActionKind.LoadArtifactFirst", dynamicText, StringComparison.Ordinal);
     }
 
     /// <summary>The shared semantic state gives blocking selection readiness precedence over file inspection.</summary>
@@ -219,6 +240,32 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(slot.HasSemanticState);
         Assert.True(slot.IsRequirementLabelVisible);
         Assert.Equal("Optional", slot.RequirementLabel);
+    }
+
+    /// <summary>Typed selection admission disables only the independent picker transition.</summary>
+    [Fact]
+    public void FirmwareSlotSelectionAdmissionKeepsRetainedFileInspectable()
+    {
+        var slot = new FirmwareSlotViewModel(
+            "ldc",
+            "LDC BIN",
+            "Select LDC firmware",
+            FirmwareSlotKind.Dp)
+        {
+            FilePath = "C:\\firmware\\ldc.bin",
+        };
+
+        slot.SetSelectionReadiness(
+            ResolvedChildReadiness.PendingInput,
+            "Pending input",
+            "Load Reference first.",
+            "Pending input. Load Reference first.",
+            canSelect: false);
+
+        Assert.False(slot.CanSelectFile);
+        Assert.True(slot.HasFile);
+        Assert.Equal("ldc.bin", slot.DisplayName);
+        Assert.True(slot.IsSemanticStatePendingInput);
     }
 
     /// <summary>A structural admission error remains blocking while another prerequisite is still pending.</summary>

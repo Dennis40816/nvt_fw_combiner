@@ -65,6 +65,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(referenceLength != 0x40000, initialCode.IsOptional);
         Assert.Equal(WorkbenchAddressSpaceIds.LdcReplacement, ldc.AddressSpaceId);
         Assert.Equal(expectedLdcState, ldc.SelectionReadinessState);
+        Assert.Equal(expectedLdcState == ResolvedChildReadiness.Ready, ldc.CanSelectFile);
         Assert.Equal(expectedCanBuild, viewModel.CanBuildReplace);
         Assert.Equal(expectedCanBuild, viewModel.BuildReplaceCommand.CanExecute(null));
 
@@ -73,6 +74,7 @@ public sealed partial class ShellViewModelTests
             Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
             Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
             Assert.Equal(FirmwareSlotSemanticState.Checking, ldc.SemanticState);
+            Assert.True(ldc.IsSemanticStatePendingInput);
             Assert.Equal(ldc.SelectionReadinessDetail, ldc.SemanticStateDetail);
         }
         else if (referenceLength == 0x40000 && !selectLdc)
@@ -154,7 +156,9 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("不適用", ldc.SelectionReadinessLabel);
-        Assert.Equal("Reference 長度不包含 LDC。", ldc.SelectionReadinessDetail);
+        Assert.Equal(
+            "此輸入不適用。Reference length does not include LDC.",
+            ldc.SelectionReadinessDetail);
         Assert.Equal("不適用", ldc.SemanticStateLabel);
         Assert.Equal(FirmwareSlotSemanticState.NotApplicable, ldc.SemanticState);
         Assert.Equal(

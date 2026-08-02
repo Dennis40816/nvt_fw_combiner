@@ -83,6 +83,11 @@ public sealed partial class FirmwareSlotViewModel
     /// <summary>True when the composed state is checking.</summary>
     public bool IsSemanticStateChecking => SemanticState == FirmwareSlotSemanticState.Checking;
 
+    /// <summary>True when Checking represents a prerequisite-owned pending input.</summary>
+    public bool IsSemanticStatePendingInput =>
+        SemanticState == FirmwareSlotSemanticState.Checking &&
+        SelectionReadinessState == ResolvedChildReadiness.PendingInput;
+
     /// <summary>True when the composed state is verified.</summary>
     public bool IsSemanticStateVerified => SemanticState == FirmwareSlotSemanticState.Verified;
 
@@ -191,6 +196,7 @@ public sealed partial class FirmwareSlotViewModel
         OnPropertyChanged(nameof(HasSemanticState));
         OnPropertyChanged(nameof(IsRequirementLabelVisible));
         OnPropertyChanged(nameof(IsSemanticStateChecking));
+        OnPropertyChanged(nameof(IsSemanticStatePendingInput));
         OnPropertyChanged(nameof(IsSemanticStateVerified));
         OnPropertyChanged(nameof(IsSemanticStateWarning));
         OnPropertyChanged(nameof(IsSemanticStateError));

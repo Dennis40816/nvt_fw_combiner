@@ -108,6 +108,12 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Application-owned applicability state projected for display.</summary>
     public ResolvedChildReadiness? SelectionReadinessState { get; private set; }
 
+    /// <summary>Application-owned admission for an independent picker transition.</summary>
+    public bool? SelectionReadinessCanSelect { get; private set; }
+
+    /// <summary>True when this slot's picker and file drop are currently admitted.</summary>
+    public bool CanSelectFile => SelectionReadinessCanSelect ?? true;
+
     /// <summary>Localized short label for the projected selection state.</summary>
     public string SelectionReadinessLabel { get; private set; } = string.Empty;
 
@@ -251,7 +257,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         ResolvedChildReadiness state,
         string label,
         string detail,
-        string automationText)
+        string automationText,
+        bool canSelect = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
@@ -262,6 +269,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         if (SelectionReadinessState == state &&
+            SelectionReadinessCanSelect == canSelect &&
             string.Equals(SelectionReadinessLabel, label, StringComparison.Ordinal) &&
             string.Equals(SelectionReadinessDetail, detail, StringComparison.Ordinal) &&
             string.Equals(SelectionReadinessAutomationText, automationText, StringComparison.Ordinal))
@@ -270,6 +278,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         SelectionReadinessState = state;
+        SelectionReadinessCanSelect = canSelect;
         SelectionReadinessLabel = label;
         SelectionReadinessDetail = detail;
         SelectionReadinessAutomationText = automationText;
@@ -280,6 +289,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public void ClearSelectionReadiness()
     {
         if (SelectionReadinessState is null &&
+            SelectionReadinessCanSelect is null &&
             SelectionReadinessLabel.Length == 0 &&
             SelectionReadinessDetail.Length == 0 &&
             SelectionReadinessAutomationText.Length == 0)
@@ -288,6 +298,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         SelectionReadinessState = null;
+        SelectionReadinessCanSelect = null;
         SelectionReadinessLabel = string.Empty;
         SelectionReadinessDetail = string.Empty;
         SelectionReadinessAutomationText = string.Empty;
@@ -316,6 +327,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(HasSelectionReadinessStatus));
         OnPropertyChanged(nameof(SelectionReadinessState));
+        OnPropertyChanged(nameof(SelectionReadinessCanSelect));
+        OnPropertyChanged(nameof(CanSelectFile));
         OnPropertyChanged(nameof(SelectionReadinessLabel));
         OnPropertyChanged(nameof(SelectionReadinessDetail));
         OnPropertyChanged(nameof(SelectionReadinessAutomationText));

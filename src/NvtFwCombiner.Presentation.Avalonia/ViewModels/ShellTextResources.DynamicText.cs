@@ -381,10 +381,9 @@ public sealed partial class ShellTextResources
         InputSelectionMemberReadiness member)
     {
         ArgumentNullException.ThrowIfNull(member);
-        bool isLdc = string.Equals(
-            member.SlotId,
-            WorkbenchAddressSpaceIds.LdcReplacement,
-            StringComparison.Ordinal);
+        string reason = EnsureSentence(
+            member.Reason,
+            "The current capability has not resolved this input");
         return member.Readiness switch
         {
             ResolvedChildReadiness.Ready => SelectLanguage(
@@ -392,34 +391,34 @@ public sealed partial class ShellTextResources
                 "可用於已解析的 Reference 長度。"),
             ResolvedChildReadiness.PendingInput
                 when member.NextAction?.Kind ==
-                    InputSelectionNextActionKind.LoadPrerequisite &&
-                    isLdc =>
+                    InputSelectionNextActionKind.LoadArtifactFirst =>
                 SelectLanguage(
-                    "Load Reference first to determine whether LDC applies.",
-                    "請先載入 Reference，以判斷 LDC 是否適用。"),
+                    $"Load {GetInputArtifactRoleLabel(member.NextAction.SubjectId)} first. {reason}",
+                    $"請先載入 {GetInputArtifactRoleLabel(member.NextAction.SubjectId)}。{reason}"),
             ResolvedChildReadiness.PendingInput => SelectLanguage(
-                "Complete the required input selection.",
-                "請完成必要的輸入選擇。"),
-            ResolvedChildReadiness.NotApplicable when isLdc => SelectLanguage(
-                EnsureSentence(
-                    member.Reason,
-                    "The resolved Reference does not include this input"),
-                "Reference 長度不包含 LDC。"),
+                reason,
+                $"請完成必要的輸入選擇。{reason}"),
             ResolvedChildReadiness.NotApplicable => SelectLanguage(
-                "This input is not applicable to the resolved Reference.",
-                "此輸入不適用於已解析的 Reference。"),
-            ResolvedChildReadiness.Blocked when isLdc => SelectLanguage(
-                $"{EnsureSentence(
-                    member.Reason,
-                    "The resolved Reference does not include this input")} Remove the selected LDC BIN.",
-                "Reference 長度不包含 LDC。請移除已選取的 LDC BIN。"),
+                reason,
+                $"此輸入不適用。{reason}"),
             ResolvedChildReadiness.Blocked => SelectLanguage(
-                "Correct the selected input before Build.",
-                "請先修正所選輸入，再執行 Build。"),
+                $"{reason} Correct the selected input before Build.",
+                $"請先修正所選輸入，再執行 Build。{reason}"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(member),
                 member.Readiness,
                 null),
+        };
+    }
+
+    private static string GetInputArtifactRoleLabel(string artifactId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+        return artifactId switch
+        {
+            WorkbenchAddressSpaceIds.ReferenceBase => "Reference",
+            WorkbenchAddressSpaceIds.TpInput => "TP",
+            _ => artifactId,
         };
     }
 

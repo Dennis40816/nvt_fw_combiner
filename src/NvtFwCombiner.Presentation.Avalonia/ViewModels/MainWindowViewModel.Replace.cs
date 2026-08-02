@@ -109,7 +109,8 @@ public sealed partial class MainWindowViewModel
                 member.Readiness,
                 label,
                 detail,
-                Text.GetInputSelectionReadinessAutomationText(label, detail));
+                Text.GetInputSelectionReadinessAutomationText(label, detail),
+                member.CanSelect);
         }
     }
 

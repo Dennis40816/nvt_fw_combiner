@@ -31,6 +31,14 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     private void SlotDragOver_OnDragOver(object? sender, DragEventArgs e)
     {
+        if (sender is Control { DataContext: FirmwareSlotViewModel { CanSelectFile: false } })
+        {
+            DropZoneDragState.SetActive(sender, isActive: false);
+            e.DragEffects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
         DropZoneDragState.SetActive(sender, DropZoneDragState.ApplyFileDropEffect(e));
     }
 
@@ -43,7 +51,11 @@ public sealed partial class FirmwareSlotCard : UserControl
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
-        if (sender is not Control { Tag: string slotId } ||
+        if (sender is not Control
+            {
+                Tag: string slotId,
+                DataContext: FirmwareSlotViewModel { CanSelectFile: true },
+            } ||
             ShellViewModel is not MainWindowViewModel viewModel)
         {
             return;
@@ -58,7 +70,11 @@ public sealed partial class FirmwareSlotCard : UserControl
 
     private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { Tag: string slotId } ||
+        if (sender is not Control
+            {
+                Tag: string slotId,
+                DataContext: FirmwareSlotViewModel { CanSelectFile: true },
+            } ||
             ShellViewModel is not MainWindowViewModel viewModel)
         {
             return;

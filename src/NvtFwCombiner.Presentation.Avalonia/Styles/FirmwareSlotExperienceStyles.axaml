@@ -4,6 +4,21 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
+  <Style Selector="Border.fileDropZone.firmwareSlot.compactExperience.hasFile">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.availableInput">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Label.slotBadge.firmwareSlotRequirement.availableInput.optional">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
   <Style Selector="ToggleButton.slotStateAction">
     <Setter Property="MinHeight" Value="24" />
     <Setter Property="Padding" Value="7,2" />
@@ -29,6 +44,16 @@
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.slotStateAction.pendingInput">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.slotStateAction.pendingInput /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderStrongBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.verified">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
@@ -102,6 +127,9 @@
   </Style>
   <Style Selector="ToggleButton.slotStateAction.checking Path.slotStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.slotStateAction.pendingInput Path.slotStateIcon">
+    <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextBrush}" />
   </Style>
   <Style Selector="ToggleButton.slotStateAction.verified Path.slotStateIcon">
     <Setter Property="Stroke" Value="{DynamicResource NfcSuccessEmphasisBrush}" />
