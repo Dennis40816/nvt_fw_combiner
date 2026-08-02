@@ -18,6 +18,31 @@ public sealed partial class MainWindowViewModel
         return RunSession.IsRunInProgress;
     }
 
+    private bool ActiveRunShowsNumberSelector()
+    {
+        return RunSession.ActiveRunShowsNumberSelector;
+    }
+
+    private string GetDisplayedDeviceIc()
+    {
+        return RunSession.DisplayedDeviceIc;
+    }
+
+    private string GetDisplayedDeviceNumber()
+    {
+        return RunSession.DisplayedDeviceNumber;
+    }
+
+    private string GetDisplayedDeviceContextRefreshSummary()
+    {
+        return RunSession.DisplayedDeviceContextRefreshSummary;
+    }
+
+    private void NotifyRunContextChanged()
+    {
+        RunSession.NotifyContextChanged();
+    }
+
     private void ResetRunResultForContextChange()
     {
         RunSession.ResetRunResultForContextChange();
@@ -45,11 +70,6 @@ public sealed partial class MainWindowViewModel
     private void NotifyShellRunStateChanged()
     {
         OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(IsDeviceContextSelectionVisible));
-        OnPropertyChanged(nameof(IsDeviceContextNumberSelectionVisible));
-        OnPropertyChanged(nameof(IsDeviceContextFamilyBadgeVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
+        WorkflowSession.NotifyRunStateChanged();
     }
 }

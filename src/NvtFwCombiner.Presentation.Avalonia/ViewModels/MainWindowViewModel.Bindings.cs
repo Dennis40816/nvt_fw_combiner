@@ -1,16 +1,9 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private static readonly IReadOnlyList<string> s_abMergeIcChoices =
-        Array.AsReadOnly([.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]);
-
-    private static string DefaultIcId => WorkbenchCompositionService.GetDefaultIcId();
-
     /// <summary>Gets the shell milestone label.</summary>
     public string ShellVersion { get; }
 
@@ -32,16 +25,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the workspace summary.</summary>
     public string WorkspaceSummary { get; private set; } = string.Empty;
 
-    /// <summary>Gets the shared device context status text.</summary>
-    public string DeviceContextStatus => IsNumberSelectorVisible
-        ? $"{RunSession.DisplayedDeviceIc} / {RunSession.DisplayedDeviceNumber}: {RunSession.DisplayedDeviceContextRefreshSummary}"
-        : $"{RunSession.DisplayedDeviceIc}: {RunSession.DisplayedDeviceContextRefreshSummary}";
-
-    /// <summary>Gets IC choices admitted by the active authoring context.</summary>
-    public IReadOnlyList<string> IcChoices => IsAbMergeContextActive
-        ? s_abMergeIcChoices
-        : WorkbenchCompositionService.GetSupportedIcIds();
-
     /// <summary>Gets settings card content.</summary>
     public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
 
@@ -62,55 +45,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the independent raw-BIN Hex Editor utility page is visible.</summary>
     public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
-
-    /// <summary>True only while the visible Merge page is authoring AB Code.</summary>
-    private bool IsAbMergeContextActive => IsMergeVisible && Merge.IsAbCodeMergeModeSelected;
-
-    /// <summary>Owner-defined IC-family relationship shown without changing firmware maps.</summary>
-    public WorkbenchIcFamilySummary SelectedIcFamilySummary =>
-        WorkbenchCompositionService.GetIcFamilySummary(SelectedIc);
-
-    /// <summary>Localized label for an owner-defined IC family.</summary>
-    public string SelectedIcFamilyLabel => Text.GetIcFamilyLabel(SelectedIcFamilySummary.Relationship);
-
-    /// <summary>Localized boundary of reusable family facts.</summary>
-    public string SelectedIcFamilyTooltip => Text.GetIcFamilyTooltip(SelectedIcFamilySummary);
-
-    /// <summary>True when the selected IC has an owner-defined family relation.</summary>
-    public bool HasSelectedIcFamily => SelectedIcFamilySummary.FamilyId is not null;
-
-    /// <summary>Concise family value shown inside the IC selector detail card.</summary>
-    public string SelectedIcDetailFamily => Text.GetIcDetailFamilyValue(SelectedIcFamilySummary);
-
-    /// <summary>Owner-declared fact reuse scope shown inside the IC selector detail card.</summary>
-    public string SelectedIcDetailReuse => Text.GetIcDetailReuseValue(SelectedIcFamilySummary);
-
-    /// <summary>Typed executable workflow inventory shown inside the IC selector detail card.</summary>
-    public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
-        Merge.IsStandardMergeSupported,
-        Merge.IsAbMergeSupported,
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode).IsAvailable,
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode).IsAvailable,
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode).IsAvailable);
-
-    /// <summary>Evidence summary shown without badge clusters.</summary>
-    public string SelectedIcDetailEvidence => Text.GetIcDetailEvidenceValue(
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode),
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode),
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode));
-
-    /// <summary>Support boundary shown inside the IC selector detail card.</summary>
-    public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(Merge.IsAbMergeSupported);
-
-    /// <summary>Screen-reader equivalent of the visible IC detail card.</summary>
-    public string SelectedIcDetailAutomationText => string.Join(
-        Environment.NewLine,
-        SelectedIc,
-        $"{Text.IcDetailFamilyLabel}: {SelectedIcDetailFamily}",
-        $"{Text.IcDetailReuseLabel}: {SelectedIcDetailReuse}",
-        $"{Text.IcDetailRuntimeLabel}: {SelectedIcDetailRuntime}",
-        $"{Text.IcDetailEvidenceLabel}: {SelectedIcDetailEvidence}",
-        $"{Text.IcDetailSupportLabel}: {SelectedIcDetailSupport}");
 
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
@@ -156,33 +90,5 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that reveals one selected or recently generated BIN in Explorer.</summary>
     public IRelayCommand<string> RevealFileCommand { get; }
-
-    /// <summary>Gets grouped display choices for the IC-count control.</summary>
-    [ObservableProperty]
-    public partial IReadOnlyList<IcNumberChoiceViewModel> NumberSelectionChoices { get; set; } = [];
-
-    /// <summary>Gets or sets the selected displayed IC-count choice while retaining its planner token.</summary>
-    public IcNumberChoiceViewModel? SelectedNumberChoice
-    {
-        get => NumberSelectionChoices.FirstOrDefault(choice =>
-            string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal));
-        set
-        {
-            if (value is not null && !string.Equals(SelectedNumber, value.Token, StringComparison.Ordinal))
-            {
-                SelectedNumber = value.Token;
-            }
-        }
-    }
-
-    /// <summary>Gets or sets the selected IC id in the shared context row.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial string SelectedIc { get; set; } = DefaultIcId;
-
-    /// <summary>Gets or sets the selected IC count/variant in the shared context row.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
 
 }

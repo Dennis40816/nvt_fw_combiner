@@ -121,7 +121,7 @@ public sealed partial class ShellViewModelTests
     public async Task BaseFirmwareSlotShowsFwConfigFacts()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var golden = StandardMergeGoldenManifest.Load();
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
@@ -156,7 +156,7 @@ public sealed partial class ShellViewModelTests
         bytes[0x05018] = 0x02;
         string basePath = workspace.Write("nt51951-no-nvt-backup.bin", bytes);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51951";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         viewModel.Replace.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
@@ -188,7 +188,7 @@ public sealed partial class ShellViewModelTests
     public async Task DpFirmwareSlotShowsGenFlashVersionOrTodo()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement nt51926 = golden.CaseByIc("51926");
         string dpPath = golden.ManifestPath(nt51926.GetProperty("inputs").GetProperty("dp-input"));
@@ -216,7 +216,7 @@ public sealed partial class ShellViewModelTests
             viewModel.Replace.ReplaceOutputFileName,
             StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         JsonElement nt51950 = golden.CaseByIc("51950");
         string nt51950DpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("dp-input"));
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
@@ -282,7 +282,7 @@ public sealed partial class ShellViewModelTests
                         null))),
             ];
         });
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.Merge.StandardMergeOutputFileName, StringComparison.Ordinal);
         var notifications = new List<string>();
@@ -347,7 +347,7 @@ public sealed partial class ShellViewModelTests
                     DpInspection($"{version:X2}{version:X2}"));
             }),
         ]);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.Merge.StandardMergeOutputFileName, StringComparison.Ordinal);
 
@@ -375,7 +375,7 @@ public sealed partial class ShellViewModelTests
                     DpInspection($"{File.ReadAllBytes(input.Path)[0]:X2}01"))),
             ];
         });
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", mergePath, TestContext.Current.CancellationToken);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", replacePath, TestContext.Current.CancellationToken);
         inspectedSlotIds.Clear();
@@ -410,7 +410,7 @@ public sealed partial class ShellViewModelTests
                     DpInspection($"{version:X2}{version:X2}"));
             }),
         ]);
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.Merge.StandardMergeOutputFileName, StringComparison.Ordinal);
         Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
@@ -427,7 +427,7 @@ public sealed partial class ShellViewModelTests
     public void DpFirmwareSlotKeepsCmiSizeDiagnosticsOutOfBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement nt51926 = golden.CaseByIc("51926");
         string sourcePath = golden.ManifestPath(nt51926.GetProperty("inputs").GetProperty("dp-input"));
@@ -450,7 +450,7 @@ public sealed partial class ShellViewModelTests
     public void DpFirmwareSlotKeepsProfileSizeDiagnosticsOutOfBadges()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51923";
+        viewModel.WorkflowSession.SelectedIc = "NT51923";
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement nt51923 = golden.CaseByIc("51923");
         string sourcePath = golden.ManifestPath(nt51923.GetProperty("inputs").GetProperty("dp-input"));

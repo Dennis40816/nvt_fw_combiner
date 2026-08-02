@@ -8,46 +8,31 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
 {
     private readonly Action<WorkflowContextSelection> _applyWorkflowContext;
-    private readonly Action<string> _applyDetectedNumber;
-    private readonly Func<IReadOnlyList<string>> _icChoices;
-    private readonly Func<bool> _isReplaceVisible;
-    private readonly Func<IReadOnlyList<IcNumberChoiceViewModel>> _numberChoices;
-    private readonly Func<string> _selectedIc;
-    private readonly Func<string> _selectedNumber;
-    private readonly Action<string> _setSelectedIc;
+    private readonly MergePresentationViewModel _merge;
+    private readonly ReplacePresentationViewModel _replace;
     private readonly Action<string, string> _showToast;
+    private readonly WorkflowSessionStateBindings _stateBindings;
     private readonly Func<ShellTextResources> _textProvider;
-    private readonly WorkflowInspectionBindings _inspectionBindings;
 
     internal WorkflowSessionPresentationViewModel(
         Func<ShellTextResources> textProvider,
-        Func<string> selectedIc,
-        Func<string> selectedNumber,
-        Func<IReadOnlyList<string>> icChoices,
-        Func<IReadOnlyList<IcNumberChoiceViewModel>> numberChoices,
-        Func<bool> isReplaceVisible,
+        MergePresentationViewModel merge,
+        ReplacePresentationViewModel replace,
         Action<WorkflowContextSelection> applyWorkflowContext,
-        Action<string> setSelectedIc,
-        Action<string> applyDetectedNumber,
         Action<string, string> showToast,
         Func<
             string,
             IReadOnlyList<WorkbenchFirmwareInspectionInput>,
             IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
-        WorkflowInspectionBindings inspectionBindings)
+        WorkflowSessionStateBindings stateBindings)
     {
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
-        _selectedIc = selectedIc ?? throw new ArgumentNullException(nameof(selectedIc));
-        _selectedNumber = selectedNumber ?? throw new ArgumentNullException(nameof(selectedNumber));
-        _icChoices = icChoices ?? throw new ArgumentNullException(nameof(icChoices));
-        _numberChoices = numberChoices ?? throw new ArgumentNullException(nameof(numberChoices));
-        _isReplaceVisible = isReplaceVisible ?? throw new ArgumentNullException(nameof(isReplaceVisible));
+        _merge = merge ?? throw new ArgumentNullException(nameof(merge));
+        _replace = replace ?? throw new ArgumentNullException(nameof(replace));
         _applyWorkflowContext = applyWorkflowContext ?? throw new ArgumentNullException(nameof(applyWorkflowContext));
-        _setSelectedIc = setSelectedIc ?? throw new ArgumentNullException(nameof(setSelectedIc));
-        _applyDetectedNumber = applyDetectedNumber ?? throw new ArgumentNullException(nameof(applyDetectedNumber));
         _showToast = showToast ?? throw new ArgumentNullException(nameof(showToast));
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
-        _inspectionBindings = inspectionBindings ?? throw new ArgumentNullException(nameof(inspectionBindings));
+        _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         InspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
@@ -66,80 +51,117 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
 
     internal bool IsRefreshingFirmwareInspectionContext { get; set; }
 
-    private string SelectedIc => _selectedIc();
+    private bool IsCtrlRamReplaceModeSelected => _replace.IsCtrlRamReplaceModeSelected;
 
-    private string SelectedNumber => _selectedNumber();
+    private bool IsReplaceVisible =>
+        _stateBindings.SelectedPage() == ShellPage.Replace &&
+        string.Equals(_replace.SelectedReplaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal);
 
-    private bool IsCtrlRamReplaceModeSelected => _inspectionBindings.IsCtrlRamReplaceModeSelected();
+    private bool IsAbCodeMergeModeSelected => _merge.IsAbCodeMergeModeSelected;
 
-    private bool IsReplaceVisible => _inspectionBindings.IsDpReplaceContext();
+    private string SelectedMergeMode => _merge.SelectedMergeMode;
 
-    private bool IsNumberSelectorVisible => _inspectionBindings.IsNumberSelectorVisible();
+    private string SelectedReplaceMode => _replace.SelectedReplaceMode;
 
-    private bool IsAbCodeMergeModeSelected => _inspectionBindings.IsAbCodeMergeModeSelected();
+    private FirmwareSlotViewModel MergeDpSlot => _merge.MergeDpSlot;
 
-    private string SelectedMergeMode => _inspectionBindings.SelectedMergeMode();
+    private FirmwareSlotViewModel MergeTpSlot => _merge.MergeTpSlot;
 
-    private string SelectedReplaceMode => _inspectionBindings.SelectedReplaceMode();
+    private FirmwareSlotViewModel ReplaceBaseSlot => _replace.ReplaceBaseSlot;
 
-    private FirmwareSlotViewModel MergeDpSlot => _inspectionBindings.MergeDpSlot();
+    private IEnumerable<FirmwareSlotViewModel> MergeSlots => _merge.MergeSlots;
 
-    private FirmwareSlotViewModel MergeTpSlot => _inspectionBindings.MergeTpSlot();
+    private IEnumerable<FirmwareSlotViewModel> ReplaceSlots => _replace.ReplaceSlots;
 
-    private FirmwareSlotViewModel ReplaceBaseSlot => _inspectionBindings.ReplaceBaseSlot();
-
-    private IEnumerable<FirmwareSlotViewModel> MergeSlots => _inspectionBindings.MergeSlots();
-
-    private IEnumerable<FirmwareSlotViewModel> ReplaceSlots => _inspectionBindings.ReplaceSlots();
-
-    private IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _inspectionBindings.AbMergeSlots();
+    private IEnumerable<FirmwareSlotViewModel> AbMergeSlots => _merge.AbMergeSlots;
 
     private IReadOnlyDictionary<string, string> AbMergeAddressSpaceBySlotId =>
-        _inspectionBindings.AbMergeAddressSpaceBySlotId();
+        _merge.AbMergeAddressSpaceBySlotId;
 
     private string? GetSelectedAbMergeTopologyToken()
     {
-        return _inspectionBindings.SelectedAbMergeTopologyToken();
-    }
-
-    private FirmwareSlotViewModel? SelectSlotFile(string slotId, string path)
-    {
-        return _inspectionBindings.SelectSlotFile(slotId, path);
-    }
-
-    private FirmwareSlotViewModel? FindSlot(string slotId)
-    {
-        return _inspectionBindings.FindSlot(slotId);
+        return _merge.GetSelectedAbMergeTopologyToken();
     }
 
     private void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
     {
-        _inspectionBindings.ApplyCtrlRamDisplay(display);
+        _replace.ApplyCtrlRamInspectionDisplay(display);
     }
 
     private void RefreshMergeMemoryMapState()
     {
-        _inspectionBindings.RefreshMergeMemoryMap();
+        _merge.RefreshMergeMemoryMapState();
     }
 
     private void RefreshReplaceMemoryMapState()
     {
-        _inspectionBindings.RefreshReplaceMemoryMap();
+        _replace.RefreshReplaceMemoryMapState();
     }
 
     private void RefreshCommandState()
     {
-        _inspectionBindings.RefreshCommandState();
-    }
-
-    private void NotifySlotFileOutputNames()
-    {
-        _inspectionBindings.NotifySlotFileOutputNames();
+        _stateBindings.RefreshCommandState();
     }
 
     internal void ApplyLanguageChanged()
     {
+        DeviceContextRefreshSummary = Text.DeviceContextStatus;
+        RelocalizeFirmwareFacts();
+        RelocalizeInputInspection();
         OnPropertyChanged(nameof(Text));
+        NotifyContextTextChanged();
+    }
+
+    private void RelocalizeFirmwareFacts()
+    {
+        foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
+                     .Concat(_replace.ReplaceSlots)
+                     .Append(_replace.ReplaceBaseSlot)
+                     .Distinct())
+        {
+            if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
+                !InspectionSession.TryGetInspection(
+                    slot.SlotId,
+                    slot.FilePath,
+                    out WorkbenchFirmwareInspection inspection) ||
+                inspection.AbMergeInput is not null)
+            {
+                continue;
+            }
+
+            slot.RelocalizeFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
+                ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
+                : UiCompositionRunner.GetFirmwareSlotFacts(
+                    inspection,
+                    includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
+                    text: Text));
+        }
+    }
+
+    private void RelocalizeInputInspection()
+    {
+        foreach (FirmwareSlotViewModel slot in _merge.AbMergeSlots
+                     .Concat(_replace.ReplaceSlots)
+                     .Concat([_replace.ReplaceBaseSlot])
+                     .Distinct())
+        {
+            if (!InspectionSession.TryGetInspection(
+                    slot.SlotId,
+                    slot.FilePath,
+                    out WorkbenchFirmwareInspection projected))
+            {
+                continue;
+            }
+
+            if (projected.AbMergeInput is not null)
+            {
+                FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
+            }
+            else if (projected.InputSlotStatus is { } status)
+            {
+                FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
+            }
+        }
     }
 
     internal sealed record WorkflowContextSelection(

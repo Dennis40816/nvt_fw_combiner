@@ -15,7 +15,7 @@ public sealed partial class ShellViewModelTests
         string inputPath = workspace.Write("input.bin", [0x10, 0x11]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.Merge.SelectedMergeMode = "General";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x1";
@@ -46,7 +46,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("0x1", mapping.SourceStartAddress);
         Assert.Equal("0x2", mapping.TargetStartAddress);
         Assert.Equal("0x1", mapping.Length);
-        Assert.Equal("NT51927", viewModel.SelectedIc);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal("General", viewModel.Merge.SelectedMergeMode);
     }
 
@@ -57,7 +57,7 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-ab");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -87,14 +87,14 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-hidden-ab");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab.bin", new byte[0x80000]),
             TestContext.Current.CancellationToken);
 
-        viewModel.SelectedIc = "NT51919";
+        viewModel.WorkflowSession.SelectedIc = "NT51919";
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tpa.bin", new byte[0x40000]),
@@ -111,7 +111,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ConfirmNavigationAndClearCommand.Execute(null);
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.SelectedIc = "NT51932";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.False(slot.HasFile));
@@ -124,8 +124,8 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-clear-replace");
         string inputPath = workspace.Write("input.bin", [0x20, 0x21]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "2";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "2";
         OpenReplace(viewModel, "General");
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.StartAddress = "0x10";
@@ -146,8 +146,8 @@ public sealed partial class ShellViewModelTests
         Assert.False(mapping.HasFile);
         Assert.Equal("0x10", mapping.StartAddress);
         Assert.Equal("0x11", mapping.EndAddress);
-        Assert.Equal("NT51927", viewModel.SelectedIc);
-        Assert.Equal("2", viewModel.SelectedNumber);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("2", viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal("General", viewModel.Replace.SelectedReplaceMode);
     }
 
@@ -179,7 +179,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
 
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsNavigationClearConfirmationOpen);

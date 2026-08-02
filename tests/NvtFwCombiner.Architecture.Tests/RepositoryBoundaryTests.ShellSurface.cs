@@ -295,6 +295,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Content=\"{Binding ReportModalActionLabel}\"", shell, StringComparison.Ordinal);
 
         string viewModel = ReadViewModelPartials();
+        string workflowContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
         string mergeViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string mergeMemory = ReadText(
@@ -324,7 +326,7 @@ public sealed partial class RepositoryBoundaryTests
             "AutomationProperties.Name=\"{Binding ShellToastAccessibleLabel}\"",
             shellPanels,
             StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", workflowContext, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);

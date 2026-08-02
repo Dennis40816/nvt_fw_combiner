@@ -256,10 +256,10 @@ public sealed partial class ShellViewModelTests
         switch (contextChange)
         {
             case "ic":
-                viewModel.SelectedIc = "NT51927";
+                viewModel.WorkflowSession.SelectedIc = "NT51927";
                 break;
             case "number":
-                viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+                viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
                 break;
             case "base":
                 viewModel.SetSlotFile("replace-base", workspace.Write("changed-base.bin", baseBytes));
@@ -347,8 +347,8 @@ public sealed partial class ShellViewModelTests
                 "test-app",
                 ShellLanguage.English,
                 firmwareConfigMetadataReader);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
 
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);

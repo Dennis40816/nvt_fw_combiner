@@ -68,7 +68,7 @@ public sealed partial class ShellViewModelTests
         viewModel.Replace.AddGeneralReplaceMappingCommand.Execute(null);
         Assert.Equal(2, viewModel.Replace.GeneralReplaceMappings.Count);
 
-        viewModel.RemoveGeneralMappingRow(viewModel.Replace.GeneralReplaceMappings[0]);
+        viewModel.WorkflowSession.RemoveGeneralMappingRow(viewModel.Replace.GeneralReplaceMappings[0]);
         _ = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         Assert.Equal(1, viewModel.Replace.GeneralReplaceMappings[0].Index);
         Assert.Equal("No replacement BIN selected", viewModel.Replace.GeneralReplaceMappings[0].DisplayName);
@@ -86,7 +86,7 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("general-replace.bin");
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
@@ -130,7 +130,7 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("general-replace.bin");
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
@@ -174,7 +174,7 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);

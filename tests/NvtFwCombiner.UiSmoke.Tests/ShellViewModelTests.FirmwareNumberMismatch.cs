@@ -21,8 +21,8 @@ public sealed partial class ShellViewModelTests
             reads++;
             return WorkbenchCompositionService.InspectFirmware(icId, path, tpPath, request);
         });
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
@@ -37,14 +37,14 @@ public sealed partial class ShellViewModelTests
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, reads);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("1 IC", viewModel.WorkflowSession.FirmwareNumberMismatchCurrentNumber);
         Assert.Equal("Cascade", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
 
         viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
 
-        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.NotEmpty(viewModel.Replace.CtrlRamRegions);
         Assert.Contains(
@@ -79,8 +79,8 @@ public sealed partial class ShellViewModelTests
                     new WorkbenchFirmwareContextSuggestion("NT51926", "cascade", 3, "2.1.0", 0x5192),
                     null))),
         ]);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
@@ -92,7 +92,7 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
     }
 
@@ -119,18 +119,18 @@ public sealed partial class ShellViewModelTests
                         0x5192),
                     null))),
         ]);
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             tpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Standard Merge records TP FWConfig topology as metadata without offering a hidden Number change.</summary>
@@ -156,15 +156,15 @@ public sealed partial class ShellViewModelTests
                         0x5192),
                     null))),
         ]);
-        viewModel.SelectedIc = "NT51929";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         Assert.True(viewModel.Merge.IsNormalMergeModeSelected);
-        Assert.False(viewModel.IsNumberSelectorVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>A newly selected firmware replaces every visible field and action target of an open Number prompt.</summary>
@@ -208,8 +208,8 @@ public sealed partial class ShellViewModelTests
                 }),
             ];
         });
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
         Task firstSelection = viewModel.WorkflowSession.SetSlotFileAsync(
@@ -233,7 +233,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         Assert.Equal((byte)3, viewModel.WorkflowSession.FirmwareNumberMismatchDetectedChipCount);
         viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
-        Assert.Equal("3", viewModel.SelectedNumber);
+        Assert.Equal("3", viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Reinspection of the same file and suggestion does not republish an unchanged Number prompt.</summary>
@@ -254,8 +254,8 @@ public sealed partial class ShellViewModelTests
                     new WorkbenchFirmwareContextSuggestion("NT51927", "2", 2, "1.0.0", 0x5192),
                     null))),
         ]);
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -293,8 +293,8 @@ public sealed partial class ShellViewModelTests
             "nt51927-3chip-self-20260705");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-number-mismatch-build");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
@@ -311,7 +311,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.False(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
+        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(immutableBase, File.ReadAllBytes(basePath));
         Assert.True(viewModel.Reports.IsReportModalOpen);

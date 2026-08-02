@@ -20,7 +20,7 @@ public sealed partial class MainWindowViewModel
     private WorkbenchFirmwareInspection? GetSelectedReplaceBaseInspection()
     {
         return WorkflowSession.InspectionSession.TryGetBase(
-            SelectedIc,
+            WorkflowSession.SelectedIc,
             Replace.ReplaceBaseSlot.FilePath,
             out WorkbenchFirmwareInspection inspection)
                 ? inspection

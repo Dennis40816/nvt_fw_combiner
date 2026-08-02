@@ -39,7 +39,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         if (suggestion is null ||
             !slot.HasFile ||
             string.IsNullOrWhiteSpace(slot.FilePath) ||
-            string.Equals(_selectedNumber(), suggestion.NumberToken, StringComparison.Ordinal))
+            string.Equals(SelectedNumber, suggestion.NumberToken, StringComparison.Ordinal))
         {
             return;
         }
@@ -57,7 +57,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         _firmwareNumberMismatchSlotId = slot.SlotId;
         _firmwareNumberMismatchPath = slot.FilePath;
         FirmwareNumberMismatchFileName = Path.GetFileName(slot.FilePath);
-        FirmwareNumberMismatchCurrentNumber = GetNumberDisplayLabel(_selectedNumber());
+        FirmwareNumberMismatchCurrentNumber = GetNumberDisplayLabel(SelectedNumber);
         FirmwareNumberMismatchDetectedNumber = GetNumberDisplayLabel(suggestion.NumberToken);
         FirmwareNumberMismatchDetectedChipCount = suggestion.ChipNumber;
         OnPropertyChanged(nameof(FirmwareNumberMismatchFileName));
@@ -73,12 +73,20 @@ public sealed partial class WorkflowSessionPresentationViewModel
         byte detectedChipCount = FirmwareNumberMismatchDetectedChipCount;
         InvalidateFirmwareNumberMismatch();
         if (string.IsNullOrWhiteSpace(numberToken) ||
-            string.Equals(_selectedNumber(), numberToken, StringComparison.Ordinal))
+            string.Equals(SelectedNumber, numberToken, StringComparison.Ordinal))
         {
             return;
         }
 
-        _applyDetectedNumber(numberToken);
+        IsApplyingFirmwareInspectionContext = true;
+        try
+        {
+            SelectedNumber = numberToken;
+        }
+        finally
+        {
+            IsApplyingFirmwareInspectionContext = false;
+        }
         RefreshCtrlRamDisplayFromInspection();
         _showToast(
             Text.ContextUpdatedToastTitle,
@@ -106,7 +114,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     private string GetNumberDisplayLabel(string numberToken)
     {
-        return _numberChoices().FirstOrDefault(choice =>
+        return NumberSelectionChoices.FirstOrDefault(choice =>
             string.Equals(choice.Token, numberToken, StringComparison.Ordinal))?.DisplayLabel ?? numberToken;
     }
 }

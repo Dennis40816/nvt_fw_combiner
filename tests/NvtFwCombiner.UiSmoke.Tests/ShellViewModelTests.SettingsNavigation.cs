@@ -14,7 +14,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.Empty(viewModel.NumberSelectionChoices);
+        Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
         Assert.Empty(viewModel.Merge.GeneralMergeOutputLength);
         Assert.Empty(viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.Empty(viewModel.Merge.MergeSlots);
@@ -25,7 +25,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.NotEmpty(viewModel.NumberSelectionChoices);
+        Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
         Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputLength);
         Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.NotEmpty(viewModel.Merge.MergeSlots);
@@ -125,8 +125,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
         Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
@@ -138,12 +138,12 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.True(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
-        Assert.NotEmpty(viewModel.NumberSelectionChoices);
-        Assert.Equal("NT51927", viewModel.SelectedIc);
-        Assert.Equal("3", viewModel.SelectedNumber);
-        Assert.Equal("3", viewModel.SelectedNumberChoice?.Token);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
+        Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("3", viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal("3", viewModel.WorkflowSession.SelectedNumberChoice?.Token);
 
         viewModel.ShowHomeCommand.Execute(null);
         viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
@@ -158,13 +158,13 @@ public sealed partial class ShellViewModelTests
     public void ReplaceContextDoesNotInheritAbCodeSelectionOnFirstOpen()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        string expectedReplaceIc = viewModel.SelectedIc;
-        string expectedReplaceNumber = viewModel.SelectedNumber;
+        string expectedReplaceIc = viewModel.WorkflowSession.SelectedIc;
+        string expectedReplaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
         viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
         viewModel.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
@@ -180,7 +180,7 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingPromptsForIcMarkerButDoesNotApplyMergeTpNumber()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ic-marker");
         string markedPath = workspace.Write("NT51927TT_test.bin", [0x00]);
 
@@ -189,14 +189,14 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
         viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
 
         using var golden = StandardMergeGoldenManifest.Load();
         string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-tp", tpPath);
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("single", viewModel.SelectedNumber);
+        Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Verifies a printable header marker is advisory in the same way as a filename marker.</summary>
@@ -204,7 +204,7 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingPromptsForPrintableHeaderIcMarker()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-header-ic-marker");
         byte[] bytes = new byte[0x40000];
         Encoding.ASCII.GetBytes("firmware marker: NT51927TT").CopyTo(bytes, 0x120);
@@ -215,7 +215,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
         viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
     }
 
     /// <summary>Verifies filename markers outside the supported catalog cannot change the workbench context.</summary>
@@ -223,14 +223,14 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingIgnoresUnsupportedIcMarker()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-unsupported-ic-marker");
         string markedPath = workspace.Write("NT51999TT_test.bin", [0x00]);
 
         viewModel.SetSlotFile("replace-base", markedPath);
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
     }
 
     /// <summary>Verifies command-line launch arguments select a reviewable UI state.</summary>

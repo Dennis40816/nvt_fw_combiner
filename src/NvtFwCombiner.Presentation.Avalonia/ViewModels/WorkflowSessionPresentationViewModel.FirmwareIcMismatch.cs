@@ -21,7 +21,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     public string FirmwareIcMismatchDetectedIc { get; private set; } = string.Empty;
 
     /// <summary>Gets the currently selected workbench IC.</summary>
-    public string FirmwareIcMismatchCurrentIc => _selectedIc();
+    public string FirmwareIcMismatchCurrentIc => SelectedIc;
 
     /// <summary>Command that adopts the prompted IC context and retains the selected BIN.</summary>
     public IRelayCommand AcceptFirmwareIcMismatchCommand { get; }
@@ -39,13 +39,13 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
 
         if (string.IsNullOrWhiteSpace(detectedIc) ||
-            !_icChoices().Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
-            string.Equals(detectedIc, _selectedIc(), StringComparison.OrdinalIgnoreCase))
+            !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
+            string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (WorkbenchCompositionService.ArePerfectFamilyMembers(_selectedIc(), detectedIc))
+        if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
             SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
             return true;
@@ -82,7 +82,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             slotId is not null && path is not null
                 ? new AcceptedFirmwareMismatchSelection(slotId, path)
                 : null;
-        _setSelectedIc(detectedIc);
+        SelectedIc = detectedIc;
     }
 
     private void DismissFirmwareIcMismatch()

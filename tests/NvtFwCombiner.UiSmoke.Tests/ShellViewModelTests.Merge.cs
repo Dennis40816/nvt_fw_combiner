@@ -36,16 +36,16 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.Equal(["Normal", "AB Code", "General"], viewModel.Merge.MergeModeChoices);
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
-        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
 
         viewModel.ShowReplaceCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.True(viewModel.IsNumberSelectorVisible);
-        Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
-        Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
     }
 
     /// <summary>Every admitted Standard Merge profile keeps IC Number out of its authoring context.</summary>
@@ -58,12 +58,12 @@ public sealed partial class ShellViewModelTests
 
         foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
         {
-            viewModel.SelectedIc = profile.IcId;
+            viewModel.WorkflowSession.SelectedIc = profile.IcId;
 
             Assert.True(viewModel.Merge.IsNormalMergeModeSelected, profile.IcId);
             Assert.True(viewModel.Merge.IsStandardMergeSupported, profile.IcId);
-            Assert.False(viewModel.IsNumberSelectorVisible, profile.IcId);
-            Assert.True(viewModel.IsNumberSelectorPlaceholderVisible, profile.IcId);
+            Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible, profile.IcId);
+            Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible, profile.IcId);
         }
     }
 
@@ -74,11 +74,11 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
-        viewModel.SelectedIc = "NT51951";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
@@ -94,12 +94,12 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
-        Assert.Equal("NT51929", viewModel.SelectedIc);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51929", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(
             ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
-            viewModel.IcChoices);
+            viewModel.WorkflowSession.IcChoices);
         Assert.Equal(
             [
                 CompositionAddressSpaceIds.DpAbInput,
@@ -115,36 +115,36 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         Assert.True(viewModel.Merge.HasAbMergeTopologyChoices);
-        Assert.True(viewModel.IsNumberSelectorVisible);
-        Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
         Assert.Equal(
             ["single", "cascade"],
             viewModel.Merge.AbMergeTopologyChoices.Select(static choice => choice.Token));
         Assert.Equal(
             ["single", "cascade"],
-            viewModel.NumberSelectionChoices.Select(static choice => choice.Token));
-        Assert.Equal("single", viewModel.SelectedNumber);
+            viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
+        Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
 
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
 
-        Assert.Equal("cascade", viewModel.SelectedNumber);
+        Assert.Equal("cascade", viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.Merge.MergeMemoryRangeLabel);
 
-        viewModel.SelectedIc = "NT51951";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         Assert.True(viewModel.Merge.IsAbMergeSupported);
         Assert.False(viewModel.Merge.HasAbMergeTopologyChoices);
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
-        Assert.Empty(viewModel.NumberSelectionChoices);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
 
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
 
-        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
+        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
@@ -155,7 +155,7 @@ public sealed partial class ShellViewModelTests
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -200,7 +200,7 @@ public sealed partial class ShellViewModelTests
         string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
             0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         Assert.False(viewModel.Merge.CanBuildMerge);
@@ -310,7 +310,7 @@ public sealed partial class ShellViewModelTests
         WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -350,7 +350,7 @@ public sealed partial class ShellViewModelTests
         const int tpLength = 0x40000;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-health");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -387,9 +387,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
-        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
+        Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.Contains(
@@ -403,7 +403,7 @@ public sealed partial class ShellViewModelTests
         viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
 
         Assert.Equal(2, viewModel.Merge.GeneralMergeMappings.Count);
-        viewModel.RemoveGeneralMappingRow(viewModel.Merge.GeneralMergeMappings[0]);
+        viewModel.WorkflowSession.RemoveGeneralMappingRow(viewModel.Merge.GeneralMergeMappings[0]);
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
@@ -423,8 +423,8 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.Equal("Home > Merge", viewModel.NavigationPath);
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
     }
 
     /// <summary>Verifies Standard Merge slots follow the selected profile instead of exposing LD globally.</summary>
@@ -433,12 +433,12 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         Assert.Equal(["DP BIN", "TP BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
         Assert.DoesNotContain(viewModel.Merge.MergeSlots, slot => slot.Title.Contains("LD", StringComparison.Ordinal));
 
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
 
         Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
     }
@@ -449,7 +449,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         MemoryMapRowViewModel copyRow = Assert.Single(
             viewModel.Merge.MergeMemoryRows,
@@ -468,7 +468,7 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc(ic);
         using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = $"NT{ic}";
+        viewModel.WorkflowSession.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
@@ -583,7 +583,7 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
@@ -597,7 +597,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
 
-        viewModel.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
@@ -625,7 +625,7 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));

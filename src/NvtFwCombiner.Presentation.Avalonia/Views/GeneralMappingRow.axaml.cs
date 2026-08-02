@@ -104,7 +104,7 @@ public sealed partial class GeneralMappingRow : UserControl
         if (DataContext is GeneralMappingRowViewModel mapping &&
             ShellViewModel is MainWindowViewModel viewModel)
         {
-            viewModel.RemoveGeneralMappingRow(mapping);
+            viewModel.WorkflowSession.RemoveGeneralMappingRow(mapping);
         }
     }
 }

@@ -184,8 +184,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanSelector.cs");
         string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
         string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
-        string presentationBindings = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
+        string workflowContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
 
         Assert.Contains("public const string SingleChip = \"single\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
@@ -195,7 +195,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("public const string CascadeTwoToEight = \"cascade_2to8\";", workbenchTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberTokens.SingleChip", presentationBindings, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchIcNumberTokens.SingleChip", workflowContext, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);
         Assert.DoesNotContain("\"cascade\"", flashMapChoices, StringComparison.Ordinal);
     }

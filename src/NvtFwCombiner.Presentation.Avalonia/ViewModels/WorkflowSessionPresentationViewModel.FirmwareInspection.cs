@@ -15,9 +15,10 @@ public sealed partial class WorkflowSessionPresentationViewModel
         string path,
         CancellationToken cancellationToken = default)
     {
-        if (!_inspectionBindings.IsWorkflowLoaded())
+        if (!IsWorkflowLoaded)
         {
-            _inspectionBindings.EnsureWorkflowLoaded();
+            EnsureWorkflowLoaded();
+            RefreshContextState();
         }
 
         bool preservePendingCtrlRamBase = IsFirmwareInspectionLoading &&

@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
 
         Assert.True(viewModel.Replace.IsSelectedReplaceModeGoldenVerified);
@@ -18,7 +18,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("Complete FlashCode", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.SelectedIc = "NT51932";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
@@ -36,11 +36,11 @@ public sealed partial class ShellViewModelTests
     public void IcFamilyBadgeExplainsOwnerDeclaredReuse(string icId, string expectedLabel)
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
 
-        Assert.True(viewModel.HasSelectedIcFamily);
-        Assert.Equal(expectedLabel, viewModel.SelectedIcFamilyLabel);
-        Assert.Contains("Canonical IC: NT51927", viewModel.SelectedIcFamilyTooltip, StringComparison.Ordinal);
-        Assert.Contains("never expands executable ranges", viewModel.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.True(viewModel.WorkflowSession.HasSelectedIcFamily);
+        Assert.Equal(expectedLabel, viewModel.WorkflowSession.SelectedIcFamilyLabel);
+        Assert.Contains("Canonical IC: NT51927", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.Contains("never expands executable ranges", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
     }
 }

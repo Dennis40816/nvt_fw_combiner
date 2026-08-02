@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -7,14 +8,50 @@ public sealed partial class MainWindowViewModel
     /// <summary>Focused shared workflow-context and selected-firmware prompt presentation.</summary>
     public WorkflowSessionPresentationViewModel WorkflowSession { get; }
 
+    private string GetWorkflowSelectedIc()
+    {
+        return WorkflowSession.SelectedIc;
+    }
+
+    private string GetWorkflowSelectedNumber()
+    {
+        return WorkflowSession.SelectedNumber;
+    }
+
+    private bool IsWorkflowLoaded()
+    {
+        return WorkflowSession.IsWorkflowLoaded;
+    }
+
+    private bool IsWorkflowLoading()
+    {
+        return WorkflowSession.IsLoadingWorkflow;
+    }
+
+    private void RefreshWorkflowNumberChoices()
+    {
+        WorkflowSession.RefreshNumberChoicesForSelectedIc();
+    }
+
+    private void WorkflowReplaceModeChanged()
+    {
+        WorkflowSession.ReplaceModeChanged();
+    }
+
+    private string CreateWorkflowFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
+    {
+        return WorkflowSession.CreateFlashCodeOutputFileName(candidateSlots);
+    }
+
+    private string CreateWorkflowCtrlRamOutputFileName(
+        IEnumerable<FirmwareSlotViewModel> candidateSlots,
+        WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    {
+        return WorkflowSession.CreateCtrlRamReplaceOutputFileName(candidateSlots, edit);
+    }
+
     private void ApplyWorkflowContext(WorkflowSessionPresentationViewModel.WorkflowContextSelection selection)
     {
-        SelectedIc = selection.IcId;
-        if (selection.ShowNumber)
-        {
-            SelectedNumber = selection.Number;
-        }
-
         if (selection.Page == ShellPage.Replace)
         {
             SelectReplaceMode(selection.Mode);
@@ -23,19 +60,6 @@ public sealed partial class MainWindowViewModel
         {
             Merge.SelectMergeMode(selection.Mode);
             NavigateToPage(ShellPage.Merge);
-        }
-    }
-
-    private void ApplyDetectedFirmwareNumber(string numberToken)
-    {
-        WorkflowSession.IsApplyingFirmwareInspectionContext = true;
-        try
-        {
-            SelectedNumber = numberToken;
-        }
-        finally
-        {
-            WorkflowSession.IsApplyingFirmwareInspectionContext = false;
         }
     }
 

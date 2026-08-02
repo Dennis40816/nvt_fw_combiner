@@ -30,6 +30,7 @@ public sealed partial class MergePresentationViewModel : ObservableObject
 
     internal void ApplyLanguageChanged()
     {
+        ApplyFirmwareSlotText();
         OnPropertyChanged(nameof(Text));
         NotifyContextChanged();
     }

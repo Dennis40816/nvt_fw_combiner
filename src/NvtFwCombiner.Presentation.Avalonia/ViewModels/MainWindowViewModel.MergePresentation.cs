@@ -38,9 +38,6 @@ public sealed partial class MainWindowViewModel
 
     private void NotifyMergeSharedContextChanged()
     {
-        OnPropertyChanged(nameof(IcChoices));
-        OnPropertyChanged(nameof(IsNumberSelectorVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
+        WorkflowSession.NotifyContextTextChanged();
     }
 }

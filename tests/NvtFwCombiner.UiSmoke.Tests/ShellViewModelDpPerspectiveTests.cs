@@ -42,7 +42,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
 
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
@@ -66,7 +66,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
             viewModel.Merge.MergeMemoryRows,
@@ -101,7 +101,7 @@ public sealed partial class ShellViewModelTests
         string dpPath = workspace.Write("dp-40000.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.SetSlotFile("merge-dp", dpPath);
 
         MemoryMapRowViewModel initialRow = Assert.Single(
@@ -122,7 +122,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         OpenReplace(viewModel, "DP");
 
         Assert.True(viewModel.Replace.IsStructuredReplaceModeSelected);
@@ -130,7 +130,7 @@ public sealed partial class ShellViewModelTests
             ["replace-base", "replace-dp"],
             viewModel.Replace.ReplaceSlots.Select(static slot => slot.SlotId));
 
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
 
         Assert.True(viewModel.Replace.IsStructuredReplaceModeSelected);
         Assert.Equal(
@@ -146,7 +146,7 @@ public sealed partial class ShellViewModelTests
     public void Nt51951DpSlotsExposeInitialCodeAndLdcHint()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51951";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         viewModel.ShowMergeCommand.Execute(null);
 
         FirmwareSlotViewModel mergeDp = Assert.Single(
@@ -160,7 +160,7 @@ public sealed partial class ShellViewModelTests
             slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
     }
 
@@ -179,7 +179,7 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor($"nt51950-dp-replace-{baseLength:X}.bin");
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
@@ -234,7 +234,7 @@ public sealed partial class ShellViewModelTests
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", dpPath);
@@ -267,7 +267,7 @@ public sealed partial class ShellViewModelTests
         File.Copy(replacementPath, replacementPath2);
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
@@ -299,7 +299,7 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("replacement-dp.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);

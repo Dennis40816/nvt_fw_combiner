@@ -31,7 +31,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         if (referenceLength > 0)
@@ -150,7 +150,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-verified");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -176,7 +176,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-short");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -201,7 +201,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-short");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -225,7 +225,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51950-exact-pair");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -266,7 +266,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness-zh");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         FirmwareSlotViewModel ldc = Assert.Single(
@@ -300,7 +300,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-health-zh");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceBase,
@@ -330,7 +330,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-health-clear");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceBase,
@@ -356,7 +356,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness-invalid");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(

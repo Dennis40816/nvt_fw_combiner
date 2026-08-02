@@ -208,8 +208,8 @@ public sealed partial class ShellViewModelTests
                 progressRemainedVisible = viewModel.IsHomeVisible &&
                     viewModel.RunSession.IsRunInProgress &&
                     viewModel.IsDeviceContextVisible &&
-                    !viewModel.IsNumberSelectorVisible &&
-                    viewModel.IsNumberSelectorPlaceholderVisible;
+                    !viewModel.WorkflowSession.IsNumberSelectorVisible &&
+                    viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible;
                 releaseWorker.SetResult();
                 await runTask;
                 contextClosedAfterRun = !viewModel.IsDeviceContextVisible;
@@ -230,8 +230,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -249,6 +249,13 @@ public sealed partial class ShellViewModelTests
             }
         };
         viewModel.RunSession.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not null)
+            {
+                notifications.Add(args.PropertyName);
+            }
+        };
+        viewModel.WorkflowSession.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is not null)
             {
@@ -274,11 +281,11 @@ public sealed partial class ShellViewModelTests
                     TestContext.Current.CancellationToken);
 
                 startNotifications = [.. notifications];
-                viewModel.SelectedIc = "NT51927";
-                viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+                viewModel.WorkflowSession.SelectedIc = "NT51927";
+                viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
                 activeContextLabel = viewModel.RunSession.ActiveRunContextLabel;
-                activeDeviceStatus = viewModel.DeviceContextStatus;
-                selectionWasReadOnly = !viewModel.IsDeviceContextSelectionVisible;
+                activeDeviceStatus = viewModel.WorkflowSession.DeviceContextStatus;
+                selectionWasReadOnly = !viewModel.WorkflowSession.IsDeviceContextSelectionVisible;
                 notifications.Clear();
                 releaseWorker.SetResult();
                 await runTask;
@@ -295,9 +302,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(selectionWasReadOnly);
         string[] activeContextBindings =
         [
-            nameof(MainWindowViewModel.IsDeviceContextSelectionVisible),
-            nameof(MainWindowViewModel.IsDeviceContextNumberSelectionVisible),
-            nameof(MainWindowViewModel.IsDeviceContextFamilyBadgeVisible),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextSelectionVisible),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextNumberSelectionVisible),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextFamilyBadgeVisible),
             nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc),
             nameof(CompositionRunPresentationViewModel.DisplayedDeviceNumber),
             nameof(CompositionRunPresentationViewModel.ActiveRunIc),
@@ -308,8 +315,8 @@ public sealed partial class ShellViewModelTests
         Assert.All(activeContextBindings, propertyName => Assert.Contains(propertyName, startNotifications));
         Assert.All(activeContextBindings, propertyName => Assert.Contains(propertyName, completionNotifications));
         Assert.False(viewModel.RunSession.IsRunInProgress);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
-        Assert.True(viewModel.IsDeviceContextNumberSelectionVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextNumberSelectionVisible);
         Assert.Empty(viewModel.RunSession.ActiveRunIc);
         Assert.Empty(viewModel.RunSession.ActiveRunNumber);
         Assert.Empty(viewModel.RunSession.ActiveRunMode);
@@ -359,7 +366,7 @@ public sealed partial class ShellViewModelTests
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.Merge.SelectedMergeMode = "General";
         viewModel.Merge.GeneralMergeOutputLength = "0x10";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
@@ -369,7 +376,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(mapping.MappingId, sourcePath);
 
         Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-        viewModel.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         mapping.TargetStartAddress = "0x8";
         await previewTask;
 
@@ -393,7 +400,7 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(language);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
         List<string> activeLabels = [];
         bool wasInProgress = false;
@@ -433,7 +440,7 @@ public sealed partial class ShellViewModelTests
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.Merge.SelectedMergeMode = "General";
         viewModel.Merge.GeneralMergeOutputLength = "0x10";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);

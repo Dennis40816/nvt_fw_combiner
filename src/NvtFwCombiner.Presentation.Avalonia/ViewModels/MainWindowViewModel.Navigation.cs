@@ -67,23 +67,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
 
-    /// <summary>True when the shared context row should expose the IC Number selector.</summary>
-    public bool IsNumberSelectorVisible => RunSession.IsRunInProgress
-        ? RunSession.ActiveRunShowsNumberSelector
-        : ShouldShowNumberSelectorForSelectedPage();
-
-    /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
-    public bool IsNumberSelectorPlaceholderVisible => IsDeviceContextVisible && !IsNumberSelectorVisible;
-
-    /// <summary>True when the mutable shell selection controls may be shown.</summary>
-    public bool IsDeviceContextSelectionVisible => !RunSession.IsRunInProgress;
-
-    /// <summary>True when the mutable IC Number selection control may be shown.</summary>
-    public bool IsDeviceContextNumberSelectionVisible => IsNumberSelectorVisible && !RunSession.IsRunInProgress;
-
-    /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
-    public bool IsDeviceContextFamilyBadgeVisible => !RunSession.IsRunInProgress && HasSelectedIcFamily;
-
     /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 
@@ -92,12 +75,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that keeps the current page and all of its selections.</summary>
     public IRelayCommand CancelNavigationClearCommand { get; }
-
-    private bool ShouldShowNumberSelectorForSelectedPage()
-    {
-        return IsReplaceVisible ||
-            (IsMergeVisible && Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
-    }
 
     private void NavigateToPage(ShellPage page)
     {
@@ -129,7 +106,7 @@ public sealed partial class MainWindowViewModel
 
     private bool RequestNavigation(ShellPage target, bool isBack)
     {
-        if (IsNavigationClearConfirmationOpen || !HasSelectedInputs(SelectedPage))
+        if (IsNavigationClearConfirmationOpen || !WorkflowSession.HasSelectedInputs(SelectedPage))
         {
             return IsNavigationClearConfirmationOpen;
         }
@@ -152,7 +129,7 @@ public sealed partial class MainWindowViewModel
         ShellPage pageBeingLeft = SelectedPage;
         _pendingNavigation = null;
         IsNavigationClearConfirmationOpen = false;
-        ClearSelectedInputs(pageBeingLeft);
+        WorkflowSession.ClearSelectedInputs(pageBeingLeft);
         CompleteNavigation(pending.Target, pending.IsBack);
     }
 
@@ -177,78 +154,6 @@ public sealed partial class MainWindowViewModel
         }
 
         ApplySelectedPage(target);
-    }
-
-    private bool HasSelectedInputs(ShellPage page)
-    {
-        return page switch
-        {
-            ShellPage.Merge =>
-                Merge.MergeDpSlot.HasFile ||
-                Merge.MergeTpSlot.HasFile ||
-                Merge.MergeLdcSlot.HasFile ||
-                Merge.AbMergeSlots.Any(static slot => slot.HasFile) ||
-                Merge.MergeSlots.Any(static slot => slot.HasFile) ||
-                Merge.GeneralMergeMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Replace =>
-                Replace.ReplaceBaseSlot.HasFile ||
-                Replace.ReplaceSlots.Any(static slot => slot.HasFile) ||
-                Replace.GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
-            _ => false,
-        };
-    }
-
-    private void ClearSelectedInputs(ShellPage page)
-    {
-        WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        Replace.InvalidateCtrlRamFirmwareVersionContextState();
-        WorkflowSession.InvalidateFirmwareIcMismatch();
-        WorkflowSession.InvalidateFirmwareNumberMismatch();
-
-        if (page == ShellPage.Merge)
-        {
-            foreach (FirmwareSlotViewModel slot in Merge.MergeSlots
-                         .Concat(Merge.AbMergeSlots)
-                         .Concat([Merge.MergeDpSlot, Merge.MergeTpSlot, Merge.MergeLdcSlot])
-                         .Distinct())
-            {
-                ClearFirmwareSlot(slot);
-            }
-
-            foreach (GeneralMergeMappingViewModel mapping in Merge.GeneralMergeMappings)
-            {
-                mapping.FilePath = null;
-            }
-
-            Merge.RefreshMergeMemoryMapState();
-        }
-        else if (page == ShellPage.Replace)
-        {
-            foreach (FirmwareSlotViewModel slot in Replace.ReplaceSlots.Concat([Replace.ReplaceBaseSlot]).Distinct())
-            {
-                ClearFirmwareSlot(slot);
-            }
-
-            foreach (GeneralReplaceMappingViewModel mapping in Replace.GeneralReplaceMappings)
-            {
-                mapping.FilePath = null;
-            }
-
-            Replace.ClearCtrlRamInspectionDisplay();
-            Replace.RefreshReplaceMemoryMapState();
-        }
-
-        NotifySlotFileOutputNames();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
-
-    private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)
-    {
-        slot.FilePath = null;
-        slot.SetFirmwareFacts([]);
-        slot.ClearInputInspection();
     }
 
     private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)

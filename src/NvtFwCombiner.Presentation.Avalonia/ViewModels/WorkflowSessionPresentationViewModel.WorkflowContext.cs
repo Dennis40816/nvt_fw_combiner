@@ -32,9 +32,12 @@ public sealed partial class WorkflowSessionPresentationViewModel
         bool showNumber,
         IReadOnlyList<string>? icChoices = null)
     {
+        icChoices ??= string.Equals(mode, WorkbenchMergeModes.AbCode, StringComparison.Ordinal)
+            ? [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]
+            : null;
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
-        string draftIc = page == ShellPage.Replace ? _replaceWorkflowContextIc : _selectedIc();
-        string draftNumber = page == ShellPage.Replace ? _replaceWorkflowContextNumber : _selectedNumber();
+        string draftIc = page == ShellPage.Replace ? _replaceWorkflowContextIc : SelectedIc;
+        string draftNumber = page == ShellPage.Replace ? _replaceWorkflowContextNumber : SelectedNumber;
         WorkflowContextSetup.Configure(draftIc, draftNumber, showNumber, icChoices);
         WorkflowContextDetail = page == ShellPage.Replace
             ? Text.WorkflowContextReplaceDetail
@@ -59,6 +62,12 @@ public sealed partial class WorkflowSessionPresentationViewModel
             _replaceWorkflowContextNumber = WorkflowContextSetup.SelectedNumber;
         }
 
+        SelectedIc = WorkflowContextSetup.SelectedIc;
+        if (target.ShowNumber)
+        {
+            SelectedNumber = WorkflowContextSetup.SelectedNumber;
+        }
+
         _applyWorkflowContext(new WorkflowContextSelection(
             target.Page,
             target.Mode,
@@ -75,13 +84,13 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal void RememberReplaceWorkflowContext()
     {
-        if (!_isReplaceVisible())
+        if (_stateBindings.SelectedPage() != ShellPage.Replace)
         {
             return;
         }
 
-        _replaceWorkflowContextIc = _selectedIc();
-        _replaceWorkflowContextNumber = _selectedNumber();
+        _replaceWorkflowContextIc = SelectedIc;
+        _replaceWorkflowContextNumber = SelectedNumber;
     }
 
     private sealed record WorkflowContextTarget(ShellPage Page, string Mode, bool ShowNumber);

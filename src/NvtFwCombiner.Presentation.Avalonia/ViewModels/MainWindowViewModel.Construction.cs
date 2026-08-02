@@ -12,7 +12,6 @@ public sealed partial class MainWindowViewModel
     private const string NormalMergeMode = WorkbenchMergeModes.Standard;
     private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
-    private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
@@ -69,18 +68,18 @@ public sealed partial class MainWindowViewModel
         Merge = new MergePresentationViewModel(
             () => Text,
             new MergeStateBindings(
-                () => SelectedIc,
-                () => SelectedNumber,
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
-                () => _deferredState.IsWorkflowLoaded,
-                () => _deferredState.IsLoadingWorkflow,
+                IsWorkflowLoaded,
+                IsWorkflowLoading,
                 GetInspectedFileLength,
                 GetReportPresentation,
-                CreateFlashCodeOutputFileName,
+                CreateWorkflowFlashCodeOutputFileName,
                 RunCompositionAsync,
                 PublishLastRunResult,
-                RefreshNumberChoicesForSelectedIc,
+                RefreshWorkflowNumberChoices,
                 NotifyMergeSharedContextChanged,
                 RefreshSelectedMergeFirmwareInspectionsAsync,
                 ResetRunResultForContextChange,
@@ -89,18 +88,18 @@ public sealed partial class MainWindowViewModel
         Replace = new ReplacePresentationViewModel(
             new ReplaceStateBindings(
                 () => Text,
-                () => SelectedIc,
-                () => SelectedNumber,
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
-                () => _deferredState.IsWorkflowLoaded,
+                IsWorkflowLoaded,
                 GetInspectedFileLength,
                 GetSelectedReplaceBaseInspection,
                 GetReportPresentation,
-                CreateFlashCodeOutputFileName,
-                CreateCtrlRamReplaceOutputFileName,
+                CreateWorkflowFlashCodeOutputFileName,
+                CreateWorkflowCtrlRamOutputFileName,
                 RunCompositionAsync,
-                ReplaceModeChanged,
+                WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
                 RefreshSelectedReplaceFirmwareInspectionsAsync,
                 RefreshCommandState),
@@ -111,41 +110,21 @@ public sealed partial class MainWindowViewModel
         Reports.PropertyChanged += Reports_OnPropertyChanged;
         WorkflowSession = new WorkflowSessionPresentationViewModel(
             () => Text,
-            () => SelectedIc,
-            () => SelectedNumber,
-            () => IcChoices,
-            () => NumberSelectionChoices,
-            () => IsReplaceVisible,
+            Merge,
+            Replace,
             ApplyWorkflowContext,
-            value => SelectedIc = value,
-            ApplyDetectedFirmwareNumber,
             Reports.SetShellToast,
             firmwareInspectionReader,
-            new WorkflowInspectionBindings(
-                () => RefreshContextState(),
-                () => _deferredState.IsWorkflowLoaded,
-                () => Replace.IsCtrlRamReplaceModeSelected,
-                () => IsReplaceVisible && Replace.SelectedReplaceMode == DpReplaceMode,
-                () => IsNumberSelectorVisible,
-                () => Merge.IsAbCodeMergeModeSelected,
-                () => Merge.HasAbMergeTopologyChoices,
-                () => Merge.SelectedMergeMode,
-                () => Replace.SelectedReplaceMode,
-                () => Merge.MergeDpSlot,
-                () => Merge.MergeTpSlot,
-                () => Replace.ReplaceBaseSlot,
-                () => Merge.MergeSlots,
-                () => Replace.ReplaceSlots,
-                () => Merge.AbMergeSlots,
-                () => Merge.AbMergeAddressSpaceBySlotId,
-                Merge.GetSelectedAbMergeTopologyToken,
-                SelectSlotFile,
-                FindSlot,
-                Replace.ApplyCtrlRamInspectionDisplay,
-                Merge.RefreshMergeMemoryMapState,
-                Replace.RefreshReplaceMemoryMapState,
+            new WorkflowSessionStateBindings(
+                () => SelectedPage,
+                IsCompositionRunInProgress,
+                ActiveRunShowsNumberSelector,
+                GetDisplayedDeviceIc,
+                GetDisplayedDeviceNumber,
+                GetDisplayedDeviceContextRefreshSummary,
+                ResetRunResultForContextChange,
                 RefreshCommandState,
-                NotifySlotFileOutputNames));
+                NotifyRunContextChanged));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
         BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
@@ -153,11 +132,11 @@ public sealed partial class MainWindowViewModel
             language,
             new CompositionRunStateBindings(
                 () => Text,
-                () => SelectedIc,
-                () => SelectedNumber,
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
                 GetSelectedRunMode,
-                ShouldShowNumberSelectorForSelectedPage,
-                () => DeviceContextRefreshSummary,
+                WorkflowSession.ShouldShowNumberSelectorForSelectedPage,
+                () => WorkflowSession.DeviceContextRefreshSummary,
                 () => IsReducedMotionEnabled,
                 () => Reports,
                 TryShowBuildCompleted,
@@ -183,8 +162,7 @@ public sealed partial class MainWindowViewModel
         BeginAbMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(
             ShellPage.Merge,
             AbCodeMergeMode,
-            showNumber: false,
-            [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
+            showNumber: false));
         BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));

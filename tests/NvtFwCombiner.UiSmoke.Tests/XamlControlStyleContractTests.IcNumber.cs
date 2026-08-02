@@ -15,12 +15,12 @@ public sealed partial class XamlControlStyleContractTests
             contextPanel.Descendants(),
             static element =>
                 element.Name.LocalName == "ComboBox" &&
-                element.Attribute("ItemsSource")?.Value == "{Binding NumberSelectionChoices}");
+                element.Attribute("ItemsSource")?.Value == "{Binding WorkflowSession.NumberSelectionChoices}");
         Assert.Equal(
-            "{Binding SelectedNumberChoice, Mode=TwoWay}",
+            "{Binding WorkflowSession.SelectedNumberChoice, Mode=TwoWay}",
             contextSelector.Attribute("SelectedItem")?.Value);
         Assert.Equal(
-            "{Binding IsDeviceContextSelectionVisible}",
+            "{Binding WorkflowSession.IsDeviceContextSelectionVisible}",
             contextSelector.Attribute("IsVisible")?.Value);
 
         XElement activeRunNumber = Assert.Single(
@@ -34,7 +34,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Same(numberPresenter, contextSelector.Parent);
         Assert.Equal("Grid", numberPresenter.Name.LocalName);
         Assert.Equal(
-            "{Binding IsNumberSelectorVisible}",
+            "{Binding WorkflowSession.IsNumberSelectorVisible}",
             numberPresenter.Attribute("IsVisible")?.Value);
 
         XElement setupSelector = Assert.Single(

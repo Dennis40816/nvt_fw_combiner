@@ -17,8 +17,8 @@ public sealed partial class ShellViewModelTests
             "ctrlram-replace",
             "nt51927-2chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "2";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "2";
         OpenReplace(viewModel, "CtrlRAM");
 
         FirmwareSlotViewModel regionSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
@@ -57,15 +57,15 @@ public sealed partial class ShellViewModelTests
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
 
         // The verified FWConfig may choose the base image's branch. This fixture deliberately
         // exercises the owner-selected three-chip branch afterwards.
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
@@ -104,12 +104,12 @@ public sealed partial class ShellViewModelTests
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
@@ -143,12 +143,12 @@ public sealed partial class ShellViewModelTests
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         FirmwareSlotViewModel vnSlot = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));

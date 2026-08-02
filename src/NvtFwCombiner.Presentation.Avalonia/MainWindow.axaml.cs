@@ -187,7 +187,10 @@ public sealed partial class MainWindow : Window, IDisposable
         try
         {
             var catalogWarmup = Task.Run(
-                () => PrimeDeferredCatalogs(viewModel.SelectedIc, viewModel.SelectedNumber, startupCancellation),
+                () => PrimeDeferredCatalogs(
+                    viewModel.WorkflowSession.SelectedIc,
+                    viewModel.WorkflowSession.SelectedNumber,
+                    startupCancellation),
                 startupCancellation);
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");

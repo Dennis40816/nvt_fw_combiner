@@ -10,8 +10,8 @@ public sealed partial class ShellViewModelTests
     public async Task CtrlRamBaseFirmwareRefreshesVersionedNt51926Slots()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
         using var golden = StandardMergeGoldenManifest.Load();
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
@@ -75,7 +75,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
@@ -104,8 +104,8 @@ public sealed partial class ShellViewModelTests
     public void Nt51950DiffDlmUsesCommonOnlyForCascade()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Equal(["Cascade", "Common"], viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
@@ -118,7 +118,7 @@ public sealed partial class ShellViewModelTests
             group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups, group => group.Title == "Single IC");
 
-        viewModel.SelectedNumber = "single";
+        viewModel.WorkflowSession.SelectedNumber = "single";
 
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlots, slot => slot.Title == "DiffDLM");
         Assert.Equal("Common", Assert.Single(viewModel.Replace.ReplaceSlotGroups).Title);
@@ -129,8 +129,8 @@ public sealed partial class ShellViewModelTests
     public void Nt51926DiffDlmBelongsToCascade()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Equal(["Cascade", "Common"], viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
@@ -146,8 +146,8 @@ public sealed partial class ShellViewModelTests
     public void CtrlRamReplaceSlotsIncludeNt51927RightAndLeftSlaves()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.Replace.ReplaceSlots, slot => slot.Title == "Normal CtrlRAM (Slave R)");
@@ -179,8 +179,8 @@ public sealed partial class ShellViewModelTests
     public void CtrlRamReplaceCoverageUsesBaseFirmwareAndChangedAreaWording()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
@@ -204,8 +204,8 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-selection");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "3";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.Equal("0 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
