@@ -1060,9 +1060,10 @@ Each implementation slice first characterizes its current external behavior,
 makes an explicit disposition for every observed behavior, and only then
 moves one responsibility through one compatibility seam, proves the required
 byte/report/state/UI parity, and deletes the old owner only after every caller
-and evidence gate has moved. The approved ticket dependency graph—not this
-spec—determines which dependency-ready slices belong to each later `0.10.x`
-version.
+and evidence gate has moved. The approved ticket dependency graph determines
+implementation order. Owner release decisions recorded in this spec and the
+version-governance documents determine which dependency-complete slices belong
+to each `0.10.x` version.
 
 ### 15.3 User Stories
 
@@ -1156,9 +1157,13 @@ version.
 2. Later work is divided into independently reviewable vertical slices. Each
    slice has one behavioral goal, one compatibility seam, one deletion
    boundary, one narrow test set, and an explicit final verification gate.
-3. No exact `0.10.1`, `0.10.2`, or later allocation is fixed here. After this
-   spec is approved, ticket planning establishes dependencies and the owner
-   groups only dependency-ready slices into releases.
+3. The initial planning approval fixed no exact post-`0.10.0` allocation.
+   Ticket planning first established dependencies; later owner decisions now
+   record `v0.10.1` as the headless foundation, `v0.10.2` as the complete
+   remaining refactoring graph through #197, `v0.10.3` as its simplification
+   audit, `v0.10.4` as unified preload performance control, and `v0.10.5` as a
+   reserved configured-path update experience whose detailed contract is still
+   deferred. Release grouping never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.
@@ -2067,8 +2072,9 @@ The program-level architecture workshop is approved. Before implementation of
 the first canonical tracer, a focused consistency grill is reopened for its
 remaining policy/terminology details. Confirmed results in this section are
 normative immediately; unresolved details cannot be guessed in code or copied
-into ticket acceptance criteria. Exact version allocation remains a downstream
-owner decision rather than unresolved architecture. The approved sequence is:
+into ticket acceptance criteria. Exact version allocation is an owner release
+decision rather than unresolved architecture. The owner made the next
+allocation on 2026-08-02; the approved sequence is:
 
 ```text
 approved specification and consistency grill
@@ -2079,6 +2085,17 @@ approved specification and consistency grill
   -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
   -> pass the 22,607-line #197 integration gate
 ```
+
+The complete remaining approved refactoring graph through #197 is allocated to
+`v0.10.2`, which is tagged only after the full canonical refactor is complete.
+`v0.10.3` then performs a fresh simplification/ownership audit of that result;
+`v0.10.4` owns performance work that unifies every preload behind one
+observable, cancellable, bounded, and user-controllable lifecycle; and
+`v0.10.5` reserves a configured-path update experience. The `v0.10.5` trust,
+rollback, version-selection, network/share, and release-policy contract remains
+owner-deferred and requires a later specification review before implementation
+tickets exist. These allocations do not change current ticket dependencies or
+authorize guessed scope.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes

@@ -59,6 +59,25 @@ commit.
   #194, keeps missing golden/support gates explicit, and leaves the desktop UI,
   compatibility deletion, legacy runtime deletion, and Core convergence waves
   for later releases.
+- `v0.10.2` — complete canonical-refactoring release: tag only after deferred UI
+  adoption, superseded compatibility and legacy-runtime deletion, all four Core
+  Convergence slices, and the hard #197 production-size gate are complete and
+  reviewed. It is the end of the currently approved refactoring program, not a
+  partial checkpoint.
+- `v0.10.3` — post-refactor simplification audit: measure the `v0.10.2` result
+  again and review the new architecture for remaining removable ownership or a
+  simpler expression. The milestone does not pre-authorize speculative
+  abstractions, safety removal, or a line-count-only rewrite.
+- `v0.10.4` — unified preload performance-control release: consolidate startup
+  and background preload scheduling behind one observable, cancellable,
+  bounded, and user-controllable lifecycle. Performance work must retain
+  deterministic results, current cache identity, and the canonical verifier.
+- `v0.10.5` — reserved path-based update experience: add a screen that can
+  obtain reviewed update artifacts from a configured path so routine delivery
+  no longer depends on repackaging and email. Trust source, rollback, version
+  selection, share/network behavior, and release authorization are intentionally
+  deferred to a later owner discussion; no implementation ticket is implied by
+  this reservation.
 
 The original `0.9.17` certification and `0.9.18` family-model proposals were
 superseded before release. The owner subsequently reused those version numbers
@@ -108,8 +127,10 @@ for `v0.9.3` through `v0.9.10` are maintained in
   the canonical dependency plan rather than this tag.
 - `0.10.1` integrates the exact reviewed `0.10.x` head into the protected-main
   lineage after the headless foundation and its R3 review gates complete. It
-  does not allocate the remaining UI/deletion/Core-convergence tickets or
-  silently promote `ContractOnly`/missing-golden routes.
+  does not silently promote `ContractOnly`/missing-golden routes. Owner decision
+  on 2026-08-02 allocates the remaining UI, deletion, Core-convergence, and
+  #197 integration graph to `0.10.2`; that later tag requires the complete
+  refactoring result rather than an intermediate wave.
 
 The former `0.9.17` certification and `0.9.18` family-model delivery roadmap
 remains historical evidence only. The bounded maintenance releases that reused
@@ -177,6 +198,10 @@ and cannot re-admit a retired IC.
 | `v0.9.18` | NT51928 optional-input compatibility hot-fix | Make LDC optional in Standard Merge and allow Initial Code, LDC, or both in DP Replace while retaining exact declared capacities and support-neutral status. |
 | `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and canonical dependency-gated execution plan without changing firmware behavior or support truth. |
 | `v0.10.1` | Headless canonical foundation | Complete all 78 admitted headless routes, reviewed capability/per-compilation identity, allocated firmware contracts, and explicit retirements without claiming deferred UI, deletion, Core convergence, or support certification. |
+| `v0.10.2` | Complete canonical refactoring | Complete the approved deferred UI adoption, compatibility and legacy-runtime deletion, four Canonical Core Convergence slices, and the hard 22,607-line integration gate before tagging. |
+| `v0.10.3` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
+| `v0.10.4` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
+| `v0.10.5` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -233,6 +258,10 @@ v0.9.17         exceptional DiffDLM active-NF preservation hot-fix
 v0.9.18         NT51928 optional-input compatibility hot-fix
 v0.10.0         maintainability planning and dependency-gated execution program
 v0.10.1         headless canonical foundation and reviewed firmware contracts
+v0.10.2         complete canonical refactoring and hard integration-size gate
+v0.10.3         post-refactor simplification and ownership audit
+v0.10.4         unified controllable preload performance lifecycle
+v0.10.5         reserved configured-path update experience
 v1.0.0          stable
 ```
 
