@@ -70,7 +70,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         if (HasDocument)
         {
             ViewportStartRow = Math.Min(ViewportStartRow, DocumentScrollMaximum);
-            RefreshViewportRows();
+            RefreshViewportSnapshot();
         }
     }
 

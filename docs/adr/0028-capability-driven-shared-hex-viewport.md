@@ -1,8 +1,8 @@
 # ADR 0028: Capability-Driven Shared Hex Viewport
 
-- Status: Accepted architecture direction for #191 and #192; implementation remains R2-gated and is not authorized by this ADR alone
+- Status: Accepted; Raw Editor foundation implemented by #191, Report Diff adoption remains #192
 - Date: 2026-07-19
-- Last amended: 2026-07-23
+- Last amended: 2026-08-02
 - Owners: Architecture owner, UI owner
 - Risk class when implemented: R2
 
@@ -13,10 +13,10 @@ The standalone Raw Hex Editor and the Change Report Hex Diff both render
 same technical-font and theme language, but they intentionally have different
 state and authority:
 
-- Raw Hex Editor uses `HexEditorViewportControl` with
-  `HexEditorWorkspaceViewModel`. It owns an Application document, history,
-  search, structural identity, original-row projection, edit actions, context
-  menus, and Save As.
+- Raw Hex Editor composes the Presentation-owned, always-read-only
+  `HexViewportControl` from an immutable `HexViewportSnapshot`. Its host adapter
+  keeps the Application document, history, search, structural identity,
+  original-row projection, edit overlay, context menus, and Save As authority.
 - Change Report Hex Diff uses `ReportHexDiffViewModel` with an
   `ItemsControl`/`DataTemplate`. It owns read-only output/reference snapshots,
   bounded range navigation, address jump, and synchronized
@@ -28,7 +28,7 @@ return to the `v0.9.9` presentation. That rollback is not part of this ADR and
 must not be performed from a later feature branch. U0 re-inspects the exact
 released predecessor that exists when U0 begins.
 
-The two surfaces currently duplicate renderer geometry and row presentation.
+Before #191, the two surfaces duplicated renderer geometry and row presentation.
 Merging their host ViewModels or Application models would incorrectly combine
 raw-document mutation semantics with report-snapshot semantics. Keeping both
 renderers indefinitely would preserve that separation but retain a growing
@@ -36,7 +36,8 @@ Presentation maintenance and code-size cost.
 
 ## Decision
 
-The later owner-selected Presentation milestone may introduce one Presentation-owned inner Hex viewport foundation. `v0.9.15` through `v0.9.17` do not authorize this work.
+The owner-selected `0.10.x` #191 milestone introduces one Presentation-owned
+inner Hex viewport foundation; #192 adopts it for Report Diff and BIN Inspector.
 It owns only:
 
 - address, hexadecimal, and ASCII geometry with 16 bytes per row;
@@ -124,19 +125,16 @@ paths or fabricates missing full bytes.
 
 ## Delivery constraint
 
-Migration follows the independently reviewed U0-U5 slices in the
-[0.9.x Completion Roadmap](../architecture/0.9.x-completion-roadmap.md). The
-legacy Raw Editor renderer and exact final-predecessor Changes presentation
-remain available through U3 and U4 for rollback and parity comparison.
-Duplicate renderer/template/style code is removed only in U5 after both hosts
-pass their complete behavior, performance, accessibility, and read-only gates.
+#191 extracts the immutable snapshot, source-neutral intents, always-read-only
+renderer, and Raw Editor adapter without changing Report Diff. #192 may add the
+`ReportDiff` adapter only after the #191 editor parity, accessibility,
+performance, architecture, Polytail, and final-verifier evidence is accepted.
+The Report Diff host remains separately owned until that adoption is complete.
 
-The temporary dual-renderer period is not permission to evade the code-size
-policy active when U0 begins. U0 records the exact released predecessor at that
-time, then-current ratchets, and deletion budget without
-inventing a universal line target. U5 must delete only proven duplicate
-renderer/template/style ownership; no safety test or evidence may be removed
-to manufacture a reduction.
+Duplicate renderer/template/style code is removed only after both hosts pass
+their complete behavior and read-only gates. No safety test or evidence may be
+removed to manufacture a code-size reduction, and no runtime dependency is
+added merely to express this Presentation seam.
 
 ## Alternatives rejected
 
@@ -168,7 +166,6 @@ to manufacture a reduction.
 ## Required review and evidence
 
 Implementation requires independent architecture and UI review, Polytail, the
-canonical final verifier, and the manual accessibility/performance evidence
-listed in the roadmap. The implementation branch must start from the exact
-released predecessor when U0 begins. This planning ADR does not authorize
-implementation from a candidate commit.
+canonical final verifier, and manual accessibility/performance evidence. #191
+starts from its approved `0.10.x` integration base and stops at the owner merge
+gate; #192 repeats those gates for Report Diff adoption.

@@ -52,10 +52,10 @@ public sealed partial class HexEditorWorkspaceViewModel
     public bool HasInsertBytesFeedback => !string.IsNullOrWhiteSpace(InsertBytesFeedback);
 
     /// <summary>Requests a bounded zero-filled insert before the selected byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> RequestInsertBytesBeforeCommand { get; }
+    public IRelayCommand<long> RequestInsertBytesBeforeCommand { get; }
 
     /// <summary>Requests a bounded zero-filled insert after the selected byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> RequestInsertBytesAfterCommand { get; }
+    public IRelayCommand<long> RequestInsertBytesAfterCommand { get; }
 
     /// <summary>Applies the current bounded zero-filled insert as one undoable operation.</summary>
     public IRelayCommand ConfirmInsertBytesCommand { get; }
@@ -63,25 +63,25 @@ public sealed partial class HexEditorWorkspaceViewModel
     /// <summary>Closes the insert prompt without changing memory.</summary>
     public IRelayCommand CancelInsertBytesCommand { get; }
 
-    private void RequestInsertBytesBefore(HexEditorByteCellViewModel? cell)
+    private void RequestInsertBytesBefore(long address)
     {
-        RequestInsertBytes(cell, before: true);
+        RequestInsertBytes(address, before: true);
     }
 
-    private void RequestInsertBytesAfter(HexEditorByteCellViewModel? cell)
+    private void RequestInsertBytesAfter(long address)
     {
-        RequestInsertBytes(cell, before: false);
+        RequestInsertBytes(address, before: false);
     }
 
-    private void RequestInsertBytes(HexEditorByteCellViewModel? cell, bool before)
+    private void RequestInsertBytes(long address, bool before)
     {
-        if (cell is null || !cell.IsEditable)
+        if (!TryGetRowIndex(address, out _))
         {
             return;
         }
 
         InsertBeforeSelectedByte = before;
-        InsertTargetAddress = cell.Address;
+        InsertTargetAddress = FormatAddress(address);
         InsertByteCount = 1;
         InsertBytesFeedback = string.Empty;
         IsInsertBytesPromptOpen = true;

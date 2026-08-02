@@ -1,19 +1,19 @@
 using Avalonia;
 using Avalonia.Input;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-public sealed partial class HexEditorViewportControl
+public sealed partial class HexViewportControl
 {
     internal void UpdateHoveredCell(Point point)
     {
-        string? nextAddress = (TryHitTest(point, out HexEditorByteCellViewModel? cell, out _) ||
-                               TryHitTestAscii(point, out cell, out _) ||
-                               TryHitTestStructuralAscii(point, out cell, out _))
-            ? cell!.Address
+        long? nextAddress = (TryHitTest(point, out HexViewportCell cell, out _) ||
+                             TryHitTestAscii(point, out cell, out _) ||
+                             TryHitTestStructuralAscii(point, out cell, out _))
+            ? cell.Address
             : null;
-        if (string.Equals(HoveredAddress, nextAddress, StringComparison.Ordinal))
+        if (HoveredAddress == nextAddress)
         {
             return;
         }
@@ -38,49 +38,53 @@ public sealed partial class HexEditorViewportControl
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnPointerWheelChanged(e);
-        if (_workspace is null || e.Delta.Y == 0)
+        if (Snapshot is null || e.Delta.Y == 0)
         {
             return;
         }
 
         const int rowsPerWheelStep = 3;
         int rowDelta = e.Delta.Y < 0 ? rowsPerWheelStep : -rowsPerWheelStep;
-        ScrollRequested?.Invoke(this, new HexEditorViewportScrollEventArgs(rowDelta));
+        RaiseIntent(new HexViewportInteractionIntent(
+            HexViewportInteractionTrigger.Scroll,
+            null,
+            default,
+            rowDelta));
         e.Handled = true;
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (_workspace is not { } workspace)
+        if (Snapshot is null)
         {
             return;
         }
 
         Point point = e.GetPosition(this);
         bool isRightButton = e.GetCurrentPoint(this).Properties.IsRightButtonPressed;
-        if (isRightButton &&
-            TryHitTestStructuralAscii(point, out HexEditorByteCellViewModel? structuralCell, out Rect structuralBounds))
+        if (isRightButton && TryHitTestStructuralAscii(point, out HexViewportCell structuralCell, out Rect structuralBounds))
         {
             _ = Focus();
-            StructuralBlockContextMenuRequested?.Invoke(
-                this,
-                new HexEditorViewportCellEventArgs(structuralCell!, structuralBounds));
+            RaiseIntent(new HexViewportInteractionIntent(
+                HexViewportInteractionTrigger.StructuralContext,
+                structuralCell.Address,
+                structuralBounds,
+                StructuralBlockIndex: structuralCell.StructuralBlockIndex));
             e.Handled = true;
             return;
         }
 
-        if (!TryHitTest(point, out HexEditorByteCellViewModel? cell, out Rect bounds) &&
+        if (!TryHitTest(point, out HexViewportCell cell, out Rect bounds) &&
             !TryHitTestAscii(point, out cell, out bounds))
         {
             return;
         }
 
         _ = Focus();
-        workspace.SelectByteCommand.Execute(cell);
-        InvalidateVisual();
+        RaiseIntent(new HexViewportInteractionIntent(HexViewportInteractionTrigger.Select, cell.Address, bounds));
         if (isRightButton)
         {
-            ContextMenuRequested?.Invoke(this, new HexEditorViewportCellEventArgs(cell!, bounds));
+            RaiseIntent(new HexViewportInteractionIntent(HexViewportInteractionTrigger.Context, cell.Address, bounds));
         }
 
         e.Handled = true;
@@ -88,16 +92,16 @@ public sealed partial class HexEditorViewportControl
 
     private void OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (TryHitTest(e.GetPosition(this), out HexEditorByteCellViewModel? cell, out Rect bounds))
+        if (TryHitTest(e.GetPosition(this), out HexViewportCell cell, out Rect bounds))
         {
-            EditRequested?.Invoke(this, new HexEditorViewportCellEventArgs(cell!, bounds));
+            RaiseIntent(new HexViewportInteractionIntent(HexViewportInteractionTrigger.Activate, cell.Address, bounds));
             e.Handled = true;
         }
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_workspace is not { } workspace)
+        if (Snapshot is not { } snapshot)
         {
             return;
         }
@@ -119,28 +123,31 @@ public sealed partial class HexEditorViewportControl
         {
             delta = BytesPerRow;
         }
-
         if (delta is not null)
         {
-            workspace.MoveSelectionCommand.Execute(delta.Value);
-            InvalidateVisual();
+            RaiseIntent(new HexViewportInteractionIntent(
+                HexViewportInteractionTrigger.MoveSelection,
+                snapshot.SelectedAddress,
+                default,
+                delta.Value));
             e.Handled = true;
             return;
         }
 
-        if (e.Key is Key.Enter or Key.F2 && FindSelectedCell() is { } selected &&
+        if (e.Key is Key.Enter or Key.F2 &&
+            snapshot.SelectedAddress is long selected &&
             TryGetCellBounds(selected, out Rect bounds))
         {
-            EditRequested?.Invoke(this, new HexEditorViewportCellEventArgs(selected, bounds));
+            RaiseIntent(new HexViewportInteractionIntent(HexViewportInteractionTrigger.Activate, selected, bounds));
             e.Handled = true;
         }
     }
 
-    private bool TryHitTest(Point point, out HexEditorByteCellViewModel? cell, out Rect bounds)
+    private bool TryHitTest(Point point, out HexViewportCell cell, out Rect bounds)
     {
-        cell = null;
+        cell = default;
         bounds = default;
-        if (_workspace is null)
+        if (Snapshot is not { } snapshot)
         {
             return false;
         }
@@ -148,14 +155,14 @@ public sealed partial class HexEditorViewportControl
         double cellStart = GetByteStart();
         double cellWidth = GetCellWidth();
         double y = 0;
-        foreach (HexEditorViewportRowViewModel row in _workspace.ViewportRows)
+        foreach (HexViewportRow row in snapshot.Rows)
         {
             if (point.Y >= y && point.Y < y + RowHeight)
             {
-                int index = ResolveCellIndex(point, cellStart, cellWidth, row.Bytes.Count, y, RowHeight);
+                int index = ResolveCellIndex(point, cellStart, cellWidth, row.Cells.Count, y, RowHeight);
                 if (index >= 0)
                 {
-                    cell = row.Bytes[index];
+                    cell = row.Cells[index];
                     bounds = GetCellRect(index, y);
                     return true;
                 }
@@ -164,7 +171,7 @@ public sealed partial class HexEditorViewportControl
             }
 
             y += RowHeight;
-            if (row.IsOriginalRowVisible)
+            if (IsComparisonRowVisible(snapshot, row))
             {
                 if (point.Y >= y && point.Y < y + RowHeight)
                 {
@@ -178,30 +185,27 @@ public sealed partial class HexEditorViewportControl
         return false;
     }
 
-    private bool TryHitTestAscii(
-        Point point,
-        out HexEditorByteCellViewModel? cell,
-        out Rect bounds)
+    private bool TryHitTestAscii(Point point, out HexViewportCell cell, out Rect bounds)
     {
-        cell = null;
+        cell = default;
         bounds = default;
         double asciiStart = GetAsciiCellRect(0, 0).Left;
         double asciiEnd = GetAsciiCellRect(BytesPerRow - 1, 0).Right;
-        if (_workspace is null || point.X < asciiStart || point.X >= asciiEnd)
+        if (Snapshot is not { } snapshot || point.X < asciiStart || point.X >= asciiEnd)
         {
             return false;
         }
 
         double cellWidth = GetAsciiCellRect(0, 0).Width;
         double y = 0;
-        foreach (HexEditorViewportRowViewModel row in _workspace.ViewportRows)
+        foreach (HexViewportRow row in snapshot.Rows)
         {
             if (point.Y >= y && point.Y < y + RowHeight)
             {
-                int index = ResolveCellIndex(point, asciiStart, cellWidth, row.Bytes.Count, y, RowHeight);
+                int index = ResolveCellIndex(point, asciiStart, cellWidth, row.Cells.Count, y, RowHeight);
                 if (index >= 0)
                 {
-                    cell = row.Bytes[index];
+                    cell = row.Cells[index];
                     bounds = GetAsciiCellRect(index, y);
                     return true;
                 }
@@ -209,7 +213,7 @@ public sealed partial class HexEditorViewportControl
                 return false;
             }
 
-            y += row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight;
+            y += IsComparisonRowVisible(snapshot, row) ? RowHeight * 2 : RowHeight;
         }
 
         return false;
@@ -230,10 +234,8 @@ public sealed partial class HexEditorViewportControl
             : (int)((point.X - cellStart) / cellWidth);
     }
 
-    private HexEditorByteCellViewModel? FindSelectedCell()
+    private void RaiseIntent(HexViewportInteractionIntent intent)
     {
-        return _workspace?.ViewportRows
-            .SelectMany(row => row.Bytes)
-            .FirstOrDefault(cell => cell.IsSelected);
+        InteractionRequested?.Invoke(this, new HexViewportInteractionEventArgs(intent));
     }
 }

@@ -3,29 +3,27 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class HexEditorWorkspaceViewModel
 {
     /// <summary>Visible current-data addresses changed by the latest Undo or Redo operation.</summary>
-    public IReadOnlyList<string> HistoryFeedbackAddresses { get; private set; } = [];
+    public IReadOnlyList<long> HistoryFeedbackAddresses { get; private set; } = [];
 
     /// <summary>Monotonic trigger used by the low-cost renderer to restart its feedback animation.</summary>
     public int HistoryFeedbackVersion { get; private set; }
 
-    private Dictionary<string, VisibleByteFingerprint> CaptureVisibleByteFingerprints()
+    private Dictionary<long, VisibleByteFingerprint> CaptureVisibleByteFingerprints()
     {
-        return ViewportRows
-            .SelectMany(row => row.Bytes)
+        return ViewportSnapshot.Rows
+            .SelectMany(row => row.Cells)
             .ToDictionary(
                 cell => cell.Address,
                 cell => new VisibleByteFingerprint(
-                    cell.ValueHex,
-                    cell.OriginalHex,
-                    cell.HasOriginalValue,
+                    cell.PrimaryValue,
+                    cell.ComparisonValue,
                     cell.IsDataChanged,
-                    cell.IsStructuralChanged),
-                StringComparer.Ordinal);
+                    cell.IsStructuralChanged));
     }
 
-    private void PublishHistoryFeedback(IReadOnlyDictionary<string, VisibleByteFingerprint> before)
+    private void PublishHistoryFeedback(IReadOnlyDictionary<long, VisibleByteFingerprint> before)
     {
-        IReadOnlyDictionary<string, VisibleByteFingerprint> after = CaptureVisibleByteFingerprints();
+        IReadOnlyDictionary<long, VisibleByteFingerprint> after = CaptureVisibleByteFingerprints();
         HistoryFeedbackAddresses = [
             .. after
                 .Where(pair => !before.TryGetValue(pair.Key, out VisibleByteFingerprint previous) || previous != pair.Value)
@@ -34,6 +32,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         OnPropertyChanged(nameof(HistoryFeedbackAddresses));
         HistoryFeedbackVersion++;
         OnPropertyChanged(nameof(HistoryFeedbackVersion));
+        RefreshViewportSnapshot();
     }
 
     private void ResetHistoryFeedback()
@@ -43,9 +42,8 @@ public sealed partial class HexEditorWorkspaceViewModel
     }
 
     private readonly record struct VisibleByteFingerprint(
-        string ValueHex,
-        string OriginalHex,
-        bool HasOriginalValue,
+        byte Value,
+        byte? Original,
         bool IsDataChanged,
         bool IsStructuralChanged);
 }

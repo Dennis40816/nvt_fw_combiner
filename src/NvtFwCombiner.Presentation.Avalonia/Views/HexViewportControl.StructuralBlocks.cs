@@ -1,20 +1,20 @@
 using Avalonia;
 using Avalonia.Media;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-public sealed partial class HexEditorViewportControl
+public sealed partial class HexViewportControl
 {
     private void CollectStructuralVisualSegments(
-        Dictionary<int, List<HexEditorStructuralVisualSegment>> blocks,
-        HexEditorViewportRowViewModel row,
+        Dictionary<int, List<HexViewportStructuralVisualSegment>> blocks,
+        HexViewportRow row,
         double y)
     {
         int start = 0;
-        while (start < row.Bytes.Count)
+        while (start < row.Cells.Count)
         {
-            HexEditorByteCellViewModel firstCell = row.Bytes[start];
+            HexViewportCell firstCell = row.Cells[start];
             if (!firstCell.HasStructuralBlock)
             {
                 start++;
@@ -23,19 +23,20 @@ public sealed partial class HexEditorViewportControl
 
             int blockIndex = firstCell.StructuralBlockIndex;
             int end = start + 1;
-            while (end < row.Bytes.Count && row.Bytes[end].StructuralBlockIndex == blockIndex)
+            while (end < row.Cells.Count && row.Cells[end].StructuralBlockIndex == blockIndex)
             {
                 end++;
             }
 
             Rect first = GetAsciiCellRect(start, y).Deflate(1);
             Rect last = GetAsciiCellRect(end - 1, y).Deflate(1);
-            double height = (row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight) - 2;
-            var segment = new HexEditorStructuralVisualSegment(
+            bool showComparison = Snapshot is { } snapshot && IsComparisonRowVisible(snapshot, row);
+            double height = (showComparison ? RowHeight * 2 : RowHeight) - 2;
+            var segment = new HexViewportStructuralVisualSegment(
                 new Rect(first.X, first.Y, last.Right - first.X, height),
-                firstCell.StructuralBoundaryLabel,
+                FormattableString.Invariant($"{blockIndex + 1:00}"),
                 firstCell);
-            if (!blocks.TryGetValue(blockIndex, out List<HexEditorStructuralVisualSegment>? segments))
+            if (!blocks.TryGetValue(blockIndex, out List<HexViewportStructuralVisualSegment>? segments))
             {
                 segments = [];
                 blocks.Add(blockIndex, segments);
@@ -48,9 +49,9 @@ public sealed partial class HexEditorViewportControl
 
     private void DrawAsciiStructuralBlocks(
         DrawingContext context,
-        IReadOnlyDictionary<int, List<HexEditorStructuralVisualSegment>> blocks)
+        IReadOnlyDictionary<int, List<HexViewportStructuralVisualSegment>> blocks)
     {
-        foreach (List<HexEditorStructuralVisualSegment> segments in blocks.Values)
+        foreach (List<HexViewportStructuralVisualSegment> segments in blocks.Values)
         {
             if (segments.Count == 0)
             {
@@ -72,7 +73,7 @@ public sealed partial class HexEditorViewportControl
 
     private void DrawWrappedStructuralOutline(
         DrawingContext context,
-        List<HexEditorStructuralVisualSegment> segments)
+        List<HexViewportStructuralVisualSegment> segments)
     {
         Rect first = segments[0].Bounds;
         Rect last = segments[^1].Bounds;
@@ -98,36 +99,29 @@ public sealed partial class HexEditorViewportControl
     private static void DrawStructuralBlockLabel(DrawingContext context, string label, Rect outline)
     {
         FormattedText text = CreateBoundaryText(label);
-        Rect badge = new(
-            outline.X + 2,
-            outline.Y + 2,
-            text.Width + 6,
-            text.Height + 2);
+        Rect badge = new(outline.X + 2, outline.Y + 2, text.Width + 6, text.Height + 2);
         DrawRoundedRectangle(context, StructuralLabelBrush, null, badge, 3);
         context.DrawText(text, new Point(badge.X + 3, badge.Y + 1));
     }
 
-    private bool TryHitTestStructuralAscii(
-        Point point,
-        out HexEditorByteCellViewModel? cell,
-        out Rect bounds)
+    private bool TryHitTestStructuralAscii(Point point, out HexViewportCell cell, out Rect bounds)
     {
-        cell = null;
+        cell = default;
         bounds = default;
-        if (_workspace is null)
+        if (Snapshot is not { } snapshot)
         {
             return false;
         }
 
-        var blocks = new Dictionary<int, List<HexEditorStructuralVisualSegment>>();
+        var blocks = new Dictionary<int, List<HexViewportStructuralVisualSegment>>();
         double y = 0;
-        foreach (HexEditorViewportRowViewModel row in _workspace.ViewportRows)
+        foreach (HexViewportRow row in snapshot.Rows)
         {
             CollectStructuralVisualSegments(blocks, row, y);
-            y += row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight;
+            y += IsComparisonRowVisible(snapshot, row) ? RowHeight * 2 : RowHeight;
         }
 
-        foreach (List<HexEditorStructuralVisualSegment> segments in blocks.Values)
+        foreach (List<HexViewportStructuralVisualSegment> segments in blocks.Values)
         {
             if (segments.Count == 0)
             {
@@ -139,11 +133,7 @@ public sealed partial class HexEditorViewportControl
             double left = GetAsciiCellRect(0, 0).Deflate(1).Left;
             double right = GetAsciiCellRect(BytesPerRow - 1, 0).Deflate(1).Right;
             Rect[] segmentBounds = [.. segments.Select(segment => segment.Bounds)];
-            if (!ContainsStructuralPoint(
-                    segmentBounds,
-                    point,
-                    left,
-                    right))
+            if (!ContainsStructuralPoint(segmentBounds, point, left, right))
             {
                 continue;
             }
@@ -156,11 +146,7 @@ public sealed partial class HexEditorViewportControl
         return false;
     }
 
-    private static bool ContainsStructuralPoint(
-        Rect[] segments,
-        Point point,
-        double left,
-        double right)
+    private static bool ContainsStructuralPoint(Rect[] segments, Point point, double left, double right)
     {
         Rect first = segments[0];
         if (segments.Length == 1)
@@ -173,8 +159,7 @@ public sealed partial class HexEditorViewportControl
             ? point.X >= first.Left && point.X <= right
             : point.Y > first.Bottom && point.Y < last.Top
                 ? point.X >= left && point.X <= right
-                : point.Y >= last.Top && point.Y <= last.Bottom &&
-                  point.X >= left && point.X <= last.Right;
+                : point.Y >= last.Top && point.Y <= last.Bottom && point.X >= left && point.X <= last.Right;
     }
 
     private static bool ContainsInclusive(Rect bounds, Point point)
@@ -184,7 +169,7 @@ public sealed partial class HexEditorViewportControl
     }
 }
 
-internal sealed record HexEditorStructuralVisualSegment(
+internal sealed record HexViewportStructuralVisualSegment(
     Rect Bounds,
     string Label,
-    HexEditorByteCellViewModel Cell);
+    HexViewportCell Cell);
