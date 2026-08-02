@@ -28,6 +28,26 @@ public sealed partial class RepositoryBoundaryTests
             "MainWindowViewModel.AbAFlashCodeDeliveryPrompt.cs")));
     }
 
+    /// <summary>Replace-only selection policy and modal lifetime belong to a focused child.</summary>
+    [Fact]
+    public void ReplacePresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellReplace = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs");
+        string replaceSelection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Selection.cs");
+
+        Assert.Contains("Replace = new ReplacePresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public ReplacePresentationViewModel Replace", shellReplace, StringComparison.Ordinal);
+        Assert.Contains("CreateReplaceSelectionMissingRows", replaceSelection, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "public bool IsReplaceSelectionModalOpen",
+            ReadViewModelPartials(),
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Workflow context and firmware mismatch prompts belong to the shared session child.</summary>
     [Fact]
     public void WorkflowSessionPresentationLivesBehindFocusedChild()

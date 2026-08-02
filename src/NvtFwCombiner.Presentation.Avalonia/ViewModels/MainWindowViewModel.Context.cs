@@ -306,7 +306,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(MergeReadinessStatus));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        RefreshReplaceSelectionState();
+        Replace.RefreshSelectionState();
     }
 
     partial void OnSelectedReplaceModeChanged(string value)

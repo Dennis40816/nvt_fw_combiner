@@ -40,7 +40,7 @@ public sealed partial class MainWindowViewModel
     public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
     private bool IsBlockingSurfaceOpen =>
-        IsReplaceSelectionModalOpen ||
+        Replace.IsReplaceSelectionModalOpen ||
         IsCtrlRamFirmwareVersionModalOpen ||
         WorkflowSession.IsWorkflowContextModalOpen ||
         WorkflowSession.IsFirmwareIcMismatchModalOpen ||
@@ -54,8 +54,7 @@ public sealed partial class MainWindowViewModel
 
     private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
-            nameof(IsCtrlRamFirmwareVersionModalOpen) or
+        if (e.PropertyName is nameof(IsCtrlRamFirmwareVersionModalOpen) or
             nameof(IsNavigationClearConfirmationOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();

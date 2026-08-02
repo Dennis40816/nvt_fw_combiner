@@ -72,9 +72,9 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
         viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
-        Assert.Equal("2 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
-        Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
-        Assert.Contains(viewModel.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Shared)");
+        Assert.Equal("2 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
+        Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
+        Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Shared)");
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);

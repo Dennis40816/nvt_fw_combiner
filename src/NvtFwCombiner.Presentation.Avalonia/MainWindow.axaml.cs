@@ -277,7 +277,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel);
         LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel);
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
-        LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
+        LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
         LoadContent(AbAFlashCodeDeliveryPromptModalHost,
             viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,

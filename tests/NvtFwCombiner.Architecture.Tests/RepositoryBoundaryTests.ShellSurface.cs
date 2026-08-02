@@ -138,9 +138,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding Reports.ShowReportCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding Reports.IsReportModalOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsReplaceSelectionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.IsReplaceSelectionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding Replace.ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);

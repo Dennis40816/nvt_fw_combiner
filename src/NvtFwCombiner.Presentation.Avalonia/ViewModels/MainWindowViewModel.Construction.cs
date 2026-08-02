@@ -98,10 +98,24 @@ public sealed partial class MainWindowViewModel
         Settings = new SettingsViewModel(appVersion);
         Merge = new MergePresentationViewModel(() => Text);
         Merge.PropertyChanged += Merge_OnPropertyChanged;
+        Replace = new ReplacePresentationViewModel(new ReplaceSelectionBindings(
+            () => Text,
+            () => SelectedIc,
+            () => SelectedNumber,
+            () => SelectedReplaceMode,
+            () => IsGeneralReplaceModeSelected,
+            () => IsCtrlRamReplaceModeSelected,
+            CanRunReplace,
+            () => CanBuildReplace,
+            () => ReplaceReadinessStatus,
+            () => ReplaceBaseSlot,
+            () => ReplaceSlots,
+            () => GeneralReplaceMappings));
+        Replace.PropertyChanged += Replace_OnPropertyChanged;
         CompositionProgress = new CompositionRunProgressViewModel(language);
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
-        Reports = new ReportPresentationViewModel(() => Text, CloseReplaceSelectionForRun);
+        Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
         Reports.PropertyChanged += Reports_OnPropertyChanged;
         WorkflowSession = new WorkflowSessionPresentationViewModel(
             () => Text,
@@ -179,8 +193,6 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
             () => CanBuildReplace);
-        ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
-        CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);

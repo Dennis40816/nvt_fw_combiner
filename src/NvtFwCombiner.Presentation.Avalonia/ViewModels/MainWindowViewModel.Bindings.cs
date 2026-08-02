@@ -382,12 +382,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that builds Replace output through the application/workbench core.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
 
-    /// <summary>Command that opens the compact Replace input selection overview.</summary>
-    public IRelayCommand ShowReplaceSelectionCommand { get; }
-
-    /// <summary>Command that closes the compact Replace input selection overview.</summary>
-    public IRelayCommand CloseReplaceSelectionCommand { get; }
-
     /// <summary>Command that keeps the source TP firmware version for the current CtrlRAM build.</summary>
     public IRelayCommand SelectCtrlRamFirmwareVersionPreserveCommand { get; }
 

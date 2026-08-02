@@ -75,12 +75,13 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(NavigationClearRoute));
         Reports.ApplyLanguageChanged();
         Merge.ApplyLanguageChanged();
+        Replace.ApplyLanguageChanged();
         WorkflowSession.ApplyLanguageChanged();
         _deferredState.RefreshLoaded(
             RefreshSettingsState,
             () => RefreshReplaceModeState(preserveSlotFiles: true),
             WorkflowSession.RefreshCtrlRamDisplayFromInspection,
-            RefreshReplaceSelectionState);
+            Replace.RefreshSelectionState);
     }
 
     private void RelocalizeFirmwareFacts()

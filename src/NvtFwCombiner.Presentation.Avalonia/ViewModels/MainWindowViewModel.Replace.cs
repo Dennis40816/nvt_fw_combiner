@@ -121,7 +121,7 @@ public sealed partial class MainWindowViewModel
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
-        CloseReplaceSelectionForRun();
+        Replace.CloseSelectionForRun();
         string icId = SelectedIc;
         string number = SelectedNumber;
         string replaceMode = SelectedReplaceMode;

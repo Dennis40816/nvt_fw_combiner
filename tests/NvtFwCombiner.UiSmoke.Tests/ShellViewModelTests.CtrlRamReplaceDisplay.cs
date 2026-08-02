@@ -58,7 +58,7 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("FlashCode", viewModel.Text.CtrlRamFirmwareVersionCurrentLabel, StringComparison.Ordinal);
         Assert.DoesNotContain("FlashCode", traditionalChinese.CtrlRamFirmwareVersionSourceDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
+        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
 
         OpenReplace(viewModel, "DP");
         Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
@@ -208,12 +208,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "3";
         OpenReplace(viewModel, "CtrlRAM");
 
-        Assert.Equal("0 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("0 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, static segment => segment.IsChanged);
         Assert.All(viewModel.ReplaceCoverageSegments, static segment => Assert.True(segment.UsesKeptPattern));
-        Assert.Contains("Build blocked", viewModel.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
-        Assert.Contains(viewModel.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
+        Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
+        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware (FlashCode / TP FW)");
+        Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
         Assert.Equal("0/2", slaveLGroup.CountLabel);
         Assert.Equal("2 areas. None selected.", slaveLGroup.SelectionSummary);
@@ -234,22 +234,22 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", workspace.PathFor("base.bin"));
 
         sharedGroup = viewModel.ReplaceSlotGroups.Single(group => group.Title == "Common");
-        Assert.Equal("1 / 8 targets selected", viewModel.ReplaceSelectionCountLabel);
+        Assert.Equal("1 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.Equal("1/2", sharedGroup.CountLabel);
         Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);
-        Assert.Equal("Ready for Build", viewModel.ReplaceSelectionStatusLabel);
-        Assert.Empty(viewModel.ReplaceSelectionMissingRows);
-        Assert.Contains(viewModel.ReplaceSelectionRows, row =>
+        Assert.Equal("Ready for Build", viewModel.Replace.ReplaceSelectionStatusLabel);
+        Assert.Empty(viewModel.Replace.ReplaceSelectionMissingRows);
+        Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row =>
             row.Title == "VN CtrlRAM (Shared)" &&
             row.Detail == "vn.bin" &&
             row.Meta.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
             row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal));
-        Assert.Contains("Build will validate", viewModel.ReplaceSelectionRunHint, StringComparison.Ordinal);
+        Assert.Contains("Build will validate", viewModel.Replace.ReplaceSelectionRunHint, StringComparison.Ordinal);
 
-        Assert.False(viewModel.IsReplaceSelectionModalOpen);
-        viewModel.ShowReplaceSelectionCommand.Execute(null);
-        Assert.True(viewModel.IsReplaceSelectionModalOpen);
-        viewModel.CloseReplaceSelectionCommand.Execute(null);
-        Assert.False(viewModel.IsReplaceSelectionModalOpen);
+        Assert.False(viewModel.Replace.IsReplaceSelectionModalOpen);
+        viewModel.Replace.ShowReplaceSelectionCommand.Execute(null);
+        Assert.True(viewModel.Replace.IsReplaceSelectionModalOpen);
+        viewModel.Replace.CloseReplaceSelectionCommand.Execute(null);
+        Assert.False(viewModel.Replace.IsReplaceSelectionModalOpen);
     }
 }

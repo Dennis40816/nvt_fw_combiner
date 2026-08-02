@@ -217,10 +217,10 @@
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.TargetsLabel}" />
                   <Button
                       Classes="summaryChip"
-                      Command="{Binding ShowReplaceSelectionCommand}"
+                      Command="{Binding Replace.ShowReplaceSelectionCommand}"
                       ToolTip.Tip="{Binding Text.ReviewReplacementInputsTooltip}">
                     <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
-                      <TextBlock VerticalAlignment="Center" Classes="bodyEmphasisText" Text="{Binding ReplaceSelectionCountLabel}" />
+                      <TextBlock VerticalAlignment="Center" Classes="bodyEmphasisText" Text="{Binding Replace.ReplaceSelectionCountLabel}" />
                       <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="captionText" Text="▾" />
                     </Grid>
                   </Button>
@@ -374,9 +374,9 @@
     <ContentControl
         x:Name="ReplaceSelectionModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsReplaceSelectionModalOpen}">
+        IsVisible="{Binding Replace.IsReplaceSelectionModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:ReplacePresentationViewModel">
           <views:ReplaceSelectionModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>

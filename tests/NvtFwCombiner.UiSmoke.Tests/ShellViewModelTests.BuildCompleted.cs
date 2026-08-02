@@ -290,7 +290,7 @@ public sealed partial class ShellViewModelTests
         switch (surface)
         {
             case "replace-selection":
-                viewModel.ShowReplaceSelectionCommand.Execute(null);
+                viewModel.Replace.ShowReplaceSelectionCommand.Execute(null);
                 break;
             case "ctrlram-version":
                 Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
@@ -335,7 +335,7 @@ public sealed partial class ShellViewModelTests
         switch (surface)
         {
             case "replace-selection":
-                viewModel.CloseReplaceSelectionCommand.Execute(null);
+                viewModel.Replace.CloseReplaceSelectionCommand.Execute(null);
                 break;
             case "ctrlram-version":
                 viewModel.CloseCtrlRamFirmwareVersionModal();
@@ -376,7 +376,7 @@ public sealed partial class ShellViewModelTests
     {
         return surface switch
         {
-            "replace-selection" => viewModel.IsReplaceSelectionModalOpen,
+            "replace-selection" => viewModel.Replace.IsReplaceSelectionModalOpen,
             "ctrlram-version" => viewModel.IsCtrlRamFirmwareVersionModalOpen,
             "workflow-context" => viewModel.WorkflowSession.IsWorkflowContextModalOpen,
             "firmware-ic-mismatch" => viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen,
