@@ -13,14 +13,14 @@ public static class ReportHistoryFileStore
     public static string DefaultHistoryPath => BestEffortLocalJsonFileStore.GetDefaultPath(HistoryFileName);
 
     /// <summary>Loads persisted history into the view model from the default path.</summary>
-    public static void LoadInto(MainWindowViewModel viewModel)
+    public static void LoadInto(ReportPresentationViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         viewModel.LoadReportHistory(Load(DefaultHistoryPath));
     }
 
     /// <summary>Saves the view model history to the default path.</summary>
-    public static void Save(MainWindowViewModel viewModel)
+    public static void Save(ReportPresentationViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         Save(DefaultHistoryPath, viewModel.ExportReportHistory());

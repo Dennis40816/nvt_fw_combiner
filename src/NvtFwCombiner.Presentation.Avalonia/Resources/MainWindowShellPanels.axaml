@@ -54,11 +54,11 @@
             Grid.Column="0"
             Classes="technicalSelect"
             Width="154"
-            AutomationProperties.HelpText="{Binding SelectedIcDetailAutomationText}"
+            AutomationProperties.HelpText="{Binding WorkflowSession.SelectedIcDetailAutomationText}"
             behaviors:FocusToolTipBehavior.IsEnabled="True"
-            IsVisible="{Binding IsDeviceContextSelectionVisible}"
-            ItemsSource="{Binding IcChoices}"
-            SelectedItem="{Binding SelectedIc, Mode=TwoWay}"
+            IsVisible="{Binding WorkflowSession.IsDeviceContextSelectionVisible}"
+            ItemsSource="{Binding WorkflowSession.IcChoices}"
+            SelectedItem="{Binding WorkflowSession.SelectedIc, Mode=TwoWay}"
             ToolTip.Placement="BottomEdgeAlignedLeft"
             ToolTip.ShowDelay="250">
           <ToolTip.Tip>
@@ -73,7 +73,7 @@
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="{DynamicResource NfcSpace2}">
                       <TextBlock Classes="captionText" Text="{Binding Text.IcDetailTitle}" />
-                      <TextBlock Classes="technicalValue" Text="{Binding SelectedIc}" />
+                      <TextBlock Classes="technicalValue" Text="{Binding WorkflowSession.SelectedIc}" />
                     </StackPanel>
                   </Grid>
                   <Border Height="1" Background="{DynamicResource NfcBorderMutedBrush}" />
@@ -81,17 +81,17 @@
                     <Path
                         Classes="icDetailRowIcon"
                         Data="M3 3V13 M3 5H8 M8 5V3 M8 5H13 M13 5V8 M3 11H8 M8 11V9 M8 11H13 M13 11V14" />
-                    <TextBlock Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailFamily}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Column="1" Classes="bodyText" Text="{Binding WorkflowSession.SelectedIcDetailFamily}" TextWrapping="Wrap" />
                     <Path
                         Grid.Row="1"
                         Classes="icDetailRowIcon"
                         Data="M3 3V13L13 8Z" />
-                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailRuntime}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyText" Text="{Binding WorkflowSession.SelectedIcDetailRuntime}" TextWrapping="Wrap" />
                     <Path
                         Grid.Row="2"
                         Classes="icDetailRowIcon"
                         Data="M8 2L13 4V8C13 11 11 13 8 14C5 13 3 11 3 8V4Z M5.5 8L7 9.5L10.5 6" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding SelectedIcDetailEvidence}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Classes="bodyText" Text="{Binding WorkflowSession.SelectedIcDetailEvidence}" TextWrapping="Wrap" />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -109,8 +109,8 @@
             Classes="technicalCenteredInput"
             Width="154"
             IsReadOnly="True"
-            IsVisible="{Binding IsRunInProgress}"
-            Text="{Binding ActiveRunIc}" />
+            IsVisible="{Binding RunSession.IsRunInProgress}"
+            Text="{Binding RunSession.ActiveRunIc}" />
 
         <Border
             Grid.Row="0"
@@ -120,25 +120,25 @@
             MinHeight="45"
             Background="Transparent"
             IsHitTestVisible="False"
-            IsVisible="{Binding IsNumberSelectorPlaceholderVisible}" />
+            IsVisible="{Binding WorkflowSession.IsNumberSelectorPlaceholderVisible}" />
         <TextBlock
             Grid.Row="0"
             Grid.Column="1"
             Classes="tableHeader"
-            IsVisible="{Binding IsNumberSelectorVisible}"
+            IsVisible="{Binding WorkflowSession.IsNumberSelectorVisible}"
             Text="{Binding Text.NumberLabel}" />
         <Grid
             Grid.Row="1"
             Grid.Column="1"
             Width="132"
-            IsVisible="{Binding IsNumberSelectorVisible}">
+            IsVisible="{Binding WorkflowSession.IsNumberSelectorVisible}">
           <ComboBox
               Classes="technicalSelect"
               Width="132"
               AutomationProperties.Name="{Binding Text.NumberLabel}"
-              IsVisible="{Binding IsDeviceContextSelectionVisible}"
-              ItemsSource="{Binding NumberSelectionChoices}"
-              SelectedItem="{Binding SelectedNumberChoice, Mode=TwoWay}">
+              IsVisible="{Binding WorkflowSession.IsDeviceContextSelectionVisible}"
+              ItemsSource="{Binding WorkflowSession.NumberSelectionChoices}"
+              SelectedItem="{Binding WorkflowSession.SelectedNumberChoice, Mode=TwoWay}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:IcNumberChoiceViewModel">
                 <TextBlock FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontSize="{DynamicResource NfcFontSize13}" Text="{Binding DisplayLabel}" />
@@ -150,8 +150,8 @@
               Width="132"
               AutomationProperties.Name="{Binding Text.NumberLabel}"
               IsReadOnly="True"
-              IsVisible="{Binding IsRunInProgress}"
-              Text="{Binding ActiveRunNumber}" />
+              IsVisible="{Binding RunSession.IsRunInProgress}"
+              Text="{Binding RunSession.ActiveRunNumber}" />
         </Grid>
         <StackPanel
             Grid.Row="1"
@@ -167,7 +167,7 @@
           <TextBlock
               VerticalAlignment="Center"
               Classes="bodyEmphasisText"
-              Text="{Binding DeviceContextStatus}"
+              Text="{Binding WorkflowSession.DeviceContextStatus}"
               TextAlignment="Left"
               TextWrapping="Wrap" />
         </StackPanel>
@@ -179,27 +179,27 @@
           Margin="16,0,0,0"
           Classes="panelSurface contentPanel"
           AutomationProperties.LiveSetting="Polite"
-          AutomationProperties.Name="{Binding RunProgressStatusLabel}"
-          IsVisible="{Binding IsRunInProgress}">
+          AutomationProperties.Name="{Binding RunSession.RunProgressStatusLabel}"
+          IsVisible="{Binding RunSession.IsRunInProgress}">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
             <TextBlock
                 Classes="bodyStrongText"
-                Text="{Binding RunProgressDisplayLabel}"
+                Text="{Binding RunSession.RunProgressDisplayLabel}"
                 TextTrimming="CharacterEllipsis" />
             <TextBlock
                 Grid.Column="1"
                 Classes="captionText"
-                Text="{Binding CompositionProgress.StepOrdinalLabel}" />
+                Text="{Binding RunSession.CompositionProgress.StepOrdinalLabel}" />
           </Grid>
           <TextBlock
               Classes="captionText"
-              Text="{Binding ActiveRunContextLabel}"
+              Text="{Binding RunSession.ActiveRunContextLabel}"
               TextTrimming="CharacterEllipsis" />
           <ItemsControl
               HorizontalAlignment="Center"
-              IsVisible="{Binding HasTypedRunProgress}"
-              ItemsSource="{Binding CompositionProgress.Steps}">
+              IsVisible="{Binding RunSession.HasTypedRunProgress}"
+              ItemsSource="{Binding RunSession.CompositionProgress.Steps}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" />
@@ -225,16 +225,16 @@
           </ItemsControl>
           <ProgressBar
               Height="3"
-              AutomationProperties.Name="{Binding RunProgressStatusLabel}"
+              AutomationProperties.Name="{Binding RunSession.RunProgressStatusLabel}"
               IsIndeterminate="True"
-              IsVisible="{Binding ShouldAnimateRunProgress}" />
+              IsVisible="{Binding RunSession.ShouldAnimateRunProgress}" />
         </StackPanel>
       </Border>
     </Grid>
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:ReportPresentationViewModel">
   <Border
       Classes="toastSurface"
       AutomationProperties.LiveSetting="Polite"

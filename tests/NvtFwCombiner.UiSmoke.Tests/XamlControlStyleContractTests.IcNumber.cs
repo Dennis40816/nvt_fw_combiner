@@ -15,26 +15,26 @@ public sealed partial class XamlControlStyleContractTests
             contextPanel.Descendants(),
             static element =>
                 element.Name.LocalName == "ComboBox" &&
-                element.Attribute("ItemsSource")?.Value == "{Binding NumberSelectionChoices}");
+                element.Attribute("ItemsSource")?.Value == "{Binding WorkflowSession.NumberSelectionChoices}");
         Assert.Equal(
-            "{Binding SelectedNumberChoice, Mode=TwoWay}",
+            "{Binding WorkflowSession.SelectedNumberChoice, Mode=TwoWay}",
             contextSelector.Attribute("SelectedItem")?.Value);
         Assert.Equal(
-            "{Binding IsDeviceContextSelectionVisible}",
+            "{Binding WorkflowSession.IsDeviceContextSelectionVisible}",
             contextSelector.Attribute("IsVisible")?.Value);
 
         XElement activeRunNumber = Assert.Single(
             contextPanel.Descendants(),
             static element =>
                 element.Name.LocalName == "TextBox" &&
-                element.Attribute("Text")?.Value == "{Binding ActiveRunNumber}");
+                element.Attribute("Text")?.Value == "{Binding RunSession.ActiveRunNumber}");
         Assert.Equal("True", activeRunNumber.Attribute("IsReadOnly")?.Value);
-        Assert.Equal("{Binding IsRunInProgress}", activeRunNumber.Attribute("IsVisible")?.Value);
+        Assert.Equal("{Binding RunSession.IsRunInProgress}", activeRunNumber.Attribute("IsVisible")?.Value);
         XElement numberPresenter = Assert.IsType<XElement>(activeRunNumber.Parent);
         Assert.Same(numberPresenter, contextSelector.Parent);
         Assert.Equal("Grid", numberPresenter.Name.LocalName);
         Assert.Equal(
-            "{Binding IsNumberSelectorVisible}",
+            "{Binding WorkflowSession.IsNumberSelectorVisible}",
             numberPresenter.Attribute("IsVisible")?.Value);
 
         XElement setupSelector = Assert.Single(

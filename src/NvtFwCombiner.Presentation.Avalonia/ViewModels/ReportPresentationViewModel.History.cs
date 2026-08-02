@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReportPresentationViewModel
 {
     private const int MaxReportHistoryEntries = 12;
     private const int ReportHistoryStorageWarningBytes = 1024 * 1024;
@@ -274,7 +274,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        CloseReplaceSelectionForRun();
+        _beforeOpen();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = true;
         HasReportToast = false;
@@ -331,7 +331,7 @@ public sealed partial class MainWindowViewModel
 
         LoadedReport = report;
         LoadedReportJson = entry.ReportJson;
-        CloseReplaceSelectionForRun();
+        _beforeOpen();
         IsReportModalOpen = true;
         IsReportHistoryViewOpen = false;
         HasReportToast = false;

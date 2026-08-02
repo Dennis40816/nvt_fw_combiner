@@ -11,8 +11,9 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void FirmwareFactRelocalizationPreservesInspectionPublicationGate()
     {
-        string localization = ReadPresentationFile("ViewModels/MainWindowViewModel.Localization.cs");
-        string inspection = ReadPresentationFile("ViewModels/MainWindowViewModel.FirmwareInspection.cs");
+        string localization = ReadPresentationFile("ViewModels/WorkflowSessionPresentationViewModel.cs");
+        string inspection = ReadPresentationFile(
+            "ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
         Assert.Contains("!FirmwareInspectionRequestFactory.SupportsFacts(slot)", localization, StringComparison.Ordinal);
         Assert.Contains("else if (item.PublishFacts)", inspection, StringComparison.Ordinal);

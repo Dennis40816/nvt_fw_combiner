@@ -9,23 +9,23 @@ public sealed partial class ShellViewModelTests
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
 
-        Assert.True(viewModel.IsSelectedReplaceModeGoldenVerified);
-        Assert.Equal("Golden verified", viewModel.SelectedReplaceModeEvidenceLabel);
-        Assert.Equal("Base firmware (FlashCode)", viewModel.ReplaceBaseSlot.Title);
-        Assert.Contains("Complete FlashCode", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
-        Assert.Contains("Only declared DP ranges change", viewModel.ReplaceBaseSlot.Description, StringComparison.Ordinal);
+        Assert.True(viewModel.Replace.IsSelectedReplaceModeGoldenVerified);
+        Assert.Equal("Golden verified", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
+        Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
+        Assert.Contains("Complete FlashCode", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
+        Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51932";
+        viewModel.WorkflowSession.SelectedIc = "NT51932";
         OpenReplace(viewModel, "CtrlRAM");
 
-        Assert.True(viewModel.IsSelectedReplaceModeEvidenceGated);
-        Assert.True(viewModel.IsCtrlRamReplaceModeSelected);
-        Assert.NotEmpty(viewModel.ReplaceSlots);
-        Assert.Equal("Evidence open", viewModel.SelectedReplaceModeEvidenceLabel);
-        Assert.Contains("does not ban authoring", viewModel.SelectedReplaceModeEvidenceTooltip, StringComparison.Ordinal);
+        Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
+        Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
+        Assert.NotEmpty(viewModel.Replace.ReplaceSlots);
+        Assert.Equal("Evidence open", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
+        Assert.Contains("does not ban authoring", viewModel.Replace.SelectedReplaceModeEvidenceTooltip, StringComparison.Ordinal);
     }
 
     /// <summary>Owner-declared perfect/partial IC-family facts are visible with their reuse boundary.</summary>
@@ -36,11 +36,11 @@ public sealed partial class ShellViewModelTests
     public void IcFamilyBadgeExplainsOwnerDeclaredReuse(string icId, string expectedLabel)
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
 
-        Assert.True(viewModel.HasSelectedIcFamily);
-        Assert.Equal(expectedLabel, viewModel.SelectedIcFamilyLabel);
-        Assert.Contains("Canonical IC: NT51927", viewModel.SelectedIcFamilyTooltip, StringComparison.Ordinal);
-        Assert.Contains("never expands executable ranges", viewModel.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.True(viewModel.WorkflowSession.HasSelectedIcFamily);
+        Assert.Equal(expectedLabel, viewModel.WorkflowSession.SelectedIcFamilyLabel);
+        Assert.Contains("Canonical IC: NT51927", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.Contains("never expands executable ranges", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
     }
 }

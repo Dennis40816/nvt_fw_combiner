@@ -13,8 +13,8 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-modal-isolation");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.SelectedIc = "NT51928";
-        viewModel.SelectedReplaceMode = WorkbenchReplaceModes.CtrlRam;
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
+        viewModel.Replace.SelectedReplaceMode = WorkbenchReplaceModes.CtrlRam;
         viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
 
         viewModel.ShowMergeCommand.Execute(null);

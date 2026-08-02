@@ -68,6 +68,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             notifier.PropertyChanged += ViewModel_OnPropertyChanged;
         }
+        viewModel.Reports.PropertyChanged += Reports_OnPropertyChanged;
         _startupTrace.Mark("shell-notifications.ready");
 
         ApplyInitialLaunchOptions(viewModel, launchOptions);
@@ -88,7 +89,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if (DataContext is MainWindowViewModel finalViewModel)
             {
-                finalViewModel.CancelActiveRun();
+                finalViewModel.RunSession.CancelActiveRun();
             }
 
             base.OnClosing(e);
@@ -106,12 +107,16 @@ public sealed partial class MainWindow : Window, IDisposable
         IsEnabled = false;
         if (DataContext is MainWindowViewModel viewModel)
         {
-            viewModel.CancelActiveRun();
+            viewModel.RunSession.CancelActiveRun();
         }
 
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
+        }
+        if (DataContext is MainWindowViewModel closingViewModel)
+        {
+            closingViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
         }
 
         var completion = Task.WhenAll(
@@ -138,6 +143,10 @@ public sealed partial class MainWindow : Window, IDisposable
         if (DataContext is INotifyPropertyChanged notifier)
         {
             notifier.PropertyChanged -= ViewModel_OnPropertyChanged;
+        }
+        if (DataContext is MainWindowViewModel closedViewModel)
+        {
+            closedViewModel.Reports.PropertyChanged -= Reports_OnPropertyChanged;
         }
 
         _reportToastHoldTimer.Stop();
@@ -178,7 +187,10 @@ public sealed partial class MainWindow : Window, IDisposable
         try
         {
             var catalogWarmup = Task.Run(
-                () => PrimeDeferredCatalogs(viewModel.SelectedIc, viewModel.SelectedNumber, startupCancellation),
+                () => PrimeDeferredCatalogs(
+                    viewModel.WorkflowSession.SelectedIc,
+                    viewModel.WorkflowSession.SelectedNumber,
+                    startupCancellation),
                 startupCancellation);
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
@@ -218,21 +230,30 @@ public sealed partial class MainWindow : Window, IDisposable
             _shellPreferencePersistence.Queue(viewModel.ExportShellPreferences());
         }
 
-        if (e.PropertyName == nameof(MainWindowViewModel.ReportHistoryCount))
-        {
-            _reportHistoryPersistence.Queue(viewModel.ExportReportHistory());
-        }
+    }
 
-        if (e.PropertyName != nameof(MainWindowViewModel.HasReportToast))
+    private void Reports_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not ReportPresentationViewModel reports)
         {
             return;
         }
 
-        if (viewModel.HasReportToast)
+        if (e.PropertyName == nameof(ReportPresentationViewModel.ReportHistoryCount))
+        {
+            _reportHistoryPersistence.Queue(reports.ExportReportHistory());
+        }
+
+        if (e.PropertyName != nameof(ReportPresentationViewModel.HasReportToast))
+        {
+            return;
+        }
+
+        if (reports.HasReportToast)
         {
             _reportToastFadeTimer.Stop();
             _reportToastHoldTimer.Stop();
-            viewModel.SetReportToastOpacity(1);
+            reports.SetReportToastOpacity(1);
             _reportToastHoldTimer.Start();
         }
         else
@@ -256,18 +277,22 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(HomePageHost, viewModel.IsHomeVisible, viewModel);
         LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
         LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
-        LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel);
-        LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel);
-        LoadContent(ReportToastHost, viewModel.HasReportToast, viewModel);
-        LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
-        LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
-        LoadContent(AbAFlashCodeDeliveryPromptModalHost, viewModel.IsAbAFlashCodeDeliveryPromptOpen, viewModel);
-        LoadContent(WorkflowContextSetupModalHost, viewModel.IsWorkflowContextModalOpen, viewModel);
-        LoadContent(FirmwareIcMismatchModalHost, viewModel.IsFirmwareIcMismatchModalOpen, viewModel);
-        LoadContent(FirmwareNumberMismatchModalHost, viewModel.IsFirmwareNumberMismatchModalOpen, viewModel);
+        LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace);
+        LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge);
+        LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
+        LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
+        LoadContent(CtrlRamFirmwareVersionModalHost,
+            viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen,
+            viewModel.Replace);
+        LoadContent(AbAFlashCodeDeliveryPromptModalHost,
+            viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
+            viewModel.Merge);
+        LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
+        LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
+        LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
-        LoadContent(ReportModalHost, viewModel.IsReportModalOpen, viewModel);
-        LoadContent(BuildCompletedModalHost, viewModel.IsBuildCompletedModalOpen, viewModel);
+        LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);
+        LoadContent(BuildCompletedModalHost, viewModel.BuildResult.IsOpen, viewModel);
     }
 
     private static void LoadContent(ContentControl host, bool shouldLoad, object content)

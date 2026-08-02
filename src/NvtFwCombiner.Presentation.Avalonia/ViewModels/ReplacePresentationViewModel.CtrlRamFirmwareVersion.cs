@@ -3,7 +3,7 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
     private readonly Func<string, string, WorkbenchFirmwareConfigMetadata?> _ctrlRamFirmwareVersionMetadataReader;
     private WorkbenchFirmwareConfigMetadata? _ctrlRamFirmwareVersionMetadata;

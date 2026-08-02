@@ -15,15 +15,15 @@ public sealed partial class ShellViewModelTests
         WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result with { CommittedOutputId = outputPath },
             build: true,
             TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.IsBuildCompletedModalOpen);
-        Assert.Equal(outputPath, viewModel.BuildCompletedOutputPath);
-        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
-        Assert.True(viewModel.HasLatestCommittedOutput);
+        Assert.True(viewModel.BuildResult.IsOpen);
+        Assert.Equal(outputPath, viewModel.BuildResult.OutputPath);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
+        Assert.True(viewModel.BuildResult.HasLatestCommittedOutput);
     }
 
     /// <summary>A blocked Build opens its structured report immediately so the no-output reason is visible.</summary>
@@ -41,15 +41,15 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandIssue());
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
             build: true,
             TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.False(viewModel.IsBuildCompletedModalOpen);
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Contains("Combiner executable is not available", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Contains("Combiner executable is not available", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>A blocked Preview retains the report toast without treating its expected lack of committed output as Build failure.</summary>
@@ -67,13 +67,13 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandIssue());
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(viewModel.IsReportModalOpen);
-        Assert.True(viewModel.HasReportToast);
+        Assert.False(viewModel.Reports.IsReportModalOpen);
+        Assert.True(viewModel.Reports.HasReportToast);
     }
 
     /// <summary>A Build exception also opens the structured UI error report produced by the workflow callback.</summary>
@@ -82,10 +82,10 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.RunCompositionAsync(
+        await viewModel.RunSession.RunCompositionAsync(
             build: true,
             (_, _) => throw new InvalidOperationException("No exact CtrlRAM route."),
-            (action, message) => viewModel.LoadRunErrorReport(
+            (action, message) => viewModel.Reports.LoadRunErrorReport(
                 action,
                 "nt51926-ctrlram-replace-workbench",
                 "NT51926",
@@ -93,9 +93,9 @@ public sealed partial class ShellViewModelTests
                 message,
                 new Dictionary<string, string>()));
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.Equal("No exact CtrlRAM route.", Assert.Single(viewModel.LoadedReport.Issues).Detail);
-        Assert.Equal("No output", viewModel.LastRunResult.Output);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.Equal("No exact CtrlRAM route.", Assert.Single(viewModel.Reports.LoadedReport.Issues).Detail);
+        Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
     }
 
     /// <summary>A committed Build opens one confirmation while OK retains the latest-output shortcut.</summary>
@@ -106,16 +106,16 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
-        Assert.True(viewModel.IsBuildCompletedModalOpen);
-        Assert.Equal(outputPath, viewModel.BuildCompletedOutputPath);
-        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
+        Assert.True(viewModel.BuildResult.IsOpen);
+        Assert.Equal(outputPath, viewModel.BuildResult.OutputPath);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
 
-        viewModel.CloseBuildCompletedModalCommand.Execute(null);
+        viewModel.BuildResult.CloseCommand.Execute(null);
 
-        Assert.False(viewModel.IsBuildCompletedModalOpen);
-        Assert.Equal(string.Empty, viewModel.BuildCompletedOutputPath);
-        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
-        Assert.True(viewModel.HasLatestCommittedOutput);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.Equal(string.Empty, viewModel.BuildResult.OutputPath);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
+        Assert.True(viewModel.BuildResult.HasLatestCommittedOutput);
     }
 
     /// <summary>The A FlashCode choice resolves before output selection and cannot leave the prompt open after either answer.</summary>
@@ -124,18 +124,18 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task<bool> yes = viewModel.PromptForAbAFlashCodeDeliveryAsync();
-        Assert.True(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
-        viewModel.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
+        Task<bool> yes = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
+        Assert.True(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
+        viewModel.Merge.AcceptAbAFlashCodeDeliveryPromptCommand.Execute(null);
 
         Assert.True(await yes);
-        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
 
-        Task<bool> no = viewModel.PromptForAbAFlashCodeDeliveryAsync();
-        viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+        Task<bool> no = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
+        viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
 
         Assert.False(await no);
-        Assert.False(viewModel.IsAbAFlashCodeDeliveryPromptOpen);
+        Assert.False(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
     }
 
     /// <summary>Completion shows the already-delivered A FlashCode rather than offering a second post-Build export action.</summary>
@@ -160,9 +160,9 @@ public sealed partial class ShellViewModelTests
         };
 
         Assert.True(viewModel.TryShowBuildCompleted(result, build: true));
-        Assert.True(viewModel.HasBuildCompletedAdditionalOutput);
-        Assert.Equal(aFlashCodePath, viewModel.BuildCompletedAdditionalOutputPath);
-        Assert.Equal("a.bin", viewModel.BuildCompletedAdditionalOutputDisplayName);
+        Assert.True(viewModel.BuildResult.HasAdditionalOutput);
+        Assert.Equal(aFlashCodePath, viewModel.BuildResult.AdditionalOutputPath);
+        Assert.Equal("a.bin", viewModel.BuildResult.AdditionalOutputDisplayName);
     }
 
     /// <summary>A failed second delivery keeps the primary artifact discoverable but never opens the all-success completion modal.</summary>
@@ -178,8 +178,8 @@ public sealed partial class ShellViewModelTests
         };
 
         Assert.False(viewModel.TryShowBuildCompleted(result, build: true));
-        Assert.False(viewModel.IsBuildCompletedModalOpen);
-        Assert.Equal(primaryPath, viewModel.LatestCommittedOutputPath);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.Equal(primaryPath, viewModel.BuildResult.LatestCommittedOutputPath);
     }
 
     /// <summary>Preview, blocked Build, and uncommitted success cannot claim that a BIN is ready.</summary>
@@ -192,8 +192,8 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: false));
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath), build: true));
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath: null), build: true));
-        Assert.False(viewModel.IsBuildCompletedModalOpen);
-        Assert.False(viewModel.HasLatestCommittedOutput);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.False(viewModel.BuildResult.HasLatestCommittedOutput);
     }
 
     /// <summary>The latest-output shortcut is scoped to composition pages and survives later failed runs.</summary>
@@ -208,12 +208,12 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
         Assert.False(viewModel.IsCompositionActionRailVisible);
         Assert.False(viewModel.IsLatestOutputActionVisible);
-        viewModel.CloseBuildCompletedModal();
+        viewModel.BuildResult.Close();
 
         Assert.True(viewModel.IsCompositionActionRailVisible);
         Assert.True(viewModel.IsLatestOutputActionVisible);
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath: "another.bin"), build: true));
-        Assert.Equal(outputPath, viewModel.LatestCommittedOutputPath);
+        Assert.Equal(outputPath, viewModel.BuildResult.LatestCommittedOutputPath);
 
         viewModel.ShowHomeCommand.Execute(null);
 
@@ -290,26 +290,26 @@ public sealed partial class ShellViewModelTests
         switch (surface)
         {
             case "replace-selection":
-                viewModel.ShowReplaceSelectionCommand.Execute(null);
+                viewModel.Replace.ShowReplaceSelectionCommand.Execute(null);
                 break;
             case "ctrlram-version":
-                Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
+                Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
                 break;
             case "workflow-context":
-                viewModel.IsWorkflowContextModalOpen = true;
+                viewModel.WorkflowSession.IsWorkflowContextModalOpen = true;
                 break;
             case "firmware-ic-mismatch":
-                viewModel.IsFirmwareIcMismatchModalOpen = true;
+                viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen = true;
                 break;
             case "firmware-number-mismatch":
-                viewModel.IsFirmwareNumberMismatchModalOpen = true;
+                viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen = true;
                 break;
             case "navigation-clear":
                 viewModel.IsNavigationClearConfirmationOpen = true;
                 break;
             case "report":
-                viewModel.LoadReportJson(ReportJsonSamples.Succeeded(runId: "rail-blocking-surface"), "report.json");
-                viewModel.ShowReportCommand.Execute(null);
+                viewModel.Reports.LoadReportJson(ReportJsonSamples.Succeeded(runId: "rail-blocking-surface"), "report.json");
+                viewModel.Reports.ShowReportCommand.Execute(null);
                 break;
             case "build-completed":
                 Assert.True(viewModel.TryShowBuildCompleted(
@@ -317,7 +317,7 @@ public sealed partial class ShellViewModelTests
                     build: true));
                 break;
             case "ab-a-flashcode-delivery":
-                _ = viewModel.PromptForAbAFlashCodeDeliveryAsync();
+                _ = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen = true;
@@ -335,31 +335,31 @@ public sealed partial class ShellViewModelTests
         switch (surface)
         {
             case "replace-selection":
-                viewModel.CloseReplaceSelectionCommand.Execute(null);
+                viewModel.Replace.CloseReplaceSelectionCommand.Execute(null);
                 break;
             case "ctrlram-version":
-                viewModel.CloseCtrlRamFirmwareVersionModal();
+                viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
                 break;
             case "workflow-context":
-                viewModel.CancelWorkflowContextCommand.Execute(null);
+                viewModel.WorkflowSession.CancelWorkflowContextCommand.Execute(null);
                 break;
             case "firmware-ic-mismatch":
-                viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+                viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
                 break;
             case "firmware-number-mismatch":
-                viewModel.DismissFirmwareNumberMismatchCommand.Execute(null);
+                viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
                 break;
             case "navigation-clear":
                 viewModel.CancelNavigationClearCommand.Execute(null);
                 break;
             case "report":
-                viewModel.CloseReportCommand.Execute(null);
+                viewModel.Reports.CloseReportCommand.Execute(null);
                 break;
             case "build-completed":
-                viewModel.CloseBuildCompletedModal();
+                viewModel.BuildResult.Close();
                 break;
             case "ab-a-flashcode-delivery":
-                viewModel.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
+                viewModel.Merge.DeclineAbAFlashCodeDeliveryPromptCommand.Execute(null);
                 break;
             case "hex-insert":
                 viewModel.HexEditorWorkspace.CancelInsertBytesCommand.Execute(null);
@@ -376,15 +376,15 @@ public sealed partial class ShellViewModelTests
     {
         return surface switch
         {
-            "replace-selection" => viewModel.IsReplaceSelectionModalOpen,
-            "ctrlram-version" => viewModel.IsCtrlRamFirmwareVersionModalOpen,
-            "workflow-context" => viewModel.IsWorkflowContextModalOpen,
-            "firmware-ic-mismatch" => viewModel.IsFirmwareIcMismatchModalOpen,
-            "firmware-number-mismatch" => viewModel.IsFirmwareNumberMismatchModalOpen,
+            "replace-selection" => viewModel.Replace.IsReplaceSelectionModalOpen,
+            "ctrlram-version" => viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen,
+            "workflow-context" => viewModel.WorkflowSession.IsWorkflowContextModalOpen,
+            "firmware-ic-mismatch" => viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen,
+            "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
             "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
-            "report" => viewModel.IsReportModalOpen,
-            "ab-a-flashcode-delivery" => viewModel.IsAbAFlashCodeDeliveryPromptOpen,
-            "build-completed" => viewModel.IsBuildCompletedModalOpen,
+            "report" => viewModel.Reports.IsReportModalOpen,
+            "ab-a-flashcode-delivery" => viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
+            "build-completed" => viewModel.BuildResult.IsOpen,
             "hex-insert" => viewModel.HexEditorWorkspace.IsInsertBytesPromptOpen,
             "hex-save" => viewModel.HexEditorWorkspace.IsSaveConfirmationOpen,
             _ => throw new ArgumentOutOfRangeException(nameof(surface), surface, "Unknown blocking surface."),
@@ -400,9 +400,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.RevealFileCommand.Execute(@"C:\firmware\missing.bin");
 
-        Assert.True(viewModel.HasReportToast);
-        Assert.Equal("File unavailable", viewModel.ShellToastTitle);
-        Assert.False(string.IsNullOrWhiteSpace(viewModel.ReportToastText));
+        Assert.True(viewModel.Reports.HasReportToast);
+        Assert.Equal("File unavailable", viewModel.Reports.ShellToastTitle);
+        Assert.False(string.IsNullOrWhiteSpace(viewModel.Reports.ReportToastText));
     }
 
     /// <summary>A successful Build-output reveal closes the confirmation after forwarding the exact path.</summary>
@@ -414,11 +414,11 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
 
-        viewModel.RevealBuildCompletedOutputCommand.Execute(null);
+        viewModel.BuildResult.RevealOutputCommand.Execute(null);
 
         Assert.Equal([outputPath], reveal.Paths);
-        Assert.False(viewModel.IsBuildCompletedModalOpen);
-        Assert.Equal(string.Empty, viewModel.BuildCompletedOutputPath);
+        Assert.False(viewModel.BuildResult.IsOpen);
+        Assert.Equal(string.Empty, viewModel.BuildResult.OutputPath);
     }
 
     /// <summary>A failed Build-output reveal keeps the confirmation open with its specific inline error.</summary>
@@ -430,12 +430,12 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateFileRevealViewModel(reveal);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
 
-        viewModel.RevealBuildCompletedOutputCommand.Execute(null);
+        viewModel.BuildResult.RevealOutputCommand.Execute(null);
 
         Assert.Equal([outputPath], reveal.Paths);
-        Assert.True(viewModel.IsBuildCompletedModalOpen);
-        Assert.True(viewModel.HasBuildCompletedOpenFolderError);
-        Assert.Equal(viewModel.Text.BuildCompletedOpenFolderError, viewModel.BuildCompletedOpenFolderError);
+        Assert.True(viewModel.BuildResult.IsOpen);
+        Assert.True(viewModel.BuildResult.HasOpenFolderError);
+        Assert.Equal(viewModel.Text.BuildCompletedOpenFolderError, viewModel.BuildResult.OpenFolderError);
     }
 
     private static MainWindowViewModel CreateFileRevealViewModel(IFileRevealService fileRevealService)

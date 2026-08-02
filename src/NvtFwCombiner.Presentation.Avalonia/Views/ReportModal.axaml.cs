@@ -16,7 +16,7 @@ public sealed partial class ReportModal : UserControl
 
     private async void SaveReportButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel ||
+        if (DataContext is not ReportPresentationViewModel viewModel ||
             string.IsNullOrWhiteSpace(viewModel.LoadedReportJson))
         {
             return;

@@ -11,20 +11,20 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.CtrlRamWarning();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(json, "warning-report.json");
+        viewModel.Reports.LoadReportJson(json, "warning-report.json");
 
-        Assert.Equal("Succeeded with 1 warning(s)", viewModel.ReportActionStatus);
-        Assert.False(viewModel.LoadedReport.IsClean);
-        Assert.True(viewModel.LoadedReport.HasWarnings);
-        Assert.True(viewModel.LoadedReport.HasWarningsWithoutBlockingIssues);
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal("warning", Assert.Single(viewModel.LoadedReport.Issues).Severity);
-        Assert.Equal(0, viewModel.LoadedReport.BlockingIssueCount);
-        Assert.Equal(1, viewModel.LoadedReport.WarningCount);
-        Assert.Equal("Succeeded with 1 warning(s)", viewModel.LoadedReport.OutcomeTitle);
-        Assert.Equal("Review warning", viewModel.LoadedReport.NextStepTitle);
-        Assert.Contains("truncated", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
-        Assert.Equal("1 warning", Assert.Single(viewModel.ReportHistoryEntries).IssueSummary);
+        Assert.Equal("Succeeded with 1 warning(s)", viewModel.Reports.ReportActionStatus);
+        Assert.False(viewModel.Reports.LoadedReport.IsClean);
+        Assert.True(viewModel.Reports.LoadedReport.HasWarnings);
+        Assert.True(viewModel.Reports.LoadedReport.HasWarningsWithoutBlockingIssues);
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("warning", Assert.Single(viewModel.Reports.LoadedReport.Issues).Severity);
+        Assert.Equal(0, viewModel.Reports.LoadedReport.BlockingIssueCount);
+        Assert.Equal(1, viewModel.Reports.LoadedReport.WarningCount);
+        Assert.Equal("Succeeded with 1 warning(s)", viewModel.Reports.LoadedReport.OutcomeTitle);
+        Assert.Equal("Review warning", viewModel.Reports.LoadedReport.NextStepTitle);
+        Assert.Contains("truncated", viewModel.Reports.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Equal("1 warning", Assert.Single(viewModel.Reports.ReportHistoryEntries).IssueSummary);
     }
 
     /// <summary>Verifies report review uses schema severity before legacy code-based warning fallback.</summary>

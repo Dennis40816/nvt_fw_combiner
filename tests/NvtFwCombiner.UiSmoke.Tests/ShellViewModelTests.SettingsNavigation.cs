@@ -14,23 +14,23 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.Empty(viewModel.NumberSelectionChoices);
-        Assert.Empty(viewModel.GeneralMergeOutputLength);
-        Assert.Empty(viewModel.GeneralMergeOutputFillByte);
-        Assert.Empty(viewModel.MergeSlots);
-        Assert.Empty(viewModel.ReplaceSlots);
-        Assert.Empty(viewModel.GeneralMergeMappings);
-        Assert.Empty(viewModel.GeneralReplaceMappings);
+        Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
+        Assert.Empty(viewModel.Merge.GeneralMergeOutputLength);
+        Assert.Empty(viewModel.Merge.GeneralMergeOutputFillByte);
+        Assert.Empty(viewModel.Merge.MergeSlots);
+        Assert.Empty(viewModel.Replace.ReplaceSlots);
+        Assert.Empty(viewModel.Merge.GeneralMergeMappings);
+        Assert.Empty(viewModel.Replace.GeneralReplaceMappings);
         Assert.Null(viewModel.LoadedHexEditorWorkspace);
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.NotEmpty(viewModel.NumberSelectionChoices);
-        Assert.NotEmpty(viewModel.GeneralMergeOutputLength);
-        Assert.NotEmpty(viewModel.GeneralMergeOutputFillByte);
-        Assert.NotEmpty(viewModel.MergeSlots);
-        _ = Assert.Single(viewModel.GeneralMergeMappings);
-        _ = Assert.Single(viewModel.GeneralReplaceMappings);
+        Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
+        Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputLength);
+        Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputFillByte);
+        Assert.NotEmpty(viewModel.Merge.MergeSlots);
+        _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+        _ = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
     }
 
     /// <summary>Verifies Settings exposes catalog-backed status without requiring workflow context.</summary>
@@ -39,8 +39,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.Empty(viewModel.SettingsOverviewRows);
-        Assert.Empty(viewModel.SettingsCapabilityRows);
+        Assert.Empty(viewModel.Settings.OverviewRows);
+        Assert.Empty(viewModel.Settings.CapabilityRows);
 
         viewModel.ShowSettingsCommand.Execute(null);
 
@@ -48,15 +48,15 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsDeviceContextVisible);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 profiles");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "10 profiles");
-        SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 profiles");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace" && row.Value == "10 profiles");
+        SettingSummaryViewModel capability = Assert.Single(viewModel.Settings.CapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("10 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
-        Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
+        Assert.Equal(["System", "Light", "Dark"], viewModel.Settings.ThemeChoices);
 
         viewModel.SelectedTheme = "Dark";
         viewModel.SelectedLanguage = "Traditional Chinese";
@@ -64,11 +64,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
-        Assert.Empty(viewModel.MergeSlots);
-        Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
-        Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
-        Assert.Contains(viewModel.SettingsCapabilityRows, row =>
+        Assert.Empty(viewModel.Merge.MergeSlots);
+        Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
+        Assert.Equal("尚未選擇 BIN", viewModel.Replace.ReplaceBaseSlot.DisplayName);
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
+        Assert.Contains(viewModel.Settings.CapabilityRows, row =>
             row.Title == "CtrlRAM Replace 可用 IC" &&
             row.Value == "10 ICs" &&
             row.Status == "可用" &&
@@ -76,7 +76,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.Contains(viewModel.MergeSlots, slot =>
+        Assert.Contains(viewModel.Merge.MergeSlots, slot =>
             slot.Title == "DP BIN" &&
             slot.RequirementLabel == "必填" &&
             slot.DisplayName == "尚未選擇 BIN");
@@ -116,7 +116,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
         Assert.Equal("Home > Hex Editor", viewModel.NavigationPath);
-        Assert.False(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
     }
 
     /// <summary>Verifies Home workflow entries collect a cancellable context while programmatic navigation remains direct.</summary>
@@ -125,31 +125,31 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
+        Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.True(viewModel.WorkflowContextSetup.IsNumberVisible);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.True(viewModel.WorkflowSession.WorkflowContextSetup.IsNumberVisible);
         Assert.True(viewModel.IsHomeVisible);
-        viewModel.WorkflowContextSetup.SelectedIc = "NT51927";
-        viewModel.WorkflowContextSetup.SelectedNumberChoice = viewModel.WorkflowContextSetup.NumberChoices.Single(choice => choice.Token == "3");
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumberChoice = viewModel.WorkflowSession.WorkflowContextSetup.NumberChoices.Single(choice => choice.Token == "3");
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
-        Assert.False(viewModel.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.True(viewModel.IsNumberSelectorVisible);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
-        Assert.NotEmpty(viewModel.NumberSelectionChoices);
-        Assert.Equal("NT51927", viewModel.SelectedIc);
-        Assert.Equal("3", viewModel.SelectedNumber);
-        Assert.Equal("3", viewModel.SelectedNumberChoice?.Token);
+        Assert.True(viewModel.WorkflowSession.IsNumberSelectorVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
+        Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
+        Assert.Equal("3", viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal("3", viewModel.WorkflowSession.SelectedNumberChoice?.Token);
 
         viewModel.ShowHomeCommand.Execute(null);
         viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.False(viewModel.WorkflowContextSetup.IsNumberVisible);
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.WorkflowSession.WorkflowContextSetup.IsNumberVisible);
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
         Assert.True(viewModel.IsMergeVisible);
     }
 
@@ -158,21 +158,21 @@ public sealed partial class ShellViewModelTests
     public void ReplaceContextDoesNotInheritAbCodeSelectionOnFirstOpen()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        string expectedReplaceIc = viewModel.SelectedIc;
-        string expectedReplaceNumber = viewModel.SelectedNumber;
+        string expectedReplaceIc = viewModel.WorkflowSession.SelectedIc;
+        string expectedReplaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
-        viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
         viewModel.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
         viewModel.BeginDpReplaceFromHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.Equal(expectedReplaceIc, viewModel.WorkflowContextSetup.SelectedIc);
-        Assert.Equal(expectedReplaceNumber, viewModel.WorkflowContextSetup.SelectedNumber);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.Equal(expectedReplaceIc, viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc);
+        Assert.Equal(expectedReplaceNumber, viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumber);
     }
 
     /// <summary>Verifies an IC marker remains actionable while a hidden Merge TP number stays informational.</summary>
@@ -180,23 +180,23 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingPromptsForIcMarkerButDoesNotApplyMergeTpNumber()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ic-marker");
         string markedPath = workspace.Write("NT51927TT_test.bin", [0x00]);
 
         viewModel.SetSlotFile("replace-base", markedPath);
 
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
-        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+        viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
 
         using var golden = StandardMergeGoldenManifest.Load();
         string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-tp", tpPath);
 
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("single", viewModel.SelectedNumber);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Verifies a printable header marker is advisory in the same way as a filename marker.</summary>
@@ -204,7 +204,7 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingPromptsForPrintableHeaderIcMarker()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-header-ic-marker");
         byte[] bytes = new byte[0x40000];
         Encoding.ASCII.GetBytes("firmware marker: NT51927TT").CopyTo(bytes, 0x120);
@@ -212,10 +212,10 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("replace-base", path);
 
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
-        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+        viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
     }
 
     /// <summary>Verifies filename markers outside the supported catalog cannot change the workbench context.</summary>
@@ -223,14 +223,14 @@ public sealed partial class ShellViewModelTests
     public void SlotLoadingIgnoresUnsupportedIcMarker()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-unsupported-ic-marker");
         string markedPath = workspace.Write("NT51999TT_test.bin", [0x00]);
 
         viewModel.SetSlotFile("replace-base", markedPath);
 
-        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51926", viewModel.SelectedIc);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51926", viewModel.WorkflowSession.SelectedIc);
     }
 
     /// <summary>Verifies command-line launch arguments select a reviewable UI state.</summary>

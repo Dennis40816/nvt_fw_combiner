@@ -4,7 +4,7 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class WorkflowSessionPresentationViewModel
 {
     private string? _firmwareNumberMismatchToken;
     private string? _firmwareNumberMismatchSlotId;
@@ -32,7 +32,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that keeps the current Number without authorizing a mismatched Build.</summary>
     public IRelayCommand DismissFirmwareNumberMismatchCommand { get; }
 
-    private void PromptForFirmwareNumberMismatch(
+    internal void PromptForFirmwareNumberMismatch(
         FirmwareSlotViewModel slot,
         WorkbenchFirmwareContextSuggestion? suggestion)
     {
@@ -78,18 +78,17 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        _isApplyingFirmwareInspectionContext = true;
+        IsApplyingFirmwareInspectionContext = true;
         try
         {
             SelectedNumber = numberToken;
         }
         finally
         {
-            _isApplyingFirmwareInspectionContext = false;
+            IsApplyingFirmwareInspectionContext = false;
         }
-
         RefreshCtrlRamDisplayFromInspection();
-        SetShellToast(
+        _showToast(
             Text.ContextUpdatedToastTitle,
             Text.FormatVerifiedFirmwareContextToast(
                 GetNumberDisplayLabel(numberToken),
@@ -101,7 +100,7 @@ public sealed partial class MainWindowViewModel
         InvalidateFirmwareNumberMismatch();
     }
 
-    private void InvalidateFirmwareNumberMismatch()
+    internal void InvalidateFirmwareNumberMismatch()
     {
         if (IsFirmwareNumberMismatchModalOpen)
         {

@@ -14,15 +14,18 @@ public sealed partial class RepositoryBoundaryTests
         string replaceRunner = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string replaceRefresh = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplaceRefresh.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
         string outputNamingViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.OutputNaming.cs");
         string firmwareInspectionSession = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string workflowInspection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
-        Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
-        Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
-        Assert.Contains("InspectFirmwareBatch", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFileAsync", workflowInspection, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", workflowInspection, StringComparison.Ordinal);
+        Assert.Contains("InspectionSession.ReadBatch", workflowInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("public void SetSlotFile(", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);
@@ -36,7 +39,7 @@ public sealed partial class RepositoryBoundaryTests
             "FileIdentity.Equals(FirmwareFileIdentity.Capture",
             viewModels,
             StringComparison.Ordinal);
-        Assert.Contains("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
         Assert.Contains(

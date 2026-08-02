@@ -4,15 +4,13 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
-    private bool IsSelectedReplaceModeSupported => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
-
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => IsFirmwareInspectionLoading
+    public string ReplaceReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
@@ -29,7 +27,8 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && !IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
+        return !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+            IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => CanRunDpReplace(),
@@ -121,7 +120,7 @@ public sealed partial class MainWindowViewModel
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
-        CloseReplaceSelectionForRun();
+        CloseSelectionForRun();
         string icId = SelectedIc;
         string number = SelectedNumber;
         string replaceMode = SelectedReplaceMode;
@@ -165,7 +164,7 @@ public sealed partial class MainWindowViewModel
                 }
                 return result;
             },
-            (action, errorMessage) => LoadRunErrorReport(
+            (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace",
                 icId,
@@ -181,12 +180,12 @@ public sealed partial class MainWindowViewModel
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
         foreach (FirmwareSlotViewModel slot in ReplaceSlots)
         {
-            AddPath(paths, slot.SlotId, slot);
+            FirmwareSlotPathProjection.Add(paths, slot.SlotId, slot);
         }
 
         if (!ReplaceSlots.Contains(ReplaceBaseSlot))
         {
-            AddPath(paths, ReplaceBaseSlot.SlotId, ReplaceBaseSlot);
+            FirmwareSlotPathProjection.Add(paths, ReplaceBaseSlot.SlotId, ReplaceBaseSlot);
         }
 
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)

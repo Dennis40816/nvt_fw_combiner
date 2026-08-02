@@ -1,69 +1,8 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>View model for the production-backed firmware workbench.</summary>
-public sealed partial class MainWindowViewModel : ObservableObject
+public sealed partial class MainWindowViewModel : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
 {
-    private FirmwareSlotViewModel? SelectSlotFile(string slotId, string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        FirmwareSlotViewModel? slot = FindSlot(slotId);
-        if (slot is null)
-        {
-            _ = TrySetGeneralMappingFile(slotId, path);
-            return null;
-        }
-
-        InvalidateCtrlRamFirmwareVersionContext();
-        InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == ReplaceBaseSlotId);
-        _firmwareInspectionSession.RemoveProjection(slot.SlotId);
-        InvalidateFirmwareIcMismatch();
-        InvalidateFirmwareNumberMismatch();
-        slot.FilePath = path;
-        slot.SetFirmwareFacts([]);
-        slot.ClearInputInspection();
-        NotifySlotFileOutputNames();
-
-        if (slot.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
-        {
-            ClearCtrlRamInspectionDisplay();
-        }
-        else if (slot.SlotId == MergeDpSlotId ||
-            (IsAbCodeMergeModeSelected && _abMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
-        {
-            RefreshMergeMemoryMapState();
-        }
-        else if (slot.SlotId == ReplaceBaseSlotId)
-        {
-            RefreshReplaceMemoryMapState();
-        }
-        else if (slot.RegionId is not null)
-        {
-            RefreshReplaceMemoryMapState();
-        }
-
-        RefreshCommandState();
-        return slot;
-    }
-
-    private void NotifySlotFileOutputNames()
-    {
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-    }
-
-    private FirmwareSlotViewModel? FindSlot(string slotId)
-    {
-        return MergeSlots.Concat(ReplaceSlots)
-            .Concat([ReplaceBaseSlot])
-            .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
-    }
-
 }
 
 /// <summary>Top-level shell page state.</summary>

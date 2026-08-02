@@ -31,7 +31,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         if (referenceLength > 0)
@@ -56,15 +56,15 @@ public sealed partial class ShellViewModelTests
         }
 
         FirmwareSlotViewModel ldc = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceLdc);
         FirmwareSlotViewModel initialCode = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         FirmwareSlotViewModel reference = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceBase);
-        Assert.All(viewModel.ReplaceSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
+        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
         if (referenceLength > 0 && expectedLdcState != ResolvedChildReadiness.Blocked)
         {
             Assert.Equal(WorkbenchInputInspectionSeverity.Valid, reference.InputInspectionSeverity);
@@ -78,24 +78,24 @@ public sealed partial class ShellViewModelTests
         if (expectedCanBuild)
         {
             Assert.All(
-                viewModel.ReplaceSlots.Where(static slot => slot.HasFile),
+                viewModel.Replace.ReplaceSlots.Where(static slot => slot.HasFile),
                 static slot => Assert.True(
                     slot.InputInspectionSeverity is not null && !slot.BlocksBuild,
                     $"{slot.SlotId}: {slot.InputInspectionSeverity}; {slot.InputInspectionStatus}"));
             Assert.Equal(
                 WorkbenchInputInspectionSeverity.Valid,
-                viewModel.ReplaceSlots.Single(static slot =>
+                viewModel.Replace.ReplaceSlots.Single(static slot =>
                     slot.SlotId == WorkbenchSlotIds.ReplaceBase).InputInspectionSeverity);
             Assert.All(
-                viewModel.ReplaceSlots.Where(static slot =>
+                viewModel.Replace.ReplaceSlots.Where(static slot =>
                     slot.HasFile && slot.SlotId != WorkbenchSlotIds.ReplaceBase),
                 static slot => Assert.Equal(
                     WorkbenchInputInspectionSeverity.Warning,
                     slot.InputInspectionSeverity));
         }
 
-        Assert.Equal(expectedCanBuild, viewModel.CanBuildReplace);
-        Assert.Equal(expectedCanBuild, viewModel.BuildReplaceCommand.CanExecute(null));
+        Assert.Equal(expectedCanBuild, viewModel.Replace.CanBuildReplace);
+        Assert.Equal(expectedCanBuild, viewModel.Replace.BuildReplaceCommand.CanExecute(null));
 
         if (referenceLength == 0)
         {
@@ -150,7 +150,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-verified");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -161,13 +161,13 @@ public sealed partial class ShellViewModelTests
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
 
         FirmwareSlotViewModel initialCode = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(WorkbenchInputInspectionSeverity.Valid, initialCode.InputInspectionSeverity);
         Assert.Equal(FirmwareSlotSemanticState.Verified, initialCode.SemanticState);
         Assert.Equal("Verified", initialCode.SemanticStateLabel);
         Assert.False(initialCode.BlocksBuild);
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>A selected source shorter than the compiled view is a terminal blocking error.</summary>
@@ -176,7 +176,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-short");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -187,12 +187,12 @@ public sealed partial class ShellViewModelTests
             workspace.Write("initial-code-short.bin", new byte[0x1000]));
 
         FirmwareSlotViewModel initialCode = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, initialCode.InputInspectionSeverity);
         Assert.Equal(FirmwareSlotSemanticState.Error, initialCode.SemanticState);
         Assert.True(initialCode.BlocksBuild);
-        Assert.False(viewModel.CanBuildReplace);
+        Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>The shared DP pilot applies typed input health to routes without selection groups too.</summary>
@@ -201,7 +201,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-short");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.SelectedIc = "NT51929";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -212,11 +212,11 @@ public sealed partial class ShellViewModelTests
             workspace.Write("dp-short.bin", new byte[0x1000]));
 
         FirmwareSlotViewModel dp = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, dp.InputInspectionSeverity);
         Assert.True(dp.BlocksBuild);
-        Assert.False(viewModel.CanBuildReplace);
+        Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>NT51950 production admission requires the replacement to match the selected base capacity exactly.</summary>
@@ -225,7 +225,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51950-exact-pair");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -236,12 +236,12 @@ public sealed partial class ShellViewModelTests
             workspace.Write("dp-3f000.bin", new byte[0x3F000]));
 
         FirmwareSlotViewModel dp = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, dp.InputInspectionSeverity);
         Assert.Equal(FirmwareSlotSemanticState.Error, dp.SemanticState);
         Assert.True(dp.BlocksBuild);
-        Assert.False(viewModel.CanBuildReplace);
+        Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
     /// <summary>Keeps shared slot adoption scoped to the DP Replace pilot until issue #208.</summary>
@@ -252,12 +252,12 @@ public sealed partial class ShellViewModelTests
 
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
-        Assert.All(viewModel.ReplaceSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
 
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.All(viewModel.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>
@@ -266,11 +266,11 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness-zh");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         FirmwareSlotViewModel ldc = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceLdc);
         Assert.Equal("Pending input", ldc.SelectionReadinessLabel);
         Assert.Contains("Load Reference first", ldc.SelectionReadinessDetail, StringComparison.Ordinal);
@@ -300,7 +300,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-health-zh");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceBase,
@@ -309,7 +309,7 @@ public sealed partial class ShellViewModelTests
             WorkbenchSlotIds.ReplaceDp,
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
         FirmwareSlotViewModel initialCode = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(
             "Ready: the selected BIN satisfies the compiled input contract.",
@@ -330,7 +330,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-health-clear");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceBase,
@@ -338,12 +338,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(
             WorkbenchSlotIds.ReplaceDp,
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
-        Assert.Contains(viewModel.ReplaceSlots, static slot => slot.InputInspectionSeverity is not null);
+        Assert.Contains(viewModel.Replace.ReplaceSlots, static slot => slot.InputInspectionSeverity is not null);
 
         viewModel.ShowSettingsCommand.Execute(null);
         viewModel.ConfirmNavigationAndClearCommand.Execute(null);
 
-        Assert.All(viewModel.ReplaceSlots, static slot =>
+        Assert.All(viewModel.Replace.ReplaceSlots, static slot =>
         {
             Assert.Null(slot.InputInspectionSeverity);
             Assert.Equal(string.Empty, slot.InputInspectionStatus);
@@ -356,7 +356,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51928-readiness-invalid");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
 
         viewModel.SetSlotFile(
@@ -366,15 +366,15 @@ public sealed partial class ShellViewModelTests
             WorkbenchSlotIds.ReplaceDp,
             workspace.Write("initial-code.bin", new byte[0x1000]));
 
-        Assert.False(viewModel.CanBuildReplace);
-        Assert.False(viewModel.BuildReplaceCommand.CanExecute(null));
-        Assert.Equal(FirmwareSlotSemanticState.Error, viewModel.ReplaceBaseSlot.SemanticState);
-        Assert.True(viewModel.ReplaceBaseSlot.IsSemanticStateError);
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.False(viewModel.Replace.BuildReplaceCommand.CanExecute(null));
+        Assert.Equal(FirmwareSlotSemanticState.Error, viewModel.Replace.ReplaceBaseSlot.SemanticState);
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.IsSemanticStateError);
         Assert.Equal(
             WorkbenchInputInspectionSeverity.Blocking,
-            viewModel.ReplaceBaseSlot.InputInspectionSeverity);
+            viewModel.Replace.ReplaceBaseSlot.InputInspectionSeverity);
         FirmwareSlotViewModel selected = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.Equal(FirmwareSlotSemanticState.Error, selected.SemanticState);
         Assert.False(selected.IsSemanticStateChecking);

@@ -64,7 +64,7 @@ public sealed partial class FirmwareSlotCard : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(slotId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);
         }
     }
 
@@ -91,7 +91,7 @@ public sealed partial class FirmwareSlotCard : UserControl
             "Select BIN file");
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(slotId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(slotId, path);
         }
     }
 }

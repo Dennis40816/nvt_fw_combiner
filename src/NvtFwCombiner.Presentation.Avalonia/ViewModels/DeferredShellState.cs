@@ -7,10 +7,6 @@ internal sealed class DeferredShellState
 {
     internal bool IsSettingsLoaded { get; private set; }
 
-    internal bool IsWorkflowLoaded { get; private set; }
-
-    internal bool IsLoadingWorkflow { get; private set; }
-
     internal HexEditorWorkspaceViewModel? LoadedHexEditorWorkspace { get; private set; }
 
     internal HexEditorWorkspaceViewModel GetHexEditorWorkspace(
@@ -37,64 +33,4 @@ internal sealed class DeferredShellState
         IsSettingsLoaded = true;
     }
 
-    internal void EnsurePage(ShellPage page, Action loadSettings, Action loadWorkflow)
-    {
-        if (page == ShellPage.Settings)
-        {
-            EnsureSettings(loadSettings);
-        }
-        else if (page is ShellPage.Merge or ShellPage.Replace && !IsWorkflowLoaded)
-        {
-            loadWorkflow();
-        }
-    }
-
-    internal void EnsureWorkflow(
-        Action loadNumberChoices,
-        Func<string> loadGeneralMergeOutputLength,
-        Action<string> applyGeneralMergeOutputLength,
-        Func<string> loadGeneralMergeOutputFillByte,
-        Action<string> applyGeneralMergeOutputFillByte,
-        Action loadGeneralReplaceMapping,
-        Action loadGeneralMergeMapping)
-    {
-        if (IsWorkflowLoaded)
-        {
-            return;
-        }
-
-        IsLoadingWorkflow = true;
-        try
-        {
-            loadNumberChoices();
-            applyGeneralMergeOutputLength(loadGeneralMergeOutputLength());
-            applyGeneralMergeOutputFillByte(loadGeneralMergeOutputFillByte());
-            loadGeneralReplaceMapping();
-            loadGeneralMergeMapping();
-            IsWorkflowLoaded = true;
-        }
-        finally
-        {
-            IsLoadingWorkflow = false;
-        }
-    }
-
-    internal void RefreshLoaded(
-        Action refreshSettings,
-        Action refreshWorkflow,
-        Action refreshWorkflowInspection,
-        Action refreshWorkflowSelection)
-    {
-        if (IsSettingsLoaded)
-        {
-            refreshSettings();
-        }
-
-        if (IsWorkflowLoaded)
-        {
-            refreshWorkflow();
-            refreshWorkflowInspection();
-            refreshWorkflowSelection();
-        }
-    }
 }

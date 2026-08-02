@@ -12,39 +12,9 @@ public sealed partial class MainWindowViewModel
     private const string NormalMergeMode = WorkbenchMergeModes.Standard;
     private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
-    private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
-    private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
-    private const string MergeLdcSlotId = WorkbenchSlotIds.MergeLdc;
-    private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
-    private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
-        Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
-    private static readonly IReadOnlyList<string> s_abMergeModeChoices =
-        Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
-    private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
-
-    private readonly FirmwareSlotViewModel _mergeDpSlot = new(
-        MergeDpSlotId,
-        "DP BIN",
-        "Display payload for Standard Merge",
-        FirmwareSlotKind.Dp);
-    private readonly FirmwareSlotViewModel _mergeTpSlot = new(
-        MergeTpSlotId,
-        "TP BIN",
-        "Touch payload for Standard Merge",
-        FirmwareSlotKind.Tp);
-    private readonly FirmwareSlotViewModel _mergeLdcSlot = new(
-        MergeLdcSlotId,
-        "LDC BIN",
-        "Optional LDC payload when the selected profile exposes an LDC region",
-        FirmwareSlotKind.Dp,
-        isOptional: true);
-    private int _generalReplaceMappingCounter;
-    private int _generalMergeMappingCounter;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
-    private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
     public MainWindowViewModel(
@@ -92,14 +62,87 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
-        _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
-        _firmwareInspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        CompositionProgress = new CompositionRunProgressViewModel(language);
+        Settings = new SettingsViewModel(appVersion);
+        Merge = new MergePresentationViewModel(
+            () => Text,
+            new MergeStateBindings(
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
+                IsCompositionRunInProgress,
+                IsFirmwareInspectionLoading,
+                IsWorkflowLoaded,
+                IsWorkflowLoading,
+                GetInspectedFileLength,
+                GetReportPresentation,
+                CreateWorkflowFlashCodeOutputFileName,
+                RunCompositionAsync,
+                PublishLastRunResult,
+                RefreshWorkflowNumberChoices,
+                NotifyMergeSharedContextChanged,
+                RefreshSelectedMergeFirmwareInspectionsAsync,
+                ResetRunResultForContextChange,
+                RefreshCommandState));
+        Merge.PropertyChanged += Merge_OnPropertyChanged;
+        Replace = new ReplacePresentationViewModel(
+            new ReplaceStateBindings(
+                () => Text,
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
+                IsCompositionRunInProgress,
+                IsFirmwareInspectionLoading,
+                IsWorkflowLoaded,
+                GetInspectedFileLength,
+                GetSelectedReplaceBaseInspection,
+                GetReportPresentation,
+                CreateWorkflowFlashCodeOutputFileName,
+                CreateWorkflowCtrlRamOutputFileName,
+                RunCompositionAsync,
+                WorkflowReplaceModeChanged,
+                ResetRunResultForContextChange,
+                RefreshSelectedReplaceFirmwareInspectionsAsync,
+                RefreshCommandState),
+            firmwareConfigMetadataReader);
+        Replace.PropertyChanged += Replace_OnPropertyChanged;
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
-        _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
-        CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
+        Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
+        Reports.PropertyChanged += Reports_OnPropertyChanged;
+        WorkflowSession = new WorkflowSessionPresentationViewModel(
+            () => Text,
+            Merge,
+            Replace,
+            ApplyWorkflowContext,
+            Reports.SetShellToast,
+            firmwareInspectionReader,
+            new WorkflowSessionStateBindings(
+                () => SelectedPage,
+                IsCompositionRunInProgress,
+                ActiveRunShowsNumberSelector,
+                GetDisplayedDeviceIc,
+                GetDisplayedDeviceNumber,
+                GetDisplayedDeviceContextRefreshSummary,
+                ResetRunResultForContextChange,
+                RefreshCommandState,
+                NotifyRunContextChanged));
+        WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
+        BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
+        BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
+        RunSession = new CompositionRunPresentationViewModel(
+            language,
+            new CompositionRunStateBindings(
+                () => Text,
+                GetWorkflowSelectedIc,
+                GetWorkflowSelectedNumber,
+                GetSelectedRunMode,
+                WorkflowSession.ShouldShowNumberSelectorForSelectedPage,
+                () => WorkflowSession.DeviceContextRefreshSummary,
+                () => IsReducedMotionEnabled,
+                () => Reports,
+                TryShowBuildCompleted,
+                RefreshCommandState,
+                NotifyShellRunStateChanged));
+        RunSession.PropertyChanged += RunSession_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
@@ -108,62 +151,20 @@ public sealed partial class MainWindowViewModel
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         ConfirmNavigationAndClearCommand = new RelayCommand(ConfirmNavigationAndClear);
         CancelNavigationClearCommand = new RelayCommand(CancelNavigationClear);
-        BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
-        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
-        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
+        BeginDpReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
+        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
+        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
         ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
         RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
-        BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
-        BeginAbMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(
+        BeginNormalMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+        BeginAbMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(
             ShellPage.Merge,
             AbCodeMergeMode,
-            showNumber: false,
-            [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
-        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
-        ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
-        CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
-        AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
-        DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
-        AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
-        DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
-        AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
-        AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
-        PreviewMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: false, outputPath: null),
-            CanRunMerge);
-        BuildMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: true, outputPath: null),
-            () => CanBuildMerge);
-        PreviewReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null),
-            CanRunReplace);
-        BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
-            () => CanBuildReplace);
-        ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
-        CloseReportCommand = new RelayCommand(CloseReport);
-        DismissReportToastCommand = new RelayCommand(DismissReportToast);
-        ShowReportHistoryCommand = new RelayCommand(ShowReportHistory, () => CanOpenReportHistory);
-        CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
-        ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
-        OpenReportHistoryEntryAsyncCommand = new AsyncRelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntryAsync);
-        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(
-            entry => OpenReportHistoryEntryAsyncCommand.Execute(entry),
-            entry => OpenReportHistoryEntryAsyncCommand.CanExecute(entry));
-        OpenReportHistoryEntryAsyncCommand.CanExecuteChanged += OpenReportHistoryEntryAsyncCommand_CanExecuteChanged;
-        RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
-        ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
-        CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
-        SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
-        SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
-        CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
-        AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
-        DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
-        CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
+            showNumber: false));
+        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         RevealFileCommand = new RelayCommand<string>(RevealFile);
-        RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;

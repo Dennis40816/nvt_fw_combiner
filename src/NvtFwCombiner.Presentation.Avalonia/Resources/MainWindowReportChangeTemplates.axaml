@@ -69,7 +69,7 @@
       Classes="reportHexDiffRange"
       AutomationProperties.Name="{Binding AccessibleLabel}"
       AutomationProperties.HelpText="{Binding Reason}"
-      Command="{ReflectionBinding $parent[Window].DataContext.LoadedReport.HexDiff.SelectRangeCommand}"
+      Command="{ReflectionBinding $parent[Window].DataContext.Reports.LoadedReport.HexDiff.SelectRangeCommand}"
       CommandParameter="{Binding}"
       GroupName="ReportHexDiffRangeNavigator"
       IsChecked="{Binding IsSelected, Mode=OneWay}"

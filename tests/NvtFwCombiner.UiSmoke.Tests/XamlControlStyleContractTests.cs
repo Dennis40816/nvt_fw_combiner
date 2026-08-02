@@ -205,7 +205,7 @@ public sealed partial class XamlControlStyleContractTests
             document.Descendants(),
             element =>
                 element.Name.LocalName == "ComboBox" &&
-                (string?)element.Attribute("ItemsSource") == "{Binding IcChoices}");
+                (string?)element.Attribute("ItemsSource") == "{Binding WorkflowSession.IcChoices}");
         XElement tipProperty = Assert.Single(
             combo.Elements(),
             element => element.Name.LocalName == "ToolTip.Tip");
@@ -214,7 +214,7 @@ public sealed partial class XamlControlStyleContractTests
             element => element.Name.LocalName == "ToolTip");
 
         Assert.Equal("True", combo.Attributes().Single(attribute => attribute.Name.LocalName == "FocusToolTipBehavior.IsEnabled").Value);
-        Assert.Equal("{Binding SelectedIcDetailAutomationText}", combo.Attributes().Single(attribute => attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
+        Assert.Equal("{Binding WorkflowSession.SelectedIcDetailAutomationText}", combo.Attributes().Single(attribute => attribute.Name.LocalName == "AutomationProperties.HelpText").Value);
         Assert.Equal("False", (string?)toolTip.Attribute("IsHitTestVisible"));
         XElement detailCard = Assert.Single(
             toolTip.Descendants(),
@@ -226,7 +226,7 @@ public sealed partial class XamlControlStyleContractTests
                 ((string?)element.Attribute("Classes"))?.StartsWith("icDetail", StringComparison.Ordinal) == true));
         Assert.DoesNotContain(
             detailCard.Descendants(),
-            element => (string?)element.Attribute("Text") is "{Binding SelectedIcDetailReuse}" or "{Binding SelectedIcDetailSupport}");
+            element => (string?)element.Attribute("Text") is "{Binding WorkflowSession.SelectedIcDetailReuse}" or "{Binding WorkflowSession.SelectedIcDetailSupport}");
 
         var control = new ComboBox
         {
@@ -351,7 +351,7 @@ public sealed partial class XamlControlStyleContractTests
         string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
 
         Assert.Contains("<views:CtrlRamFirmwareVersionModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
         Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);
@@ -390,22 +390,22 @@ public sealed partial class XamlControlStyleContractTests
             static element => element.Name.LocalName == "ProgressBar");
 
         Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RunSession.CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding StateMarker}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"runProgressMarker\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.AccessibilityView=\"Raw\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding WorkflowSession.IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
         Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);
-        Assert.Equal("{Binding ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
+        Assert.Equal("{Binding RunSession.ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
         Assert.Equal(
-            "{Binding RunProgressStatusLabel}",
+            "{Binding RunSession.RunProgressStatusLabel}",
             progressBar.Attribute("AutomationProperties.Name")?.Value);
         Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
         Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);
@@ -451,7 +451,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("protected override async void OnOpened", window, StringComparison.Ordinal);
         Assert.Contains("await ApplyDeferredLaunchOptionsAsync(", window, StringComparison.Ordinal);
         Assert.Contains("ReportHistoryFileStore.LoadAsync", startup, StringComparison.Ordinal);
-        Assert.Contains("return viewModel.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
+        Assert.Contains("return viewModel.Reports.LoadReportJsonAsync(", startup, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents repeated shell, panel, row, and text property bundles from drifting back into templates.</summary>

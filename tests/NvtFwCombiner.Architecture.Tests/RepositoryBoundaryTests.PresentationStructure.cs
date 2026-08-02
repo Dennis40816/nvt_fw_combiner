@@ -33,10 +33,10 @@ public sealed partial class RepositoryBoundaryTests
         string progressResources = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs");
         string progressConsumer = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs");
         string inspectionProjection = string.Join(
             Environment.NewLine,
-            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
@@ -44,8 +44,9 @@ public sealed partial class RepositoryBoundaryTests
         string presentationSource = ReadPresentationSources(
             "CompositionRunProgressViewModel.cs",
             "ShellTextResources.RunProgress.cs",
-            "MainWindowViewModel.RunLifecycle.cs",
-            "MainWindowViewModel.Report.cs",
+            "CompositionRunPresentationViewModel.cs",
+            "CompositionRunContracts.cs",
+            "ReportPresentationViewModel.cs",
             "ReportHexDiffViewModel.cs",
             "ReportReviewViewModel.cs",
             "ReportReviewViewModel.Bindings.cs",

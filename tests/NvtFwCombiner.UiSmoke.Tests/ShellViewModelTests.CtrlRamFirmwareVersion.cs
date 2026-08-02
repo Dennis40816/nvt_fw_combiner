@@ -17,39 +17,39 @@ public sealed partial class ShellViewModelTests
         byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
         MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
 
-        Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
-        Assert.True(viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.True(viewModel.IsCtrlRamFirmwareVersionPreserveSelected);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionEditSelected);
-        Assert.True(viewModel.CanEditCtrlRamFirmwareVersion, viewModel.CtrlRamFirmwareVersionMetadataDetail);
-        Assert.Matches("^[0-9A-F]{2} / [0-9A-F]{2}$", viewModel.CtrlRamFirmwareVersionCurrentValue);
+        Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionEditSelected);
+        Assert.True(viewModel.Replace.CanEditCtrlRamFirmwareVersion, viewModel.Replace.CtrlRamFirmwareVersionMetadataDetail);
+        Assert.Matches("^[0-9A-F]{2} / [0-9A-F]{2}$", viewModel.Replace.CtrlRamFirmwareVersionCurrentValue);
         (bool preserveSucceeded, WorkbenchCtrlRamFirmwareVersionEdit? preserveEdit) =
-            await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+            await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(preserveSucceeded);
         Assert.Null(preserveEdit);
 
-        viewModel.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
-        Assert.True(viewModel.IsCtrlRamFirmwareVersionEditSelected);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionPreserveSelected);
+        viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionEditSelected);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
 
-        viewModel.CtrlRamFirmwareVersionText = "A";
-        viewModel.CtrlRamFirmwareSubVersionText = "04";
-        (bool invalidSucceeded, _) = await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+        viewModel.Replace.CtrlRamFirmwareVersionText = "A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "04";
+        (bool invalidSucceeded, _) = await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.False(invalidSucceeded);
-        Assert.Equal(viewModel.Text.CtrlRamFirmwareVersionInvalidByteDetail, viewModel.CtrlRamFirmwareVersionValidationDetail);
+        Assert.Equal(viewModel.Text.CtrlRamFirmwareVersionInvalidByteDetail, viewModel.Replace.CtrlRamFirmwareVersionValidationDetail);
 
-        viewModel.CtrlRamFirmwareVersionText = "2A";
-        viewModel.CtrlRamFirmwareSubVersionText = "0C";
+        viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
         (bool editSucceeded, WorkbenchCtrlRamFirmwareVersionEdit? edit) =
-            await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+            await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(editSucceeded);
         Assert.NotNull(edit);
         Assert.Equal((byte)0x2A, edit.FirmwareVersion);
         Assert.Equal((byte)0x0C, edit.FirmwareSubVersion);
-        Assert.Contains("T2A0C_", viewModel.CreateCtrlRamReplaceOutputFileName(edit), StringComparison.Ordinal);
+        Assert.Contains("T2A0C_", viewModel.Replace.CreateCtrlRamReplaceOutputFileName(edit), StringComparison.Ordinal);
 
-        viewModel.CloseCtrlRamFirmwareVersionModal();
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
+        viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
     }
 
     /// <summary>Verifies the confirmed version reaches the output Backup through the admitted V2 postbuild route.</summary>
@@ -63,19 +63,19 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
         string outputPath = workspace.PathFor("ctrlram-version-output.bin");
 
-        Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
-        viewModel.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
-        viewModel.CtrlRamFirmwareVersionText = "2A";
-        viewModel.CtrlRamFirmwareSubVersionText = "0C";
+        Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+        viewModel.Replace.CtrlRamFirmwareVersionText = "2A";
+        viewModel.Replace.CtrlRamFirmwareSubVersionText = "0C";
         (bool editSucceeded, WorkbenchCtrlRamFirmwareVersionEdit? edit) =
-            await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+            await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(editSucceeded);
         Assert.NotNull(edit);
-        viewModel.CloseCtrlRamFirmwareVersionModal();
+        viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
 
-        await viewModel.BuildReplaceAsync(outputPath, edit);
+        await viewModel.Replace.BuildReplaceAsync(outputPath, edit);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
         WorkbenchFirmwareConfigMetadata? outputMetadata =
             WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);
@@ -83,8 +83,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
         Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
         Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
-        Assert.True(viewModel.HasLoadedReport);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
         JsonElement validation = Assert.Single(report.RootElement.GetProperty("Validations").EnumerateArray());
         Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
@@ -117,19 +117,19 @@ public sealed partial class ShellViewModelTests
                 return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
             });
 
-        Task<bool> firstOpen = viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
+        Task<bool> firstOpen = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
 
-        Assert.True(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
         Assert.False(firstOpen.IsCompleted);
         Assert.NotEqual(callerThread, readerThread);
-        Assert.False(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        Assert.False(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
         Assert.Equal(1, Volatile.Read(ref readCount));
 
         releaseReader.Set();
         Assert.True(await firstOpen);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
-        Assert.True(viewModel.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.True(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
     }
 
     /// <summary>A base file changed while metadata is read cannot open a modal for the stale identity.</summary>
@@ -152,16 +152,16 @@ public sealed partial class ShellViewModelTests
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
                 return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
             });
-        string basePath = Assert.IsType<string>(viewModel.ReplaceBaseSlot.FilePath);
+        string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
 
-        Task<bool> open = viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
+        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
         File.SetLastWriteTimeUtc(basePath, File.GetLastWriteTimeUtc(basePath).AddMinutes(1));
         releaseReader.Set();
 
         Assert.False(await open);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
     }
 
     /// <summary>A context generation changed while metadata is read cannot publish the old modal state.</summary>
@@ -185,14 +185,14 @@ public sealed partial class ShellViewModelTests
                 return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
             });
 
-        Task<bool> open = viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
+        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-        viewModel.SelectedReplaceMode = WorkbenchReplaceModes.Dp;
+        viewModel.Replace.SelectedReplaceMode = WorkbenchReplaceModes.Dp;
         releaseReader.Set();
 
         Assert.False(await open);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
     }
 
     /// <summary>A cancellation requested during the synchronous read prevents modal publication and resets loading.</summary>
@@ -216,14 +216,14 @@ public sealed partial class ShellViewModelTests
                 return WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
             });
 
-        Task<bool> open = viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationSource.Token);
+        Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationSource.Token);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), testCancellationToken));
         cancellationSource.Cancel();
         releaseReader.Set();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => open);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
     }
 
     /// <summary>IC, number, and slot changes revoke both Preserve and Edit confirmation intent.</summary>
@@ -244,29 +244,29 @@ public sealed partial class ShellViewModelTests
         byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
         MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
 
-        Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
         if (selectEdit)
         {
-            viewModel.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+            viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
         }
 
-        Assert.True(viewModel.CanConfirmCtrlRamFirmwareVersion);
-        Assert.True(await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(cancellationToken));
+        Assert.True(viewModel.Replace.CanConfirmCtrlRamFirmwareVersion);
+        Assert.True(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(cancellationToken));
 
         switch (contextChange)
         {
             case "ic":
-                viewModel.SelectedIc = "NT51927";
+                viewModel.WorkflowSession.SelectedIc = "NT51927";
                 break;
             case "number":
-                viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+                viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
                 break;
             case "base":
                 viewModel.SetSlotFile("replace-base", workspace.Write("changed-base.bin", baseBytes));
                 break;
             case "replacement":
-                FirmwareSlotViewModel replacementSlot = viewModel.ReplaceSlots.Single(slot =>
-                    !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) && slot.HasFile);
+                FirmwareSlotViewModel replacementSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
+                    !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) && slot.HasFile);
                 string replacementPath = Assert.IsType<string>(replacementSlot.FilePath);
                 viewModel.SetSlotFile(
                     replacementSlot.SlotId,
@@ -276,10 +276,10 @@ public sealed partial class ShellViewModelTests
                 throw new InvalidOperationException($"Unsupported test context change '{contextChange}'.");
         }
 
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.False(viewModel.CanConfirmCtrlRamFirmwareVersion);
-        Assert.False(await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(cancellationToken));
-        (bool succeeded, _) = await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.False(viewModel.Replace.CanConfirmCtrlRamFirmwareVersion);
+        Assert.False(await viewModel.Replace.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync(cancellationToken));
+        (bool succeeded, _) = await viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.False(succeeded);
     }
 
@@ -310,19 +310,19 @@ public sealed partial class ShellViewModelTests
                 return WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
             });
 
-        Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
-        viewModel.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
+        Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
+        viewModel.Replace.SelectCtrlRamFirmwareVersionEditCommand.Execute(null);
         Task<(bool Succeeded, WorkbenchCtrlRamFirmwareVersionEdit? Edit)> confirm =
-            viewModel.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
+            viewModel.Replace.TryCreateCtrlRamFirmwareVersionEditAsync(cancellationToken);
         Assert.True(readerEntered.Wait(TimeSpan.FromSeconds(10), cancellationToken));
 
         if (closeModal)
         {
-            viewModel.CloseCtrlRamFirmwareVersionModal();
+            viewModel.Replace.CloseCtrlRamFirmwareVersionModal();
         }
         else
         {
-            viewModel.SelectCtrlRamFirmwareVersionPreserveCommand.Execute(null);
+            viewModel.Replace.SelectCtrlRamFirmwareVersionPreserveCommand.Execute(null);
         }
 
         releaseReader.Set();
@@ -330,9 +330,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(succeeded);
         Assert.Null(edit);
-        Assert.False(viewModel.IsCtrlRamFirmwareVersionMetadataLoading);
-        Assert.Equal(!closeModal, viewModel.IsCtrlRamFirmwareVersionModalOpen);
-        Assert.Equal(!closeModal, viewModel.IsCtrlRamFirmwareVersionPreserveSelected);
+        Assert.False(viewModel.Replace.IsCtrlRamFirmwareVersionMetadataLoading);
+        Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen);
+        Assert.Equal(!closeModal, viewModel.Replace.IsCtrlRamFirmwareVersionPreserveSelected);
     }
 
     private static MainWindowViewModel CreateCtrlRamVersionReadyViewModel(
@@ -347,21 +347,21 @@ public sealed partial class ShellViewModelTests
                 "test-app",
                 ShellLanguage.English,
                 firmwareConfigMetadataReader);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = "cascade";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, "CtrlRAM");
 
         string basePath = workspace.Write("base-from-golden.bin", baseBytes);
         viewModel.SetSlotFile("replace-base", basePath);
-        FirmwareSlotViewModel replacementSlot = viewModel.ReplaceSlots.Single(slot =>
+        FirmwareSlotViewModel replacementSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
-        CtrlRamRegionViewModel region = viewModel.CtrlRamRegions.Single(candidate => candidate.Name == replacementSlot.Title);
+        CtrlRamRegionViewModel region = viewModel.Replace.CtrlRamRegions.Single(candidate => candidate.Name == replacementSlot.Title);
         (int start, int length) = ParseCtrlRamRegion(region);
         viewModel.SetSlotFile(
             replacementSlot.SlotId,
             workspace.Write("self-vn-ctrlram.bin", baseBytes[start..(start + length)]));
 
-        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceReadinessStatus);
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
         return viewModel;
     }
 }

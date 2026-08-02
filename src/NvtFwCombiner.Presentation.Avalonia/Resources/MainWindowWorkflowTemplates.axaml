@@ -8,7 +8,7 @@
   <views:FirmwareSlotCard BrowseLabel="{ReflectionBinding $parent[Window].DataContext.Text.BrowseLabel}" />
 </DataTemplate>
 
-<DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReplaceModeContentTemplate" DataType="vm:ReplacePresentationViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
         Classes="panelSurface roomyPanel"
@@ -145,7 +145,7 @@
   </StackPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MergePresentationViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
         Classes="panelSurface roomyPanel"

@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class MergePresentationViewModel
 {
     private TaskCompletionSource<bool>? _abAFlashCodeDeliveryPromptCompletion;
 

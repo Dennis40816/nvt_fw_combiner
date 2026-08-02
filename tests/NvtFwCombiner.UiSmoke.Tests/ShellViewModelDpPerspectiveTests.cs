@@ -19,21 +19,21 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.NotEmpty(viewModel.ReplaceCoverageSegments);
-        Assert.All(viewModel.ReplaceCoverageSegments, segment =>
+        Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
+        Assert.All(viewModel.Replace.ReplaceCoverageSegments, segment =>
         {
             Assert.Contains("-", segment.RangeLabel, StringComparison.Ordinal);
             Assert.Contains("len 0x", segment.RangeLabel, StringComparison.Ordinal);
             Assert.DoesNotContain("..", segment.RangeLabel, StringComparison.Ordinal);
         });
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel == "Base flash");
-        Assert.DoesNotContain(viewModel.ReplaceCoverageSegments, segment =>
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment => segment.SourceLabel == "Base flash");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.SourceLabel.Contains("Restored", StringComparison.Ordinal) ||
             segment.SourceLabel.Contains("Preserved", StringComparison.Ordinal));
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment => segment.SourceLabel is "Changed DP BIN" or "Changed LDC BIN");
         Assert.Equal(
             "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
-            viewModel.ReplaceReadinessStatus);
+            viewModel.Replace.ReplaceReadinessStatus);
     }
 
     /// <summary>Verifies NT51950 DP Replace does not draw a max-length range before the base BIN is selected.</summary>
@@ -42,11 +42,11 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
 
-        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
-        Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", viewModel.ReplaceMemoryRangeLabel);
+        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
+        Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Equal("Reference length pending", segment.RangeLabel);
         Assert.Equal("Reference FlashCode required", segment.SourceLabel);
         Assert.Equal(
@@ -66,18 +66,18 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
         Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
         Assert.Contains("Supported DP lengths are 0x40000 / 0x80000 / 0x100000", initialRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
-        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
-        _ = Assert.Single(viewModel.MergeMemoryRows);
-        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.MergeCoverageSegments);
+        Assert.Equal("Selected DP BIN length pending", viewModel.Merge.MergeMemoryRangeLabel);
+        _ = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
         Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
         Assert.Equal("DP length pending", pendingSegment.SourceLabel);
         Assert.Equal(
@@ -85,7 +85,7 @@ public sealed partial class ShellViewModelTests
             pendingSegment.CompactDetail);
         Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
-        Assert.All(viewModel.MergeCoverageSegments, segment =>
+        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
             Assert.DoesNotContain("CopyRange", segment.CompactDetail, StringComparison.Ordinal);
@@ -101,16 +101,16 @@ public sealed partial class ShellViewModelTests
         string dpPath = workspace.Write("dp-40000.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.SetSlotFile("merge-dp", dpPath);
 
         MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
         Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
         Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
-        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
-        Assert.All(viewModel.MergeCoverageSegments, segment =>
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
         });
@@ -122,23 +122,23 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         OpenReplace(viewModel, "DP");
 
-        Assert.True(viewModel.IsStructuredReplaceModeSelected);
+        Assert.True(viewModel.Replace.IsStructuredReplaceModeSelected);
         Assert.Equal(
             ["replace-base", "replace-dp"],
-            viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
+            viewModel.Replace.ReplaceSlots.Select(static slot => slot.SlotId));
 
-        viewModel.SelectedIc = "NT51928";
+        viewModel.WorkflowSession.SelectedIc = "NT51928";
 
-        Assert.True(viewModel.IsStructuredReplaceModeSelected);
+        Assert.True(viewModel.Replace.IsStructuredReplaceModeSelected);
         Assert.Equal(
             ["replace-base", "replace-dp", "replace-ldc"],
-            viewModel.ReplaceSlots.Select(static slot => slot.SlotId));
+            viewModel.Replace.ReplaceSlots.Select(static slot => slot.SlotId));
         Assert.Equal(
             "Reference FlashCode length: 0x40000 / 0x80000",
-            viewModel.ReplaceMemoryRangeLabel);
+            viewModel.Replace.ReplaceMemoryRangeLabel);
     }
 
     /// <summary>NT51951 DP inputs explain that the container includes Initial Code and LDC.</summary>
@@ -146,22 +146,22 @@ public sealed partial class ShellViewModelTests
     public void Nt51951DpSlotsExposeInitialCodeAndLdcHint()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51951";
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
         viewModel.ShowMergeCommand.Execute(null);
 
         FirmwareSlotViewModel mergeDp = Assert.Single(
-            viewModel.MergeSlots,
+            viewModel.Merge.MergeSlots,
             slot => slot.SlotId == WorkbenchSlotIds.MergeDp);
         Assert.EndsWith("(Initial Code + LDC)", mergeDp.Description, StringComparison.Ordinal);
 
         OpenReplace(viewModel, "DP");
         FirmwareSlotViewModel replaceDp = Assert.Single(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
         Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
 
-        viewModel.SelectedIc = "NT51950";
-        Assert.DoesNotContain("Initial Code + LDC", viewModel.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
+        Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
@@ -179,28 +179,28 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor($"nt51950-dp-replace-{baseLength:X}.bin");
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
         Assert.All(
-            viewModel.ReplaceSlots.Where(static slot => slot.HasFile),
+            viewModel.Replace.ReplaceSlots.Where(static slot => slot.HasFile),
             static slot => Assert.True(
                 slot.InputInspectionSeverity is not null && !slot.BlocksBuild,
                 $"{slot.SlotId}: {slot.InputInspectionSeverity}; {slot.InputInspectionStatus}"));
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.BuildReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(baseLength, output.Length);
@@ -210,11 +210,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(replacementBytes[0x37000], output[0x37000]);
         Assert.Equal(replacementBytes[0x37FFF], output[0x37FFF]);
         Assert.Equal(replacementBytes[^1], output[^1]);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
-        Assert.DoesNotContain(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.Contains(viewModel.Reports.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
+        Assert.DoesNotContain(viewModel.Reports.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
 
-        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());
     }
 
@@ -234,19 +234,19 @@ public sealed partial class ShellViewModelTests
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = icId;
+        viewModel.WorkflowSession.SelectedIc = icId;
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", dpPath);
 
-        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+        Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
             row.ActionLabel == "Replace" &&
             row.RangeLabel == $"0x00000-0x{expectedLength - 1:X5} (len 0x{expectedLength:X})");
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement root = reportDocument.RootElement;
         Assert.Equal(expectedLength, root.GetProperty("Output").GetProperty("Size").GetInt64());
         Assert.Equal(0, root.GetProperty("Issues").GetArrayLength());
@@ -267,27 +267,27 @@ public sealed partial class ShellViewModelTests
         File.Copy(replacementPath, replacementPath2);
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
         viewModel.SetSlotFile("replace-dp", replacementPath2);
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildReplace);
-        Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.CanBuildReplace);
+        Assert.True(viewModel.Replace.BuildReplaceCommand.CanExecute(null));
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
     }
 
     /// <summary>Verifies NT51950 DP Replace rejects unapproved base lengths instead of assuming 0x100000.</summary>
@@ -299,19 +299,19 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("replacement-dp.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.ReplaceMemoryRows, row =>
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
             row.ActionLabel == "Replace" &&
             row.RangeLabel == "Unsupported Reference FlashCode length 0x60000");
-        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.ReplaceCoverageSegments);
+        MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
         Assert.Equal("Unsupported reference", segment.SourceLabel);
         Assert.Equal(

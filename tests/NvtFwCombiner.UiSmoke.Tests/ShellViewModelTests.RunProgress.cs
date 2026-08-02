@@ -23,9 +23,9 @@ public sealed partial class ShellViewModelTests
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var uiThread = new UiThreadTestContext();
-        viewModel.PropertyChanged += (_, args) =>
+        viewModel.RunSession.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(MainWindowViewModel.IsRunInProgress) && viewModel.IsRunInProgress)
+            if (args.PropertyName == nameof(CompositionRunPresentationViewModel.IsRunInProgress) && viewModel.RunSession.IsRunInProgress)
             {
                 progressSequence = Interlocked.Increment(ref eventSequence);
             }
@@ -35,7 +35,7 @@ public sealed partial class ShellViewModelTests
         {
             await uiThread.InvokeAsync(async () =>
             {
-                Task runTask = viewModel.RunCompositionAsync(
+                Task runTask = viewModel.RunSession.RunCompositionAsync(
                     build: true,
                     async (progress, cancellationToken) =>
                     {
@@ -48,13 +48,13 @@ public sealed partial class ShellViewModelTests
                     },
                     (_, _) => { });
 
-                wasActiveBeforeWorker = viewModel.IsRunInProgress && !workerStarted.Task.IsCompleted;
+                wasActiveBeforeWorker = viewModel.RunSession.IsRunInProgress && !workerStarted.Task.IsCompleted;
                 await workerStarted.Task.WaitAsync(
                     TimeSpan.FromSeconds(5),
                     TestContext.Current.CancellationToken);
                 releaseWorker.SetResult();
                 await runTask;
-                wasInactiveAfterWorker = !viewModel.IsRunInProgress;
+                wasInactiveAfterWorker = !viewModel.RunSession.IsRunInProgress;
             });
         }
         finally
@@ -80,16 +80,16 @@ public sealed partial class ShellViewModelTests
         List<int> progressThreadIds = [];
         List<CompositionRunPhase> phases = [];
         using var uiThread = new UiThreadTestContext();
-        viewModel.CompositionProgress.PropertyChanged += (_, args) =>
+        viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(CompositionRunProgressViewModel.CurrentPhase))
             {
                 progressThreadIds.Add(Environment.CurrentManagedThreadId);
-                phases.Add(Assert.IsType<CompositionRunPhase>(viewModel.CompositionProgress.CurrentPhase));
+                phases.Add(Assert.IsType<CompositionRunPhase>(viewModel.RunSession.CompositionProgress.CurrentPhase));
             }
         };
 
-        await uiThread.InvokeAsync(async () => await viewModel.PreviewMergeCommand.ExecuteAsync(null));
+        await uiThread.InvokeAsync(async () => await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null));
 
         Assert.NotEmpty(progressThreadIds);
         Assert.All(progressThreadIds, threadId => Assert.Equal(uiThread.ThreadId, threadId));
@@ -102,7 +102,7 @@ public sealed partial class ShellViewModelTests
                 CompositionRunPhase.PreparingReport,
             ],
             phases);
-        Assert.False(viewModel.IsRunInProgress);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
     }
 
     /// <summary>Build announces the committed artifact before background report projection becomes ready.</summary>
@@ -114,30 +114,30 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("output.bin");
         List<CompositionRunDeliveryState> states = [];
         string? committedLabel = null;
-        viewModel.CompositionProgress.PropertyChanged += (_, args) =>
+        viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName != nameof(CompositionRunProgressViewModel.DeliveryState))
             {
                 return;
             }
 
-            states.Add(viewModel.CompositionProgress.DeliveryState);
-            if (viewModel.CompositionProgress.DeliveryState == CompositionRunDeliveryState.ArtifactCommitted)
+            states.Add(viewModel.RunSession.CompositionProgress.DeliveryState);
+            if (viewModel.RunSession.CompositionProgress.DeliveryState == CompositionRunDeliveryState.ArtifactCommitted)
             {
-                committedLabel = viewModel.CompositionProgress.CurrentStepLabel;
+                committedLabel = viewModel.RunSession.CompositionProgress.CurrentStepLabel;
             }
         };
 
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
 
         Assert.Contains(CompositionRunDeliveryState.ArtifactCommitted, states);
         Assert.Equal(CompositionRunDeliveryState.ReportReady, states[^1]);
         Assert.Equal("Output ready; preparing report in background", committedLabel);
-        Assert.Equal(outputPath, viewModel.CompositionProgress.CommittedOutputId);
-        Assert.Equal(CompositionRunDeliveryState.ReportReady, viewModel.CompositionProgress.DeliveryState);
-        Assert.Equal("Report ready", viewModel.CompositionProgress.CurrentStepLabel);
+        Assert.Equal(outputPath, viewModel.RunSession.CompositionProgress.CommittedOutputId);
+        Assert.Equal(CompositionRunDeliveryState.ReportReady, viewModel.RunSession.CompositionProgress.DeliveryState);
+        Assert.Equal("Report ready", viewModel.RunSession.CompositionProgress.CurrentStepLabel);
         Assert.True(File.Exists(outputPath));
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
     }
 
     /// <summary>Cancelling a planning-stage run stops its unattached observer and releases command ownership.</summary>
@@ -152,7 +152,7 @@ public sealed partial class ShellViewModelTests
 
         await uiThread.InvokeAsync(async () =>
         {
-            Task runTask = viewModel.RunCompositionAsync(
+            Task runTask = viewModel.RunSession.RunCompositionAsync(
                 build: false,
                 async (_, cancellationToken) =>
                 {
@@ -165,13 +165,13 @@ public sealed partial class ShellViewModelTests
             await workerStarted.Task.WaitAsync(
                 TimeSpan.FromSeconds(5),
                 TestContext.Current.CancellationToken);
-            usedStaticProgress = viewModel.IsRunInProgress && !viewModel.ShouldAnimateRunProgress;
-            viewModel.CancelActiveRun();
+            usedStaticProgress = viewModel.RunSession.IsRunInProgress && !viewModel.RunSession.ShouldAnimateRunProgress;
+            viewModel.RunSession.CancelActiveRun();
             await runTask;
         });
 
-        Assert.False(viewModel.IsRunInProgress);
-        Assert.False(viewModel.HasTypedRunProgress);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
+        Assert.False(viewModel.RunSession.HasTypedRunProgress);
         Assert.True(usedStaticProgress);
     }
 
@@ -191,7 +191,7 @@ public sealed partial class ShellViewModelTests
         {
             await uiThread.InvokeAsync(async () =>
             {
-                Task runTask = viewModel.RunCompositionAsync(
+                Task runTask = viewModel.RunSession.RunCompositionAsync(
                     build: false,
                     async (_, cancellationToken) =>
                     {
@@ -206,10 +206,10 @@ public sealed partial class ShellViewModelTests
 
                 viewModel.ShowHomeCommand.Execute(null);
                 progressRemainedVisible = viewModel.IsHomeVisible &&
-                    viewModel.IsRunInProgress &&
+                    viewModel.RunSession.IsRunInProgress &&
                     viewModel.IsDeviceContextVisible &&
-                    !viewModel.IsNumberSelectorVisible &&
-                    viewModel.IsNumberSelectorPlaceholderVisible;
+                    !viewModel.WorkflowSession.IsNumberSelectorVisible &&
+                    viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible;
                 releaseWorker.SetResult();
                 await runTask;
                 contextClosedAfterRun = !viewModel.IsDeviceContextVisible;
@@ -230,8 +230,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowReplaceCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -248,12 +248,26 @@ public sealed partial class ShellViewModelTests
                 notifications.Add(args.PropertyName);
             }
         };
+        viewModel.RunSession.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not null)
+            {
+                notifications.Add(args.PropertyName);
+            }
+        };
+        viewModel.WorkflowSession.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is not null)
+            {
+                notifications.Add(args.PropertyName);
+            }
+        };
 
         try
         {
             await uiThread.InvokeAsync(async () =>
             {
-                Task runTask = viewModel.RunCompositionAsync(
+                Task runTask = viewModel.RunSession.RunCompositionAsync(
                     build: false,
                     async (_, cancellationToken) =>
                     {
@@ -267,11 +281,11 @@ public sealed partial class ShellViewModelTests
                     TestContext.Current.CancellationToken);
 
                 startNotifications = [.. notifications];
-                viewModel.SelectedIc = "NT51927";
-                viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
-                activeContextLabel = viewModel.ActiveRunContextLabel;
-                activeDeviceStatus = viewModel.DeviceContextStatus;
-                selectionWasReadOnly = !viewModel.IsDeviceContextSelectionVisible;
+                viewModel.WorkflowSession.SelectedIc = "NT51927";
+                viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+                activeContextLabel = viewModel.RunSession.ActiveRunContextLabel;
+                activeDeviceStatus = viewModel.WorkflowSession.DeviceContextStatus;
+                selectionWasReadOnly = !viewModel.WorkflowSession.IsDeviceContextSelectionVisible;
                 notifications.Clear();
                 releaseWorker.SetResult();
                 await runTask;
@@ -288,24 +302,24 @@ public sealed partial class ShellViewModelTests
         Assert.True(selectionWasReadOnly);
         string[] activeContextBindings =
         [
-            nameof(MainWindowViewModel.IsDeviceContextSelectionVisible),
-            nameof(MainWindowViewModel.IsDeviceContextNumberSelectionVisible),
-            nameof(MainWindowViewModel.IsDeviceContextFamilyBadgeVisible),
-            nameof(MainWindowViewModel.DisplayedDeviceIc),
-            nameof(MainWindowViewModel.DisplayedDeviceNumber),
-            nameof(MainWindowViewModel.ActiveRunIc),
-            nameof(MainWindowViewModel.ActiveRunNumber),
-            nameof(MainWindowViewModel.ActiveRunMode),
-            nameof(MainWindowViewModel.ActiveRunContextLabel),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextSelectionVisible),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextNumberSelectionVisible),
+            nameof(WorkflowSessionPresentationViewModel.IsDeviceContextFamilyBadgeVisible),
+            nameof(CompositionRunPresentationViewModel.DisplayedDeviceIc),
+            nameof(CompositionRunPresentationViewModel.DisplayedDeviceNumber),
+            nameof(CompositionRunPresentationViewModel.ActiveRunIc),
+            nameof(CompositionRunPresentationViewModel.ActiveRunNumber),
+            nameof(CompositionRunPresentationViewModel.ActiveRunMode),
+            nameof(CompositionRunPresentationViewModel.ActiveRunContextLabel),
         ];
         Assert.All(activeContextBindings, propertyName => Assert.Contains(propertyName, startNotifications));
         Assert.All(activeContextBindings, propertyName => Assert.Contains(propertyName, completionNotifications));
-        Assert.False(viewModel.IsRunInProgress);
-        Assert.True(viewModel.IsDeviceContextSelectionVisible);
-        Assert.True(viewModel.IsDeviceContextNumberSelectionVisible);
-        Assert.Empty(viewModel.ActiveRunIc);
-        Assert.Empty(viewModel.ActiveRunNumber);
-        Assert.Empty(viewModel.ActiveRunMode);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
+        Assert.True(viewModel.WorkflowSession.IsDeviceContextNumberSelectionVisible);
+        Assert.Empty(viewModel.RunSession.ActiveRunIc);
+        Assert.Empty(viewModel.RunSession.ActiveRunNumber);
+        Assert.Empty(viewModel.RunSession.ActiveRunMode);
     }
 
     /// <summary>An observer fault propagates only after the active-run cancellation source is released.</summary>
@@ -315,7 +329,7 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-progress-observer-fault");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.CompositionProgress.PropertyChanged += (_, args) =>
+        viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(CompositionRunProgressViewModel.CurrentPhase))
             {
@@ -327,7 +341,7 @@ public sealed partial class ShellViewModelTests
         await uiThread.InvokeAsync(async () =>
         {
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                viewModel.RunCompositionAsync(
+                viewModel.RunSession.RunCompositionAsync(
                     build: false,
                     (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
                         "NT51926",
@@ -341,7 +355,7 @@ public sealed partial class ShellViewModelTests
             Assert.Equal("Synthetic progress observer failure.", exception.Message);
         });
 
-        Assert.False(viewModel.IsRunInProgress);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
     }
 
     /// <summary>A queued run retains its IC and mapping inputs captured before the dispatcher yield.</summary>
@@ -352,25 +366,25 @@ public sealed partial class ShellViewModelTests
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedMergeMode = "General";
-        viewModel.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x4";
         viewModel.SetSlotFile(mapping.MappingId, sourcePath);
 
-        Task previewTask = viewModel.PreviewMergeCommand.ExecuteAsync(null);
-        viewModel.SelectedIc = "NT51927";
+        Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
         mapping.TargetStartAddress = "0x8";
         await previewTask;
 
-        Assert.Equal("NT51926", viewModel.LoadedReport.IcId);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
         Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
-        Assert.False(viewModel.IsRunInProgress);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
     }
 
     /// <summary>The global progress surface names the active Preview or Build in the selected language.</summary>
@@ -386,39 +400,39 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(language);
-        viewModel.SelectedIc = "NT51926";
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
         List<string> activeLabels = [];
         bool wasInProgress = false;
         int labelNotifications = 0;
-        viewModel.PropertyChanged += (_, args) =>
+        viewModel.RunSession.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(MainWindowViewModel.RunProgressAccessibleLabel))
+            if (args.PropertyName == nameof(CompositionRunPresentationViewModel.RunProgressAccessibleLabel))
             {
                 labelNotifications++;
             }
 
-            if (args.PropertyName == nameof(MainWindowViewModel.IsRunInProgress))
+            if (args.PropertyName == nameof(CompositionRunPresentationViewModel.IsRunInProgress))
             {
-                if (!wasInProgress && viewModel.IsRunInProgress)
+                if (!wasInProgress && viewModel.RunSession.IsRunInProgress)
                 {
-                    activeLabels.Add(viewModel.RunProgressAccessibleLabel);
+                    activeLabels.Add(viewModel.RunSession.RunProgressAccessibleLabel);
                 }
 
-                wasInProgress = viewModel.IsRunInProgress;
+                wasInProgress = viewModel.RunSession.IsRunInProgress;
             }
         };
 
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
-        await viewModel.BuildMergeAsync(workspace.PathFor("output.bin"));
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+        await viewModel.Merge.BuildMergeAsync(workspace.PathFor("output.bin"));
 
         Assert.Equal([previewLabel, buildLabel], activeLabels);
         Assert.Equal(2, labelNotifications);
-        Assert.False(viewModel.IsRunInProgress);
-        Assert.True(viewModel.CompositionProgress.HasTypedProgress);
+        Assert.False(viewModel.RunSession.IsRunInProgress);
+        Assert.True(viewModel.RunSession.CompositionProgress.HasTypedProgress);
         Assert.Equal(
             CompositionRunPhase.PreparingReport,
-            viewModel.CompositionProgress.CurrentPhase);
+            viewModel.RunSession.CompositionProgress.CurrentPhase);
     }
 
     private static MainWindowViewModel ConfigureRunnableGeneralMerge(TempWorkspace workspace)
@@ -426,10 +440,10 @@ public sealed partial class ShellViewModelTests
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedMergeMode = "General";
-        viewModel.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x4";

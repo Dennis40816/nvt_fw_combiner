@@ -20,23 +20,23 @@ public sealed partial class ShellViewModelTests
             revisions.AddRange(inputs.Select(static input => input.AuthoringRevision));
             return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
         });
-        viewModel.SelectedIc = "NT51950";
+        viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceBase, referencePath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceDp, firstDpPath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         revisions.Clear();
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
         long stableRevision = Assert.Single(revisions.Distinct());
         revisions.Clear();
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
         Assert.Equal(stableRevision, Assert.Single(revisions.Distinct()));
 
         revisions.Clear();
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceDp, secondDpPath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         Assert.True(Assert.Single(revisions.Distinct()) > stableRevision);
     }
 }

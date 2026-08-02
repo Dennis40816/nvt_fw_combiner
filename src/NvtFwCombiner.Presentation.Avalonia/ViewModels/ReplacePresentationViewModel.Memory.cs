@@ -2,8 +2,16 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
+    internal void RefreshContextState(bool preserveSlotFiles = false)
+    {
+        RefreshCtrlRamRegions();
+        RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
+        RefreshReplaceMemoryMapState();
+        NotifyContextChanged();
+    }
+
     private void RefreshCtrlRamRegions()
     {
         CtrlRamRegions.Clear();
@@ -15,7 +23,37 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void ClearCtrlRamInspectionDisplay()
+    private void RefreshReplaceSlotGroups()
+    {
+        ReplaceSlotGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
+            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
+        {
+            ReplaceSlotGroups.Add(group);
+        }
+    }
+
+    private void RefreshReplaceCoverageGroups()
+    {
+        ReplaceCoverageGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
+            ReplaceCoverageSegments))
+        {
+            ReplaceCoverageGroups.Add(group);
+        }
+    }
+
+    internal void ClearCtrlRamInspectionDisplay()
     {
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
@@ -27,7 +65,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
-    private void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
+    internal void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
     {
         ArgumentNullException.ThrowIfNull(display);
 
@@ -45,68 +83,16 @@ public sealed partial class MainWindowViewModel
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
     }
 
-    private void RefreshMemoryMapState()
-    {
-        RefreshMergeMemoryMapState();
-        RefreshReplaceMemoryMapState();
-    }
-
-    private void RefreshMergeMemoryMapState()
-    {
-        long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        long? selectedAbMergeDpInputLength = GetSelectedAbMergeDpInputLength();
-        (
-            string rangeLabel,
-            IReadOnlyList<MemoryMapRowViewModel> rows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
-            {
-                GeneralMergeMode => GetGeneralMergeMemoryDisplay(),
-                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
-                    SelectedIc,
-                    GetSelectedAbMergeTopologyToken(),
-                    selectedAbMergeDpInputLength),
-                _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
-                    SelectedIc,
-                    selectedMergeDpInputLength),
-            };
-        MergeMemoryRangeLabel = rangeLabel;
-        ReplaceRows(MergeMemoryRows, rows);
-        ReplaceRows(MergeCoverageSegments, coverageSegments);
-
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-    }
-
-    private (
-        string RangeLabel,
-        IReadOnlyList<MemoryMapRowViewModel> Rows,
-        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay()
-    {
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings =
-            CreateGeneralMergeMappingInputs();
-        return TryResolveGeneralMergeOutputInitializer(
-                out WorkbenchGeneralMergeInitializer? initializer)
-            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                initializer!,
-                mappings)
-            : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                GeneralMergeOutputLength,
-                GeneralMergeOutputFillByte,
-                mappings);
-    }
-
-    private void RefreshReplaceMemoryMapState()
+    internal void RefreshReplaceMemoryMapState()
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
-            if (_firmwareInspectionSession.TryGetBase(
-                    SelectedIc,
-                    ReplaceBaseSlot.FilePath,
-                    out WorkbenchFirmwareInspection inspection))
+            if (_stateBindings.GetBaseInspection() is { } inspection)
             {
-                ApplyCtrlRamDisplayFromInspection(inspection);
+                ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                    inspection,
+                    SelectedIc,
+                    SelectedNumber));
             }
             else
             {
@@ -145,32 +131,11 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
-    private long? GetSelectedMergeDpInputLength()
-    {
-        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            _firmwareInspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
-                ? length
-                : null;
-    }
-
-    private long? GetSelectedAbMergeDpInputLength()
-    {
-        WorkbenchAbMergeInputSlot? dpInput = WorkbenchCompositionService
-            .GetAbMergeInputSlots(SelectedIc, GetSelectedAbMergeTopologyToken())
-            .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
-        return dpInput is not null &&
-            _abMergeSlotsByAddressSpace.TryGetValue(dpInput.AddressSpaceId, out FirmwareSlotViewModel? slot) &&
-            _firmwareInspectionSession.TryGetFileLength(slot, out long length)
-                ? length
-                : null;
-    }
-
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
-            _firmwareInspectionSession.TryGetFileLength(ReplaceBaseSlot, out long length)
-                ? length
+            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc)
+                ? _stateBindings.GetInspectedFileLength(ReplaceBaseSlot)
                 : null;
     }
 
@@ -241,5 +206,16 @@ public sealed partial class MainWindowViewModel
         }
 
         slot.FilePath = filePath;
+    }
+
+    private static void ReplaceRows<T>(
+        System.Collections.ObjectModel.ObservableCollection<T> target,
+        IEnumerable<T> rows)
+    {
+        target.Clear();
+        foreach (T row in rows)
+        {
+            target.Add(row);
+        }
     }
 }

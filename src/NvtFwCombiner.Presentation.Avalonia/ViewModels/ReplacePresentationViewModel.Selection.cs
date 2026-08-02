@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
     /// <summary>True when the compact Replace input selection overview is open.</summary>
     public bool IsReplaceSelectionModalOpen { get; private set; }
@@ -75,18 +75,12 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceSelectionModalOpen));
     }
 
-    private void CloseReplaceSelectionForRun()
+    internal void CloseSelectionForRun()
     {
-        if (!IsReplaceSelectionModalOpen)
-        {
-            return;
-        }
-
-        IsReplaceSelectionModalOpen = false;
-        OnPropertyChanged(nameof(IsReplaceSelectionModalOpen));
+        CloseReplaceSelection();
     }
 
-    private void RefreshReplaceSelectionState()
+    internal void RefreshSelectionState()
     {
         OnPropertyChanged(nameof(ReplaceSelectionCountLabel));
         OnPropertyChanged(nameof(ReplaceSelectionSubtitle));
@@ -95,6 +89,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceSelectionRows));
         OnPropertyChanged(nameof(ReplaceSelectionMissingRows));
         OnPropertyChanged(nameof(HasReplaceSelectionMissingRows));
+        OnPropertyChanged(nameof(CanBuildReplace));
     }
 
     private int GetSelectedReplacementCount()
