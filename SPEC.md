@@ -1894,6 +1894,13 @@ after the grill closes so issues do not become a competing draft specification.
     and no reallocation may raise the 22,607 final gate. Ticket #197 remains
     blocked until the umbrella reaches that gate without weakening behavior,
     architecture, firmware, security, coverage, or release evidence.
+    Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
+    is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
+    Core-entry ratchets, cumulative positive counted growth is capped at 2,000
+    lines, negative deltas do not refill that allowance, and the metric may not
+    exceed 74,750. Ticket #214 may consume at most 1,300 counted net lines.
+    Presentation exclusion cannot be used to hide runtime ownership, and this
+    temporary envelope does not increase the final gate or integration reserve.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
     firmware/route migration may temporarily grow only when a golden,
