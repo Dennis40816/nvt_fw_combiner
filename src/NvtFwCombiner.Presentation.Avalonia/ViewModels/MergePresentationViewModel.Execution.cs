@@ -6,7 +6,7 @@ internal sealed record MergeBuildSavePreparation(
     string SuggestedFileName,
     WorkbenchAbAFlashCodeDeliveryPlan? AFlashCodePlan);
 
-public sealed partial class MainWindowViewModel
+public sealed partial class MergePresentationViewModel
 {
     /// <summary>Builds the active Merge output to a user-selected path.</summary>
     public Task BuildMergeAsync(
@@ -22,159 +22,6 @@ public sealed partial class MainWindowViewModel
             aFlashCodeOutputPath,
             outputPathUsesAutomaticName,
             aFlashCodeOutputPathUsesAutomaticName);
-    }
-
-    private void RefreshMergeSlotRequirements()
-    {
-        if (IsAbCodeMergeModeSelected)
-        {
-            RefreshAbMergeSlots();
-            return;
-        }
-
-        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        IReadOnlyList<string> available = WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(SelectedIc);
-        _mergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
-        _mergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
-        _mergeLdcSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal);
-        MergeSlots.Clear();
-        if (available.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
-        {
-            MergeSlots.Add(_mergeDpSlot);
-        }
-
-        if (available.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
-        {
-            MergeSlots.Add(_mergeTpSlot);
-        }
-
-        if (available.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal))
-        {
-            MergeSlots.Add(_mergeLdcSlot);
-        }
-    }
-
-    private void RefreshAbMergeSlots()
-    {
-        RefreshAbMergeTopologyChoices();
-        RefreshAbMergeInputSlots();
-    }
-
-    private void RefreshAbMergeInputSlots()
-    {
-        MergeSlots.Clear();
-        _abMergeAddressSpaceBySlotId.Clear();
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
-                     SelectedIc,
-                     GetSelectedAbMergeTopologyToken()))
-        {
-            if (!_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
-            {
-                slot = new FirmwareSlotViewModel(
-                    input.SlotId,
-                    ShellTextResources.GetAbSlotTitle(input.Role),
-                    Text.GetAbSlotDescription(input),
-                    input.Role == WorkbenchAbMergeInputRole.DpAb ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
-                _abMergeSlotsByAddressSpace.Add(input.AddressSpaceId, slot);
-            }
-
-            slot.ApplyDisplayText(
-                ShellTextResources.GetAbSlotTitle(input.Role),
-                Text.GetAbSlotDescription(input),
-                Text.RequiredLabel,
-                Text.OptionalLabel,
-                Text.NoBinSelectedLabel);
-            _abMergeAddressSpaceBySlotId[input.SlotId] = input.AddressSpaceId;
-            MergeSlots.Add(slot);
-        }
-    }
-
-    private void RefreshAbMergeTopologyChoices()
-    {
-        IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices =
-            AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc);
-        AbMergeTopologyChoices.Clear();
-        foreach (WorkbenchAbMergeTopologyChoice choice in choices)
-        {
-            AbMergeTopologyChoices.Add(choice);
-        }
-
-        OnPropertyChanged(nameof(HasAbMergeTopologyChoices));
-    }
-
-    private string? GetSelectedAbMergeTopologyToken()
-    {
-        return AbMergeTopologyChoices.Any(choice =>
-            StringComparer.Ordinal.Equals(choice.Token, SelectedNumber))
-            ? SelectedNumber
-            : null;
-    }
-
-    private string GetRequiredStandardMergeSlotLabels()
-    {
-        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        return required.Count == 0
-            ? "none"
-            : string.Join(", ", required.Select(AddressSpaceLabel));
-    }
-
-    private static string AddressSpaceLabel(string addressSpaceId)
-    {
-        return addressSpaceId switch
-        {
-            WorkbenchAddressSpaceIds.DpInput => "DP",
-            WorkbenchAddressSpaceIds.TpInput => "TP",
-            WorkbenchAddressSpaceIds.LdcInput => "LDC",
-            _ => addressSpaceId,
-        };
-    }
-
-    private bool CanRunStandardMerge()
-    {
-        IReadOnlyList<string> requiredAddressSpaces =
-            WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        return IsNormalMergeModeSelected && requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
-            MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
-    }
-
-    private bool CanRunGeneralMerge()
-    {
-        return IsGeneralMergeModeSelected &&
-            TryResolveGeneralMergeOutputInitializer(out _) &&
-            GeneralMergeMappings.Any(mapping => mapping.HasFile);
-    }
-
-    private bool TryResolveGeneralMergeOutputInitializer(
-        out WorkbenchGeneralMergeInitializer? initializer)
-    {
-        return WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
-            GeneralMergeOutputLength,
-            GeneralMergeOutputFillByte,
-            out initializer);
-    }
-
-    private bool CanRunAbMerge()
-    {
-        return IsAbCodeMergeModeSelected &&
-            IsAbMergeSupported &&
-            (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&
-            MergeSlots.Count > 0 &&
-            MergeSlots.All(static slot =>
-                slot.HasFile &&
-                slot.InputInspectionSeverity is not null &&
-                !slot.BlocksBuild &&
-                !slot.IsInputInspectionPending);
-    }
-
-    private bool CanRunMerge()
-    {
-        return !IsRunInProgress && !WorkflowSession.IsFirmwareInspectionLoading && (SelectedMergeMode switch
-        {
-            NormalMergeMode => CanRunStandardMerge(),
-            AbCodeMergeMode => CanRunAbMerge(),
-            GeneralMergeMode => CanRunGeneralMerge(),
-            _ => false,
-        });
     }
 
     private Task RunMergeAsync(
@@ -209,7 +56,7 @@ public sealed partial class MainWindowViewModel
         IReadOnlyDictionary<string, string> slotPaths = MergeSlots
             .Where(static slot => slot.HasFile)
             .ToDictionary(
-                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
         return await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
@@ -232,7 +79,7 @@ public sealed partial class MainWindowViewModel
         IReadOnlyDictionary<string, string> slotPaths = MergeSlots
             .Where(static slot => slot.HasFile)
             .ToDictionary(
-                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
         return await AbMergeWorkbenchCompositionService.TryCreateAFlashCodeDeliveryPlanAsync(
@@ -323,7 +170,7 @@ public sealed partial class MainWindowViewModel
                             cancellationToken,
                             outputPath)
                         .ConfigureAwait(false)
-                    : _acceptedGeneralMergeDraft is null
+                    : AcceptedGeneralMergeDraft is null
                         ? await WorkbenchCompositionService
                             .RunGeneralMergeInitializerWithProgressAsync(
                                 icId,
@@ -338,16 +185,16 @@ public sealed partial class MainWindowViewModel
                             .RunGeneralMergeAcceptedDraftWithProgressAsync(
                                 icId,
                                 initializer!,
-                                _acceptedGeneralMergeDraft,
+                                AcceptedGeneralMergeDraft,
                                 build,
                                 progress,
                                 cancellationToken,
                                 outputPath)
                             .ConfigureAwait(false);
 
-                _acceptedGeneralMergeDraft =
+                AcceptedGeneralMergeDraft =
                     result.AcceptedGeneralMappingDraft ??
-                    _acceptedGeneralMergeDraft;
+                    AcceptedGeneralMergeDraft;
                 return result;
             },
             (action, errorMessage) => Reports.LoadRunErrorReport(
@@ -417,17 +264,17 @@ public sealed partial class MainWindowViewModel
             compositionKind: "Merge",
             modeId: WorkbenchWorkflowIds.AbMerge,
             experienceId: WorkbenchWorkflowIds.AbMerge);
-        LastRunResult = new UiRunResultViewModel("Build failed", message, "No output", succeeded: false);
-        OnPropertyChanged(nameof(LastRunResult));
+        _stateBindings.PublishRunResult(
+            new UiRunResultViewModel("Build failed", message, "No output", succeeded: false));
         Reports.ShowReport();
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
-        AddPath(paths, WorkbenchAddressSpaceIds.DpInput, _mergeDpSlot);
-        AddPath(paths, WorkbenchAddressSpaceIds.TpInput, _mergeTpSlot);
-        AddPath(paths, WorkbenchAddressSpaceIds.LdcInput, _mergeLdcSlot);
+        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.DpInput, MergeDpSlot);
+        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.TpInput, MergeTpSlot);
+        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.LdcInput, MergeLdcSlot);
         return paths;
     }
 
@@ -436,7 +283,7 @@ public sealed partial class MainWindowViewModel
         return MergeSlots
             .Where(static slot => slot.HasFile)
             .ToDictionary(
-                slot => _abMergeAddressSpaceBySlotId[slot.SlotId],
+                slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
     }
@@ -455,60 +302,4 @@ public sealed partial class MainWindowViewModel
         return paths;
     }
 
-    private static void AddPath(
-        Dictionary<string, string> paths,
-        string addressSpaceId,
-        FirmwareSlotViewModel slot)
-    {
-        if (!string.IsNullOrWhiteSpace(slot.FilePath))
-        {
-            paths[addressSpaceId] = slot.FilePath;
-        }
-    }
-
-    private void ApplyRunResult(
-        WorkbenchRunResult result,
-        bool build,
-        ReportReviewViewModel report,
-        bool publishReport)
-    {
-        string action = build ? "Build" : "Preview";
-        bool deliveryComplete = result.Succeeded && result.IsDeliveryComplete;
-        string detail = !result.IsDeliveryComplete && !string.IsNullOrWhiteSpace(result.DeliveryFailureMessage)
-            ? result.DeliveryFailureMessage
-            : result.Succeeded
-            ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
-            : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
-        LastRunResult = new UiRunResultViewModel(
-            result.Succeeded
-                ? deliveryComplete ? $"{action} succeeded" : $"{action} partially delivered"
-                : $"{action} blocked",
-            detail,
-            result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
-            deliveryComplete);
-        OnPropertyChanged(nameof(LastRunResult));
-        _ = TryShowBuildCompleted(result, build);
-
-        if (!publishReport)
-        {
-            return;
-        }
-
-        Reports.PublishGeneratedReport(
-            report,
-            result.ReportJson,
-            action,
-            show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
-    }
-
-    private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)
-    {
-        return addressSpaceId switch
-        {
-            WorkbenchAddressSpaceIds.DpInput => _mergeDpSlot,
-            WorkbenchAddressSpaceIds.TpInput => _mergeTpSlot,
-            WorkbenchAddressSpaceIds.LdcInput => _mergeLdcSlot,
-            _ => null,
-        };
-    }
 }

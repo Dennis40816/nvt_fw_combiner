@@ -4,6 +4,15 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+internal delegate ValueTask<WorkbenchRunResult> CompositionRunWork(
+    CompositionRunProgressFeed progress,
+    CancellationToken cancellationToken);
+
+internal delegate Task CompositionRunInvoker(
+    bool build,
+    CompositionRunWork run,
+    Action<string, string> loadErrorReport);
+
 public sealed partial class MainWindowViewModel
 {
     private CancellationTokenSource? _activeRunCancellationSource;
@@ -83,7 +92,7 @@ public sealed partial class MainWindowViewModel
         ActiveRunShowsNumberSelector = ShouldShowNumberSelectorForSelectedPage();
         ActiveRunIc = SelectedIc;
         ActiveRunNumber = SelectedNumber;
-        ActiveRunMode = IsMergeVisible ? SelectedMergeMode : SelectedReplaceMode;
+        ActiveRunMode = IsMergeVisible ? Merge.SelectedMergeMode : SelectedReplaceMode;
         ActiveRunDeviceContextRefreshSummary = DeviceContextRefreshSummary;
         _activeRunCancellationSource = cancellationSource;
         NotifyActiveRunContextChanged();
@@ -125,7 +134,7 @@ public sealed partial class MainWindowViewModel
 
     internal async Task RunCompositionAsync(
         bool build,
-        Func<CompositionRunProgressFeed, CancellationToken, ValueTask<WorkbenchRunResult>> run,
+        CompositionRunWork run,
         Action<string, string> loadErrorReport)
     {
         CancellationTokenSource? cancellationSource = null;
@@ -217,6 +226,41 @@ public sealed partial class MainWindowViewModel
             build,
             report, publishReport: Reports.IsCurrentReportProjection(reportProjectionGeneration));
         CompositionProgress.MarkReportReady(Reports.IsCurrentReportProjection(reportProjectionGeneration));
+    }
+
+    private void ApplyRunResult(
+        WorkbenchRunResult result,
+        bool build,
+        ReportReviewViewModel report,
+        bool publishReport)
+    {
+        string action = build ? "Build" : "Preview";
+        bool deliveryComplete = result.Succeeded && result.IsDeliveryComplete;
+        string detail = !result.IsDeliveryComplete && !string.IsNullOrWhiteSpace(result.DeliveryFailureMessage)
+            ? result.DeliveryFailureMessage
+            : result.Succeeded
+            ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
+            : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
+        LastRunResult = new UiRunResultViewModel(
+            result.Succeeded
+                ? deliveryComplete ? $"{action} succeeded" : $"{action} partially delivered"
+                : $"{action} blocked",
+            detail,
+            result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
+            deliveryComplete);
+        OnPropertyChanged(nameof(LastRunResult));
+        _ = TryShowBuildCompleted(result, build);
+
+        if (!publishReport)
+        {
+            return;
+        }
+
+        Reports.PublishGeneratedReport(
+            report,
+            result.ReportJson,
+            action,
+            show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
     }
 
     private async Task ObserveRunProgressAsync(

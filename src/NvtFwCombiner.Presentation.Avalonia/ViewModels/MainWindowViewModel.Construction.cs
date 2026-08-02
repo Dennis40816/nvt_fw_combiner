@@ -13,38 +13,11 @@ public sealed partial class MainWindowViewModel
     private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
     private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
-    private const string MergeTpSlotId = WorkbenchSlotIds.MergeTp;
-    private const string MergeLdcSlotId = WorkbenchSlotIds.MergeLdc;
     private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
-    private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
-        Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
-    private static readonly IReadOnlyList<string> s_abMergeModeChoices =
-        Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
-    private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
-
-    private readonly FirmwareSlotViewModel _mergeDpSlot = new(
-        MergeDpSlotId,
-        "DP BIN",
-        "Display payload for Standard Merge",
-        FirmwareSlotKind.Dp);
-    private readonly FirmwareSlotViewModel _mergeTpSlot = new(
-        MergeTpSlotId,
-        "TP BIN",
-        "Touch payload for Standard Merge",
-        FirmwareSlotKind.Tp);
-    private readonly FirmwareSlotViewModel _mergeLdcSlot = new(
-        MergeLdcSlotId,
-        "LDC BIN",
-        "Optional LDC payload when the selected profile exposes an LDC region",
-        FirmwareSlotKind.Dp,
-        isOptional: true);
     private int _generalReplaceMappingCounter;
-    private int _generalMergeMappingCounter;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
-    private string _selectedMergeMode = NormalMergeMode;
 
     /// <summary>Initializes the main workbench view model.</summary>
     public MainWindowViewModel(
@@ -96,7 +69,25 @@ public sealed partial class MainWindowViewModel
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         Settings = new SettingsViewModel(appVersion);
-        Merge = new MergePresentationViewModel(() => Text);
+        Merge = new MergePresentationViewModel(
+            () => Text,
+            new MergeStateBindings(
+                () => SelectedIc,
+                () => SelectedNumber,
+                () => IsRunInProgress,
+                IsFirmwareInspectionLoading,
+                () => _deferredState.IsWorkflowLoaded,
+                () => _deferredState.IsLoadingWorkflow,
+                GetInspectedFileLength,
+                GetReportPresentation,
+                CreateFlashCodeOutputFileName,
+                RunCompositionAsync,
+                PublishLastRunResult,
+                RefreshNumberChoicesForSelectedIc,
+                NotifyMergeSharedContextChanged,
+                RefreshSelectedMergeFirmwareInspectionsAsync,
+                ResetRunResultForContextChange,
+                RefreshCommandState));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(new ReplaceSelectionBindings(
             () => Text,
@@ -135,22 +126,22 @@ public sealed partial class MainWindowViewModel
                 () => IsCtrlRamReplaceModeSelected,
                 () => IsReplaceVisible && SelectedReplaceMode == DpReplaceMode,
                 () => IsNumberSelectorVisible,
-                () => IsAbCodeMergeModeSelected,
-                () => HasAbMergeTopologyChoices,
-                () => SelectedMergeMode,
+                () => Merge.IsAbCodeMergeModeSelected,
+                () => Merge.HasAbMergeTopologyChoices,
+                () => Merge.SelectedMergeMode,
                 () => SelectedReplaceMode,
-                () => _mergeDpSlot,
-                () => _mergeTpSlot,
+                () => Merge.MergeDpSlot,
+                () => Merge.MergeTpSlot,
                 () => ReplaceBaseSlot,
-                () => MergeSlots,
+                () => Merge.MergeSlots,
                 () => ReplaceSlots,
-                () => _abMergeSlotsByAddressSpace.Values,
-                () => _abMergeAddressSpaceBySlotId,
-                GetSelectedAbMergeTopologyToken,
+                () => Merge.AbMergeSlots,
+                () => Merge.AbMergeAddressSpaceBySlotId,
+                Merge.GetSelectedAbMergeTopologyToken,
                 SelectSlotFile,
                 FindSlot,
                 ApplyCtrlRamInspectionDisplay,
-                RefreshMergeMemoryMapState,
+                Merge.RefreshMergeMemoryMapState,
                 RefreshReplaceMemoryMapState,
                 RefreshCommandState,
                 NotifySlotFileOutputNames));
@@ -180,13 +171,6 @@ public sealed partial class MainWindowViewModel
             [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
         BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
-        AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
-        PreviewMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: false, outputPath: null),
-            CanRunMerge);
-        BuildMergeCommand = new AsyncRelayCommand(
-            () => RunMergeAsync(build: true, outputPath: null),
-            () => CanBuildMerge);
         PreviewReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null),
             CanRunReplace);

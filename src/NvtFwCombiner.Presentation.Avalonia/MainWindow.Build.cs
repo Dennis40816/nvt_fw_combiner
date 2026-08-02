@@ -8,23 +8,23 @@ public sealed partial class MainWindow
 {
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildMerge)
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Merge.CanBuildMerge)
         {
             return;
         }
 
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildMerge)
+        if (!viewModel.Merge.CanBuildMerge)
         {
-            if (viewModel.IsAbCodeMergeModeSelected)
+            if (viewModel.Merge.IsAbCodeMergeModeSelected)
             {
-                _ = await viewModel.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
+                _ = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
             }
 
             return;
         }
 
-        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+        MergeBuildSavePreparation? preparation = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(
             CancellationToken.None);
         if (preparation is null)
         {
@@ -41,7 +41,7 @@ public sealed partial class MainWindow
         {
             return;
         }
-        bool outputPathUsesAutomaticName = viewModel.IsAbCodeMergeModeSelected &&
+        bool outputPathUsesAutomaticName = viewModel.Merge.IsAbCodeMergeModeSelected &&
             string.Equals(
                 Path.GetFileName(outputPath),
                 preparation.SuggestedFileName,
@@ -64,7 +64,7 @@ public sealed partial class MainWindow
                 StringComparison.Ordinal);
         }
 
-        await viewModel.BuildMergeAsync(
+        await viewModel.Merge.BuildMergeAsync(
             outputPath,
             aFlashCodeOutputPath,
             outputPathUsesAutomaticName,

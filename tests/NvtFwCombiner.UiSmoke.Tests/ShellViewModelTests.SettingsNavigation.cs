@@ -15,21 +15,21 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         Assert.Empty(viewModel.NumberSelectionChoices);
-        Assert.Empty(viewModel.GeneralMergeOutputLength);
-        Assert.Empty(viewModel.GeneralMergeOutputFillByte);
-        Assert.Empty(viewModel.MergeSlots);
+        Assert.Empty(viewModel.Merge.GeneralMergeOutputLength);
+        Assert.Empty(viewModel.Merge.GeneralMergeOutputFillByte);
+        Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Empty(viewModel.ReplaceSlots);
-        Assert.Empty(viewModel.GeneralMergeMappings);
+        Assert.Empty(viewModel.Merge.GeneralMergeMappings);
         Assert.Empty(viewModel.GeneralReplaceMappings);
         Assert.Null(viewModel.LoadedHexEditorWorkspace);
 
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.NotEmpty(viewModel.NumberSelectionChoices);
-        Assert.NotEmpty(viewModel.GeneralMergeOutputLength);
-        Assert.NotEmpty(viewModel.GeneralMergeOutputFillByte);
-        Assert.NotEmpty(viewModel.MergeSlots);
-        _ = Assert.Single(viewModel.GeneralMergeMappings);
+        Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputLength);
+        Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputFillByte);
+        Assert.NotEmpty(viewModel.Merge.MergeSlots);
+        _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         _ = Assert.Single(viewModel.GeneralReplaceMappings);
     }
 
@@ -64,7 +64,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
-        Assert.Empty(viewModel.MergeSlots);
+        Assert.Empty(viewModel.Merge.MergeSlots);
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
@@ -76,7 +76,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.Contains(viewModel.MergeSlots, slot =>
+        Assert.Contains(viewModel.Merge.MergeSlots, slot =>
             slot.Title == "DP BIN" &&
             slot.RequirementLabel == "必填" &&
             slot.DisplayName == "尚未選擇 BIN");

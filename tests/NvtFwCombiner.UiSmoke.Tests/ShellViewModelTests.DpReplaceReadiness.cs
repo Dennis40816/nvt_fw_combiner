@@ -254,10 +254,10 @@ public sealed partial class ShellViewModelTests
 
         Assert.All(viewModel.ReplaceSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
 
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.All(viewModel.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>

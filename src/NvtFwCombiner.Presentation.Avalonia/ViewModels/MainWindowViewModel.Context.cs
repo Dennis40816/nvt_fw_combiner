@@ -42,14 +42,14 @@ public sealed partial class MainWindowViewModel
         _deferredState.EnsureWorkflow(
             RefreshNumberChoicesForSelectedIc,
             () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(SelectedIc),
-            value => GeneralMergeOutputLength = value,
+            value => Merge.GeneralMergeOutputLength = value,
             () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(SelectedIc),
-            value => GeneralMergeOutputFillByte = value,
+            value => Merge.GeneralMergeOutputFillByte = value,
             AddGeneralReplaceMapping,
-            AddGeneralMergeMapping);
+            Merge.AddGeneralMergeMapping);
 
         RefreshCtrlRamRegions();
-        RefreshMergeSlotRequirements();
+        Merge.RefreshMergeSlotRequirements();
         RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
         RefreshMemoryMapState();
         RefreshCommandState();
@@ -103,15 +103,16 @@ public sealed partial class MainWindowViewModel
 
     private void NotifyContextTextChanged()
     {
-        OnPropertyChanged(nameof(IsStandardMergeSupported));
-        OnPropertyChanged(nameof(IsAbMergeSupported));
-        OnPropertyChanged(nameof(MergeModeChoices));
-        OnPropertyChanged(nameof(StandardMergeSupportSummary));
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(AbMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
+        Merge.NotifyContextChanged();
+        OnPropertyChanged(nameof(Merge.IsStandardMergeSupported));
+        OnPropertyChanged(nameof(Merge.IsAbMergeSupported));
+        OnPropertyChanged(nameof(Merge.MergeModeChoices));
+        OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
+        OnPropertyChanged(nameof(Merge.StandardMergeOutputFileName));
+        OnPropertyChanged(nameof(Merge.GeneralMergeOutputFileName));
+        OnPropertyChanged(nameof(Merge.MergeOutputFileName));
+        OnPropertyChanged(nameof(Merge.AbMergeOutputFileName));
+        OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(ReplaceOutputFileName));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
@@ -154,38 +155,6 @@ public sealed partial class MainWindowViewModel
         }
 
         NavigateToPage(ShellPage.Replace);
-    }
-
-    private void SelectMergeMode(string mode)
-    {
-        string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
-            ? mode
-            : NormalMergeMode;
-        if (!string.Equals(_selectedMergeMode, nextMode, StringComparison.Ordinal))
-        {
-            _selectedMergeMode = nextMode;
-            OnPropertyChanged(nameof(SelectedMergeMode));
-            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
-            OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
-            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-            OnPropertyChanged(nameof(IcChoices));
-            OnPropertyChanged(nameof(IsNumberSelectorVisible));
-            OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-            OnPropertyChanged(nameof(DeviceContextStatus));
-            OnPropertyChanged(nameof(MergeOutputFileName));
-            OnPropertyChanged(nameof(MergeReadinessStatus));
-            OnPropertyChanged(nameof(MergeMemorySummary));
-            ResetRunResultForContextChange();
-            RefreshNumberChoicesForSelectedIc();
-            RefreshMergeSlotRequirements();
-            if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
-            {
-                _ = WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
-            }
-
-            RefreshMergeMemoryMapState();
-            RefreshCommandState();
-        }
     }
 
     private void ApplySelectedPage(ShellPage page)
@@ -287,9 +256,10 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshCommandState()
     {
+        Merge.NotifyCommandStateChanged();
         RefreshDpReplaceInputSelectionReadiness();
-        PreviewMergeCommand.NotifyCanExecuteChanged();
-        BuildMergeCommand.NotifyCanExecuteChanged();
+        Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
+        Merge.BuildMergeCommand.NotifyCanExecuteChanged();
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
         Reports.ShowReportCommand.NotifyCanExecuteChanged();
@@ -302,8 +272,8 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(RunProgressStatusLabel));
         OnPropertyChanged(nameof(RunProgressDisplayLabel));
         OnPropertyChanged(nameof(ShouldAnimateRunProgress));
-        OnPropertyChanged(nameof(CanBuildMerge));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
+        OnPropertyChanged(nameof(Merge.CanBuildMerge));
+        OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
         OnPropertyChanged(nameof(CanBuildReplace));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         Replace.RefreshSelectionState();
@@ -325,12 +295,12 @@ public sealed partial class MainWindowViewModel
             WorkflowSession.ConsumeAcceptedFirmwareMismatchSelection();
         WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
-        if (IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
+        if (Merge.IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
         {
-            _selectedMergeMode = NormalMergeMode;
-            OnPropertyChanged(nameof(SelectedMergeMode));
-            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
-            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
+            Merge.SelectMergeMode(NormalMergeMode);
+            OnPropertyChanged(nameof(Merge.SelectedMergeMode));
+            OnPropertyChanged(nameof(Merge.IsNormalMergeModeSelected));
+            OnPropertyChanged(nameof(Merge.IsAbCodeMergeModeSelected));
             OnPropertyChanged(nameof(IcChoices));
         }
 
@@ -338,8 +308,8 @@ public sealed partial class MainWindowViewModel
         try
         {
             RefreshNumberChoicesForSelectedIc();
-            GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
-            GeneralMergeOutputFillByte =
+            Merge.GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
+            Merge.GeneralMergeOutputFillByte =
                 WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(value);
         }
         finally
@@ -381,7 +351,7 @@ public sealed partial class MainWindowViewModel
 
         if (WorkflowSession.IsApplyingFirmwareInspectionContext)
         {
-            WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
+            WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
             InvalidateCtrlRamFirmwareVersionContext();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             RefreshContextState(
@@ -393,7 +363,7 @@ public sealed partial class MainWindowViewModel
 
         // AB validation is topology-sensitive.  Preserve no projection across a topology
         // switch, then let the shared refresh below inspect the currently selected inputs.
-        WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
+        WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
         InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(
@@ -406,35 +376,12 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshAbMergeInputsAfterTopologyChange()
     {
-        if (IsAbCodeMergeModeSelected &&
-            HasAbMergeTopologyChoices &&
-            MergeSlots.Any(slot => slot.HasFile))
+        if (Merge.IsAbCodeMergeModeSelected &&
+            Merge.HasAbMergeTopologyChoices &&
+            Merge.MergeSlots.Any(slot => slot.HasFile))
         {
             _ = WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
         }
     }
 
-    partial void OnGeneralMergeOutputLengthChanged(string value)
-    {
-        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
-        {
-            return;
-        }
-
-        RefreshMergeMemoryMapState();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
-
-    partial void OnGeneralMergeOutputFillByteChanged(string value)
-    {
-        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
-        {
-            return;
-        }
-
-        RefreshMergeMemoryMapState();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
 }

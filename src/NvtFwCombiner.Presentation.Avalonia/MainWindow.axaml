@@ -90,7 +90,7 @@
               Classes="nav"
               Command="{Binding ShowMergeCommand}"
               IsChecked="{Binding IsMergeVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding MergePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Merge.MergePreview.Title}" />
           </ToggleButton>
         </StackPanel>
 
@@ -247,7 +247,7 @@
             Grid.Row="0"
             IsVisible="{Binding IsMergeVisible}">
           <ContentControl.ContentTemplate>
-            <DataTemplate DataType="vm:MainWindowViewModel">
+            <DataTemplate DataType="vm:MergePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
@@ -326,10 +326,10 @@
         <Button
             Classes="railAction primaryRailAction buildRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
-            AutomationProperties.HelpText="{Binding MergeReadinessStatus}"
+            AutomationProperties.HelpText="{Binding Merge.MergeReadinessStatus}"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildMergeButton_OnClick"
-            IsEnabled="{Binding CanBuildMerge}"
+            IsEnabled="{Binding Merge.CanBuildMerge}"
             IsVisible="{Binding IsMergeVisible}">
           <Grid ColumnDefinitions="*,44">
             <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />

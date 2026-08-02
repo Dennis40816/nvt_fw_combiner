@@ -32,9 +32,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
             ClearCtrlRamInspectionDisplay();
         }
         else if (slot.SlotId == MergeDpSlotId ||
-            (IsAbCodeMergeModeSelected && _abMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
+            (Merge.IsAbCodeMergeModeSelected && Merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
-            RefreshMergeMemoryMapState();
+            Merge.RefreshMergeMemoryMapState();
         }
         else if (slot.SlotId == ReplaceBaseSlotId)
         {
@@ -51,15 +51,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     private void NotifySlotFileOutputNames()
     {
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
+        Merge.NotifyOutputFileNamesChanged();
         OnPropertyChanged(nameof(ReplaceOutputFileName));
     }
 
     private FirmwareSlotViewModel? FindSlot(string slotId)
     {
-        return MergeSlots.Concat(ReplaceSlots)
+        return Merge.MergeSlots.Concat(ReplaceSlots)
             .Concat([ReplaceBaseSlot])
             .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
     }

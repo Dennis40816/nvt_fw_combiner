@@ -21,7 +21,7 @@ public sealed partial class MainWindowViewModel
         }
         else
         {
-            SelectMergeMode(selection.Mode);
+            Merge.SelectMergeMode(selection.Mode);
             NavigateToPage(ShellPage.Merge);
         }
     }

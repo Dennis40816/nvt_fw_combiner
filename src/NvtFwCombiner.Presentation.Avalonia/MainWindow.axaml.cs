@@ -275,7 +275,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
         LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
         LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel);
-        LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel);
+        LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge);
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
         LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);

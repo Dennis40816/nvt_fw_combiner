@@ -42,7 +42,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
 
         viewModel.ShowReplaceCommand.Execute(null);
@@ -70,9 +70,9 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);

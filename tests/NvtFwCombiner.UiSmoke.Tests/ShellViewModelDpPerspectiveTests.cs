@@ -69,15 +69,15 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = icId;
 
         MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
         Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
         Assert.Contains("Supported DP lengths are 0x40000 / 0x80000 / 0x100000", initialRow.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
-        Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);
-        _ = Assert.Single(viewModel.MergeMemoryRows);
-        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.MergeCoverageSegments);
+        Assert.Equal("Selected DP BIN length pending", viewModel.Merge.MergeMemoryRangeLabel);
+        _ = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
         Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
         Assert.Equal("DP length pending", pendingSegment.SourceLabel);
         Assert.Equal(
@@ -85,7 +85,7 @@ public sealed partial class ShellViewModelTests
             pendingSegment.CompactDetail);
         Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
-        Assert.All(viewModel.MergeCoverageSegments, segment =>
+        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
             Assert.DoesNotContain("CopyRange", segment.CompactDetail, StringComparison.Ordinal);
@@ -105,12 +105,12 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("merge-dp", dpPath);
 
         MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.ActionLabel == "Initialize");
         Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
         Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
-        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
-        Assert.All(viewModel.MergeCoverageSegments, segment =>
+        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
         });
@@ -150,7 +150,7 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowMergeCommand.Execute(null);
 
         FirmwareSlotViewModel mergeDp = Assert.Single(
-            viewModel.MergeSlots,
+            viewModel.Merge.MergeSlots,
             slot => slot.SlotId == WorkbenchSlotIds.MergeDp);
         Assert.EndsWith("(Initial Code + LDC)", mergeDp.Description, StringComparison.Ordinal);
 
@@ -161,7 +161,7 @@ public sealed partial class ShellViewModelTests
         Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51950";
-        Assert.DoesNotContain("Initial Code + LDC", viewModel.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>

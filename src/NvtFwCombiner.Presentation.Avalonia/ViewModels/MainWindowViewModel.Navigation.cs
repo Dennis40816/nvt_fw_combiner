@@ -96,7 +96,7 @@ public sealed partial class MainWindowViewModel
     private bool ShouldShowNumberSelectorForSelectedPage()
     {
         return IsReplaceVisible ||
-            (IsMergeVisible && IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
+            (IsMergeVisible && Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
     }
 
     private void NavigateToPage(ShellPage page)
@@ -184,12 +184,12 @@ public sealed partial class MainWindowViewModel
         return page switch
         {
             ShellPage.Merge =>
-                _mergeDpSlot.HasFile ||
-                _mergeTpSlot.HasFile ||
-                _mergeLdcSlot.HasFile ||
-                _abMergeSlotsByAddressSpace.Values.Any(static slot => slot.HasFile) ||
-                MergeSlots.Any(static slot => slot.HasFile) ||
-                GeneralMergeMappings.Any(static mapping => mapping.HasFile),
+                Merge.MergeDpSlot.HasFile ||
+                Merge.MergeTpSlot.HasFile ||
+                Merge.MergeLdcSlot.HasFile ||
+                Merge.AbMergeSlots.Any(static slot => slot.HasFile) ||
+                Merge.MergeSlots.Any(static slot => slot.HasFile) ||
+                Merge.GeneralMergeMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Replace =>
                 ReplaceBaseSlot.HasFile ||
                 ReplaceSlots.Any(static slot => slot.HasFile) ||
@@ -208,20 +208,20 @@ public sealed partial class MainWindowViewModel
 
         if (page == ShellPage.Merge)
         {
-            foreach (FirmwareSlotViewModel slot in MergeSlots
-                         .Concat(_abMergeSlotsByAddressSpace.Values)
-                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdcSlot])
+            foreach (FirmwareSlotViewModel slot in Merge.MergeSlots
+                         .Concat(Merge.AbMergeSlots)
+                         .Concat([Merge.MergeDpSlot, Merge.MergeTpSlot, Merge.MergeLdcSlot])
                          .Distinct())
             {
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
+            foreach (GeneralMergeMappingViewModel mapping in Merge.GeneralMergeMappings)
             {
                 mapping.FilePath = null;
             }
 
-            RefreshMergeMemoryMapState();
+            Merge.RefreshMergeMemoryMapState();
         }
         else if (page == ShellPage.Replace)
         {
@@ -262,7 +262,7 @@ public sealed partial class MainWindowViewModel
         {
             ShellPage.Home => Text.HomeLabel,
             ShellPage.Settings => SettingsPreview.Title,
-            ShellPage.Merge => MergePreview.Title,
+            ShellPage.Merge => Merge.MergePreview.Title,
             ShellPage.Replace => ReplacePreview.Title,
             ShellPage.HexEditor => Text.HexEditorTitle,
             _ => page.ToString(),

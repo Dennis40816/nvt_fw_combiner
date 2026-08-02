@@ -11,12 +11,11 @@ public sealed partial class MainWindowViewModel
         WorkspaceSummary = Text.WorkspaceSummary;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         SettingsPreview = Text.SettingsPreview;
-        MergePreview = Text.MergePreview;
         ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
         RelocalizeFirmwareFacts();
         RefreshDpReplaceInputSelectionReadiness();
-        foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values
+        foreach (FirmwareSlotViewModel slot in Merge.AbMergeSlots
                      .Concat(ReplaceSlots).Concat([ReplaceBaseSlot]).Distinct())
         {
             if (WorkflowSession.InspectionSession.TryGetInspection(
@@ -48,12 +47,12 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
-        OnPropertyChanged(nameof(MergePreview));
+        OnPropertyChanged(nameof(Merge.MergePreview));
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(LastRunResult));
-        OnPropertyChanged(nameof(MergeMemorySummary));
+        OnPropertyChanged(nameof(Merge.MergeMemorySummary));
         OnPropertyChanged(nameof(ReplaceMemorySummary));
-        OnPropertyChanged(nameof(StandardMergeSupportSummary));
+        OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
@@ -65,7 +64,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedIcDetailEvidence));
         OnPropertyChanged(nameof(SelectedIcDetailSupport));
         OnPropertyChanged(nameof(SelectedIcDetailAutomationText));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
+        OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
         OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
@@ -86,7 +85,7 @@ public sealed partial class MainWindowViewModel
 
     private void RelocalizeFirmwareFacts()
     {
-        foreach (FirmwareSlotViewModel slot in MergeSlots
+        foreach (FirmwareSlotViewModel slot in Merge.MergeSlots
                      .Concat(ReplaceSlots)
                      .Append(ReplaceBaseSlot)
                      .Distinct())
@@ -127,19 +126,19 @@ public sealed partial class MainWindowViewModel
 
     private void ApplyFirmwareSlotText()
     {
-        _mergeDpSlot.ApplyDisplayText(
+        Merge.MergeDpSlot.ApplyDisplayText(
             "DP BIN",
             ApplySelectedIcDpSlotHint(MergeDpSlotId, Text.MergeDpSlotDescription),
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
-        _mergeTpSlot.ApplyDisplayText(
+        Merge.MergeTpSlot.ApplyDisplayText(
             "TP BIN",
             Text.MergeTpSlotDescription,
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
-        _mergeLdcSlot.ApplyDisplayText(
+        Merge.MergeLdcSlot.ApplyDisplayText(
             "LDC BIN",
             Text.MergeLdcSlotDescription,
             Text.RequiredLabel,
@@ -147,9 +146,9 @@ public sealed partial class MainWindowViewModel
             Text.NoBinSelectedLabel);
         foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
                      SelectedIc,
-                     GetSelectedAbMergeTopologyToken()))
+                     Merge.GetSelectedAbMergeTopologyToken()))
         {
-            if (_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
+            if (Merge.AbMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {
                 slot.ApplyDisplayText(
                     ShellTextResources.GetAbSlotTitle(input.Role),

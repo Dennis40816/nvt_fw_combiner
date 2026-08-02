@@ -89,7 +89,7 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        await uiThread.InvokeAsync(async () => await viewModel.PreviewMergeCommand.ExecuteAsync(null));
+        await uiThread.InvokeAsync(async () => await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null));
 
         Assert.NotEmpty(progressThreadIds);
         Assert.All(progressThreadIds, threadId => Assert.Equal(uiThread.ThreadId, threadId));
@@ -128,7 +128,7 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
 
         Assert.Contains(CompositionRunDeliveryState.ArtifactCommitted, states);
         Assert.Equal(CompositionRunDeliveryState.ReportReady, states[^1]);
@@ -353,15 +353,15 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedMergeMode = "General";
-        viewModel.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x4";
         viewModel.SetSlotFile(mapping.MappingId, sourcePath);
 
-        Task previewTask = viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
         viewModel.SelectedIc = "NT51927";
         mapping.TargetStartAddress = "0x8";
         await previewTask;
@@ -409,8 +409,8 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
-        await viewModel.BuildMergeAsync(workspace.PathFor("output.bin"));
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+        await viewModel.Merge.BuildMergeAsync(workspace.PathFor("output.bin"));
 
         Assert.Equal([previewLabel, buildLabel], activeLabels);
         Assert.Equal(2, labelNotifications);
@@ -427,9 +427,9 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51926";
-        viewModel.SelectedMergeMode = "General";
-        viewModel.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x4";

@@ -51,25 +51,11 @@ public sealed partial class MainWindowViewModel
         GeneralReplaceMode,
     ];
 
-    /// <summary>Gets executable Merge modes for the selected IC.</summary>
-    public IReadOnlyList<string> MergeModeChoices => IsAbMergeSupported
-        ? s_abMergeModeChoices
-        : s_standardMergeModeChoices;
-
     /// <summary>Gets settings card content.</summary>
     public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
 
-    /// <summary>Gets merge card content.</summary>
-    public PlanningCardText MergePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).MergePreview;
-
     /// <summary>Gets replace card content.</summary>
     public PlanningCardText ReplacePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).ReplacePreview;
-
-    /// <summary>Gets merge input slots.</summary>
-    public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
-
-    /// <summary>Gets profile-owned symbolic AB topologies when the selected AB IC requires an operator choice.</summary>
-    public ObservableCollection<WorkbenchAbMergeTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
@@ -87,12 +73,6 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets CtrlRAM region rows for the selected IC and Number.</summary>
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
 
-    /// <summary>Gets readable memory-map rows for the selected Merge workflow.</summary>
-    public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
-
-    /// <summary>Gets visual final coverage segments for the selected Standard Merge workflow.</summary>
-    public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
-
     /// <summary>Gets visual coverage segments for the selected Replace workflow.</summary>
     public ObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
 
@@ -105,43 +85,12 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets editable General Replace mapping rows.</summary>
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
-    /// <summary>Gets editable General Merge mapping rows.</summary>
-    public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
-
-    /// <summary>Gets Merge memory coverage text for the selected IC.</summary>
-    public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
-    public string StandardMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
-
-    /// <summary>Gets the default General Merge output file name.</summary>
-    public string GeneralMergeOutputFileName => CreateFlashCodeOutputFileName(MergeSlots);
-
-    /// <summary>Gets the compiled AB profile output file name.</summary>
-    public string AbMergeOutputFileName => WorkbenchCompositionService.GetAbMergeProfileSummaries()
-        .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-        .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin";
-
-    /// <summary>Gets the active Merge output file name.</summary>
-    public string MergeOutputFileName => SelectedMergeMode switch
-    {
-        GeneralMergeMode => GeneralMergeOutputFileName,
-        AbCodeMergeMode => AbMergeOutputFileName,
-        _ => StandardMergeOutputFileName,
-    };
-
     /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
     public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
     public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(
         ReplaceSlots.Concat([ReplaceBaseSlot]));
-
-    /// <summary>Gets short Merge memory-map summary text.</summary>
-    public string MergeMemorySummary => Text.GetMergeMemorySummary(
-        SelectedMergeMode,
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Any(mapping => mapping.HasFile));
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
@@ -150,26 +99,8 @@ public sealed partial class MainWindowViewModel
         "No output",
         succeeded: true);
 
-    /// <summary>Gets the standard merge support summary for the selected IC.</summary>
-    public string StandardMergeSupportSummary => IsStandardMergeSupported
-        ? Text.GetStandardMergeSupportSummary(
-            SelectedIc,
-            supported: true,
-            GetRequiredStandardMergeSlotLabels())
-        : Text.GetStandardMergeSupportSummary(
-            SelectedIc,
-            supported: false,
-            GetRequiredStandardMergeSlotLabels());
-
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
-
-    /// <summary>Gets or sets the selected Merge mode without changing the active page.</summary>
-    public string SelectedMergeMode
-    {
-        get => _selectedMergeMode;
-        set => SelectMergeMode(value);
-    }
 
     /// <summary>True when the clean home view is visible.</summary>
     public bool IsHomeVisible => SelectedPage == ShellPage.Home;
@@ -204,26 +135,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when Replace coverage should use the flat segment details list.</summary>
     public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
 
-    /// <summary>True when Normal Merge is selected.</summary>
-    public bool IsNormalMergeModeSelected => string.Equals(SelectedMergeMode, NormalMergeMode, StringComparison.Ordinal);
-
-    /// <summary>True when General Merge is selected.</summary>
-    public bool IsGeneralMergeModeSelected => string.Equals(SelectedMergeMode, GeneralMergeMode, StringComparison.Ordinal);
-
-    /// <summary>True when the reserved AB Code Merge option is selected.</summary>
-    public bool IsAbCodeMergeModeSelected => string.Equals(SelectedMergeMode, AbCodeMergeMode, StringComparison.Ordinal);
-
     /// <summary>True only while the visible Merge page is authoring AB Code.</summary>
-    private bool IsAbMergeContextActive => IsMergeVisible && IsAbCodeMergeModeSelected;
-
-    /// <summary>True when the selected AB profile exposes an operator topology selector.</summary>
-    public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
-
-    /// <summary>True when the selected IC has an admitted AB profile.</summary>
-    public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);
-
-    /// <summary>True when selected IC has a built-in standard merge profile.</summary>
-    public bool IsStandardMergeSupported => WorkbenchCompositionService.IsStandardMergeSupported(SelectedIc);
+    private bool IsAbMergeContextActive => IsMergeVisible && Merge.IsAbCodeMergeModeSelected;
 
     /// <summary>Description shown under the selected replace mode.</summary>
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
@@ -273,8 +186,8 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Typed executable workflow inventory shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
-        IsStandardMergeSupported,
-        IsAbMergeSupported,
+        Merge.IsStandardMergeSupported,
+        Merge.IsAbMergeSupported,
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, DpReplaceMode).IsAvailable,
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, CtrlRamReplaceMode).IsAvailable,
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode).IsAvailable);
@@ -286,7 +199,7 @@ public sealed partial class MainWindowViewModel
         WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, GeneralReplaceMode));
 
     /// <summary>Support boundary shown inside the IC selector detail card.</summary>
-    public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(IsAbMergeSupported);
+    public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(Merge.IsAbMergeSupported);
 
     /// <summary>Screen-reader equivalent of the visible IC detail card.</summary>
     public string SelectedIcDetailAutomationText => string.Join(
@@ -297,27 +210,6 @@ public sealed partial class MainWindowViewModel
         $"{Text.IcDetailRuntimeLabel}: {SelectedIcDetailRuntime}",
         $"{Text.IcDetailEvidenceLabel}: {SelectedIcDetailEvidence}",
         $"{Text.IcDetailSupportLabel}: {SelectedIcDetailSupport}");
-
-    /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => WorkflowSession.IsFirmwareInspectionLoading
-        ? Text.FirmwareInspectionLoadingStatus
-        : IsAbCodeMergeModeSelected
-            ? Text.GetAbMergeReadinessStatus(
-                SelectedIc,
-                IsAbMergeSupported,
-                MergeSlots.Count(static slot => slot.HasFile),
-                MergeSlots.Count,
-                MergeSlots.Count(static slot => slot.IsInputInspectionBlocking),
-                MergeSlots.Count(static slot => slot.IsInputInspectionWarning))
-            : Text.GetMergeReadinessStatus(
-                SelectedMergeMode,
-                SelectedIc,
-                GetRequiredStandardMergeSlotLabels(),
-                IsStandardMergeSupported,
-                GeneralMergeMappings.Count(mapping => mapping.HasFile));
-
-    /// <summary>True when active Merge build can run.</summary>
-    public bool CanBuildMerge => CanRunMerge();
 
     /// <summary>True when Replace build can run for the active mode.</summary>
     public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
@@ -366,15 +258,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
-
-    /// <summary>Command that adds a General Merge mapping row.</summary>
-    public IRelayCommand AddGeneralMergeMappingCommand { get; }
-
-    /// <summary>Command that previews Standard Merge through the application core.</summary>
-    public IAsyncRelayCommand PreviewMergeCommand { get; }
-
-    /// <summary>Command that builds Standard Merge output through the application core.</summary>
-    public IAsyncRelayCommand BuildMergeCommand { get; }
 
     /// <summary>Command that previews Replace through the application core or workbench planner.</summary>
     public IAsyncRelayCommand PreviewReplaceCommand { get; }
@@ -434,17 +317,4 @@ public sealed partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
     public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
 
-    /// <summary>Gets or sets General Merge output length text.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
-    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
-    public partial string GeneralMergeOutputLength { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets General Merge blank-output fill-byte text.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
-    [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
-    public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
 }

@@ -194,7 +194,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding MergeMemoryRows}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewMergeCommand}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding PreviewReplaceCommand}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"{Binding CanBuildMerge}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding Merge.CanBuildMerge}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("MergeBuildActionTip", shellSurface, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceBuildActionTip", shellSurface, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.GeneralMergeMappingTitle}\"", workflowTemplates, StringComparison.Ordinal);
@@ -296,7 +296,11 @@ public sealed partial class RepositoryBoundaryTests
 
         string viewModel = ReadViewModelPartials();
         string mergeViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
+        string mergeMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
         string reportViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string settingsViewModel = ReadText(
@@ -318,14 +322,14 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", viewModel, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetReplaceMemoryDisplay", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceModeChoices", viewModel, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceMappings", viewModel, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", viewModel, StringComparison.Ordinal);
         Assert.Contains("IsStructuredReplaceModeSelected", viewModel, StringComparison.Ordinal);
-        Assert.Contains("PreviewMergeCommand", viewModel, StringComparison.Ordinal);
-        Assert.Contains("BuildMergeCommand", viewModel, StringComparison.Ordinal);
+        Assert.Contains("PreviewMergeCommand", mergeState, StringComparison.Ordinal);
+        Assert.Contains("BuildMergeCommand", mergeState, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("OverviewRows", settingsViewModel, StringComparison.Ordinal);

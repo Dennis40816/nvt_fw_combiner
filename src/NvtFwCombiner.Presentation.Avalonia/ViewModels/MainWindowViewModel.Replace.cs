@@ -181,12 +181,12 @@ public sealed partial class MainWindowViewModel
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
         foreach (FirmwareSlotViewModel slot in ReplaceSlots)
         {
-            AddPath(paths, slot.SlotId, slot);
+            FirmwareSlotPathProjection.Add(paths, slot.SlotId, slot);
         }
 
         if (!ReplaceSlots.Contains(ReplaceBaseSlot))
         {
-            AddPath(paths, ReplaceBaseSlot.SlotId, ReplaceBaseSlot);
+            FirmwareSlotPathProjection.Add(paths, ReplaceBaseSlot.SlotId, ReplaceBaseSlot);
         }
 
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)

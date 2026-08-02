@@ -120,7 +120,7 @@ public sealed partial class ShellViewModelTests
                     null))),
         ]);
         viewModel.SelectedIc = "NT51929";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -161,7 +161,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.IsNormalMergeModeSelected);
+        Assert.True(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);

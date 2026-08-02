@@ -145,7 +145,7 @@
   </StackPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="MergeModeContentTemplate" DataType="vm:MergePresentationViewModel">
   <StackPanel Spacing="{DynamicResource NfcSpace16}">
     <Border
         Classes="panelSurface roomyPanel"

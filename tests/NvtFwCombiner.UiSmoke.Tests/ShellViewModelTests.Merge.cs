@@ -34,8 +34,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
-        Assert.True(viewModel.IsNormalMergeModeSelected);
-        Assert.Equal(["Normal", "AB Code", "General"], viewModel.MergeModeChoices);
+        Assert.True(viewModel.Merge.IsNormalMergeModeSelected);
+        Assert.Equal(["Normal", "AB Code", "General"], viewModel.Merge.MergeModeChoices);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
@@ -60,8 +60,8 @@ public sealed partial class ShellViewModelTests
         {
             viewModel.SelectedIc = profile.IcId;
 
-            Assert.True(viewModel.IsNormalMergeModeSelected, profile.IcId);
-            Assert.True(viewModel.IsStandardMergeSupported, profile.IcId);
+            Assert.True(viewModel.Merge.IsNormalMergeModeSelected, profile.IcId);
+            Assert.True(viewModel.Merge.IsStandardMergeSupported, profile.IcId);
             Assert.False(viewModel.IsNumberSelectorVisible, profile.IcId);
             Assert.True(viewModel.IsNumberSelectorPlaceholderVisible, profile.IcId);
         }
@@ -73,13 +73,13 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
         viewModel.SelectedIc = "NT51929";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
         viewModel.SelectedIc = "NT51950";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
         viewModel.SelectedIc = "NT51951";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.MergeModeChoices);
+        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
 
@@ -93,7 +93,7 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.True(viewModel.IsAbCodeMergeModeSelected);
+        Assert.True(viewModel.Merge.IsAbCodeMergeModeSelected);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51929", viewModel.SelectedIc);
@@ -106,7 +106,7 @@ public sealed partial class ShellViewModelTests
                 CompositionAddressSpaceIds.TpAInput,
                 CompositionAddressSpaceIds.TpBInput,
             ],
-            viewModel.MergeSlots.Select(static slot => slot.SlotId));
+            viewModel.Merge.MergeSlots.Select(static slot => slot.SlotId));
     }
 
     /// <summary>NT51950 selects its profile-owned physical layout through the shared IC Number context.</summary>
@@ -116,33 +116,33 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
-        Assert.True(viewModel.HasAbMergeTopologyChoices);
+        Assert.True(viewModel.Merge.HasAbMergeTopologyChoices);
         Assert.True(viewModel.IsNumberSelectorVisible);
         Assert.False(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal(
             ["single", "cascade"],
-            viewModel.AbMergeTopologyChoices.Select(static choice => choice.Token));
+            viewModel.Merge.AbMergeTopologyChoices.Select(static choice => choice.Token));
         Assert.Equal(
             ["single", "cascade"],
             viewModel.NumberSelectionChoices.Select(static choice => choice.Token));
         Assert.Equal("single", viewModel.SelectedNumber);
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
 
         viewModel.SelectedNumber = "cascade";
 
         Assert.Equal("cascade", viewModel.SelectedNumber);
-        Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0xFFFFF (len 0x100000)", viewModel.Merge.MergeMemoryRangeLabel);
 
         viewModel.SelectedIc = "NT51951";
-        Assert.True(viewModel.IsAbMergeSupported);
-        Assert.False(viewModel.HasAbMergeTopologyChoices);
+        Assert.True(viewModel.Merge.IsAbMergeSupported);
+        Assert.False(viewModel.Merge.HasAbMergeTopologyChoices);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Empty(viewModel.NumberSelectionChoices);
 
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
 
         Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.IcChoices);
     }
@@ -156,31 +156,31 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51950";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.MergeMemoryRangeLabel);
+        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
         Assert.Equal(
             ["DP AB", "TPA", "TPB"],
-            viewModel.MergeMemoryRows.Select(static row => row.AfterSource));
+            viewModel.Merge.MergeMemoryRows.Select(static row => row.AfterSource));
         Assert.Contains(
             "does not match the compiled 0x80000 layout",
-            viewModel.MergeMemoryRows[0].Detail,
+            viewModel.Merge.MergeMemoryRows[0].Detail,
             StringComparison.Ordinal);
-        Assert.Equal("Transform + Overlay + Postbuild", viewModel.MergeMemoryRows[2].ActionLabel);
+        Assert.Equal("Transform + Overlay + Postbuild", viewModel.Merge.MergeMemoryRows[2].ActionLabel);
         Assert.Equal(
             ["DP AB", "TPA", "TPB"],
-            viewModel.MergeCoverageSegments
+            viewModel.Merge.MergeCoverageSegments
                 .Select(static segment => segment.SourceLabel)
                 .Distinct(StringComparer.Ordinal));
-        Assert.DoesNotContain(viewModel.MergeMemoryRows, static row =>
+        Assert.DoesNotContain(viewModel.Merge.MergeMemoryRows, static row =>
             row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
-        Assert.True(viewModel.MergeSlots.Single(static slot =>
+        Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.DpAbInput).BlocksBuild);
     }
 
@@ -201,9 +201,9 @@ public sealed partial class ShellViewModelTests
             0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
-        Assert.False(viewModel.CanBuildMerge);
+        Assert.False(viewModel.Merge.CanBuildMerge);
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
@@ -217,17 +217,17 @@ public sealed partial class ShellViewModelTests
             tpBPath,
             TestContext.Current.CancellationToken);
 
-        Assert.All(viewModel.MergeSlots, static slot =>
+        Assert.All(viewModel.Merge.MergeSlots, static slot =>
         {
             Assert.Equal(WorkbenchInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
             Assert.False(slot.BlocksBuild);
             Assert.False(slot.IsInputInspectionPending);
         });
-        FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
         Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP1" && fact.Value.StartsWith("D06-05", StringComparison.Ordinal));
         Assert.Contains(dpSlot.FirmwareFacts, static fact => fact.Label == "DP2" && fact.Value.StartsWith("D07-08", StringComparison.Ordinal));
-        FirmwareSlotViewModel tpASlot = viewModel.MergeSlots.Single(
+        FirmwareSlotViewModel tpASlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Contains(
             tpASlot.FirmwareFacts,
@@ -235,7 +235,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "1.4.1");
         Assert.Contains(tpASlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x5102");
         Assert.DoesNotContain(tpASlot.FirmwareFacts, static fact => fact.Label == "TP");
-        FirmwareSlotViewModel tpBSlot = viewModel.MergeSlots.Single(
+        FirmwareSlotViewModel tpBSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpBInput);
         Assert.Contains(
             tpBSlot.FirmwareFacts,
@@ -243,17 +243,17 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "Common FW" && fact.Value == "2.0.0");
         Assert.Contains(tpBSlot.FirmwareFacts, static fact => fact.Label == "PID" && fact.Value == "0x6A5C");
         Assert.DoesNotContain(tpBSlot.FirmwareFacts, static fact => fact.Label == "TP");
-        Assert.True(viewModel.CanBuildMerge);
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
-        string suggestedOutputName = await viewModel.ResolveMergeOutputFileNameForSaveAsync(
+        string suggestedOutputName = await viewModel.Merge.ResolveMergeOutputFileNameForSaveAsync(
             TestContext.Current.CancellationToken);
         Assert.Matches(
             "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
         MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
-            await viewModel.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
+            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
         WorkbenchAbAFlashCodeDeliveryPlan initialAFlashCodePlan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
             initialPreparation.AFlashCodePlan);
 
@@ -261,7 +261,7 @@ public sealed partial class ShellViewModelTests
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
         string automaticOutputPath = workspace.PathFor(suggestedOutputName);
         string automaticAFlashCodeOutputPath = workspace.PathFor(initialAFlashCodePlan.SuggestedFileName);
-        await viewModel.BuildMergeAsync(
+        await viewModel.Merge.BuildMergeAsync(
             automaticOutputPath,
             automaticAFlashCodeOutputPath,
             outputPathUsesAutomaticName: true,
@@ -293,7 +293,7 @@ public sealed partial class ShellViewModelTests
                 aFlashCodeDelivery.GetProperty("FileName").GetString()!)));
         }
 
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
@@ -311,7 +311,7 @@ public sealed partial class ShellViewModelTests
         string dpPath = workspace.Write("dp-ab.bin", dp);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
@@ -325,13 +325,13 @@ public sealed partial class ShellViewModelTests
             workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
             TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.CanBuildMerge);
         File.Delete(dpPath);
 
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
-        Assert.False(viewModel.CanBuildMerge);
+        Assert.False(viewModel.Merge.CanBuildMerge);
 
-        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+        MergeBuildSavePreparation? preparation = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(
             TestContext.Current.CancellationToken);
 
         Assert.Null(preparation);
@@ -351,13 +351,13 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-health");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
-        viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-short.bin", new byte[dpLength - 1]),
             TestContext.Current.CancellationToken);
-        FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(
+        FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
         Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, dpSlot.InputInspectionSeverity);
         Assert.True(dpSlot.BlocksBuild);
@@ -367,12 +367,12 @@ public sealed partial class ShellViewModelTests
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-tail.bin", new byte[tpLength + 1]),
             TestContext.Current.CancellationToken);
-        FirmwareSlotViewModel tpSlot = viewModel.MergeSlots.Single(
+        FirmwareSlotViewModel tpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
         Assert.Equal(WorkbenchInputInspectionSeverity.Warning, tpSlot.InputInspectionSeverity);
         Assert.False(tpSlot.BlocksBuild);
         Assert.Contains("warning", tpSlot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
-        Assert.False(viewModel.CanBuildMerge);
+        Assert.False(viewModel.Merge.CanBuildMerge);
     }
 
     /// <summary>Verifies General Merge uses its own mapping editor state and hides IC Number context.</summary>
@@ -382,32 +382,32 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedMergeMode = "General";
+        viewModel.Merge.SelectedMergeMode = "General";
 
-        Assert.True(viewModel.IsGeneralMergeModeSelected);
-        Assert.False(viewModel.IsNormalMergeModeSelected);
+        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.DeviceContextStatus);
-        Assert.Equal("0x100000", viewModel.GeneralMergeOutputLength);
-        Assert.Equal("0x00", viewModel.GeneralMergeOutputFillByte);
+        Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
+        Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.Contains(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0x00", StringComparison.Ordinal));
         Assert.Equal(
             $"NT51950_FlashCode_DxxxxTxxxx_{DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}.bin",
-            viewModel.MergeOutputFileName);
-        _ = Assert.Single(viewModel.GeneralMergeMappings);
+            viewModel.Merge.MergeOutputFileName);
+        _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
-        viewModel.AddGeneralMergeMappingCommand.Execute(null);
+        viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
 
-        Assert.Equal(2, viewModel.GeneralMergeMappings.Count);
-        viewModel.RemoveGeneralMappingRow(viewModel.GeneralMergeMappings[0]);
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        Assert.Equal(2, viewModel.Merge.GeneralMergeMappings.Count);
+        viewModel.RemoveGeneralMappingRow(viewModel.Merge.GeneralMergeMappings[0]);
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
-        Assert.Contains("reserved", viewModel.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("reserved", viewModel.Merge.MergeMemorySummary, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Verifies the Home General Merge shortcut opens Merge in General mode.</summary>
@@ -420,8 +420,8 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.True(viewModel.IsGeneralMergeModeSelected);
-        Assert.False(viewModel.IsNormalMergeModeSelected);
+        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
         Assert.Equal("Home > Merge", viewModel.NavigationPath);
         Assert.False(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsNumberSelectorPlaceholderVisible);
@@ -435,12 +435,12 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SelectedIc = "NT51926";
 
-        Assert.Equal(["DP BIN", "TP BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
-        Assert.DoesNotContain(viewModel.MergeSlots, slot => slot.Title.Contains("LD", StringComparison.Ordinal));
+        Assert.Equal(["DP BIN", "TP BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
+        Assert.DoesNotContain(viewModel.Merge.MergeSlots, slot => slot.Title.Contains("LD", StringComparison.Ordinal));
 
         viewModel.SelectedIc = "NT51928";
 
-        Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.MergeSlots.Select(slot => slot.Title));
+        Assert.Equal(["DP BIN", "TP BIN", "LDC BIN"], viewModel.Merge.MergeSlots.Select(slot => slot.Title));
     }
 
     /// <summary>Verifies memory-map rows expose readable operation details without relying on tooltips.</summary>
@@ -452,7 +452,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
 
         MemoryMapRowViewModel copyRow = Assert.Single(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
         Assert.Equal("Reserved -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
@@ -471,18 +471,18 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.BuildMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.BuildMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.BuildMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
         string outputPath = workspace.PathFor("selected-output.bin");
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
 
         string expectedPath = golden.ExpectedOutputPath(goldenCase);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
@@ -512,14 +512,14 @@ public sealed partial class ShellViewModelTests
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.SelectedMergeMode = "General";
-        viewModel.GeneralMergeOutputLength = "0x10";
-        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.GeneralMergeMappings);
+        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.GeneralMergeOutputLength = "0x10";
+        GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x1";
         mapping.TargetStartAddress = "0x4";
         mapping.Length = "0x3";
         List<string> propertyChanges = [];
-        viewModel.PropertyChanged += (_, args) =>
+        viewModel.Merge.PropertyChanged += (_, args) =>
         {
             if (!string.IsNullOrWhiteSpace(args.PropertyName))
             {
@@ -527,29 +527,29 @@ public sealed partial class ShellViewModelTests
             }
         };
         viewModel.SetSlotFile(mapping.MappingId, source);
-        Assert.Contains(nameof(MainWindowViewModel.MergeReadinessStatus), propertyChanges);
-        Assert.Contains("maps 1 source BIN", viewModel.MergeReadinessStatus, StringComparison.Ordinal);
-        viewModel.GeneralMergeOutputFillByte = "0x100";
-        Assert.False(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.False(viewModel.CanBuildMerge);
-        viewModel.GeneralMergeOutputFillByte = "0xA5";
+        Assert.Contains(nameof(MergePresentationViewModel.MergeReadinessStatus), propertyChanges);
+        Assert.Contains("maps 1 source BIN", viewModel.Merge.MergeReadinessStatus, StringComparison.Ordinal);
+        viewModel.Merge.GeneralMergeOutputFillByte = "0x100";
+        Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.False(viewModel.Merge.CanBuildMerge);
+        viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
         Assert.Contains(
-            viewModel.MergeMemoryRows,
+            viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
-        Assert.True(viewModel.IsGeneralMergeModeSelected);
-        Assert.False(viewModel.IsNormalMergeModeSelected);
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
+        Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildMerge);
-        Assert.True(viewModel.IsGeneralMergeModeSelected);
+        Assert.True(viewModel.Merge.CanBuildMerge);
+        Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         string outputPath = workspace.PathFor("general-merge.bin");
         await File.WriteAllBytesAsync(
             source,
             [0x10, 0x11, 0x99, 0x13, 0x14],
             TestContext.Current.CancellationToken);
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
         Assert.False(viewModel.LastRunResult.Succeeded);
         Assert.Contains(
             "no longer matches",
@@ -557,7 +557,7 @@ public sealed partial class ShellViewModelTests
             StringComparison.Ordinal);
         Assert.False(File.Exists(outputPath));
         viewModel.SetSlotFile(mapping.MappingId, source);
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.Equal(
@@ -586,29 +586,29 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
         JsonProperty firstInput = goldenCase.GetProperty("inputs").EnumerateObject().First();
         string replacementCopyPath = workspace.PathFor($"{firstInput.Name}-copy.bin");
         File.Copy(golden.ManifestPath(firstInput.Value), replacementCopyPath);
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace(firstInput.Name), replacementCopyPath);
 
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
         viewModel.SelectedIc = "NT51927";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
         string oversizedTpPath = workspace.PathFor("tp-input-oversized.bin");
         File.WriteAllBytes(oversizedTpPath, new byte[0x40001]);
         viewModel.SetSlotFile(StandardMergeGoldenManifest.SlotIdForAddressSpace("tp-input"), oversizedTpPath);
 
         string outputPath = workspace.PathFor("source-view-standard-merge.bin");
-        await viewModel.BuildMergeAsync(outputPath);
+        await viewModel.Merge.BuildMergeAsync(outputPath);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal("Build succeeded", viewModel.LastRunResult.Title);
@@ -628,13 +628,13 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51950";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(viewModel.Merge.CanBuildMerge);
 
-        await viewModel.PreviewMergeCommand.ExecuteAsync(null);
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildMerge);
+        Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.CanOpenReport);
         Assert.True(viewModel.Reports.HasReportToast);

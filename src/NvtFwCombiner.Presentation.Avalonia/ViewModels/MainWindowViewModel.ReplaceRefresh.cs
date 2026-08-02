@@ -47,54 +47,8 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshMemoryMapState()
     {
-        RefreshMergeMemoryMapState();
+        Merge.RefreshMergeMemoryMapState();
         RefreshReplaceMemoryMapState();
-    }
-
-    private void RefreshMergeMemoryMapState()
-    {
-        long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        long? selectedAbMergeDpInputLength = GetSelectedAbMergeDpInputLength();
-        (
-            string rangeLabel,
-            IReadOnlyList<MemoryMapRowViewModel> rows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
-            {
-                GeneralMergeMode => GetGeneralMergeMemoryDisplay(),
-                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
-                    SelectedIc,
-                    GetSelectedAbMergeTopologyToken(),
-                    selectedAbMergeDpInputLength),
-                _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
-                    SelectedIc,
-                    selectedMergeDpInputLength),
-            };
-        MergeMemoryRangeLabel = rangeLabel;
-        ReplaceRows(MergeMemoryRows, rows);
-        ReplaceRows(MergeCoverageSegments, coverageSegments);
-
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-    }
-
-    private (
-        string RangeLabel,
-        IReadOnlyList<MemoryMapRowViewModel> Rows,
-        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay()
-    {
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings =
-            CreateGeneralMergeMappingInputs();
-        return TryResolveGeneralMergeOutputInitializer(
-                out WorkbenchGeneralMergeInitializer? initializer)
-            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                initializer!,
-                mappings)
-            : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                GeneralMergeOutputLength,
-                GeneralMergeOutputFillByte,
-                mappings);
     }
 
     private void RefreshReplaceMemoryMapState()
@@ -143,26 +97,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(IsReplaceCoverageGrouped));
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
-    }
-
-    private long? GetSelectedMergeDpInputLength()
-    {
-        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            WorkflowSession.InspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
-                ? length
-                : null;
-    }
-
-    private long? GetSelectedAbMergeDpInputLength()
-    {
-        WorkbenchAbMergeInputSlot? dpInput = WorkbenchCompositionService
-            .GetAbMergeInputSlots(SelectedIc, GetSelectedAbMergeTopologyToken())
-            .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
-        return dpInput is not null &&
-            _abMergeSlotsByAddressSpace.TryGetValue(dpInput.AddressSpaceId, out FirmwareSlotViewModel? slot) &&
-            WorkflowSession.InspectionSession.TryGetFileLength(slot, out long length)
-                ? length
-                : null;
     }
 
     private long? GetSelectedReplaceBaseLength()

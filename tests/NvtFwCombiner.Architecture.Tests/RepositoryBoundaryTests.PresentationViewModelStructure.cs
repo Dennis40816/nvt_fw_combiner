@@ -10,16 +10,37 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string shellMerge = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string mergeRequirements = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs");
+        string mergeGeneral = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs");
+        string mergeMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
+        string mergeExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string mergePrompt = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbAFlashCodeDeliveryPrompt.cs");
+        string shellPartials = ReadViewModelPartials();
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
 
         Assert.Contains("Merge = new MergePresentationViewModel", construction, StringComparison.Ordinal);
         Assert.Contains("public MergePresentationViewModel Merge", shellMerge, StringComparison.Ordinal);
+        Assert.Contains("public ObservableCollection<FirmwareSlotViewModel> MergeSlots", mergeState, StringComparison.Ordinal);
+        Assert.Contains("public string MergeReadinessStatus", mergeState, StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeSlotRequirements", mergeRequirements, StringComparison.Ordinal);
+        Assert.Contains("AddGeneralMergeMapping", mergeGeneral, StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeMemoryMapState", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("public Task BuildMergeAsync", mergeExecution, StringComparison.Ordinal);
         Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", mergePrompt, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "public bool IsAbAFlashCodeDeliveryPromptOpen",
-            ReadViewModelPartials(),
-            StringComparison.Ordinal);
+        Assert.Contains("DataTemplate DataType=\"vm:MergePresentationViewModel\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge)", shellCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("public ObservableCollection<FirmwareSlotViewModel> MergeSlots", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public string MergeReadinessStatus", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public Task BuildMergeAsync", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsAbAFlashCodeDeliveryPromptOpen", shellPartials, StringComparison.Ordinal);
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -154,7 +175,7 @@ public sealed partial class RepositoryBoundaryTests
         string bindings = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
         string mergeViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replaceViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
 
@@ -183,7 +204,7 @@ public sealed partial class RepositoryBoundaryTests
         string lifecycle = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
         string merge = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replace = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
 
