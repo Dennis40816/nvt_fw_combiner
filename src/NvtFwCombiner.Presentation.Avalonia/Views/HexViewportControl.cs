@@ -375,7 +375,7 @@ public sealed partial class HexViewportControl : Control
             DrawHistoryFeedback(context, cell, rect, isReference);
 
             byte? rawValue = isReference ? cell.ComparisonValue : cell.PrimaryValue;
-            char value = rawValue is >= 0x20 and <= 0x7E ? (char)rawValue.Value : '.';
+            char value = ResolveAsciiCharacter(rawValue, isReference);
             FormattedText text = GetAsciiText(value, isReference, isSearchMatch, cell.IsDataChanged, cell.IsStructuralChanged);
             context.DrawText(
                 text,
@@ -383,6 +383,13 @@ public sealed partial class HexViewportControl : Control
                     rect.X + ((rect.Width - text.Width) / 2),
                     rect.Y + ((rect.Height - text.Height) / 2)));
         }
+    }
+
+    internal static char ResolveAsciiCharacter(byte? value, bool isReference)
+    {
+        return isReference && value is null
+            ? ' '
+            : value is >= 0x20 and <= 0x7E ? (char)value.Value : '.';
     }
 
     private void DrawAsciiSearchRanges(DrawingContext context, ReadOnlyCollection<HexViewportCell> cells, double y)
@@ -458,6 +465,7 @@ public sealed partial class HexViewportControl : Control
     {
         return FormattableString.Invariant($"0x{address:X6}");
     }
+
 }
 
 internal enum HexViewportCellVisualState

@@ -64,6 +64,16 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
+    /// <summary>Preserves the legacy blank for a comparison byte beyond the original document tail.</summary>
+    [Fact]
+    public void HexViewportKeepsMissingComparisonAsciiBlank()
+    {
+        Assert.Equal(' ', HexViewportControl.ResolveAsciiCharacter(null, isReference: true));
+        Assert.Equal('.', HexViewportControl.ResolveAsciiCharacter(null, isReference: false));
+        Assert.Equal('.', HexViewportControl.ResolveAsciiCharacter(0x00, isReference: true));
+        Assert.Equal('A', HexViewportControl.ResolveAsciiCharacter(0x41, isReference: true));
+    }
+
     /// <summary>Every pixel inside a byte cell, including glyph-free corners, resolves to that byte.</summary>
     [Theory]
     [InlineData(100.01, 20.01, 0)]
