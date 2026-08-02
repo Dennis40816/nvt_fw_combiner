@@ -28,13 +28,13 @@ public sealed partial class ShellViewModelTests
             !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
         string replacementPath = workspace.Write("vn-before-base.bin", [0x01]);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             replacement.SlotId,
             replacementPath,
             TestContext.Current.CancellationToken);
         reads = 0;
 
-        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, reads);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
@@ -83,7 +83,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
-        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("base.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
@@ -123,7 +123,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             tpPath,
             TestContext.Current.CancellationToken);
@@ -159,7 +159,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
-        await viewModel.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         Assert.True(viewModel.IsNormalMergeModeSelected);
         Assert.False(viewModel.IsNumberSelectorVisible);
@@ -212,14 +212,14 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
-        Task firstSelection = viewModel.SetSlotFileAsync(
+        Task firstSelection = viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
             firstPath,
             TestContext.Current.CancellationToken);
         try
         {
             Assert.True(firstInspectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-            await viewModel.SetSlotFileAsync("merge-tp", secondPath, TestContext.Current.CancellationToken);
+            await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", secondPath, TestContext.Current.CancellationToken);
         }
         finally
         {
@@ -257,7 +257,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
 
         var promptPublications = new List<string?>();
@@ -273,7 +273,7 @@ public sealed partial class ShellViewModelTests
             }
         };
 
-        await viewModel.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
+        await viewModel.WorkflowSession.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
 
         Assert.Empty(promptPublications);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -298,7 +298,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.ReplaceBaseSlot.FilePath);

@@ -158,7 +158,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51950";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
             TestContext.Current.CancellationToken);
@@ -204,15 +204,15 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
         Assert.False(viewModel.CanBuildMerge);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
             TestContext.Current.CancellationToken);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             tpAPath,
             TestContext.Current.CancellationToken);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpBInput,
             tpBPath,
             TestContext.Current.CancellationToken);
@@ -312,15 +312,15 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
             TestContext.Current.CancellationToken);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a.bin", CreateUiAbTpImage(0x81, 0x00, 1, 4, 1, 0x5102)),
             TestContext.Current.CancellationToken);
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpBInput,
             workspace.Write("tp-b.bin", CreateUiAbTpImage(0x82, 0x03, 2, 0, 0, 0x6A5C)),
             TestContext.Current.CancellationToken);
@@ -328,7 +328,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
         File.Delete(dpPath);
 
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
         Assert.False(viewModel.CanBuildMerge);
 
         MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
@@ -353,7 +353,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
 
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-short.bin", new byte[dpLength - 1]),
             TestContext.Current.CancellationToken);
@@ -363,7 +363,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(dpSlot.BlocksBuild);
         Assert.StartsWith("Error:", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
 
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-tail.bin", new byte[tpLength + 1]),
             TestContext.Current.CancellationToken);
@@ -598,7 +598,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.CanBuildMerge);
 
         viewModel.SelectedIc = "NT51927";
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildMerge);

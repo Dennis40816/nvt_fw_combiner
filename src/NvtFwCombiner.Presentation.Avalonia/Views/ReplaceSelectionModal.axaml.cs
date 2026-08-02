@@ -20,7 +20,7 @@ public sealed partial class ReplaceSelectionModal : UserControl
             return;
         }
 
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
         if (!viewModel.CanBuildReplace)
         {
             return;

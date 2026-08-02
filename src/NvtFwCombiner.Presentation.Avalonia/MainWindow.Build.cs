@@ -13,7 +13,7 @@ public sealed partial class MainWindow
             return;
         }
 
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
         if (!viewModel.CanBuildMerge)
         {
             if (viewModel.IsAbCodeMergeModeSelected)
@@ -78,7 +78,7 @@ public sealed partial class MainWindow
             return;
         }
 
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
         if (!viewModel.CanBuildReplace)
         {
             return;

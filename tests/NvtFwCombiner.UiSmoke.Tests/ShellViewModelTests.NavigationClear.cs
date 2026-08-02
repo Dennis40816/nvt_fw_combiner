@@ -59,7 +59,7 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab.bin", new byte[0x80000]),
             TestContext.Current.CancellationToken);
@@ -89,13 +89,13 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.SelectedIc = "NT51929";
         viewModel.SelectedMergeMode = WorkbenchMergeModes.AbCode;
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab.bin", new byte[0x80000]),
             TestContext.Current.CancellationToken);
 
         viewModel.SelectedIc = "NT51919";
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tpa.bin", new byte[0x40000]),
             TestContext.Current.CancellationToken);

@@ -9,7 +9,7 @@ public sealed partial class MainWindowViewModel
         return FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName(
             SelectedIc,
             candidateSlots,
-            _firmwareInspectionSession,
+            WorkflowSession.InspectionSession,
             edit: null);
     }
 
@@ -19,7 +19,7 @@ public sealed partial class MainWindowViewModel
         return FirmwareOutputNamingProjection.CreateCtrlRamReplaceOutputFileName(
             SelectedIc,
             ReplaceSlots.Concat([ReplaceBaseSlot]),
-            _firmwareInspectionSession,
+            WorkflowSession.InspectionSession,
             edit);
     }
 }

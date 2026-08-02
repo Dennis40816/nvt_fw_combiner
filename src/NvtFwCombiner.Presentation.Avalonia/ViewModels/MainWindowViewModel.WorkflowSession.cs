@@ -28,14 +28,14 @@ public sealed partial class MainWindowViewModel
 
     private void ApplyDetectedFirmwareNumber(string numberToken)
     {
-        _isApplyingFirmwareInspectionContext = true;
+        WorkflowSession.IsApplyingFirmwareInspectionContext = true;
         try
         {
             SelectedNumber = numberToken;
         }
         finally
         {
-            _isApplyingFirmwareInspectionContext = false;
+            WorkflowSession.IsApplyingFirmwareInspectionContext = false;
         }
     }
 

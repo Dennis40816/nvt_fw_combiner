@@ -20,7 +20,7 @@ public sealed partial class ShellViewModelTests
             slot.SlotId == "replace-ctrlram-vn" &&
             slot.Description.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
 
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
             basePath,
             TestContext.Current.CancellationToken);

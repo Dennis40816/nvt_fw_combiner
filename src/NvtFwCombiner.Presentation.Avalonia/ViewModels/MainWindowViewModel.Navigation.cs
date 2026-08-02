@@ -203,7 +203,7 @@ public sealed partial class MainWindowViewModel
 
     private void ClearSelectedInputs(ShellPage page)
     {
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
         WorkflowSession.InvalidateFirmwareIcMismatch();
         WorkflowSession.InvalidateFirmwareNumberMismatch();

@@ -160,7 +160,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("SlotDrop_OnDrop", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("SlotDragOver_OnDragOver", firmwareSlotCard, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", firmwareSlotCard, StringComparison.Ordinal);
-        Assert.Contains("await viewModel.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.WorkflowSession.SetSlotFileAsync", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.DoesNotContain("viewModel.SetSlotFile(", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.ApplyFileDropEffect", firmwareSlotCardCode, StringComparison.Ordinal);
         Assert.Contains("DropZoneDragState.GetFirstLocalFilePath", firmwareSlotCardCode, StringComparison.Ordinal);
@@ -174,7 +174,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MappingDrop_OnDrop", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("BrowseButton_OnClick", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("RemoveButton_OnClick", generalMappingRow, StringComparison.Ordinal);
-        Assert.Contains("await viewModel.SetSlotFileAsync", generalMappingRowCode, StringComparison.Ordinal);
+        Assert.Contains("await viewModel.WorkflowSession.SetSlotFileAsync", generalMappingRowCode, StringComparison.Ordinal);
         Assert.DoesNotContain("viewModel.SetSlotFile(", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("RemoveGeneralMappingRow", generalMappingRowCode, StringComparison.Ordinal);
         Assert.Contains("IsNonCtrlRamStructuredReplaceModeSelected", workflowTemplates, StringComparison.Ordinal);

@@ -180,7 +180,7 @@ public sealed partial class MainWindowViewModel
             RefreshMergeSlotRequirements();
             if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
             {
-                _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+                _ = WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
             }
 
             RefreshMergeMemoryMapState();
@@ -312,10 +312,10 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedReplaceModeChanged(string value)
     {
         WorkflowSession.InvalidateFirmwareNumberMismatch();
-        InvalidateFirmwareInspection();
+        WorkflowSession.InvalidateFirmwareInspection();
         InvalidateCtrlRamFirmwareVersionContext();
         RefreshContextState(resetRunResult: true);
-        RefreshCtrlRamDisplayFromInspection();
+        WorkflowSession.RefreshCtrlRamDisplayFromInspection();
     }
 
     partial void OnSelectedIcChanged(string value)
@@ -323,7 +323,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.InvalidateFirmwareNumberMismatch();
         WorkflowSessionPresentationViewModel.AcceptedFirmwareMismatchSelection? acceptedMismatch =
             WorkflowSession.ConsumeAcceptedFirmwareMismatchSelection();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
         if (IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
         {
@@ -334,7 +334,7 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(IcChoices));
         }
 
-        _isRefreshingFirmwareInspectionContext = true;
+        WorkflowSession.IsRefreshingFirmwareInspectionContext = true;
         try
         {
             RefreshNumberChoicesForSelectedIc();
@@ -344,7 +344,7 @@ public sealed partial class MainWindowViewModel
         }
         finally
         {
-            _isRefreshingFirmwareInspectionContext = false;
+            WorkflowSession.IsRefreshingFirmwareInspectionContext = false;
         }
 
         RefreshContextState(
@@ -364,7 +364,7 @@ public sealed partial class MainWindowViewModel
                 Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
         }
 
-        _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
+        _ = WorkflowSession.RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
         WorkflowSession.RememberReplaceWorkflowContext();
     }
 
@@ -372,16 +372,16 @@ public sealed partial class MainWindowViewModel
     {
         WorkflowSession.RememberReplaceWorkflowContext();
         WorkflowSession.InvalidateFirmwareNumberMismatch();
-        if (_isRefreshingFirmwareInspectionContext)
+        if (WorkflowSession.IsRefreshingFirmwareInspectionContext)
         {
             InvalidateCtrlRamFirmwareVersionContext();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
 
-        if (_isApplyingFirmwareInspectionContext)
+        if (WorkflowSession.IsApplyingFirmwareInspectionContext)
         {
-            InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
+            WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
             InvalidateCtrlRamFirmwareVersionContext();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             RefreshContextState(
@@ -393,7 +393,7 @@ public sealed partial class MainWindowViewModel
 
         // AB validation is topology-sensitive.  Preserve no projection across a topology
         // switch, then let the shared refresh below inspect the currently selected inputs.
-        InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
+        WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
         InvalidateCtrlRamFirmwareVersionContext();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(
@@ -401,7 +401,7 @@ public sealed partial class MainWindowViewModel
             preserveReplaceSlotFiles: true);
         RefreshAbMergeInputsAfterTopologyChange();
 
-        RefreshCtrlRamDisplayFromInspection();
+        WorkflowSession.RefreshCtrlRamDisplayFromInspection();
     }
 
     private void RefreshAbMergeInputsAfterTopologyChange()
@@ -410,7 +410,7 @@ public sealed partial class MainWindowViewModel
             HasAbMergeTopologyChoices &&
             MergeSlots.Any(slot => slot.HasFile))
         {
-            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+            _ = WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
         }
     }
 

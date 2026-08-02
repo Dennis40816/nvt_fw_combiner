@@ -14,11 +14,21 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs");
         string mismatch = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareIcMismatch.cs");
+        string inspection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
+        string session = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs");
+        string shellPartials = ReadViewModelPartials();
 
         Assert.Contains("WorkflowSession = new WorkflowSessionPresentationViewModel", construction, StringComparison.Ordinal);
         Assert.Contains("public WorkflowSessionPresentationViewModel WorkflowSession", shellSession, StringComparison.Ordinal);
         Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
         Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
+        Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
+        Assert.Contains("InspectionSession.ReadBatch", inspection, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareInspectionSession", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSlotFileAsync", shellPartials, StringComparison.Ordinal);
     }
 
     /// <summary>Report parsing, history, and commands belong to a focused child rather than the shell.</summary>

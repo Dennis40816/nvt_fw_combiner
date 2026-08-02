@@ -19,10 +19,13 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.OutputNaming.cs");
         string firmwareInspectionSession = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
+        string workflowInspection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
 
-        Assert.Contains("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
-        Assert.Contains("Task.Run", viewModels, StringComparison.Ordinal);
-        Assert.Contains("InspectFirmwareBatch", viewModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSlotFileAsync", viewModels, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFileAsync", workflowInspection, StringComparison.Ordinal);
+        Assert.Contains("Task.Run", workflowInspection, StringComparison.Ordinal);
+        Assert.Contains("InspectionSession.ReadBatch", workflowInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("public void SetSlotFile(", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);

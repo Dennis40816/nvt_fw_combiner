@@ -79,7 +79,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
 
         _applyDetectedNumber(numberToken);
-        _refreshCtrlRamDisplay();
+        RefreshCtrlRamDisplayFromInspection();
         _showToast(
             Text.ContextUpdatedToastTitle,
             Text.FormatVerifiedFirmwareContextToast(

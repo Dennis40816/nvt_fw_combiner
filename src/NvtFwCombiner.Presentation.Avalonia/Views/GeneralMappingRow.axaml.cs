@@ -74,7 +74,7 @@ public sealed partial class GeneralMappingRow : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 
@@ -95,7 +95,7 @@ public sealed partial class GeneralMappingRow : UserControl
             title);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 

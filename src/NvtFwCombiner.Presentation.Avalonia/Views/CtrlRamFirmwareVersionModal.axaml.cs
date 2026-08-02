@@ -28,7 +28,7 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             return;
         }
 
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
         if (!viewModel.CanBuildReplace ||
             !viewModel.IsCtrlRamReplaceModeSelected ||
             !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())

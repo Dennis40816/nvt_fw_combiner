@@ -168,7 +168,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunMerge()
     {
-        return !IsRunInProgress && !IsFirmwareInspectionLoading && (SelectedMergeMode switch
+        return !IsRunInProgress && !WorkflowSession.IsFirmwareInspectionLoading && (SelectedMergeMode switch
         {
             NormalMergeMode => CanRunStandardMerge(),
             AbCodeMergeMode => CanRunAbMerge(),

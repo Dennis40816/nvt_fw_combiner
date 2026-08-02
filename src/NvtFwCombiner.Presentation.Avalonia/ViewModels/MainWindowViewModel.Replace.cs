@@ -12,7 +12,7 @@ public sealed partial class MainWindowViewModel
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => IsFirmwareInspectionLoading
+    public string ReplaceReadinessStatus => WorkflowSession.IsFirmwareInspectionLoading
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
@@ -29,7 +29,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && !IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
+        return !IsRunInProgress && !WorkflowSession.IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => CanRunDpReplace(),

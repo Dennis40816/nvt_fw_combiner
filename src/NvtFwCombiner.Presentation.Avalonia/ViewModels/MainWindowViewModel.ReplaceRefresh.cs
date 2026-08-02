@@ -101,12 +101,12 @@ public sealed partial class MainWindowViewModel
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
-            if (_firmwareInspectionSession.TryGetBase(
+            if (WorkflowSession.InspectionSession.TryGetBase(
                     SelectedIc,
                     ReplaceBaseSlot.FilePath,
                     out WorkbenchFirmwareInspection inspection))
             {
-                ApplyCtrlRamDisplayFromInspection(inspection);
+                WorkflowSession.ApplyCtrlRamDisplayFromInspection(inspection);
             }
             else
             {
@@ -148,7 +148,7 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedMergeDpInputLength()
     {
         return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            _firmwareInspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
+            WorkflowSession.InspectionSession.TryGetFileLength(_mergeDpSlot, out long length)
                 ? length
                 : null;
     }
@@ -160,7 +160,7 @@ public sealed partial class MainWindowViewModel
             .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
         return dpInput is not null &&
             _abMergeSlotsByAddressSpace.TryGetValue(dpInput.AddressSpaceId, out FirmwareSlotViewModel? slot) &&
-            _firmwareInspectionSession.TryGetFileLength(slot, out long length)
+            WorkflowSession.InspectionSession.TryGetFileLength(slot, out long length)
                 ? length
                 : null;
     }
@@ -169,7 +169,7 @@ public sealed partial class MainWindowViewModel
     {
         return SelectedReplaceMode == DpReplaceMode &&
             WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
-            _firmwareInspectionSession.TryGetFileLength(ReplaceBaseSlot, out long length)
+            WorkflowSession.InspectionSession.TryGetFileLength(ReplaceBaseSlot, out long length)
                 ? length
                 : null;
     }

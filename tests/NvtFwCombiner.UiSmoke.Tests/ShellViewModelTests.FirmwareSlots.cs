@@ -126,7 +126,7 @@ public sealed partial class ShellViewModelTests
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
 
         viewModel.SetSlotFile("replace-base", basePath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
@@ -160,7 +160,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
@@ -196,7 +196,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("merge-dp", dpPath);
         viewModel.SetSlotFile("merge-tp", tpPath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         FirmwareSlotViewModel dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
@@ -222,7 +222,7 @@ public sealed partial class ShellViewModelTests
         string nt51950TpPath = golden.ManifestPath(nt51950.GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-dp", nt51950DpPath);
         viewModel.SetSlotFile("merge-tp", nt51950TpPath);
-        await viewModel.FirmwareInspectionRefreshTask;
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         dpSlot = viewModel.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Contains(dpSlot.FirmwareFacts, fact =>
@@ -283,7 +283,7 @@ public sealed partial class ShellViewModelTests
             ];
         });
         viewModel.SelectedIc = "NT51926";
-        await viewModel.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
         var notifications = new List<string>();
         viewModel.PropertyChanged += (_, args) =>
@@ -296,7 +296,7 @@ public sealed partial class ShellViewModelTests
 
         initialVersion = "0202";
         blockInitialReselection = true;
-        Task reselection = viewModel.SetSlotFileAsync(
+        Task reselection = viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
             dpPath,
             TestContext.Current.CancellationToken);
@@ -310,12 +310,12 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
 
         notifications.Clear();
-        Task stale = viewModel.SetSlotFileAsync(
+        Task stale = viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
             stalePath,
             TestContext.Current.CancellationToken);
         Assert.True(staleStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        await viewModel.SetSlotFileAsync(
+        await viewModel.WorkflowSession.SetSlotFileAsync(
             "merge-dp",
             currentPath,
             TestContext.Current.CancellationToken);
@@ -345,11 +345,11 @@ public sealed partial class ShellViewModelTests
             }),
         ]);
         viewModel.SelectedIc = "NT51926";
-        await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
 
         File.WriteAllBytes(path, [0x02, 0x03]);
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Contains("_D0202Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
     }
@@ -373,11 +373,11 @@ public sealed partial class ShellViewModelTests
             ];
         });
         viewModel.SelectedIc = "NT51926";
-        await viewModel.SetSlotFileAsync("merge-dp", mergePath, TestContext.Current.CancellationToken);
-        await viewModel.SetSlotFileAsync("replace-base", replacePath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", mergePath, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", replacePath, TestContext.Current.CancellationToken);
         inspectedSlotIds.Clear();
 
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Equal(["merge-dp"], inspectedSlotIds);
     }
@@ -408,12 +408,12 @@ public sealed partial class ShellViewModelTests
             }),
         ]);
         viewModel.SelectedIc = "NT51950";
-        await viewModel.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", path, TestContext.Current.CancellationToken);
         Assert.Contains("_D0101Txxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
         Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.MergeMemoryRangeLabel);
 
         mutateDuringRefresh = true;
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
 
         Assert.Contains("_DxxxxTxxxx_", viewModel.StandardMergeOutputFileName, StringComparison.Ordinal);
         Assert.Equal("Selected DP BIN length pending", viewModel.MergeMemoryRangeLabel);

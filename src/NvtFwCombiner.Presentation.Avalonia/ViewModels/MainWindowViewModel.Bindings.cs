@@ -299,7 +299,7 @@ public sealed partial class MainWindowViewModel
         $"{Text.IcDetailSupportLabel}: {SelectedIcDetailSupport}");
 
     /// <summary>Status shown in the merge inspector.</summary>
-    public string MergeReadinessStatus => IsFirmwareInspectionLoading
+    public string MergeReadinessStatus => WorkflowSession.IsFirmwareInspectionLoading
         ? Text.FirmwareInspectionLoadingStatus
         : IsAbCodeMergeModeSelected
             ? Text.GetAbMergeReadinessStatus(

@@ -9,6 +9,6 @@ internal static class MainWindowViewModelTestExtensions
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        viewModel.SetSlotFileAsync(slotId, path, cancellationToken).GetAwaiter().GetResult();
+        viewModel.WorkflowSession.SetSlotFileAsync(slotId, path, cancellationToken).GetAwaiter().GetResult();
     }
 }

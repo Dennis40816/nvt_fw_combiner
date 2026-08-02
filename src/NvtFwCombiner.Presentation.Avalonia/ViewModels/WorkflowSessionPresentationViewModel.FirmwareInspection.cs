@@ -2,12 +2,8 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class WorkflowSessionPresentationViewModel
 {
-    private readonly FirmwareInspectionSession _firmwareInspectionSession;
-    private bool _isApplyingFirmwareInspectionContext;
-    private bool _isRefreshingFirmwareInspectionContext;
-
     /// <summary>True while the latest selected-file inspection is executing outside the dispatcher.</summary>
     public bool IsFirmwareInspectionLoading { get; private set; }
 
@@ -19,9 +15,9 @@ public sealed partial class MainWindowViewModel
         string path,
         CancellationToken cancellationToken = default)
     {
-        if (!_deferredState.IsWorkflowLoaded)
+        if (!_inspectionBindings.IsWorkflowLoaded())
         {
-            RefreshContextState();
+            _inspectionBindings.EnsureWorkflowLoaded();
         }
 
         bool preservePendingCtrlRamBase = IsFirmwareInspectionLoading &&
@@ -67,19 +63,19 @@ public sealed partial class MainWindowViewModel
     private FirmwareInspectionRequestContext CreateFirmwareInspectionRequestContext()
     {
         return new FirmwareInspectionRequestContext(
-            _mergeDpSlot,
-            _mergeTpSlot,
+            MergeDpSlot,
+            MergeTpSlot,
             ReplaceBaseSlot,
             IsCtrlRamReplaceModeSelected,
-            IsReplaceVisible && SelectedReplaceMode == DpReplaceMode,
+            IsReplaceVisible && SelectedReplaceMode == WorkbenchReplaceModes.Dp,
             IsNumberSelectorVisible,
             SelectedNumber,
             IsAbCodeMergeModeSelected,
-            _abMergeAddressSpaceBySlotId,
+            AbMergeAddressSpaceBySlotId,
             GetSelectedAbMergeTopologyToken(),
-            MergeDpSlotId,
-            MergeTpSlotId,
-            ReplaceBaseSlotId);
+            WorkbenchSlotIds.MergeDp,
+            WorkbenchSlotIds.MergeTp,
+            WorkbenchSlotIds.ReplaceBase);
     }
 
     private async Task RunFirmwareInspectionAsync(
@@ -91,10 +87,10 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        long generation = _firmwareInspectionSession.NextGeneration();
+        long generation = InspectionSession.NextGeneration();
         var request = new FirmwareInspectionBatchRequest(
             generation,
-            _firmwareInspectionSession.CurrentAuthoringRevision,
+            InspectionSession.CurrentAuthoringRevision,
             SelectedIc,
             SelectedNumber,
             SelectedMergeMode,
@@ -112,17 +108,17 @@ public sealed partial class MainWindowViewModel
             await Task.Yield();
             cancellationToken.ThrowIfCancellationRequested();
             FirmwareInspectionBatchResult result = await Task.Run(
-                () => _firmwareInspectionSession.ReadBatch(request),
+                () => InspectionSession.ReadBatch(request),
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (FirmwareInspectionProjection.IsCurrent(
-                    request, result, _firmwareInspectionSession.CurrentGeneration,
+                    request, result, InspectionSession.CurrentGeneration,
                     SelectedIc, SelectedNumber, SelectedMergeMode, SelectedReplaceMode,
-                    FindSlot, _mergeTpSlot.FilePath))
+                    FindSlot, MergeTpSlot.FilePath))
             {
                 ApplyFirmwareInspectionBatch(request, result);
             }
-            else if (generation == _firmwareInspectionSession.CurrentGeneration &&
+            else if (generation == InspectionSession.CurrentGeneration &&
                 !result.IsFileIdentityStable &&
                 FirmwareInspectionProjection.ApplyStaleInputInspection(
                     MergeSlots.Concat(ReplaceSlots),
@@ -135,7 +131,7 @@ public sealed partial class MainWindowViewModel
         }
         finally
         {
-            if (generation == _firmwareInspectionSession.CurrentGeneration)
+            if (generation == InspectionSession.CurrentGeneration)
             {
                 foreach (FirmwareInspectionItemRequest item in items)
                 {
@@ -158,14 +154,14 @@ public sealed partial class MainWindowViewModel
         {
             WorkbenchFirmwareInspection inspection = result.InspectionsById[item.SlotId];
             FirmwareFileIdentity identity = result.FileIdentities[item.Path];
-            _firmwareInspectionSession.StoreProjection(
+            InspectionSession.StoreProjection(
                 item.SlotId,
                 item.Path,
                 identity,
                 inspection);
-            if (item.SlotId == ReplaceBaseSlotId)
+            if (item.SlotId == WorkbenchSlotIds.ReplaceBase)
             {
-                _firmwareInspectionSession.StoreBase(
+                InspectionSession.StoreBase(
                     request.IcId,
                     item.Path,
                     inspection);
@@ -197,33 +193,33 @@ public sealed partial class MainWindowViewModel
 
             if (item.PromptForMismatch)
             {
-                if (WorkflowSession.ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
+                if (ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
                 {
                     return;
                 }
             }
 
-            if (item.ApplyVerifiedContext && !WorkflowSession.IsFirmwareIcMismatchModalOpen)
+            if (item.ApplyVerifiedContext && !IsFirmwareIcMismatchModalOpen)
             {
-                WorkflowSession.PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
+                PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
             }
 
-            if (item.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)
+            if (item.SlotId == WorkbenchSlotIds.ReplaceBase && IsCtrlRamReplaceModeSelected)
             {
                 ApplyCtrlRamDisplayFromInspection(inspection);
             }
         }
 
         if (request.Items.Any(static item =>
-                item.SlotId == MergeDpSlotId ||
+                item.SlotId == WorkbenchSlotIds.MergeDp ||
                 item.AbMergeAddressSpaceId is not null))
         {
             RefreshMergeMemoryMapState();
         }
 
         if (request.Items.Any(item =>
-                item.SlotId == ReplaceBaseSlotId &&
-                string.Equals(SelectedReplaceMode, DpReplaceMode, StringComparison.Ordinal)))
+                item.SlotId == WorkbenchSlotIds.ReplaceBase &&
+                string.Equals(SelectedReplaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)))
         {
             RefreshReplaceMemoryMapState();
         }
@@ -231,7 +227,7 @@ public sealed partial class MainWindowViewModel
         RefreshCommandState();
     }
 
-    private void ApplyCtrlRamDisplayFromInspection(WorkbenchFirmwareInspection inspection)
+    internal void ApplyCtrlRamDisplayFromInspection(WorkbenchFirmwareInspection inspection)
     {
         ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
             inspection,
@@ -291,22 +287,22 @@ public sealed partial class MainWindowViewModel
         ];
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {
-            _firmwareInspectionSession.RemoveProjection(slot.SlotId);
+            InspectionSession.RemoveProjection(slot.SlotId);
         }
 
-        if (slots.ContainsKey(ReplaceBaseSlotId))
+        if (slots.ContainsKey(WorkbenchSlotIds.ReplaceBase))
         {
-            _firmwareInspectionSession.ClearBase();
+            InspectionSession.ClearBase();
         }
 
         NotifySlotFileOutputNames();
-        if (slots.ContainsKey(MergeDpSlotId) ||
-            (IsAbCodeMergeModeSelected && slots.Keys.Any(_abMergeAddressSpaceBySlotId.ContainsKey)))
+        if (slots.ContainsKey(WorkbenchSlotIds.MergeDp) ||
+            (IsAbCodeMergeModeSelected && slots.Keys.Any(AbMergeAddressSpaceBySlotId.ContainsKey)))
         {
             RefreshMergeMemoryMapState();
         }
 
-        if (slots.ContainsKey(ReplaceBaseSlotId) && SelectedReplaceMode == DpReplaceMode)
+        if (slots.ContainsKey(WorkbenchSlotIds.ReplaceBase) && SelectedReplaceMode == WorkbenchReplaceModes.Dp)
         {
             RefreshReplaceMemoryMapState();
         }
@@ -314,14 +310,14 @@ public sealed partial class MainWindowViewModel
         return FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
     }
 
-    private void RefreshCtrlRamDisplayFromInspection()
+    internal void RefreshCtrlRamDisplayFromInspection()
     {
         if (!IsCtrlRamReplaceModeSelected || !ReplaceBaseSlot.HasFile)
         {
             return;
         }
 
-        if (_firmwareInspectionSession.TryGetBase(
+        if (InspectionSession.TryGetBase(
                 SelectedIc,
                 ReplaceBaseSlot.FilePath,
                 out WorkbenchFirmwareInspection inspection))
@@ -342,17 +338,17 @@ public sealed partial class MainWindowViewModel
         FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, CancellationToken.None);
     }
 
-    private void InvalidateFirmwareInspection(
+    internal void InvalidateFirmwareInspection(
         bool clearBaseCache = false,
         bool clearFileProjections = false)
     {
-        _firmwareInspectionSession.Invalidate(clearBaseCache, clearFileProjections);
+        InspectionSession.Invalidate(clearBaseCache, clearFileProjections);
         if (clearFileProjections)
         {
             foreach (FirmwareSlotViewModel slot in MergeSlots
                          .Concat(ReplaceSlots)
                          .Concat([ReplaceBaseSlot])
-                         .Concat(_abMergeSlotsByAddressSpace.Values)
+                         .Concat(AbMergeSlots)
                          .Distinct())
             {
                 slot.ClearInputInspection();
@@ -371,8 +367,6 @@ public sealed partial class MainWindowViewModel
 
         IsFirmwareInspectionLoading = isLoading;
         OnPropertyChanged(nameof(IsFirmwareInspectionLoading));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshCommandState();
     }
 

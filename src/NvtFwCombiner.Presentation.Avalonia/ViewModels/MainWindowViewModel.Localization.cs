@@ -19,7 +19,7 @@ public sealed partial class MainWindowViewModel
         foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values
                      .Concat(ReplaceSlots).Concat([ReplaceBaseSlot]).Distinct())
         {
-            if (_firmwareInspectionSession.TryGetInspection(
+            if (WorkflowSession.InspectionSession.TryGetInspection(
                     slot.SlotId, slot.FilePath, out WorkbenchFirmwareInspection projected))
             {
                 if (projected.AbMergeInput is not null)
@@ -78,7 +78,7 @@ public sealed partial class MainWindowViewModel
         _deferredState.RefreshLoaded(
             RefreshSettingsState,
             () => RefreshReplaceModeState(preserveSlotFiles: true),
-            RefreshCtrlRamDisplayFromInspection,
+            WorkflowSession.RefreshCtrlRamDisplayFromInspection,
             RefreshReplaceSelectionState);
     }
 
@@ -90,7 +90,7 @@ public sealed partial class MainWindowViewModel
                      .Distinct())
         {
             if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
-                !_firmwareInspectionSession.TryGetInspection(
+                !WorkflowSession.InspectionSession.TryGetInspection(
                     slot.SlotId,
                     slot.FilePath,
                     out WorkbenchFirmwareInspection inspection) ||
