@@ -1,9 +1,12 @@
 # ADR 0012: CMI DP Metadata and NVT Backup FWConfig Selection
 
-- Status: Accepted with firmware-owner review gate
+- Status: Partially superseded by ADR 0015 only for the retired C# catalog
+  ownership; canonical DPCMI/FWConfig meanings and firmware-owner evidence
+  gates remain accepted
 - Date: 2026-07-10
 - Last amended: 2026-08-01 for canonical DPCMI convergence and output-name correction
 - Owners: Product owner + firmware owner + architecture owner
+- Partially superseded by: ADR 0015 after #194 parity-adapter retirement
 
 ## Context
 

@@ -30,11 +30,11 @@ class AssessRefactorProgressTests(unittest.TestCase):
             REPOSITORY_ROOT / "docs" / "governance" / "0.10.x-ticket-dependency-plan.md"
         )
 
-        self.assertEqual(48, len(tickets))
+        self.assertEqual(49, len(tickets))
         self.assertEqual(
             {
                 "baseline": 3,
-                "headlessCanonicalFoundation": 28,
+                "headlessCanonicalFoundation": 29,
                 "deferredUi": 7,
                 "deletion": 3,
                 "coreConvergence": 5,

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -32,6 +33,39 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
         Assert.Equal([new ByteRange(0, TpWorkCapacity)], invocation.AllowedReadRanges);
         Assert.DoesNotContain(new ByteRange(0x27800, 0x2800), invocation.AllowedWriteRanges);
+    }
+
+    /// <summary>The shared inspector follows the concrete CtrlRAM prefix and truncation contract.</summary>
+    [Fact]
+    public void CompiledCtrlRamBindingPublishesWarningOrBlockingHealth()
+    {
+        const int sourceLength = 0x120;
+        V2CompositionPlanCompileResult result = Compile(
+            "nt51926-ctrlram-replace-fw141-runtime-single",
+            chipCount: 1,
+            TpWorkCapacity,
+            sourceLength);
+        Assert.True(result.IsCompiled, FormatIssues(result.Issues));
+        CompiledComposition composition = result.CompiledComposition!;
+
+        CompiledInputArtifactInspectionResult accepted =
+            CompiledInputArtifactInspectionService.Inspect(
+                composition,
+                "vn-source",
+                new byte[sourceLength + 8]);
+        CompiledInputArtifactInspectionResult shortSource =
+            CompiledInputArtifactInspectionService.Inspect(
+                composition,
+                "vn-source",
+                new byte[sourceLength - 1]);
+
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, accepted.Severity);
+        Assert.False(accepted.BlocksBuild);
+        Assert.Equal(new ByteRange(0, sourceLength), accepted.AcceptedSnapshotRange);
+        Assert.Equal(new ByteRange(sourceLength, 8), accepted.IgnoredTrailingRange);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Blocking, shortSource.Severity);
+        Assert.True(shortSource.BlocksBuild);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, shortSource.IssueCode);
     }
 
     /// <summary>Verifies the cascade candidate compiles a short-source prefix without full-region authority.</summary>

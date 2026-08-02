@@ -280,7 +280,8 @@ public sealed partial class AuthoringSessionState
 
     /// <summary>Captures the complete identity required by one asynchronous result.</summary>
     public AuthoringPublicationLease CapturePublicationLease(
-        AuthoringDerivedResultKind kind)
+        AuthoringDerivedResultKind kind,
+        string? compilationFingerprint = null)
     {
         if (!Enum.IsDefined(kind))
         {
@@ -306,7 +307,8 @@ public sealed partial class AuthoringSessionState
                     new AuthoringSlotPublicationIdentity(
                         slot.DefinitionId,
                         slot.SelectedPath,
-                        slot.FileStamp)));
+                        slot.FileStamp)),
+                compilationFingerprint);
         }
     }
 
@@ -319,11 +321,14 @@ public sealed partial class AuthoringSessionState
         ArgumentNullException.ThrowIfNull(publication);
         lock (_transitionLock)
         {
-            if (lease.Kind != publication.Kind)
+            if (lease.Kind != publication.Kind ||
+                !StringComparer.Ordinal.Equals(
+                    lease.CompilationFingerprint,
+                    publication.CompilationFingerprint))
             {
                 return PublicationFailure(
                     AuthoringSessionIssueCodes.InvalidPublication,
-                    "The derived result kind does not match its publication lease.");
+                    "The derived result kind or compilation does not match its publication lease.");
             }
 
             if (_current is null ||

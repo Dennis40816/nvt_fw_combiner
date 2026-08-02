@@ -1,6 +1,8 @@
 # ADR 0040: Resolve canonical metadata definitions and artifact prerequisites by exact reference
 
-- Status: Accepted
+- Status: Partially superseded by ADR 0048 only for independent dependent-slot
+  selection sequencing; exact-reference and metadata-prerequisite semantics
+  remain accepted
 - Date: 2026-07-26
 - Accepted: 2026-07-26 by the product, architecture, and firmware owner through
   the owner-approved `0.10.x` specification and GitHub issue #176
@@ -10,6 +12,7 @@
 - Risk: R2 cross-layer architecture contract; each firmware locator binding
   remains R3
 - Amends: ADR 0016 and ADR 0039
+- Amended by: ADR 0048
 
 ## Context
 
@@ -21,9 +24,11 @@ lengths, fields, assertions, relations, ranges, or formatter definitions.
 NT51950 and NT51951 expose the first topology-dependent prerequisite in this
 model. Their DPCMI logical structure is unchanged, but the physical CMD1 Page 0
 anchor needed to inspect the selected DP depends on `observed-ic-count` decoded
-from TP FirmwareConfig. A user may select DP before TP, so absence of TP must
-remain a typed pending dependency rather than becoming a guessed offset,
-nullable value, or UI-specific IC rule.
+from TP FirmwareConfig. Absence of TP must remain a typed pending dependency
+rather than becoming a guessed offset, nullable value, or UI-specific IC rule.
+ADR 0048 additionally prevents an independent DP selection transition while
+that prerequisite is pending; one atomic headless request may still supply TP
+and DP together and is evaluated without request-order semantics.
 
 This introduces a durable boundary across the family contract, Domain,
 Profiles, Bootstrap, and Application. The ownership, trust, and failure
@@ -93,10 +98,13 @@ dependency graph must be acyclic.
 A missing prerequisite artifact produces typed pending state with exact
 artifact, structure, and field identity. A present but invalid, ambiguous,
 unreadable, range-invalid, or rejected prerequisite blocks its dependent.
-Application projects `NotApplicable`, `PendingInput`, `Blocked`, or `Ready` and
-a typed `LoadArtifactFirst` action containing artifact and slot identities.
-Presentation and CLI format the operator text; Application does not own the
-localized phrase `Load TP first`.
+Application projects `NotApplicable`, `PendingInput`, `Blocked`, or `Ready`, a
+typed `LoadArtifactFirst` action containing artifact and slot identities, and
+`CanSelect = false` for an independent dependent-slot transition. One coherent
+headless request containing prerequisite and dependent artifacts remains
+order-independent. Presentation and CLI format the operator text; Application
+does not own the localized phrase `Load TP first` or an IC-specific selection
+rule.
 
 ### Layer ownership and dependency direction
 

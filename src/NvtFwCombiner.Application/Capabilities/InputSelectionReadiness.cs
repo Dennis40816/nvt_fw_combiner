@@ -23,8 +23,11 @@ public static class InputSelectionReadinessIssueCodes
 /// <summary>Closed next actions shared by CLI and later Presentation adapters.</summary>
 public enum InputSelectionNextActionKind
 {
-    /// <summary>Load one prerequisite artifact so map applicability can resolve.</summary>
-    LoadPrerequisite,
+    /// <summary>Load one prerequisite artifact before independently selecting this slot.</summary>
+    LoadArtifactFirst,
+
+    /// <summary>Compatibility name retained for pre-contract Presentation consumers.</summary>
+    LoadPrerequisite = LoadArtifactFirst,
 
     /// <summary>Select another applicable member to satisfy group cardinality.</summary>
     SelectMember,
@@ -36,7 +39,8 @@ public enum InputSelectionNextActionKind
 /// <summary>One typed operator action for an unresolved selection result.</summary>
 public sealed record InputSelectionNextAction(
     InputSelectionNextActionKind Kind,
-    string SubjectId);
+    string SubjectId,
+    string? ArtifactBindingId = null);
 
 /// <summary>One typed selection issue owned by the Application result.</summary>
 public sealed record InputSelectionReadinessIssue(
@@ -50,6 +54,7 @@ public sealed record InputSelectionMemberReadiness(
     string SlotId,
     bool IsSelected,
     ResolvedChildReadiness Readiness,
+    bool CanSelect,
     string? Reason,
     InputSelectionNextAction? NextAction);
 
@@ -114,8 +119,82 @@ public sealed class InputSelectionReadinessSnapshot
 public static class InputSelectionReadinessResolver
 {
     /// <summary>
+    /// Projects one declared metadata dependency onto its owning input slot.
+    /// The profile-resolved prerequisite remains the sole source of readiness
+    /// and next-action identity.
+    /// </summary>
+    public static InputSelectionMemberReadiness ProjectMetadataDependency(
+        MetadataInspectionResult dependency,
+        bool isSelected)
+    {
+        ArgumentNullException.ThrowIfNull(dependency);
+        if (!Enum.IsDefined(dependency.Readiness))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(dependency),
+                dependency.Readiness,
+                "Unknown metadata dependency readiness.");
+        }
+
+        string slotId = dependency.PlanEntry.Definition.SlotId;
+        if ((dependency.Readiness is
+                ResolvedChildReadiness.PendingInput or
+                ResolvedChildReadiness.Blocked) &&
+            dependency.Resolution?.Prerequisite is null)
+        {
+            throw new ArgumentException(
+                "Metadata dependency projection requires a declared prerequisite.",
+                nameof(dependency));
+        }
+
+        InputSelectionNextAction? nextAction = dependency.NextAction switch
+        {
+            null => null,
+            { Kind: ResolvedPrerequisiteActionKind.LoadArtifactFirst } action =>
+                new InputSelectionNextAction(
+                    InputSelectionNextActionKind.LoadArtifactFirst,
+                    action.SlotId,
+                    action.ArtifactBindingId),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(dependency),
+                dependency.NextAction,
+                "Unknown metadata prerequisite action."),
+        };
+        if (dependency.Readiness == ResolvedChildReadiness.PendingInput &&
+            nextAction is null)
+        {
+            throw new ArgumentException(
+                "A pending metadata dependency must name its prerequisite action.",
+                nameof(dependency));
+        }
+
+        string? reason = dependency.Readiness switch
+        {
+            ResolvedChildReadiness.Ready => null,
+            ResolvedChildReadiness.PendingInput =>
+                $"Load {nextAction!.SubjectId} first to resolve {slotId}.",
+            ResolvedChildReadiness.Blocked =>
+                $"A declared prerequisite or artifact blocks {slotId}.",
+            ResolvedChildReadiness.NotApplicable =>
+                $"The current capability does not apply {slotId}.",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(dependency),
+                dependency.Readiness,
+                "Unknown metadata dependency readiness."),
+        };
+        return new InputSelectionMemberReadiness(
+            slotId,
+            isSelected,
+            dependency.Readiness,
+            CanSelect: dependency.Readiness == ResolvedChildReadiness.Ready,
+            reason,
+            nextAction);
+    }
+
+    /// <summary>
     /// Resolves current selections. When map applicability still depends on a
-    /// prerequisite, members that may become unavailable remain PendingInput.
+    /// prerequisite, every dependent member remains PendingInput and cannot be
+    /// selected through an independent transition.
     /// </summary>
     public static InputSelectionReadinessSnapshot Resolve(
         AuthoringRevision authoringRevision,
@@ -201,13 +280,14 @@ public static class InputSelectionReadinessResolver
                     out string? reason);
                 return (applicabilityPending, unavailable) switch
                 {
-                    (true, true) => new InputSelectionMemberReadiness(
+                    (true, _) => new InputSelectionMemberReadiness(
                         slotId,
                         selected,
                         ResolvedChildReadiness.PendingInput,
+                        CanSelect: false,
                         $"Load {unresolvedApplicabilityPrerequisiteSlotId} first to determine whether {slotId} applies.",
                         new InputSelectionNextAction(
-                            InputSelectionNextActionKind.LoadPrerequisite,
+                            InputSelectionNextActionKind.LoadArtifactFirst,
                             unresolvedApplicabilityPrerequisiteSlotId!)),
                     (_, true) => new InputSelectionMemberReadiness(
                         slotId,
@@ -215,6 +295,7 @@ public static class InputSelectionReadinessResolver
                         selected
                             ? ResolvedChildReadiness.Blocked
                             : ResolvedChildReadiness.NotApplicable,
+                        CanSelect: false,
                         reason,
                         selected
                             ? new InputSelectionNextAction(
@@ -225,6 +306,7 @@ public static class InputSelectionReadinessResolver
                         slotId,
                         selected,
                         ResolvedChildReadiness.Ready,
+                        CanSelect: true,
                         Reason: null,
                         NextAction: null),
                 };
@@ -247,14 +329,15 @@ public static class InputSelectionReadinessResolver
                 selectedBlocked.Reason!,
                 selectedBlocked.NextAction!);
         }
-        else if (selectedPending is not null)
+        else if (applicabilityPending)
         {
+            InputSelectionMemberReadiness pending = selectedPending ?? members[0];
             readiness = ResolvedChildReadiness.PendingInput;
             issue = new InputSelectionReadinessIssue(
                 InputSelectionReadinessIssueCodes.SelectionPending,
-                selectedPending.SlotId,
-                selectedPending.Reason!,
-                selectedPending.NextAction!);
+                pending.SlotId,
+                pending.Reason!,
+                pending.NextAction!);
         }
         else if (selectedApplicable > group.MaximumSelected)
         {
