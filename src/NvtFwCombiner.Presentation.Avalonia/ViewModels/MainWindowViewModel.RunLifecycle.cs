@@ -160,7 +160,7 @@ public sealed partial class MainWindowViewModel
             loadErrorReport(action, exception.Message);
             if (build)
             {
-                ShowReport();
+                Reports.ShowReport();
             }
         }
         finally
@@ -201,9 +201,9 @@ public sealed partial class MainWindowViewModel
         bool build,
         CancellationToken cancellationToken)
     {
-        long reportProjectionGeneration = BeginReportProjection();
+        long reportProjectionGeneration = Reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
-        ReportReviewViewModel report = await ProjectReportAsync(
+        ReportReviewViewModel report = await Reports.ProjectReportAsync(
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
@@ -215,8 +215,8 @@ public sealed partial class MainWindowViewModel
         ApplyRunResult(
             result,
             build,
-            report, publishReport: IsCurrentReportProjection(reportProjectionGeneration));
-        CompositionProgress.MarkReportReady(IsCurrentReportProjection(reportProjectionGeneration));
+            report, publishReport: Reports.IsCurrentReportProjection(reportProjectionGeneration));
+        CompositionProgress.MarkReportReady(Reports.IsCurrentReportProjection(reportProjectionGeneration));
     }
 
     private async Task ObserveRunProgressAsync(

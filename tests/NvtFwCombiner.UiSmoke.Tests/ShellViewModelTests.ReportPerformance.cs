@@ -16,63 +16,63 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(differenceCount, sectionCount);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.LoadReportJsonAsync(
+        await viewModel.Reports.LoadReportJsonAsync(
             json,
             "large-report.json",
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(json, viewModel.LoadedReportJson);
-        Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferenceCount);
-        Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferences.Count);
-        Assert.Equal(0, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
-        Assert.Equal(sectionCount, viewModel.LoadedReport.OutputDifferenceGroups.Count);
+        Assert.Equal(json, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(differenceCount, viewModel.Reports.LoadedReport.OutputDifferenceCount);
+        Assert.Equal(differenceCount, viewModel.Reports.LoadedReport.OutputDifferences.Count);
+        Assert.Equal(0, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Equal(sectionCount, viewModel.Reports.LoadedReport.OutputDifferenceGroups.Count);
         string[] expectedSectionOrder =
         [
             .. Enumerable.Range(0, sectionCount).Select(index => $"Section {index:D2}"),
         ];
-        Assert.Equal(expectedSectionOrder, viewModel.LoadedReport.OutputDifferenceGroups.Select(group => group.Title));
-        Assert.Equal(expectedSectionOrder, viewModel.LoadedReport.OutputDifferenceSummaryRows.Select(row => row.Label));
-        Assert.False(viewModel.LoadedReport.OutputDifferenceGroups[0].IsReviewRequired);
-        Assert.True(viewModel.LoadedReport.OutputDifferenceGroups[^1].IsReviewRequired);
-        Assert.Equal("expected", viewModel.LoadedReport.OutputDifferenceSummaryRows[0].Status);
-        Assert.Equal("review", viewModel.LoadedReport.OutputDifferenceSummaryRows[^1].Status);
-        Assert.Equal(8, viewModel.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
-        Assert.Equal(8, viewModel.LoadedReport.OutputDifferenceSummaryPage.VisibleCount);
-        Assert.True(viewModel.LoadedReport.OutputDifferenceGroupPage.HasMoreItems);
+        Assert.Equal(expectedSectionOrder, viewModel.Reports.LoadedReport.OutputDifferenceGroups.Select(group => group.Title));
+        Assert.Equal(expectedSectionOrder, viewModel.Reports.LoadedReport.OutputDifferenceSummaryRows.Select(row => row.Label));
+        Assert.False(viewModel.Reports.LoadedReport.OutputDifferenceGroups[0].IsReviewRequired);
+        Assert.True(viewModel.Reports.LoadedReport.OutputDifferenceGroups[^1].IsReviewRequired);
+        Assert.Equal("expected", viewModel.Reports.LoadedReport.OutputDifferenceSummaryRows[0].Status);
+        Assert.Equal("review", viewModel.Reports.LoadedReport.OutputDifferenceSummaryRows[^1].Status);
+        Assert.Equal(8, viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
+        Assert.Equal(8, viewModel.Reports.LoadedReport.OutputDifferenceSummaryPage.VisibleCount);
+        Assert.True(viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.HasMoreItems);
 
         ReportDifferenceGroupViewModel firstGroup = Assert.IsType<ReportDifferenceGroupViewModel>(
-            viewModel.LoadedReport.OutputDifferenceGroupPage.Items[0]);
+            viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.Items[0]);
         Assert.Equal("Section 00", firstGroup.Title);
         Assert.False(firstGroup.IsReviewRequired);
         Assert.False(firstGroup.IsExpanded);
         Assert.Equal(25, firstGroup.RowsPage.TotalCount);
         Assert.Equal(0, firstGroup.RowsPage.VisibleCount);
-        Assert.Equal(0, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Equal(0, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
         firstGroup.IsExpanded = true;
         Assert.Equal(24, firstGroup.RowsPage.VisibleCount);
-        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Equal(24, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
         ReportLineViewModel firstDifference = Assert.IsType<ReportLineViewModel>(firstGroup.RowsPage.Items[0]);
         Assert.Equal("diff-00000", firstDifference.Title);
         Assert.Same(firstDifference, firstGroup.Rows[0]);
-        Assert.Same(firstDifference, viewModel.LoadedReport.OutputDifferences[0]);
-        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Same(firstDifference, viewModel.Reports.LoadedReport.OutputDifferences[0]);
+        Assert.Equal(24, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
         firstGroup.IsExpanded = false;
         firstGroup.IsExpanded = true;
         Assert.Equal(24, firstGroup.RowsPage.VisibleCount);
-        Assert.Equal(24, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Equal(24, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
         Assert.True(firstGroup.RowsPage.LoadMoreCommand.CanExecute(null));
         firstGroup.RowsPage.LoadMoreCommand.Execute(null);
         Assert.Equal(25, firstGroup.RowsPage.VisibleCount);
-        Assert.Equal(25, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        Assert.Equal(25, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
         Assert.False(firstGroup.RowsPage.HasMoreItems);
         Assert.False(firstGroup.RowsPage.LoadMoreCommand.CanExecute(null));
         Assert.Equal("Showing 25/25", firstGroup.RowsPage.PageStatus);
         Assert.Equal("All items loaded", firstGroup.RowsPage.LoadMoreLabel);
 
-        viewModel.LoadedReport.OutputDifferenceGroupPage.LoadMoreCommand.Execute(null);
-        Assert.Equal(16, viewModel.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
-        Assert.Equal(differenceCount, viewModel.LoadedReport.OutputDifferenceCount);
-        Assert.Equal(25, viewModel.LoadedReport.MaterializedOutputDifferenceCount);
+        viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.LoadMoreCommand.Execute(null);
+        Assert.Equal(16, viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.VisibleCount);
+        Assert.Equal(differenceCount, viewModel.Reports.LoadedReport.OutputDifferenceCount);
+        Assert.Equal(25, viewModel.Reports.LoadedReport.MaterializedOutputDifferenceCount);
     }
 
     /// <summary>Legacy full-hex fields render only a bounded preview while raw report JSON stays complete.</summary>
@@ -82,15 +82,15 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.ReplaceWithFullHexOutputDifference(byteCount: 4_096);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(json, "legacy-full-hex.json");
+        viewModel.Reports.LoadReportJson(json, "legacy-full-hex.json");
 
-        ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        ReportLineViewModel difference = Assert.Single(viewModel.Reports.LoadedReport.OutputDifferences);
         Assert.Equal("Before preview, first 64 bytes", difference.BeforeLabel);
         Assert.Equal("After preview, first 64 bytes", difference.AfterLabel);
         Assert.Equal(64, difference.BeforeValue.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Equal(64, difference.AfterValue.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
-        Assert.Equal(json, viewModel.LoadedReportJson);
-        Assert.Contains(new string('A', 512), viewModel.LoadedReportJson, StringComparison.Ordinal);
+        Assert.Equal(json, viewModel.Reports.LoadedReportJson);
+        Assert.Contains(new string('A', 512), viewModel.Reports.LoadedReportJson, StringComparison.Ordinal);
     }
 
     /// <summary>Lazy byte slices preserve escaped labels after the summary parser releases its JSON document.</summary>
@@ -184,11 +184,11 @@ public sealed partial class ShellViewModelTests
         cancellationSource.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            viewModel.LoadReportJsonAsync(json, "cancelled-report.json", cancellationSource.Token));
+            viewModel.Reports.LoadReportJsonAsync(json, "cancelled-report.json", cancellationSource.Token));
 
-        Assert.False(viewModel.HasLoadedReport);
-        Assert.False(viewModel.HasReportHistory);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.False(viewModel.Reports.HasReportHistory);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A cancelled run projection cannot publish its verified in-session Hex Diff snapshot.</summary>
@@ -203,9 +203,9 @@ public sealed partial class ShellViewModelTests
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             viewModel.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
 
-        Assert.False(viewModel.HasLoadedReport);
-        Assert.False(viewModel.HasReportHistory);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.False(viewModel.Reports.HasReportHistory);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A language change during background projection cannot publish a stale-language report.</summary>
@@ -215,7 +215,7 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 2_000, sectionCount: 40);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task loading = viewModel.LoadReportJsonAsync(
+        Task loading = viewModel.Reports.LoadReportJsonAsync(
             json,
             "language-race-report.json",
             TestContext.Current.CancellationToken);
@@ -223,18 +223,18 @@ public sealed partial class ShellViewModelTests
         await loading;
 
         Assert.Equal(ShellLanguage.ChineseTraditional, viewModel.Text.Language);
-        ReportLineViewModel firstDifference = viewModel.LoadedReport.OutputDifferences[0];
+        ReportLineViewModel firstDifference = viewModel.Reports.LoadedReport.OutputDifferences[0];
         Assert.Contains(firstDifference.Badges, badge => badge.Text == "預期");
-        Assert.Equal("已顯示 8/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
-        Assert.Equal("再載入 8 筆（尚餘 32 筆）", viewModel.LoadedReport.OutputDifferenceGroupPage.LoadMoreLabel);
+        Assert.Equal("已顯示 8/40 筆", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+        Assert.Equal("再載入 8 筆（尚餘 32 筆）", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.LoadMoreLabel);
         for (int index = 0; index < 4; index++)
         {
-            viewModel.LoadedReport.OutputDifferenceGroupPage.LoadMoreCommand.Execute(null);
+            viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.LoadMoreCommand.Execute(null);
         }
 
-        Assert.Equal("已顯示 40/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
-        Assert.Equal("已載入全部項目", viewModel.LoadedReport.OutputDifferenceGroupPage.LoadMoreLabel);
-        Assert.Equal(json, viewModel.LoadedReportJson);
+        Assert.Equal("已顯示 40/40 筆", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+        Assert.Equal("已載入全部項目", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.LoadMoreLabel);
+        Assert.Equal(json, viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A slower earlier load cannot overwrite a newer report or append stale history.</summary>
@@ -245,16 +245,16 @@ public sealed partial class ShellViewModelTests
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task olderLoad = viewModel.LoadReportJsonAsync(
+        Task olderLoad = viewModel.Reports.LoadReportJsonAsync(
             olderJson,
             "older-large-report.json",
             TestContext.Current.CancellationToken);
-        viewModel.LoadReportJson(newerJson, "newer-report.json");
+        viewModel.Reports.LoadReportJson(newerJson, "newer-report.json");
         await olderLoad;
 
-        Assert.Equal("newer-report.json", viewModel.LoadedReport.SourceName);
-        Assert.Equal(newerJson, viewModel.LoadedReportJson);
-        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("newer-report.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.Equal(newerJson, viewModel.Reports.LoadedReportJson);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }
 
@@ -281,14 +281,14 @@ public sealed partial class ShellViewModelTests
             largeResult,
             build: false,
             TestContext.Current.CancellationToken);
-        viewModel.LoadReportJson(newerJson, "newer-report.json");
+        viewModel.Reports.LoadReportJson(newerJson, "newer-report.json");
         await olderProjection;
 
-        Assert.Equal("newer-report.json", viewModel.LoadedReport.SourceName);
-        Assert.Equal(newerJson, viewModel.LoadedReportJson);
-        Assert.True(viewModel.LoadedReport.HexDiff.HasDifferenceWorkspace);
-        Assert.True(viewModel.LoadedReport.HexDiff.IsReportedRangeMode);
-        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("newer-report.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.Equal(newerJson, viewModel.Reports.LoadedReportJson);
+        Assert.True(viewModel.Reports.LoadedReport.HexDiff.HasDifferenceWorkspace);
+        Assert.True(viewModel.Reports.LoadedReport.HexDiff.IsReportedRangeMode);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }
 
@@ -300,18 +300,18 @@ public sealed partial class ShellViewModelTests
         string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-report");
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-after-history");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.LoadReportJson(olderJson, "older-history-report.json");
-        ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
-        viewModel.LoadReportJson(currentJson, "current-report.json");
+        viewModel.Reports.LoadReportJson(olderJson, "older-history-report.json");
+        ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
+        viewModel.Reports.LoadReportJson(currentJson, "current-report.json");
 
-        Task reopening = viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
-        viewModel.LoadReportJson(newerJson, "newer-after-history.json");
+        Task reopening = viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
+        viewModel.Reports.LoadReportJson(newerJson, "newer-after-history.json");
         await reopening;
 
-        Assert.Equal("newer-after-history.json", viewModel.LoadedReport.SourceName);
-        Assert.Equal(newerJson, viewModel.LoadedReportJson);
-        Assert.Equal(3, viewModel.ReportHistoryCount);
-        Assert.Equal("newer-after-history.json", viewModel.ReportHistoryEntries[0].SourceName);
+        Assert.Equal("newer-after-history.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.Equal(newerJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(3, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("newer-after-history.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
     }
 
     /// <summary>Explicit history navigation and cleanup choices cancel an in-flight reopen.</summary>
@@ -329,35 +329,35 @@ public sealed partial class ShellViewModelTests
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-before-action");
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.LoadReportJson(olderJson, "older-action-report.json");
-            ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
-            viewModel.LoadReportJson(currentJson, "current-before-action.json");
-            viewModel.ShowReportHistoryCommand.Execute(null);
+            viewModel.Reports.LoadReportJson(olderJson, "older-action-report.json");
+            ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
+            viewModel.Reports.LoadReportJson(currentJson, "current-before-action.json");
+            viewModel.Reports.ShowReportHistoryCommand.Execute(null);
 
             int legacyCanExecuteNotifications = 0;
-            viewModel.OpenReportHistoryEntryCommand.CanExecuteChanged += (_, _) => legacyCanExecuteNotifications++;
-            viewModel.OpenReportHistoryEntryAsyncCommand.Execute(olderEntry);
+            viewModel.Reports.OpenReportHistoryEntryCommand.CanExecuteChanged += (_, _) => legacyCanExecuteNotifications++;
+            viewModel.Reports.OpenReportHistoryEntryAsyncCommand.Execute(olderEntry);
             Task reopening = Assert.IsType<Task>(
-                viewModel.OpenReportHistoryEntryAsyncCommand.ExecutionTask,
+                viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecutionTask,
                 exactMatch: false);
-            Assert.True(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
-            Assert.False(viewModel.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
+            Assert.True(viewModel.Reports.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            Assert.False(viewModel.Reports.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
             switch (action)
             {
                 case "cancel":
-                    viewModel.OpenReportHistoryEntryAsyncCommand.Cancel();
+                    viewModel.Reports.OpenReportHistoryEntryAsyncCommand.Cancel();
                     break;
                 case "close":
-                    viewModel.CloseReportCommand.Execute(null);
+                    viewModel.Reports.CloseReportCommand.Execute(null);
                     break;
                 case "back":
-                    viewModel.CloseReportHistoryCommand.Execute(null);
+                    viewModel.Reports.CloseReportHistoryCommand.Execute(null);
                     break;
                 case "clear":
-                    viewModel.ClearReportHistoryCommand.Execute(null);
+                    viewModel.Reports.ClearReportHistoryCommand.Execute(null);
                     break;
                 case "remove":
-                    viewModel.RemoveReportHistoryEntryCommand.Execute(olderEntry);
+                    viewModel.Reports.RemoveReportHistoryEntryCommand.Execute(olderEntry);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown test action '{action}'.");
@@ -365,28 +365,28 @@ public sealed partial class ShellViewModelTests
 
             await reopening;
 
-            Assert.False(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
-            Assert.True(viewModel.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
+            Assert.False(viewModel.Reports.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            Assert.True(viewModel.Reports.OpenReportHistoryEntryCommand.CanExecute(olderEntry));
             Assert.True(legacyCanExecuteNotifications >= 2);
-            Assert.Equal("current-before-action.json", viewModel.LoadedReport.SourceName);
-            Assert.Equal(currentJson, viewModel.LoadedReportJson);
-            Assert.False(viewModel.HasReportToast);
+            Assert.Equal("current-before-action.json", viewModel.Reports.LoadedReport.SourceName);
+            Assert.Equal(currentJson, viewModel.Reports.LoadedReportJson);
+            Assert.False(viewModel.Reports.HasReportToast);
             if (action == "close")
             {
-                Assert.False(viewModel.IsReportModalOpen);
+                Assert.False(viewModel.Reports.IsReportModalOpen);
             }
             else if (action == "back")
             {
-                Assert.True(viewModel.IsReportModalOpen);
-                Assert.False(viewModel.IsReportHistoryViewOpen);
+                Assert.True(viewModel.Reports.IsReportModalOpen);
+                Assert.False(viewModel.Reports.IsReportHistoryViewOpen);
             }
             else if (action == "clear")
             {
-                Assert.Empty(viewModel.ReportHistoryEntries);
+                Assert.Empty(viewModel.Reports.ReportHistoryEntries);
             }
             else if (action == "remove")
             {
-                Assert.DoesNotContain(olderEntry, viewModel.ReportHistoryEntries);
+                Assert.DoesNotContain(olderEntry, viewModel.Reports.ReportHistoryEntries);
             }
         });
     }
@@ -401,19 +401,19 @@ public sealed partial class ShellViewModelTests
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-language");
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.LoadReportJson(olderJson, "older-language-report.json");
-            ReportHistoryEntryViewModel olderEntry = viewModel.ReportHistoryEntries[0];
-            viewModel.LoadReportJson(currentJson, "current-language-report.json");
+            viewModel.Reports.LoadReportJson(olderJson, "older-language-report.json");
+            ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
+            viewModel.Reports.LoadReportJson(currentJson, "current-language-report.json");
 
-            Task reopening = viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
-            Assert.True(viewModel.OpenReportHistoryEntryAsyncCommand.IsRunning);
+            Task reopening = viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(olderEntry);
+            Assert.True(viewModel.Reports.OpenReportHistoryEntryAsyncCommand.IsRunning);
             viewModel.SelectedLanguage = "Traditional Chinese";
             await reopening;
 
-            Assert.Equal("older-language-report.json", viewModel.LoadedReport.SourceName);
-            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
-            Assert.Equal("已顯示 8/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
-            Assert.Equal(2, viewModel.ReportHistoryCount);
+            Assert.Equal("older-language-report.json", viewModel.Reports.LoadedReport.SourceName);
+            Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
+            Assert.Equal("已顯示 8/40 筆", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
         });
     }
 
@@ -426,20 +426,20 @@ public sealed partial class ShellViewModelTests
         {
             string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.LoadReportJson(json, "large-language-report.json");
+            viewModel.Reports.LoadReportJson(json, "large-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
-            Task relocalization = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+            Task relocalization = Assert.IsType<Task>(viewModel.Reports.RelocalizationTask, exactMatch: false);
 
-            Assert.True(viewModel.IsReportRelocalizationRunning);
-            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            Assert.True(viewModel.Reports.IsRelocalizationRunning);
+            Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
             await relocalization;
 
-            Assert.False(viewModel.IsReportRelocalizationRunning);
-            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
-            Assert.Equal("已顯示 8/40 筆", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
-            Assert.Equal(json, viewModel.LoadedReportJson);
-            Assert.Equal(1, viewModel.ReportHistoryCount);
+            Assert.False(viewModel.Reports.IsRelocalizationRunning);
+            Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
+            Assert.Equal("已顯示 8/40 筆", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(json, viewModel.Reports.LoadedReportJson);
+            Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
         });
     }
 
@@ -453,20 +453,20 @@ public sealed partial class ShellViewModelTests
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-language-report");
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.LoadReportJson(olderJson, "older-language-report.json");
+            viewModel.Reports.LoadReportJson(olderJson, "older-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
-            Task relocalization = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
-            Assert.True(viewModel.IsReportRelocalizationRunning);
-            viewModel.LoadReportJson(newerJson, "newer-language-report.json");
-            Assert.True(viewModel.IsReportRelocalizationRunning);
+            Task relocalization = Assert.IsType<Task>(viewModel.Reports.RelocalizationTask, exactMatch: false);
+            Assert.True(viewModel.Reports.IsRelocalizationRunning);
+            viewModel.Reports.LoadReportJson(newerJson, "newer-language-report.json");
+            Assert.True(viewModel.Reports.IsRelocalizationRunning);
             viewModel.SelectedLanguage = "English";
             await relocalization;
 
-            Assert.Equal("newer-language-report.json", viewModel.LoadedReport.SourceName);
-            Assert.Equal(newerJson, viewModel.LoadedReportJson);
-            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
-            Assert.Equal(2, viewModel.ReportHistoryCount);
+            Assert.Equal("newer-language-report.json", viewModel.Reports.LoadedReport.SourceName);
+            Assert.Equal(newerJson, viewModel.Reports.LoadedReportJson);
+            Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
         });
     }
 
@@ -479,22 +479,22 @@ public sealed partial class ShellViewModelTests
         {
             string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.LoadReportJson(json, "rapid-language-report.json");
+            viewModel.Reports.LoadReportJson(json, "rapid-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
-            Task firstRequest = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
-            Assert.True(viewModel.IsReportRelocalizationRunning);
+            Task firstRequest = Assert.IsType<Task>(viewModel.Reports.RelocalizationTask, exactMatch: false);
+            Assert.True(viewModel.Reports.IsRelocalizationRunning);
             viewModel.SelectedLanguage = "English";
-            Task latestRequest = Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+            Task latestRequest = Assert.IsType<Task>(viewModel.Reports.RelocalizationTask, exactMatch: false);
 
             Assert.Same(firstRequest, latestRequest);
             await latestRequest;
 
-            Assert.False(viewModel.IsReportRelocalizationRunning);
-            Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
-            Assert.Equal("Showing 8/40", viewModel.LoadedReport.OutputDifferenceGroupPage.PageStatus);
-            Assert.Equal(json, viewModel.LoadedReportJson);
-            Assert.Equal(1, viewModel.ReportHistoryCount);
+            Assert.False(viewModel.Reports.IsRelocalizationRunning);
+            Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "expected");
+            Assert.Equal("Showing 8/40", viewModel.Reports.LoadedReport.OutputDifferenceGroupPage.PageStatus);
+            Assert.Equal(json, viewModel.Reports.LoadedReportJson);
+            Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
         });
     }
 
@@ -505,18 +505,18 @@ public sealed partial class ShellViewModelTests
         string oldJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "old-report");
         string newJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 10_000, sectionCount: 40);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.LoadReportJson(oldJson, "old-report.json");
+        viewModel.Reports.LoadReportJson(oldJson, "old-report.json");
 
-        Task newLoad = viewModel.LoadReportJsonAsync(
+        Task newLoad = viewModel.Reports.LoadReportJsonAsync(
             newJson,
             "new-large-report.json",
             TestContext.Current.CancellationToken);
         viewModel.SelectedLanguage = "Traditional Chinese";
         await newLoad;
 
-        Assert.Equal("new-large-report.json", viewModel.LoadedReport.SourceName);
-        Assert.Equal(newJson, viewModel.LoadedReportJson);
-        Assert.Contains(viewModel.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
-        Assert.Equal("new-large-report.json", viewModel.ReportHistoryEntries[0].SourceName);
+        Assert.Equal("new-large-report.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.Equal(newJson, viewModel.Reports.LoadedReportJson);
+        Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
+        Assert.Equal("new-large-report.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
     }
 }

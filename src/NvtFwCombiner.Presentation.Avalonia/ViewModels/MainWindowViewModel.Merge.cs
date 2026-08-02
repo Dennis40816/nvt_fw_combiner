@@ -285,7 +285,7 @@ public sealed partial class MainWindowViewModel
                 progress,
                 cancellationToken,
                 outputPath),
-            (action, errorMessage) => LoadRunErrorReport(
+            (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 profileId,
                 icId,
@@ -350,7 +350,7 @@ public sealed partial class MainWindowViewModel
                     _acceptedGeneralMergeDraft;
                 return result;
             },
-            (action, errorMessage) => LoadRunErrorReport(
+            (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 outputFileName,
                 icId,
@@ -387,7 +387,7 @@ public sealed partial class MainWindowViewModel
                 aFlashCodeOutputPath,
                 outputPathUsesAutomaticName,
                 aFlashCodeOutputPathUsesAutomaticName),
-            (action, errorMessage) => LoadRunErrorReport(
+            (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 profileId,
                 icId,
@@ -407,7 +407,7 @@ public sealed partial class MainWindowViewModel
         string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
-        LoadRunErrorReport(
+        Reports.LoadRunErrorReport(
             "Build",
             profileId,
             icId,
@@ -419,7 +419,7 @@ public sealed partial class MainWindowViewModel
             experienceId: WorkbenchWorkflowIds.AbMerge);
         LastRunResult = new UiRunResultViewModel("Build failed", message, "No output", succeeded: false);
         OnPropertyChanged(nameof(LastRunResult));
-        ShowReport();
+        Reports.ShowReport();
     }
 
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
@@ -494,15 +494,11 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        LoadedReport = report;
-        LoadedReportJson = result.ReportJson;
-        CaptureLoadedReportInHistory();
-        SetReportToast(Text.FormatReportGeneratedToast(action));
-        NotifyReportChanged();
-        if (build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)))
-        {
-            ShowReport();
-        }
+        Reports.PublishGeneratedReport(
+            report,
+            result.ReportJson,
+            action,
+            show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
     }
 
     private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)

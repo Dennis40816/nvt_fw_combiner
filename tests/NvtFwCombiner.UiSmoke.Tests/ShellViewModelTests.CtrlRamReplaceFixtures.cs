@@ -40,17 +40,17 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(0x40000, new FileInfo(outputPath).Length);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
         Assert.Equal(
             Application.Composition.CompositionRunPhase.PreparingReport,
             viewModel.CompositionProgress.CurrentPhase);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(10, postbuild.RuntimeCommands.Count);
         Assert.All(postbuild.RuntimeCommands, command =>
             Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
-        using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var firstReportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-twochip");
     }
 
@@ -88,7 +88,7 @@ public sealed partial class ShellViewModelTests
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
-                Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
+                Assert.Contains(GetCommandOperations(viewModel.Reports.LoadedReport), operation =>
                     operation.Facts.Any(fact =>
                         fact.Label == "Processor" &&
                         fact.Value.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal)) &&

@@ -39,8 +39,8 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.Empty(viewModel.SettingsOverviewRows);
-        Assert.Empty(viewModel.SettingsCapabilityRows);
+        Assert.Empty(viewModel.Settings.OverviewRows);
+        Assert.Empty(viewModel.Settings.CapabilityRows);
 
         viewModel.ShowSettingsCommand.Execute(null);
 
@@ -48,15 +48,15 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsDeviceContextVisible);
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 profiles");
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "DP Replace" && row.Value == "10 profiles");
-        SettingSummaryViewModel capability = Assert.Single(viewModel.SettingsCapabilityRows);
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 profiles");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace" && row.Value == "10 profiles");
+        SettingSummaryViewModel capability = Assert.Single(viewModel.Settings.CapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("10 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
-        Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
+        Assert.Equal(["System", "Light", "Dark"], viewModel.Settings.ThemeChoices);
 
         viewModel.SelectedTheme = "Dark";
         viewModel.SelectedLanguage = "Traditional Chinese";
@@ -67,8 +67,8 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(viewModel.MergeSlots);
         Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
         Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
-        Assert.Contains(viewModel.SettingsOverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
-        Assert.Contains(viewModel.SettingsCapabilityRows, row =>
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
+        Assert.Contains(viewModel.Settings.CapabilityRows, row =>
             row.Title == "CtrlRAM Replace 可用 IC" &&
             row.Value == "10 ICs" &&
             row.Status == "可用" &&

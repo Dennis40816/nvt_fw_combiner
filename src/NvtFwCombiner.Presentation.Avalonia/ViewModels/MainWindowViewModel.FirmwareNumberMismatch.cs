@@ -89,7 +89,7 @@ public sealed partial class MainWindowViewModel
         }
 
         RefreshCtrlRamDisplayFromInspection();
-        SetShellToast(
+        Reports.SetShellToast(
             Text.ContextUpdatedToastTitle,
             Text.FormatVerifiedFirmwareContextToast(
                 GetNumberDisplayLabel(numberToken),

@@ -36,7 +36,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
         string inspectionProjection = string.Join(
             Environment.NewLine,
-            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
@@ -45,7 +45,7 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionRunProgressViewModel.cs",
             "ShellTextResources.RunProgress.cs",
             "MainWindowViewModel.RunLifecycle.cs",
-            "MainWindowViewModel.Report.cs",
+            "ReportPresentationViewModel.cs",
             "ReportHexDiffViewModel.cs",
             "ReportReviewViewModel.cs",
             "ReportReviewViewModel.Bindings.cs",

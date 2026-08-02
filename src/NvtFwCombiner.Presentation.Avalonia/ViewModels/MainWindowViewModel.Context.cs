@@ -292,7 +292,7 @@ public sealed partial class MainWindowViewModel
         BuildMergeCommand.NotifyCanExecuteChanged();
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
-        ShowReportCommand.NotifyCanExecuteChanged();
+        Reports.ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
@@ -359,7 +359,7 @@ public sealed partial class MainWindowViewModel
         }
         else if (acceptedMismatch is { } missingSelection)
         {
-            SetShellToast(
+            Reports.SetShellToast(
                 Text.ContextUpdatedToastTitle,
                 Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
         }

@@ -37,7 +37,7 @@ public sealed partial class MainWindowViewModel
         (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
     /// <summary>True when the current composition page can reopen the latest committed output.</summary>
-    public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && HasLatestCommittedOutput;
+    public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
     private bool IsBlockingSurfaceOpen =>
         IsReplaceSelectionModalOpen ||
@@ -46,9 +46,9 @@ public sealed partial class MainWindowViewModel
         IsFirmwareIcMismatchModalOpen ||
         IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
-        IsReportModalOpen ||
+        Reports.IsReportModalOpen ||
         IsAbAFlashCodeDeliveryPromptOpen ||
-        IsBuildCompletedModalOpen ||
+        BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
 
@@ -60,9 +60,7 @@ public sealed partial class MainWindowViewModel
             nameof(IsFirmwareIcMismatchModalOpen) or
             nameof(IsFirmwareNumberMismatchModalOpen) or
             nameof(IsNavigationClearConfirmationOpen) or
-            nameof(IsReportModalOpen) or
-            nameof(IsAbAFlashCodeDeliveryPromptOpen) or
-            nameof(IsBuildCompletedModalOpen))
+            nameof(IsAbAFlashCodeDeliveryPromptOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }

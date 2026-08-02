@@ -32,7 +32,7 @@ public sealed partial class MainWindow
         await using Stream stream = await files[0].OpenReadAsync();
         using var reader = new StreamReader(stream);
         string json = await reader.ReadToEndAsync();
-        await viewModel.LoadReportJsonAsync(json, files[0].Name);
+        await viewModel.Reports.LoadReportJsonAsync(json, files[0].Name);
     }
 
     private static void ApplyInitialLaunchOptions(MainWindowViewModel viewModel, UiLaunchOptions launchOptions)
@@ -45,7 +45,7 @@ public sealed partial class MainWindow
         UiLaunchOptions launchOptions,
         CancellationToken cancellationToken)
     {
-        bool historyPublished = await viewModel.LoadReportHistoryAsync(
+        bool historyPublished = await viewModel.Reports.LoadReportHistoryAsync(
             ReportHistoryFileStore.LoadAsync,
             cancellationToken);
         if (!historyPublished)
@@ -55,7 +55,7 @@ public sealed partial class MainWindow
 
         if (launchOptions.Issues.Count > 0)
         {
-            viewModel.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
+            viewModel.Reports.LoadReportError("Startup arguments", string.Join(Environment.NewLine, launchOptions.Issues));
         }
 
         if (!string.IsNullOrWhiteSpace(launchOptions.ReportPath))
@@ -75,16 +75,16 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (!viewModel.ShowReportCommand.CanExecute(null))
+        if (!viewModel.Reports.ShowReportCommand.CanExecute(null))
         {
-            viewModel.LoadReportError(
+            viewModel.Reports.LoadReportError(
                 "Startup report",
                 "--open-report requires a loaded report. Pass --load-report <path> or --report <path>.");
         }
 
-        if (viewModel.ShowReportCommand.CanExecute(null))
+        if (viewModel.Reports.ShowReportCommand.CanExecute(null))
         {
-            viewModel.ShowReportCommand.Execute(null);
+            viewModel.Reports.ShowReportCommand.Execute(null);
         }
     }
 
@@ -117,7 +117,7 @@ public sealed partial class MainWindow
         string reportPath,
         CancellationToken cancellationToken)
     {
-        return viewModel.LoadReportJsonAsync(
+        return viewModel.Reports.LoadReportJsonAsync(
             token => Task.Run(
                 () => File.ReadAllText(Path.GetFullPath(reportPath)),
                 token),
@@ -134,21 +134,21 @@ public sealed partial class MainWindow
     private void ReportToastFadeTimer_OnTick(object? sender, EventArgs e)
     {
         if (DataContext is MainWindowViewModel viewModel &&
-            viewModel.HasReportToast)
+            viewModel.Reports.HasReportToast)
         {
-            double nextOpacity = viewModel.ReportToastOpacity - ReportToastFadeStep;
+            double nextOpacity = viewModel.Reports.ReportToastOpacity - ReportToastFadeStep;
             if (nextOpacity <= 0)
             {
                 _reportToastFadeTimer.Stop();
-                if (viewModel.DismissReportToastCommand.CanExecute(null))
+                if (viewModel.Reports.DismissReportToastCommand.CanExecute(null))
                 {
-                    viewModel.DismissReportToastCommand.Execute(null);
+                    viewModel.Reports.DismissReportToastCommand.Execute(null);
                 }
 
                 return;
             }
 
-            viewModel.SetReportToastOpacity(nextOpacity);
+            viewModel.Reports.SetReportToastOpacity(nextOpacity);
         }
         else
         {

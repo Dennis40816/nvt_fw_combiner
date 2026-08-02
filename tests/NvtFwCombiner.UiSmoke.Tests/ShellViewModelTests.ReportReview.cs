@@ -11,52 +11,52 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.Succeeded(runId: "ui-smoke");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Assert.False(viewModel.CanOpenReport);
-        Assert.False(viewModel.ShowReportCommand.CanExecute(null));
-        Assert.Equal("No report", viewModel.ReportActionLabel);
-        Assert.Equal("Build creates one", viewModel.ReportActionStatus);
+        Assert.False(viewModel.Reports.CanOpenReport);
+        Assert.False(viewModel.Reports.ShowReportCommand.CanExecute(null));
+        Assert.Equal("No report", viewModel.Reports.ReportActionLabel);
+        Assert.Equal("Build creates one", viewModel.Reports.ReportActionStatus);
 
-        viewModel.LoadReportJson(json, "preview-report.json");
+        viewModel.Reports.LoadReportJson(json, "preview-report.json");
 
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.Equal("Open report", viewModel.ReportActionLabel);
-        Assert.Equal("Succeeded", viewModel.ReportActionStatus);
-        Assert.True(viewModel.HasReportToast);
-        Assert.Equal(1, viewModel.ReportToastOpacity);
-        Assert.Equal(json, viewModel.LoadedReportJson);
-        Assert.True(viewModel.HasReportHistory);
-        Assert.Equal(1, viewModel.ReportHistoryCount);
-        Assert.Equal("1 report in history", viewModel.ReportHistorySummary);
-        Assert.True(viewModel.CanOpenReportHistory);
-        Assert.True(viewModel.ShowReportHistoryCommand.CanExecute(null));
-        Assert.True(viewModel.ClearReportHistoryCommand.CanExecute(null));
-        Assert.False(viewModel.IsReportHistoryViewOpen);
-        Assert.True(viewModel.IsReportReviewViewOpen);
-        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.Equal("Open report", viewModel.Reports.ReportActionLabel);
+        Assert.Equal("Succeeded", viewModel.Reports.ReportActionStatus);
+        Assert.True(viewModel.Reports.HasReportToast);
+        Assert.Equal(1, viewModel.Reports.ReportToastOpacity);
+        Assert.Equal(json, viewModel.Reports.LoadedReportJson);
+        Assert.True(viewModel.Reports.HasReportHistory);
+        Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("1 report in history", viewModel.Reports.ReportHistorySummary);
+        Assert.True(viewModel.Reports.CanOpenReportHistory);
+        Assert.True(viewModel.Reports.ShowReportHistoryCommand.CanExecute(null));
+        Assert.True(viewModel.Reports.ClearReportHistoryCommand.CanExecute(null));
+        Assert.False(viewModel.Reports.IsReportHistoryViewOpen);
+        Assert.True(viewModel.Reports.IsReportReviewViewOpen);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("#1", historyEntry.SequenceLabel);
         Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", historyEntry.Title);
         Assert.Equal("Merge / standard-merge / NT51927", historyEntry.Context);
         Assert.Equal("abcdef", historyEntry.OutputHash);
         Assert.Equal("No external command", historyEntry.CommandSummary);
         Assert.Equal("No issue", historyEntry.IssueSummary);
-        Assert.False(viewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal(string.Empty, viewModel.LoadedReport.OutputArtifactPath);
-        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.ReportSaveFileName);
-        Assert.True(viewModel.ShowReportCommand.CanExecute(null));
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal("Succeeded", viewModel.LoadedReport.OutcomeTitle);
-        Assert.Contains("no reference diff check", viewModel.LoadedReport.OutcomeDetail, StringComparison.Ordinal);
-        Assert.Equal("Review operation trace", viewModel.LoadedReport.NextStepTitle);
-        Assert.Contains("Operations", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
-        Assert.Equal("No size", viewModel.LoadedReport.OutputSizeLabel);
-        Assert.Equal("Preview only", viewModel.LoadedReport.OutputCommitmentLabel);
-        Assert.False(viewModel.LoadedReport.IsOutputCommitted);
-        Assert.True(viewModel.LoadedReport.IsOutputPreview);
-        Assert.False(viewModel.LoadedReport.IsOutputStateUnknown);
-        Assert.Equal(0, viewModel.LoadedReport.OperationCount);
-        Assert.Empty(GetCommandOperations(viewModel.LoadedReport));
-        Assert.False(viewModel.LoadedReport.HasStepOperations);
+        Assert.False(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReport.OutputArtifactPath);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927).json", viewModel.Reports.ReportSaveFileName);
+        Assert.True(viewModel.Reports.ShowReportCommand.CanExecute(null));
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("Succeeded", viewModel.Reports.LoadedReport.OutcomeTitle);
+        Assert.Contains("no reference diff check", viewModel.Reports.LoadedReport.OutcomeDetail, StringComparison.Ordinal);
+        Assert.Equal("Review operation trace", viewModel.Reports.LoadedReport.NextStepTitle);
+        Assert.Contains("Operations", viewModel.Reports.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Equal("No size", viewModel.Reports.LoadedReport.OutputSizeLabel);
+        Assert.Equal("Preview only", viewModel.Reports.LoadedReport.OutputCommitmentLabel);
+        Assert.False(viewModel.Reports.LoadedReport.IsOutputCommitted);
+        Assert.True(viewModel.Reports.LoadedReport.IsOutputPreview);
+        Assert.False(viewModel.Reports.LoadedReport.IsOutputStateUnknown);
+        Assert.Equal(0, viewModel.Reports.LoadedReport.OperationCount);
+        Assert.Empty(GetCommandOperations(viewModel.Reports.LoadedReport));
+        Assert.False(viewModel.Reports.LoadedReport.HasStepOperations);
 
         var reportWithSessionPath = ReportReviewViewModel.FromJson(
             json,
@@ -65,17 +65,17 @@ public sealed partial class ShellViewModelTests
         Assert.True(reportWithSessionPath.HasOutputArtifactPath);
         Assert.Equal("C:/nfc/output/preview.bin", reportWithSessionPath.OutputArtifactPath);
 
-        viewModel.ShowReportCommand.Execute(null);
+        viewModel.Reports.ShowReportCommand.Execute(null);
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.False(viewModel.IsReportHistoryViewOpen);
-        Assert.True(viewModel.IsReportReviewViewOpen);
-        Assert.False(viewModel.HasReportToast);
-        Assert.Equal(0, viewModel.ReportToastOpacity);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.False(viewModel.Reports.IsReportHistoryViewOpen);
+        Assert.True(viewModel.Reports.IsReportReviewViewOpen);
+        Assert.False(viewModel.Reports.HasReportToast);
+        Assert.Equal(0, viewModel.Reports.ReportToastOpacity);
 
-        viewModel.CloseReportCommand.Execute(null);
+        viewModel.Reports.CloseReportCommand.Execute(null);
 
-        Assert.False(viewModel.IsReportModalOpen);
+        Assert.False(viewModel.Reports.IsReportModalOpen);
     }
 
     /// <summary>Verifies report output state is parsed from the JSON contract, not from formatted display text.</summary>
@@ -125,26 +125,26 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportError("Startup report", "missing preview-report.json");
+        viewModel.Reports.LoadReportError("Startup report", "missing preview-report.json");
 
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
-        Assert.Equal("Load failed", viewModel.ReportActionStatus);
-        Assert.True(viewModel.HasReportHistory);
-        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("Load failed", viewModel.Reports.ReportActionStatus);
+        Assert.True(viewModel.Reports.HasReportHistory);
+        ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("Report could not be loaded", historyEntry.Title);
         Assert.Equal("No output hash", historyEntry.OutputHash);
-        Assert.True(viewModel.HasReportToast);
-        Assert.Equal("Report issue: Startup report", viewModel.ReportToastText);
-        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal("Report load failed", viewModel.LoadedReport.OutcomeTitle);
-        Assert.Equal("Start with this issue", viewModel.LoadedReport.NextStepTitle);
-        Assert.Equal("Load error", viewModel.LoadedReport.PrimaryIssue.Title);
-        Assert.Contains("missing preview-report.json", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
-        viewModel.ShowReportCommand.Execute(null);
+        Assert.True(viewModel.Reports.HasReportToast);
+        Assert.Equal("Report issue: Startup report", viewModel.Reports.ReportToastText);
+        Assert.True(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("Report load failed", viewModel.Reports.LoadedReport.OutcomeTitle);
+        Assert.Equal("Start with this issue", viewModel.Reports.LoadedReport.NextStepTitle);
+        Assert.Equal("Load error", viewModel.Reports.LoadedReport.PrimaryIssue.Title);
+        Assert.Contains("missing preview-report.json", viewModel.Reports.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        viewModel.Reports.ShowReportCommand.Execute(null);
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.False(viewModel.HasReportToast);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.False(viewModel.Reports.HasReportToast);
     }
 }

@@ -273,7 +273,7 @@ public sealed partial class ShellViewModelTests
             "^NT51929_FlashCode_A_D0A01T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             Path.GetFileName(viewModel.LastRunResult.Output));
         Assert.True(File.Exists(viewModel.LastRunResult.Output));
-        using (var report = JsonDocument.Parse(viewModel.LoadedReportJson))
+        using (var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson))
         {
             JsonElement naming = report.RootElement.GetProperty("OutputNaming");
             Assert.False(naming.GetProperty("IsExplicitOverride").GetBoolean());
@@ -296,7 +296,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewMergeCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
+        Assert.True(viewModel.Reports.HasLoadedReport);
     }
 
     /// <summary>A source that disappears after inspection becomes a Build report before the native save dialog opens.</summary>
@@ -337,9 +337,9 @@ public sealed partial class ShellViewModelTests
         Assert.Null(preparation);
         Assert.False(viewModel.LastRunResult.Succeeded);
         Assert.Equal("Build failed", viewModel.LastRunResult.Title);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.Equal("ui.run.failed", viewModel.LoadedReport.PrimaryIssue.Title);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.Equal("ui.run.failed", viewModel.Reports.LoadedReport.PrimaryIssue.Title);
     }
 
     /// <summary>A short AB source blocks immediately while an ignored tail remains a non-blocking warning.</summary>
@@ -489,19 +489,19 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
         Assert.Contains("report ready", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            viewModel.LoadedReport.OutputSha256[..Math.Min(12, viewModel.LoadedReport.OutputSha256.Length)],
+            viewModel.Reports.LoadedReport.OutputSha256[..Math.Min(12, viewModel.Reports.LoadedReport.OutputSha256.Length)],
             viewModel.LastRunResult.Detail,
             StringComparison.Ordinal);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
-        Assert.Equal($"{viewModel.LoadedReport.OutputSize} bytes", viewModel.LoadedReport.OutputSizeLabel);
-        Assert.Equal("Committed output", viewModel.LoadedReport.OutputCommitmentLabel);
-        Assert.True(viewModel.HasReportToast);
-        Assert.Equal(1, viewModel.ReportToastOpacity);
-        Assert.Equal("Build report generated", viewModel.ReportToastText);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
+        Assert.Equal($"{viewModel.Reports.LoadedReport.OutputSize} bytes", viewModel.Reports.LoadedReport.OutputSizeLabel);
+        Assert.Equal("Committed output", viewModel.Reports.LoadedReport.OutputCommitmentLabel);
+        Assert.True(viewModel.Reports.HasReportToast);
+        Assert.Equal(1, viewModel.Reports.ReportToastOpacity);
+        Assert.Equal("Build report generated", viewModel.Reports.ReportToastText);
     }
 
     /// <summary>Verifies General Merge UI runs explicit mapping rows through Preview and Build.</summary>
@@ -563,7 +563,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
             File.ReadAllBytes(outputPath));
-        using var document = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var document = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement root = document.RootElement;
         Assert.Equal("nt51950-general-merge-logical-candidate", root.GetProperty("ProfileId").GetString());
         Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
@@ -613,8 +613,8 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal("Build succeeded", viewModel.LastRunResult.Title);
         Assert.True(File.Exists(outputPath), outputPath);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
     }
 
     /// <summary>Verifies NT51950 accepts a TP BIN within the 256 KiB limit even when it exceeds the declared overlay span.</summary>
@@ -635,14 +635,14 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.CanBuildMerge);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.True(viewModel.HasReportToast);
-        Assert.NotEmpty(viewModel.LoadedReport.Issues);
-        Assert.All(viewModel.LoadedReport.Issues, static issue => Assert.Equal("warning", issue.Severity));
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.True(viewModel.LoadedReport.HasInputs);
-        Assert.True(viewModel.LoadedReport.HasOperations);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.True(viewModel.Reports.HasReportToast);
+        Assert.NotEmpty(viewModel.Reports.LoadedReport.Issues);
+        Assert.All(viewModel.Reports.LoadedReport.Issues, static issue => Assert.Equal("warning", issue.Severity));
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.True(viewModel.Reports.LoadedReport.HasInputs);
+        Assert.True(viewModel.Reports.LoadedReport.HasOperations);
     }
 
     /// <summary>Gets one normal DP/TP, LD-input, and DP Perspective Standard Merge golden case.</summary>

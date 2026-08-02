@@ -103,8 +103,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             "The selected General Replace shape has no exact evidence-backed V2 route.",
             viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
-        using (var previewReport = JsonDocument.Parse(viewModel.LoadedReportJson))
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        using (var previewReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson))
         {
             JsonElement issue = Assert.Single(previewReport.RootElement.GetProperty("Issues").EnumerateArray());
             Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
@@ -140,7 +140,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.LoadedReport.ProfileId);
+        Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.Reports.LoadedReport.ProfileId);
 
         await File.WriteAllBytesAsync(
             replacementPath,
@@ -191,10 +191,10 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             "The selected General Replace shape has no exact evidence-backed V2 route.",
             viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
-        ReportLineViewModel issue = Assert.Single(viewModel.LoadedReport.Issues);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        ReportLineViewModel issue = Assert.Single(viewModel.Reports.LoadedReport.Issues);
         Assert.Contains("no exact evidence-backed V2 route", issue.Detail, StringComparison.Ordinal);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement reportIssue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
         Assert.Equal("replace.workflow.not-supported", reportIssue.GetProperty("Code").GetString());
     }

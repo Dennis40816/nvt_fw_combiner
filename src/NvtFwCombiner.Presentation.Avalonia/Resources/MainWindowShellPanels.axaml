@@ -234,7 +234,7 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReportToastPanelTemplate" DataType="vm:ReportPresentationViewModel">
   <Border
       Classes="toastSurface"
       AutomationProperties.LiveSetting="Polite"

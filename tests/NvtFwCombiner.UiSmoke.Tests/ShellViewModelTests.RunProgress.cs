@@ -366,8 +366,8 @@ public sealed partial class ShellViewModelTests
         mapping.TargetStartAddress = "0x8";
         await previewTask;
 
-        Assert.Equal("NT51926", viewModel.LoadedReport.IcId);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
         Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
         Assert.False(viewModel.IsRunInProgress);

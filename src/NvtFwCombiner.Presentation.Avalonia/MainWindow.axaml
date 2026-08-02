@@ -17,8 +17,8 @@
     Icon="/Assets/AppIcon.ico"
     Title="NVT FW Combiner">
   <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReportHistoryCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding ClearReportHistoryCommand}" />
+    <KeyBinding Gesture="Ctrl+H" Command="{Binding Reports.ShowReportHistoryCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Delete" Command="{Binding Reports.ClearReportHistoryCommand}" />
     <KeyBinding Gesture="Ctrl+S" Command="{Binding RequestHexEditorSaveCommand}" />
     <KeyBinding Gesture="Ctrl+Z" Command="{Binding RequestHexEditorUndoCommand}" />
     <KeyBinding Gesture="Ctrl+Y" Command="{Binding RequestHexEditorRedoCommand}" />
@@ -110,8 +110,8 @@
           </Button>
           <Button
               Classes="reportAction"
-              Command="{Binding ShowReportCommand}"
-              IsEnabled="{Binding CanOpenReport}"
+              Command="{Binding Reports.ShowReportCommand}"
+              IsEnabled="{Binding Reports.CanOpenReport}"
               ToolTip.Tip="{Binding Text.ReportModalActionLabel}">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
               <TextBlock
@@ -122,11 +122,11 @@
                 <TextBlock
                     FontSize="{DynamicResource NfcFontSize12}"
                     FontWeight="SemiBold"
-                    Text="{Binding ReportActionLabel}" />
+                    Text="{Binding Reports.ReportActionLabel}" />
                 <TextBlock
                     FontSize="{DynamicResource NfcFontSize10}"
                     Opacity="0.82"
-                    Text="{Binding ReportActionStatus}" />
+                    Text="{Binding Reports.ReportActionStatus}" />
               </StackPanel>
             </Grid>
           </Button>
@@ -304,7 +304,7 @@
             AutomationProperties.HelpText="{Binding Text.LatestOutputOpenFolderLabel}"
             AutomationProperties.Name="{Binding Text.LatestOutputActionLabel}"
             Command="{Binding RevealFileCommand}"
-            CommandParameter="{Binding LatestCommittedOutputPath}"
+            CommandParameter="{Binding BuildResult.LatestCommittedOutputPath}"
             IsVisible="{Binding IsLatestOutputActionVisible}">
           <Grid ColumnDefinitions="*,44">
             <TextBlock
@@ -368,8 +368,8 @@
         Grid.Row="1"
         Grid.RowSpan="4"
         ContentTemplate="{StaticResource ReportToastPanelTemplate}"
-        IsVisible="{Binding HasReportToast}"
-        Opacity="{Binding ReportToastOpacity}" />
+        IsVisible="{Binding Reports.HasReportToast}"
+        Opacity="{Binding Reports.ReportToastOpacity}" />
 
     <ContentControl
         x:Name="ReplaceSelectionModalHost"
@@ -467,9 +467,9 @@
     <ContentControl
         x:Name="ReportModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsReportModalOpen}">
+        IsVisible="{Binding Reports.IsReportModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:ReportPresentationViewModel">
           <views:ReportModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
@@ -478,7 +478,7 @@
     <ContentControl
         x:Name="BuildCompletedModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsBuildCompletedModalOpen}">
+        IsVisible="{Binding BuildResult.IsOpen}">
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:MainWindowViewModel">
           <views:BuildCompletedModal />

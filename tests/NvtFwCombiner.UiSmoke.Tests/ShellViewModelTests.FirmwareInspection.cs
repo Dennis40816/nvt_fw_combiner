@@ -540,8 +540,8 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain(
             viewModel.ReplaceSlots,
             slot => string.Equals(slot.FilePath, replacementPath, StringComparison.Ordinal));
-        Assert.Contains("NT51929_replacement.bin", viewModel.ReportToastText, StringComparison.Ordinal);
-        Assert.Contains("same safe input slot", viewModel.ReportToastText, StringComparison.Ordinal);
+        Assert.Contains("NT51929_replacement.bin", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
+        Assert.Contains("same safe input slot", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
     }
 
     /// <summary>A normal IC refresh never rereads populated CtrlRAM replacement slots whose projections are unused.</summary>

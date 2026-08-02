@@ -4,7 +4,7 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
 
-<DataTemplate x:Key="ReportAuditDetailsPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReportAuditDetailsPanelTemplate" DataType="vm:ReportPresentationViewModel">
   <Border MinHeight="0" Classes="surface" Margin="16,14,16,0">
     <Grid RowDefinitions="Auto,*">
       <Grid Margin="16,14,16,8" ColumnDefinitions="*,Auto" ColumnSpacing="10">

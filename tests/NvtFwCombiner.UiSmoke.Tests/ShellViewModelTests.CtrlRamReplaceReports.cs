@@ -35,9 +35,9 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.LoadedReport.HasStepOperations);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.LoadedReport.HasStepOperations);
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(10, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.Facts, fact =>
             fact.Label == "Processor" &&
@@ -80,7 +80,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal));
@@ -122,8 +122,8 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
@@ -158,12 +158,12 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.HasLoadedReport);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
-        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         AssertNoUnexpectedOutputDifferenceIssue(reportDocument.RootElement);
         JsonElement[] differences = [.. reportDocument.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
         Assert.All(differences, difference =>

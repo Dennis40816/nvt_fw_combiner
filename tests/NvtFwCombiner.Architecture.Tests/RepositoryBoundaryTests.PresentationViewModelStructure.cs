@@ -2,6 +2,71 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Report parsing, history, and commands belong to a focused child rather than the shell.</summary>
+    [Fact]
+    public void ReportPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellReport = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string report = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
+        string history = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
+
+        Assert.Contains("Reports = new ReportPresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public ReportPresentationViewModel Reports", shellReport, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel.FromJson", shellReport, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromJson", report, StringComparison.Ordinal);
+        Assert.Contains("ObservableCollection<ReportHistoryEntryViewModel>", history, StringComparison.Ordinal);
+    }
+
+    /// <summary>Build-result state and actions belong to a focused child rather than the shell.</summary>
+    [Fact]
+    public void BuildResultPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellBuildResult = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.BuildCompleted.cs");
+        string buildResult = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BuildResultViewModel.cs");
+        string shell = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string modal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/BuildCompletedModal.axaml");
+
+        Assert.Contains("BuildResult = new BuildResultViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public BuildResultViewModel BuildResult", shellBuildResult, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchDeliveryArtifact?", shellBuildResult, StringComparison.Ordinal);
+        Assert.Contains("IFileRevealService", buildResult, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding BuildResult.IsOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.RevealOutputCommand}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.CloseCommand}\"", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Settings catalog presentation belongs to a focused child rather than the shell.</summary>
+    [Fact]
+    public void SettingsPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellSettings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string settings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs");
+        string pageTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains("Settings = new SettingsViewModel(appVersion);", construction, StringComparison.Ordinal);
+        Assert.Contains("public SettingsViewModel Settings", shellSettings, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", shellSettings, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.GetSettingsSnapshot()", settings, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Settings.OverviewRows}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Settings.CapabilityRows}\"", pageTemplates, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Presentation projection keeps only UI-owned contract adaptation.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()
@@ -63,18 +128,18 @@ public sealed partial class RepositoryBoundaryTests
             "internal async Task ProjectAndApplyRunResultAsync(",
             StringComparison.Ordinal);
         int generationIndex = lifecycle.IndexOf(
-            "long reportProjectionGeneration = BeginReportProjection();",
+            "long reportProjectionGeneration = Reports.BeginReportProjection();",
             projectionMethodIndex,
             StringComparison.Ordinal);
         int reportProjectionIndex = lifecycle.IndexOf(
-            "ReportReviewViewModel report = await ProjectReportAsync(",
+            "ReportReviewViewModel report = await Reports.ProjectReportAsync(",
             generationIndex,
             StringComparison.Ordinal);
         int cancellationIndex = lifecycle.IndexOf(
             "cancellationToken.ThrowIfCancellationRequested();",
             reportProjectionIndex,
             StringComparison.Ordinal);
-        int publishIndex = lifecycle.IndexOf("publishReport: IsCurrentReportProjection(", StringComparison.Ordinal);
+        int publishIndex = lifecycle.IndexOf("publishReport: Reports.IsCurrentReportProjection(", StringComparison.Ordinal);
         Assert.True(
             projectionMethodIndex >= 0 &&
             generationIndex > projectionMethodIndex &&
@@ -82,14 +147,14 @@ public sealed partial class RepositoryBoundaryTests
             cancellationIndex > reportProjectionIndex &&
             publishIndex > cancellationIndex,
             "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
-        Assert.Contains("long reportProjectionGeneration = BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("long reportProjectionGeneration = Reports.BeginReportProjection();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
         Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("publishReport: IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("publishReport: Reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"), StringComparison.Ordinal);
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"), StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
@@ -109,11 +174,11 @@ public sealed partial class RepositoryBoundaryTests
     public void ReportReviewProjectsOffDispatcherAndPagesLargeEvidence()
     {
         string report = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string reportHistory = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
         string localization = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Localization.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string reportHistoryTemplate = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string factory = ReadText(
@@ -185,7 +250,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
-        Assert.Contains("await ProjectReportAsync(", ReadText(
+        Assert.Contains("await Reports.ProjectReportAsync(", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
     }
 
@@ -372,7 +437,7 @@ public sealed partial class RepositoryBoundaryTests
         string entry = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs");
         string history = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
 
         Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
         Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);

@@ -165,7 +165,7 @@ public sealed partial class MainWindowViewModel
                 }
                 return result;
             },
-            (action, errorMessage) => LoadRunErrorReport(
+            (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace",
                 icId,

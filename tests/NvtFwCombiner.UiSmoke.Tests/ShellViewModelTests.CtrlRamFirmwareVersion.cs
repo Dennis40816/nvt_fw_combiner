@@ -83,8 +83,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
         Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
         Assert.Equal(0x0C, outputMetadata.FirmwareSubVersion);
-        Assert.True(viewModel.HasLoadedReport);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
         JsonElement validation = Assert.Single(report.RootElement.GetProperty("Validations").EnumerateArray());
         Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());

@@ -96,11 +96,15 @@ public sealed partial class MainWindowViewModel
         _firmwareInspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
         ShellVersion = shellVersion;
         AppVersion = appVersion;
+        Settings = new SettingsViewModel(appVersion);
         CompositionProgress = new CompositionRunProgressViewModel(language);
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
-        _relocalizeLoadedReportCommand = new AsyncRelayCommand(RelocalizeLoadedReportAsync);
         CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
+        Reports = new ReportPresentationViewModel(() => Text, CloseReplaceSelectionForRun);
+        Reports.PropertyChanged += Reports_OnPropertyChanged;
+        BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
+        BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));
         ShowMergeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Merge));
@@ -142,18 +146,6 @@ public sealed partial class MainWindowViewModel
         BuildReplaceCommand = new AsyncRelayCommand(
             () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
             () => CanBuildReplace);
-        ShowReportCommand = new RelayCommand(ShowReport, () => CanOpenReport);
-        CloseReportCommand = new RelayCommand(CloseReport);
-        DismissReportToastCommand = new RelayCommand(DismissReportToast);
-        ShowReportHistoryCommand = new RelayCommand(ShowReportHistory, () => CanOpenReportHistory);
-        CloseReportHistoryCommand = new RelayCommand(CloseReportHistory);
-        ClearReportHistoryCommand = new RelayCommand(ClearReportHistory, () => CanClearReportHistory);
-        OpenReportHistoryEntryAsyncCommand = new AsyncRelayCommand<ReportHistoryEntryViewModel>(OpenReportHistoryEntryAsync);
-        OpenReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(
-            entry => OpenReportHistoryEntryAsyncCommand.Execute(entry),
-            entry => OpenReportHistoryEntryAsyncCommand.CanExecute(entry));
-        OpenReportHistoryEntryAsyncCommand.CanExecuteChanged += OpenReportHistoryEntryAsyncCommand_CanExecuteChanged;
-        RemoveReportHistoryEntryCommand = new RelayCommand<ReportHistoryEntryViewModel>(RemoveReportHistoryEntry);
         ShowReplaceSelectionCommand = new RelayCommand(ShowReplaceSelection);
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
@@ -161,9 +153,7 @@ public sealed partial class MainWindowViewModel
         CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);
         DeclineAbAFlashCodeDeliveryPromptCommand = new RelayCommand(DeclineAbAFlashCodeDeliveryPrompt);
-        CloseBuildCompletedModalCommand = new RelayCommand(CloseBuildCompletedModal);
         RevealFileCommand = new RelayCommand<string>(RevealFile);
-        RevealBuildCompletedOutputCommand = new RelayCommand(RevealBuildCompletedOutput);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;
         _isInitializing = false;

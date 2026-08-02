@@ -221,7 +221,7 @@
           </StackPanel>
           <ItemsControl
               ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
-              ItemsSource="{Binding SettingsOverviewRows}" />
+              ItemsSource="{Binding Settings.OverviewRows}" />
         </StackPanel>
       </Border>
 
@@ -234,7 +234,7 @@
             </StackPanel>
             <ItemsControl
                 ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
-                ItemsSource="{Binding SettingsCapabilityRows}" />
+                ItemsSource="{Binding Settings.CapabilityRows}" />
           </StackPanel>
         </Border>
 
@@ -246,10 +246,10 @@
             </StackPanel>
             <Grid ColumnDefinitions="92,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10">
               <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ThemeLabel}" />
-              <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+              <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding Settings.ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
 
               <TextBlock Grid.Row="1" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.LanguageLabel}" />
-              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding Settings.LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
 
               <TextBlock Grid.Row="2" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ReducedMotionLabel}" />
               <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">

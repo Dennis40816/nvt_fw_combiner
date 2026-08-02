@@ -210,11 +210,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(replacementBytes[0x37000], output[0x37000]);
         Assert.Equal(replacementBytes[0x37FFF], output[0x37FFF]);
         Assert.Equal(replacementBytes[^1], output[^1]);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
-        Assert.DoesNotContain(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.Contains(viewModel.Reports.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
+        Assert.DoesNotContain(viewModel.Reports.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
 
-        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Equal(baseLength, reportDocument.RootElement.GetProperty("Output").GetProperty("Size").GetInt64());
     }
 
@@ -246,7 +246,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        using var reportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement root = reportDocument.RootElement;
         Assert.Equal(expectedLength, root.GetProperty("Output").GetProperty("Size").GetInt64());
         Assert.Equal(0, root.GetProperty("Issues").GetArrayLength());
@@ -285,9 +285,9 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.False(viewModel.LoadedReport.HasPrimaryIssue);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
     }
 
     /// <summary>Verifies NT51950 DP Replace rejects unapproved base lengths instead of assuming 0x100000.</summary>

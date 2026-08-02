@@ -50,7 +50,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(
             viewModel.ReplaceSlots,
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
-        Assert.Equal("Context updated", viewModel.ShellToastTitle);
+        Assert.Equal("Context updated", viewModel.Reports.ShellToastTitle);
 
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
@@ -58,7 +58,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(
             "nt51926-ctrlram-replace-fw141-runtime-cascade",
-            viewModel.LoadedReport.ProfileId);
+            viewModel.Reports.LoadedReport.ProfileId);
     }
 
     /// <summary>Cancel keeps the selected Number and files; the backend remains responsible for blocking a mismatch.</summary>
@@ -314,8 +314,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(immutableBase, File.ReadAllBytes(basePath));
-        Assert.True(viewModel.IsReportModalOpen);
-        using var report = JsonDocument.Parse(viewModel.LoadedReportJson);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch);
