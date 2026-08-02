@@ -236,7 +236,7 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
   <Border Classes="panelSurface">
     <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace16}">

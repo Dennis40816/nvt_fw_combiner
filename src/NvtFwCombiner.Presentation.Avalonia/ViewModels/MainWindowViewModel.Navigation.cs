@@ -41,7 +41,7 @@ public sealed partial class MainWindowViewModel
 
     private bool IsBlockingSurfaceOpen =>
         Replace.IsReplaceSelectionModalOpen ||
-        IsCtrlRamFirmwareVersionModalOpen ||
+        Replace.IsCtrlRamFirmwareVersionModalOpen ||
         WorkflowSession.IsWorkflowContextModalOpen ||
         WorkflowSession.IsFirmwareIcMismatchModalOpen ||
         WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
@@ -54,8 +54,7 @@ public sealed partial class MainWindowViewModel
 
     private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(IsCtrlRamFirmwareVersionModalOpen) or
-            nameof(IsNavigationClearConfirmationOpen))
+        if (e.PropertyName == nameof(IsNavigationClearConfirmationOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }
@@ -191,9 +190,9 @@ public sealed partial class MainWindowViewModel
                 Merge.MergeSlots.Any(static slot => slot.HasFile) ||
                 Merge.GeneralMergeMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Replace =>
-                ReplaceBaseSlot.HasFile ||
-                ReplaceSlots.Any(static slot => slot.HasFile) ||
-                GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
+                Replace.ReplaceBaseSlot.HasFile ||
+                Replace.ReplaceSlots.Any(static slot => slot.HasFile) ||
+                Replace.GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
             ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
             _ => false,
         };
@@ -202,7 +201,7 @@ public sealed partial class MainWindowViewModel
     private void ClearSelectedInputs(ShellPage page)
     {
         WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        InvalidateCtrlRamFirmwareVersionContext();
+        Replace.InvalidateCtrlRamFirmwareVersionContextState();
         WorkflowSession.InvalidateFirmwareIcMismatch();
         WorkflowSession.InvalidateFirmwareNumberMismatch();
 
@@ -225,18 +224,18 @@ public sealed partial class MainWindowViewModel
         }
         else if (page == ShellPage.Replace)
         {
-            foreach (FirmwareSlotViewModel slot in ReplaceSlots.Concat([ReplaceBaseSlot]).Distinct())
+            foreach (FirmwareSlotViewModel slot in Replace.ReplaceSlots.Concat([Replace.ReplaceBaseSlot]).Distinct())
             {
                 ClearFirmwareSlot(slot);
             }
 
-            foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
+            foreach (GeneralReplaceMappingViewModel mapping in Replace.GeneralReplaceMappings)
             {
                 mapping.FilePath = null;
             }
 
-            ClearCtrlRamInspectionDisplay();
-            RefreshReplaceMemoryMapState();
+            Replace.ClearCtrlRamInspectionDisplay();
+            Replace.RefreshReplaceMemoryMapState();
         }
 
         NotifySlotFileOutputNames();
@@ -263,7 +262,7 @@ public sealed partial class MainWindowViewModel
             ShellPage.Home => Text.HomeLabel,
             ShellPage.Settings => SettingsPreview.Title,
             ShellPage.Merge => Merge.MergePreview.Title,
-            ShellPage.Replace => ReplacePreview.Title,
+            ShellPage.Replace => Replace.ReplacePreview.Title,
             ShellPage.HexEditor => Text.HexEditorTitle,
             _ => page.ToString(),
         };

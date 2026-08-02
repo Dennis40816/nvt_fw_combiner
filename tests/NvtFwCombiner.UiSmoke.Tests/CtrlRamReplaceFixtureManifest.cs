@@ -66,7 +66,7 @@ internal sealed class CtrlRamReplaceFixtureManifest : IDisposable
         foreach (JsonElement replacement in replacements)
         {
             string slotId = replacement.GetProperty("slotId").GetString()!;
-            Assert.Contains(viewModel.ReplaceSlots, slot => slot.SlotId == slotId);
+            Assert.Contains(viewModel.Replace.ReplaceSlots, slot => slot.SlotId == slotId);
             viewModel.SetSlotFile(
                 slotId,
                 PathForCaseArtifact(replacement.TryGetProperty("file", out JsonElement file) ? file : replacement));

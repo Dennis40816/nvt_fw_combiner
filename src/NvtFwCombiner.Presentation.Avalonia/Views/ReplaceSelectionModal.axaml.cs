@@ -15,12 +15,12 @@ public sealed partial class ReplaceSelectionModal : UserControl
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildReplace)
+        if (DataContext is not ReplacePresentationViewModel viewModel || !viewModel.CanBuildReplace)
         {
             return;
         }
 
-        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.RefreshSelectedFirmwareInspectionsAsync();
         if (!viewModel.CanBuildReplace)
         {
             return;

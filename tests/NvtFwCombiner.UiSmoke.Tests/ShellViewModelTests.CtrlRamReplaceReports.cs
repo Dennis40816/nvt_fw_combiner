@@ -21,7 +21,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = "2";
         OpenReplace(viewModel, "CtrlRAM");
 
-        FirmwareSlotViewModel regionSlot = viewModel.ReplaceSlots.Single(slot =>
+        FirmwareSlotViewModel regionSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.Title == "Normal CtrlRAM (Master)");
         Assert.True(regionSlot.IsOptional);
         Assert.Contains("CtrlRAM", regionSlot.Title, StringComparison.Ordinal);
@@ -30,9 +30,9 @@ public sealed partial class ShellViewModelTests
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         viewModel.SetSlotFile(regionSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, regionSlot.SlotId));
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
@@ -44,7 +44,7 @@ public sealed partial class ShellViewModelTests
             fact.Value.Contains("nfc.nt51927.ctrlram-postbuild-v1", StringComparison.Ordinal));
         Assert.All(postbuild.RuntimeCommands, command =>
             Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment => segment.IsChanged);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
     }
 
     /// <summary>Verifies one CtrlRAM Replace run can select and report multiple region replacements.</summary>
@@ -67,17 +67,17 @@ public sealed partial class ShellViewModelTests
         // exercises the owner-selected three-chip branch afterwards.
         viewModel.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
-        FirmwareSlotViewModel normalRight = viewModel.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
-        FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        FirmwareSlotViewModel normalRight = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "Normal CtrlRAM (Slave R)");
+        FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(normalRight.SlotId, fixtures.ReplacementPathFor(fixtureCase, normalRight.SlotId));
         viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
         Assert.Equal("2 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row => row.Title == "Normal CtrlRAM (Slave R)");
         Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row => row.Title == "VN CtrlRAM (Shared)");
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
@@ -86,10 +86,10 @@ public sealed partial class ShellViewModelTests
             command.ArgumentListEvidence.Contains("Normal_Ctrlram_R.bin", StringComparison.Ordinal));
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("Normal_Ctrlram_L.bin", StringComparison.Ordinal));
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "Normal CtrlRAM (Slave R)" &&
             segment.RangeLabel == "0x207D0-0x237CF (len 0x3000)");
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
             segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
     }
@@ -111,15 +111,15 @@ public sealed partial class ShellViewModelTests
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
-        FirmwareSlotViewModel vn = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        FirmwareSlotViewModel vn = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         Assert.Contains("VN_Ctrlram.bin", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Master): max 5728 B", vn.Description, StringComparison.Ordinal);
         Assert.Contains("VN CtrlRAM (Slave L): max 5728 B", vn.Description, StringComparison.Ordinal);
         viewModel.SetSlotFile(vn.SlotId, fixtures.ReplacementPathFor(fixtureCase, vn.SlotId));
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
@@ -127,10 +127,10 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
             command.ArgumentListEvidence.Contains("VN_Ctrlram.bin", StringComparison.Ordinal));
-        Assert.Contains(viewModel.ReplaceCoverageSegments, segment =>
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.SourceLabel == "VN CtrlRAM (Slave L)" &&
             segment.RangeLabel == "0x2EBD0-0x3022F (len 0x1660)");
-        Assert.Contains(viewModel.ReplaceCoverageGroups, group => group.Title == "Slave L");
+        Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group => group.Title == "Slave L");
     }
 
     /// <summary>Verifies an exact V2 CtrlRAM replacement runs through the real postbuild path.</summary>
@@ -150,12 +150,12 @@ public sealed partial class ShellViewModelTests
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.SelectedNumber = "3";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
-        FirmwareSlotViewModel vnSlot = viewModel.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
+        FirmwareSlotViewModel vnSlot = viewModel.Replace.ReplaceSlots.Single(slot => slot.Title == "VN CtrlRAM (Shared)");
         viewModel.SetSlotFile(vnSlot.SlotId, fixtures.ReplacementPathFor(fixtureCase, vnSlot.SlotId));
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);

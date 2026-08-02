@@ -4,15 +4,13 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
-    private bool IsSelectedReplaceModeSupported => WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
-
     /// <summary>Gets short Replace memory-map summary text.</summary>
     public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
 
     /// <summary>Status shown in the replace inspector.</summary>
-    public string ReplaceReadinessStatus => WorkflowSession.IsFirmwareInspectionLoading
+    public string ReplaceReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
         ? Text.FirmwareInspectionLoadingStatus
         : IsSelectedReplaceModeSupported
             ? Text.GetReplaceReadinessStatus(SelectedReplaceMode, CanRunReplace())
@@ -29,7 +27,8 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunReplace()
     {
-        return !IsRunInProgress && !WorkflowSession.IsFirmwareInspectionLoading && IsSelectedReplaceModeSupported &&
+        return !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+            IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => CanRunDpReplace(),
@@ -121,7 +120,7 @@ public sealed partial class MainWindowViewModel
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
     {
-        Replace.CloseSelectionForRun();
+        CloseSelectionForRun();
         string icId = SelectedIc;
         string number = SelectedNumber;
         string replaceMode = SelectedReplaceMode;

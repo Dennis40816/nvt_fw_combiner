@@ -1,0 +1,62 @@
+using NvtFwCombiner.Bootstrap;
+
+namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
+public sealed partial class ReplacePresentationViewModel
+{
+    internal void ApplyFirmwareSlotText()
+    {
+        ReplaceBaseSlot.ApplyDisplayText(
+            Text.GetReplaceBaseTitle(SelectedReplaceMode),
+            Text.GetReplaceBaseDescription(
+                SelectedReplaceMode,
+                _stateBindings.IsWorkflowLoaded()
+                    ? WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)
+                    : null),
+            Text.RequiredLabel,
+            Text.OptionalLabel,
+            Text.NoBinSelectedLabel);
+
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)))
+        {
+            ApplyReplaceSlotText(slot);
+        }
+
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(static slot => slot.UsesSharedSlotPresentation))
+        {
+            slot.ApplyExperienceText(Text);
+        }
+    }
+
+    private void ApplyReplaceSlotText(FirmwareSlotViewModel slot)
+    {
+        if (string.Equals(slot.SlotId, WorkbenchSlotIds.ReplaceDp, StringComparison.Ordinal))
+        {
+            slot.ApplyDisplayText(
+                Text.DpReplacementBinTitle,
+                ApplySelectedIcDpSlotHint(slot.SlotId, slot.Description),
+                Text.RequiredLabel,
+                Text.OptionalLabel,
+                Text.NoBinSelectedLabel);
+            return;
+        }
+
+        slot.ApplyDisplayText(
+            slot.Title,
+            slot.Description,
+            Text.RequiredLabel,
+            Text.OptionalLabel,
+            Text.NoBinSelectedLabel);
+    }
+
+    private string ApplySelectedIcDpSlotHint(string slotId, string description)
+    {
+        string? hint = WorkbenchCompositionService.GetFirmwareSlotHint(SelectedIc, slotId) ==
+            WorkbenchFirmwareSlotHint.InitialCodeAndLdc
+            ? Text.InitialCodeAndLdcSlotHint
+            : null;
+        return !string.IsNullOrWhiteSpace(hint) && !description.Contains(hint, StringComparison.Ordinal)
+            ? $"{description} {hint}"
+            : description;
+    }
+}

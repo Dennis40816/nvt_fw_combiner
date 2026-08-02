@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using NvtFwCombiner.Bootstrap;
 
@@ -45,59 +44,18 @@ public sealed partial class MainWindowViewModel
             value => Merge.GeneralMergeOutputLength = value,
             () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(SelectedIc),
             value => Merge.GeneralMergeOutputFillByte = value,
-            AddGeneralReplaceMapping,
+            Replace.AddGeneralReplaceMapping,
             Merge.AddGeneralMergeMapping);
 
-        RefreshCtrlRamRegions();
         Merge.RefreshMergeSlotRequirements();
-        RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
-        RefreshMemoryMapState();
+        Replace.RefreshContextState(preserveSlotFiles: preserveReplaceSlotFiles);
+        ApplyFirmwareSlotText();
+        Merge.RefreshMergeMemoryMapState();
         RefreshCommandState();
         NotifyContextTextChanged();
         if (resetRunResult)
         {
             ResetRunResultForContextChange();
-        }
-    }
-
-    private void RefreshReplaceSlotGroups()
-    {
-        ReplaceSlotGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
-        {
-            return;
-        }
-
-        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
-            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
-        {
-            ReplaceSlotGroups.Add(group);
-        }
-    }
-
-    private void RefreshReplaceCoverageGroups()
-    {
-        ReplaceCoverageGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
-        {
-            return;
-        }
-
-        foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
-            ReplaceCoverageSegments))
-        {
-            ReplaceCoverageGroups.Add(group);
-        }
-    }
-
-    private static void ReplaceRows<T>(
-        ObservableCollection<T> target,
-        IEnumerable<T> rows)
-    {
-        target.Clear();
-        foreach (T row in rows)
-        {
-            target.Add(row);
         }
     }
 
@@ -113,14 +71,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Merge.MergeOutputFileName));
         OnPropertyChanged(nameof(Merge.AbMergeOutputFileName));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
+        Replace.NotifyContextChanged();
         OnPropertyChanged(nameof(SelectedIcFamilySummary));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
@@ -149,11 +100,7 @@ public sealed partial class MainWindowViewModel
 
     private void SelectReplaceMode(string mode)
     {
-        if (ReplaceModeChoices.Contains(mode, StringComparer.Ordinal))
-        {
-            SelectedReplaceMode = mode;
-        }
-
+        Replace.SelectReplaceMode(mode);
         NavigateToPage(ShellPage.Replace);
     }
 
@@ -257,11 +204,9 @@ public sealed partial class MainWindowViewModel
     private void RefreshCommandState()
     {
         Merge.NotifyCommandStateChanged();
-        RefreshDpReplaceInputSelectionReadiness();
+        Replace.NotifyCommandStateChanged();
         Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
         Merge.BuildMergeCommand.NotifyCanExecuteChanged();
-        PreviewReplaceCommand.NotifyCanExecuteChanged();
-        BuildReplaceCommand.NotifyCanExecuteChanged();
         Reports.ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsRunInProgress));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
@@ -274,16 +219,13 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(Merge.CanBuildMerge));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
-        OnPropertyChanged(nameof(CanBuildReplace));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        Replace.RefreshSelectionState();
     }
 
-    partial void OnSelectedReplaceModeChanged(string value)
+    private void ReplaceModeChanged()
     {
         WorkflowSession.InvalidateFirmwareNumberMismatch();
         WorkflowSession.InvalidateFirmwareInspection();
-        InvalidateCtrlRamFirmwareVersionContext();
+        Replace.InvalidateCtrlRamFirmwareVersionContextState();
         RefreshContextState(resetRunResult: true);
         WorkflowSession.RefreshCtrlRamDisplayFromInspection();
     }
@@ -294,7 +236,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSessionPresentationViewModel.AcceptedFirmwareMismatchSelection? acceptedMismatch =
             WorkflowSession.ConsumeAcceptedFirmwareMismatchSelection();
         WorkflowSession.InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        InvalidateCtrlRamFirmwareVersionContext();
+        Replace.InvalidateCtrlRamFirmwareVersionContextState();
         if (Merge.IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
         {
             Merge.SelectMergeMode(NormalMergeMode);
@@ -344,7 +286,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.InvalidateFirmwareNumberMismatch();
         if (WorkflowSession.IsRefreshingFirmwareInspectionContext)
         {
-            InvalidateCtrlRamFirmwareVersionContext();
+            Replace.InvalidateCtrlRamFirmwareVersionContextState();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             return;
         }
@@ -352,7 +294,7 @@ public sealed partial class MainWindowViewModel
         if (WorkflowSession.IsApplyingFirmwareInspectionContext)
         {
             WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
-            InvalidateCtrlRamFirmwareVersionContext();
+            Replace.InvalidateCtrlRamFirmwareVersionContextState();
             OnPropertyChanged(nameof(SelectedNumberChoice));
             RefreshContextState(
                 resetRunResult: true,
@@ -364,7 +306,7 @@ public sealed partial class MainWindowViewModel
         // AB validation is topology-sensitive.  Preserve no projection across a topology
         // switch, then let the shared refresh below inspect the currently selected inputs.
         WorkflowSession.InvalidateFirmwareInspection(clearFileProjections: Merge.IsAbCodeMergeModeSelected && Merge.HasAbMergeTopologyChoices);
-        InvalidateCtrlRamFirmwareVersionContext();
+        Replace.InvalidateCtrlRamFirmwareVersionContextState();
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(
             resetRunResult: true,

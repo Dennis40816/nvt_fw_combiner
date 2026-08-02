@@ -13,12 +13,13 @@ public sealed partial class MainWindowViewModel
             edit: null);
     }
 
-    /// <summary>Creates the CtrlRAM Replace output name from the confirmed version choice.</summary>
-    public string CreateCtrlRamReplaceOutputFileName(WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    private string CreateCtrlRamReplaceOutputFileName(
+        IEnumerable<FirmwareSlotViewModel> candidateSlots,
+        WorkbenchCtrlRamFirmwareVersionEdit? edit)
     {
         return FirmwareOutputNamingProjection.CreateCtrlRamReplaceOutputFileName(
             SelectedIc,
-            ReplaceSlots.Concat([ReplaceBaseSlot]),
+            candidateSlots,
             WorkflowSession.InspectionSession,
             edit);
     }

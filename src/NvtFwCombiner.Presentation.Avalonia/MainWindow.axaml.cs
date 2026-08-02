@@ -274,11 +274,13 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(HomePageHost, viewModel.IsHomeVisible, viewModel);
         LoadContent(SettingsPageHost, viewModel.IsSettingsVisible, viewModel);
         LoadContent(HexEditorPageHost, viewModel.IsHexEditorVisible, viewModel);
-        LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel);
+        LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace);
         LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge);
         LoadContent(ReportToastHost, viewModel.Reports.HasReportToast, viewModel.Reports);
         LoadContent(ReplaceSelectionModalHost, viewModel.Replace.IsReplaceSelectionModalOpen, viewModel.Replace);
-        LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
+        LoadContent(CtrlRamFirmwareVersionModalHost,
+            viewModel.Replace.IsCtrlRamFirmwareVersionModalOpen,
+            viewModel.Replace);
         LoadContent(AbAFlashCodeDeliveryPromptModalHost,
             viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen,
             viewModel.Merge);

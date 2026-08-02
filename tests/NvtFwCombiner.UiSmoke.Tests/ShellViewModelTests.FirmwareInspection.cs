@@ -200,7 +200,7 @@ public sealed partial class ShellViewModelTests
             basePath,
             TestContext.Current.CancellationToken);
         Assert.Equal(1, reads);
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D01-01");
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D01-01");
 
         using (var stream = new FileStream(basePath, FileMode.Append, FileAccess.Write, FileShare.Read))
         {
@@ -210,7 +210,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Equal(1, reads);
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D01-01");
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D01-01");
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
@@ -218,7 +218,7 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(2, reads);
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
     }
 
     /// <summary>DP memory length uses the selected snapshot until reselection refreshes its worker-owned identity.</summary>
@@ -259,17 +259,17 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
-        string replaceRange = viewModel.ReplaceMemoryRangeLabel;
-        string[] replaceRows = [.. viewModel.ReplaceMemoryRows.Select(static row => row.RangeLabel)];
-        string[] replaceCoverage = [.. viewModel.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel)];
+        string replaceRange = viewModel.Replace.ReplaceMemoryRangeLabel;
+        string[] replaceRows = [.. viewModel.Replace.ReplaceMemoryRows.Select(static row => row.RangeLabel)];
+        string[] replaceCoverage = [.. viewModel.Replace.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel)];
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", mergeDpPath, TestContext.Current.CancellationToken);
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.General;
         viewModel.Merge.GeneralMergeOutputLength = "0x80000";
 
-        Assert.Equal(replaceRange, viewModel.ReplaceMemoryRangeLabel);
-        Assert.Equal(replaceRows, viewModel.ReplaceMemoryRows.Select(static row => row.RangeLabel));
-        Assert.Equal(replaceCoverage, viewModel.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel));
+        Assert.Equal(replaceRange, viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal(replaceRows, viewModel.Replace.ReplaceMemoryRows.Select(static row => row.RangeLabel));
+        Assert.Equal(replaceCoverage, viewModel.Replace.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel));
     }
 
     /// <summary>A confirmed TP-derived Number update cannot replace profile-selected CtrlRAM slots with generic slots.</summary>
@@ -300,7 +300,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.Contains(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
@@ -311,10 +311,10 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Contains(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
         Assert.DoesNotContain(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
     }
 
@@ -451,7 +451,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51932", viewModel.SelectedIc);
-        Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+        Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
         Assert.Equal("NT51932", batches[^1].IcId);
         Assert.Contains(batches[^1].Inputs, static input => input.InspectionId == "replace-base");
     }
@@ -483,12 +483,12 @@ public sealed partial class ShellViewModelTests
         OpenReplace(targetContext, WorkbenchReplaceModes.CtrlRam);
         HashSet<string> targetSlotIds =
         [
-            .. targetContext.ReplaceSlots
-                .Where(slot => !ReferenceEquals(slot, targetContext.ReplaceBaseSlot))
+            .. targetContext.Replace.ReplaceSlots
+                .Where(slot => !ReferenceEquals(slot, targetContext.Replace.ReplaceBaseSlot))
                 .Select(static slot => slot.SlotId),
         ];
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) && targetSlotIds.Contains(slot.SlotId));
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) && targetSlotIds.Contains(slot.SlotId));
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             replacement.SlotId,
@@ -502,7 +502,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal(
             replacementPath,
-            viewModel.ReplaceSlots.Single(slot => slot.SlotId == replacement.SlotId).FilePath);
+            viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == replacement.SlotId).FilePath);
         (string successorIc, WorkbenchFirmwareInspectionInput[] successorInputs) = batches[^1];
         Assert.Equal("NT51927", successorIc);
         Assert.Contains(successorInputs, input => input.InspectionId == replacement.SlotId);
@@ -524,7 +524,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.Single(slot =>
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.SlotId == "replace-ctrlram-mp");
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -538,7 +538,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal("NT51929", viewModel.SelectedIc);
         Assert.DoesNotContain(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => string.Equals(slot.FilePath, replacementPath, StringComparison.Ordinal));
         Assert.Contains("NT51929_replacement.bin", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
         Assert.Contains("same safe input slot", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
@@ -564,8 +564,8 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot));
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot));
         await viewModel.WorkflowSession.SetSlotFileAsync(
             replacement.SlotId,
             replacementPath,
@@ -601,8 +601,8 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) &&
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
         string replacementPath = workspace.Write("vn.bin", [0x01]);
 
@@ -611,7 +611,7 @@ public sealed partial class ShellViewModelTests
             basePath,
             TestContext.Current.CancellationToken);
         Assert.True(firstBaseStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-        Assert.Contains("Inspecting", viewModel.ReplaceReadinessStatus, StringComparison.Ordinal);
+        Assert.Contains("Inspecting", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             replacement.SlotId,
@@ -619,17 +619,17 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareInspectionLoading);
-        Assert.NotEmpty(viewModel.ReplaceBaseSlot.FirmwareFacts);
-        Assert.NotEmpty(viewModel.CtrlRamRegions);
+        Assert.NotEmpty(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts);
+        Assert.NotEmpty(viewModel.Replace.CtrlRamRegions);
         Assert.Contains(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
-        Assert.True(viewModel.CanBuildReplace, viewModel.ReplaceReadinessStatus);
+        Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
 
         releaseFirstBase.Set();
         await baseSelection;
         Assert.Contains(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
     }
 

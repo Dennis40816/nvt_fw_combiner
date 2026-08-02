@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Bootstrap;
@@ -43,54 +42,8 @@ public sealed partial class MainWindowViewModel
         ? s_abMergeIcChoices
         : WorkbenchCompositionService.GetSupportedIcIds();
 
-    /// <summary>Gets replace mode choices.</summary>
-    public IReadOnlyList<string> ReplaceModeChoices { get; } =
-    [
-        DpReplaceMode,
-        CtrlRamReplaceMode,
-        GeneralReplaceMode,
-    ];
-
     /// <summary>Gets settings card content.</summary>
     public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
-
-    /// <summary>Gets replace card content.</summary>
-    public PlanningCardText ReplacePreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).ReplacePreview;
-
-    /// <summary>Gets the independent General Replace base firmware slot.</summary>
-    public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
-        ReplaceBaseSlotId,
-        "Reference firmware",
-        "Complete source image cloned before replacement",
-        FirmwareSlotKind.Base);
-
-    /// <summary>Gets replace input slots for the selected replace mode.</summary>
-    public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots { get; } = [];
-
-    /// <summary>Gets grouped CtrlRAM replacement slots for dense multi-chip layouts.</summary>
-    public ObservableCollection<FirmwareSlotGroupViewModel> ReplaceSlotGroups { get; } = [];
-
-    /// <summary>Gets CtrlRAM region rows for the selected IC and Number.</summary>
-    public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
-
-    /// <summary>Gets visual coverage segments for the selected Replace workflow.</summary>
-    public ObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
-
-    /// <summary>Gets grouped Replace coverage segments for dense CtrlRAM layouts.</summary>
-    public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
-
-    /// <summary>Gets readable memory-map rows for the selected Replace workflow.</summary>
-    public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
-
-    /// <summary>Gets editable General Replace mapping rows.</summary>
-    public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
-
-    /// <summary>Gets Replace memory coverage text for the selected IC and Number.</summary>
-    public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
-
-    /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => CreateFlashCodeOutputFileName(
-        ReplaceSlots.Concat([ReplaceBaseSlot]));
 
     /// <summary>Gets the latest UI-triggered run summary.</summary>
     public UiRunResultViewModel LastRunResult { get; private set; } = new(
@@ -117,53 +70,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>True when the independent raw-BIN Hex Editor utility page is visible.</summary>
     public bool IsHexEditorVisible => SelectedPage == ShellPage.HexEditor;
 
-    /// <summary>True when CtrlRAM Replace is selected.</summary>
-    public bool IsCtrlRamReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, CtrlRamReplaceMode, StringComparison.Ordinal);
-
-    /// <summary>True when General Replace is selected.</summary>
-    public bool IsGeneralReplaceModeSelected => IsSelectedReplaceModeSupported && string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
-
-    /// <summary>True when the selected Replace mode uses the fixed slot-card input layout.</summary>
-    public bool IsStructuredReplaceModeSelected => IsSelectedReplaceModeSupported && !string.Equals(SelectedReplaceMode, GeneralReplaceMode, StringComparison.Ordinal);
-
-    /// <summary>True when the selected Replace mode uses the flat structured slot-card input layout.</summary>
-    public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected && !IsCtrlRamReplaceModeSelected;
-
-    /// <summary>True when Replace coverage should use grouped segment details.</summary>
-    public bool IsReplaceCoverageGrouped => IsCtrlRamReplaceModeSelected && ReplaceCoverageGroups.Count > 0;
-
-    /// <summary>True when Replace coverage should use the flat segment details list.</summary>
-    public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
-
     /// <summary>True only while the visible Merge page is authoring AB Code.</summary>
     private bool IsAbMergeContextActive => IsMergeVisible && Merge.IsAbCodeMergeModeSelected;
-
-    /// <summary>Description shown under the selected replace mode.</summary>
-    public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
-
-    /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
-    public WorkbenchWorkflowReadiness SelectedReplaceWorkflowReadiness =>
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
-
-    /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
-    public string SelectedReplaceModeEvidenceLabel =>
-        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness.EvidenceStatus);
-
-    /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
-    public string SelectedReplaceModeEvidenceTooltip =>
-        Text.GetWorkflowEvidenceTooltip(SelectedReplaceWorkflowReadiness);
-
-    /// <summary>True when selected Replace has golden parity evidence.</summary>
-    public bool IsSelectedReplaceModeGoldenVerified =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified;
-
-    /// <summary>True when selected Replace is available with evidence still open.</summary>
-    public bool IsSelectedReplaceModeEvidenceGated =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated;
-
-    /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
-    public bool IsSelectedReplaceModeUnavailable =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
 
     /// <summary>Owner-defined IC-family relationship shown without changing firmware maps.</summary>
     public WorkbenchIcFamilySummary SelectedIcFamilySummary =>
@@ -211,9 +119,6 @@ public sealed partial class MainWindowViewModel
         $"{Text.IcDetailEvidenceLabel}: {SelectedIcDetailEvidence}",
         $"{Text.IcDetailSupportLabel}: {SelectedIcDetailSupport}");
 
-    /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
-
     /// <summary>Command that returns to the clean home view.</summary>
     public IRelayCommand ShowHomeCommand { get; }
 
@@ -256,38 +161,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Home entry command that collects Merge context before opening General Merge.</summary>
     public IRelayCommand BeginGeneralMergeFromHomeCommand { get; }
 
-    /// <summary>Command that adds a General Replace mapping row.</summary>
-    public IRelayCommand AddGeneralReplaceMappingCommand { get; }
-
-    /// <summary>Command that previews Replace through the application core or workbench planner.</summary>
-    public IAsyncRelayCommand PreviewReplaceCommand { get; }
-
-    /// <summary>Command that builds Replace output through the application/workbench core.</summary>
-    public IAsyncRelayCommand BuildReplaceCommand { get; }
-
-    /// <summary>Command that keeps the source TP firmware version for the current CtrlRAM build.</summary>
-    public IRelayCommand SelectCtrlRamFirmwareVersionPreserveCommand { get; }
-
-    /// <summary>Command that enables TP firmware version editing for the current CtrlRAM build.</summary>
-    public IRelayCommand SelectCtrlRamFirmwareVersionEditCommand { get; }
-
-    /// <summary>Command that closes the CtrlRAM firmware-version confirmation modal.</summary>
-    public IRelayCommand CloseCtrlRamFirmwareVersionCommand { get; }
-
     /// <summary>Command that reveals one selected or recently generated BIN in Explorer.</summary>
     public IRelayCommand<string> RevealFileCommand { get; }
-
-    /// <summary>Gets selected replace mode.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedReplaceModeDescription))]
-    [NotifyPropertyChangedFor(nameof(ReplaceReadinessStatus))]
-    [NotifyPropertyChangedFor(nameof(IsCtrlRamReplaceModeSelected))]
-    [NotifyPropertyChangedFor(nameof(IsGeneralReplaceModeSelected))]
-    [NotifyPropertyChangedFor(nameof(IsStructuredReplaceModeSelected))]
-    [NotifyPropertyChangedFor(nameof(IsNonCtrlRamStructuredReplaceModeSelected))]
-    [NotifyPropertyChangedFor(nameof(IsReplaceCoverageGrouped))]
-    [NotifyPropertyChangedFor(nameof(IsReplaceCoverageFlat))]
-    public partial string SelectedReplaceMode { get; set; } = DpReplaceMode;
 
     /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]

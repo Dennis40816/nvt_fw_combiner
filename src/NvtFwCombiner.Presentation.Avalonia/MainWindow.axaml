@@ -84,7 +84,7 @@
               Classes="nav"
               Command="{Binding ShowReplaceCommand}"
               IsChecked="{Binding IsReplaceVisible, Mode=OneWay}">
-            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding ReplacePreview.Title}" />
+            <TextBlock Foreground="{DynamicResource NfcTextBrush}" Text="{Binding Replace.ReplacePreview.Title}" />
           </ToggleButton>
           <ToggleButton
               Classes="nav"
@@ -167,7 +167,7 @@
             Grid.Row="0"
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
-            <DataTemplate DataType="vm:MainWindowViewModel">
+            <DataTemplate DataType="vm:ReplacePresentationViewModel">
               <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="18">
           <StackPanel Spacing="{DynamicResource NfcSpace16}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace16}">
@@ -217,10 +217,10 @@
                   <TextBlock Classes="fieldLabel" Text="{Binding Text.TargetsLabel}" />
                   <Button
                       Classes="summaryChip"
-                      Command="{Binding Replace.ShowReplaceSelectionCommand}"
+                      Command="{Binding ShowReplaceSelectionCommand}"
                       ToolTip.Tip="{Binding Text.ReviewReplacementInputsTooltip}">
                     <Grid VerticalAlignment="Center" ColumnDefinitions="Auto,Auto" ColumnSpacing="6">
-                      <TextBlock VerticalAlignment="Center" Classes="bodyEmphasisText" Text="{Binding Replace.ReplaceSelectionCountLabel}" />
+                      <TextBlock VerticalAlignment="Center" Classes="bodyEmphasisText" Text="{Binding ReplaceSelectionCountLabel}" />
                       <TextBlock Grid.Column="1" VerticalAlignment="Center" Classes="captionText" Text="▾" />
                     </Grid>
                   </Button>
@@ -345,10 +345,10 @@
         <Button
             Classes="railAction primaryRailAction buildRailAction"
             Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
-            AutomationProperties.HelpText="{Binding ReplaceReadinessStatus}"
+            AutomationProperties.HelpText="{Binding Replace.ReplaceReadinessStatus}"
             AutomationProperties.Name="{Binding Text.BuildActionLabel}"
             Click="BuildReplaceButton_OnClick"
-            IsEnabled="{Binding CanBuildReplace}"
+            IsEnabled="{Binding Replace.CanBuildReplace}"
             IsVisible="{Binding IsReplaceVisible}">
           <Grid ColumnDefinitions="*,44">
             <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
@@ -385,9 +385,9 @@
     <ContentControl
         x:Name="CtrlRamFirmwareVersionModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsCtrlRamFirmwareVersionModalOpen}">
+        IsVisible="{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:ReplacePresentationViewModel">
           <views:CtrlRamFirmwareVersionModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>

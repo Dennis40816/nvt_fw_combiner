@@ -23,12 +23,12 @@ public sealed partial class ReplacePresentationViewModel
     public string ReplaceSelectionSubtitle => $"{SelectedIc} / {SelectedNumber} / {SelectedReplaceMode}";
 
     /// <summary>Gets the Replace selection readiness label.</summary>
-    public string ReplaceSelectionStatusLabel => CanRunReplace
+    public string ReplaceSelectionStatusLabel => CanRunReplace()
         ? "Ready for Build"
         : ReplaceReadinessStatus;
 
     /// <summary>Gets a concise explanation of how selection review feeds Build.</summary>
-    public string ReplaceSelectionRunHint => CanRunReplace
+    public string ReplaceSelectionRunHint => CanRunReplace()
         ? "Build will validate selected inputs, ask for an output BIN path, then record the report details."
         : "Complete the required inputs before Build can validate the operation trace.";
 
@@ -57,30 +57,6 @@ public sealed partial class ReplacePresentationViewModel
 
     /// <summary>True when the Replace selection overview has missing required inputs.</summary>
     public bool HasReplaceSelectionMissingRows => ReplaceSelectionMissingRows.Count > 0;
-
-    /// <summary>True when Build is currently admitted for the selected Replace inputs.</summary>
-    public bool CanBuildReplace => _selectionBindings.CanBuild();
-
-    private string SelectedIc => _selectionBindings.SelectedIc();
-
-    private string SelectedNumber => _selectionBindings.SelectedNumber();
-
-    private string SelectedReplaceMode => _selectionBindings.SelectedMode();
-
-    private bool IsGeneralReplaceModeSelected => _selectionBindings.IsGeneralModeSelected();
-
-    private bool IsCtrlRamReplaceModeSelected => _selectionBindings.IsCtrlRamModeSelected();
-
-    private bool CanRunReplace => _selectionBindings.CanRun();
-
-    private string ReplaceReadinessStatus => _selectionBindings.ReadinessStatus();
-
-    private FirmwareSlotViewModel ReplaceBaseSlot => _selectionBindings.BaseSlot();
-
-    private IEnumerable<FirmwareSlotViewModel> ReplaceSlots => _selectionBindings.Slots();
-
-    private IEnumerable<GeneralReplaceMappingViewModel> GeneralReplaceMappings =>
-        _selectionBindings.GeneralMappings();
 
     private void ShowReplaceSelection()
     {
@@ -126,7 +102,7 @@ public sealed partial class ReplacePresentationViewModel
     private int GetReplaceTargetCount()
     {
         return IsGeneralReplaceModeSelected
-            ? GeneralReplaceMappings.Count()
+            ? GeneralReplaceMappings.Count
             : ReplaceSlots.Count(slot => !ReferenceEquals(slot, ReplaceBaseSlot));
     }
 

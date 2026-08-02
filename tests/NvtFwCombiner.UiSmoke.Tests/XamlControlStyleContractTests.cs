@@ -351,7 +351,7 @@ public sealed partial class XamlControlStyleContractTests
         string styles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
 
         Assert.Contains("<views:CtrlRamFirmwareVersionModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Replace.IsCtrlRamFirmwareVersionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionPreserveCommand", modal, StringComparison.Ordinal);
         Assert.Contains("SelectCtrlRamFirmwareVersionEditCommand", modal, StringComparison.Ordinal);
         Assert.Equal(2, modal.Split("Classes=\"segment versionChoice\"", StringSplitOptions.None).Length - 1);

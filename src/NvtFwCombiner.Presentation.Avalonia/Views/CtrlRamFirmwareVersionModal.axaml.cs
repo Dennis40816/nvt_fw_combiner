@@ -16,7 +16,7 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
 
     private async void ConfirmCtrlRamFirmwareVersionBuildButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not ReplacePresentationViewModel viewModel)
         {
             return;
         }
@@ -28,7 +28,7 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             return;
         }
 
-        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
+        await viewModel.RefreshSelectedFirmwareInspectionsAsync();
         if (!viewModel.CanBuildReplace ||
             !viewModel.IsCtrlRamReplaceModeSelected ||
             !await viewModel.IsCtrlRamFirmwareVersionBuildConfirmationCurrentAsync())

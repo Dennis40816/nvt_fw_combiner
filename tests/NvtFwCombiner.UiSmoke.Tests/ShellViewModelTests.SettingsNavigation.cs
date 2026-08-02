@@ -18,9 +18,9 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(viewModel.Merge.GeneralMergeOutputLength);
         Assert.Empty(viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.Empty(viewModel.Merge.MergeSlots);
-        Assert.Empty(viewModel.ReplaceSlots);
+        Assert.Empty(viewModel.Replace.ReplaceSlots);
         Assert.Empty(viewModel.Merge.GeneralMergeMappings);
-        Assert.Empty(viewModel.GeneralReplaceMappings);
+        Assert.Empty(viewModel.Replace.GeneralReplaceMappings);
         Assert.Null(viewModel.LoadedHexEditorWorkspace);
 
         viewModel.ShowMergeCommand.Execute(null);
@@ -30,7 +30,7 @@ public sealed partial class ShellViewModelTests
         Assert.NotEmpty(viewModel.Merge.GeneralMergeOutputFillByte);
         Assert.NotEmpty(viewModel.Merge.MergeSlots);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
-        _ = Assert.Single(viewModel.GeneralReplaceMappings);
+        _ = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
     }
 
     /// <summary>Verifies Settings exposes catalog-backed status without requiring workflow context.</summary>
@@ -65,8 +65,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("建立", viewModel.Text.BuildActionLabel);
         Assert.Equal("首頁 > 設定", viewModel.NavigationPath);
         Assert.Empty(viewModel.Merge.MergeSlots);
-        Assert.Equal("必填", viewModel.ReplaceBaseSlot.RequirementLabel);
-        Assert.Equal("尚未選擇 BIN", viewModel.ReplaceBaseSlot.DisplayName);
+        Assert.Equal("必填", viewModel.Replace.ReplaceBaseSlot.RequirementLabel);
+        Assert.Equal("尚未選擇 BIN", viewModel.Replace.ReplaceBaseSlot.DisplayName);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "Catalog");
         Assert.Contains(viewModel.Settings.CapabilityRows, row =>
             row.Title == "CtrlRAM Replace 可用 IC" &&
@@ -116,7 +116,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsDeviceContextVisible);
         Assert.Equal("Home > Hex Editor", viewModel.NavigationPath);
-        Assert.False(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
     }
 
     /// <summary>Verifies Home workflow entries collect a cancellable context while programmatic navigation remains direct.</summary>

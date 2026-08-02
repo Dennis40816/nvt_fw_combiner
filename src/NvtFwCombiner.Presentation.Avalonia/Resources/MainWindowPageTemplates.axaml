@@ -19,11 +19,11 @@
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               Classes="previewTitle"
-              Text="{Binding ReplacePreview.Title}" />
+              Text="{Binding Replace.ReplacePreview.Title}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"
               Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding ReplacePreview.Subtitle}"
+              Text="{Binding Replace.ReplacePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">

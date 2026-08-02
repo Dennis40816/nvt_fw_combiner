@@ -93,13 +93,13 @@ public sealed partial class ShellViewModelTests
             slot.Title == "TP BIN" &&
             slot.SlotKind == FirmwareSlotKind.Tp &&
             HasDrawableIcon(slot));
-        Assert.Equal(FirmwareSlotKind.Base, viewModel.ReplaceBaseSlot.SlotKind);
-        AssertIconGeometry(viewModel.ReplaceBaseSlot);
-        Assert.Equal("Reference firmware input", viewModel.ReplaceBaseSlot.SlotIconTooltip);
+        Assert.Equal(FirmwareSlotKind.Base, viewModel.Replace.ReplaceBaseSlot.SlotKind);
+        AssertIconGeometry(viewModel.Replace.ReplaceBaseSlot);
+        Assert.Equal("Reference firmware input", viewModel.Replace.ReplaceBaseSlot.SlotIconTooltip);
 
         OpenReplace(viewModel, "DP");
 
-        Assert.Contains(viewModel.ReplaceSlots, slot =>
+        Assert.Contains(viewModel.Replace.ReplaceSlots, slot =>
             slot.SlotId == "replace-dp" &&
             slot.SlotKind == FirmwareSlotKind.Dp &&
             HasDrawableIcon(slot));
@@ -107,7 +107,7 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "CtrlRAM");
 
         Assert.All(
-            viewModel.ReplaceSlots.Where(slot => !ReferenceEquals(slot, viewModel.ReplaceBaseSlot)),
+            viewModel.Replace.ReplaceSlots.Where(slot => !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot)),
             slot =>
             {
                 Assert.Equal(FirmwareSlotKind.CtrlRam, slot.SlotKind);
@@ -128,21 +128,21 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
-        Assert.True(viewModel.ReplaceBaseSlot.HasFirmwareFacts);
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFirmwareFacts);
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
             fact.Value == "D01-00");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Jira" &&
             fact.Value == "AUTO_PRJ-597");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "Common FW" && fact.Value == "1.4.1");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "TP" &&
             fact.Value == "T01-00");
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "PID" && fact.Value == "0x5102");
-        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Refresh");
     }
 
     /// <summary>Verifies NT51951 DPCMI waits for its canonical TP FirmwareConfig prerequisite.</summary>
@@ -157,24 +157,24 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("nt51951-no-nvt-backup.bin", bytes);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.SelectedIc = "NT51951";
-        viewModel.SelectedReplaceMode = "CtrlRAM";
+        viewModel.Replace.SelectedReplaceMode = "CtrlRAM";
 
         viewModel.SetSlotFile("replace-base", basePath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
-        Assert.Contains(viewModel.ReplaceBaseSlot.FirmwareFacts, fact =>
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
             fact.Value == "Unknown" &&
             fact.IsUnknown &&
             fact.UsesLegacyWarningPresentation);
-        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
-        Assert.DoesNotContain(viewModel.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
-        Assert.StartsWith("NT51951_FlashCode_DxxxxTxxxx_", viewModel.ReplaceOutputFileName, StringComparison.Ordinal);
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
+        Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
+        Assert.StartsWith("NT51951_FlashCode_DxxxxTxxxx_", viewModel.Replace.ReplaceOutputFileName, StringComparison.Ordinal);
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         FirmwareSlotFactViewModel localizedUnknown = Assert.Single(
-            viewModel.ReplaceBaseSlot.FirmwareFacts,
+            viewModel.Replace.ReplaceBaseSlot.FirmwareFacts,
             static fact => fact.IsUnknown);
         Assert.Equal("未知", localizedUnknown.Value);
         Assert.Equal("未知", localizedUnknown.StateLabel);
@@ -213,7 +213,7 @@ public sealed partial class ShellViewModelTests
             StringComparison.Ordinal);
         Assert.StartsWith(
             "NT51926_FlashCode_DxxxxTxxxx_",
-            viewModel.ReplaceOutputFileName,
+            viewModel.Replace.ReplaceOutputFileName,
             StringComparison.Ordinal);
 
         viewModel.SelectedIc = "NT51950";

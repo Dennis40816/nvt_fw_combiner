@@ -127,7 +127,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51927";
         viewModel.SelectedNumber = "2";
         OpenReplace(viewModel, "General");
-        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.GeneralReplaceMappings);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.StartAddress = "0x10";
         mapping.EndAddress = "0x11";
         viewModel.SetSlotFile("replace-base", inputPath);
@@ -141,14 +141,14 @@ public sealed partial class ShellViewModelTests
         viewModel.ConfirmNavigationAndClearCommand.Execute(null);
 
         Assert.True(viewModel.IsSettingsVisible);
-        Assert.False(viewModel.ReplaceBaseSlot.HasFile);
-        Assert.All(viewModel.ReplaceSlots, static slot => Assert.False(slot.HasFile));
+        Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
+        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.False(slot.HasFile));
         Assert.False(mapping.HasFile);
         Assert.Equal("0x10", mapping.StartAddress);
         Assert.Equal("0x11", mapping.EndAddress);
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal("2", viewModel.SelectedNumber);
-        Assert.Equal("General", viewModel.SelectedReplaceMode);
+        Assert.Equal("General", viewModel.Replace.SelectedReplaceMode);
     }
 
     /// <summary>Merge mode binding writes stay on Replace and keep its selected Base firmware.</summary>
@@ -166,7 +166,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsNavigationClearConfirmationOpen);
-        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
         Assert.Equal(mergeMode, viewModel.Merge.SelectedMergeMode);
     }
 
@@ -183,7 +183,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsReplaceVisible);
         Assert.False(viewModel.IsNavigationClearConfirmationOpen);
-        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
     }
 
     /// <summary>An explicit workflow navigation still uses the guard and identifies its requested page.</summary>
@@ -210,7 +210,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.IsNavigationClearConfirmationOpen);
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.True(viewModel.ReplaceBaseSlot.HasFile);
+        Assert.True(viewModel.Replace.ReplaceBaseSlot.HasFile);
         Assert.Equal("首頁 > 取代", viewModel.NavigationClearRoute);
     }
 

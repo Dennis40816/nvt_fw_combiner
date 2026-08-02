@@ -92,7 +92,7 @@ public sealed partial class MainWindowViewModel
         ActiveRunShowsNumberSelector = ShouldShowNumberSelectorForSelectedPage();
         ActiveRunIc = SelectedIc;
         ActiveRunNumber = SelectedNumber;
-        ActiveRunMode = IsMergeVisible ? Merge.SelectedMergeMode : SelectedReplaceMode;
+        ActiveRunMode = IsMergeVisible ? Merge.SelectedMergeMode : Replace.SelectedReplaceMode;
         ActiveRunDeviceContextRefreshSummary = DeviceContextRefreshSummary;
         _activeRunCancellationSource = cancellationSource;
         NotifyActiveRunContextChanged();

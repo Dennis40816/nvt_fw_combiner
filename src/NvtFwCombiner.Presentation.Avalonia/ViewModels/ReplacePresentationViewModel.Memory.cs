@@ -2,8 +2,16 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
+    internal void RefreshContextState(bool preserveSlotFiles = false)
+    {
+        RefreshCtrlRamRegions();
+        RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
+        RefreshReplaceMemoryMapState();
+        NotifyContextChanged();
+    }
+
     private void RefreshCtrlRamRegions()
     {
         CtrlRamRegions.Clear();
@@ -15,7 +23,37 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private void ClearCtrlRamInspectionDisplay()
+    private void RefreshReplaceSlotGroups()
+    {
+        ReplaceSlotGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
+            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
+        {
+            ReplaceSlotGroups.Add(group);
+        }
+    }
+
+    private void RefreshReplaceCoverageGroups()
+    {
+        ReplaceCoverageGroups.Clear();
+        if (!IsCtrlRamReplaceModeSelected)
+        {
+            return;
+        }
+
+        foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
+            ReplaceCoverageSegments))
+        {
+            ReplaceCoverageGroups.Add(group);
+        }
+    }
+
+    internal void ClearCtrlRamInspectionDisplay()
     {
         CtrlRamRegions.Clear();
         ReplaceMemoryRangeLabel = string.Empty;
@@ -27,7 +65,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
-    private void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
+    internal void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
     {
         ArgumentNullException.ThrowIfNull(display);
 
@@ -45,22 +83,16 @@ public sealed partial class MainWindowViewModel
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
     }
 
-    private void RefreshMemoryMapState()
-    {
-        Merge.RefreshMergeMemoryMapState();
-        RefreshReplaceMemoryMapState();
-    }
-
-    private void RefreshReplaceMemoryMapState()
+    internal void RefreshReplaceMemoryMapState()
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
-            if (WorkflowSession.InspectionSession.TryGetBase(
-                    SelectedIc,
-                    ReplaceBaseSlot.FilePath,
-                    out WorkbenchFirmwareInspection inspection))
+            if (_stateBindings.GetBaseInspection() is { } inspection)
             {
-                WorkflowSession.ApplyCtrlRamDisplayFromInspection(inspection);
+                ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                    inspection,
+                    SelectedIc,
+                    SelectedNumber));
             }
             else
             {
@@ -102,9 +134,8 @@ public sealed partial class MainWindowViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc) &&
-            WorkflowSession.InspectionSession.TryGetFileLength(ReplaceBaseSlot, out long length)
-                ? length
+            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc)
+                ? _stateBindings.GetInspectedFileLength(ReplaceBaseSlot)
                 : null;
     }
 
@@ -175,5 +206,16 @@ public sealed partial class MainWindowViewModel
         }
 
         slot.FilePath = filePath;
+    }
+
+    private static void ReplaceRows<T>(
+        System.Collections.ObjectModel.ObservableCollection<T> target,
+        IEnumerable<T> rows)
+    {
+        target.Clear();
+        foreach (T row in rows)
+        {
+            target.Add(row);
+        }
     }
 }

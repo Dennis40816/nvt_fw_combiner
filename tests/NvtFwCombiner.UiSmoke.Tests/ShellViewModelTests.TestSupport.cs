@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
 {
     private static void OpenReplace(MainWindowViewModel viewModel, string mode)
     {
-        viewModel.SelectedReplaceMode = mode;
+        viewModel.Replace.SelectedReplaceMode = mode;
         viewModel.ShowReplaceCommand.Execute(null);
     }
 

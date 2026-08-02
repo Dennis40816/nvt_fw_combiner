@@ -57,16 +57,38 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
         string shellReplace = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string replaceMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
+        string replaceGeneral = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.General.cs");
+        string replaceExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
+        string ctrlRamVersion = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs");
         string replaceSelection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Selection.cs");
+        string shellPartials = ReadViewModelPartials();
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
 
         Assert.Contains("Replace = new ReplacePresentationViewModel", construction, StringComparison.Ordinal);
         Assert.Contains("public ReplacePresentationViewModel Replace", shellReplace, StringComparison.Ordinal);
+        Assert.Contains("public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots", replaceState, StringComparison.Ordinal);
+        Assert.Contains("public string SelectedReplaceMode", replaceState, StringComparison.Ordinal);
+        Assert.Contains("RefreshReplaceMemoryMapState", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("AddGeneralReplaceMapping", replaceGeneral, StringComparison.Ordinal);
+        Assert.Contains("public Task BuildReplaceAsync", replaceExecution, StringComparison.Ordinal);
+        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", ctrlRamVersion, StringComparison.Ordinal);
         Assert.Contains("CreateReplaceSelectionMissingRows", replaceSelection, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "public bool IsReplaceSelectionModalOpen",
-            ReadViewModelPartials(),
-            StringComparison.Ordinal);
+        Assert.Contains("DataTemplate DataType=\"vm:ReplacePresentationViewModel\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace)", shellCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public string SelectedReplaceMode", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public Task BuildReplaceAsync", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsCtrlRamFirmwareVersionModalOpen", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsReplaceSelectionModalOpen", shellPartials, StringComparison.Ordinal);
     }
 
     /// <summary>Workflow context and firmware mismatch prompts belong to the shared session child.</summary>
@@ -177,7 +199,7 @@ public sealed partial class RepositoryBoundaryTests
         string mergeViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replaceViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
 
         Assert.Contains("GetNumberSelectionChoices", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSupportedIcIds", catalog, StringComparison.Ordinal);
@@ -206,7 +228,7 @@ public sealed partial class RepositoryBoundaryTests
         string merge = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replace = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
 
         Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));

@@ -11,12 +11,11 @@ public sealed partial class MainWindowViewModel
         WorkspaceSummary = Text.WorkspaceSummary;
         DeviceContextRefreshSummary = Text.DeviceContextStatus;
         SettingsPreview = Text.SettingsPreview;
-        ReplacePreview = Text.ReplacePreview;
         ApplyFirmwareSlotText();
         RelocalizeFirmwareFacts();
-        RefreshDpReplaceInputSelectionReadiness();
+        Replace.NotifyCommandStateChanged();
         foreach (FirmwareSlotViewModel slot in Merge.AbMergeSlots
-                     .Concat(ReplaceSlots).Concat([ReplaceBaseSlot]).Distinct())
+                     .Concat(Replace.ReplaceSlots).Concat([Replace.ReplaceBaseSlot]).Distinct())
         {
             if (WorkflowSession.InspectionSession.TryGetInspection(
                     slot.SlotId, slot.FilePath, out WorkbenchFirmwareInspection projected))
@@ -48,14 +47,9 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(Merge.MergePreview));
-        OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(Merge.MergeMemorySummary));
-        OnPropertyChanged(nameof(ReplaceMemorySummary));
         OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
-        OnPropertyChanged(nameof(SelectedReplaceModeDescription));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
         OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
         OnPropertyChanged(nameof(SelectedIcDetailFamily));
@@ -65,10 +59,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedIcDetailSupport));
         OnPropertyChanged(nameof(SelectedIcDetailAutomationText));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(CtrlRamFirmwareVersionCurrentValue));
-        OnPropertyChanged(nameof(CtrlRamFirmwareVersionMetadataDetail));
-        OnPropertyChanged(nameof(CtrlRamFirmwareVersionValidationDetail));
         RefreshNavigationTrail();
         OnPropertyChanged(nameof(NavigationPath));
         OnPropertyChanged(nameof(NavigationClearRoute));
@@ -78,7 +68,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.ApplyLanguageChanged();
         _deferredState.RefreshLoaded(
             RefreshSettingsState,
-            () => RefreshReplaceModeState(preserveSlotFiles: true),
+            () => Replace.RefreshContextState(preserveSlotFiles: true),
             WorkflowSession.RefreshCtrlRamDisplayFromInspection,
             Replace.RefreshSelectionState);
     }
@@ -86,8 +76,8 @@ public sealed partial class MainWindowViewModel
     private void RelocalizeFirmwareFacts()
     {
         foreach (FirmwareSlotViewModel slot in Merge.MergeSlots
-                     .Concat(ReplaceSlots)
-                     .Append(ReplaceBaseSlot)
+                     .Concat(Replace.ReplaceSlots)
+                     .Append(Replace.ReplaceBaseSlot)
                      .Distinct())
         {
             if (!FirmwareInspectionRequestFactory.SupportsFacts(slot) ||
@@ -159,47 +149,7 @@ public sealed partial class MainWindowViewModel
             }
         }
 
-        ReplaceBaseSlot.ApplyDisplayText(
-            Text.GetReplaceBaseTitle(SelectedReplaceMode),
-            Text.GetReplaceBaseDescription(
-                SelectedReplaceMode,
-                _deferredState.IsWorkflowLoaded
-                    ? WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)
-                    : null),
-            Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
-
-        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)))
-        {
-            ApplyReplaceSlotText(slot);
-        }
-
-        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(static slot => slot.UsesSharedSlotPresentation))
-        {
-            slot.ApplyExperienceText(Text);
-        }
-    }
-
-    private void ApplyReplaceSlotText(FirmwareSlotViewModel slot)
-    {
-        if (string.Equals(slot.SlotId, WorkbenchSlotIds.ReplaceDp, StringComparison.Ordinal))
-        {
-            slot.ApplyDisplayText(
-                Text.DpReplacementBinTitle,
-                ApplySelectedIcDpSlotHint(slot.SlotId, slot.Description),
-                Text.RequiredLabel,
-                Text.OptionalLabel,
-                Text.NoBinSelectedLabel);
-            return;
-        }
-
-        slot.ApplyDisplayText(
-            slot.Title,
-            slot.Description,
-            Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+        Replace.ApplyFirmwareSlotText();
     }
 
     private string ApplySelectedIcDpSlotHint(string slotId, string description)

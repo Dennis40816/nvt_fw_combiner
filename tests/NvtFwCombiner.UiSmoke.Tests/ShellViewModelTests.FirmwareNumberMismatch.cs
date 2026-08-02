@@ -24,8 +24,8 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedIc = "NT51926";
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
-        FirmwareSlotViewModel replacement = viewModel.ReplaceSlots.First(slot =>
-            !ReferenceEquals(slot, viewModel.ReplaceBaseSlot) &&
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
+            !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
         string replacementPath = workspace.Write("vn-before-base.bin", [0x01]);
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -46,14 +46,14 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        Assert.NotEmpty(viewModel.CtrlRamRegions);
+        Assert.NotEmpty(viewModel.Replace.CtrlRamRegions);
         Assert.Contains(
-            viewModel.ReplaceSlots,
+            viewModel.Replace.ReplaceSlots,
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
         Assert.Equal("Context updated", viewModel.Reports.ShellToastTitle);
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(
@@ -93,7 +93,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
-        Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
+        Assert.Equal(basePath, viewModel.Replace.ReplaceBaseSlot.FilePath);
     }
 
     /// <summary>AB input metadata may describe its own FWConfig count but cannot alter hidden Number context.</summary>
@@ -301,14 +301,14 @@ public sealed partial class ShellViewModelTests
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
-        string basePath = Assert.IsType<string>(viewModel.ReplaceBaseSlot.FilePath);
+        string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
         byte[] immutableBase = File.ReadAllBytes(basePath);
-        FirmwareSlotViewModel nf = viewModel.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
+        FirmwareSlotViewModel nf = viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
         viewModel.SetSlotFile(nf.SlotId, fixtures.ReplacementPathFor(fixtureCase, nf.SlotId));
 
         viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
         string outputPath = workspace.PathFor("must-not-exist.bin");
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.False(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);

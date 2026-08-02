@@ -4,11 +4,11 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class ReplacePresentationViewModel
 {
     private GeneralMappingDraftState? _acceptedGeneralReplaceDraft;
 
-    private void AddGeneralReplaceMapping()
+    internal void AddGeneralReplaceMapping()
     {
         _acceptedGeneralReplaceDraft = null;
         _generalReplaceMappingCounter++;
@@ -34,11 +34,44 @@ public sealed partial class MainWindowViewModel
         ];
     }
 
-    private void ShowHexEditor()
+    internal bool TrySetGeneralMappingFile(string mappingId, string path)
     {
-        _ = HexEditorWorkspace;
-        OnPropertyChanged(nameof(LoadedHexEditorWorkspace));
-        NavigateToPage(ShellPage.HexEditor);
+        GeneralMappingRowViewModel? mapping = GeneralReplaceMappings.FirstOrDefault(row =>
+            string.Equals(row.MappingId, mappingId, StringComparison.Ordinal));
+        if (mapping is null)
+        {
+            return false;
+        }
+
+        _acceptedGeneralReplaceDraft = null;
+        mapping.FilePath = path;
+        RefreshCommandState();
+        return true;
+    }
+
+    internal bool RemoveGeneralMapping(GeneralReplaceMappingViewModel mapping)
+    {
+        ArgumentNullException.ThrowIfNull(mapping);
+        if (GeneralReplaceMappings.Count <= 1)
+        {
+            return false;
+        }
+
+        mapping.PropertyChanged -= GeneralReplaceMappingPropertyChanged;
+        if (!GeneralReplaceMappings.Remove(mapping))
+        {
+            return false;
+        }
+
+        int index = 1;
+        foreach (GeneralMappingRowViewModel row in GeneralReplaceMappings)
+        {
+            row.SetIndex(index++);
+        }
+
+        _acceptedGeneralReplaceDraft = null;
+        RefreshCommandState();
+        return true;
     }
 
     private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)

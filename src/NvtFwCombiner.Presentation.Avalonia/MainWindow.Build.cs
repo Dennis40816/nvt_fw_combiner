@@ -73,31 +73,31 @@ public sealed partial class MainWindow
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildReplace)
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Replace.CanBuildReplace)
         {
             return;
         }
 
-        await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildReplace)
+        await viewModel.Replace.RefreshSelectedFirmwareInspectionsAsync();
+        if (!viewModel.Replace.CanBuildReplace)
         {
             return;
         }
 
-        if (viewModel.IsCtrlRamReplaceModeSelected)
+        if (viewModel.Replace.IsCtrlRamReplaceModeSelected)
         {
-            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
+            _ = await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 
         string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
             StorageProvider,
-            viewModel.ReplaceOutputFileName);
+            viewModel.Replace.ReplaceOutputFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;
         }
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
     }
 }

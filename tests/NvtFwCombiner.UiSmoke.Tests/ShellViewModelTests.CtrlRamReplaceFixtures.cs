@@ -26,15 +26,15 @@ public sealed partial class ShellViewModelTests
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.LastRunResult.Output);
@@ -82,9 +82,9 @@ public sealed partial class ShellViewModelTests
             fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
             string outputPath = workspace.PathFor($"{caseId}.bin");
-            Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null), caseId);
+            Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null), caseId);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+            await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
@@ -99,9 +99,9 @@ public sealed partial class ShellViewModelTests
                         command.ArgumentListEvidence.Contains("0x32F50", StringComparison.Ordinal)));
             }
 
-            Assert.True(viewModel.CanBuildReplace, caseId);
+            Assert.True(viewModel.Replace.CanBuildReplace, caseId);
 
-            await viewModel.BuildReplaceAsync(outputPath);
+            await viewModel.Replace.BuildReplaceAsync(outputPath);
             Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
             Assert.True(File.Exists(outputPath), outputPath);
 

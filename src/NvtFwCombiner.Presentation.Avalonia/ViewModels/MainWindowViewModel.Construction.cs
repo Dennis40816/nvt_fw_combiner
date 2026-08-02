@@ -13,8 +13,6 @@ public sealed partial class MainWindowViewModel
     private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
     private const string MergeDpSlotId = WorkbenchSlotIds.MergeDp;
-    private const string ReplaceBaseSlotId = WorkbenchSlotIds.ReplaceBase;
-    private int _generalReplaceMappingCounter;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly bool _isInitializing = true;
@@ -65,7 +63,6 @@ public sealed partial class MainWindowViewModel
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
-        _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         Settings = new SettingsViewModel(appVersion);
@@ -89,19 +86,25 @@ public sealed partial class MainWindowViewModel
                 ResetRunResultForContextChange,
                 RefreshCommandState));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
-        Replace = new ReplacePresentationViewModel(new ReplaceSelectionBindings(
-            () => Text,
-            () => SelectedIc,
-            () => SelectedNumber,
-            () => SelectedReplaceMode,
-            () => IsGeneralReplaceModeSelected,
-            () => IsCtrlRamReplaceModeSelected,
-            CanRunReplace,
-            () => CanBuildReplace,
-            () => ReplaceReadinessStatus,
-            () => ReplaceBaseSlot,
-            () => ReplaceSlots,
-            () => GeneralReplaceMappings));
+        Replace = new ReplacePresentationViewModel(
+            new ReplaceStateBindings(
+                () => Text,
+                () => SelectedIc,
+                () => SelectedNumber,
+                () => IsRunInProgress,
+                IsFirmwareInspectionLoading,
+                () => _deferredState.IsWorkflowLoaded,
+                GetInspectedFileLength,
+                GetSelectedReplaceBaseInspection,
+                GetReportPresentation,
+                CreateFlashCodeOutputFileName,
+                CreateCtrlRamReplaceOutputFileName,
+                RunCompositionAsync,
+                ReplaceModeChanged,
+                ResetRunResultForContextChange,
+                RefreshSelectedReplaceFirmwareInspectionsAsync,
+                RefreshCommandState),
+            firmwareConfigMetadataReader);
         Replace.PropertyChanged += Replace_OnPropertyChanged;
         CompositionProgress = new CompositionRunProgressViewModel(language);
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
@@ -123,26 +126,26 @@ public sealed partial class MainWindowViewModel
             new WorkflowInspectionBindings(
                 () => RefreshContextState(),
                 () => _deferredState.IsWorkflowLoaded,
-                () => IsCtrlRamReplaceModeSelected,
-                () => IsReplaceVisible && SelectedReplaceMode == DpReplaceMode,
+                () => Replace.IsCtrlRamReplaceModeSelected,
+                () => IsReplaceVisible && Replace.SelectedReplaceMode == DpReplaceMode,
                 () => IsNumberSelectorVisible,
                 () => Merge.IsAbCodeMergeModeSelected,
                 () => Merge.HasAbMergeTopologyChoices,
                 () => Merge.SelectedMergeMode,
-                () => SelectedReplaceMode,
+                () => Replace.SelectedReplaceMode,
                 () => Merge.MergeDpSlot,
                 () => Merge.MergeTpSlot,
-                () => ReplaceBaseSlot,
+                () => Replace.ReplaceBaseSlot,
                 () => Merge.MergeSlots,
-                () => ReplaceSlots,
+                () => Replace.ReplaceSlots,
                 () => Merge.AbMergeSlots,
                 () => Merge.AbMergeAddressSpaceBySlotId,
                 Merge.GetSelectedAbMergeTopologyToken,
                 SelectSlotFile,
                 FindSlot,
-                ApplyCtrlRamInspectionDisplay,
+                Replace.ApplyCtrlRamInspectionDisplay,
                 Merge.RefreshMergeMemoryMapState,
-                RefreshReplaceMemoryMapState,
+                Replace.RefreshReplaceMemoryMapState,
                 RefreshCommandState,
                 NotifySlotFileOutputNames));
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
@@ -170,16 +173,6 @@ public sealed partial class MainWindowViewModel
             showNumber: false,
             [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
         BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
-        AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
-        PreviewReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null),
-            CanRunReplace);
-        BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
-            () => CanBuildReplace);
-        SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
-        SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
-        CloseCtrlRamFirmwareVersionCommand = new RelayCommand(CloseCtrlRamFirmwareVersionModal);
         RevealFileCommand = new RelayCommand<string>(RevealFile);
         NavigationTrail.Add(CreateNavigationEntry(ShellPage.Home, isCurrent: true));
         PropertyChanged += MainWindowViewModel_OnPropertyChanged;
