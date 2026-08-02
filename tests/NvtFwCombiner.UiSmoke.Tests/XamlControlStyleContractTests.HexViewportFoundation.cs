@@ -27,12 +27,12 @@ public sealed partial class XamlControlStyleContractTests
         callerCells[0] = new HexViewportCell(0, 0xFF, null, HexViewportCellDecoration.None);
         callerRows[0] = new HexViewportRow(0, [new HexViewportCell(0, 0xEE, null, HexViewportCellDecoration.None)]);
 
-        Assert.Equal(0x10, snapshot.Rows[0].Cells[0].PrimaryValue);
-        Assert.Equal(0x00, snapshot.Rows[0].Cells[0].ComparisonValue);
+        Assert.Equal((byte)0x10, snapshot.Rows[0].Cells[0].PrimaryValue);
+        Assert.Equal((byte?)0x00, snapshot.Rows[0].Cells[0].ComparisonValue);
         Assert.Equal(1, snapshot.SelectedAddress);
         Assert.True(snapshot.Rows[0].HasDataChanges);
         Assert.True(snapshot.Rows[0].HasComparison);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new HexViewportRow(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new HexViewportRow(
             0,
             Enumerable.Range(0, 17)
                 .Select(index => new HexViewportCell(index, 0, null, HexViewportCellDecoration.None))));
@@ -51,6 +51,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("EditCommand", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("Save", viewport, StringComparison.Ordinal);
+        Assert.Contains("new ControlAutomationPeer(this)", viewport, StringComparison.Ordinal);
         Assert.Contains("<views:HexViewportControl", panel, StringComparison.Ordinal);
         Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", panel, StringComparison.Ordinal);
         Assert.Contains("HexViewport_OnInteractionRequested", codeBehind, StringComparison.Ordinal);

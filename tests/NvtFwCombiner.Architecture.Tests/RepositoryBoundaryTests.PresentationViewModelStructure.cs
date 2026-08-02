@@ -389,9 +389,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"), StringComparison.Ordinal);
     }
 
-    /// <summary>Locks the shared Hex viewport redesign out of v0.9.11 while preserving both existing hosts.</summary>
+    /// <summary>Locks #191 to one source-neutral viewport while #192 still owns Report Diff adoption.</summary>
     [Fact]
-    public void V0911KeepsRawEditorAndReportDiffRenderersSeparate()
+    public void HexViewportIsReadOnlyAndReportAdoptionRemainsDeferred()
     {
         string rawEditor = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
@@ -401,11 +401,26 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs");
         string rawEditorViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
+        string viewport = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Presentation.Avalonia", "Views"),
+                    "HexViewportControl*.cs")
+                .Select(File.ReadAllText));
 
-        Assert.Contains("HexEditorViewportControl", rawEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("HexEditorViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", rawEditor, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexViewportControl", reportDiff, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("IRelayCommand", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("RawBinaryEditorSession", viewport, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "HexEditorViewportViewModels.cs")));
     }
 
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
@@ -491,10 +506,12 @@ public sealed partial class RepositoryBoundaryTests
         string coverage = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs");
         string hexCell = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorViewportViewModels.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/HexViewport/HexViewportContracts.cs");
 
         Assert.DoesNotContain("TooltipText", coverage, StringComparison.Ordinal);
         Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
+        Assert.DoesNotContain("EditValue", hexCell, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEditing", hexCell, StringComparison.Ordinal);
     }
 
     /// <summary>Locks stale internal Hex searches to the unfiltered cancellation boundary.</summary>

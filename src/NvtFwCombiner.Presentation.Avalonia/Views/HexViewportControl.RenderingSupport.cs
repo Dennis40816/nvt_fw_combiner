@@ -1,15 +1,14 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Media;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-public sealed partial class HexEditorViewportControl
+public sealed partial class HexViewportControl
 {
-    private static string FormatReferenceLabel(string displayAddress)
+    private static string FormatReferenceLabel(long address)
     {
-        return $"{displayAddress}  orig";
+        return FormattableString.Invariant($"0x{address:X6}  orig");
     }
 
     private static void DrawRoundedRectangle(
@@ -78,23 +77,4 @@ public sealed partial class HexEditorViewportControl
             9,
             StructuralTextBrush);
     }
-}
-
-/// <summary>Identifies one rendered byte and its viewport rectangle for shared editor interactions.</summary>
-public sealed class HexEditorViewportCellEventArgs(
-    HexEditorByteCellViewModel cell,
-    Rect bounds) : EventArgs
-{
-    /// <summary>Gets the current-data byte selected by the interaction.</summary>
-    public HexEditorByteCellViewModel Cell { get; } = cell;
-
-    /// <summary>Gets the byte rectangle relative to the rendered viewport.</summary>
-    public Rect Bounds { get; } = bounds;
-}
-
-/// <summary>Represents a discrete document-row movement requested by the raw viewport wheel input.</summary>
-public sealed class HexEditorViewportScrollEventArgs(int rowDelta) : EventArgs
-{
-    /// <summary>Signed number of logical 16-byte rows to move.</summary>
-    public int RowDelta { get; } = rowDelta;
 }

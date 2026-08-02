@@ -1,36 +1,30 @@
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Threading;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-public sealed partial class HexEditorViewportControl
+public sealed partial class HexViewportControl
 {
     private const int HistoryFeedbackFrameCount = 18;
 
-    private readonly HashSet<string> _historyFeedbackAddresses = new(StringComparer.Ordinal);
     private readonly DispatcherTimer _historyFeedbackTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(35),
     };
     private IBrush? _historyFeedbackBrush;
     private int _historyFeedbackFrame;
+    private int _historyFeedbackVersion = -1;
 
     private void InitializeHistoryFeedback()
     {
         _historyFeedbackTimer.Tick += OnHistoryFeedbackTick;
     }
 
-    private void DrawHistoryFeedback(
-        DrawingContext context,
-        HexEditorByteCellViewModel cell,
-        Rect rect,
-        bool isReference)
+    private void DrawHistoryFeedback(DrawingContext context, HexViewportCell cell, Rect rect, bool isReference)
     {
-        if (!isReference &&
-            _historyFeedbackBrush is not null &&
-            _historyFeedbackAddresses.Contains(cell.Address))
+        if (!isReference && _historyFeedbackBrush is not null && cell.HasHistoryFeedback)
         {
             DrawRoundedRectangle(context, _historyFeedbackBrush, null, rect, 3);
         }
@@ -38,15 +32,13 @@ public sealed partial class HexEditorViewportControl
 
     private void StartHistoryFeedback()
     {
-        _historyFeedbackAddresses.Clear();
-        if (_workspace is null)
+        if (Snapshot is not { } snapshot || snapshot.DecorationVersion == _historyFeedbackVersion)
         {
-            StopHistoryFeedback();
             return;
         }
 
-        _historyFeedbackAddresses.UnionWith(_workspace.HistoryFeedbackAddresses);
-        if (_historyFeedbackAddresses.Count == 0)
+        _historyFeedbackVersion = snapshot.DecorationVersion;
+        if (!snapshot.Rows.SelectMany(row => row.Cells).Any(cell => cell.HasHistoryFeedback))
         {
             StopHistoryFeedback();
             return;
@@ -56,7 +48,6 @@ public sealed partial class HexEditorViewportControl
         UpdateHistoryFeedbackBrush();
         _historyFeedbackTimer.Stop();
         _historyFeedbackTimer.Start();
-        InvalidateVisual();
     }
 
     private void OnHistoryFeedbackTick(object? sender, EventArgs e)
@@ -86,7 +77,6 @@ public sealed partial class HexEditorViewportControl
     private void StopHistoryFeedback()
     {
         _historyFeedbackTimer.Stop();
-        _historyFeedbackAddresses.Clear();
         _historyFeedbackBrush = null;
         _historyFeedbackFrame = 0;
     }

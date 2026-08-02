@@ -1,18 +1,14 @@
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Globalization;
+using System.Collections.ObjectModel;
 using Avalonia;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Media;
-using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-/// <summary>
-/// Draws the bounded Hex Editor window as one visual. Byte interaction is resolved by coordinates,
-/// avoiding hundreds of controls, bindings, and templates during document scrolling.
-/// </summary>
-public sealed partial class HexEditorViewportControl : Control
+/// <summary>Draws one bounded, always-read-only hexadecimal snapshot without source authority.</summary>
+public sealed partial class HexViewportControl : Control
 {
     private const double AddressWidth = 112;
     private const double AsciiWidth = 144;
@@ -49,6 +45,9 @@ public sealed partial class HexEditorViewportControl : Control
         FontStyle.Normal,
         FontWeight.SemiBold);
 
+    internal static readonly StyledProperty<HexViewportSnapshot?> SnapshotProperty =
+        AvaloniaProperty.Register<HexViewportControl, HexViewportSnapshot?>(nameof(Snapshot));
+
     private readonly FormattedText[] _normalHex = CreateHexTextCache(NormalTextBrush, NormalTypeface);
     private readonly FormattedText[] _selectedHex = CreateHexTextCache(SelectedTextBrush, StrongTypeface);
     private readonly FormattedText[] _changedHex = CreateHexTextCache(ChangedTextBrush, StrongTypeface);
@@ -63,51 +62,51 @@ public sealed partial class HexEditorViewportControl : Control
     private readonly FormattedText[] _referenceChangedAscii = CreateAsciiTextCache(ReferenceTextBrush, StrongTypeface);
     private readonly FormattedText[] _structuralAscii = CreateAsciiTextCache(StructuralTextBrush, NormalTypeface);
     private readonly FormattedText[] _searchMatchAscii = CreateAsciiTextCache(SearchMatchTextBrush, StrongTypeface);
-    private HexEditorWorkspaceViewModel? _workspace;
 
-    internal string? HoveredAddress { get; private set; }
+    internal long? HoveredAddress { get; private set; }
 
-    /// <summary>Creates the low-cost viewport and hooks its single interaction surface.</summary>
-    public HexEditorViewportControl()
+    /// <summary>Creates the low-allocation renderer and its source-neutral interaction surface.</summary>
+    public HexViewportControl()
     {
         Focusable = true;
         ClipToBounds = true;
-        DataContextChanged += (_, _) => AttachWorkspace(DataContext as HexEditorWorkspaceViewModel);
         PointerPressed += OnPointerPressed;
         DoubleTapped += OnDoubleTapped;
         KeyDown += OnKeyDown;
         InitializeHistoryFeedback();
     }
 
-    /// <summary>Raised when direct editing should place the shared inline editor over one byte.</summary>
-    public event EventHandler<HexEditorViewportCellEventArgs>? EditRequested;
+    /// <inheritdoc />
+    protected override AutomationPeer OnCreateAutomationPeer()
+    {
+        return new ControlAutomationPeer(this);
+    }
 
-    /// <summary>Raised when the shared byte context menu should open for one byte.</summary>
-    public event EventHandler<HexEditorViewportCellEventArgs>? ContextMenuRequested;
+    internal HexViewportSnapshot? Snapshot
+    {
+        get => GetValue(SnapshotProperty);
+        set => SetValue(SnapshotProperty, value);
+    }
 
-    /// <summary>Raised when a structural ASCII outline requests head/tail navigation.</summary>
-    public event EventHandler<HexEditorViewportCellEventArgs>? StructuralBlockContextMenuRequested;
+    internal event EventHandler<HexViewportInteractionEventArgs>? InteractionRequested;
 
-    /// <summary>Raised by the source visual so wheel input never falls through to the shell page.</summary>
-    public event EventHandler<HexEditorViewportScrollEventArgs>? ScrollRequested;
-
-    /// <summary>Draws the current data window without creating child controls.</summary>
+    /// <summary>Draws the immutable visible window without creating child controls.</summary>
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        if (_workspace is not { } workspace || Bounds.Width <= AddressWidth + AsciiWidth)
+        if (Snapshot is not { } snapshot || Bounds.Width <= AddressWidth + AsciiWidth)
         {
             return;
         }
 
         double y = 0;
-        var structuralSegments = new Dictionary<int, List<HexEditorStructuralVisualSegment>>();
-        foreach (HexEditorViewportRowViewModel row in workspace.ViewportRows)
+        var structuralSegments = new Dictionary<int, List<HexViewportStructuralVisualSegment>>();
+        foreach (HexViewportRow row in snapshot.Rows)
         {
             CollectStructuralVisualSegments(structuralSegments, row, y);
-            DrawCurrentRow(context, row, y);
+            DrawCurrentRow(context, snapshot, row, y);
             y += RowHeight;
-            if (row.IsOriginalRowVisible)
+            if (IsComparisonRowVisible(snapshot, row))
             {
                 DrawReferenceRow(context, row, y);
                 y += RowHeight;
@@ -117,53 +116,41 @@ public sealed partial class HexEditorViewportControl : Control
         DrawAsciiStructuralBlocks(context, structuralSegments);
     }
 
-    /// <summary>Returns the current screen-relative byte rectangle for the shared inline editor.</summary>
-    public bool TryGetCellBounds(HexEditorByteCellViewModel cell, out Rect bounds)
+    internal bool TryGetCellBounds(long address, out Rect bounds)
     {
-        ArgumentNullException.ThrowIfNull(cell);
         bounds = default;
-        if (_workspace is null)
+        if (Snapshot is not { } snapshot)
         {
             return false;
         }
 
         double y = 0;
-        foreach (HexEditorViewportRowViewModel row in _workspace.ViewportRows)
+        foreach (HexViewportRow row in snapshot.Rows)
         {
-            int index = IndexOfReference(row.Bytes, cell);
-            if (index >= 0)
+            long index = address - row.Address;
+            if ((ulong)index < (ulong)row.Cells.Count)
             {
-                bounds = GetCellRect(index, y);
+                bounds = GetCellRect((int)index, y);
                 return true;
             }
 
-            y += RowHeight;
-            if (row.IsOriginalRowVisible)
-            {
-                y += RowHeight;
-            }
+            y += IsComparisonRowVisible(snapshot, row) ? RowHeight * 2 : RowHeight;
         }
 
         return false;
     }
 
-    /// <summary>Resolves one byte from a point supplied by the transparent document hit-test surface.</summary>
-    public bool TryGetCellAt(Point point, out HexEditorByteCellViewModel? cell, out Rect bounds)
+    internal bool TryGetCellAt(Point point, out HexViewportCell cell, out Rect bounds)
     {
         return TryHitTest(point, out cell, out bounds);
     }
 
-    /// <summary>Resolves the current-data byte represented by one visible ASCII character.</summary>
-    public bool TryGetAsciiCellAt(Point point, out HexEditorByteCellViewModel? cell, out Rect bounds)
+    internal bool TryGetAsciiCellAt(Point point, out HexViewportCell cell, out Rect bounds)
     {
         return TryHitTestAscii(point, out cell, out bounds);
     }
 
-    /// <summary>Resolves any point inside a visible structural ASCII outline, including whitespace.</summary>
-    public bool TryGetStructuralBlockAt(
-        Point point,
-        out HexEditorByteCellViewModel? cell,
-        out Rect bounds)
+    internal bool TryGetStructuralBlockAt(Point point, out HexViewportCell cell, out Rect bounds)
     {
         return TryHitTestStructuralAscii(point, out cell, out bounds);
     }
@@ -172,82 +159,43 @@ public sealed partial class HexEditorViewportControl : Control
     protected override Size MeasureOverride(Size availableSize)
     {
         double width = double.IsInfinity(availableSize.Width) ? 1080 : availableSize.Width;
-        int displayRows = _workspace?.ViewportRows.Sum(row => row.IsOriginalRowVisible ? 2 : 1) ?? 1;
+        int displayRows = Snapshot is { } snapshot
+            ? snapshot.Rows.Sum(row => IsComparisonRowVisible(snapshot, row) ? 2 : 1)
+            : 1;
         return new Size(width, Math.Max(RowHeight, displayRows * RowHeight));
     }
 
-    private void AttachWorkspace(HexEditorWorkspaceViewModel? workspace)
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        if (ReferenceEquals(_workspace, workspace))
+        ArgumentNullException.ThrowIfNull(change);
+        base.OnPropertyChanged(change);
+        if (change.Property == SnapshotProperty)
         {
-            return;
-        }
-
-        if (_workspace is not null)
-        {
-            _workspace.PropertyChanged -= OnWorkspacePropertyChanged;
-            _workspace.ViewportRows.CollectionChanged -= OnViewportRowsChanged;
-        }
-
-        StopHistoryFeedback();
-
-        _workspace = workspace;
-        if (_workspace is not null)
-        {
-            _workspace.PropertyChanged += OnWorkspacePropertyChanged;
-            _workspace.ViewportRows.CollectionChanged += OnViewportRowsChanged;
-        }
-
-        HoveredAddress = null;
-        InvalidateMeasure();
-        InvalidateVisual();
-    }
-
-    private void OnWorkspacePropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(HexEditorWorkspaceViewModel.IsOriginalRowsVisible))
-        {
-            InvalidateMeasure();
-        }
-
-        if (e.PropertyName is nameof(HexEditorWorkspaceViewModel.HistoryFeedbackVersion))
-        {
+            HoveredAddress = null;
             StartHistoryFeedback();
-        }
-
-        if (e.PropertyName is nameof(HexEditorWorkspaceViewModel.SelectedByteAddress) or
-            nameof(HexEditorWorkspaceViewModel.IsOriginalRowsVisible))
-        {
+            InvalidateMeasure();
             InvalidateVisual();
         }
     }
 
-    private void OnViewportRowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void DrawCurrentRow(DrawingContext context, HexViewportSnapshot snapshot, HexViewportRow row, double y)
     {
-        HoveredAddress = null;
-        InvalidateMeasure();
-        InvalidateVisual();
-    }
-
-    private void DrawCurrentRow(DrawingContext context, HexEditorViewportRowViewModel row, double y)
-    {
-        Rect rowRect = new(0, y, Bounds.Width, RowHeight);
-        IBrush? rowBrush = row.IsSelected
-            ? SelectedRowBrush
-            : row.HasDataChanges
-                ? ChangedRowBrush
-                : null;
+        bool isSelected = snapshot.SelectedAddress is long selected &&
+                          selected >= row.Address &&
+                          selected < row.Address + row.Cells.Count;
+        IBrush? rowBrush = isSelected ? SelectedRowBrush : row.HasDataChanges ? ChangedRowBrush : null;
         if (rowBrush is not null)
         {
-            DrawRoundedRectangle(context, rowBrush, null, rowRect, 0);
+            DrawRoundedRectangle(context, rowBrush, null, new Rect(0, y, Bounds.Width, RowHeight), 0);
         }
 
-        if (row.IsSelected)
+        if (isSelected)
         {
             DrawRoundedRectangle(context, SelectedBrush, null, new Rect(0, y, AddressWidth, RowHeight), 3);
         }
 
-        DrawText(context, row.Address, row.IsSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, 4, y);
+        DrawText(context, FormatAddress(row.Address), isSelected ? SelectedTextBrush : NormalTextBrush, StrongTypeface, 4, y);
         if (row.HasDataChanges || row.HasStructuralBoundary)
         {
             DrawRoundedRectangle(
@@ -258,92 +206,81 @@ public sealed partial class HexEditorViewportControl : Control
                 3);
         }
 
-        for (int index = 0; index < row.Bytes.Count; index++)
+        for (int index = 0; index < row.Cells.Count; index++)
         {
-            DrawByte(context, row.Bytes[index], index, y, isReference: false);
+            DrawByte(context, snapshot, row.Cells[index], index, y, isReference: false);
         }
 
-        DrawAscii(context, row.Bytes, row.CurrentAscii, y, isReference: false);
+        DrawAscii(context, snapshot, row.Cells, y, isReference: false);
     }
 
-    private void DrawReferenceRow(DrawingContext context, HexEditorViewportRowViewModel row, double y)
+    private void DrawReferenceRow(DrawingContext context, HexViewportRow row, double y)
     {
         DrawRoundedRectangle(context, ReferenceRowBrush, null, new Rect(0, y, Bounds.Width, RowHeight), 0);
         DrawRoundedRectangle(context, ReferenceMarkerBrush, null, new Rect(0, y + 2, 4, RowHeight - 4), 2);
         DrawText(context, FormatReferenceLabel(row.Address), ReferenceTextBrush, StrongTypeface, 4, y);
-        for (int index = 0; index < row.OriginalBytes.Count; index++)
+        for (int index = 0; index < row.Cells.Count; index++)
         {
-            DrawByte(context, row.OriginalBytes[index], index, y, isReference: true);
+            DrawByte(context, snapshot: null, row.Cells[index], index, y, isReference: true);
         }
 
-        DrawAscii(context, row.OriginalBytes, row.OriginalAscii, y, isReference: true);
+        DrawAscii(context, snapshot: null, row.Cells, y, isReference: true);
     }
 
     private void DrawByte(
         DrawingContext context,
-        HexEditorByteCellViewModel cell,
+        HexViewportSnapshot? snapshot,
+        HexViewportCell cell,
         int index,
         double y,
         bool isReference)
     {
         Rect rect = GetCellRect(index, y).Deflate(1);
-        bool isHovered = !isReference && string.Equals(HoveredAddress, cell.Address, StringComparison.Ordinal);
-        IBrush? background = ResolveCellBackground(cell, isReference);
-        IPen? pen = ResolveCellPen(cell, isReference);
+        bool isSelected = !isReference && snapshot?.SelectedAddress == cell.Address;
+        bool isHovered = !isReference && HoveredAddress == cell.Address;
+        IBrush? background = ResolveCellBackground(cell, isReference, isSelected);
+        IPen? pen = ResolveCellPen(cell, isReference, isSelected);
         if (background is not null || pen is not null)
         {
             DrawRoundedRectangle(context, background, pen, rect, 3);
         }
 
-        DrawHoverOutline(context, rect, isReference, isHovered, GetVisualState(cell));
-
+        HexViewportCellVisualState state = GetVisualState(cell, isSelected);
+        DrawHoverOutline(context, rect, isReference, isHovered, state);
         DrawHistoryFeedback(context, cell, rect, isReference);
 
-        FormattedText text = GetHexText(
-            cell.ValueHex,
-            cell.IsSelected,
-            cell.IsAsciiSearchMatch,
-            cell.IsDataChanged,
-            cell.IsStructuralChanged,
-            isReference);
+        byte? value = isReference ? cell.ComparisonValue : cell.PrimaryValue;
+        FormattedText text = GetHexText(value, isSelected, cell, isReference);
         Point origin = new(
             rect.X + ((rect.Width - text.Width) / 2),
             rect.Y + ((rect.Height - text.Height) / 2));
         context.DrawText(text, origin);
     }
 
-    private FormattedText GetHexText(
-        string value,
-        bool selected,
-        bool searchMatch,
-        bool dataChanged,
-        bool structuralChanged,
-        bool reference)
+    private FormattedText GetHexText(byte? value, bool selected, HexViewportCell cell, bool reference)
     {
-        return !byte.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte parsed)
-            ? CreateText(value, reference ? ReferenceTextBrush : NormalTextBrush, NormalTypeface)
+        return value is not byte parsed
+            ? CreateText("--", reference ? ReferenceTextBrush : NormalTextBrush, NormalTypeface)
             : reference
-                ? dataChanged
+                ? cell.IsDataChanged
                     ? _referenceChangedHex[parsed]
-                    : structuralChanged
+                    : cell.IsStructuralChanged
                         ? _referenceStructuralHex[parsed]
                         : _referenceHex[parsed]
                 : selected
                     ? _selectedHex[parsed]
-                    : searchMatch
+                    : cell.IsSearchMatch
                         ? _searchMatchHex[parsed]
-                        : dataChanged
+                        : cell.IsDataChanged
                             ? _changedHex[parsed]
-                            : structuralChanged
+                            : cell.IsStructuralChanged
                                 ? _structuralHex[parsed]
                                 : _normalHex[parsed];
     }
 
-    private static IBrush? ResolveCellBackground(
-        HexEditorByteCellViewModel cell,
-        bool isReference)
+    private static IBrush? ResolveCellBackground(HexViewportCell cell, bool isReference, bool isSelected)
     {
-        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged) switch
+        return (isReference, isSelected, cell.IsSearchMatch, cell.IsDataChanged) switch
         {
             (true, _, _, true) => ReferenceChangedBrush,
             (true, _, _, false) => null,
@@ -354,11 +291,9 @@ public sealed partial class HexEditorViewportControl : Control
         };
     }
 
-    private static IPen? ResolveCellPen(
-        HexEditorByteCellViewModel cell,
-        bool isReference)
+    private static IPen? ResolveCellPen(HexViewportCell cell, bool isReference, bool isSelected)
     {
-        return (isReference, cell.IsSelected, cell.IsAsciiSearchMatch, cell.IsDataChanged) switch
+        return (isReference, isSelected, cell.IsSearchMatch, cell.IsDataChanged) switch
         {
             (true, _, _, true) => ReferenceChangedPen,
             (true, _, _, false) => null,
@@ -372,17 +307,14 @@ public sealed partial class HexEditorViewportControl : Control
     internal static bool ShouldDrawHoverOutline(
         bool isReference,
         bool isHovered,
-        HexEditorCellVisualState visualState)
+        HexViewportCellVisualState visualState)
     {
-        return (isReference, isHovered, visualState) switch
-        {
-            (false, true, HexEditorCellVisualState.Normal or
-                HexEditorCellVisualState.Selected or
-                HexEditorCellVisualState.Changed or
-                HexEditorCellVisualState.SearchMatch or
-                HexEditorCellVisualState.Structural) => true,
-            _ => false,
-        };
+        return !isReference && isHovered && visualState is
+            HexViewportCellVisualState.Normal or
+            HexViewportCellVisualState.Selected or
+            HexViewportCellVisualState.Changed or
+            HexViewportCellVisualState.SearchMatch or
+            HexViewportCellVisualState.Structural;
     }
 
     private static void DrawHoverOutline(
@@ -390,7 +322,7 @@ public sealed partial class HexEditorViewportControl : Control
         Rect rect,
         bool isReference,
         bool isHovered,
-        HexEditorCellVisualState visualState)
+        HexViewportCellVisualState visualState)
     {
         if (ShouldDrawHoverOutline(isReference, isHovered, visualState))
         {
@@ -398,23 +330,23 @@ public sealed partial class HexEditorViewportControl : Control
         }
     }
 
-    private static HexEditorCellVisualState GetVisualState(HexEditorByteCellViewModel cell)
+    private static HexViewportCellVisualState GetVisualState(HexViewportCell cell, bool selected)
     {
-        return cell.IsSelected
-            ? HexEditorCellVisualState.Selected
-            : cell.IsAsciiSearchMatch
-                ? HexEditorCellVisualState.SearchMatch
+        return selected
+            ? HexViewportCellVisualState.Selected
+            : cell.IsSearchMatch
+                ? HexViewportCellVisualState.SearchMatch
                 : cell.IsDataChanged
-                    ? HexEditorCellVisualState.Changed
+                    ? HexViewportCellVisualState.Changed
                     : cell.IsStructuralChanged
-                        ? HexEditorCellVisualState.Structural
-                        : HexEditorCellVisualState.Normal;
+                        ? HexViewportCellVisualState.Structural
+                        : HexViewportCellVisualState.Normal;
     }
 
     private void DrawAscii(
         DrawingContext context,
-        IReadOnlyList<HexEditorByteCellViewModel> cells,
-        string ascii,
+        HexViewportSnapshot? snapshot,
+        ReadOnlyCollection<HexViewportCell> cells,
         double y,
         bool isReference)
     {
@@ -425,13 +357,11 @@ public sealed partial class HexEditorViewportControl : Control
 
         for (int index = 0; index < cells.Count; index++)
         {
-            HexEditorByteCellViewModel cell = cells[index];
+            HexViewportCell cell = cells[index];
             Rect rect = GetAsciiCellRect(index, y).Deflate(1);
-            bool isSearchMatch = cell.IsAsciiSearchMatch && !isReference;
-            bool isHovered = !isReference && string.Equals(
-                HoveredAddress,
-                cell.Address,
-                StringComparison.Ordinal);
+            bool isSelected = !isReference && snapshot?.SelectedAddress == cell.Address;
+            bool isSearchMatch = cell.IsSearchMatch && !isReference;
+            bool isHovered = !isReference && HoveredAddress == cell.Address;
             if (isReference && cell.IsDataChanged)
             {
                 DrawRoundedRectangle(context, ReferenceChangedBrush, ReferenceChangedPen, rect, 3);
@@ -441,17 +371,12 @@ public sealed partial class HexEditorViewportControl : Control
                 DrawRoundedRectangle(context, ChangedBrush, ChangedPen, rect, 3);
             }
 
-            DrawHoverOutline(context, rect, isReference, isHovered, GetVisualState(cell));
-
+            DrawHoverOutline(context, rect, isReference, isHovered, GetVisualState(cell, isSelected));
             DrawHistoryFeedback(context, cell, rect, isReference);
 
-            char value = index < ascii.Length ? ascii[index] : ' ';
-            FormattedText text = GetAsciiText(
-                value,
-                isReference,
-                isSearchMatch,
-                cell.IsDataChanged,
-                cell.IsStructuralChanged);
+            byte? rawValue = isReference ? cell.ComparisonValue : cell.PrimaryValue;
+            char value = rawValue is >= 0x20 and <= 0x7E ? (char)rawValue.Value : '.';
+            FormattedText text = GetAsciiText(value, isReference, isSearchMatch, cell.IsDataChanged, cell.IsStructuralChanged);
             context.DrawText(
                 text,
                 new Point(
@@ -460,22 +385,19 @@ public sealed partial class HexEditorViewportControl : Control
         }
     }
 
-    private void DrawAsciiSearchRanges(
-        DrawingContext context,
-        IReadOnlyList<HexEditorByteCellViewModel> cells,
-        double y)
+    private void DrawAsciiSearchRanges(DrawingContext context, ReadOnlyCollection<HexViewportCell> cells, double y)
     {
         int start = 0;
         while (start < cells.Count)
         {
-            if (!cells[start].IsAsciiSearchMatch)
+            if (!cells[start].IsSearchMatch)
             {
                 start++;
                 continue;
             }
 
             int end = start + 1;
-            while (end < cells.Count && cells[end].IsAsciiSearchMatch)
+            while (end < cells.Count && cells[end].IsSearchMatch)
             {
                 end++;
             }
@@ -492,27 +414,12 @@ public sealed partial class HexEditorViewportControl : Control
         }
     }
 
-    private FormattedText GetAsciiText(
-        char value,
-        bool isReference,
-        bool searchMatch,
-        bool dataChanged,
-        bool structuralChanged)
+    private FormattedText GetAsciiText(char value, bool reference, bool search, bool data, bool structural)
     {
         int index = value < 128 ? value : '.';
-        return isReference
-            ? dataChanged
-                ? _referenceChangedAscii[index]
-                : structuralChanged
-                    ? _structuralAscii[index]
-                    : _referenceAscii[index]
-            : searchMatch
-                ? _searchMatchAscii[index]
-                : dataChanged
-                    ? _changedAscii[index]
-                    : structuralChanged
-                        ? _structuralAscii[index]
-                        : _normalAscii[index];
+        return reference
+            ? data ? _referenceChangedAscii[index] : structural ? _structuralAscii[index] : _referenceAscii[index]
+            : search ? _searchMatchAscii[index] : data ? _changedAscii[index] : structural ? _structuralAscii[index] : _normalAscii[index];
     }
 
     private Rect GetCellRect(int index, double y)
@@ -542,24 +449,18 @@ public sealed partial class HexEditorViewportControl : Control
         return Math.Max(1, (GetAsciiStart() - ColumnGap - GetByteStart()) / BytesPerRow);
     }
 
-    private static int IndexOfReference(
-        IReadOnlyList<HexEditorByteCellViewModel> cells,
-        HexEditorByteCellViewModel target)
+    private static bool IsComparisonRowVisible(HexViewportSnapshot snapshot, HexViewportRow row)
     {
-        for (int index = 0; index < cells.Count; index++)
-        {
-            if (ReferenceEquals(cells[index], target))
-            {
-                return index;
-            }
-        }
-
-        return -1;
+        return snapshot.ShowComparisonRows && row.HasComparison;
     }
 
+    private static string FormatAddress(long address)
+    {
+        return FormattableString.Invariant($"0x{address:X6}");
+    }
 }
 
-internal enum HexEditorCellVisualState
+internal enum HexViewportCellVisualState
 {
     Normal,
     Selected,

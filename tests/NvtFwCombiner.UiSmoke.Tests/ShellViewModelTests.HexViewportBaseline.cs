@@ -9,11 +9,12 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed partial class ShellViewModelTests
 {
     /// <summary>
-    /// Records the released pre-extraction renderer/window cost so #191 can prove that the
-    /// source-neutral viewport remains bounded and does not regress hot navigation or hover.
+    /// Proves the source-neutral viewport remains bounded and improves the released
+    /// 10,175,656-byte scroll, 3,360,000-byte selection, and 400,000-byte hover
+    /// allocation baselines.
     /// </summary>
     [Fact]
-    public async Task HexEditorReleasedViewportBaselineIsBounded()
+    public async Task HexViewportRefactorBeatsReleasedAllocationBaseline()
     {
         const int documentLength = 1024 * 1024;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hex-viewport-baseline");
@@ -22,10 +23,10 @@ public sealed partial class ShellViewModelTests
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
 
-        Assert.Equal(12, editor.ViewportRows.Count);
-        Assert.Equal(16, editor.ViewportRows[0].Bytes.Count);
-        Assert.Equal(192, editor.ViewportRows.Sum(row => row.Bytes.Count));
-        Assert.All(editor.ViewportRows, row => Assert.InRange(row.Bytes.Count, 1, 16));
+        Assert.Equal(12, editor.ViewportSnapshot.Rows.Count);
+        Assert.Equal(16, editor.ViewportSnapshot.Rows[0].Cells.Count);
+        Assert.Equal(192, editor.ViewportSnapshot.Rows.Sum(row => row.Cells.Count));
+        Assert.All(editor.ViewportSnapshot.Rows, row => Assert.InRange(row.Cells.Count, 1, 16));
 
         int lastStartRow = editor.DocumentScrollMaximum;
         editor.SetViewportStartRowCommand.Execute(lastStartRow);
@@ -40,9 +41,19 @@ public sealed partial class ShellViewModelTests
         TimeSpan scrollElapsed = Stopwatch.GetElapsedTime(scrollStarted);
         long scrollAllocated = GC.GetAllocatedBytesForCurrentThread() - scrollAllocatedBefore;
 
-        var viewport = new HexEditorViewportControl
+        long selectionAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        long selectionStarted = Stopwatch.GetTimestamp();
+        for (int iteration = 0; iteration < 10_000; iteration++)
         {
-            DataContext = editor,
+            editor.SelectByte(iteration % 2);
+        }
+
+        TimeSpan selectionElapsed = Stopwatch.GetElapsedTime(selectionStarted);
+        long selectionAllocated = GC.GetAllocatedBytesForCurrentThread() - selectionAllocatedBefore;
+
+        var viewport = new HexViewportControl
+        {
+            Snapshot = editor.ViewportSnapshot,
         };
         viewport.Measure(new Size(1080, 300));
         viewport.Arrange(new Rect(0, 0, 1080, 300));
@@ -59,11 +70,14 @@ public sealed partial class ShellViewModelTests
         long hoverAllocated = GC.GetAllocatedBytesForCurrentThread() - hoverAllocatedBefore;
 
         TestContext.Current.TestOutputHelper?.WriteLine(
-            $"HEX_VIEWPORT_RELEASED_BASELINE bytes={documentLength}; rows={editor.ViewportRows.Count}; " +
+            $"HEX_VIEWPORT_REFACTORED bytes={documentLength}; rows={editor.ViewportSnapshot.Rows.Count}; " +
             $"scrollIterations=128; scrollMs={scrollElapsed.TotalMilliseconds:F3}; " +
-            $"scrollAllocated={scrollAllocated}; hoverIterations=10000; " +
+            $"scrollAllocated={scrollAllocated}; selectionIterations=10000; " +
+            $"selectionMs={selectionElapsed.TotalMilliseconds:F3}; selectionAllocated={selectionAllocated}; " +
+            $"hoverIterations=10000; " +
             $"hoverMs={hoverElapsed.TotalMilliseconds:F3}; hoverAllocated={hoverAllocated}");
-        Assert.InRange(scrollAllocated, 0, 64L * 1024 * 1024);
-        Assert.InRange(hoverAllocated, 0, 512L * 1024);
+        Assert.InRange(scrollAllocated, 0, 10_150_000);
+        Assert.InRange(selectionAllocated, 0, 1_500_000);
+        Assert.InRange(hoverAllocated, 0, 350_000);
     }
 }
