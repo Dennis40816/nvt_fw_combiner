@@ -13,6 +13,12 @@
     "scope": "Migration behavior only; this is not a hardware golden or an IC product-support claim.",
     "knownDeviations": []
   },
+  "productionAdmissionSupersession": {
+    "date": "2026-08-02",
+    "decision": "NT51950/NT51951 DP Replace replacement input must exactly match the selected reference/base capacity.",
+    "effect": "These short-input hashes remain immutable historical migration evidence and no longer authorize production admission or padding.",
+    "evidenceId": "dp-replace-exact-pair-owner-decision-20260802"
+  },
   "generator": {
     "algorithm": "affine-byte-v1",
     "formula": "byte(salt + (37 * offset))",

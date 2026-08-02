@@ -150,7 +150,7 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034'
+    sha256 = '0b901c0cdec2f4a90c3fca8c542293b9700c049956f7dba3480e16a5a8ceac23'
 }
 
 function Assert-SupportPublicationPolicyPackageContracts {

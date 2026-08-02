@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -24,6 +26,8 @@ internal sealed class FirmwareInspectionSession
 
     internal long CurrentGeneration => Volatile.Read(ref _generation);
 
+    internal AuthoringRevision CurrentAuthoringRevision { get; private set; } = new(1);
+
     internal long NextGeneration()
     {
         return Interlocked.Increment(ref _generation);
@@ -45,13 +49,15 @@ internal sealed class FirmwareInspectionSession
             StringComparer.Ordinal);
         WorkbenchFirmwareInspectionInput[] inputs =
         [
-            .. request.Items.Select(static item => new WorkbenchFirmwareInspectionInput(
+            .. request.Items.Select(item => new WorkbenchFirmwareInspectionInput(
                 item.SlotId,
                 item.Path,
                 item.TpPath,
                 item.CtrlRamRequest,
                 item.AbMergeAddressSpaceId,
-                item.AbMergeTopologyToken)),
+                item.AbMergeTopologyToken,
+                item.DpReplaceAddressSpaceId,
+                request.AuthoringRevision.Value)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
@@ -148,6 +154,7 @@ internal sealed class FirmwareInspectionSession
     internal void Invalidate(bool clearBaseCache, bool clearFileProjections)
     {
         _ = NextGeneration();
+        CurrentAuthoringRevision = CurrentAuthoringRevision.Next();
         if (clearBaseCache)
         {
             ClearBase();
@@ -245,6 +252,12 @@ internal static class FirmwareInspectionRequestFactory
         string? abMergeAddressSpaceId = context.IsAbMerge
             ? context.AbAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
             : null;
+        string? dpReplaceAddressSpaceId = context.IsDpReplace
+            ? ReferenceEquals(slot, context.ReplaceBaseSlot)
+                ? WorkbenchAddressSpaceIds.ReferenceBase
+                : slot.AddressSpaceId ?? throw new InvalidOperationException(
+                    $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
+            : null;
         // Firmware metadata can request confirmation only when the current page exposes an
         // operator-selectable Number. A hidden control cannot be changed by a modal.
         bool applyWorkflowContext = applyVerifiedContext && context.IsNumberSelectorVisible;
@@ -258,7 +271,8 @@ internal static class FirmwareInspectionRequestFactory
             promptForMismatch,
             applyWorkflowContext,
             abMergeAddressSpaceId,
-            context.AbMergeTopologyToken);
+            context.AbMergeTopologyToken,
+            dpReplaceAddressSpaceId);
     }
 }
 
@@ -312,7 +326,34 @@ internal static class FirmwareInspectionProjection
             text.GetAbInputInspectionStatus(inspection.AbMergeInput));
     }
 
-    internal static bool ApplyStaleAbInputInspection(
+    internal static void ApplyInputSlotInspection(
+        FirmwareSlotViewModel slot,
+        AuthoringInputSlotStatus status,
+        ShellTextResources text)
+    {
+        if (status.InspectionLifecycle is null &&
+            status.Readiness == ResolvedChildReadiness.Blocked)
+        {
+            slot.SetInputInspection(
+                WorkbenchInputInspectionSeverity.Blocking,
+                text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness));
+            return;
+        }
+
+        if (!status.IsTerminal)
+        {
+            throw new ArgumentException("Only terminal slot health can be displayed.", nameof(status));
+        }
+
+        WorkbenchInputInspectionSeverity severity = status.InspectionLifecycle == AuthoringSlotLifecycle.Verified
+            ? WorkbenchInputInspectionSeverity.Valid
+            : status.InspectionLifecycle == AuthoringSlotLifecycle.Warning
+                ? WorkbenchInputInspectionSeverity.Warning
+                : WorkbenchInputInspectionSeverity.Blocking;
+        slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status));
+    }
+
+    internal static bool ApplyStaleInputInspection(
         IEnumerable<FirmwareSlotViewModel> slots,
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result,
@@ -320,7 +361,7 @@ internal static class FirmwareInspectionProjection
     {
         bool applied = false;
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null))
+                     item.AbMergeAddressSpaceId is not null || item.DpReplaceAddressSpaceId is not null))
         {
             FirmwareSlotViewModel? slot = slots.FirstOrDefault(candidate =>
                 string.Equals(candidate.SlotId, item.SlotId, StringComparison.Ordinal));
@@ -425,6 +466,7 @@ internal readonly record struct FirmwareInspectionRequestContext(
     FirmwareSlotViewModel MergeTpSlot,
     FirmwareSlotViewModel ReplaceBaseSlot,
     bool IsCtrlRamReplace,
+    bool IsDpReplace,
     bool IsNumberSelectorVisible,
     string SelectedNumber,
     bool IsAbMerge,
@@ -436,6 +478,7 @@ internal readonly record struct FirmwareInspectionRequestContext(
 
 internal readonly record struct FirmwareInspectionBatchRequest(
     long Generation,
+    AuthoringRevision AuthoringRevision,
     string IcId,
     string Number,
     string MergeMode,
@@ -452,7 +495,8 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool PromptForMismatch,
     bool ApplyVerifiedContext,
     string? AbMergeAddressSpaceId,
-    string? AbMergeTopologyToken);
+    string? AbMergeTopologyToken,
+    string? DpReplaceAddressSpaceId);
 
 internal readonly record struct FirmwareInspectionBatchResult(
     IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,

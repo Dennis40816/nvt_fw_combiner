@@ -269,6 +269,9 @@ public sealed record WorkbenchFirmwareInspection(
 
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
     public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
+
+    /// <summary>Shared Application-owned terminal slot health for the current compiled input.</summary>
+    public AuthoringInputSlotStatus? InputSlotStatus { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -288,7 +291,9 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string? TpPath = null,
     WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null,
     string? AbMergeAddressSpaceId = null,
-    string? AbMergeTopologyToken = null);
+    string? AbMergeTopologyToken = null,
+    string? DpReplaceAddressSpaceId = null,
+    long AuthoringRevision = 1);
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(

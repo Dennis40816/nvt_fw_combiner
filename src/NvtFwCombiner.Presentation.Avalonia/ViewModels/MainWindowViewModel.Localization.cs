@@ -25,15 +25,20 @@ public sealed partial class MainWindowViewModel
         ApplyFirmwareSlotText();
         RelocalizeFirmwareFacts();
         RefreshDpReplaceInputSelectionReadiness();
-        foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
+        foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values
+                     .Concat(ReplaceSlots).Concat([ReplaceBaseSlot]).Distinct())
         {
             if (_firmwareInspectionSession.TryGetInspection(
-                    slot.SlotId,
-                    slot.FilePath,
-                    out WorkbenchFirmwareInspection projected) &&
-                projected.AbMergeInput is not null)
+                    slot.SlotId, slot.FilePath, out WorkbenchFirmwareInspection projected))
             {
-                FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
+                if (projected.AbMergeInput is not null)
+                {
+                    FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
+                }
+                else if (projected.InputSlotStatus is { } status)
+                {
+                    FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
+                }
             }
         }
 

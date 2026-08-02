@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
     internal static bool TryCompileBuiltInV2DpReplace(
         string icId,
         long baseCapacity,
-        IReadOnlyCollection<string> selectedInputSlotIds,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -50,12 +50,11 @@ public static partial class WorkbenchCompositionService
     internal static bool TryCompileBuiltInV2DpReplace(
         string icId,
         long baseCapacity,
-        IReadOnlyCollection<string> selectedInputSlotIds,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
         return TryCompilePublishedDynamicCapability(
                 icId,
                 IcWorkflowIds.DpReplace,

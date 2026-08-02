@@ -43,7 +43,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunDpReplace()
     {
-        return WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(SelectedIc)
+        bool selectionReady = WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(SelectedIc)
             ? ReplaceBaseSlot.HasFile &&
                 TryGetDpReplaceInputSelectionReadiness(
                     out InputSelectionReadinessSnapshot? readiness) &&
@@ -51,6 +51,8 @@ public sealed partial class MainWindowViewModel
             : ReplaceBaseSlot.HasFile &&
                 ReplaceSlots.Count > 0 &&
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile);
+        return selectionReady && ReplaceSlots.Where(static slot => slot.HasFile).All(static slot =>
+            slot.InputInspectionSeverity is not null && !slot.BlocksBuild);
     }
 
     private bool TryGetDpReplaceInputSelectionReadiness(

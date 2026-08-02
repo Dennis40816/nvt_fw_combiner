@@ -1,11 +1,12 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
 
-/// <summary>Verifies the owner-approved NT51950/NT51951 DP Replace rule against deterministic public synthetic oracles.</summary>
+/// <summary>Archives superseded short-input hashes and verifies exact-pair production admission rejects them.</summary>
 public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
 {
     private const int TpStart = 0x0A000;
@@ -13,9 +14,9 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Runs every public deterministic DP Replace oracle through the production V2 workbench workflow.</summary>
+    /// <summary>Preserves every historical hash without allowing the superseded short inputs into production.</summary>
     [Fact]
-    public async Task ReplaceWorkflowMatchesAllDeterministicOracleHashes()
+    public async Task HistoricalHashesRemainImmutableAndProductionRejectsShortInputs()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -29,6 +30,9 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             "dp-replace-owner-approved-legacy-comparison-v1",
             root.GetProperty("ownerApprovedLegacyComparison").GetProperty("evidenceId").GetString());
         Assert.Empty(root.GetProperty("ownerApprovedLegacyComparison").GetProperty("knownDeviations").EnumerateArray());
+        Assert.Equal(
+            "dp-replace-exact-pair-owner-decision-20260802",
+            root.GetProperty("productionAdmissionSupersession").GetProperty("evidenceId").GetString());
         int defaultReplacementLength = root.GetProperty("generator").GetProperty("replacementLengthBytes").GetInt32();
 
         foreach (JsonElement testCase in root.GetProperty("cases").EnumerateArray())
@@ -68,18 +72,9 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
                 TestContext.Current.CancellationToken,
                 outputPath);
 
-            Assert.True(result.Succeeded, $"{icId} 0x{capacity:X}: {result.Status}");
-            byte[] actualBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-            Assert.Equal(expectedBytes, actualBytes);
-            Assert.Equal(expectedHash, result.OutputSha256);
-            Assert.Equal(expectedHash, Sha256Hex(actualBytes));
-            using var report = JsonDocument.Parse(result.ReportJson);
-            Assert.Equal(
-                ["base.bin", "replacement-dp.bin"],
-                report.RootElement.GetProperty("Inputs")
-                    .EnumerateArray()
-                    .Select(static input => input.GetProperty("OriginalFileName").GetString())
-                    .Order(StringComparer.Ordinal));
+            Assert.False(result.Succeeded, $"{icId} 0x{capacity:X}: superseded short input was accepted");
+            Assert.False(File.Exists(outputPath), outputPath);
+            Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.ReportJson, StringComparison.Ordinal);
         }
     }
 

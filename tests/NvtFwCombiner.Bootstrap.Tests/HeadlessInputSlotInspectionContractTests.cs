@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
@@ -155,6 +156,211 @@ public sealed class HeadlessInputSlotInspectionContractTests
         Assert.Equal(AuthoringSlotLifecycle.Verified, status.InspectionLifecycle);
         Assert.Equal(ExperienceIds.DpReplace, status.WorkflowId);
         Assert.Equal(composition.CompilationFingerprint, status.CompilationFingerprint);
+    }
+
+    /// <summary>The desktop batch reads once and returns the same DP terminal warning contract.</summary>
+    [Fact]
+    public void DpReplaceBatchPublishesProfileWarningFromSingleRead()
+    {
+        ReloadCatalog();
+        byte[] uniformSource = new byte[0x40000];
+        var reads = new Dictionary<string, int>(StringComparer.Ordinal);
+        string slotAddressSpaceId = CompositionAddressSpaceIds.InitialCodeReplacement;
+
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                [
+                    new WorkbenchFirmwareInspectionInput(
+                        "reference",
+                        "reference.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new WorkbenchFirmwareInspectionInput(
+                        "dp-input",
+                        "dp.bin",
+                        DpReplaceAddressSpaceId: slotAddressSpaceId),
+                ],
+                path =>
+                {
+                    reads[path] = reads.GetValueOrDefault(path) + 1;
+                    return path == "reference.bin" ? new byte[0x40000] : uniformSource;
+                });
+
+        Assert.All(reads.Values, static count => Assert.Equal(1, count));
+        AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
+            results.Single(static result => result.InspectionId == "dp-input").Inspection.InputSlotStatus);
+        Assert.Equal(AuthoringSlotLifecycle.Warning, status.InspectionLifecycle);
+        Assert.Equal("DP_UNIFORM_CONTENT_WARNING", status.InspectionIssueCode);
+        Assert.False(status.BlocksBuild);
+    }
+
+    /// <summary>The reference can complete against the compiler-owned default minimum selection.</summary>
+    [Fact]
+    public void DpReplaceReferencePublishesTerminalDefaultCompilation()
+    {
+        ReloadCatalog();
+        byte[] reference = new byte[0x40000];
+        WorkbenchFirmwareInspectionResult result = Assert.Single(
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                [new WorkbenchFirmwareInspectionInput(
+                    "reference",
+                    "reference.bin",
+                    DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
+                _ => reference));
+
+        AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
+            result.Inspection.InputSlotStatus);
+        Assert.Equal(AuthoringSlotLifecycle.Verified, status.InspectionLifecycle);
+        Assert.NotNull(status.CompilationFingerprint);
+        Assert.False(status.BlocksBuild);
+    }
+
+    /// <summary>One DP selection change republishes every selected file under one compilation identity.</summary>
+    [Fact]
+    public void DpReplaceBatchPublishesOneCompilationFingerprint()
+    {
+        ReloadCatalog();
+        byte[] reference = new byte[0x40000];
+        byte[] initialCode = [.. Enumerable.Range(0, 0x40000).Select(static index => (byte)index)];
+        var reads = new Dictionary<string, int>(StringComparer.Ordinal);
+        WorkbenchFirmwareInspectionInput[] inputs =
+        [
+            new("reference", "reference.bin", DpReplaceAddressSpaceId:
+                CompositionAddressSpaceIds.ReferenceBase, AuthoringRevision: 6),
+            new("initial", "initial.bin", DpReplaceAddressSpaceId:
+                CompositionAddressSpaceIds.InitialCodeReplacement, AuthoringRevision: 6),
+        ];
+
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                inputs,
+                path =>
+                {
+                    reads[path] = reads.GetValueOrDefault(path) + 1;
+                    return path == "reference.bin" ? reference : initialCode;
+                });
+
+        AuthoringInputSlotStatus referenceStatus = Assert.IsType<AuthoringInputSlotStatus>(
+            results.Single(static result => result.InspectionId == "reference").Inspection.InputSlotStatus);
+        AuthoringInputSlotStatus initialStatus = Assert.IsType<AuthoringInputSlotStatus>(
+            results.Single(static result => result.InspectionId == "initial").Inspection.InputSlotStatus);
+        Assert.Equal(referenceStatus.CompilationFingerprint, initialStatus.CompilationFingerprint);
+        Assert.Equal(new AuthoringRevision(6), referenceStatus.AuthoringRevision);
+        Assert.Equal(referenceStatus.AuthoringRevision, initialStatus.AuthoringRevision);
+        Assert.Equal(AuthoringSlotLifecycle.Verified, referenceStatus.InspectionLifecycle);
+        Assert.Equal(AuthoringSlotLifecycle.Verified, initialStatus.InspectionLifecycle);
+        Assert.All(reads.Values, static count => Assert.Equal(1, count));
+    }
+
+    /// <summary>Unreadable selected input is terminal Error without a fabricated content identity.</summary>
+    [Fact]
+    public void DpReplaceUnreadableSourcePublishesTypedBlockingError()
+    {
+        ReloadCatalog();
+        var reads = new Dictionary<string, int>(StringComparer.Ordinal);
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                [
+                    new WorkbenchFirmwareInspectionInput(
+                        "reference",
+                        "reference.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new WorkbenchFirmwareInspectionInput(
+                        "dp-input",
+                        "missing.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
+                ],
+                path =>
+                {
+                    reads[path] = reads.GetValueOrDefault(path) + 1;
+                    return path == "reference.bin" ? new byte[0x40000] : null;
+                });
+
+        Assert.All(reads.Values, static count => Assert.Equal(1, count));
+        AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
+            results.Single(static result => result.InspectionId == "dp-input").Inspection.InputSlotStatus);
+        Assert.Equal(AuthoringSlotLifecycle.Error, status.InspectionLifecycle);
+        Assert.Equal("input.inspection.source-unreadable", status.InspectionIssueCode);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.SelectReadableInput,
+            status.InspectionNextAction);
+        Assert.True(status.BlocksBuild);
+        Assert.Null(status.FileStamp);
+        Assert.Null(status.Inspection);
+    }
+
+    /// <summary>An unreadable Reference blocks every selected slot before compilation without inventing health.</summary>
+    [Fact]
+    public void DpReplaceUnreadableReferencePublishesBlockedPreCompilationReadiness()
+    {
+        ReloadCatalog();
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                [
+                    new WorkbenchFirmwareInspectionInput(
+                        "reference",
+                        "missing-reference.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new WorkbenchFirmwareInspectionInput(
+                        "initial",
+                        "initial.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
+                ],
+                path => path == "initial.bin" ? new byte[0x40000] : null);
+
+        Assert.All(results, result =>
+        {
+            AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
+                result.Inspection.InputSlotStatus);
+            Assert.Equal(ResolvedChildReadiness.Blocked, status.Readiness);
+            Assert.False(status.CanSelect);
+            Assert.Equal(
+                InputArtifactInspectionIssueCodes.SourceUnreadable,
+                status.SelectionReadiness.IssueCode);
+            Assert.Equal(
+                InputSelectionNextActionKind.CorrectSelection,
+                status.ReadinessNextAction!.Kind);
+            Assert.Null(status.CompilationFingerprint);
+            Assert.Null(status.InspectionLifecycle);
+            Assert.Null(status.Inspection);
+        });
+    }
+
+    /// <summary>An unsupported Reference capacity remains typed readiness rather than an empty inspection result.</summary>
+    [Fact]
+    public void DpReplaceUnsupportedReferenceCapacityPublishesBlockedPreCompilationReadiness()
+    {
+        ReloadCatalog();
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51950",
+                [
+                    new WorkbenchFirmwareInspectionInput(
+                        "reference",
+                        "reference.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
+                    new WorkbenchFirmwareInspectionInput(
+                        "dp",
+                        "dp.bin",
+                        DpReplaceAddressSpaceId: CompositionAddressSpaceIds.DpReplacement),
+                ],
+                path => path == "reference.bin" ? new byte[0x60000] : new byte[0x40000]);
+
+        Assert.All(results, result =>
+        {
+            AuthoringInputSlotStatus status = Assert.IsType<AuthoringInputSlotStatus>(
+                result.Inspection.InputSlotStatus);
+            Assert.Equal(ResolvedChildReadiness.Blocked, status.Readiness);
+            Assert.Equal(
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                status.SelectionReadiness.IssueCode);
+            Assert.Null(status.CompilationFingerprint);
+            Assert.Null(status.InspectionLifecycle);
+        });
     }
 
     private static void ReloadCatalog()

@@ -89,7 +89,7 @@ passing.
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
 - Output naming is profile-owned and resolves the selected canonical IC plus accepted execution snapshots. AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form; its DP tokens use CMI Reg16h-18h facts and its TP tokens use validated FW version/sub-version bytes. Every mode uses the one UTC run-start date and the effective user override as its public output/report identity. An existing output may be atomically replaced only when it is not any selected input path. UI never infers version bytes from file names.
-- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
+- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The replacement DP must exactly equal that selected base capacity (`0x40000↔0x40000`, `0x80000↔0x80000`, or `0x100000↔0x100000`); shorter-input padding and cross-capacity pairs are not admitted. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
   reaches every required end offset may have an arbitrary total length; non-authoritative trailing
   bytes are ignored. An outer-length warning exists only when the profile explicitly declares
@@ -1507,7 +1507,13 @@ to each `0.10.x` version.
     authoring revision, slot definition identity, and file identity/stamp still
     match. A completed result projected against compiled input authority also
     matches the exact `CompilationFingerprint`; another compilation under the
-    same capability cannot retain terminal input health.
+    same capability cannot retain terminal input health. A typed unreadable
+    result instead matches the exact selected path and retains a null
+    `FileStamp`; selecting another path makes it stale. Background worker
+    generation is a separate cancellation/stale-suppression lifetime and never
+    substitutes for authoring revision. The #182 DP pilot's dedicated
+    Presentation revision adapter is deleted by #208 when all six desktop
+    workflows adopt their canonical `AuthoringSessionState` instances.
 27. Repeated file inputs use one typed `AuthoringSlotState`, normalization
     capability, validation projection, formatter, and visual control. The
     Application-owned per-slot result keeps prerequisite/selection readiness
@@ -1522,12 +1528,15 @@ to each `0.10.x` version.
     only that the immutable source satisfies the current compiled input
     contract; it does not claim POSTBUILD, CRC/Header, final output integrity,
     evidence, publication, or support.
-    Before a prerequisite permits one unique compilation, readiness binds the
-    reviewed dynamic route, resolution token, authoring revision, capability
-    fingerprint, and compiler-owned discovery slot while its compilation
-    fingerprint remains absent. A discovery map cannot masquerade as the
-    current compilation; `Checking` and every terminal inspection state require
-    the exact non-null `CompilationFingerprint`.
+    Before a prerequisite permits one unique compilation, readiness binds a
+    reviewed dynamic route or deterministic reviewed discovery capability, its
+    resolution token and capability fingerprint, the authoring revision, and a
+    compiler-owned discovery slot while its compilation fingerprint remains
+    absent. The discovery map cannot masquerade as the current compilation.
+    Unreadable prerequisites and compilation failures publish typed `Blocked`
+    readiness with `CorrectSelection`; they do not publish `Checking` or
+    terminal inspection health. `Checking` and every terminal inspection state
+    require the exact non-null `CompilationFingerprint`.
     The selected-file lifecycle is not stored in the immutable artifact
     definition. An explicit selection group may reference individually optional
     `zero-or-one` slots and own a minimum/maximum selected count across only the

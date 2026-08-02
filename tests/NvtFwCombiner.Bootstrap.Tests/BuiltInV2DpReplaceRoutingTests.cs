@@ -389,7 +389,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
-        Assert.Equal("45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c", details.Provenance.Bundle.ContentHash);
+        Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()
@@ -426,7 +426,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     {
         using var workspace = TempWorkspace.Create($"nfc-v2-dp-replace-{icId}-{baseCapacity:X}");
         string basePath = workspace.Write("base.bin", CreatePattern(baseCapacity, 0x31));
-        string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(baseCapacity - 0x1000, 0xA7));
+        string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(baseCapacity, 0xA7));
         var progress = new CompositionRunProgressFeed();
 
         WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceWithProgressAsync(

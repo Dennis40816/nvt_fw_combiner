@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.InputInspection;
@@ -21,6 +22,9 @@ public enum CompiledInputArtifactInspectionNextAction
 {
     /// <summary>No corrective action is required.</summary>
     None,
+
+    /// <summary>Select a readable local input source.</summary>
+    SelectReadableInput,
 
     /// <summary>Select an input that reaches the compiled required end.</summary>
     SelectCompatibleInput,
@@ -76,7 +80,8 @@ public static class CompiledInputArtifactInspectionService
             ResolveBinding(details.InputContract, addressSpaceId);
         AddressSpace addressSpace = composition.Plan.AddressSpaces.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.AddressSpaceId, binding.AddressSpaceId));
-        return slot.Normalization is CompiledTruncateCtrlRamInputNormalization truncation &&
+        CompiledInputArtifactInspectionResult inspection =
+            slot.Normalization is CompiledTruncateCtrlRamInputNormalization truncation &&
             slot.LengthRequirement is
                 CompiledBoundedInputLengthRequirement or
                 CompiledExactBytesInputLengthRequirement
@@ -89,6 +94,7 @@ public static class CompiledInputArtifactInspectionService
             : slot.LengthRequirement is CompiledSourceViewCoverageInputLengthRequirement sourceView
                 ? InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes)
                 : Inspect(details.InputContract, addressSpaceId, sourceBytes);
+        return ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
     }
 
     /// <summary>Inspects one immutable source using its complete compiled length contract.</summary>
@@ -169,6 +175,41 @@ public static class CompiledInputArtifactInspectionService
                 truncation.WarningIssueCode),
             sourceBytes);
         return Project(binding, slot, inspection);
+    }
+
+    private static CompiledInputArtifactInspectionResult ApplyInputLoadValidation(
+        CompiledComposition composition,
+        string addressSpaceId,
+        ReadOnlyMemory<byte> sourceBytes,
+        CompiledInputArtifactInspectionResult inspection)
+    {
+        if (inspection.BlocksBuild)
+        {
+            return inspection;
+        }
+
+        CompiledUniformInputRangeValidation? failed = composition.ValidationRequirements
+            .OfType<CompiledUniformInputRangeValidation>()
+            .Where(requirement => StringComparer.Ordinal.Equals(
+                requirement.AddressSpaceId,
+                addressSpaceId))
+            .Where(static requirement => requirement.Severity != CompiledValidationSeverity.Info)
+            .OrderByDescending(static requirement => requirement.Severity)
+            .FirstOrDefault(requirement =>
+                CompiledInputLoadValidationEvaluator.Evaluate(sourceBytes.Span, requirement) is not null);
+        bool blocksBuild = failed?.Severity == CompiledValidationSeverity.Error;
+        return failed is null || (!blocksBuild &&
+                inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid)
+            ? inspection
+            : inspection with
+            {
+                Severity = blocksBuild
+                    ? CompiledInputArtifactInspectionSeverity.Blocking
+                    : CompiledInputArtifactInspectionSeverity.Warning,
+                IssueCode = failed.IssueCode,
+                BlocksBuild = blocksBuild,
+                NextAction = CompiledInputArtifactInspectionNextAction.None,
+            };
     }
 
     private static CompiledInputArtifactInspectionResult Project(

@@ -311,6 +311,8 @@ internal static class WorkbenchAbMergeInputProjection
         return nextAction switch
         {
             CompiledInputArtifactInspectionNextAction.None => WorkbenchInputInspectionNextAction.None,
+            CompiledInputArtifactInspectionNextAction.SelectReadableInput =>
+                WorkbenchInputInspectionNextAction.SelectReadableInput,
             CompiledInputArtifactInspectionNextAction.SelectCompatibleInput =>
                 WorkbenchInputInspectionNextAction.SelectCompatibleInput,
             CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes =>

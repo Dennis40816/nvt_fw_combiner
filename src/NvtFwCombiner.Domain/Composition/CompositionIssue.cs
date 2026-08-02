@@ -49,6 +49,18 @@ public static class CompositionIssueSeverity
     /// <summary>Error diagnostic that blocks successful execution.</summary>
     public const string Error = "error";
 
+    /// <summary>Maps the closed compiled severity without string inference.</summary>
+    public static string FromCompiled(CompiledValidationSeverity severity)
+    {
+        return severity switch
+        {
+            CompiledValidationSeverity.Info => Info,
+            CompiledValidationSeverity.Warning => Warning,
+            CompiledValidationSeverity.Error => Error,
+            _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
+        };
+    }
+
     /// <summary>Returns true when <paramref name="severity"/> is a supported report severity.</summary>
     public static bool IsDefined(string severity)
     {

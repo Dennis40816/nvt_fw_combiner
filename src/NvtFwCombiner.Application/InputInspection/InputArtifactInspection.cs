@@ -43,10 +43,13 @@ internal enum InputArtifactInspectionNextAction
 }
 
 /// <summary>Stable generic issue codes emitted by the Application inspection substrate.</summary>
-internal static class InputArtifactInspectionIssueCodes
+public static class InputArtifactInspectionIssueCodes
 {
     /// <summary>The source matches one compiler-owned expected outer length.</summary>
     public const string Ready = "input.inspection.ready";
+
+    /// <summary>The selected source could not be materialized for inspection.</summary>
+    public const string SourceUnreadable = "input.inspection.source-unreadable";
 }
 
 /// <summary>Immutable content identity for a full selected source or accepted execution snapshot.</summary>

@@ -30,7 +30,7 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = 'd0429edbb15e3341bacf3fc166e49f7d92f8b43fa6485a5e1600304c98c2e4f4'
+$ApprovedPackageTrustIndexSha256 = 'ab70ce23bb3d8b8c5e12ea4d1662431c1ca4e9a429e7563ecf75e82015e80530'
 $ApprovedSupportPublicationPolicyPackageContracts = @(
     [pscustomobject]@{
         path = 'docs/contracts/support-publication-policy-v1.0.0.json'
@@ -46,7 +46,7 @@ $ApprovedSupportPublicationPolicyPackageContracts = @(
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '1a837139da8c68dd72692d030db5b5e0094a5e2005a1e4fb0dd2e63a1993f034'
+    sha256 = '0b901c0cdec2f4a90c3fca8c542293b9700c049956f7dba3480e16a5a8ceac23'
 }
 if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {
     throw 'At least one support publication policy package contract is required.'

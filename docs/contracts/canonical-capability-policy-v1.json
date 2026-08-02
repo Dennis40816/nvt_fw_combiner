@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.4.0",
-  "issuedOn": "2026-08-01",
+  "catalogVersion": "1.5.0",
+  "issuedOn": "2026-08-02",
   "routes": [
     {
       "icId": "NT51917",
@@ -1547,27 +1547,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51950-standard-merge-256k",
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
-      "capabilityFingerprint": "e0bc7cc8a654013950eb2784be2ebfaac6cd63f38cb1f08663f9439d79750ca8",
+      "capabilityFingerprint": "f94c179e4908a4c4214a08aedf8436714b0724cefb4dce91d29f19525de1ba6a",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "e0bc7cc8a654013950eb2784be2ebfaac6cd63f38cb1f08663f9439d79750ca8",
+        "capabilityFingerprint": "f94c179e4908a4c4214a08aedf8436714b0724cefb4dce91d29f19525de1ba6a",
         "value": "available",
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-publication-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-publication-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "e0bc7cc8a654013950eb2784be2ebfaac6cd63f38cb1f08663f9439d79750ca8",
+        "capabilityFingerprint": "f94c179e4908a4c4214a08aedf8436714b0724cefb4dce91d29f19525de1ba6a",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-evidence-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-evidence-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "e0bc7cc8a654013950eb2784be2ebfaac6cd63f38cb1f08663f9439d79750ca8",
+        "capabilityFingerprint": "f94c179e4908a4c4214a08aedf8436714b0724cefb4dce91d29f19525de1ba6a",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.7.0:nt51950-standard-merge-256k"
+        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.8.0:nt51950-standard-merge-256k"
       }
     },
     {
@@ -1576,27 +1576,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51950-standard-merge-512k",
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
-      "capabilityFingerprint": "3c672181c5c2a3ecaf498e35c2db9a5dd3f38f21d3d63d12f7dfec1cc7057e59",
+      "capabilityFingerprint": "98161a053e59e08ef521db349f27692046da04a490090b9c5f6ee4a3e2976cb8",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-authoring-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-authoring-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "3c672181c5c2a3ecaf498e35c2db9a5dd3f38f21d3d63d12f7dfec1cc7057e59",
+        "capabilityFingerprint": "98161a053e59e08ef521db349f27692046da04a490090b9c5f6ee4a3e2976cb8",
         "value": "available",
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-publication-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-publication-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "3c672181c5c2a3ecaf498e35c2db9a5dd3f38f21d3d63d12f7dfec1cc7057e59",
+        "capabilityFingerprint": "98161a053e59e08ef521db349f27692046da04a490090b9c5f6ee4a3e2976cb8",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-evidence-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-evidence-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "3c672181c5c2a3ecaf498e35c2db9a5dd3f38f21d3d63d12f7dfec1cc7057e59",
+        "capabilityFingerprint": "98161a053e59e08ef521db349f27692046da04a490090b9c5f6ee4a3e2976cb8",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.7.0:nt51950-standard-merge-512k"
+        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.8.0:nt51950-standard-merge-512k"
       }
     },
     {
@@ -1605,27 +1605,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51950-standard-merge-1024k",
       "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
-      "capabilityFingerprint": "857bda13cf1ea9bcf704dce7e76f027c8062da5e6a47aee07d23d1b3abf03ff8",
+      "capabilityFingerprint": "ac2d1dc3e9e2469aa48a10a276ed48796409c94dbecc24a5f25c14842dd8dda7",
       "authoring": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-authoring-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-authoring-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "857bda13cf1ea9bcf704dce7e76f027c8062da5e6a47aee07d23d1b3abf03ff8",
+        "capabilityFingerprint": "ac2d1dc3e9e2469aa48a10a276ed48796409c94dbecc24a5f25c14842dd8dda7",
         "value": "available",
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-publication-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-publication-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "857bda13cf1ea9bcf704dce7e76f027c8062da5e6a47aee07d23d1b3abf03ff8",
+        "capabilityFingerprint": "ac2d1dc3e9e2469aa48a10a276ed48796409c94dbecc24a5f25c14842dd8dda7",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-evidence-v1",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-evidence-v2",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "857bda13cf1ea9bcf704dce7e76f027c8062da5e6a47aee07d23d1b3abf03ff8",
+        "capabilityFingerprint": "ac2d1dc3e9e2469aa48a10a276ed48796409c94dbecc24a5f25c14842dd8dda7",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.7.0:nt51950-standard-merge-1024k"
+        "sourceReference": "built-in-v2:nt51950-dp-replace-dp-perspective@0.8.0:nt51950-standard-merge-1024k"
       }
     },
     {
@@ -1663,25 +1663,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51950-standard-merge-256k",
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
-      "capabilityFingerprint": "afd3dc62e9b53abb00eb3cfc265e1adfd1c31ef1de1e728e08eee4506bb04dd7",
+      "capabilityFingerprint": "e0efe8e85205cc31461d11cae43e41a5297bc83273fd315116538aef493674e4",
       "authoring": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "afd3dc62e9b53abb00eb3cfc265e1adfd1c31ef1de1e728e08eee4506bb04dd7",
+        "capabilityFingerprint": "e0efe8e85205cc31461d11cae43e41a5297bc83273fd315116538aef493674e4",
         "value": "available",
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-publication-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-publication-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "afd3dc62e9b53abb00eb3cfc265e1adfd1c31ef1de1e728e08eee4506bb04dd7",
+        "capabilityFingerprint": "e0efe8e85205cc31461d11cae43e41a5297bc83273fd315116538aef493674e4",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-evidence-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-evidence-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
-        "capabilityFingerprint": "afd3dc62e9b53abb00eb3cfc265e1adfd1c31ef1de1e728e08eee4506bb04dd7",
+        "capabilityFingerprint": "e0efe8e85205cc31461d11cae43e41a5297bc83273fd315116538aef493674e4",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51950-standard-merge-dp-perspective@0.6.0:nt51950-standard-merge-256k"
       }
@@ -1692,25 +1692,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51950-standard-merge-512k",
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
-      "capabilityFingerprint": "5f0b4b916b2c88f341bbf7de466a69f720a88e3f4d422fd7d49ee01e3d2be167",
+      "capabilityFingerprint": "ec6ba56e2342e89efb42d20e74fc8386fd40b401ba697eb4d7d335dce5dbd2cf",
       "authoring": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-authoring-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-authoring-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "5f0b4b916b2c88f341bbf7de466a69f720a88e3f4d422fd7d49ee01e3d2be167",
+        "capabilityFingerprint": "ec6ba56e2342e89efb42d20e74fc8386fd40b401ba697eb4d7d335dce5dbd2cf",
         "value": "available",
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-publication-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-publication-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "5f0b4b916b2c88f341bbf7de466a69f720a88e3f4d422fd7d49ee01e3d2be167",
+        "capabilityFingerprint": "ec6ba56e2342e89efb42d20e74fc8386fd40b401ba697eb4d7d335dce5dbd2cf",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-evidence-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-evidence-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
-        "capabilityFingerprint": "5f0b4b916b2c88f341bbf7de466a69f720a88e3f4d422fd7d49ee01e3d2be167",
+        "capabilityFingerprint": "ec6ba56e2342e89efb42d20e74fc8386fd40b401ba697eb4d7d335dce5dbd2cf",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51950-standard-merge-dp-perspective@0.6.0:nt51950-standard-merge-512k"
       }
@@ -1721,25 +1721,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51950-standard-merge-1024k",
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
-      "capabilityFingerprint": "78c557832823eedc704f6890d3cfc52a6c6e17cc44bc89e9a300f13a87e16448",
+      "capabilityFingerprint": "4da6190786b8992722ff0a53df363dc5fb8f3fca6b0787b30166f7a21c4bff97",
       "authoring": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-authoring-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-authoring-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "78c557832823eedc704f6890d3cfc52a6c6e17cc44bc89e9a300f13a87e16448",
+        "capabilityFingerprint": "4da6190786b8992722ff0a53df363dc5fb8f3fca6b0787b30166f7a21c4bff97",
         "value": "available",
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-publication-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-publication-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "78c557832823eedc704f6890d3cfc52a6c6e17cc44bc89e9a300f13a87e16448",
+        "capabilityFingerprint": "4da6190786b8992722ff0a53df363dc5fb8f3fca6b0787b30166f7a21c4bff97",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-evidence-v1",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-evidence-v2",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
-        "capabilityFingerprint": "78c557832823eedc704f6890d3cfc52a6c6e17cc44bc89e9a300f13a87e16448",
+        "capabilityFingerprint": "4da6190786b8992722ff0a53df363dc5fb8f3fca6b0787b30166f7a21c4bff97",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51950-standard-merge-dp-perspective@0.6.0:nt51950-standard-merge-1024k"
       }
@@ -1924,27 +1924,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51951-standard-merge-256k",
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
-      "capabilityFingerprint": "6acdd042c779a231836d030947d1609bc01a3d86539f3a81719797b02b0cc120",
+      "capabilityFingerprint": "4ba96d55f29fabccfd08b9d3b9fd30f6be3ef36093b878d7faa435e95d98819b",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "6acdd042c779a231836d030947d1609bc01a3d86539f3a81719797b02b0cc120",
+        "capabilityFingerprint": "4ba96d55f29fabccfd08b9d3b9fd30f6be3ef36093b878d7faa435e95d98819b",
         "value": "available",
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-publication-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-publication-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "6acdd042c779a231836d030947d1609bc01a3d86539f3a81719797b02b0cc120",
+        "capabilityFingerprint": "4ba96d55f29fabccfd08b9d3b9fd30f6be3ef36093b878d7faa435e95d98819b",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-evidence-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-evidence-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "6acdd042c779a231836d030947d1609bc01a3d86539f3a81719797b02b0cc120",
+        "capabilityFingerprint": "4ba96d55f29fabccfd08b9d3b9fd30f6be3ef36093b878d7faa435e95d98819b",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.7.0:nt51951-standard-merge-256k"
+        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.8.0:nt51951-standard-merge-256k"
       }
     },
     {
@@ -1953,27 +1953,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51951-standard-merge-512k",
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
-      "capabilityFingerprint": "f5dd59055dead82ae1f3955f30434065a417821b50f2b4e7e465353c5d6f4043",
+      "capabilityFingerprint": "4142d30478d82e68d68b32445d02840f7d0344361879533824418f85ae8f41a4",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-authoring-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-authoring-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "f5dd59055dead82ae1f3955f30434065a417821b50f2b4e7e465353c5d6f4043",
+        "capabilityFingerprint": "4142d30478d82e68d68b32445d02840f7d0344361879533824418f85ae8f41a4",
         "value": "available",
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-publication-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-publication-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "f5dd59055dead82ae1f3955f30434065a417821b50f2b4e7e465353c5d6f4043",
+        "capabilityFingerprint": "4142d30478d82e68d68b32445d02840f7d0344361879533824418f85ae8f41a4",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-evidence-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-evidence-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "f5dd59055dead82ae1f3955f30434065a417821b50f2b4e7e465353c5d6f4043",
+        "capabilityFingerprint": "4142d30478d82e68d68b32445d02840f7d0344361879533824418f85ae8f41a4",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.7.0:nt51951-standard-merge-512k"
+        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.8.0:nt51951-standard-merge-512k"
       }
     },
     {
@@ -1982,27 +1982,27 @@
       "icCountVariant": "1-ic",
       "mapVariant": "nt51951-standard-merge-1024k",
       "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
-      "capabilityFingerprint": "f2f8c05d5927dc0de8fa9514db43a1cc863a8d79a3a11388ebf51c4ceb80630a",
+      "capabilityFingerprint": "bc561dd8ac2bd59e3ef46695bb78e00319b09af1bfe5ad5e07c88d5b3bbe9694",
       "authoring": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-authoring-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-authoring-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "f2f8c05d5927dc0de8fa9514db43a1cc863a8d79a3a11388ebf51c4ceb80630a",
+        "capabilityFingerprint": "bc561dd8ac2bd59e3ef46695bb78e00319b09af1bfe5ad5e07c88d5b3bbe9694",
         "value": "available",
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-publication-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-publication-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "f2f8c05d5927dc0de8fa9514db43a1cc863a8d79a3a11388ebf51c4ceb80630a",
+        "capabilityFingerprint": "bc561dd8ac2bd59e3ef46695bb78e00319b09af1bfe5ad5e07c88d5b3bbe9694",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-evidence-v1",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-evidence-v2",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "f2f8c05d5927dc0de8fa9514db43a1cc863a8d79a3a11388ebf51c4ceb80630a",
+        "capabilityFingerprint": "bc561dd8ac2bd59e3ef46695bb78e00319b09af1bfe5ad5e07c88d5b3bbe9694",
         "value": "contract-only",
-        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.7.0:nt51951-standard-merge-1024k"
+        "sourceReference": "built-in-v2:nt51951-dp-replace-dp-perspective@0.8.0:nt51951-standard-merge-1024k"
       }
     },
     {
@@ -2040,25 +2040,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51951-standard-merge-256k",
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
-      "capabilityFingerprint": "0fdeb45be182ba369193e6b37723a51fa33bbad268687d2e95a02078bcef01de",
+      "capabilityFingerprint": "bcc7a1d7b7b15dcba2b355f83f1f448af75bd76cd107e18402ee277e75de51e9",
       "authoring": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-authoring-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-authoring-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "0fdeb45be182ba369193e6b37723a51fa33bbad268687d2e95a02078bcef01de",
+        "capabilityFingerprint": "bcc7a1d7b7b15dcba2b355f83f1f448af75bd76cd107e18402ee277e75de51e9",
         "value": "available",
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-publication-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-publication-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "0fdeb45be182ba369193e6b37723a51fa33bbad268687d2e95a02078bcef01de",
+        "capabilityFingerprint": "bcc7a1d7b7b15dcba2b355f83f1f448af75bd76cd107e18402ee277e75de51e9",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-evidence-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-evidence-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
-        "capabilityFingerprint": "0fdeb45be182ba369193e6b37723a51fa33bbad268687d2e95a02078bcef01de",
+        "capabilityFingerprint": "bcc7a1d7b7b15dcba2b355f83f1f448af75bd76cd107e18402ee277e75de51e9",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51951-standard-merge-dp-perspective@0.6.0:nt51951-standard-merge-256k"
       }
@@ -2069,25 +2069,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51951-standard-merge-512k",
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
-      "capabilityFingerprint": "c39b192ec996782dbb7840f170e571d69fb1919c9b634c456c867ca8f38ae43b",
+      "capabilityFingerprint": "0b3dc38a75c2cd57fa9a5842e5e08929058cf2752dcdd893d279386b821b1b9a",
       "authoring": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-authoring-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-authoring-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "c39b192ec996782dbb7840f170e571d69fb1919c9b634c456c867ca8f38ae43b",
+        "capabilityFingerprint": "0b3dc38a75c2cd57fa9a5842e5e08929058cf2752dcdd893d279386b821b1b9a",
         "value": "available",
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-publication-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-publication-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "c39b192ec996782dbb7840f170e571d69fb1919c9b634c456c867ca8f38ae43b",
+        "capabilityFingerprint": "0b3dc38a75c2cd57fa9a5842e5e08929058cf2752dcdd893d279386b821b1b9a",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-evidence-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-evidence-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
-        "capabilityFingerprint": "c39b192ec996782dbb7840f170e571d69fb1919c9b634c456c867ca8f38ae43b",
+        "capabilityFingerprint": "0b3dc38a75c2cd57fa9a5842e5e08929058cf2752dcdd893d279386b821b1b9a",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51951-standard-merge-dp-perspective@0.6.0:nt51951-standard-merge-512k"
       }
@@ -2098,25 +2098,25 @@
       "icCountVariant": "selector-free",
       "mapVariant": "nt51951-standard-merge-1024k",
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
-      "capabilityFingerprint": "08bdb7e9552238808ded7833713edce2d301af3d689178877e610ca9acd16843",
+      "capabilityFingerprint": "75ea5dae12fc68c13ba5a9fd188c269620347263e5a8b71a5e8b7379dbb59016",
       "authoring": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-authoring-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-authoring-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "08bdb7e9552238808ded7833713edce2d301af3d689178877e610ca9acd16843",
+        "capabilityFingerprint": "75ea5dae12fc68c13ba5a9fd188c269620347263e5a8b71a5e8b7379dbb59016",
         "value": "available",
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-publication-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-publication-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "08bdb7e9552238808ded7833713edce2d301af3d689178877e610ca9acd16843",
+        "capabilityFingerprint": "75ea5dae12fc68c13ba5a9fd188c269620347263e5a8b71a5e8b7379dbb59016",
         "value": "unclassified",
         "sourceReference": "support-matrix:unclassified"
       },
       "evidence": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-evidence-v1",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-evidence-v2",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
-        "capabilityFingerprint": "08bdb7e9552238808ded7833713edce2d301af3d689178877e610ca9acd16843",
+        "capabilityFingerprint": "75ea5dae12fc68c13ba5a9fd188c269620347263e5a8b71a5e8b7379dbb59016",
         "value": "contract-only",
         "sourceReference": "built-in-v2:nt51951-standard-merge-dp-perspective@0.6.0:nt51951-standard-merge-1024k"
       }

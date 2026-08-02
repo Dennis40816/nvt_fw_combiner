@@ -33,10 +33,17 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        FirmwareInspectionRequestContext context = CreateFirmwareInspectionRequestContext();
+        if (context.IsDpReplace)
+        {
+            await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
+            return;
+        }
+
         IReadOnlyList<FirmwareInspectionItemRequest> items = FirmwareInspectionRequestFactory.CreateSelectionItems(
             slot,
             preservePendingCtrlRamBase,
-            CreateFirmwareInspectionRequestContext());
+            context);
         FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, cancellationToken);
         await FirmwareInspectionRefreshTask;
     }
@@ -64,6 +71,7 @@ public sealed partial class MainWindowViewModel
             _mergeTpSlot,
             ReplaceBaseSlot,
             IsCtrlRamReplaceModeSelected,
+            IsReplaceVisible && SelectedReplaceMode == DpReplaceMode,
             IsNumberSelectorVisible,
             SelectedNumber,
             IsAbCodeMergeModeSelected,
@@ -86,13 +94,14 @@ public sealed partial class MainWindowViewModel
         long generation = _firmwareInspectionSession.NextGeneration();
         var request = new FirmwareInspectionBatchRequest(
             generation,
+            _firmwareInspectionSession.CurrentAuthoringRevision,
             SelectedIc,
             SelectedNumber,
             SelectedMergeMode,
             SelectedReplaceMode,
             items);
         foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null))
+                     item.AbMergeAddressSpaceId is not null || item.DpReplaceAddressSpaceId is not null))
         {
             FindSlot(item.SlotId)?.SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
         }
@@ -115,8 +124,8 @@ public sealed partial class MainWindowViewModel
             }
             else if (generation == _firmwareInspectionSession.CurrentGeneration &&
                 !result.IsFileIdentityStable &&
-                FirmwareInspectionProjection.ApplyStaleAbInputInspection(
-                    MergeSlots,
+                FirmwareInspectionProjection.ApplyStaleInputInspection(
+                    MergeSlots.Concat(ReplaceSlots),
                     request,
                     result,
                     Text))
@@ -128,6 +137,13 @@ public sealed partial class MainWindowViewModel
         {
             if (generation == _firmwareInspectionSession.CurrentGeneration)
             {
+                foreach (FirmwareInspectionItemRequest item in items)
+                {
+                    if (FindSlot(item.SlotId) is { IsInputInspectionPending: true } pending)
+                    {
+                        pending.ClearInputInspection();
+                    }
+                }
                 NotifySlotFileOutputNames();
                 SetFirmwareInspectionLoading(false);
             }
@@ -172,6 +188,11 @@ public sealed partial class MainWindowViewModel
                         inspection,
                         includeBaseFacts: item.SlotKind == FirmwareSlotKind.Base,
                         text: Text));
+            }
+
+            if (inspection.InputSlotStatus is { } inputSlotStatus)
+            {
+                FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
             }
 
             if (item.PromptForMismatch)
@@ -223,11 +244,13 @@ public sealed partial class MainWindowViewModel
         return RefreshSelectedFirmwareInspectionsAsync(MergeSlots, includeEverySelectedSlot: true);
     }
 
-    internal Task RefreshSelectedReplaceFirmwareInspectionsAsync()
+    internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(
+        string? applyVerifiedContextSlotId = null)
     {
         return RefreshSelectedFirmwareInspectionsAsync(
             ReplaceSlots.Concat([ReplaceBaseSlot]),
-            includeEverySelectedSlot: true);
+            includeEverySelectedSlot: true,
+            applyVerifiedContextSlotId);
     }
 
     internal Task RefreshAllSelectedFirmwareInspectionsAsync(string? applyVerifiedContextSlotId = null)
@@ -326,7 +349,11 @@ public sealed partial class MainWindowViewModel
         _firmwareInspectionSession.Invalidate(clearBaseCache, clearFileProjections);
         if (clearFileProjections)
         {
-            foreach (FirmwareSlotViewModel slot in _abMergeSlotsByAddressSpace.Values)
+            foreach (FirmwareSlotViewModel slot in MergeSlots
+                         .Concat(ReplaceSlots)
+                         .Concat([ReplaceBaseSlot])
+                         .Concat(_abMergeSlotsByAddressSpace.Values)
+                         .Distinct())
             {
                 slot.ClearInputInspection();
             }

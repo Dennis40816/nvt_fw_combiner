@@ -56,7 +56,8 @@ public sealed record InputSelectionMemberReadiness(
     ResolvedChildReadiness Readiness,
     bool CanSelect,
     string? Reason,
-    InputSelectionNextAction? NextAction);
+    InputSelectionNextAction? NextAction,
+    string? IssueCode = null);
 
 /// <summary>Resolved state and cardinality for one canonical input-selection group.</summary>
 public sealed record InputSelectionGroupReadiness(

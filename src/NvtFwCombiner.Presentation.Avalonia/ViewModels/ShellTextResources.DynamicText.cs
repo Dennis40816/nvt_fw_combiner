@@ -1,6 +1,7 @@
 // Resource bags intentionally expose many concise bindable labels; XML comments on each label add noise.
 #pragma warning disable CS1591
 
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
@@ -170,6 +171,30 @@ public sealed partial class ShellTextResources
                 $"Ready: compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix verified.",
                 $"Ready：已驗證 compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix。"),
             _ => throw new InvalidOperationException($"Unsupported AB input next action '{issue.NextAction}'."),
+        };
+    }
+
+    public string GetInputSlotInspectionStatus(AuthoringInputSlotStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        return status.InspectionLifecycle switch
+        {
+            AuthoringSlotLifecycle.Error when status.FileStamp is null => SelectLanguage(
+                "Error: this BIN could not be read. Select a readable local file.",
+                "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),
+            AuthoringSlotLifecycle.Error => SelectLanguage(
+                "Error: the selected BIN does not satisfy the compiled input contract.",
+                "錯誤：所選 BIN 不符合 compiled input contract。"),
+            AuthoringSlotLifecycle.Warning => SelectLanguage(
+                $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
+                $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),
+            AuthoringSlotLifecycle.Verified => SelectLanguage(
+                "Ready: the selected BIN satisfies the compiled input contract.",
+                "Ready：所選 BIN 符合 compiled input contract。"),
+            AuthoringSlotLifecycle.Empty or AuthoringSlotLifecycle.Selected or
+            AuthoringSlotLifecycle.Checking or null => throw new ArgumentException(
+                "Only terminal slot health can be displayed.", nameof(status)),
+            _ => throw new ArgumentOutOfRangeException(nameof(status)),
         };
     }
 
