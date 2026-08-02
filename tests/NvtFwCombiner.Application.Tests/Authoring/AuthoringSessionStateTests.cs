@@ -4,7 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests isolated, host-independent authoring-session transitions.</summary>
-public sealed class AuthoringSessionStateTests
+public sealed partial class AuthoringSessionStateTests
 {
     /// <summary>Entering DP Replace publishes its own catalog without inheriting AB-only state.</summary>
     [Fact]
@@ -564,6 +564,11 @@ public sealed class AuthoringSessionStateTests
             new AuthoringDerivedPublication(
                 (AuthoringDerivedResultKind)999,
                 "invalid"));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new AuthoringDerivedPublication(
+                AuthoringDerivedResultKind.Inspection,
+                "invalid-compilation",
+                "not-a-sha256"));
         _ = Assert.Throws<ArgumentOutOfRangeException>(
             SessionWithInvalidResultKind);
 

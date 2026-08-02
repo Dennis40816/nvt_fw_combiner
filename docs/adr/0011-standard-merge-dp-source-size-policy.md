@@ -1,8 +1,11 @@
 # ADR 0011: Extract Declared DP Ranges From Nonstandard Standard Merge Inputs
 
-- Status: Accepted with firmware-owner review gate
+- Status: Partially superseded by ADR 0045 for the workflow-specific
+  `ExtractDeclaredRange` restriction; generic source-view behavior, warning
+  policy, and firmware-owner evidence gates remain accepted
 - Date: 2026-07-10
 - Amended: 2026-07-30 by ADR 0045 for canonical source-view coverage
+- Amended by: ADR 0045
 - Owners: Product owner + firmware owner + architecture owner
 
 ## Context

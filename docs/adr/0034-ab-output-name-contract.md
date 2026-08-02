@@ -1,9 +1,12 @@
 # ADR 0034: Render AB output names from execution snapshots
 
-- Status: Superseded by [ADR 0036](0036-output-destination-and-ab-naming-v2.md) on 2026-07-23
+- Status: Partially superseded by [ADR 0036](0036-output-destination-and-ab-naming-v2.md)
+  for automatic-name and collision behavior; immutable snapshot/token/report
+  provenance requirements remain accepted
 - Date: 2026-07-23
 - Owners: Product owner, architecture owner, firmware owner
 - Supersedes: The token-free AB output defaults in the `v0.9.14` pilot profiles
+- Partially superseded by: ADR 0036 on 2026-07-23
 
 ## Context
 

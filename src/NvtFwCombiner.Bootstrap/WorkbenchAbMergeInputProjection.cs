@@ -1,5 +1,8 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -7,6 +10,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class WorkbenchAbMergeInputProjection
 {
+    private static readonly AuthoringRevision s_nonPublishableCompatibilityRevision = new(1);
     private const string AbDpRole = "dp-ab";
     private const string AbTpARole = "tp-a";
     private const string AbTpBRole = "tp-b";
@@ -63,11 +67,26 @@ internal static class WorkbenchAbMergeInputProjection
                 UnknownVersions(slot.Role));
         }
 
-        CompiledInputArtifactInspectionResult inspected =
-            CompiledInputArtifactInspectionService.Inspect(
-                composition,
-                addressSpaceId,
-                image);
+        ResolvedCapability capability = WorkbenchCompositionService
+            .ResolveCanonicalCapabilityForRun(composition) ??
+            throw new InvalidOperationException(
+                "AB input inspection requires the current canonical capability publication.");
+        var selectionReadiness = new InputSelectionMemberReadiness(
+            slot.SlotId,
+            IsSelected: true,
+            ResolvedChildReadiness.Ready,
+            CanSelect: true,
+            Reason: null,
+            NextAction: null);
+        // This one-way compatibility projection never returns or publishes shared authoring state.
+        // #208 supplies the real session revision when desktop callers consume the shared result.
+        AuthoringInputSlotStatus shared = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            s_nonPublishableCompatibilityRevision,
+            selectionReadiness,
+            addressSpaceId,
+            image);
+        CompiledInputArtifactInspectionResult inspected = shared.Inspection!;
         List<WorkbenchAbVersionValue> versions = ReadVersions(composition, slot.Role, image, inspected);
         List<WorkbenchInputInspectionIssue> issues =
         [

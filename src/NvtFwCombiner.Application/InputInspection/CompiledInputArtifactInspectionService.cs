@@ -74,14 +74,21 @@ public static class CompiledInputArtifactInspectionService
         V2CompiledCompositionDetails details = composition.V2Details;
         (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
             ResolveBinding(details.InputContract, addressSpaceId);
-        if (slot.LengthRequirement is not CompiledSourceViewCoverageInputLengthRequirement sourceView)
-        {
-            return Inspect(details.InputContract, addressSpaceId, sourceBytes);
-        }
-
         AddressSpace addressSpace = composition.Plan.AddressSpaces.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.AddressSpaceId, binding.AddressSpaceId));
-        return InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes);
+        return slot.Normalization is CompiledTruncateCtrlRamInputNormalization truncation &&
+            slot.LengthRequirement is
+                CompiledBoundedInputLengthRequirement or
+                CompiledExactBytesInputLengthRequirement
+            ? InspectTruncatedCtrlRam(
+                binding,
+                slot,
+                truncation,
+                addressSpace,
+                sourceBytes)
+            : slot.LengthRequirement is CompiledSourceViewCoverageInputLengthRequirement sourceView
+                ? InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes)
+                : Inspect(details.InputContract, addressSpaceId, sourceBytes);
     }
 
     /// <summary>Inspects one immutable source using its complete compiled length contract.</summary>
@@ -136,6 +143,39 @@ public static class CompiledInputArtifactInspectionService
                 requirement.UnexpectedOuterLengthIssueCode),
             sourceBytes);
 
+        return Project(binding, slot, inspection);
+    }
+
+    private static CompiledInputArtifactInspectionResult InspectTruncatedCtrlRam(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        CompiledTruncateCtrlRamInputNormalization truncation,
+        AddressSpace addressSpace,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        if (slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.TruncateWithWarning)
+        {
+            throw new ArgumentException(
+                "CtrlRAM prefix inspection requires the compiled CtrlRAM truncation contract.",
+                nameof(addressSpace));
+        }
+
+        InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
+            new DeclaredPrefixInputInspectionPolicy(
+                addressSpace.Length,
+                [addressSpace.Length],
+                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                truncation.WarningIssueCode),
+            sourceBytes);
+        return Project(binding, slot, inspection);
+    }
+
+    private static CompiledInputArtifactInspectionResult Project(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        InputArtifactInspection inspection)
+    {
         return new CompiledInputArtifactInspectionResult(
             binding.AddressSpaceId,
             slot.SlotId,

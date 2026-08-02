@@ -1,13 +1,14 @@
 # ADR 0043: Resolve NT51928 dual-capacity composition through one capability and selection groups
 
-- Status: Accepted
+- Status: Accepted; slot-readiness semantics amended by ADR 0048
 - Date: 2026-07-28
 - Accepted: 2026-07-28 by the product, architecture, and firmware owner
 - Owners: Product owner + architecture owner + firmware owner
 - Risk: R2 architecture contract; NT51928 profile and byte migrations remain R3
 - Builds on: ADR 0015, ADR 0020, ADR 0041
 - Amended by: ADR 0045 for source projection and FlashCode admission; ADR 0046
-  for capability-definition versus per-compilation identity and evidence status
+  for capability-definition versus per-compilation identity and evidence
+  status; ADR 0048 for dependent selection readiness
 
 ## Context
 
@@ -72,10 +73,13 @@ outside a selected operation remains byte-identical to Reference.
 
 For a `0x40000` Reference, the LDC slot remains visible but resolves to
 `NotApplicable` with the reason `Reference length does not include LDC`.
-Before Reference inspection it is `PendingInput` and asks the operator to load
-Reference to determine LDC applicability. Changing from an `0x80000` Reference
-to `0x40000` increments the authoring revision, invalidates stale derived
-results, and rejects any stale or manually constructed LDC binding.
+Before Reference inspection, both dependent replacement members are
+`PendingInput`, return `CanSelect = false`, and ask the operator to load
+Reference. After Reference inspection, the `0x40000` variant enables Initial
+Code as the sole applicable required member while LDC becomes `NotApplicable`;
+the `0x80000` variant enables both members under the declared group. Changing
+variants increments the authoring revision, invalidates stale derived results,
+and rejects any stale or manually constructed binding.
 
 ### Replacement selection group
 
@@ -98,10 +102,12 @@ evaluated after map applicability:
   applicable member and must be selected;
 - on the `0x80000` variant, either member or both satisfy the group.
 
-A supplied path selects a member before validation. Invalid selected content
-cannot be silently treated as absent. Application owns the one readiness result
-consumed by UI and CLI. The group participates in capability fingerprinting but
-does not create a route identity.
+A supplied path selects an enabled member before validation. Invalid selected
+content cannot be silently treated as absent. Application owns the one
+readiness result consumed by UI and CLI. The group definition and allowed
+variants participate in `CapabilityFingerprint`; the actual resolved variant
+and selected members participate in `CompilationFingerprint`; neither creates
+another route identity.
 
 This rule applies only to explicitly declared selection groups. It does not
 make unrelated multi-input workflows optional; Standard Merge DP and TP remain

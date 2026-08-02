@@ -1,4 +1,4 @@
-# ADR 0044: Application owns General occupancy and resource admission
+# ADR 0047: Application owns General occupancy and resource admission
 
 - Status: Accepted
 - Date: 2026-07-30

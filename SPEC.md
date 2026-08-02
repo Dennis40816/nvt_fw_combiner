@@ -1500,18 +1500,39 @@ version.
     Editor documents have separate lifetimes.
 26. An asynchronous result may publish only when its resolution token,
     authoring revision, slot definition identity, and file identity/stamp still
-    match.
-27. Repeated file inputs use one typed `AuthoringSlotState`, inspection
-    lifecycle, normalization capability, validation projection, formatter, and
-    visual control. The selected-file lifecycle is not stored in the immutable
-    artifact definition. An explicit selection group may reference individually
-    optional `zero-or-one` slots and own a minimum/maximum selected count across
-    only the members applicable to the resolved map. NT51928 DP Replace groups
-    Initial Code and LDC with selected count `1..2`; a `0x40000` Reference makes
-    LDC `NotApplicable`, leaves Initial Code as the sole required selection,
-    and keeps the visible LDC slot annotated `Reference length does not include
-    LDC`. Before Reference inspection that slot is `PendingInput`. Switching
-    Reference variants revises the session and rejects stale/manual LDC
+    match. A completed result projected against compiled input authority also
+    matches the exact `CompilationFingerprint`; another compilation under the
+    same capability cannot retain terminal input health.
+27. Repeated file inputs use one typed `AuthoringSlotState`, normalization
+    capability, validation projection, formatter, and visual control. The
+    Application-owned per-slot result keeps prerequisite/selection readiness
+    (`NotApplicable`, `PendingInput`, `Blocked`, or `Ready`) independent from
+    selected-artifact inspection health (`Checking`, `Verified`, `Warning`, or
+    `Error`). `PendingInput` identifies the exact prerequisite, returns a typed
+    `LoadArtifactFirst` action, and sets `CanSelect = false` for an independent
+    dependent-slot transition. An atomic headless request may supply both
+    prerequisite and dependent artifacts and is evaluated order-independently.
+    `Checking` is transient: a current selected artifact reaches `Verified`,
+    `Warning`, or `Error`, or its stale result is rejected. `Verified` means
+    only that the immutable source satisfies the current compiled input
+    contract; it does not claim POSTBUILD, CRC/Header, final output integrity,
+    evidence, publication, or support.
+    Before a prerequisite permits one unique compilation, readiness binds the
+    reviewed dynamic route, resolution token, authoring revision, capability
+    fingerprint, and compiler-owned discovery slot while its compilation
+    fingerprint remains absent. A discovery map cannot masquerade as the
+    current compilation; `Checking` and every terminal inspection state require
+    the exact non-null `CompilationFingerprint`.
+    The selected-file lifecycle is not stored in the immutable artifact
+    definition. An explicit selection group may reference individually optional
+    `zero-or-one` slots and own a minimum/maximum selected count across only the
+    members applicable to the resolved map. NT51928 DP Replace groups Initial
+    Code and LDC with selected count `1..2`; before Reference inspection both
+    dependent members are `PendingInput` with selection disabled. A `0x40000`
+    Reference enables Initial Code as the sole required member, makes LDC
+    `NotApplicable`, and keeps the visible LDC slot annotated `Reference length
+    does not include LDC`; a `0x80000` Reference enables both group members.
+    Switching Reference variants revises the session and rejects stale/manual
     bindings.
     Canonical public, profile, CLI, report, and UI terminology is `LDC`;
     new contracts do not introduce `LD` aliases.
@@ -1590,6 +1611,15 @@ version.
     Preview, and Build Report but does not alter map resolution, selection,
     execution admission, or output bytes. The rule is explicit per profile and
     is never inferred globally from artifact class, filename, or hash.
+    Standard Merge, AB Merge, DP Replace, and CtrlRAM Replace publish this
+    terminal inspection health through the same Application result and reuse
+    the compiler-owned input contract. Existing AB valid/warning/blocking
+    behavior is migrated rather than copied. CtrlRAM's concrete binding length
+    plus `truncate-ctrlram` normalization provides declared-prefix behavior: a
+    short binding blocks and accepted ignored trailing bytes warn; that source
+    health remains separate from POSTBUILD/runtime dependency readiness.
+    Presentation and CLI consume the typed result and never derive a
+    Base-first, TP-first, IC, map, topology, length, or validation rule.
 
 Runtime readiness is valid only for the exact tuple `(RouteId,
 CapabilityFingerprint, CompilationFingerprint, ResolutionToken, AuthoringRevision,
