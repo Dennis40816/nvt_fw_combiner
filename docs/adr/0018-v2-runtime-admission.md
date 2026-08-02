@@ -4,7 +4,7 @@
 - Date: 2026-07-12
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and composition-profile-v2
-- Amended by: ADR 0019
+- Amended by: ADR 0019; `0.10.x` issues #196 and #182/#277
 
 ## Context
 
@@ -33,15 +33,16 @@ Profiles is the only production assembly that can mint either artifact. A V2 run
   range; partial, uncovered, cross-space, and reversed writes remain rejected;
 - DP short-input padding is allowed only for `dp-replace`, only at exact resolved-map capacity, and
   only when no processor or integrity stage exists. Oversized DP and every reference image remain
-  exact/fail-closed;
+  exact/fail-closed. This is an upper-bound compiler permission, not a default. The 2026-08-02
+  NT51950/NT51951 owner decision removes padding from those profiles: replacement and selected
+  Reference must be the same declared `0x40000`, `0x80000`, or `0x100000` capacity;
 - no metadata bindings, validations, processor stages, or extra mutable space;
 - a token-free output template using the `reject` invalid-character policy.
 
-Application accepts exactly the paired authority/eligibility tuples
-`LegacyRuntimeExecutable` plus `LegacyProfileCompilationAuthority`, or `V2RuntimeExecutable` plus
-`ProfileBundleV2CompilationAuthority`. It rejects every other tuple except the closed
-`V2PlanCompiled` candidate contexts defined by ADR 0019 and ADR 0020. Those candidates remain
-request-scoped parity paths, not generic V2 runtime authority. V2 request bindings must exactly
+As amended by issue #196, Application accepts only the typed V2 compiled
+composition eligibility. The former legacy runtime/compilation-authority tuple
+and alternate admission branch are physically removed; `V2PlanCompiled` and
+`V2RuntimeExecutable` retain their numeric and fingerprint semantics. Request bindings must exactly
 match the compiled input spaces, slot
 typed slot assertion, original plain filename, and accepted extension. The original filename is
 reported and participates in Preview-to-Build identity. A token-free template supplies the default
@@ -49,9 +50,9 @@ output name. When `allowOverride` is false it must equal the requested output fi
 Application accepts another Windows-safe plain filename. This does not add token rendering, output
 paths, dynamic naming, or `replace-underscore` rendering.
 
-ADR 0020 remains proposed. Its preparatory synthetic admission does not authorize a built-in bundle
-registration, production route, support claim, or legacy retirement until architecture and firmware
-owners accept that ADR's exact candidate evidence.
+ADR 0020's candidate evidence remains route-scoped. It does not authorize a
+support claim or broader runtime registration without the package trust-index,
+profile, capability-publication, evidence, and owner gates.
 
 The existing engine remains the only executor. Preview tokens use the complete compilation
 fingerprint, and Application run reports record it; for V2 this fingerprint binds the bundle, profile

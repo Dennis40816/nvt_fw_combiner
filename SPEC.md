@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.0 maintainability-program planning release; v0.9.16 is the stable predecessor`
-> 文件版本：`0.10.0`
-> 基準日期：`2026-07-25`
+> 文件狀態：`0.10.1 headless canonical foundation release; v0.10.0 is the stable predecessor on the canonical line`
+> 文件版本：`0.10.1`
+> 基準日期：`2026-08-01`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,7 +30,22 @@
 
 ## 0.1 Current owner priority
 
-`0.9.16` is the published focused hot-fix derived from official `v0.9.15` peeled commit `008333a9c96ea65454a334824d349f3574373edd`. It authorizes only profile-classified Header/Header Copy and topology-applicable CtrlRAM/DLM CRC writes, corrects AB/Replace presentation state, and skips DP-only metadata inspection for TP firmware. Single-IC routes explicitly exclude cascade-only DiffDLM/DLM CRC words. Owner-supplied NT51929 single Normal CtrlRAM evidence locks the production route to four Header/Header Copy CRC words without promoting runtime support or release redistribution of the private evidence. The separately approved `0.9.17` compatibility hot-fix starts from official `v0.9.16` and is limited to the DiffDLM active-NF preservation and selector behavior defined below; it does not import the `0.10.x` architecture. The `0.9.15` AB function state and its certification debt otherwise remain unchanged. `0.10.0` owns architecture, terminology, evidence inventory, process, validation standards, and ticket dependency planning only. The later `0.10.x` sequence owns the dependency-allocated Support Matrix, error/report experience, clean-Windows UI-smoke closure, release-workflow annotated-tag newline hardening, and production-maintainability slices. The canonical future sequence is [NFC Roadmap](docs/architecture/nfc_roadmap.md). Publication is permitted only after independent review, firmware-owner approval, protected CI, package verification, and release-owner approval; an omitted external gate must remain explicit rather than being described as passing.
+`0.10.1` is the first implementation release from the approved `0.10.x`
+program. It completes the 78-route headless canonical foundation, separates
+reviewed capability identity from per-compilation identity, retains one exact
+compiled composition for Preview/Build/report, retires the four owner-rejected
+IC capabilities, and ships the reviewed firmware contracts allocated through
+#194. It does not complete the deferred desktop UI, compatibility deletion,
+legacy runtime deletion, or Core convergence waves, and it does not convert
+function availability or golden observations into support certification.
+`v0.10.0` remains the stable planning predecessor on this canonical line;
+independent `0.9.17`/`0.9.18` maintenance releases remain historical upgrade
+sources rather than alternate `0.10.x` architecture authority. The remaining
+sequence is maintained in [NFC Roadmap](docs/architecture/nfc_roadmap.md).
+Publication is permitted only after independent review, firmware-owner
+approval, protected CI, package verification, and release-owner approval; an
+omitted external gate must remain explicit rather than being described as
+passing.
 
 - `v0.9.11` is the accepted predecessor for `0.9.12`; no older performance or reconstruction branch may replace that lineage.
 - NT51928 non-NB references NT51927 canonical Initial Code and TP facts
@@ -74,7 +89,7 @@
 - Owner-provided postbuild scripts are the behavioral truth for CtrlRAM Replace command order; mmap files explain offsets and sizes; TP Overview is the documentation baseline to correct when it conflicts with postbuild/mmap evidence.
 - CtrlRAM postbuild command sequences must be generated as structured command/argv data and tested against the hsi Combiner guide, not assembled as one shell command string. NT51927 requires explicit single, 2IC, and 3IC Replace branches.
 - Output naming is profile-owned and resolves the selected canonical IC plus accepted execution snapshots. AB follows ADR 0036's `NT519xx_FlashCode_A_DmmmmTvvvv_B_DmmmmTvvvv_yyyyMMdd.bin` form; its DP tokens use CMI Reg16h-18h facts and its TP tokens use validated FW version/sub-version bytes. Every mode uses the one UTC run-start date and the effective user override as its public output/report identity. An existing output may be atomically replaced only when it is not any selected input path. UI never infers version bytes from file names.
-- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
+- NT51950/NT51951 normal Merge and DP Replace should use the DP image as the base container and overlay/preserve the TP range. Standard Merge DP inputs are limited to the owner-confirmed DP Perspective sizes `0x40000`, `0x80000`, and `0x100000`; the Standard Merge output length follows the selected DP input length. DP Replace must derive its work length from the selected base firmware length, which must be one of `0x40000`, `0x80000`, or `0x100000`; never hard-code the maximum container as the base. The replacement DP must exactly equal that selected base capacity (`0x40000↔0x40000`, `0x80000↔0x80000`, or `0x100000↔0x100000`); shorter-input padding and cross-capacity pairs are not admitted. The confirmed TP overlay range is `0x0A000-0x36FFF (len 0x2D000)`; `0x37000-0x37FFF (len 0x1000)` is customer info and must not be overwritten by the TP overlay.
 - Other Standard Merge profiles extract only their declared DP source views. A DP artifact that
   reaches every required end offset may have an arbitrary total length; non-authoritative trailing
   bytes are ignored. An outer-length warning exists only when the profile explicitly declares
@@ -1045,9 +1060,10 @@ Each implementation slice first characterizes its current external behavior,
 makes an explicit disposition for every observed behavior, and only then
 moves one responsibility through one compatibility seam, proves the required
 byte/report/state/UI parity, and deletes the old owner only after every caller
-and evidence gate has moved. The approved ticket dependency graph—not this
-spec—determines which dependency-ready slices belong to each later `0.10.x`
-version.
+and evidence gate has moved. The approved ticket dependency graph determines
+implementation order. Owner release decisions recorded in this spec and the
+version-governance documents determine which dependency-complete slices belong
+to each `0.10.x` version.
 
 ### 15.3 User Stories
 
@@ -1141,9 +1157,13 @@ version.
 2. Later work is divided into independently reviewable vertical slices. Each
    slice has one behavioral goal, one compatibility seam, one deletion
    boundary, one narrow test set, and an explicit final verification gate.
-3. No exact `0.10.1`, `0.10.2`, or later allocation is fixed here. After this
-   spec is approved, ticket planning establishes dependencies and the owner
-   groups only dependency-ready slices into releases.
+3. The initial planning approval fixed no exact post-`0.10.0` allocation.
+   Ticket planning first established dependencies; later owner decisions now
+   record `v0.10.1` as the headless foundation, `v0.10.2` as the complete
+   remaining refactoring graph through #197, `v0.10.3` as its simplification
+   audit, `v0.10.4` as unified preload performance control, and `v0.10.5` as a
+   reserved configured-path update experience whose detailed contract is still
+   deferred. Release grouping never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.
@@ -1485,18 +1505,48 @@ version.
     Editor documents have separate lifetimes.
 26. An asynchronous result may publish only when its resolution token,
     authoring revision, slot definition identity, and file identity/stamp still
-    match.
-27. Repeated file inputs use one typed `AuthoringSlotState`, inspection
-    lifecycle, normalization capability, validation projection, formatter, and
-    visual control. The selected-file lifecycle is not stored in the immutable
-    artifact definition. An explicit selection group may reference individually
-    optional `zero-or-one` slots and own a minimum/maximum selected count across
-    only the members applicable to the resolved map. NT51928 DP Replace groups
-    Initial Code and LDC with selected count `1..2`; a `0x40000` Reference makes
-    LDC `NotApplicable`, leaves Initial Code as the sole required selection,
-    and keeps the visible LDC slot annotated `Reference length does not include
-    LDC`. Before Reference inspection that slot is `PendingInput`. Switching
-    Reference variants revises the session and rejects stale/manual LDC
+    match. A completed result projected against compiled input authority also
+    matches the exact `CompilationFingerprint`; another compilation under the
+    same capability cannot retain terminal input health. A typed unreadable
+    result instead matches the exact selected path and retains a null
+    `FileStamp`; selecting another path makes it stale. Background worker
+    generation is a separate cancellation/stale-suppression lifetime and never
+    substitutes for authoring revision. The #182 DP pilot's dedicated
+    Presentation revision adapter is deleted by #208 when all six desktop
+    workflows adopt their canonical `AuthoringSessionState` instances.
+27. Repeated file inputs use one typed `AuthoringSlotState`, normalization
+    capability, validation projection, formatter, and visual control. The
+    Application-owned per-slot result keeps prerequisite/selection readiness
+    (`NotApplicable`, `PendingInput`, `Blocked`, or `Ready`) independent from
+    selected-artifact inspection health (`Checking`, `Verified`, `Warning`, or
+    `Error`). `PendingInput` identifies the exact prerequisite, returns a typed
+    `LoadArtifactFirst` action, and sets `CanSelect = false` for an independent
+    dependent-slot transition. An atomic headless request may supply both
+    prerequisite and dependent artifacts and is evaluated order-independently.
+    `Checking` is transient: a current selected artifact reaches `Verified`,
+    `Warning`, or `Error`, or its stale result is rejected. `Verified` means
+    only that the immutable source satisfies the current compiled input
+    contract; it does not claim POSTBUILD, CRC/Header, final output integrity,
+    evidence, publication, or support.
+    Before a prerequisite permits one unique compilation, readiness binds a
+    reviewed dynamic route or deterministic reviewed discovery capability, its
+    resolution token and capability fingerprint, the authoring revision, and a
+    compiler-owned discovery slot while its compilation fingerprint remains
+    absent. The discovery map cannot masquerade as the current compilation.
+    Unreadable prerequisites and compilation failures publish typed `Blocked`
+    readiness with `CorrectSelection`; they do not publish `Checking` or
+    terminal inspection health. `Checking` and every terminal inspection state
+    require the exact non-null `CompilationFingerprint`.
+    The selected-file lifecycle is not stored in the immutable artifact
+    definition. An explicit selection group may reference individually optional
+    `zero-or-one` slots and own a minimum/maximum selected count across only the
+    members applicable to the resolved map. NT51928 DP Replace groups Initial
+    Code and LDC with selected count `1..2`; before Reference inspection both
+    dependent members are `PendingInput` with selection disabled. A `0x40000`
+    Reference enables Initial Code as the sole required member, makes LDC
+    `NotApplicable`, and keeps the visible LDC slot annotated `Reference length
+    does not include LDC`; a `0x80000` Reference enables both group members.
+    Switching Reference variants revises the session and rejects stale/manual
     bindings.
     Canonical public, profile, CLI, report, and UI terminology is `LDC`;
     new contracts do not introduce `LD` aliases.
@@ -1575,6 +1625,15 @@ version.
     Preview, and Build Report but does not alter map resolution, selection,
     execution admission, or output bytes. The rule is explicit per profile and
     is never inferred globally from artifact class, filename, or hash.
+    Standard Merge, AB Merge, DP Replace, and CtrlRAM Replace publish this
+    terminal inspection health through the same Application result and reuse
+    the compiler-owned input contract. Existing AB valid/warning/blocking
+    behavior is migrated rather than copied. CtrlRAM's concrete binding length
+    plus `truncate-ctrlram` normalization provides declared-prefix behavior: a
+    short binding blocks and accepted ignored trailing bytes warn; that source
+    health remains separate from POSTBUILD/runtime dependency readiness.
+    Presentation and CLI consume the typed result and never derive a
+    Base-first, TP-first, IC, map, topology, length, or validation rule.
 
 Runtime readiness is valid only for the exact tuple `(RouteId,
 CapabilityFingerprint, CompilationFingerprint, ResolutionToken, AuthoringRevision,
@@ -1849,6 +1908,13 @@ after the grill closes so issues do not become a competing draft specification.
     and no reallocation may raise the 22,607 final gate. Ticket #197 remains
     blocked until the umbrella reaches that gate without weakening behavior,
     architecture, firmware, security, coverage, or release evidence.
+    Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
+    is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
+    Core-entry ratchets, cumulative positive counted growth is capped at 2,000
+    lines, negative deltas do not refill that allowance, and the metric may not
+    exceed 74,750. Ticket #214 may consume at most 1,300 counted net lines.
+    Presentation exclusion cannot be used to hide runtime ownership, and this
+    temporary envelope does not increase the final gate or integration reserve.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
     firmware/route migration may temporarily grow only when a golden,
@@ -2015,8 +2081,9 @@ The program-level architecture workshop is approved. Before implementation of
 the first canonical tracer, a focused consistency grill is reopened for its
 remaining policy/terminology details. Confirmed results in this section are
 normative immediately; unresolved details cannot be guessed in code or copied
-into ticket acceptance criteria. Exact version allocation remains a downstream
-owner decision rather than unresolved architecture. The approved sequence is:
+into ticket acceptance criteria. Exact version allocation is an owner release
+decision rather than unresolved architecture. The owner made the next
+allocation on 2026-08-02; the approved sequence is:
 
 ```text
 approved specification and consistency grill
@@ -2027,6 +2094,17 @@ approved specification and consistency grill
   -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
   -> pass the 22,607-line #197 integration gate
 ```
+
+The complete remaining approved refactoring graph through #197 is allocated to
+`v0.10.2`, which is tagged only after the full canonical refactor is complete.
+`v0.10.3` then performs a fresh simplification/ownership audit of that result;
+`v0.10.4` owns performance work that unifies every preload behind one
+observable, cancellable, bounded, and user-controllable lifecycle; and
+`v0.10.5` reserves a configured-path update experience. The `v0.10.5` trust,
+rollback, version-selection, network/share, and release-policy contract remains
+owner-deferred and requires a later specification review before implementation
+tickets exist. These allocations do not change current ticket dependencies or
+authorize guessed scope.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes

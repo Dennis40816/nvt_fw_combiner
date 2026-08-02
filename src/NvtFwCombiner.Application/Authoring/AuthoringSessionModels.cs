@@ -237,9 +237,8 @@ public sealed class AuthoringCapabilityCatalogSnapshot
                         CapabilityAuthoringAvailability.Available)
                 .Select(static capability =>
                 {
-                    CompiledInputContract inputContract = capability.CompiledComposition.V2Details?
-                        .InputContract ?? throw new InvalidOperationException(
-                            "Authoring routes require one canonical compiled V2 input contract.");
+                    CompiledInputContract inputContract =
+                        capability.CompiledComposition.V2Details.InputContract;
                     return new AuthoringCapabilityRoute(
                         capability.Identity,
                         capability.CapabilityFingerprint,
@@ -369,7 +368,8 @@ public sealed record AuthoringDerivedPublication
     /// <summary>Creates one payload-free derived result reference.</summary>
     public AuthoringDerivedPublication(
         AuthoringDerivedResultKind kind,
-        string resultReference)
+        string resultReference,
+        string? compilationFingerprint = null)
     {
         if (!Enum.IsDefined(kind))
         {
@@ -380,8 +380,17 @@ public sealed record AuthoringDerivedPublication
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(resultReference);
+        if (compilationFingerprint is not null &&
+            !CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Compilation fingerprint must be a lowercase SHA-256 value.",
+                nameof(compilationFingerprint));
+        }
+
         Kind = kind;
         ResultReference = resultReference;
+        CompilationFingerprint = compilationFingerprint;
     }
 
     /// <summary>Closed result kind.</summary>
@@ -389,6 +398,12 @@ public sealed record AuthoringDerivedPublication
 
     /// <summary>Opaque reference to the separately owned immutable result.</summary>
     public string ResultReference { get; }
+
+    /// <summary>
+    /// Exact compiled-composition identity for a compilation-bound result, or
+    /// null when the result kind has no compiled projection.
+    /// </summary>
+    public string? CompilationFingerprint { get; }
 }
 
 /// <summary>Closed authoring-draft contracts admitted by session policy.</summary>
@@ -586,15 +601,25 @@ public sealed class AuthoringPublicationLease
         AuthoringRevision authoringRevision,
         string selectedRouteId,
         string capabilityFingerprint,
-        IEnumerable<AuthoringSlotPublicationIdentity> slots)
+        IEnumerable<AuthoringSlotPublicationIdentity> slots,
+        string? compilationFingerprint)
     {
         ArgumentNullException.ThrowIfNull(sessionIdentity);
+        if (compilationFingerprint is not null &&
+            !CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Compilation fingerprint must be a lowercase SHA-256 value.",
+                nameof(compilationFingerprint));
+        }
+
         SessionIdentity = sessionIdentity;
         Kind = kind;
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         SelectedRouteId = selectedRouteId;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
         _slots = [.. slots];
         Slots = Array.AsReadOnly(_slots);
     }
@@ -615,6 +640,9 @@ public sealed class AuthoringPublicationLease
 
     /// <summary>Captured firmware-semantic identity.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Expected exact compilation identity, when work is compilation-bound.</summary>
+    public string? CompilationFingerprint { get; }
 
     /// <summary>Captured slot definition, path, and file-stamp identities.</summary>
     public IReadOnlyList<AuthoringSlotPublicationIdentity> Slots { get; }

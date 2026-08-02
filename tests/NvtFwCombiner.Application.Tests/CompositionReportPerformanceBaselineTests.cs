@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Application.Tests;
 public sealed class CompositionReportPerformanceBaselineTests
 {
     private const int DifferenceCount = 10_000;
-    private const int BaselineJsonCharacterCount = 11_720_545;
+    private const int BaselineJsonCharacterCount = 11_721_310;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "8e708551c10a4d406f82e8bc4525ed66e2bf089769b0a6bf9ade8b093dbe0046";
+    private const string BaselineReportJsonSha256 = "6020480dae998eadbdaf695c97e2c061c13a8b3ea8868e7fd351187404961c19";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
@@ -83,7 +83,7 @@ public sealed class CompositionReportPerformanceBaselineTests
             reportJson.AsSpan().SequenceEqual(repeatedReportJson),
             "Repeated report serialization must preserve the exact JSON text.");
         Assert.Contains("\"OutputDifferences\": [", reportJson, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal);
+        Assert.Contains("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal);
         Assert.DoesNotContain("\"DeliveryArtifacts\"", reportJson, StringComparison.Ordinal);
 
         TestContext.Current.TestOutputHelper?.WriteLine(
@@ -168,9 +168,9 @@ public sealed class CompositionReportPerformanceBaselineTests
                     OverlapPolicy.Reject,
                     "Replace deterministic fragmented input."),
             ]);
-        var compiledComposition = CompiledComposition.CreateLegacy(
+        CompiledComposition compiledComposition = CompiledCompositionTestFactory.Create(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 "fragmented-report-baseline",
                 "1.0.0",
                 "NT-SYNTHETIC",
@@ -183,8 +183,18 @@ public sealed class CompositionReportPerformanceBaselineTests
             "fragmented-report-baseline-run",
             compiledComposition,
             [
-                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
-                new InputArtifactBinding("replacement-input", "replacement-input", "replacement-artifact"),
+                new InputArtifactBinding(
+                    "reference-base",
+                    "reference-base",
+                    "reference-artifact",
+                    "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "replacement-input",
+                    "replacement-input",
+                    "replacement-artifact",
+                    "replacement-input.bin",
+                    CompiledInputArtifactClass.TpFirmware),
             ],
             "fragmented-report.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Tests;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -298,7 +299,8 @@ public sealed class CompositionRunExecutionMetricsTests
                 new AddressSpace(
                     CompositionAddressSpaceIds.CtrlRamReplacement,
                     ctrlRamLength,
-                    AddressSpaceMutability.Immutable),
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
                 new AddressSpace(
                     CompositionAddressSpaceIds.OutputImage,
                     outputLength,
@@ -342,11 +344,15 @@ public sealed class CompositionRunExecutionMetricsTests
                 new InputArtifactBinding(
                     CompositionAddressSpaceIds.ReferenceBase,
                     "reference-base",
-                    "reference-artifact"),
+                    "reference-artifact",
+                    "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
                 new InputArtifactBinding(
                     CompositionAddressSpaceIds.CtrlRamReplacement,
                     "ctrlram-replacement",
-                    "ctrlram-artifact"),
+                    "ctrlram-artifact",
+                    "ctrlram-replacement.bin",
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
     }
@@ -360,9 +366,9 @@ public sealed class CompositionRunExecutionMetricsTests
             profile.Initialization,
             profile.AddressSpaces,
             profile.Operations);
-        var composition = CompiledComposition.CreateLegacy(
+        CompiledComposition composition = CompiledCompositionTestFactory.Create(
             plan,
-            new LegacyCompiledCompositionIdentity(
+            new TestCompiledCompositionIdentity(
                 profile.ProfileId,
                 profile.ProfileVersion,
                 profile.IcId,

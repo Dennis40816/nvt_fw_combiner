@@ -6,6 +6,203 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.10.1] - 2026-08-01
+
+### Summary
+
+This stable release completes the `0.10.x` headless canonical foundation: all
+78 admitted headless routes now resolve through reviewed capability definitions
+and one exact compiled composition per accepted authoring revision. It also
+ships the approved NT51928, NT51929-family, NT51950, and NT51951 firmware
+contracts, retires four unsupported IC families, and hardens deterministic
+verification and release promotion. The deferred desktop UI, compatibility
+deletion, and Core convergence waves are not part of this release.
+
+### Product changes
+
+#### Canonical headless capability and compilation authority
+
+- Before → After: headless Merge and Replace consumers could resolve through
+  parallel catalogs, route-specific bridges, or a fingerprint that conflated
+  reviewed policy with one compiled plan; all 78 admitted routes now use the
+  canonical capability catalog and retain exactly one immutable
+  `CompiledComposition` for Preview, Build, Memory Layout, naming, and reports.
+- Affected: headless Standard, AB, and General Merge plus DP, CtrlRAM, and
+  General Replace for the ten selectable ICs: NT51917, NT51919, NT51923,
+  NT51926, NT51927, NT51928, NT51929, NT51932, NT51950, and NT51951.
+- Support status: support-neutral canonicalization. `CapabilityFingerprint`
+  identifies the reviewed route, allowed map variants, selection groups, and
+  compiler semantics; `CompilationFingerprint` additionally identifies the
+  selected map/slots, General mappings, initializer, and processor plan.
+- Compatibility: the existing UI and CLI continue to call the same shared
+  Application planner/executor. Authoring/publication/evidence policy binds the
+  capability fingerprint, while Preview/Build/Report bind the compilation
+  fingerprint; selecting an already approved variant no longer creates policy
+  churn.
+- Packaging: the portable ZIP now ships the exact hash-pinned
+  `canonical-capability-policy-v1.json`; packaging and smoke reject omission,
+  repathing, role drift, or content-hash drift before publication.
+- Verification: capability census, dynamic compilation, exact processor
+  binding, report/naming identity, architecture, firmware-semantic, and full
+  repository tests cover every admitted headless route.
+- Limitations: desktop presentation migration and removal of Workbench/legacy
+  runtime compatibility owners remain in the next ticket wave. The frozen
+  runtime metric is 72,196 nonblank lines, so the 25,000-line target is not a
+  claim of this release.
+
+#### Isolated authoring, General workflows, metadata, and Saved Rule v2
+
+- Before → After: authoring state, General mappings, selected-file identity,
+  blank-output initialization, occupancy, reusable rules, and plan-only
+  diagnostics had separate or incomplete owners; Merge/Replace sessions now
+  isolate state, General inputs bind immutable content snapshots, and Saved
+  Rule v2 uses strict identity, controlled storage, exact Trusted Parent
+  binding, and typed diagnostic readiness.
+- Affected: all headless Merge/Replace authoring sessions, General Merge,
+  exact Trusted Catalog DP-only General Replace Saved Rules, metadata
+  inspection, output naming, Memory Layout projection, CLI Preview/Build, and
+  composition reports.
+- Support status: support-neutral. General Merge remains blank-image plus
+  explicit mappings; General Replace remains immutable-reference plus bounded
+  mappings. Diagnostic Preview produces no firmware output when required
+  processor authority or runtime readiness is unavailable.
+- Compatibility: Saved Rule v1 remains read-only import compatibility and is
+  not silently rewritten. Saved Rule v2 semantic edits invalidate stale
+  compilation identity. A local or imported `--rule` path is always an
+  untrusted Draft and cannot Preview or Build; execution requires the exact
+  approved, evidenced, immutable Trusted Catalog `(ruleId, ruleVersion,
+  contentHash)` identity. Existing explicit output paths and normal firmware
+  BIN inputs remain unchanged.
+- Verification: authoring-session, content-snapshot, initializer, occupancy,
+  exact-parent, controlled-storage, CLI, report, metadata, and no-output
+  diagnostic tests run through the canonical verifier.
+- Limitations: the release has no installed Saved Rule publication catalog, so
+  CLI local/imported Drafts remain validation/mapping inputs only. Stage-bearing
+  TP/POSTBUILD Saved Rule execution remains closed pending its own exact
+  processor-range, byte-golden, and firmware-owner gates; native macOS Saved
+  Rule persistence is implemented but not runtime-validated.
+
+#### Reviewed firmware routes and exact preservation semantics
+
+- Before → After: NT51928 capacity selection, NT51919/29/32 AB symmetry,
+  NT51950/NT51951 AB placement, and active DiffNF preservation depended on
+  route-specific or incomplete lowering; they now compile typed map variants,
+  source projections, region-instance deltas, and exact processor/write-view
+  authority through the shared engine.
+- Affected: NT51928 Standard Merge and DP Replace resolve `0x40000` without LDC
+  or `0x80000` with LDC; NT51919/NT51929/NT51932 use symmetric AB compilation;
+  NT51950 `1 IC`/`Cascade` and selector-free NT51951 use exact DP seed and TP
+  placement contracts; NT51950/NT51951 two-IC CtrlRAM Replace copies only the
+  active Diff CtrlRAM span while preserving active DiffNF and inactive records.
+- Support status: function-open and evidence-explicit, not certified. NT51928
+  remains `ContractOnly`. AB certification remains 0 of 6 cells even though
+  the reviewed routes are executable and admitted evidence stays attached to
+  its declared fact scope.
+- Compatibility: firmware inputs remain immutable, Replace clones the required
+  reference, Merge initializes the declared blank image, and external tools
+  write only host staging copies within exact declared half-open ranges. The
+  new canonical contracts intentionally fail closed on topology, capacity,
+  source-view, processor, or write-range drift.
+- Verification: exact range, topology, source-view, DiffDLM/DiffNF
+  preservation, registered Combiner, whole-output, golden, and DP-tail tests
+  cover the admitted contracts without inferring support from filenames,
+  versions, or hashes.
+- Limitations: direct AB goldens remain missing for NT51919, NT51932, NT51950
+  Cascade, and NT51951; the NT51950 Cascade DP-tail vector is preservation
+  evidence, not direct product parity. A complete NT51928 project golden is
+  also unavailable.
+
+#### Retirement of unsupported production capabilities
+
+- Before → After: NT51920, NT51925, NT51930, and NT51931 retained selectable or
+  registered compatibility surfaces despite lacking the approved `0.10.x`
+  production authority; their selectors, profiles, registrations, package
+  entries, and publication rows are now removed.
+- Affected: every production Merge and Replace route for NT51920, NT51925,
+  NT51930, and NT51931. Historical evidence remains reference-only.
+- Support status: retired and unavailable in `v0.10.1`; historical notes are
+  not an admission, migration, or support claim.
+- Compatibility: operators who still require one of these four ICs must retain
+  an untouched earlier portable package. No remaining family alias or nearby
+  memory map is used as a replacement.
+- Verification: selector, catalog, registration, profile-bundle, package, and
+  architecture tests fail if a retired route reappears.
+- Limitations: this release provides no automatic project migration or
+  substitute route for a retired IC.
+
+#### Verification and stable-release hardening
+
+- Before → After: repository verification was sequential and stable-tag text
+  transport or maintenance-source recovery could produce avoidable release
+  ambiguity; the canonical verifier now uses bounded lanes and coverage/code
+  size ratchets, while protected promotion binds exact source/workflow SHAs,
+  normalizes only CRLF transport differences, and keeps historical maintenance
+  sources behind a closed allowlist.
+- Affected: repository CI, Windows x64 packaging, SBOM/provenance generation,
+  annotated stable tags, recovery of `0.9.17`/`0.9.18`, and downloaded-package
+  smoke verification.
+- Support status: release-process hardening only; it does not promote a
+  firmware route or widen executable authority.
+- Compatibility: `python scripts/verify.py --all`, the portable-folder layout,
+  and the five-asset stable Release contract remain the canonical interfaces.
+- Verification: release-policy, package-allowlist, manifest, checksum,
+  provenance, review/CI identity, tag/release recovery, and newline regression
+  tests run before the protected release environment can create a tag.
+- Limitations: visible clean-Windows UI launch, private-runner golden evidence,
+  and final organizational license/legal approval remain separate release
+  attestations and are not inferred from a green headless package smoke.
+
+### Security
+
+- Firmware inputs and reference images remain immutable; external processors
+  receive only host-created staging copies and every mutation is checked
+  against exact declared ranges before atomic output promotion.
+- Canonical capability publication fails closed on stale definition identity,
+  missing typed semantics, undeclared processor write views, or mismatched
+  compilation proof.
+- The stable workflow keeps candidate jobs read-only, grants `contents: write`
+  only inside the protected release environment, publishes a closed five-asset
+  set, and executes downloaded-package smoke without a GitHub write token.
+
+### Known issues
+
+- Headless canonical foundation is complete, but the full `0.10.x` restructuring
+  program is 55.0% complete. Deferred UI, compatibility deletion, legacy
+  runtime deletion, and Core convergence remain after this tag.
+- Runtime production size is 72,196 nonblank lines. Reaching 25,000 requires
+  deleting or simplifying 47,196 lines through the approved deletion and Core
+  convergence sequence; `v0.10.1` does not claim that target.
+- Direct AB golden coverage is 2 of 6 cells and support certification is 0 of
+  6. NT51919, NT51932, NT51950 Cascade, and NT51951 direct product evidence
+  remains missing; NT51928 remains `ContractOnly` without a complete project
+  golden.
+- Stage-bearing TP/POSTBUILD Saved Rule execution, native macOS persistence
+  validation, and the deferred desktop UI wave remain unavailable or
+  unvalidated as described above.
+
+### Upgrade and rollback
+
+- Upgrade from `v0.10.0` or `v0.9.18` by replacing the complete portable folder
+  with `NvtFwCombiner-v0.10.1-win-x64`; do not mix files across versions.
+- Preserve an earlier package if NT51920, NT51925, NT51930, or NT51931 is still
+  required. Saved Rule v1 documents remain read-only imports; make a separate
+  copy before saving a rule as strict v2.
+- Roll back by restoring the untouched prior portable folder. Firmware outputs
+  remain ordinary BIN files and require no database migration.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes exactly
+  `NvtFwCombiner-v0.10.1-win-x64.zip`,
+  `NvtFwCombiner-v0.10.1-win-x64.spdx.json`,
+  `NvtFwCombiner-v0.10.1-win-x64.provenance.json`,
+  `NvtFwCombiner-v0.10.1-candidate.json`, and
+  `NvtFwCombiner-v0.10.1-assets.sha256`. GitHub also provides tag-derived
+  source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list, candidate source SHA/tree, provenance, and
+  package manifest before distribution. The Windows x64 ZIP is self-contained
+  and does not require a separately installed .NET or Python runtime.
+
 ## [0.10.0] - 2026-07-25
 
 ### Summary

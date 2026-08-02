@@ -6,7 +6,7 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void Nt51928CtrlRamCandidateStaysExactAndPrivate()
     {
-        string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
+        string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
         string routes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
@@ -19,21 +19,14 @@ public sealed partial class RepositoryBoundaryTests
         string family = ReadText(
             "profiles/built-in/nt51928-ctrlram-replace-candidate/families/nt51928-ctrlram-replace.json");
 
-        Assert.Contains("nt51928-ctrlram-replace-candidate", project, StringComparison.Ordinal);
+        Assert.Contains("nt51928-ctrlram-replace-candidate", packageTrustIndex, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51928-ctrlram-replace-candidate", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51928-ctrlram-replace-candidate", cli, StringComparison.Ordinal);
-        Assert.Contains(
-            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.TwoChip",
-            routes,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.SingleChip",
-            routes,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "Route(\"NT51928\", \"nfc.nt51928.ctrlram-postbuild-v1\", LegacyCombinerPostbuildBranch.ThreeChip",
-            routes,
-            StringComparison.Ordinal);
+        Assert.Contains("\"icId\": \"NT51928\"", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("\"postbuildBranch\": \"two-chip\"", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("\"postbuildBranch\": \"single-chip\"", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("\"postbuildBranch\": \"three-chip\"", packageTrustIndex, StringComparison.Ordinal);
+        Assert.Contains("ParseBranch", routes, StringComparison.Ordinal);
         Assert.Contains("\"stage\": \"executable-candidate\"", profile, StringComparison.Ordinal);
         Assert.Contains("\"blockerId\": \"support-neutral-partial-family-route\"", profile, StringComparison.Ordinal);
         Assert.Contains("nfc.nt51928.ctrlram-postbuild-v1", profile, StringComparison.Ordinal);

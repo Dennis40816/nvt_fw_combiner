@@ -255,6 +255,7 @@ public sealed partial class MainWindowViewModel
     {
         slot.FilePath = null;
         slot.SetFirmwareFacts([]);
+        slot.ClearInputInspection();
     }
 
     private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)

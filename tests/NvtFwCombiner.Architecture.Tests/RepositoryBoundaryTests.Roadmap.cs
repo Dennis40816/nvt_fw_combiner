@@ -22,7 +22,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("`0.10.0` reconciles its original `v0.9.15` planning baseline", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("reviewed `v0.9.16` hot-fix", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## `0.10.0`: planning and governance baseline", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## Later `0.10.x`: dependency-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.10.1` through `0.10.5`: owner-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("It does not allocate or implement a production Support Matrix", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains(
             "The approved GitHub issues named in the",
@@ -63,13 +63,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("| 4 | Headless data | #177 | Migrate remaining admitted metadata family bindings | #174, #175, #176, #221 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 5 | Headless firmware | #259 | Canonicalize source projections and FlashCode admission | #219, #239 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 6 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, #259, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 15 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 17 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 18 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 18 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 19 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 20 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 21 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 16 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 18 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 19 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 19 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 20 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 21 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 22 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
             "Live completion and dependency-ready frontier state are queried from GitHub;",
             dependencyPlan,
@@ -210,7 +210,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("## Update rule", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.cs", reference, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2Bundle.cs", reference, StringComparison.Ordinal);
-        Assert.Contains("explicit Standard Merge, AB pilot, and DP Replace registration lists", reference, StringComparison.Ordinal);
+        Assert.Contains("package-trust-index.json", reference, StringComparison.Ordinal);
+        Assert.Contains("runtime admission for Standard Merge", reference, StringComparison.Ordinal);
         Assert.Contains("IcWorkflowFlowchartReferenceCoversBuiltInIcLists", reference, StringComparison.Ordinal);
         Assert.Contains("NT51928 NB is not covered", reference, StringComparison.Ordinal);
         Assert.Contains("0x37000-0x37FFF (len 0x1000)", reference, StringComparison.Ordinal);

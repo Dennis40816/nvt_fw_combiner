@@ -11,7 +11,10 @@ public sealed partial class CompositionRunServiceTests
     public async Task PreviewTokenChangesWhenCompiledOperationDetailsChange()
     {
         var service = new CompositionRunService(
-            new FakeArtifactReader([]),
+            new FakeArtifactReader(new Dictionary<string, byte[]>
+            {
+                ["v2-test-input-artifact"] = [0],
+            }),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));
         CompositionRunRequest firstRequest = CreateOverwriteRequest("run-overwrite-a", 0x11);
         CompositionRunRequest secondRequest = CreateOverwriteRequest("run-overwrite-b", 0x12);
@@ -30,6 +33,7 @@ public sealed partial class CompositionRunServiceTests
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
             {
+                ["padding-reference-artifact"] = [0, 0, 0, 0],
                 ["exact-artifact"] = [0x11, 0x22, 0x33, 0x44],
             }),
             new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]));

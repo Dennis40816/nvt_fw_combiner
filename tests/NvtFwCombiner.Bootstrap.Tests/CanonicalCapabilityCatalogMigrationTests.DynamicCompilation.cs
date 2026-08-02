@@ -198,7 +198,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             BuiltInV2RegistrationRegistry.GeneralMergeByIc["NT51928"];
         V2CompositionPlanCompileResult compile = registration.Bundle.CompileLogicalOutput(
             registration.ProfileId,
-            WorkbenchCompositionService.GeneralMergeV2CandidateProfileVersion,
+            registration.ProfileVersion,
             "NT51928",
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(16),
@@ -255,7 +255,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     private static CompiledComposition WithoutSelectionGroups(
         CompiledComposition composition)
     {
-        V2CompiledCompositionDetails source = composition.V2Details!;
+        V2CompiledCompositionDetails source = composition.V2Details;
         var inputContract = new CompiledInputContract(
             source.InputContract.Slots,
             source.InputContract.SpaceBindings,
@@ -281,7 +281,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         CompiledComposition composition,
         string familyId)
     {
-        V2CompiledCompositionDetails source = composition.V2Details!;
+        V2CompiledCompositionDetails source = composition.V2Details;
         V2CompilationProvenance provenance = source.Provenance;
         LogicalOutputV2CompilationContext context =
             Assert.IsType<LogicalOutputV2CompilationContext>(provenance.Context);

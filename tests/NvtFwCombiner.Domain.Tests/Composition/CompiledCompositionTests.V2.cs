@@ -21,10 +21,6 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal("{original-name}_merged.bin", composition.DefaultOutputFileName);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
-        ProfileBundleV2CompilationAuthority authority = Assert.IsType<ProfileBundleV2CompilationAuthority>(
-            composition.Authority);
-        Assert.Equal("1.0", authority.ModelVersion);
-
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         V2CompilationProvenance provenance = details.Provenance;
         Assert.Equal("bundle-v2", provenance.Bundle.BundleId);
@@ -63,7 +59,6 @@ public sealed partial class CompiledCompositionTests
             runtimeExecutable: true);
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.Eligibility);
-        _ = Assert.IsType<ProfileBundleV2CompilationAuthority>(runtime.Authority);
         Assert.Equal("runtime.bin", runtime.DefaultOutputFileName);
         CompiledComposition overridable = CreateV2(
             promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
@@ -105,10 +100,10 @@ public sealed partial class CompiledCompositionTests
 
         Assert.Equal(
             CompiledOutputNameRendererKind.NormalFlashCodeV1,
-            flashCode.V2Details!.OutputNamingRequirement.RendererKind);
+            flashCode.V2Details.OutputNamingRequirement.RendererKind);
         Assert.Equal(
             CompiledOutputNameRendererKind.TpFirmwareV1,
-            tpFirmware.V2Details!.OutputNamingRequirement.RendererKind);
+            tpFirmware.V2Details.OutputNamingRequirement.RendererKind);
         Assert.Equal(
             CompiledCompositionEligibility.V2RuntimeExecutable,
             flashCode.Eligibility);
@@ -321,7 +316,7 @@ public sealed partial class CompiledCompositionTests
             CompiledRegionAccessKind.ReadOnly,
             "Source bytes require a different review rule."));
 
-        CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details!.RegionAccessContract.Requirements);
+        CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details.RegionAccessContract.Requirements);
         Assert.Equal("root", access.RegionId);
         Assert.Equal(CompiledRegionAccessKind.ReadOnly, access.Access);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
@@ -492,7 +487,9 @@ public sealed partial class CompiledCompositionTests
         string modeId = "standard",
         string experienceId = "standard-merge",
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable)
+        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        string profileId = "profile-v2",
+        string profileVersion = "2.0.0")
     {
         resolvedMap ??= CreateResolvedMap(familyContentHash, modeId: modeId);
         var bundle = new ProfileBundleIdentity(
@@ -520,8 +517,8 @@ public sealed partial class CompiledCompositionTests
             regionAccessContract ?? new CompiledRegionAccessContract([], []),
             output);
         var identity = new V2CompiledCompositionIdentity(
-            "profile-v2",
-            "2.0.0",
+            profileId,
+            profileVersion,
             experienceId,
             compositionKind,
             details);

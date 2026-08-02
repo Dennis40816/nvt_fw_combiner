@@ -121,11 +121,7 @@ public static class AbMergeAFlashCodeExportService
     internal static bool TryResolveAFlashCodeRange(CompiledComposition composition, out ByteRange range)
     {
         range = default;
-        IReadOnlyList<FirmwareRegion>? regions = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions;
-        if (regions is null)
-        {
-            return false;
-        }
+        IReadOnlyList<FirmwareRegion> regions = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions;
 
         FirmwareRegion?[] declaredARegions = [.. s_aBankRegionIds
             .Select(regionId => regions.SingleOrDefault(region => StringComparer.Ordinal.Equals(region.RegionId, regionId)))];

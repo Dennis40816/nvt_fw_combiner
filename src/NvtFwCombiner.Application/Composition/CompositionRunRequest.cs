@@ -234,30 +234,21 @@ public sealed class CompositionRunRequest
         CompiledComposition compiledComposition,
         string outputFileName)
     {
-        CompiledOutputNamingRequirement? output = compiledComposition.V2Details?.OutputNamingRequirement;
+        CompiledOutputNamingRequirement output = compiledComposition.V2Details.OutputNamingRequirement;
         return output is { AllowOverride: true, RendererKind: CompiledOutputNameRendererKind.Static } &&
             !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal);
     }
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.LegacyRuntimeExecutable &&
-            compiledComposition.Authority is LegacyProfileCompilationAuthority)
-        {
-            return;
-        }
-
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable &&
-            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
-            compiledComposition.V2Details is not null)
+        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable)
         {
             return;
         }
 
         if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-            compiledComposition.Authority is ProfileBundleV2CompilationAuthority &&
-            compiledComposition.V2Details is { Provenance.Promotion.Stage: CompiledProfilePromotionStage.ExecutableCandidate } details &&
-            (details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
+            compiledComposition.V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+            (compiledComposition.V2Details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
              compiledComposition.IsV2AbFunctionOpenCandidate))
         {
             return;
@@ -274,14 +265,7 @@ public sealed class CompositionRunRequest
         string outputFileName,
         bool outputFileNameIsOverride)
     {
-        if (compiledComposition.Authority is not ProfileBundleV2CompilationAuthority)
-        {
-            return;
-        }
-
-        V2CompiledCompositionDetails details = compiledComposition.V2Details ?? throw new ArgumentException(
-            "V2 runtime artifacts require compiled V2 details.",
-            nameof(compiledComposition));
+        V2CompiledCompositionDetails details = compiledComposition.V2Details;
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
         if (output.InvalidCharacterPolicy != CompiledOutputInvalidCharacterPolicy.Reject ||
             output.RendererKind == CompiledOutputNameRendererKind.DeferredTokenTemplate)
@@ -401,8 +385,8 @@ public sealed class CompositionRunRequest
         AcceptedOutputNamingInspection? inspection,
         OutputNamingAdmissionIdentity? admission)
     {
-        CompiledOutputNameRendererKind? renderer =
-            compiledComposition.V2Details?.OutputNamingRequirement.RendererKind;
+        CompiledOutputNameRendererKind renderer =
+            compiledComposition.V2Details.OutputNamingRequirement.RendererKind;
         bool requiresAcceptedInspection = renderer is
             CompiledOutputNameRendererKind.NormalFlashCodeV1 or
             CompiledOutputNameRendererKind.TpFirmwareV1;
@@ -509,7 +493,7 @@ public sealed class CompositionRunRequest
             return;
         }
 
-        TopologyRequirement requirement = compiledComposition.V2Details!
+        TopologyRequirement requirement = compiledComposition.V2Details
             .Provenance.ResolvedMap.ImageMap.Applicability.TopologyRequirement;
         if (requirement.Kind == TopologyRequirementKind.None)
         {
@@ -543,25 +527,24 @@ public sealed class CompositionRunRequest
     {
         foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
         {
-            if (compiledComposition.Authority is LegacyProfileCompilationAuthority or ProfileBundleV2CompilationAuthority &&
-                requirement switch
-                {
-                    CompiledFirmwareConfigBackupVersionValidation =>
-                        requirement.Stage == CompiledValidationStage.FinalOutput &&
-                        requirement.Severity == CompiledValidationSeverity.Error,
-                    CompiledFirmwareConfigBackupPlacementAuthorityValidation =>
-                        requirement.Stage == CompiledValidationStage.FinalOutput &&
-                        requirement.Severity == CompiledValidationSeverity.Error,
-                    CompiledFirmwareConfigBackupExpectedAddressValidation =>
-                        requirement.Stage == CompiledValidationStage.FinalOutput &&
-                        requirement.Severity == CompiledValidationSeverity.Warning,
-                    CompiledUniformInputRangeValidation =>
-                        requirement.Stage == CompiledValidationStage.InputLoad &&
-                        requirement.Severity is
-                            CompiledValidationSeverity.Error or
-                            CompiledValidationSeverity.Warning,
-                    _ => false,
-                })
+            if (requirement switch
+            {
+                CompiledFirmwareConfigBackupVersionValidation =>
+                    requirement.Stage == CompiledValidationStage.FinalOutput &&
+                    requirement.Severity == CompiledValidationSeverity.Error,
+                CompiledFirmwareConfigBackupPlacementAuthorityValidation =>
+                    requirement.Stage == CompiledValidationStage.FinalOutput &&
+                    requirement.Severity == CompiledValidationSeverity.Error,
+                CompiledFirmwareConfigBackupExpectedAddressValidation =>
+                    requirement.Stage == CompiledValidationStage.FinalOutput &&
+                    requirement.Severity == CompiledValidationSeverity.Warning,
+                CompiledUniformInputRangeValidation =>
+                    requirement.Stage == CompiledValidationStage.InputLoad &&
+                    requirement.Severity is
+                        CompiledValidationSeverity.Error or
+                        CompiledValidationSeverity.Warning,
+                _ => false,
+            })
             {
                 continue;
             }

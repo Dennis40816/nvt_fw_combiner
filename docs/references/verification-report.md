@@ -1,11 +1,32 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline,
-updated for the 0.10.0 planning-release candidate. Current verification evidence
-is produced by the canonical `python scripts/verify.py --structure-only` and
-`python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap
+baseline, updated for the 0.10.1 headless-foundation release candidate. Current
+verification evidence is produced by the canonical
+`python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
+commands.
 
-Specification package version: `0.10.0`
+Specification package version: `0.10.1`
+
+## 0.10.1 headless canonical foundation release candidate
+
+The candidate integrates the reviewed `0.10.x` branch into the protected-main
+lineage after #194 completed all 78 admitted headless routes. Canonical
+capability resolution, exact compiled-composition identity, isolated authoring,
+General/Saved Rule v2 behavior, typed metadata, NT51928 dual capacity,
+NT51929-family symmetric AB, NT51950/NT51951 DiffNF preservation and AB routes,
+and retirement of NT51920/NT51925/NT51930/NT51931 are included. Publication and
+evidence state remain independent; unavailable direct AB and NT51928 goldens
+stay explicit and no support certification is inferred.
+
+The release candidate must pass the canonical full verifier at its frozen
+version-branch head, exact-main pull-request CI and review, deterministic
+Windows x64 packaging, visible local startup smoke where a desktop is
+available, protected-environment promotion, exact five-asset verification, and
+downloaded-package smoke. Private-runner golden evidence and organizational
+license/legal approval remain separate attestations rather than inferred CI
+results. The published release notes record the 72,196-line runtime metric and
+the deferred UI/deletion/Core-convergence scope.
 
 ## 0.10.0 maintainability planning-release candidate
 

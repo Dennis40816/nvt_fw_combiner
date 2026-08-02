@@ -96,7 +96,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal(ExperienceIds.CtrlRamReplace, composition.ExperienceId);
-        Assert.Equal("cascade-map", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("cascade-map", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         CompiledInputSlotRequirement sourceSlot = Assert.Single(
             composition.V2Details.InputContract.Slots,
             slot => slot.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement);

@@ -57,7 +57,7 @@ internal static class CanonicalCompiledRouteInventory
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> compileIssues);
         CompiledComposition accepted =
-            composition?.V2Details?.Provenance.ResolvedMap.ImageMap is { } compiledMap &&
+            composition?.V2Details.Provenance.ResolvedMap.ImageMap is { } compiledMap &&
             StringComparer.Ordinal.Equals(compiledMap.MapId, selectedMap.MapId) &&
             compileIssues.Count == 0
                 ? composition

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -42,7 +43,7 @@ public sealed partial class MainWindowViewModel
 
     private bool CanRunDpReplace()
     {
-        return WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(SelectedIc)
+        bool selectionReady = WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(SelectedIc)
             ? ReplaceBaseSlot.HasFile &&
                 TryGetDpReplaceInputSelectionReadiness(
                     out InputSelectionReadinessSnapshot? readiness) &&
@@ -50,6 +51,8 @@ public sealed partial class MainWindowViewModel
             : ReplaceBaseSlot.HasFile &&
                 ReplaceSlots.Count > 0 &&
                 ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile);
+        return selectionReady && ReplaceSlots.Where(static slot => slot.HasFile).All(static slot =>
+            slot.InputInspectionSeverity is not null && !slot.BlocksBuild);
     }
 
     private bool TryGetDpReplaceInputSelectionReadiness(
@@ -79,20 +82,28 @@ public sealed partial class MainWindowViewModel
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
-            InputSelectionMemberReadiness? member = hasReadiness
+            InputSelectionGroupReadiness? group = hasReadiness
                 ? readiness!.Groups
-                    .SelectMany(static group => group.Members)
-                    .FirstOrDefault(candidate =>
-                        string.Equals(
-                            candidate.SlotId,
-                            slot.AddressSpaceId,
-                            StringComparison.Ordinal))
+                    .FirstOrDefault(candidate => candidate.Members.Any(member =>
+                        string.Equals(member.SlotId, slot.AddressSpaceId, StringComparison.Ordinal)))
                 : null;
+            InputSelectionMemberReadiness? member = group?.Members.First(candidate =>
+                string.Equals(candidate.SlotId, slot.AddressSpaceId, StringComparison.Ordinal));
             if (member is null)
             {
+                slot.IsOptional = slot.DeclaredIsOptional;
                 slot.ClearSelectionReadiness();
                 continue;
             }
+
+            int applicableMemberCount = group!.Members.Count(static candidate =>
+                candidate.Readiness == ResolvedChildReadiness.Ready);
+            bool applicabilityResolved = group.Members.All(static candidate =>
+                candidate.Readiness != ResolvedChildReadiness.PendingInput);
+            slot.IsOptional = applicabilityResolved
+                ? member.Readiness != ResolvedChildReadiness.Ready ||
+                    group.MinimumSelected < applicableMemberCount
+                : slot.DeclaredIsOptional;
 
             string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
             string detail = Text.GetDpInputSelectionReadinessDetail(member);
@@ -100,7 +111,8 @@ public sealed partial class MainWindowViewModel
                 member.Readiness,
                 label,
                 detail,
-                Text.GetInputSelectionReadinessAutomationText(label, detail));
+                Text.GetInputSelectionReadinessAutomationText(label, detail),
+                member.CanSelect);
         }
     }
 

@@ -13,18 +13,12 @@ internal static class CapabilityPublicationCoherence
         CompiledComposition composition)
     {
         ArgumentNullException.ThrowIfNull(composition);
-        return (composition.Eligibility is
-                   CompiledCompositionEligibility.LegacyRuntimeExecutable or
-                   CompiledCompositionEligibility.V2RuntimeExecutable) ||
+        return composition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
                (composition.Eligibility ==
                    CompiledCompositionEligibility.V2PlanCompiled &&
-               composition.Authority is ProfileBundleV2CompilationAuthority &&
-               composition.V2Details is
-               {
-                   Provenance.Promotion.Stage:
-                       CompiledProfilePromotionStage.ExecutableCandidate,
-               } details &&
-               ((details.Provenance.Context is
+               composition.V2Details.Provenance.Promotion.Stage ==
+                   CompiledProfilePromotionStage.ExecutableCandidate &&
+               ((composition.V2Details.Provenance.Context is
                      LogicalOutputV2CompilationContext or
                      RuntimeReferenceReplaceV2CompilationContext) ||
                 composition.IsV2AbFunctionOpenCandidate));
@@ -150,9 +144,7 @@ internal static class CapabilityPublicationCoherence
             capabilityFingerprint,
             evidence,
             "evidence decision");
-        V2CompiledCompositionDetails? details = compiledComposition.V2Details;
-
-        ValidateOutputNamingMetadata(details, metadataPlan.Entries);
+        ValidateOutputNamingMetadata(compiledComposition.V2Details, metadataPlan.Entries);
     }
 
     private static void ValidateDecision<TValue>(
@@ -174,10 +166,10 @@ internal static class CapabilityPublicationCoherence
     }
 
     private static void ValidateOutputNamingMetadata(
-        V2CompiledCompositionDetails? details,
+        V2CompiledCompositionDetails details,
         IReadOnlyList<MetadataPlanEntry> metadataEntries)
     {
-        if (details?.OutputNamingRequirement.RuleId is null)
+        if (details.OutputNamingRequirement.RuleId is null)
         {
             return;
         }

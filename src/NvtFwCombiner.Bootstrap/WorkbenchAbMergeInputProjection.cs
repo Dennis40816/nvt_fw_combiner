@@ -1,5 +1,8 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -7,6 +10,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class WorkbenchAbMergeInputProjection
 {
+    private static readonly AuthoringRevision s_nonPublishableCompatibilityRevision = new(1);
     private const string AbDpRole = "dp-ab";
     private const string AbTpARole = "tp-a";
     private const string AbTpBRole = "tp-b";
@@ -21,7 +25,7 @@ internal static class WorkbenchAbMergeInputProjection
                 icId,
                 requestedTopology,
                 out CompiledComposition? composition,
-                out _) || composition.V2Details is null
+                out _)
             ? []
             : CreateInputSlots(composition);
     }
@@ -38,11 +42,12 @@ internal static class WorkbenchAbMergeInputProjection
                 icId,
                 requestedTopology,
                 out CompiledComposition? composition,
-                out IReadOnlyList<CompositionIssue> compileIssues) ||
-            composition.V2Details is not { } details)
+                out IReadOnlyList<CompositionIssue> compileIssues))
         {
             throw new InvalidOperationException(WorkbenchCompositionService.FormatIssues(compileIssues));
         }
+
+        V2CompiledCompositionDetails details = composition.V2Details;
 
         WorkbenchAbMergeInputSlot slot = CreateInputSlots(composition).Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
@@ -62,11 +67,26 @@ internal static class WorkbenchAbMergeInputProjection
                 UnknownVersions(slot.Role));
         }
 
-        CompiledInputArtifactInspectionResult inspected =
-            CompiledInputArtifactInspectionService.Inspect(
-                composition,
-                addressSpaceId,
-                image);
+        ResolvedCapability capability = WorkbenchCompositionService
+            .ResolveCanonicalCapabilityForRun(composition) ??
+            throw new InvalidOperationException(
+                "AB input inspection requires the current canonical capability publication.");
+        var selectionReadiness = new InputSelectionMemberReadiness(
+            slot.SlotId,
+            IsSelected: true,
+            ResolvedChildReadiness.Ready,
+            CanSelect: true,
+            Reason: null,
+            NextAction: null);
+        // This one-way compatibility projection never returns or publishes shared authoring state.
+        // #208 supplies the real session revision when desktop callers consume the shared result.
+        AuthoringInputSlotStatus shared = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            s_nonPublishableCompatibilityRevision,
+            selectionReadiness,
+            addressSpaceId,
+            image);
+        CompiledInputArtifactInspectionResult inspected = shared.Inspection!;
         List<WorkbenchAbVersionValue> versions = ReadVersions(composition, slot.Role, image, inspected);
         List<WorkbenchInputInspectionIssue> issues =
         [
@@ -98,8 +118,7 @@ internal static class WorkbenchAbMergeInputProjection
     private static IReadOnlyList<WorkbenchAbMergeInputSlot> CreateInputSlots(
         CompiledComposition composition)
     {
-        V2CompiledCompositionDetails details = composition.V2Details ??
-            throw new InvalidOperationException("Supported AB profiles require a compiled V2 input contract.");
+        V2CompiledCompositionDetails details = composition.V2Details;
         return
         [
             .. composition.Plan.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
@@ -166,11 +185,7 @@ internal static class WorkbenchAbMergeInputProjection
         out List<WorkbenchAbVersionValue>? versions)
     {
         versions = null;
-        IReadOnlyList<FirmwareRegion>? regions = composition.V2Details?.Provenance.ResolvedMap.ImageMap.Regions;
-        if (regions is null)
-        {
-            return false;
-        }
+        IReadOnlyList<FirmwareRegion> regions = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions;
 
         FirmwareRegion? a = regions.SingleOrDefault(region =>
             StringComparer.Ordinal.Equals(region.RegionId, "a-cmi-dp-version"));
@@ -296,6 +311,8 @@ internal static class WorkbenchAbMergeInputProjection
         return nextAction switch
         {
             CompiledInputArtifactInspectionNextAction.None => WorkbenchInputInspectionNextAction.None,
+            CompiledInputArtifactInspectionNextAction.SelectReadableInput =>
+                WorkbenchInputInspectionNextAction.SelectReadableInput,
             CompiledInputArtifactInspectionNextAction.SelectCompatibleInput =>
                 WorkbenchInputInspectionNextAction.SelectCompatibleInput,
             CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes =>

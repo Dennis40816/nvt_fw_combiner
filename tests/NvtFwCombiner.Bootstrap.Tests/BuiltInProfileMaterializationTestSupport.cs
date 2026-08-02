@@ -1,12 +1,11 @@
 using System.Text.Json;
-using System.Xml.Linq;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Reconstructs manifest-pinned test bundles from the Bootstrap materialization declaration.</summary>
+/// <summary>Reconstructs manifest-pinned test bundles from the package trust index.</summary>
 internal static class BuiltInProfileMaterializationTestSupport
 {
     internal static TrustedProfileBundleCatalog LoadSourceCandidateCatalog(
@@ -54,16 +53,17 @@ internal static class BuiltInProfileMaterializationTestSupport
         }
 
         string builtInRoot = RepositoryPaths.FromRepositoryRoot("profiles", "built-in");
-        XElement bundle = XDocument.Load(RepositoryPaths.FromRepositoryRoot(
-                "src",
-                "NvtFwCombiner.Bootstrap",
-                "NvtFwCombiner.Bootstrap.csproj"))
-            .Descendants("BuiltInProfileBundle")
-            .Single(item => StringComparer.Ordinal.Equals(item.Attribute("Include")?.Value, bundleDirectory));
-        string? destination = bundle.Element("CanonicalFirmwareFamilyDestination")?.Value;
+        ProfileBundlePackageTrustEntry bundle = ProfileBundlePackageTrustIndexLoader.Load(
+                RepositoryPaths.FromRepositoryRoot("profiles", "built-in", "package-trust-index.json"))
+            .Bundles
+            .Single(item => StringComparer.Ordinal.Equals(item.BundleDirectory, bundleDirectory));
+        ProfileBundleCanonicalFamilyMaterialization? canonical =
+            bundle.Materialization.CanonicalFirmwareFamily;
+        string? destination = canonical?.Destination;
         string source = StringComparer.Ordinal.Equals(Normalize(destination), Normalize(relativePath))
-            ? bundle.Element("CanonicalFirmwareFamilySource")?.Value
-                ?? throw new InvalidOperationException($"Canonical family source is missing for '{bundleDirectory}'.")
+            ? canonical?.Source
+                ?? throw new InvalidOperationException(
+                    $"Canonical family source is missing for '{bundleDirectory}'.")
             : Path.Combine(bundleDirectory, relativePath);
         return ResolveUnderRoot(builtInRoot, source);
     }

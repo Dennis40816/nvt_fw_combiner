@@ -26,10 +26,7 @@ public static class MemoryLayoutProjector
         ValidateIdentity(capability, authoring, compiledOverlay);
 
         CompiledComposition composition = capability.CompiledComposition;
-        V2CompiledCompositionDetails details = composition.V2Details ??
-            throw new ArgumentException(
-                "Memory-layout projection requires a compiled V2 capability.",
-                nameof(capability));
+        V2CompiledCompositionDetails details = composition.V2Details;
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
             details.Provenance.Context is MapBoundV2CompilationContext mapContext
                 ? mapContext.ResolvedMap

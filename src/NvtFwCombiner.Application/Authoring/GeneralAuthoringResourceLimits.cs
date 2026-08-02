@@ -35,6 +35,9 @@ public static class GeneralAuthoringIssueCodes
     /// <summary>A content-identified Saved Rule does not reference the exact resolved Parent.</summary>
     public const string SavedRuleParentMismatch =
         "general.admission.saved-rule-parent-mismatch";
+    /// <summary>A content-identified Saved Rule is not one exact trusted publication.</summary>
+    public const string SavedRuleExecutionNotTrustedPublished =
+        "saved-rule.lifecycle.execution-not-trusted-published";
     /// <summary>Active resource layers accept no common value.</summary>
     public const string EffectiveLimitsEmpty = "general.admission.effective-limits-empty";
 }
@@ -249,14 +252,6 @@ public sealed record GeneralTrustedParentResourcePolicy
 /// <summary>Optional Saved Rule narrowing authority supplied to the same admission use case.</summary>
 public sealed record GeneralSavedRuleResourcePolicy
 {
-    /// <summary>Creates one reviewed narrowing policy with stable provenance.</summary>
-    public GeneralSavedRuleResourcePolicy(
-        string ruleId,
-        GeneralResourceLimits limits)
-        : this(ruleId, executionIdentity: null, limits)
-    {
-    }
-
     /// <summary>Creates one exact content-identified narrowing policy.</summary>
     public GeneralSavedRuleResourcePolicy(
         SavedRuleExecutionIdentity executionIdentity,
@@ -265,6 +260,20 @@ public sealed record GeneralSavedRuleResourcePolicy
             executionIdentity?.RuleId ??
             throw new ArgumentNullException(nameof(executionIdentity)),
             executionIdentity,
+            SavedRuleLifecycle.Import(executionIdentity),
+            limits)
+    {
+    }
+
+    /// <summary>Creates one independently resolved published Catalog narrowing policy.</summary>
+    internal GeneralSavedRuleResourcePolicy(
+        SavedRuleLifecycleSnapshot lifecycle,
+        GeneralResourceLimits limits)
+        : this(
+            lifecycle?.Identity.RuleId ??
+            throw new ArgumentNullException(nameof(lifecycle)),
+            lifecycle.Identity,
+            lifecycle,
             limits)
     {
     }
@@ -272,12 +281,14 @@ public sealed record GeneralSavedRuleResourcePolicy
     private GeneralSavedRuleResourcePolicy(
         string ruleId,
         SavedRuleExecutionIdentity? executionIdentity,
+        SavedRuleLifecycleSnapshot? lifecycle,
         GeneralResourceLimits limits)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentNullException.ThrowIfNull(limits);
         RuleId = ruleId;
         ExecutionIdentity = executionIdentity;
+        Lifecycle = lifecycle;
         Limits = limits;
     }
 
@@ -286,6 +297,9 @@ public sealed record GeneralSavedRuleResourcePolicy
 
     /// <summary>Exact rule revision and Parent identity for v2 consumption.</summary>
     public SavedRuleExecutionIdentity? ExecutionIdentity { get; }
+
+    /// <summary>Host-resolved lifecycle authority for the exact execution identity.</summary>
+    public SavedRuleLifecycleSnapshot? Lifecycle { get; }
 
     /// <summary>Limits that may only narrow the exact Parent.</summary>
     public GeneralResourceLimits Limits { get; }

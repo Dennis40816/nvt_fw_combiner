@@ -1315,14 +1315,40 @@ def validate_workflows(errors: list[str]) -> None:
     release = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
     required_release_markers = (
         "workflow_dispatch",
-        "Exact reviewed main commit",
+        "Exact reviewed release-branch head",
         "Final reviewed pull request",
+        "NFC_WORKFLOW_REF -ne 'refs/heads/main'",
+        "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18')",
+        "'0.9.17' = '0.9.17'",
+        "'0.9.18' = '0.9.18'",
+        "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
+        "$env:NFC_RELEASE_POLICY validate-context",
+        "$env:NFC_RELEASE_POLICY validate-promotion-source",
         "environment: release",
         "Create or verify immutable annotated tag",
     )
     if any(marker not in release for marker in required_release_markers):
         errors.append(
-            "release workflow must use exact-main CI promotion with a protected human environment gate"
+            "release workflow must use protected-main authority, an explicit release-source allowlist, and a protected human environment gate"
+        )
+    if "\n  promote:" in release and "\n  published-smoke:" in release:
+        promote = release.split("\n  promote:", maxsplit=1)[1].split(
+            "\n  published-smoke:", maxsplit=1
+        )[0]
+        if "Checkout prepared source" in promote or "smoke-release.ps1" in promote:
+            errors.append(
+                "release write-token job must not check out or execute release-source code"
+            )
+    else:
+        errors.append(
+            "release workflow must isolate published package smoke in a read-only job"
+        )
+    if (
+        "Smoke published package without a GitHub token" not in release
+        or "(Test-Path Env:GH_TOKEN) -or (Test-Path Env:GITHUB_TOKEN)" not in release
+    ):
+        errors.append(
+            "published package smoke must fail closed when a GitHub token is exposed"
         )
     if "push:" in release and "tags:" in release:
         errors.append(

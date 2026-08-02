@@ -133,6 +133,25 @@ them with an equally broad facade, generated hidden owner, excluded-path
 implementation, or weaker contract. If the canonical core still exceeds
 22,607 lines, #197 remains blocked.
 
+Owner decision, 2026-08-02: merged PR #278 establishes the post-headless,
+pre-Core measurement baseline at commit
+`4dddf1a2822ee74a343d2b20a565115d745313ae`, with 72,750 counted nonblank
+runtime lines. Until #229 freezes the Core-entry slice ratchets:
+
+- all remaining pre-Core PRs together may consume at most 2,000 positive
+  counted lines above that baseline;
+- a negative delta does not refill this allowance or authorize unrelated
+  growth, and the measured pre-Core high-water mark remains 74,750;
+- #214 may contribute at most 1,300 counted lines of net growth; and
+- each counted-positive PR records its baseline/head measurement, allowance
+  consumed, superseded owner, remaining caller/evidence blocker, and deletion
+  milestone. The existing verifier remains the only measurement command.
+
+This envelope is a temporary review ceiling, not a new target, transferable
+slice budget, or permission to move runtime logic into excluded Presentation,
+generated output, profiles, scripts, or tests. It does not increase the 22,607
+final gate or the 607-line unallocated integration reserve.
+
 Canonical Core Convergence is one umbrella outcome, not one repository-wide
 implementation PR. It is delivered through four independently reviewable,
 ownership-bounded slices:

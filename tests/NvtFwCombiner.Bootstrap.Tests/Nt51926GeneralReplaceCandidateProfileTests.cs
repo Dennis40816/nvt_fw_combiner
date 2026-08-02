@@ -29,7 +29,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal("nt51926-general-replace-dp-single-candidate", composition.ProfileId);
         Assert.Equal("0.1.0", composition.ProfileVersion);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details!.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(2, composition.V2Details.Provenance.Promotion.Blockers.Count);
         Assert.Equal(
             "nt51926-general-replace-full-flash-256k",
@@ -185,9 +185,17 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 },
                 draft,
                 build: true,
-                TestContext.Current.CancellationToken,
                 outputPath,
-                new GeneralSavedRuleResourcePolicy(forgedIdentity, limits));
+                new GeneralSavedRuleResourcePolicy(
+                    new SavedRuleLifecycleSnapshot(
+                        forgedIdentity,
+                        SavedRuleStorageKind.TrustedCatalog,
+                        SavedRuleLifecycleState.Published,
+                        hasApproval: true,
+                        hasEvidence: true,
+                        isTrusted: true),
+                    limits),
+                TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
         Assert.False(File.Exists(outputPath));

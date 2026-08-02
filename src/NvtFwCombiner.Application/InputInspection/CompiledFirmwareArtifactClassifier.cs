@@ -104,7 +104,7 @@ public static class CompiledFirmwareArtifactClassifier
     {
         ArgumentNullException.ThrowIfNull(compiledComposition);
 
-        V2CompiledCompositionDetails? details = compiledComposition.V2Details;
+        V2CompiledCompositionDetails details = compiledComposition.V2Details;
         if (details is null)
         {
             return Unknown(capacity: 0);
@@ -161,7 +161,7 @@ public static class CompiledFirmwareArtifactClassifier
         CompiledFirmwareArtifactSignalKind coverageKind,
         CompiledFirmwareArtifactSignalKind plausibilityKind)
     {
-        V2CompiledCompositionDetails details = composition.V2Details!;
+        V2CompiledCompositionDetails details = composition.V2Details;
         CompiledInputSlotRequirement[] slots =
         [
             .. details.InputContract.Slots.Where(slot => slot.ArtifactClass == artifactClass),

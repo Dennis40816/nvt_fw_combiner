@@ -207,7 +207,7 @@ public static partial class WorkbenchCompositionService
         }
 
         composition = resolution.Capability?.CompiledComposition;
-        long? resolvedCapacity = composition?.V2Details?.Provenance
+        long? resolvedCapacity = composition?.V2Details.Provenance
             .ResolvedMap.CapacityBytes;
         if (composition is not null && resolvedCapacity != baseCapacity)
         {

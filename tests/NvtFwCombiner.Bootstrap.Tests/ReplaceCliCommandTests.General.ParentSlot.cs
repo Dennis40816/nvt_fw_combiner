@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -21,17 +22,23 @@ public sealed partial class ReplaceCliCommandTests
         sourceSlot["slotId"] = "reference";
         string rule = await WriteGeneralReplaceRuleAsync(workspace, json);
         string output = workspace.PathFor("parent-slot.bin");
+        (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
+            LoadTrustedGeneralReplaceRule(rule, reference, sourcePath: null);
+        WorkbenchRunResult result =
+            await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                "NT51926",
+                "single",
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [WorkbenchSlotIds.ReplaceBase] = reference,
+                },
+                draft,
+                build: true,
+                output,
+                policy,
+                TestContext.Current.CancellationToken);
 
-        CliRunResult result = await RunCliAsync([
-            "general-replace", "build",
-            "--profile", "NT51926",
-            "--ic-num", "single",
-            "--base", reference,
-            "--rule", rule,
-            "--output", output,
-        ]);
-
-        Assert.Equal(0, result.ExitCode);
+        Assert.True(result.Succeeded, result.ReportJson);
         byte[] outputBytes = await File.ReadAllBytesAsync(
             output,
             TestContext.Current.CancellationToken);

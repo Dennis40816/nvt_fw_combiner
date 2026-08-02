@@ -236,7 +236,9 @@ public sealed class GeneralAuthoringAdmissionTests
             [],
             limits,
             new GeneralTrustedParentResourcePolicy(trustedParent, limits),
-            new GeneralSavedRuleResourcePolicy(savedRuleIdentity, limits));
+            new GeneralSavedRuleResourcePolicy(
+                TrustedPublication(savedRuleIdentity),
+                limits));
 
         Assert.False(result.IsAdmitted);
         Assert.Null(result.SavedRuleId);
@@ -402,11 +404,11 @@ public sealed class GeneralAuthoringAdmissionTests
                 {
                     [CompositionAddressSpaceIds.OutputImage] = 4,
                 },
-                Parent(parent),
+                new GeneralTrustedParentResourcePolicy(ExactParent("map-a"), parent),
                 Saved(savedRule)));
 
         Assert.False(result.IsAdmitted);
-        Assert.Equal("test-parent", result.TrustedParentId);
+        Assert.Equal("profile", result.TrustedParentId);
         Assert.Equal("test-rule", result.SavedRuleId);
         Assert.Equal(0x20, result.EffectiveLimits!.MaximumFileBytes);
         Assert.Equal(0x28, Assert.Single(result.InputResources).LengthBytes);
@@ -530,7 +532,14 @@ public sealed class GeneralAuthoringAdmissionTests
     private static GeneralSavedRuleResourcePolicy Saved(
         GeneralResourceLimits limits)
     {
-        return new GeneralSavedRuleResourcePolicy("test-rule", limits);
+        var identity = new SavedRuleExecutionIdentity(
+            "test-rule",
+            "1.0.0",
+            new string('a', 64),
+            ExactParent("map-a"));
+        return new GeneralSavedRuleResourcePolicy(
+            TrustedPublication(identity),
+            limits);
     }
 
     private static SavedRuleParentIdentity ExactParent(string mapId)
@@ -546,6 +555,18 @@ public sealed class GeneralAuthoringAdmissionTests
             "1.0.0",
             new string('d', 64),
             mapId);
+    }
+
+    private static SavedRuleLifecycleSnapshot TrustedPublication(
+        SavedRuleExecutionIdentity identity)
+    {
+        return new SavedRuleLifecycleSnapshot(
+            identity,
+            SavedRuleStorageKind.TrustedCatalog,
+            SavedRuleLifecycleState.Published,
+            hasApproval: true,
+            hasEvidence: true,
+            isTrusted: true);
     }
 
     private static GeneralMappingDraftRow CreateRow(

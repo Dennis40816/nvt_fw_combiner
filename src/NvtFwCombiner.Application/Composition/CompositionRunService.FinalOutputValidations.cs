@@ -78,7 +78,7 @@ public sealed partial class CompositionRunService
         ReadOnlySpan<byte> outputBytes,
         CompiledFirmwareConfigBackupVersionValidation requirement)
     {
-        string severity = ToIssueSeverity(requirement.Severity);
+        string severity = CompositionIssueSeverity.FromCompiled(requirement.Severity);
         return !FirmwareConfigMetadataReader.TryReadBackup(outputBytes, out FirmwareConfigMetadata backupMetadata) ||
             !backupMetadata.IsFirmwareVersionBarValid
             ? new CompositionIssue(
@@ -195,20 +195,6 @@ public sealed partial class CompositionRunService
                 $"Postbuild placed FWConfig Backup at 0x{backupMetadata.StructureStart:X}; IC Count predicts 0x{requirement.ExpectedStart:X}. The actual address remains inside compiled authority.",
                 requirement.RuleId,
                 CompositionIssueSeverity.Warning);
-    }
-
-    private static string ToIssueSeverity(CompiledValidationSeverity severity)
-    {
-        return severity switch
-        {
-            CompiledValidationSeverity.Info => CompositionIssueSeverity.Info,
-            CompiledValidationSeverity.Warning => CompositionIssueSeverity.Warning,
-            CompiledValidationSeverity.Error => CompositionIssueSeverity.Error,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(severity),
-                severity,
-                "Unknown compiled validation severity."),
-        };
     }
 
     private sealed record FinalOutputValidationEvaluation(

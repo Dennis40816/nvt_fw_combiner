@@ -55,7 +55,15 @@ public sealed partial class GeneralMergeCliCommandTests
             await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 draft,
-                new GeneralSavedRuleResourcePolicy(identity, limits),
+                new GeneralSavedRuleResourcePolicy(
+                    new SavedRuleLifecycleSnapshot(
+                        identity,
+                        SavedRuleStorageKind.TrustedCatalog,
+                        SavedRuleLifecycleState.Published,
+                        hasApproval: true,
+                        hasEvidence: true,
+                        isTrusted: true),
+                    limits),
                 build: true,
                 TestContext.Current.CancellationToken,
                 output);

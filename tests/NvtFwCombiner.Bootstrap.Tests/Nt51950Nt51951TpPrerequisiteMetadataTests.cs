@@ -103,6 +103,19 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         Assert.Equal("tp-input", action.ArtifactBindingId);
         Assert.Equal("tp-input", action.SlotId);
         Assert.Equal(dp.Identity, Assert.Single(snapshot.ArtifactIdentities));
+        InputSelectionMemberReadiness slotReadiness =
+            InputSelectionReadinessResolver.ProjectMetadataDependency(
+                dpcmi,
+                isSelected: true);
+        Assert.Equal("dp-input", slotReadiness.SlotId);
+        Assert.False(slotReadiness.CanSelect);
+        Assert.Equal(ResolvedChildReadiness.PendingInput, slotReadiness.Readiness);
+        Assert.Equal(
+            new InputSelectionNextAction(
+                InputSelectionNextActionKind.LoadArtifactFirst,
+                "tp-input",
+                "tp-input"),
+            slotReadiness.NextAction);
     }
 
     /// <summary>NT51950 count 1 and cascade count 2 select their evidenced anchors.</summary>
@@ -204,6 +217,13 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             "firmware-config-standard-merge",
             dpcmi.Resolution?.Prerequisite?.StructureId);
         Assert.Null(dpcmi.NextAction);
+        InputSelectionMemberReadiness slotReadiness =
+            InputSelectionReadinessResolver.ProjectMetadataDependency(
+                dpcmi,
+                isSelected: true);
+        Assert.Equal(ResolvedChildReadiness.Blocked, slotReadiness.Readiness);
+        Assert.False(slotReadiness.CanSelect);
+        Assert.Null(slotReadiness.NextAction);
     }
 
     /// <summary>The built-in trust seam rejects every non-exact provider identity.</summary>
@@ -317,6 +337,12 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
                 new FirmwareArtifactPayload("dp-input", CreateDp()),
                 new FirmwareArtifactPayload("tp-input", CreateTp(icCount)),
             ]);
+        MetadataInspectionSnapshot reverse = FirmwareMetadataInspector.Inspect(
+            plan,
+            [
+                new FirmwareArtifactPayload("tp-input", CreateTp(icCount)),
+                new FirmwareArtifactPayload("dp-input", CreateDp()),
+            ]);
         MetadataInspectionResult dpcmi = ResultByDefinition(
             snapshot,
             DpcmiMetadataContract.StructureId);
@@ -324,9 +350,15 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         Assert.Equal(MetadataInspectionState.Value, dpcmi.State);
         Assert.Equal(ResolvedChildReadiness.Ready, dpcmi.Readiness);
         Assert.Null(dpcmi.NextAction);
+        Assert.True(InputSelectionReadinessResolver
+            .ProjectMetadataDependency(dpcmi, isSelected: true)
+            .CanSelect);
         Assert.Equal(
             new ByteRange(expectedStart, 3),
             dpcmi.Resolution?.Resolved?.LocatorOutcome.ResolvedRange.Range);
+        Assert.Equal(
+            dpcmi.Resolution?.Resolved?.LocatorOutcome.ResolvedRange.Range,
+            DpcmiRange(reverse));
         Assert.True(DpcmiMetadataProjector.TryProject(snapshot, out DpcmiMetadataFacts facts));
         Assert.Equal(expectedMajor, facts.MajorVersion);
         Assert.Equal(expectedMinor, facts.MinorVersion);

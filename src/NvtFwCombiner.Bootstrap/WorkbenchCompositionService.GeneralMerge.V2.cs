@@ -9,7 +9,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    internal const string GeneralMergeV2CandidateProfileVersion = "0.1.0";
     private const string GeneralMergeV2CandidateFallbackProfileId = "general-merge-logical-output-candidate";
     private const string GeneralMergeV2CandidateMemberNotAdmitted = "general-merge.v2-candidate.member-not-admitted";
     private const string GeneralMergeV2CandidateInputLengthUnsupported = "general-merge.v2-candidate.input-length-unsupported";
@@ -34,15 +33,20 @@ public static partial class WorkbenchCompositionService
             : CreateGeneralMergeReportSlotPaths(draft.Mappings);
         string defaultOutputFileName = GetGeneralMergeDefaultOutputFileName(icId);
         GeneralAuthoringAdmissionResult? admission = null;
+        _ = BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+            icId,
+            out GeneralMergeV2CandidateRegistration? registration);
+        string reportProfileId = registration?.ProfileId ??
+            GeneralMergeV2CandidateFallbackProfileId;
+        string reportProfileVersion = registration?.ProfileVersion ?? "unregistered";
         WorkbenchRunResult Blocked(
             IReadOnlyList<CompositionIssue> issues,
-            IReadOnlyList<OperationRunSummary>? operations = null,
-            string profileId = GeneralMergeV2CandidateFallbackProfileId)
+            IReadOnlyList<OperationRunSummary>? operations = null)
         {
             return CreateBlockedReportRunResult(
                 GeneralMergeRunIdPrefix,
-                profileId,
-                GeneralMergeV2CandidateProfileVersion,
+                reportProfileId,
+                reportProfileVersion,
                 icId,
                 IcWorkflowIds.GeneralMerge,
                 IcWorkflowIds.GeneralMerge,
@@ -66,9 +70,7 @@ public static partial class WorkbenchCompositionService
             };
         }
 
-        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
-                icId,
-                out GeneralMergeV2CandidateRegistration? registration))
+        if (registration is null)
         {
             return Blocked(
                 [new CompositionIssue(
@@ -90,13 +92,12 @@ public static partial class WorkbenchCompositionService
             return Blocked(
                 [new CompositionIssue(
                     capabilityResolution.Issue!.Code,
-                    capabilityResolution.Issue.Message)],
-                profileId: registration.ProfileId);
+                    capabilityResolution.Issue.Message)]);
         }
 
         if (draftIssues is { Count: > 0 })
         {
-            return Blocked(draftIssues, profileId: registration.ProfileId);
+            return Blocked(draftIssues);
         }
 
         if (draft is null)
@@ -105,17 +106,14 @@ public static partial class WorkbenchCompositionService
                 [new CompositionIssue(
                     WorkbenchIssueCodes.GeneralMergeMappingRequired,
                     "General Merge requires at least one explicit source-to-target mapping.",
-                    IcWorkflowIds.GeneralMerge)],
-                profileId: registration.ProfileId);
+                    IcWorkflowIds.GeneralMerge)]);
         }
 
         GeneralSelectedFileBindingResult acceptedFiles =
             RequireAcceptedGeneralSelectedFiles(mappingDraft!);
         if (!acceptedFiles.Succeeded)
         {
-            return Blocked(
-                acceptedFiles.Issues,
-                profileId: registration.ProfileId);
+            return Blocked(acceptedFiles.Issues);
         }
 
         mappingDraft = acceptedFiles.Draft!;
@@ -135,9 +133,7 @@ public static partial class WorkbenchCompositionService
             savedRulePolicy);
         if (!admission.IsAdmitted)
         {
-            return Blocked(
-                admission.ToCompositionIssues(),
-                profileId: registration.ProfileId);
+            return Blocked(admission.ToCompositionIssues());
         }
 
         if (!TryCreateGeneralMergeMappings(
@@ -149,8 +145,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 mappingIssues,
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
-                registration.ProfileId);
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
         }
 
         if (requestAddressSpaces.Any(static addressSpace => addressSpace.Length > int.MaxValue))
@@ -160,13 +155,12 @@ public static partial class WorkbenchCompositionService
                     GeneralMergeV2CandidateInputLengthUnsupported,
                     "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
                     "source")],
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
-                registration.ProfileId);
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
         }
 
         V2CompositionPlanCompileResult compile = registration.Bundle.CompileLogicalOutput(
             registration.ProfileId,
-            GeneralMergeV2CandidateProfileVersion,
+            registration.ProfileVersion,
             icId,
             new V2LogicalOutputCompileRequest(
                 draft.OutputInitializer,
@@ -191,8 +185,7 @@ public static partial class WorkbenchCompositionService
         {
             return Blocked(
                 NormalizeGeneralMergeV2Issues(compile.Issues),
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
-                registration.ProfileId);
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
         }
 
         if (!IsExpectedGeneralMergeV2Candidate(composition, registration))
@@ -202,8 +195,7 @@ public static partial class WorkbenchCompositionService
                     GeneralMergeV2CandidateCompilationUnexpected,
                     "The selected General Merge V2 artifact does not match the candidate admission contract.",
                     registration.ProfileId)],
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange),
-                registration.ProfileId);
+                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
         }
 
         ResolvedCapability resolvedCapability =
@@ -239,12 +231,10 @@ public static partial class WorkbenchCompositionService
         GeneralMergeV2CandidateRegistration registration)
     {
         return composition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-               composition.Authority is ProfileBundleV2CompilationAuthority &&
                StringComparer.Ordinal.Equals(composition.ProfileId, registration.ProfileId) &&
-               StringComparer.Ordinal.Equals(composition.ProfileVersion, GeneralMergeV2CandidateProfileVersion) &&
-               composition.V2Details is { } details &&
-               details.Provenance.Context is LogicalOutputV2CompilationContext context &&
-               details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+               StringComparer.Ordinal.Equals(composition.ProfileVersion, registration.ProfileVersion) &&
+               composition.V2Details.Provenance.Context is LogicalOutputV2CompilationContext context &&
+               composition.V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
                StringComparer.Ordinal.Equals(context.FamilyId, registration.FamilyId) &&
                StringComparer.Ordinal.Equals(context.MemberId, registration.IcId);
     }

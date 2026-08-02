@@ -11,21 +11,12 @@ internal static class CompiledCompositionInputBindingFactory
         CompiledComposition compiledComposition,
         string addressSpaceId,
         string artifactId,
-        string? legacyBindingId = null,
         FileStamp? acceptedContentStamp = null)
     {
         ArgumentNullException.ThrowIfNull(compiledComposition);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
-        if (compiledComposition.V2Details is not { } details)
-        {
-            return new InputArtifactBinding(
-                addressSpaceId,
-                legacyBindingId ?? addressSpaceId,
-                artifactId,
-                acceptedContentStamp: acceptedContentStamp);
-        }
-
+        V2CompiledCompositionDetails details = compiledComposition.V2Details;
         CompiledInputSpaceBinding spaceBinding = details.InputContract.SpaceBindings.SingleOrDefault(binding =>
             StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId)) ?? throw new InvalidOperationException(
             $"V2 compiled input contract does not declare address space '{addressSpaceId}'.");

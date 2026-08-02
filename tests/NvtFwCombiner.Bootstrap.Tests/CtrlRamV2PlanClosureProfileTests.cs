@@ -260,7 +260,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             targetLength: 0x8C00,
             profileVersion: "0.4.0");
 
-        Assert.Equal("nt51929-ctrlram-fw1x-cascade-full-flash", composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("nt51929-ctrlram-fw1x-cascade-full-flash", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(processorId, Processor(composition).ProcessorId);
         Assert.Contains(new ByteRange(0x2D100, 0x8C00), Processor(composition).AllowedWriteRanges);
         Assert.Contains(
@@ -312,7 +312,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             processor.AllowedWriteRanges,
             range => range.Overlaps(new ByteRange(diffStart, diffLength)));
         Assert.DoesNotContain(
-            composition.V2Details!.RegionAccessContract.Requirements,
+            composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "diff-ctrlram");
         Assert.Equal(
             expectsBackupCopy,
@@ -341,7 +341,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             referenceCapacity: 0x80000,
             profileVersion: chipCount == 2 ? "0.2.0" : "0.3.0");
 
-        Assert.Equal(expectedMapId, composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(expectedMapId, composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(0x80000, composition.V2Details.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal("nfc.nt51928.ctrlram-postbuild-v1", Processor(composition).ProcessorId);
         Assert.Contains(
@@ -375,8 +375,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             referenceCapacity: 0x80000,
             profileVersion: "0.6.0");
 
-        Assert.Equal(0x40000, nt51950.V2Details!.Provenance.ResolvedMap.CapacityBytes);
-        Assert.Equal(0x80000, nt51951.V2Details!.Provenance.ResolvedMap.CapacityBytes);
+        Assert.Equal(0x40000, nt51950.V2Details.Provenance.ResolvedMap.CapacityBytes);
+        Assert.Equal(0x80000, nt51951.V2Details.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal(
             Processor(nt51950).AllowedWriteRanges,
             Processor(nt51951).AllowedWriteRanges);
@@ -443,7 +443,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             referenceCapacity: tpPrefixLength,
             profileVersion: profileVersion);
 
-        Assert.Equal(expectedMapId, composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(expectedMapId, composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(tpPrefixLength, composition.V2Details.Provenance.ResolvedMap.CapacityBytes);
         Assert.Equal([new ByteRange(0, tpPrefixLength)], Processor(composition).AllowedReadRanges);
         Assert.Contains(new ByteRange(targetStart, 0x1400), Processor(composition).AllowedWriteRanges);

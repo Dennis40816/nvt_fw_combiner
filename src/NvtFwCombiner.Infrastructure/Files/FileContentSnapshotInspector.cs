@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Ports;
 
@@ -31,16 +32,85 @@ public sealed class FileContentSnapshotInspector
     /// <inheritdoc />
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
+        long maximumBytes,
         CancellationToken cancellationToken)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
             selectedPath,
             _allowedRoots);
-        byte[] bytes = await File.ReadAllBytesAsync(path, cancellationToken)
+        await using var stream = new FileStream(
+            path,
+            new FileStreamOptions
+            {
+                Mode = FileMode.Open,
+                Access = FileAccess.Read,
+                Share = FileShare.Read,
+                Options = FileOptions.Asynchronous | FileOptions.SequentialScan,
+                BufferSize = 64 * 1024,
+            });
+        long observedLength = stream.Length;
+        if (observedLength > maximumBytes)
+        {
+            throw new SelectedFileSizeLimitExceededException(
+                observedLength,
+                maximumBytes);
+        }
+
+        byte[] sha256 = await HashExactLengthAsync(
+                stream,
+                observedLength,
+                cancellationToken)
             .ConfigureAwait(false);
-        return new SelectedFileContentInspection(
-            FileStamp.FromBytes(bytes),
-            Path.GetFileName(path));
+        return stream.Position == observedLength && stream.Length == observedLength
+            ? new SelectedFileContentInspection(
+                new FileStamp(
+                    observedLength,
+                    Convert.ToHexStringLower(sha256)),
+                Path.GetFileName(path))
+            : throw new IOException(
+                "Selected file length changed during complete-content inspection.");
+    }
+
+    /// <summary>
+    /// Hashes exactly the admitted length and probes at most one trailing byte,
+    /// so concurrent growth cannot turn inspection into an unbounded read.
+    /// </summary>
+    internal static async ValueTask<byte[]> HashExactLengthAsync(
+        Stream stream,
+        long observedLength,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentOutOfRangeException.ThrowIfNegative(observedLength);
+
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer = new byte[64 * 1024];
+        long remaining = observedLength;
+        while (remaining > 0)
+        {
+            int read = await stream.ReadAsync(
+                    buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0)
+            {
+                throw new IOException(
+                    "Selected file length changed during complete-content inspection.");
+            }
+
+            hash.AppendData(buffer, 0, read);
+            remaining -= read;
+        }
+
+        int trailingRead = await stream.ReadAsync(
+                buffer.AsMemory(0, 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return trailingRead == 0
+            ? hash.GetHashAndReset()
+            : throw new IOException(
+                "Selected file length changed during complete-content inspection.");
     }
 }
 
@@ -69,10 +139,14 @@ public sealed class LegacyTimestampFileStampCompatibilityAdapter
     /// <inheritdoc />
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
+        long maximumBytes,
         CancellationToken cancellationToken)
     {
         SelectedFileContentInspection inspected =
-            await _contentInspector.InspectAsync(selectedPath, cancellationToken)
+            await _contentInspector.InspectAsync(
+                    selectedPath,
+                    maximumBytes,
+                    cancellationToken)
                 .ConfigureAwait(false);
         DateTimeOffset lastWriteTimeUtcHint =
             new(File.GetLastWriteTimeUtc(Path.GetFullPath(selectedPath)), TimeSpan.Zero);

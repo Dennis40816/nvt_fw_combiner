@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -70,6 +71,8 @@ public static partial class WorkbenchCompositionService
             return image;
         }
 
+        Dictionary<string, AuthoringInputSlotStatus> dpInputStatuses =
+            InspectDpReplaceInputSlots(icId, inputs, ReadOnce);
         List<WorkbenchFirmwareInspectionResult> results = [];
         foreach (WorkbenchFirmwareInspectionInput input in inputs)
         {
@@ -89,6 +92,14 @@ public static partial class WorkbenchCompositionService
                         ReadOnce(input.Path),
                         AbMergeWorkbenchCompositionService.ResolveTopologySelection(
                             input.AbMergeTopologyToken)),
+                };
+            }
+
+            if (dpInputStatuses.TryGetValue(input.InspectionId, out AuthoringInputSlotStatus? status))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = status,
                 };
             }
 

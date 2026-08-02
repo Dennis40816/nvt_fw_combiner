@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -11,6 +12,7 @@ public sealed partial class CompositionRunServiceTests
     {
         AddressSpace[] addressSpaces =
         [
+            new("external-input", 1, AddressSpaceMutability.Immutable),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -34,7 +36,7 @@ public sealed partial class CompositionRunServiceTests
             "run-external",
             CreateCompiledComposition(
                 plan,
-                new LegacyCompiledCompositionIdentity(
+                new TestCompiledCompositionIdentity(
                     "external-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -42,7 +44,12 @@ public sealed partial class CompositionRunServiceTests
                     "standard-merge",
                     CompositionKind.Merge),
                 "external.bin"),
-            [],
+            [new InputArtifactBinding(
+                "external-input",
+                "external-input",
+                "external-input-artifact",
+                "external-input.bin",
+                CompiledInputArtifactClass.TpFirmware)],
             "external.bin");
     }
 
@@ -50,8 +57,11 @@ public sealed partial class CompositionRunServiceTests
     {
         const int outputLength = 0x1100;
         var plan = new CompositionPlan(
-            ImageInitialization.Blank("output-image", outputLength, 0),
-            [new AddressSpace("output-image", outputLength, AddressSpaceMutability.Mutable)],
+            ImageInitialization.Reference("output-image", "reference-base", outputLength),
+            [
+                new AddressSpace("reference-base", outputLength, AddressSpaceMutability.Immutable),
+                new AddressSpace("output-image", outputLength, AddressSpaceMutability.Mutable),
+            ],
             [
                 CompositionOperation.RunExternalProcessor(
                     "run-postbuild",
@@ -76,7 +86,7 @@ public sealed partial class CompositionRunServiceTests
             "run-fwconfig-final-output-validation",
             CreateCompiledComposition(
                 plan,
-                new LegacyCompiledCompositionIdentity(
+                new TestCompiledCompositionIdentity(
                     "fwconfig-final-output-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -86,9 +96,30 @@ public sealed partial class CompositionRunServiceTests
                 "fwconfig-final-output.bin",
                 CompiledIcNumberPolicy.SingleSelector,
                 [validation]),
-            [],
+            [new InputArtifactBinding(
+                "reference-base",
+                "reference-base",
+                "fwconfig-reference-artifact",
+                "reference-base.bin",
+                CompiledInputArtifactClass.ReferenceImage)],
             "fwconfig-final-output.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+    }
+
+    private static FakeArtifactReader CreateExternalProcessorArtifactReader()
+    {
+        return new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["external-input-artifact"] = [0],
+        });
+    }
+
+    private static FakeArtifactReader CreateFirmwareConfigBackupArtifactReader()
+    {
+        return new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["fwconfig-reference-artifact"] = new byte[0x1100],
+        });
     }
 
     private static CompositionRunRequest CreateStagedSourceExternalProcessorRequest(
@@ -131,7 +162,7 @@ public sealed partial class CompositionRunServiceTests
             "run-staged-source",
             CreateCompiledComposition(
                 plan,
-                new LegacyCompiledCompositionIdentity(
+                new TestCompiledCompositionIdentity(
                     "external-staged-source-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -141,8 +172,12 @@ public sealed partial class CompositionRunServiceTests
                 "external-staged-source.bin",
                 CompiledIcNumberPolicy.SingleSelector),
             [
-                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
-                new InputArtifactBinding(stagedSourceSpaceId, stagedSourceSpaceId, "ctrlram-artifact"),
+                new InputArtifactBinding(
+                    "reference-base", "reference-base", "reference-artifact", "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    stagedSourceSpaceId, stagedSourceSpaceId, "ctrlram-artifact", "ctrlram-input.bin",
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             "external-staged-source.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
@@ -153,7 +188,11 @@ public sealed partial class CompositionRunServiceTests
         AddressSpace[] addressSpaces =
         [
             new("reference-base", 4, AddressSpaceMutability.Immutable),
-            new("ctrlram-input", 2, AddressSpaceMutability.Immutable),
+            new(
+                "ctrlram-input",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
             new("output-image", 4, AddressSpaceMutability.Mutable),
         ];
         var plan = new CompositionPlan(
@@ -186,7 +225,7 @@ public sealed partial class CompositionRunServiceTests
             "run-mapped-processor",
             CreateCompiledComposition(
                 plan,
-                new LegacyCompiledCompositionIdentity(
+                new TestCompiledCompositionIdentity(
                     "mapped-processor-profile",
                     "1.0.0",
                     "NT-SYNTHETIC",
@@ -196,8 +235,12 @@ public sealed partial class CompositionRunServiceTests
                 "mapped-processor.bin",
                 CompiledIcNumberPolicy.SingleSelector),
             [
-                new InputArtifactBinding("reference-base", "reference-base", "reference-artifact"),
-                new InputArtifactBinding("ctrlram-input", "ctrlram-input", "ctrlram-artifact"),
+                new InputArtifactBinding(
+                    "reference-base", "reference-base", "reference-artifact", "reference-base.bin",
+                    CompiledInputArtifactClass.ReferenceImage),
+                new InputArtifactBinding(
+                    "ctrlram-input", "ctrlram-input", "ctrlram-artifact", "ctrlram-input.bin",
+                    CompiledInputArtifactClass.CtrlRamReplacement),
             ],
             "mapped-processor.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));

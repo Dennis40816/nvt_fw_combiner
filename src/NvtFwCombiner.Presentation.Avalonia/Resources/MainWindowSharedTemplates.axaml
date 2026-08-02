@@ -349,7 +349,7 @@
 <DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
       Classes="firmwareSlotFact"
-      Classes.warning="{Binding IsWarning}"
+      Classes.warning="{Binding UsesLegacyWarningPresentation}"
       Margin="0,2,6,0"
       Padding="7,2"
       BorderThickness="1"
@@ -357,6 +357,38 @@
     <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
       <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize10}" FontWeight="SemiBold" Text="{Binding Label}" />
       <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize10}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding Value}" />
+    </StackPanel>
+  </Border>
+</DataTemplate>
+
+<DataTemplate x:Key="FirmwareSlotInformationFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
+  <Border
+      Classes="firmwareSlotFact"
+      Classes.error="{Binding IsError}"
+      Classes.pendingInput="{Binding IsPendingInput}"
+      Classes.unknown="{Binding IsUnknown}"
+      Classes.warning="{Binding IsWarning}"
+      Margin="0,2,6,0"
+      MinWidth="136"
+      Padding="10,7"
+      BorderThickness="1"
+      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
+    <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
+      <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize10}" FontWeight="SemiBold" Text="{Binding Label}" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize10}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding Value}" />
+        <Path
+            AutomationProperties.Name="{Binding StateAutomationText}"
+            behaviors:FocusToolTipBehavior.IsEnabled="True"
+            Classes="firmwareSlotFactStateIcon"
+            Data="{Binding StateIconPathData}"
+            Focusable="True"
+            Height="12"
+            IsVisible="{Binding HasStateIcon}"
+            Stretch="Uniform"
+            ToolTip.Tip="{Binding StateAutomationText}"
+            Width="12" />
+      </StackPanel>
     </StackPanel>
   </Border>
 </DataTemplate>

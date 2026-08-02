@@ -9,7 +9,8 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 ├─ NvtFwCombiner.exe
 ├─ profiles/
 │  └─ built-in/
-│     ├─ <Bootstrap-declared bundle>/
+│     ├─ package-trust-index.json
+│     ├─ <trust-index-declared bundle>/
 │     │  ├─ profile-bundle.json
 │     │  └─ <manifest-pinned runtime files>
 │     └─ ctrlram-postbuild-v2/
@@ -27,6 +28,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 │        └─ manifest.json
 ├─ docs/
 │  └─ contracts/
+│     ├─ canonical-capability-policy-v1.json
 │     ├─ support-publication-policy-v1.0.0.json
 │     └─ support-publication-policy-v1.json
 ├─ reference/
@@ -48,7 +50,7 @@ NvtFwCombiner-vX.Y.Z-win-x64/
 └─ SHA256SUMS.txt
 ```
 
-No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, or Codex configuration is shipped. `profiles/built-in/` contains only the bundles explicitly materialized by the Bootstrap project plus the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects extra published bundle, runtime-catalog directories, or files. The runtime support publication policy ships its complete hash-pinned chain at `docs/contracts/support-publication-policy-v1.0.0.json` and `docs/contracts/support-publication-policy-v1.json`; each file's `publicationPolicy` role and approved SHA-256 must match the ordered runtime loader before it enters staging or the release manifest. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses a fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Release-selected Standard Merge golden fixture BINs and fact-scoped alias manifests may ship under `reference/testdata/golden/canonical/` only when selected by `release-standard-merge-v1.json` for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
+No production source tree, editable source profile tree, Python runtime installation, .NET runtime installation, test projects, non-allowlisted private firmware, unmanifested firmware BINs, generated firmware outputs, PDBs, diagnostics, owner-handoff records, or Codex configuration is shipped. `profiles/built-in/` contains the exact reviewed `package-trust-index.json`, only the bundles declared by that index, and the fixed `ctrlram-postbuild-v2/catalog.json` and `flash-map.json` runtime catalogs. Each bundle is limited to `profile-bundle.json` and that manifest's pinned entries; the runtime catalog is a separate closed allowlist and is not a V2 profile bundle. Shipping a candidate bundle does not change its declared stage, blockers, runtime eligibility, or owner-review requirement. The packager rejects an index that differs from reviewed source material and rejects extra bundle, runtime-catalog directory, or file content. The canonical capability policy ships at `docs/contracts/canonical-capability-policy-v1.json`; its `capabilityPolicy` role and approved SHA-256 must match the runtime loader. The runtime support publication policy ships its complete hash-pinned chain at `docs/contracts/support-publication-policy-v1.0.0.json` and `docs/contracts/support-publication-policy-v1.json`; each file's `publicationPolicy` role and approved SHA-256 must match the ordered runtime loader before it enters staging or the release manifest. Shipped external executables are confined to `external-tools/`: the generated CRC Worker 0.1.0 payload and the owner-approved Legacy Combiner package. Packaging uses a fixed allowlist, so repository-only packages such as `diff-nf-merge/1.0.0/`, untracked files, or extra files cannot enter a release package. Release-selected Standard Merge golden fixture BINs and fact-scoped alias manifests may ship under `reference/testdata/golden/canonical/` only when selected by `release-standard-merge-v1.json` for future packaged self-tests. Every shipped file under `profiles/built-in/`, `external-tools/`, `docs/contracts/`, and `reference/` is listed in `RELEASE-MANIFEST.json` and `SHA256SUMS.txt`.
 
 ## Implemented commands
 
@@ -61,8 +63,8 @@ The stable release path accepts stable SemVer only, restores the `win-x64`
 dependency graph, and cleans its publish state before building a compressed,
 self-contained composite ReadyToRun single-file Avalonia app with trimming
 disabled. Source package locks are restored even when restore, clean, or publish
-fails. The packager then copies the Bootstrap-declared materialized built-in
-profile bundles through their manifests, builds the worker with PyInstaller
+fails. The packager then copies the trust-index-declared materialized built-in
+profile bundles and the index itself through their closed manifests, builds the worker with PyInstaller
 one-file mode, copies only the approved external-tool files and paths, copies the
 approved reference payload and manifest-declared golden fixture BINs, assembles
 a new empty directory, rejects paths outside the allowlist, writes the manifest
@@ -73,17 +75,55 @@ ReadyToRun precompiles managed methods to reduce cold JIT cost; it does not
 authorize trimming, a separate runtime dependency, or any firmware/profile
 semantic change.
 
-`-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the Bootstrap bundle declarations, includes the two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run rejects an empty support-policy contract and any history snapshot with the wrong SHA-256 before copying the complete approved two-file policy chain into staging, then proves the persisted manifest retains both exact paths, their `publicationPolicy` roles, and approved SHA-256 values. It also resolves `release-standard-merge-v1.json`, requires every selected case/artifact path, size, and SHA-256 to match the canonical inventory, currently locks 34 direct BIN artifacts and 13 direct/alias cases, and rejects diagnostics or other workflows. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects support-policy-chain omission, repathing, role drift, hash drift, an extra external-tool path, and a package with no built-in materialized profiles.
+`-ExternalToolPolicyDryRun` retains its compatibility name but exercises all closed package policies without publishing application or worker binaries. It creates a temporary extra file inside the source `external-tools/` directory, runs the same approved-file copy and external-tool manifest-entry code used by normal packaging, and proves the probe is absent from staging and the persisted manifest. It also builds a temporary materialized-profile fixture from the package trust index, includes the exact index and two fixed runtime-catalog files, runs the production allowlist/copy/manifest-entry functions, and proves unexpected bundle or runtime-catalog files are rejected. The same dry run rejects an empty support-policy contract and any history snapshot with the wrong SHA-256 before copying the complete approved two-file policy chain into staging, then proves the persisted manifest retains both exact paths, their `publicationPolicy` roles, and approved SHA-256 values. It also copies the canonical capability policy only after its approved SHA-256 matches and proves the persisted manifest retains its exact path and `capabilityPolicy` role. It resolves `release-standard-merge-v1.json`, requires every selected case/artifact path, size, and SHA-256 to match the canonical inventory, currently locks 25 direct BIN artifacts and 10 direct/alias cases, and rejects diagnostics or other workflows. The deterministic `tests/scripts/test_release_package_policy.py` regression invokes this mode through the canonical `python scripts/verify.py --all` flow and proves that release smoke rejects omission, repathing, role drift, and self-consistent hash drift for both the support-policy chain and canonical capability policy, plus an extra external-tool path and a package with no built-in materialized profiles.
 
 `main-package.yml` is a manually dispatched preview path using `-AllowPrerelease` and the repository `VERSION`; ordinary `main` pushes do not package. It uploads only a short-retention Actions artifact and never creates a fallback tag or prerelease.
 
-`release.yml` accepts one exact reviewed full `main` SHA plus the final merged PR that produced it. A read-only candidate job proves that the workflow definition, checkout, requested SHA, current protected `main`, final PR merge commit, reviewed PR-head tree, current-head approval, and the exact PR-head `github-actions` check runs `policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all describe that one candidate. It then runs the canonical full verifier, packages once, smokes the package, and renders a complete matching stable CHANGELOG section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref, run id, final-review snapshot, release-note digest, and the exact ZIP/SBOM/provenance names, sizes, and SHA-256 values. A versioned outer checksum file binds those payloads and the candidate manifest; the Actions artifact digest is bound into the annotated-tag message.
+`release.yml` is always dispatched from the exact current protected `main`
+workflow definition. It accepts one exact reviewed release-branch head plus the
+final merged PR that produced it. The product source is normally `main`; the
+explicitly approved independent maintenance pairs `0.9.17` / `0.9.17` and
+`0.9.18` / `0.9.18` may publish without merging their product commits to
+`main`. A read-only candidate
+job proves that the workflow authority, selected branch head, checkout,
+requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head
+approval, and the exact PR-head `github-actions` check runs
+`policy / polytail`, `python-worker / verify`, and `dotnet / build-test` all
+describe that one candidate. It then runs the canonical full verifier, packages
+once, smokes the package, and renders a complete matching stable CHANGELOG
+section. A closed candidate manifest binds source SHA/tree, workflow SHA/ref,
+run id, final-review snapshot, release-note digest, and the exact
+ZIP/SBOM/provenance names, sizes, and SHA-256 values. A versioned outer checksum
+file binds those payloads and the candidate manifest; the Actions artifact
+digest is bound into the annotated-tag message.
 
-The protected `release` environment is the final tag confirmation. Only after approval does a narrow `contents: write` job revalidate the downloaded candidate. A first tag creation also requires the candidate to remain the exact current `main`; recovery of an already exact-matching tag permits `main` to advance only when the candidate remains its ancestor. The job then publishes exactly five assets: Windows ZIP, SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. The validated release notes become the Release body. It revalidates the annotated tag object and peeled commit plus Release state/body, verifies GitHub-generated source archives, downloads every published asset into a fresh directory, compares the exact name set and digests, and smokes the downloaded ZIP. A pre-approval failure creates no tag. If promotion fails after tag creation, rerun only the failed promotion job in the same workflow run so the original run id and artifact digest remain authoritative; zero-, one-, or multi-asset partial Releases recover by uploading only missing assets. Any moved/lightweight tag, conflicting body, extra name, or conflicting byte fails closed. A new workflow run cannot reuse the old stable version.
+The protected `release` environment is the final tag confirmation. Only after
+approval does a narrow `contents: write` job revalidate the downloaded
+candidate. A first tag creation requires the candidate to remain the exact
+current selected release-branch head while the workflow definition remains the
+exact current protected `main`; recovery of an already exact-matching tag
+permits the selected branch to advance only when the candidate remains its
+ancestor. The job then publishes exactly five assets: Windows ZIP, SPDX SBOM,
+provenance, candidate manifest, and outer SHA-256 list. The validated release
+notes become the Release body. It revalidates the annotated tag object and
+peeled commit plus Release state/body, verifies GitHub-generated source
+archives, downloads every published asset into a fresh directory, compares the
+exact name set and digests. The write-token job never checks out or executes the
+selected product source. A separate `contents: read` job downloads the
+published ZIP plus its adjacent SPDX and provenance sidecars, then runs
+protected-main smoke tooling in a second step where neither `GH_TOKEN` nor
+`GITHUB_TOKEN` is exposed. The write-token job rereads the selected branch head
+immediately before creating a new tag object and fails if it advanced. A
+pre-approval failure creates no tag. If promotion fails after tag creation,
+rerun only the failed promotion job in the same workflow run so the original
+run id and artifact digest remain authoritative; zero-, one-, or multi-asset
+partial Releases recover by uploading only missing assets. Any
+moved/lightweight tag, conflicting body, extra name, or conflicting byte fails
+closed. A new workflow run cannot reuse the old stable version.
 
 GitHub may return an annotated-tag message with CRLF transport line endings while the candidate artifact uses LF. Release validation canonicalizes only `CRLF` to `LF` on both messages before comparison; every logical line, field, ordering, and non-newline byte remains exact.
 
-Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. The package closed allowlist includes the complete hash-pinned support-publication-policy chain under `docs/contracts/`, with the `publicationPolicy` role on both snapshots. Smoke independently requires both exact paths, roles, manifest SHA-256 values, and file SHA-256 values before checking materialized built-in profile paths, the exact approved external-tool paths, sidecars, and the worker self-test. It does not satisfy the visible startup or clean-machine gate.
+Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. The package closed allowlist includes the hash-pinned canonical capability policy with role `capabilityPolicy` and the complete hash-pinned support-publication-policy chain with role `publicationPolicy` under `docs/contracts/`. Smoke independently requires all three exact paths, roles, manifest SHA-256 values, and file SHA-256 values before checking materialized built-in profile paths, the exact approved external-tool paths, sidecars, and the worker self-test. It does not satisfy the visible startup or clean-machine gate.
 
 ## Local package smoke
 
@@ -137,4 +177,8 @@ Release evidence must include:
 - clean Windows smoke without development runtimes;
 - final third-party license/legal review.
 
-The manually dispatched promotion workflow accepts only the exact current reviewed `main` SHA. It creates the immutable stable `vX.Y.Z` tag inside protected CI after candidate verification and environment approval. Development tags never publish assets.
+The manually dispatched promotion workflow accepts only the exact reviewed
+head of an approved release source while the workflow definition itself remains
+the exact current protected `main`. It creates the immutable stable `vX.Y.Z`
+tag inside protected CI after candidate verification and environment approval.
+Development tags never publish assets.

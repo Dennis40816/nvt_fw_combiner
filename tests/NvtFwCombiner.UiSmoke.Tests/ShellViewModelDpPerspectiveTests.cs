@@ -173,8 +173,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-replace");
         byte[] baseBytes = CreatePattern(baseLength, 0x80);
-        int replacementLength = baseLength - 0x1000;
-        byte[] replacementBytes = CreatePattern(replacementLength, 0x20);
+        byte[] replacementBytes = CreatePattern(baseLength, 0x20);
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
         string outputPath = workspace.PathFor($"nt51950-dp-replace-{baseLength:X}.bin");
@@ -185,6 +184,11 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
+        Assert.All(
+            viewModel.ReplaceSlots.Where(static slot => slot.HasFile),
+            static slot => Assert.True(
+                slot.InputInspectionSeverity is not null && !slot.BlocksBuild,
+                $"{slot.SlotId}: {slot.InputInspectionSeverity}; {slot.InputInspectionStatus}"));
         Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
         Assert.True(viewModel.BuildReplaceCommand.CanExecute(null));
         Assert.True(viewModel.CanBuildReplace);
@@ -205,7 +209,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes[0x36FFF], output[0x36FFF]);
         Assert.Equal(replacementBytes[0x37000], output[0x37000]);
         Assert.Equal(replacementBytes[0x37FFF], output[0x37FFF]);
-        Assert.Equal(0, output[replacementLength]);
+        Assert.Equal(replacementBytes[^1], output[^1]);
         Assert.True(viewModel.HasLoadedReport);
         Assert.Contains(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-tp", StringComparison.Ordinal));
         Assert.DoesNotContain(viewModel.LoadedReport.Operations, operation => operation.Title.Contains("restore-base-customer-info", StringComparison.Ordinal));
@@ -257,7 +261,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-replace-gate");
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x90));
-        string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(0x3F000, 0x30));
+        string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(0x40000, 0x30));
         string replacementPath2 = workspace.PathFor("replacement-dp-copy.bin");
         string outputPath = workspace.PathFor("blocked-output.bin");
         File.Copy(replacementPath, replacementPath2);

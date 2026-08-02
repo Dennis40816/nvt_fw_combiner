@@ -13,6 +13,11 @@ Follow the mandatory verdict and waiver policy in
 2. Inspect for correctness defects, duplicate semantics, placeholders, silent
    fallback, broad suppressions, speculative abstraction, unsafe mutation,
    private/generated payloads, and code/document/schema drift.
+   For every added readiness calculation, validator, normalizer, or policy
+   branch, trace its canonical producer. Treat re-deriving profile/compiler,
+   inspector, session, or processor facts in Application/Bootstrap/UI as
+   duplicate semantics even when the new tests pass; require reuse of the
+   existing typed result or an explicit missing-owner decision.
 3. Verify the narrow tests exercise behavior and failure cases rather than
    mirroring constants or weakening expected output.
 4. Route authority-specific checks:

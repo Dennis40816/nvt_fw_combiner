@@ -64,9 +64,11 @@ Reference-initialized DP Replace still requires an exact declared complete-conta
 Firmware-owner review is still required before support promotion; NT51928 NB remains unmodeled.
 
 `nt51950-nt51951-standard-merge` also carries the supported DP Perspective Replace profiles for
-NT51950 and NT51951. They clone an exact base, replace the padded full DP container, restore only
-TP `[0x0A000, 0x37000)`, and leave customer information from DP/padding. The owner-approved direct
-V2/legacy comparison and public synthetic expected hashes require exact parity because
-`knownDeviations` is empty. `supported` admits this closed V2 runtime path only; it is not a product
-support claim. The profiles advance to `0.6.1` for this evidence correction and do not change byte
-semantics.
+NT51950 and NT51951. They require an exact replacement/base capacity pair, replace the full DP
+container, restore only TP `[0x0A000, 0x37000)`, and leave customer information from the replacement
+DP. The 2026-08-02 owner decision supersedes short-input padding admission; the older public
+synthetic hashes remain immutable historical migration evidence. `supported` admits this closed V2 runtime path only; it is not a product
+support claim. The profiles advance to `0.8.0` because accepted-input semantics now require exact
+`0x40000`, `0x80000`, or `0x100000` replacement/base pairs. Exact-pair operations, write ranges,
+output bytes, and historical comparison hashes are unchanged; short-input padding is no longer a
+production admission path.

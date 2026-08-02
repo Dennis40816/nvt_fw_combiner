@@ -1,9 +1,12 @@
 # ADR 0013: TP Binary Model and Report Semantic Projection
 
-- Status: Accepted
+- Status: Partially superseded by ADR 0015 only for the retired C# catalog
+  ownership; canonical TP Header/report semantics and firmware evidence remain
+  accepted
 - Date: 2026-07-10
 - Amended: 2026-07-17 for the v0.9.9 code-size convergence gate; 2026-07-24 for owner-confirmed Type A/B and DIFF-CRC field semantics; 2026-08-01 for canonical metadata and write-section convergence
 - Risk class: R2
+- Partially superseded by: ADR 0015 after #194 parity-adapter retirement
 
 ## Context
 

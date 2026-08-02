@@ -1,6 +1,7 @@
 // Resource bags intentionally expose many concise bindable labels; XML comments on each label add noise.
 #pragma warning disable CS1591
 
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
@@ -19,8 +20,8 @@ public sealed partial class ShellTextResources
         return mode switch
         {
             WorkbenchReplaceModes.Dp => SelectLanguage(
-                "Replace DP and optional LD payloads without CRC postbuild.",
-                "取代 DP 與選用 LD payload；不執行 CRC postbuild。"),
+                "Replace DP and optional LDC payloads without CRC postbuild.",
+                "取代 DP 與選用 LDC payload；不執行 CRC postbuild。"),
             WorkbenchReplaceModes.CtrlRam => SelectLanguage(
                 "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
                 "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。"),
@@ -170,6 +171,30 @@ public sealed partial class ShellTextResources
                 $"Ready: compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix verified.",
                 $"Ready：已驗證 compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix。"),
             _ => throw new InvalidOperationException($"Unsupported AB input next action '{issue.NextAction}'."),
+        };
+    }
+
+    public string GetInputSlotInspectionStatus(AuthoringInputSlotStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        return status.InspectionLifecycle switch
+        {
+            AuthoringSlotLifecycle.Error when status.FileStamp is null => SelectLanguage(
+                "Error: this BIN could not be read. Select a readable local file.",
+                "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),
+            AuthoringSlotLifecycle.Error => SelectLanguage(
+                "Error: the selected BIN does not satisfy the compiled input contract.",
+                "錯誤：所選 BIN 不符合 compiled input contract。"),
+            AuthoringSlotLifecycle.Warning => SelectLanguage(
+                $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
+                $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),
+            AuthoringSlotLifecycle.Verified => SelectLanguage(
+                "Ready: the selected BIN satisfies the compiled input contract.",
+                "Ready：所選 BIN 符合 compiled input contract。"),
+            AuthoringSlotLifecycle.Empty or AuthoringSlotLifecycle.Selected or
+            AuthoringSlotLifecycle.Checking or null => throw new ArgumentException(
+                "Only terminal slot health can be displayed.", nameof(status)),
+            _ => throw new ArgumentOutOfRangeException(nameof(status)),
         };
     }
 
@@ -381,10 +406,9 @@ public sealed partial class ShellTextResources
         InputSelectionMemberReadiness member)
     {
         ArgumentNullException.ThrowIfNull(member);
-        bool isLdc = string.Equals(
-            member.SlotId,
-            WorkbenchAddressSpaceIds.LdcReplacement,
-            StringComparison.Ordinal);
+        string reason = EnsureSentence(
+            member.Reason,
+            "The current capability has not resolved this input");
         return member.Readiness switch
         {
             ResolvedChildReadiness.Ready => SelectLanguage(
@@ -392,34 +416,34 @@ public sealed partial class ShellTextResources
                 "可用於已解析的 Reference 長度。"),
             ResolvedChildReadiness.PendingInput
                 when member.NextAction?.Kind ==
-                    InputSelectionNextActionKind.LoadPrerequisite &&
-                    isLdc =>
+                    InputSelectionNextActionKind.LoadArtifactFirst =>
                 SelectLanguage(
-                    "Load Reference first to determine whether LDC applies.",
-                    "請先載入 Reference，以判斷 LDC 是否適用。"),
+                    $"Load {GetInputArtifactRoleLabel(member.NextAction.SubjectId)} first. {reason}",
+                    $"請先載入 {GetInputArtifactRoleLabel(member.NextAction.SubjectId)}。{reason}"),
             ResolvedChildReadiness.PendingInput => SelectLanguage(
-                "Complete the required input selection.",
-                "請完成必要的輸入選擇。"),
-            ResolvedChildReadiness.NotApplicable when isLdc => SelectLanguage(
-                EnsureSentence(
-                    member.Reason,
-                    "The resolved Reference does not include this input"),
-                "Reference 長度不包含 LDC。"),
+                reason,
+                $"請完成必要的輸入選擇。{reason}"),
             ResolvedChildReadiness.NotApplicable => SelectLanguage(
-                "This input is not applicable to the resolved Reference.",
-                "此輸入不適用於已解析的 Reference。"),
-            ResolvedChildReadiness.Blocked when isLdc => SelectLanguage(
-                $"{EnsureSentence(
-                    member.Reason,
-                    "The resolved Reference does not include this input")} Remove the selected LDC BIN.",
-                "Reference 長度不包含 LDC。請移除已選取的 LDC BIN。"),
+                reason,
+                $"此輸入不適用。{reason}"),
             ResolvedChildReadiness.Blocked => SelectLanguage(
-                "Correct the selected input before Build.",
-                "請先修正所選輸入，再執行 Build。"),
+                $"{reason} Correct the selected input before Build.",
+                $"請先修正所選輸入，再執行 Build。{reason}"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(member),
                 member.Readiness,
                 null),
+        };
+    }
+
+    private static string GetInputArtifactRoleLabel(string artifactId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+        return artifactId switch
+        {
+            WorkbenchAddressSpaceIds.ReferenceBase => "Reference",
+            WorkbenchAddressSpaceIds.TpInput => "TP",
+            _ => artifactId,
         };
     }
 

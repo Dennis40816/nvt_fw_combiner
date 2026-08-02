@@ -12,37 +12,21 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static class BuiltInV2BundleRegistry
 {
+    internal static ProfileBundlePackageTrustIndex TrustIndex { get; } =
+        ProfileBundlePackageTrustIndexLoader.Load(Path.Combine(
+            AppContext.BaseDirectory,
+            "profiles",
+            "built-in",
+            "package-trust-index.json"));
+
     internal static FrozenDictionary<string, BuiltInV2Bundle> All { get; } =
-        new (string Directory, string ContentHash)[]
-        {
-            ("nt51917-nt51927-general-merge-logical-candidate", "349563de9aaf5ee6fffc38941cab09563e857ebd349bbd8ded0efe08be67a2ba"),
-            ("nt51917-ctrlram-replace-alias-candidate", "8992dbc5483054c5dc16e545444b1f94446c698c68b1abe7946efdb4d4ffb26b"),
-            ("nt51919-nt51929-nt51932-ab-merge", "2c54c025d2afd3c8c15de6587894fb166a2a8cb7879f90fa241cba8dddeb5544"),
-            ("nt51919-nt51929-nt51932-general-merge-logical-candidate", "5659a4095a6fce9ab3f46f9415759f7aeba321adfddb891e52871b2d6acff4f8"),
-            ("nt51923-nt51926-general-merge-logical-candidate", "9a48caaf2d84b64f6479ad479f55c0d6202499493891a033140c4a9565ed7cc7"),
-            ("nt51923-ctrlram-replace-candidate", "8c1318f9e83a658028b1e0a07b2c38a28bcdeb6031d3a393d6b4912c2cdba14f"),
-            ("nt51923-dp-replace", "fd5ee9dda6de6b0ba2142adf0ddae9736282407fb96e53895e4cbfd505746df6"),
-            ("nt51923-standard-merge", "a0a7ad684887b4071dceb66b9ca28b11d97cd9108c8d518e6846773892cc02c2"),
-            ("nt51926-ctrlram-replace-candidate", "25d5adc9697eacedcf238835da197b0359c41f8cc6d82110c181496038469529"),
-            ("nt51927-ctrlram-replace-candidate", "d0c8a8775a35a01b52b8d8f32a93af0ac798067e2577d2420ab0dd65dd815d0f"),
-            ("nt51927-dp-replace", "d47faa5137c34e1f771ec1568f699f1c5301a9fb9235f243ca9ad467315d5db3"),
-            ("nt51927-standard-merge", "48511d6e386f295c75bb7bd05a69ce60a4d20f3954d750959e7e31a018c6c6d8"),
-            ("nt51928-ctrlram-replace-candidate", "bba0e65221aff3ebbd4b06f83f38295b6e315eff0741fe68952e5844ae64c634"),
-            ("nt51928-general-merge-logical-candidate", "7410f193c85cbc9092bea46d5674649b9e8f91f7b347e06454a0f899765e3867"),
-            ("nt51928-dp-replace", "d9845bce9c2b3d8a8aa101450d534ef00417f1c63862e69bc833ad57713ab9e5"),
-            ("nt51928-standard-merge", "895ccc579907874af31e5a9f132e0ffb4c10e150f1ca8aad23a0f4f8bac317ca"),
-            ("nt51929-ctrlram-replace-candidate", "ea9cf1fe05a1462ddff67ece4a037757375100b67d91da3eb1eac1dd0417a4a5"),
-            ("nt51929-dp-replace", "31c545eb367ff902eb2e95bc0b90643c337ab26b4e5831169bfc1a31f060f3cd"),
-            ("nt51929-standard-merge", "c67e8ee68cd06f4e1a169abab7c900dc457bbd03f29da770fb7feefb848be380"),
-            ("nt51932-ctrlram-replace-candidate", "9a2c69c1b4bc4b5c047b9534c12f3e03b6be5492c9aa26eb626c9a657d101daf"),
-            ("nt51950-ab-merge", "775c42fba1fbbf1c4c8869656c83c86ce34d612dda3ceed92a93cb4e82f7cd67"),
-            ("nt51950-ctrlram-replace-candidate", "793e521f1015569ed57cb01033bf6e501abcc55c16b5fd890c7525af3e169926"),
-            ("nt51951-ctrlram-replace-candidate", "0fae69274908a044493ac838ac8204cb7513433732804691f8a56d39e0a8eaba"),
-            ("nt51950-nt51951-general-merge-logical-candidate", "5ed0646fba9c0f01994222f6a7860c8d9c8fc97be415f0771042cf886977f6f0"),
-            ("nt51950-nt51951-standard-merge", "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c"),
-        }.ToFrozenDictionary(
-            static bundle => bundle.Directory,
-            static bundle => new BuiltInV2Bundle(bundle.Directory, bundle.ContentHash),
+        TrustIndex.Bundles.ToFrozenDictionary(
+            static bundle => bundle.BundleDirectory,
+            bundle => new BuiltInV2Bundle(
+                bundle.BundleDirectory,
+                bundle.BundleVersion,
+                bundle.ContentHash,
+                TrustIndex.TrustAnchorBindingId),
             StringComparer.Ordinal);
 }
 
@@ -50,15 +34,24 @@ internal sealed class BuiltInV2Bundle
 {
     internal const string CompilationFailed = "profile.v2.builtin-compilation-failed";
     private const string BundleLoadFailed = "profile.v2.builtin-bundle-load-failed";
-    private const string TrustAnchorBindingId = "built-in-profile-bundle-v2";
     private readonly Lazy<TrustedProfileBundleCatalog> _catalog;
+    private readonly string _bundleVersion;
+    private readonly string _trustAnchorBindingId;
 
-    internal BuiltInV2Bundle(string bundleDirectory, string contentHash)
+    internal BuiltInV2Bundle(
+        string bundleDirectory,
+        string bundleVersion,
+        string contentHash,
+        string trustAnchorBindingId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
+        ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
         RelativeRoot = Path.Combine("profiles", "built-in", bundleDirectory);
+        _bundleVersion = bundleVersion;
         ContentHash = contentHash;
+        _trustAnchorBindingId = trustAnchorBindingId;
         _catalog = new Lazy<TrustedProfileBundleCatalog>(LoadCatalog);
     }
 
@@ -470,12 +463,14 @@ internal sealed class BuiltInV2Bundle
         if (!StringComparer.Ordinal.Equals(composition.ProfileId, profileId) ||
             !StringComparer.Ordinal.Equals(
                 composition.ProfileVersion,
-                profileVersion) ||
-            composition.V2Details?.Provenance.ResolvedMap is not { } resolvedMap)
+                profileVersion))
         {
             throw new InvalidDataException(
                 "Metadata plans require the exact compiled trusted profile and resolved map.");
         }
+
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
+            composition.V2Details.Provenance.ResolvedMap;
 
         TrustedCompositionProfileCatalogEntry profileEntry =
             _catalog.Value.Profiles.Single(entry =>
@@ -635,13 +630,16 @@ internal sealed class BuiltInV2Bundle
         TrustedProfileBundle bundle = ProfileBundleLoader.Load(
             bundleRoot,
             "profile-bundle.json",
-            new ProfileBundleTrustAnchor(ContentHash, TrustAnchorBindingId),
+            new ProfileBundleTrustAnchor(ContentHash, _trustAnchorBindingId),
             new ProfileBundleLoadLimits(
                 maximumManifestBytes: 16384,
                 maximumJsonDepth: 32,
                 new ProfileBundleEntrySnapshotLimits(16, 131072, 262144, 8)));
-        return TrustedProfileBundleCatalogProjection.Create(
-            bundle.CreateDocumentProjection(),
-            BuiltInCanonicalMetadataDefinitionResolver.Instance);
+        return StringComparer.Ordinal.Equals(bundle.Manifest.BundleVersion, _bundleVersion)
+            ? TrustedProfileBundleCatalogProjection.Create(
+                bundle.CreateDocumentProjection(),
+                BuiltInCanonicalMetadataDefinitionResolver.Instance)
+            : throw new InvalidDataException(
+                $"Bundle version '{bundle.Manifest.BundleVersion}' does not match the package trust index.");
     }
 }

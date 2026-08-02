@@ -106,7 +106,7 @@ public sealed partial class ReplaceCliCommandTests
         byte[] referenceBytes = [.. Enumerable.Repeat((byte)0xA5, 0x80000)];
         Array.Fill(referenceBytes, (byte)0x22, 0x0A000, 0x2D000);
         Array.Fill(referenceBytes, (byte)0x33, 0x37000, 0x1000);
-        byte[] dpBytes = [.. Enumerable.Repeat((byte)0x11, 0x40000)];
+        byte[] dpBytes = [.. Enumerable.Repeat((byte)0x11, 0x80000)];
         string reference = workspace.Write("reference.bin", referenceBytes);
         string dp = workspace.Write("dp.bin", dpBytes);
         string output = workspace.PathFor("nt51950-dp-replace.bin");
@@ -138,8 +138,8 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Equal(0x11, bytes[0x37000]);
         Assert.Equal(0x11, bytes[0x37FFF]);
         Assert.Equal(0x11, bytes[0x38000]);
-        Assert.Equal(0x00, bytes[0x40000]);
-        Assert.Equal(0x00, bytes[0x7FFFF]);
+        Assert.Equal(0x11, bytes[0x40000]);
+        Assert.Equal(0x11, bytes[0x7FFFF]);
     }
 
     /// <summary>Verifies NT51950 DP Replace rejects replacement inputs larger than the selected base length before output commit.</summary>

@@ -16,6 +16,36 @@ public sealed class SavedRuleLifecycleTests
         Assert.False(snapshot.HasApproval);
         Assert.False(snapshot.HasEvidence);
         Assert.False(snapshot.IsTrusted);
+        Assert.False(SavedRuleLifecycle.IsExecutionAuthorized(
+            snapshot.Identity,
+            snapshot));
+    }
+
+    /// <summary>Only the exact approved and evidenced immutable Catalog publication can execute.</summary>
+    [Fact]
+    public void ExactTrustedCatalogPublicationIsExecutionAuthorized()
+    {
+        SavedRuleExecutionIdentity identity = Identity("a");
+        var catalog = new SavedRuleLifecycleSnapshot(
+            identity,
+            SavedRuleStorageKind.TrustedCatalog,
+            SavedRuleLifecycleState.Published,
+            hasApproval: true,
+            hasEvidence: true,
+            isTrusted: true);
+
+        Assert.True(SavedRuleLifecycle.IsExecutionAuthorized(identity, catalog));
+        Assert.False(SavedRuleLifecycle.IsExecutionAuthorized(Identity("b"), catalog));
+    }
+
+    /// <summary>External callers cannot self-attest lifecycle trust into an execution policy.</summary>
+    [Fact]
+    public void ExecutionPolicyDoesNotExposeTrustedLifecycleConstructor()
+    {
+        Assert.DoesNotContain(
+            typeof(GeneralSavedRuleResourcePolicy).GetConstructors(),
+            constructor => constructor.GetParameters().Any(parameter =>
+                parameter.ParameterType == typeof(SavedRuleLifecycleSnapshot)));
     }
 
     /// <summary>A semantic local edit can overwrite its file while invalidating prior gates.</summary>

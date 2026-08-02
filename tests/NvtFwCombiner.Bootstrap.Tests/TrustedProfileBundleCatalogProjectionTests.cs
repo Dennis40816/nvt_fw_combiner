@@ -101,7 +101,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.True(compilation.IsCompiled);
         Assert.Empty(compilation.Issues);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
-        Assert.Equal("root", Assert.Single(artifact.V2Details!.RegionAccessContract.Requirements).RegionId);
+        Assert.Equal("root", Assert.Single(artifact.V2Details.RegionAccessContract.Requirements).RegionId);
 
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]> { ["tp-artifact"] = [.. Enumerable.Range(0, 16).Select(static value => (byte)value)] }),

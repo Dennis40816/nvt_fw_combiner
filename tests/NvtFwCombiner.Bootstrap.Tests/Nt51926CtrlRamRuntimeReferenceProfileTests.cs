@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -25,13 +26,46 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.Equal(profileId, composition.ProfileId);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             composition.Plan.OrderedOperations.Single(static operation =>
                 operation.Kind == CompositionOperationKind.RunExternalProcessor).ExternalProcessorInvocation);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
         Assert.Equal([new ByteRange(0, TpWorkCapacity)], invocation.AllowedReadRanges);
         Assert.DoesNotContain(new ByteRange(0x27800, 0x2800), invocation.AllowedWriteRanges);
+    }
+
+    /// <summary>The shared inspector follows the concrete CtrlRAM prefix and truncation contract.</summary>
+    [Fact]
+    public void CompiledCtrlRamBindingPublishesWarningOrBlockingHealth()
+    {
+        const int sourceLength = 0x120;
+        V2CompositionPlanCompileResult result = Compile(
+            "nt51926-ctrlram-replace-fw141-runtime-single",
+            chipCount: 1,
+            TpWorkCapacity,
+            sourceLength);
+        Assert.True(result.IsCompiled, FormatIssues(result.Issues));
+        CompiledComposition composition = result.CompiledComposition!;
+
+        CompiledInputArtifactInspectionResult accepted =
+            CompiledInputArtifactInspectionService.Inspect(
+                composition,
+                "vn-source",
+                new byte[sourceLength + 8]);
+        CompiledInputArtifactInspectionResult shortSource =
+            CompiledInputArtifactInspectionService.Inspect(
+                composition,
+                "vn-source",
+                new byte[sourceLength - 1]);
+
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, accepted.Severity);
+        Assert.False(accepted.BlocksBuild);
+        Assert.Equal(new ByteRange(0, sourceLength), accepted.AcceptedSnapshotRange);
+        Assert.Equal(new ByteRange(sourceLength, 8), accepted.IgnoredTrailingRange);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Blocking, shortSource.Severity);
+        Assert.True(shortSource.BlocksBuild);
+        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, shortSource.IssueCode);
     }
 
     /// <summary>Verifies the cascade candidate compiles a short-source prefix without full-region authority.</summary>
@@ -46,7 +80,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal(profileId, composition.ProfileId);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details!.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -90,7 +124,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(
             "nt51926-ctrlram-fw141-full-flash-256k",
-            composition.V2Details!.Provenance.ResolvedMap.ImageMap.MapId);
+            composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(FullFlashCapacity, composition.Plan.OutputInitialization.Capacity);
         CompositionOperation processor = Assert.Single(
             composition.Plan.OrderedOperations,

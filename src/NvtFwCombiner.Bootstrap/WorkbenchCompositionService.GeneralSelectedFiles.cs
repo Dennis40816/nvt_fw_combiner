@@ -39,7 +39,8 @@ public static partial class WorkbenchCompositionService
                         : StringComparer.Ordinal),
         ];
         var service = new GeneralSelectedFileInspectionService(
-            new FileContentSnapshotInspector(roots));
+            new FileContentSnapshotInspector(roots),
+            GeneralAuthoringTechnicalLimits.Default.MaximumFileBytes);
         GeneralSelectedFileDraftInspectionResult result =
             await service.AcceptDraftAsync(
                 draft,

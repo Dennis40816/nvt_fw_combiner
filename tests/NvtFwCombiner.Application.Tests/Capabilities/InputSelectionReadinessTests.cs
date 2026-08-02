@@ -12,9 +12,9 @@ public sealed class InputSelectionReadinessTests
     private const string Ldc = "ldc-replacement";
     private const string LdcUnavailableReason = "Reference length does not include LDC";
 
-    /// <summary>Before Reference inspection only map-dependent LDC remains pending.</summary>
+    /// <summary>Before Reference inspection every dependent choice is pending and disabled.</summary>
     [Fact]
-    public void MissingReferenceKeepsLdcPendingWithOneTypedNextAction()
+    public void MissingReferenceDisablesEveryDependentChoiceWithOneTypedNextAction()
     {
         InputSelectionReadinessSnapshot result = InputSelectionReadinessResolver.Resolve(
             new AuthoringRevision(7),
@@ -24,14 +24,22 @@ public sealed class InputSelectionReadinessTests
 
         InputSelectionMemberReadiness initial = Member(result, InitialCode);
         InputSelectionMemberReadiness ldc = Member(result, Ldc);
-        Assert.Equal(ResolvedChildReadiness.Ready, initial.Readiness);
+        Assert.Equal(ResolvedChildReadiness.PendingInput, initial.Readiness);
         Assert.Equal(ResolvedChildReadiness.PendingInput, ldc.Readiness);
+        Assert.False(initial.CanSelect);
+        Assert.False(ldc.CanSelect);
         Assert.Equal(
             new InputSelectionNextAction(
-                InputSelectionNextActionKind.LoadPrerequisite,
+                InputSelectionNextActionKind.LoadArtifactFirst,
+                "reference-base"),
+            initial.NextAction);
+        Assert.Equal(
+            new InputSelectionNextAction(
+                InputSelectionNextActionKind.LoadArtifactFirst,
                 "reference-base"),
             ldc.NextAction);
-        Assert.True(result.CanBuild);
+        Assert.False(result.CanBuild);
+        Assert.Equal("reference-base", result.PrimaryIssue!.NextAction.SubjectId);
         Assert.Equal(new AuthoringRevision(7), result.AuthoringRevision);
     }
 
@@ -46,6 +54,8 @@ public sealed class InputSelectionReadinessTests
 
         Assert.True(result.CanBuild);
         Assert.Empty(result.Issues);
+        Assert.True(Member(result, InitialCode).CanSelect);
+        Assert.False(Member(result, Ldc).CanSelect);
         Assert.Equal(ResolvedChildReadiness.NotApplicable, Member(result, Ldc).Readiness);
         Assert.Equal(LdcUnavailableReason, Member(result, Ldc).Reason);
     }
@@ -60,6 +70,7 @@ public sealed class InputSelectionReadinessTests
             [Ldc]);
 
         Assert.False(result.CanBuild);
+        Assert.False(Member(result, Ldc).CanSelect);
         Assert.Equal(
             InputSelectionReadinessIssueCodes.SelectionNotApplicable,
             result.PrimaryIssue!.Code);

@@ -18,11 +18,46 @@ public sealed class FileContentSnapshotInspectorTests
 
         SelectedFileContentInspection result = await inspector.InspectAsync(
             path,
+            maximumBytes: int.MaxValue,
             CancellationToken.None);
 
         Assert.Equal(FileStamp.FromBytes([1, 2, 3, 4]), result.FileStamp);
         Assert.Equal("input.bin", result.DisplayNameHint);
         Assert.Null(result.LastWriteTimeUtcHint);
+    }
+
+    /// <summary>Inspection rejects a file above the caller-resolved ceiling before hashing it.</summary>
+    [Fact]
+    public async Task InspectAsyncRejectsFileAboveResolvedMaximum()
+    {
+        using var workspace = TempWorkspace.Create();
+        string path = workspace.Write("oversized.bin", [1, 2, 3, 4]);
+        var inspector = new FileContentSnapshotInspector([workspace.Root]);
+
+        SelectedFileSizeLimitExceededException exception =
+            await Assert.ThrowsAsync<SelectedFileSizeLimitExceededException>(() =>
+                inspector.InspectAsync(
+                    path,
+                    maximumBytes: 3,
+                    TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(4, exception.ObservedBytes);
+        Assert.Equal(3, exception.MaximumBytes);
+    }
+
+    /// <summary>Concurrent growth is rejected after reading only one byte beyond the admitted length.</summary>
+    [Fact]
+    public async Task HashExactLengthAsyncRejectsGrowthWithOneByteProbe()
+    {
+        await using var stream = new MemoryStream([1, 2, 3, 4, 5, 6, 7, 8]);
+
+        _ = await Assert.ThrowsAsync<IOException>(() =>
+            FileContentSnapshotInspector.HashExactLengthAsync(
+                stream,
+                observedLength: 4,
+                TestContext.Current.CancellationToken).AsTask());
+
+        Assert.Equal(5, stream.Position);
     }
 
     /// <summary>Legacy timestamp hints cannot change the projected content identity.</summary>
@@ -38,11 +73,13 @@ public sealed class FileContentSnapshotInspectorTests
         File.SetLastWriteTimeUtc(path, firstTime);
         SelectedFileContentInspection first = await adapter.InspectAsync(
             path,
+            maximumBytes: int.MaxValue,
             CancellationToken.None);
         File.SetLastWriteTimeUtc(path, secondTime);
 
         SelectedFileContentInspection second = await adapter.InspectAsync(
             path,
+            maximumBytes: int.MaxValue,
             CancellationToken.None);
 
         Assert.Equal(first.FileStamp, second.FileStamp);
@@ -58,6 +95,7 @@ public sealed class FileContentSnapshotInspectorTests
         var inspector = new FileContentSnapshotInspector([workspace.Root]);
         SelectedFileContentInspection first = await inspector.InspectAsync(
             path,
+            maximumBytes: int.MaxValue,
             CancellationToken.None);
         await File.WriteAllBytesAsync(
             path,
@@ -66,6 +104,7 @@ public sealed class FileContentSnapshotInspectorTests
 
         SelectedFileContentInspection second = await inspector.InspectAsync(
             path,
+            maximumBytes: int.MaxValue,
             CancellationToken.None);
 
         Assert.Equal(first.FileStamp.AcceptedLength, second.FileStamp.AcceptedLength);
@@ -91,6 +130,7 @@ public sealed class FileContentSnapshotInspectorTests
         _ = await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             inspector.InspectAsync(
                 path,
+                maximumBytes: int.MaxValue,
                 TestContext.Current.CancellationToken).AsTask());
     }
 }

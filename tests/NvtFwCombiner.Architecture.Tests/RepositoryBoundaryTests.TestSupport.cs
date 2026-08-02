@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Architecture.Tests;
@@ -6,14 +7,7 @@ public sealed partial class RepositoryBoundaryTests
 {
     private static string[] ReadStandardMergeIcIds()
     {
-        string source = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
-        return
-        [
-            .. StandardMergeProfileRegex().Matches(source)
-                .Cast<Match>()
-                .Select(match => $"NT{match.Groups["ic"].Value}")
-                .Order(StringComparer.Ordinal),
-        ];
+        return ReadPackageRegistrationIcIds("standard-merge");
     }
 
     private static string[] ReadCtrlRamPostbuildIcIds()
@@ -31,22 +25,26 @@ public sealed partial class RepositoryBoundaryTests
 
     private static string[] ReadAbMergeIcIds()
     {
-        string source = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        return ReadPackageRegistrationIcIds("ab-merge");
+    }
+
+    private static string[] ReadPackageRegistrationIcIds(string workflowId)
+    {
+        using var index = JsonDocument.Parse(
+            ReadText("profiles/built-in/package-trust-index.json"));
         return
         [
-            .. AbMergeProfileRegex().Matches(source)
-                .Cast<Match>()
-                .Select(match => $"NT{match.Groups["ic"].Value}")
+            .. index.RootElement.GetProperty("bundles")
+                .EnumerateArray()
+                .SelectMany(static bundle => bundle.GetProperty("runtimeRegistrations").EnumerateArray())
+                .Where(registration => StringComparer.Ordinal.Equals(
+                    registration.GetProperty("workflowId").GetString(),
+                    workflowId))
+                .Select(static registration => registration.GetProperty("icId").GetString()!)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal),
         ];
     }
-
-    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""[^\r\n]*CompositionKind\.Merge\),")]
-    private static partial Regex StandardMergeProfileRegex();
-
-    [GeneratedRegex(@"new BuiltInV2Registration\(\s*""NT(?<ic>\d{5})""[^\r\n]*CompositionKind\.Merge,\s*IcWorkflowIds\.AbMerge\),")]
-    private static partial Regex AbMergeProfileRegex();
 
     [GeneratedRegex(@"""icId""\s*:\s*""NT(?<ic>\d{5})""")]
     private static partial Regex CtrlRamPostbuildProfileRegex();

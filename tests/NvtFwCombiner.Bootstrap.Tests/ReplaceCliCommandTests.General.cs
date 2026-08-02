@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
@@ -8,19 +9,19 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class ReplaceCliCommandTests
 {
-    /// <summary>Saved Rule v2 DP mappings execute through the exact Parent and shared Replace engine.</summary>
+    /// <summary>An imported rule path is a Draft and cannot execute as a Catalog publication.</summary>
     [Fact]
-    public async Task Nt51926GeneralReplaceSavedRuleBuildUsesExactParent()
+    public async Task Nt51926GeneralReplaceRejectsImportedDraftRuleExecution()
     {
         using var workspace = TempWorkspace.Create();
-        byte[] baseBytes = CreatePattern(0x40000, 0x26);
-        string reference = workspace.Write("reference.bin", baseBytes);
+        string reference = workspace.Write(
+            "reference.bin",
+            CreatePattern(0x40000, 0x25));
         string source = workspace.Write("dp-source.bin", [0xA5, 0x5A]);
         string rule = await WriteGeneralReplaceRuleAsync(
             workspace,
             ValidGeneralReplaceV2RuleObject());
-        string output = workspace.PathFor("saved-rule-replace.bin");
-        string report = workspace.PathFor("saved-rule-replace-report.json");
+        string output = workspace.PathFor("must-not-exist.bin");
 
         CliRunResult result = await RunCliAsync([
             "general-replace",
@@ -37,13 +38,45 @@ public sealed partial class ReplaceCliCommandTests
             $"source-bin={source}",
             "--output",
             output,
-            "--report",
-            report,
         ]);
 
-        Assert.True(
-            result.ExitCode == 0,
-            $"{result.Error}{Environment.NewLine}{result.Output}");
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains(
+            "saved-rule.lifecycle.execution-not-trusted-published",
+            result.Error,
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    /// <summary>Saved Rule v2 DP mappings execute through the exact Parent and shared Replace engine.</summary>
+    [Fact]
+    public async Task Nt51926GeneralReplaceSavedRuleBuildUsesExactParent()
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] baseBytes = CreatePattern(0x40000, 0x26);
+        string reference = workspace.Write("reference.bin", baseBytes);
+        string source = workspace.Write("dp-source.bin", [0xA5, 0x5A]);
+        string rule = await WriteGeneralReplaceRuleAsync(
+            workspace,
+            ValidGeneralReplaceV2RuleObject());
+        string output = workspace.PathFor("saved-rule-replace.bin");
+        (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
+            LoadTrustedGeneralReplaceRule(rule, reference, source);
+        WorkbenchRunResult result =
+            await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                "NT51926",
+                "single",
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [WorkbenchSlotIds.ReplaceBase] = reference,
+                },
+                draft,
+                build: true,
+                output,
+                policy,
+                TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, result.ReportJson);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(
             reference,
             TestContext.Current.CancellationToken));
@@ -51,10 +84,7 @@ public sealed partial class ReplaceCliCommandTests
             output,
             TestContext.Current.CancellationToken);
         Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
-        using var document = JsonDocument.Parse(
-            await File.ReadAllTextAsync(
-                report,
-                TestContext.Current.CancellationToken));
+        using var document = JsonDocument.Parse(result.ReportJson);
         JsonElement root = document.RootElement;
         Assert.Equal(
             "nt51926-general-replace-dp-single-candidate",
@@ -133,8 +163,8 @@ public sealed partial class ReplaceCliCommandTests
     public void GeneralReplaceSavedRuleRequiresExactOrderedParentStages()
     {
         SavedRuleV2GeneralReplaceAdmissionContext exact =
-            WorkbenchCompositionService
-                .GetNt51926GeneralReplaceSavedRuleAdmissionContext() with
+            BuiltInV2RegistrationRegistry.GeneralReplaceByIc["NT51926"]
+                .SavedRuleAdmissionContext with
             {
                 ProcessorStageIds = ["stage-a", "stage-b"],
             };

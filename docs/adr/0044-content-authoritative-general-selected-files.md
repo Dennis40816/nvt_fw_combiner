@@ -113,9 +113,9 @@ bindings. Delete it when remaining non-General host-selection boundaries use
 
 ### Risks and mitigations
 
-- A file changes while it is being read -> identity is computed from the exact
-  immutable byte buffer returned by the adapter; run verification repeats the
-  complete check.
+- A file changes while it is being read -> the adapter hashes exactly the
+  admitted stream length, probes at most one trailing byte, and rejects any
+  shrink or growth; run verification repeats the complete check.
 - A late inspection overwrites a newer selection -> the session matches the
   complete inspection lease before acceptance.
 - Helpers become dynamic execution policy -> only concrete checked ranges are

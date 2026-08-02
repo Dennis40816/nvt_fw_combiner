@@ -289,8 +289,8 @@ public sealed class CanonicalCapabilityCatalog
                 StringComparer.Ordinal.Equals(
                     capability.Identity.WorkflowId,
                     workflowId) &&
-                capability.CompiledComposition.V2Details?.Provenance.ResolvedMap
-                    .ImageMap.Applicability.TopologyRequirement.Matches(topology) == true),
+                capability.CompiledComposition.V2Details.Provenance.ResolvedMap
+                    .ImageMap.Applicability.TopologyRequirement.Matches(topology)),
         ];
         return matches.Length switch
         {

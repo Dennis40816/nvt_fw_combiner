@@ -142,7 +142,21 @@ public static class GeneralAuthoringAdmission
         List<GeneralAuthoringAdmissionIssue> issues = [.. resolution.Issues];
         SavedRuleExecutionIdentity? exactSavedRule = savedRule?.ExecutionIdentity;
         string? admittedSavedRuleId = savedRule?.RuleId;
-        if (exactSavedRule is not null &&
+        if (savedRule is not null &&
+            (exactSavedRule is null ||
+             savedRule.Lifecycle is null ||
+             !SavedRuleLifecycle.IsExecutionAuthorized(
+                 exactSavedRule,
+                 savedRule.Lifecycle)))
+        {
+            issues.Add(CreateIssue(
+                GeneralAuthoringIssueCodes.SavedRuleExecutionNotTrustedPublished,
+                savedRule.RuleId,
+                "Saved Rule execution requires the exact approved and evidenced immutable Trusted Catalog publication; an imported or edited Draft cannot Preview or Build."));
+            exactSavedRule = null;
+            admittedSavedRuleId = null;
+        }
+        else if (exactSavedRule is not null &&
             exactSavedRule.Parent != trustedParent.ParentIdentity)
         {
             issues.Add(CreateIssue(
