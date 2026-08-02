@@ -390,22 +390,22 @@ public sealed partial class XamlControlStyleContractTests
             static element => element.Name.LocalName == "ProgressBar");
 
         Assert.DoesNotContain("<ProgressBar", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding RunSession.CompositionProgress.Steps}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding StateMarker}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"runProgressMarker\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.AccessibilityView=\"Raw\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunIc}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunNumber}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding RunSession.IsRunInProgress}\"", contextPanel, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding RunSession.ActiveRunContextLabel}\"", contextPanel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsDeviceContextSelectionVisible}\"", contextPanel, StringComparison.Ordinal);
         Assert.Equal("True", progressBar.Attribute("IsIndeterminate")?.Value);
-        Assert.Equal("{Binding ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
+        Assert.Equal("{Binding RunSession.ShouldAnimateRunProgress}", progressBar.Attribute("IsVisible")?.Value);
         Assert.Equal(
-            "{Binding RunProgressStatusLabel}",
+            "{Binding RunSession.RunProgressStatusLabel}",
             progressBar.Attribute("AutomationProperties.Name")?.Value);
         Assert.Contains("Property=\"Height\" Value=\"22\"", nodeStyle, StringComparison.Ordinal);
         Assert.Contains("Property=\"BorderThickness\" Value=\"1\"", nodeStyle, StringComparison.Ordinal);

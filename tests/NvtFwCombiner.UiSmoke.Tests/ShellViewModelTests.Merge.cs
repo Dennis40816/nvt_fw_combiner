@@ -267,21 +267,21 @@ public sealed partial class ShellViewModelTests
             outputPathUsesAutomaticName: true,
             aFlashCodeOutputPathUsesAutomaticName: true);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.NotEqual(automaticOutputPath, viewModel.LastRunResult.Output);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.NotEqual(automaticOutputPath, viewModel.RunSession.LastRunResult.Output);
         Assert.Matches(
             "^NT51929_FlashCode_A_D0A01T8100_B_D0708T8203_[0-9]{8}\\.bin$",
-            Path.GetFileName(viewModel.LastRunResult.Output));
-        Assert.True(File.Exists(viewModel.LastRunResult.Output));
+            Path.GetFileName(viewModel.RunSession.LastRunResult.Output));
+        Assert.True(File.Exists(viewModel.RunSession.LastRunResult.Output));
         using (var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson))
         {
             JsonElement naming = report.RootElement.GetProperty("OutputNaming");
             Assert.False(naming.GetProperty("IsExplicitOverride").GetBoolean());
             Assert.Equal(
-                Path.GetFileName(viewModel.LastRunResult.Output),
+                Path.GetFileName(viewModel.RunSession.LastRunResult.Output),
                 naming.GetProperty("ActualFileName").GetString());
             Assert.Equal(
-                Path.GetFileName(viewModel.LastRunResult.Output),
+                Path.GetFileName(viewModel.RunSession.LastRunResult.Output),
                 naming.GetProperty("AutomaticFileName").GetString());
             JsonElement aFlashCodeDelivery = Assert.Single(
                 report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
@@ -295,7 +295,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
     }
 
@@ -335,8 +335,8 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.Null(preparation);
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Equal("Build failed", viewModel.LastRunResult.Title);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Equal("Build failed", viewModel.RunSession.LastRunResult.Title);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.IsReportModalOpen);
         Assert.Equal("ui.run.failed", viewModel.Reports.LoadedReport.PrimaryIssue.Title);
@@ -477,7 +477,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Merge.BuildMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
 
@@ -485,12 +485,12 @@ public sealed partial class ShellViewModelTests
         await viewModel.Merge.BuildMergeAsync(outputPath);
 
         string expectedPath = golden.ExpectedOutputPath(goldenCase);
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
-        Assert.Contains("report ready", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
+        Assert.Contains("report ready", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
         Assert.DoesNotContain(
             viewModel.Reports.LoadedReport.OutputSha256[..Math.Min(12, viewModel.Reports.LoadedReport.OutputSha256.Length)],
-            viewModel.LastRunResult.Detail,
+            viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(File.ReadAllBytes(expectedPath), File.ReadAllBytes(outputPath));
@@ -541,7 +541,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         string outputPath = workspace.PathFor("general-merge.bin");
@@ -550,16 +550,16 @@ public sealed partial class ShellViewModelTests
             [0x10, 0x11, 0x99, 0x13, 0x14],
             TestContext.Current.CancellationToken);
         await viewModel.Merge.BuildMergeAsync(outputPath);
-        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Contains(
             "no longer matches",
-            viewModel.LastRunResult.Detail,
+            viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
         Assert.False(File.Exists(outputPath));
         viewModel.SetSlotFile(mapping.MappingId, source);
         await viewModel.Merge.BuildMergeAsync(outputPath);
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
         Assert.Equal(
             [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x99, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
             File.ReadAllBytes(outputPath));
@@ -610,8 +610,8 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("source-view-standard-merge.bin");
         await viewModel.Merge.BuildMergeAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal("Build succeeded", viewModel.LastRunResult.Title);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal("Build succeeded", viewModel.RunSession.LastRunResult.Title);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
@@ -633,7 +633,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.CanOpenReport);

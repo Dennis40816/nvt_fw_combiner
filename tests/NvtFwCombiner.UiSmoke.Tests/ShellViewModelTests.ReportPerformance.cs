@@ -201,7 +201,7 @@ public sealed partial class ShellViewModelTests
         cancellationSource.Cancel();
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            viewModel.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
+            viewModel.RunSession.ProjectAndApplyRunResultAsync(result, build: false, cancellationSource.Token));
 
         Assert.False(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.HasReportHistory);
@@ -277,7 +277,7 @@ public sealed partial class ShellViewModelTests
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task olderProjection = viewModel.ProjectAndApplyRunResultAsync(
+        Task olderProjection = viewModel.RunSession.ProjectAndApplyRunResultAsync(
             largeResult,
             build: false,
             TestContext.Current.CancellationToken);

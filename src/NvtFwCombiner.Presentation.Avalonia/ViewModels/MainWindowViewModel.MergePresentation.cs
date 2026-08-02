@@ -31,12 +31,6 @@ public sealed partial class MainWindowViewModel
         return Reports;
     }
 
-    private void PublishLastRunResult(UiRunResultViewModel result)
-    {
-        LastRunResult = result;
-        OnPropertyChanged(nameof(LastRunResult));
-    }
-
     private Task RefreshSelectedMergeFirmwareInspectionsAsync()
     {
         return WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();

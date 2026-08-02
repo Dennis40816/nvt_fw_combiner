@@ -1,23 +1,18 @@
 using System.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-internal delegate ValueTask<WorkbenchRunResult> CompositionRunWork(
-    CompositionRunProgressFeed progress,
-    CancellationToken cancellationToken);
-
-internal delegate Task CompositionRunInvoker(
-    bool build,
-    CompositionRunWork run,
-    Action<string, string> loadErrorReport);
-
-public sealed partial class MainWindowViewModel
+/// <summary>Owns one active Preview/Build lifetime and its immutable context projection.</summary>
+public sealed class CompositionRunPresentationViewModel : ObservableObject
 {
+    private readonly CompositionRunStateBindings _stateBindings;
     private CancellationTokenSource? _activeRunCancellationSource;
     private bool _activeRunIsBuild;
-    private bool ActiveRunShowsNumberSelector { get; set; }
+    /// <summary>True when the active run captured an IC Number selector context.</summary>
+    public bool ActiveRunShowsNumberSelector { get; private set; }
     private string ActiveRunDeviceContextRefreshSummary { get; set; } = string.Empty;
 
     /// <summary>Gets the IC captured for the active run.</summary>
@@ -30,14 +25,15 @@ public sealed partial class MainWindowViewModel
     public string ActiveRunMode { get; private set; } = string.Empty;
 
     /// <summary>Gets the IC identity that the device-context surface must display.</summary>
-    public string DisplayedDeviceIc => IsRunInProgress ? ActiveRunIc : SelectedIc;
+    public string DisplayedDeviceIc => IsRunInProgress ? ActiveRunIc : _stateBindings.SelectedIc();
 
     /// <summary>Gets the Number identity that the device-context surface must display.</summary>
-    public string DisplayedDeviceNumber => IsRunInProgress ? ActiveRunNumber : SelectedNumber;
+    public string DisplayedDeviceNumber => IsRunInProgress ? ActiveRunNumber : _stateBindings.SelectedNumber();
 
-    private string DisplayedDeviceContextRefreshSummary => IsRunInProgress
+    /// <summary>Gets the context summary captured for a run or the current idle summary.</summary>
+    public string DisplayedDeviceContextRefreshSummary => IsRunInProgress
         ? ActiveRunDeviceContextRefreshSummary
-        : DeviceContextRefreshSummary;
+        : _stateBindings.DeviceContextRefreshSummary();
 
     /// <summary>Gets the immutable active-run identity shown beside the phase stepper.</summary>
     public string ActiveRunContextLabel => ActiveRunShowsNumberSelector
@@ -47,13 +43,20 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets the localized projection of Application-owned composition phases.</summary>
     public CompositionRunProgressViewModel CompositionProgress { get; }
 
+    /// <summary>Gets the latest UI-triggered run summary.</summary>
+    public UiRunResultViewModel LastRunResult { get; private set; } = new(
+        "No run yet",
+        "Drop required BIN files, then run Build.",
+        "No output",
+        succeeded: true);
+
     /// <summary>True while one composition Preview or Build owns the external processing lifetime.</summary>
     public bool IsRunInProgress => _activeRunCancellationSource is not null;
 
     /// <summary>Gets the localized screen-reader label for the active composition action.</summary>
     public string RunProgressAccessibleLabel => _activeRunIsBuild
-        ? Text.BuildRunProgressAccessibleLabel
-        : Text.PreviewRunProgressAccessibleLabel;
+        ? _stateBindings.Text().BuildRunProgressAccessibleLabel
+        : _stateBindings.Text().PreviewRunProgressAccessibleLabel;
 
     /// <summary>Gets the current typed phase status, or the action-level fallback before Application starts.</summary>
     public string RunProgressStatusLabel => CompositionProgress.HasTypedProgress
@@ -70,8 +73,17 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>True when the active progress surface may use restrained indeterminate motion.</summary>
     public bool ShouldAnimateRunProgress => IsRunInProgress &&
-        !IsReducedMotionEnabled &&
+        !_stateBindings.IsReducedMotionEnabled() &&
         (!CompositionProgress.HasTypedProgress || CompositionProgress.ShouldAnimateActiveStep);
+
+    internal CompositionRunPresentationViewModel(
+        ShellLanguage language,
+        CompositionRunStateBindings stateBindings)
+    {
+        _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
+        CompositionProgress = new CompositionRunProgressViewModel(language);
+        CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
+    }
 
     /// <summary>Cancels the active composition so external workers can terminate before the window closes.</summary>
     internal void CancelActiveRun()
@@ -89,15 +101,15 @@ public sealed partial class MainWindowViewModel
         var cancellationSource = new CancellationTokenSource();
         CompositionProgress.Reset();
         _activeRunIsBuild = build;
-        ActiveRunShowsNumberSelector = ShouldShowNumberSelectorForSelectedPage();
-        ActiveRunIc = SelectedIc;
-        ActiveRunNumber = SelectedNumber;
-        ActiveRunMode = IsMergeVisible ? Merge.SelectedMergeMode : Replace.SelectedReplaceMode;
-        ActiveRunDeviceContextRefreshSummary = DeviceContextRefreshSummary;
+        ActiveRunShowsNumberSelector = _stateBindings.ShouldShowNumberSelector();
+        ActiveRunIc = _stateBindings.SelectedIc();
+        ActiveRunNumber = _stateBindings.SelectedNumber();
+        ActiveRunMode = _stateBindings.SelectedMode();
+        ActiveRunDeviceContextRefreshSummary = _stateBindings.DeviceContextRefreshSummary();
         _activeRunCancellationSource = cancellationSource;
         NotifyActiveRunContextChanged();
         OnPropertyChanged(nameof(RunProgressAccessibleLabel));
-        RefreshCommandState();
+        _stateBindings.RefreshCommandState();
         return cancellationSource;
     }
 
@@ -106,7 +118,7 @@ public sealed partial class MainWindowViewModel
         if (ReferenceEquals(_activeRunCancellationSource, cancellationSource))
         {
             _activeRunCancellationSource = null;
-            RefreshCommandState();
+            _stateBindings.RefreshCommandState();
             ActiveRunShowsNumberSelector = false;
             ActiveRunIc = string.Empty;
             ActiveRunNumber = string.Empty;
@@ -120,16 +132,14 @@ public sealed partial class MainWindowViewModel
 
     private void NotifyActiveRunContextChanged()
     {
-        OnPropertyChanged(nameof(IsDeviceContextSelectionVisible));
-        OnPropertyChanged(nameof(IsDeviceContextNumberSelectionVisible));
-        OnPropertyChanged(nameof(IsDeviceContextFamilyBadgeVisible));
         OnPropertyChanged(nameof(DisplayedDeviceIc));
         OnPropertyChanged(nameof(DisplayedDeviceNumber));
+        OnPropertyChanged(nameof(DisplayedDeviceContextRefreshSummary));
         OnPropertyChanged(nameof(ActiveRunIc));
         OnPropertyChanged(nameof(ActiveRunNumber));
         OnPropertyChanged(nameof(ActiveRunMode));
         OnPropertyChanged(nameof(ActiveRunContextLabel));
-        OnPropertyChanged(nameof(DeviceContextStatus));
+        _stateBindings.NotifyShellRunStateChanged();
     }
 
     internal async Task RunCompositionAsync(
@@ -169,7 +179,7 @@ public sealed partial class MainWindowViewModel
             loadErrorReport(action, exception.Message);
             if (build)
             {
-                Reports.ShowReport();
+                _stateBindings.Reports().ShowReport();
             }
         }
         finally
@@ -210,9 +220,10 @@ public sealed partial class MainWindowViewModel
         bool build,
         CancellationToken cancellationToken)
     {
-        long reportProjectionGeneration = Reports.BeginReportProjection();
+        ReportPresentationViewModel reports = _stateBindings.Reports();
+        long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
-        ReportReviewViewModel report = await Reports.ProjectReportAsync(
+        ReportReviewViewModel report = await reports.ProjectReportAsync(
             result.ReportJson,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
@@ -224,8 +235,8 @@ public sealed partial class MainWindowViewModel
         ApplyRunResult(
             result,
             build,
-            report, publishReport: Reports.IsCurrentReportProjection(reportProjectionGeneration));
-        CompositionProgress.MarkReportReady(Reports.IsCurrentReportProjection(reportProjectionGeneration));
+            report, publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration));
+        CompositionProgress.MarkReportReady(reports.IsCurrentReportProjection(reportProjectionGeneration));
     }
 
     private void ApplyRunResult(
@@ -239,7 +250,7 @@ public sealed partial class MainWindowViewModel
         string detail = !result.IsDeliveryComplete && !string.IsNullOrWhiteSpace(result.DeliveryFailureMessage)
             ? result.DeliveryFailureMessage
             : result.Succeeded
-            ? $"{result.ProfileId} / {result.OutputSize} bytes / {Text.RunResultReportReadyLabel}"
+            ? $"{result.ProfileId} / {result.OutputSize} bytes / {_stateBindings.Text().RunResultReportReadyLabel}"
             : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
         LastRunResult = new UiRunResultViewModel(
             result.Succeeded
@@ -249,14 +260,14 @@ public sealed partial class MainWindowViewModel
             result.Succeeded ? result.CommittedOutputId ?? result.OutputFileName : "No output",
             deliveryComplete);
         OnPropertyChanged(nameof(LastRunResult));
-        _ = TryShowBuildCompleted(result, build);
+        _ = _stateBindings.TryShowBuildCompleted(result, build);
 
         if (!publishReport)
         {
             return;
         }
 
-        Reports.PublishGeneratedReport(
+        _stateBindings.Reports().PublishGeneratedReport(
             report,
             result.ReportJson,
             action,
@@ -294,5 +305,62 @@ public sealed partial class MainWindowViewModel
         {
             OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         }
+    }
+
+    internal void ResetRunResultForContextChange()
+    {
+        LastRunResult = new UiRunResultViewModel(
+            "Context changed",
+            $"{_stateBindings.SelectedIc()} / {_stateBindings.SelectedNumber()}: run Build to validate the latest context.",
+            "No output",
+            succeeded: false);
+        OnPropertyChanged(nameof(LastRunResult));
+    }
+
+    internal void PublishRunResult(UiRunResultViewModel result)
+    {
+        LastRunResult = result;
+        OnPropertyChanged(nameof(LastRunResult));
+    }
+
+    internal void ApplyLanguageChanged(ShellLanguage language)
+    {
+        CompositionProgress.ApplyLanguage(language);
+        if (string.Equals(LastRunResult.Title, "No run yet", StringComparison.Ordinal) ||
+            string.Equals(LastRunResult.Title, "尚未執行", StringComparison.Ordinal))
+        {
+            ShellTextResources text = _stateBindings.Text();
+            LastRunResult = new UiRunResultViewModel(
+                text.InitialRunTitle,
+                text.InitialRunDetail,
+                text.NoOutputLabel,
+                succeeded: true);
+        }
+
+        OnPropertyChanged(nameof(LastRunResult));
+        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
+        OnPropertyChanged(nameof(RunProgressStatusLabel));
+        OnPropertyChanged(nameof(RunProgressDisplayLabel));
+    }
+
+    internal void NotifyContextChanged()
+    {
+        OnPropertyChanged(nameof(DisplayedDeviceIc));
+        OnPropertyChanged(nameof(DisplayedDeviceNumber));
+        OnPropertyChanged(nameof(DisplayedDeviceContextRefreshSummary));
+    }
+
+    internal void NotifyReducedMotionChanged()
+    {
+        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
+    }
+
+    internal void NotifyCommandStateChanged()
+    {
+        OnPropertyChanged(nameof(IsRunInProgress));
+        OnPropertyChanged(nameof(HasTypedRunProgress));
+        OnPropertyChanged(nameof(RunProgressStatusLabel));
+        OnPropertyChanged(nameof(RunProgressDisplayLabel));
+        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
     }
 }

@@ -99,10 +99,10 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Equal(
             "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.LastRunResult.Detail);
+            viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
         using (var previewReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson))
         {
@@ -112,10 +112,10 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Equal(
             "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.LastRunResult.Detail);
+            viewModel.RunSession.LastRunResult.Detail);
         Assert.False(File.Exists(outputPath));
     }
 
@@ -139,7 +139,7 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal("nt51926-general-replace-dp-single-candidate", viewModel.Reports.LoadedReport.ProfileId);
 
         await File.WriteAllBytesAsync(
@@ -148,17 +148,17 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Contains(
             "no longer matches",
-            viewModel.LastRunResult.Detail,
+            viewModel.RunSession.LastRunResult.Detail,
             StringComparison.Ordinal);
         Assert.False(File.Exists(outputPath));
 
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal([0xA5, 0xC3], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
@@ -187,10 +187,10 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Equal(
             "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.LastRunResult.Detail);
+            viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
         ReportLineViewModel issue = Assert.Single(viewModel.Reports.LoadedReport.Issues);
         Assert.Contains("no exact evidence-backed V2 route", issue.Detail, StringComparison.Ordinal);

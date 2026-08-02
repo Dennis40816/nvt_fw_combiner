@@ -60,6 +60,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnIsReducedMotionEnabledChanged(bool value)
     {
-        CompositionProgress.SetReducedMotion(value);
+        RunSession.CompositionProgress.SetReducedMotion(value);
+        RunSession.NotifyReducedMotionChanged();
     }
 }

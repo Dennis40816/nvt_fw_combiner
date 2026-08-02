@@ -85,17 +85,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        NotifyActiveRunContextChanged();
-    }
-
-    private void ResetRunResultForContextChange()
-    {
-        LastRunResult = new UiRunResultViewModel(
-            "Context changed",
-            $"{SelectedIc} / {SelectedNumber}: run Build to validate the latest context.",
-            "No output",
-            succeeded: false);
-        OnPropertyChanged(nameof(LastRunResult));
+        RunSession.NotifyContextChanged();
     }
 
     private void SelectReplaceMode(string mode)
@@ -205,18 +195,14 @@ public sealed partial class MainWindowViewModel
     {
         Merge.NotifyCommandStateChanged();
         Replace.NotifyCommandStateChanged();
+        RunSession.NotifyCommandStateChanged();
         Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
         Merge.BuildMergeCommand.NotifyCanExecuteChanged();
         Reports.ShowReportCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(IsRunInProgress));
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsNumberSelectorVisible));
         OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
         OnPropertyChanged(nameof(DeviceContextStatus));
-        OnPropertyChanged(nameof(HasTypedRunProgress));
-        OnPropertyChanged(nameof(RunProgressStatusLabel));
-        OnPropertyChanged(nameof(RunProgressDisplayLabel));
-        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
         OnPropertyChanged(nameof(Merge.CanBuildMerge));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
     }

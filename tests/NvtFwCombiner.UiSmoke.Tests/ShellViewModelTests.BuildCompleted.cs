@@ -15,7 +15,7 @@ public sealed partial class ShellViewModelTests
         WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result with { CommittedOutputId = outputPath },
             build: true,
             TestContext.Current.CancellationToken);
@@ -41,15 +41,15 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandIssue());
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
             build: true,
             TestContext.Current.CancellationToken);
 
         Assert.True(viewModel.Reports.IsReportModalOpen);
         Assert.False(viewModel.BuildResult.IsOpen);
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Contains("Combiner executable is not available", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Contains("Combiner executable is not available", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>A blocked Preview retains the report toast without treating its expected lack of committed output as Build failure.</summary>
@@ -67,7 +67,7 @@ public sealed partial class ShellViewModelTests
             ReportJsonSamples.CtrlRamCommandIssue());
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.ProjectAndApplyRunResultAsync(
+        await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
             build: false,
             TestContext.Current.CancellationToken);
@@ -82,7 +82,7 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        await viewModel.RunCompositionAsync(
+        await viewModel.RunSession.RunCompositionAsync(
             build: true,
             (_, _) => throw new InvalidOperationException("No exact CtrlRAM route."),
             (action, message) => viewModel.Reports.LoadRunErrorReport(
@@ -95,7 +95,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.Reports.IsReportModalOpen);
         Assert.Equal("No exact CtrlRAM route.", Assert.Single(viewModel.Reports.LoadedReport.Issues).Detail);
-        Assert.Equal("No output", viewModel.LastRunResult.Output);
+        Assert.Equal("No output", viewModel.RunSession.LastRunResult.Output);
     }
 
     /// <summary>A committed Build opens one confirmation while OK retains the latest-output shortcut.</summary>

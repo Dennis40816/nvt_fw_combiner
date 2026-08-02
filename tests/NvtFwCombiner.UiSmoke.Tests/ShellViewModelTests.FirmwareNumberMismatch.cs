@@ -55,7 +55,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(
             "nt51926-ctrlram-replace-fw141-runtime-cascade",
             viewModel.Reports.LoadedReport.ProfileId);
@@ -310,7 +310,7 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("must-not-exist.bin");
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.False(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.False(File.Exists(outputPath));
         Assert.Equal(immutableBase, File.ReadAllBytes(basePath));

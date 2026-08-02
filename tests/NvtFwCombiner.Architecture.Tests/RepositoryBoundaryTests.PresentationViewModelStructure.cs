@@ -224,7 +224,7 @@ public sealed partial class RepositoryBoundaryTests
     public void CompositionCommandsShareRunLifecycle()
     {
         string lifecycle = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs");
         string merge = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replace = ReadText(
@@ -246,18 +246,18 @@ public sealed partial class RepositoryBoundaryTests
             "internal async Task ProjectAndApplyRunResultAsync(",
             StringComparison.Ordinal);
         int generationIndex = lifecycle.IndexOf(
-            "long reportProjectionGeneration = Reports.BeginReportProjection();",
+            "long reportProjectionGeneration = reports.BeginReportProjection();",
             projectionMethodIndex,
             StringComparison.Ordinal);
         int reportProjectionIndex = lifecycle.IndexOf(
-            "ReportReviewViewModel report = await Reports.ProjectReportAsync(",
+            "ReportReviewViewModel report = await reports.ProjectReportAsync(",
             generationIndex,
             StringComparison.Ordinal);
         int cancellationIndex = lifecycle.IndexOf(
             "cancellationToken.ThrowIfCancellationRequested();",
             reportProjectionIndex,
             StringComparison.Ordinal);
-        int publishIndex = lifecycle.IndexOf("publishReport: Reports.IsCurrentReportProjection(", StringComparison.Ordinal);
+        int publishIndex = lifecycle.IndexOf("publishReport: reports.IsCurrentReportProjection(", StringComparison.Ordinal);
         Assert.True(
             projectionMethodIndex >= 0 &&
             generationIndex > projectionMethodIndex &&
@@ -265,11 +265,11 @@ public sealed partial class RepositoryBoundaryTests
             cancellationIndex > reportProjectionIndex &&
             publishIndex > cancellationIndex,
             "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
-        Assert.Contains("long reportProjectionGeneration = Reports.BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("long reportProjectionGeneration = reports.BeginReportProjection();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
         Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("publishReport: Reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"), StringComparison.Ordinal);
@@ -278,12 +278,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(
             1,
             CountOccurrences(
-                ReadViewModelPartials(),
+                lifecycle,
                 "catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })"));
         Assert.Equal(
             1,
             CountOccurrences(
-                ReadViewModelPartials(),
+                lifecycle,
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
     }
 
@@ -368,8 +368,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
-        Assert.Contains("await Reports.ProjectReportAsync(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
+        Assert.Contains("await reports.ProjectReportAsync(", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"), StringComparison.Ordinal);
     }
 
     /// <summary>Locks the shared Hex viewport redesign out of v0.9.11 while preserving both existing hosts.</summary>
@@ -537,8 +537,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("e.Cancel = true", mainWindow, StringComparison.Ordinal);
         Assert.Contains("IsEnabled = false", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("viewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("finalViewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("viewModel.RunSession.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("finalViewModel.RunSession.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
         Assert.Contains("Task.WhenAll(", mainWindow, StringComparison.Ordinal);
         Assert.Contains("completion.WaitAsync(LocalStateCloseFlushTimeout)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_reportHistoryPersistence.CompleteAsync()", mainWindow, StringComparison.Ordinal);

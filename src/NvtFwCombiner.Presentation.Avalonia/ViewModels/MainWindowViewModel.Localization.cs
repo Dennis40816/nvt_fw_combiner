@@ -31,9 +31,8 @@ public sealed partial class MainWindowViewModel
             }
         }
 
-        ApplyInitialRunResultText();
         LoadedHexEditorWorkspace?.ApplyTextResources(Text);
-        CompositionProgress.ApplyLanguage(language);
+        RunSession.ApplyLanguageChanged(language);
 
         if (!notify)
         {
@@ -43,11 +42,9 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(Text));
         OnPropertyChanged(nameof(WorkspaceTitle));
         OnPropertyChanged(nameof(WorkspaceSummary));
-        OnPropertyChanged(nameof(RunProgressAccessibleLabel));
         OnPropertyChanged(nameof(DeviceContextStatus));
         OnPropertyChanged(nameof(SettingsPreview));
         OnPropertyChanged(nameof(Merge.MergePreview));
-        OnPropertyChanged(nameof(LastRunResult));
         OnPropertyChanged(nameof(Merge.MergeMemorySummary));
         OnPropertyChanged(nameof(Merge.StandardMergeSupportSummary));
         OnPropertyChanged(nameof(SelectedIcFamilyLabel));
@@ -97,21 +94,6 @@ public sealed partial class MainWindowViewModel
                     includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
                     text: Text));
         }
-    }
-
-    private void ApplyInitialRunResultText()
-    {
-        if (!string.Equals(LastRunResult.Title, "No run yet", StringComparison.Ordinal) &&
-            !string.Equals(LastRunResult.Title, "尚未執行", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        LastRunResult = new UiRunResultViewModel(
-            Text.InitialRunTitle,
-            Text.InitialRunDetail,
-            Text.NoOutputLabel,
-            succeeded: true);
     }
 
     private void ApplyFirmwareSlotText()

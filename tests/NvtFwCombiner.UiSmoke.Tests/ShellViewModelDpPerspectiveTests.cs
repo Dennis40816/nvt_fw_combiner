@@ -195,12 +195,12 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Replace.CanBuildReplace);
 
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(baseLength, output.Length);
@@ -245,7 +245,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         using var reportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement root = reportDocument.RootElement;
         Assert.Equal(expectedLength, root.GetProperty("Output").GetProperty("Size").GetInt64());
@@ -283,7 +283,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.CanOpenReport);
@@ -306,8 +306,8 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.False(viewModel.LastRunResult.Succeeded);
-        Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.LastRunResult.Detail, StringComparison.Ordinal);
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
         Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
             row.ActionLabel == "Replace" &&
             row.RangeLabel == "Unsupported Reference FlashCode length 0x60000");

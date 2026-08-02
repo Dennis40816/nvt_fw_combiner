@@ -71,7 +71,7 @@ public sealed partial class MainWindowViewModel
             new MergeStateBindings(
                 () => SelectedIc,
                 () => SelectedNumber,
-                () => IsRunInProgress,
+                IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
                 () => _deferredState.IsWorkflowLoaded,
                 () => _deferredState.IsLoadingWorkflow,
@@ -91,7 +91,7 @@ public sealed partial class MainWindowViewModel
                 () => Text,
                 () => SelectedIc,
                 () => SelectedNumber,
-                () => IsRunInProgress,
+                IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
                 () => _deferredState.IsWorkflowLoaded,
                 GetInspectedFileLength,
@@ -106,9 +106,7 @@ public sealed partial class MainWindowViewModel
                 RefreshCommandState),
             firmwareConfigMetadataReader);
         Replace.PropertyChanged += Replace_OnPropertyChanged;
-        CompositionProgress = new CompositionRunProgressViewModel(language);
         SelectedLanguage = language == ShellLanguage.ChineseTraditional ? "Traditional Chinese" : "English";
-        CompositionProgress.PropertyChanged += CompositionProgress_OnPropertyChanged;
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
         Reports.PropertyChanged += Reports_OnPropertyChanged;
         WorkflowSession = new WorkflowSessionPresentationViewModel(
@@ -151,6 +149,21 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
         BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
+        RunSession = new CompositionRunPresentationViewModel(
+            language,
+            new CompositionRunStateBindings(
+                () => Text,
+                () => SelectedIc,
+                () => SelectedNumber,
+                GetSelectedRunMode,
+                ShouldShowNumberSelectorForSelectedPage,
+                () => DeviceContextRefreshSummary,
+                () => IsReducedMotionEnabled,
+                () => Reports,
+                TryShowBuildCompleted,
+                RefreshCommandState,
+                NotifyShellRunStateChanged));
+        RunSession.PropertyChanged += RunSession_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));

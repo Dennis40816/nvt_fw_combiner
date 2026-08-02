@@ -30,7 +30,8 @@ public sealed partial class MainWindowViewModel
     public bool CanGoBack => _pageHistory.Count > 1;
 
     /// <summary>True when the selected page or active run needs the captured device context.</summary>
-    public bool IsDeviceContextVisible => IsRunInProgress || SelectedPage is ShellPage.Merge or ShellPage.Replace;
+    public bool IsDeviceContextVisible => RunSession.IsRunInProgress ||
+        SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
     public bool IsCompositionActionRailVisible =>
@@ -67,21 +68,21 @@ public sealed partial class MainWindowViewModel
     }
 
     /// <summary>True when the shared context row should expose the IC Number selector.</summary>
-    public bool IsNumberSelectorVisible => IsRunInProgress
-        ? ActiveRunShowsNumberSelector
+    public bool IsNumberSelectorVisible => RunSession.IsRunInProgress
+        ? RunSession.ActiveRunShowsNumberSelector
         : ShouldShowNumberSelectorForSelectedPage();
 
     /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
     public bool IsNumberSelectorPlaceholderVisible => IsDeviceContextVisible && !IsNumberSelectorVisible;
 
     /// <summary>True when the mutable shell selection controls may be shown.</summary>
-    public bool IsDeviceContextSelectionVisible => !IsRunInProgress;
+    public bool IsDeviceContextSelectionVisible => !RunSession.IsRunInProgress;
 
     /// <summary>True when the mutable IC Number selection control may be shown.</summary>
-    public bool IsDeviceContextNumberSelectionVisible => IsNumberSelectorVisible && !IsRunInProgress;
+    public bool IsDeviceContextNumberSelectionVisible => IsNumberSelectorVisible && !RunSession.IsRunInProgress;
 
     /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
-    public bool IsDeviceContextFamilyBadgeVisible => !IsRunInProgress && HasSelectedIcFamily;
+    public bool IsDeviceContextFamilyBadgeVisible => !RunSession.IsRunInProgress && HasSelectedIcFamily;
 
     /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }

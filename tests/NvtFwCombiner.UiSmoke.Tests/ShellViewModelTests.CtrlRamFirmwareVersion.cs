@@ -75,7 +75,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.BuildReplaceAsync(outputPath, edit);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
         WorkbenchFirmwareConfigMetadata? outputMetadata =
             WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);

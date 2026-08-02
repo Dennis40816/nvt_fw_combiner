@@ -109,8 +109,8 @@
             Classes="technicalCenteredInput"
             Width="154"
             IsReadOnly="True"
-            IsVisible="{Binding IsRunInProgress}"
-            Text="{Binding ActiveRunIc}" />
+            IsVisible="{Binding RunSession.IsRunInProgress}"
+            Text="{Binding RunSession.ActiveRunIc}" />
 
         <Border
             Grid.Row="0"
@@ -150,8 +150,8 @@
               Width="132"
               AutomationProperties.Name="{Binding Text.NumberLabel}"
               IsReadOnly="True"
-              IsVisible="{Binding IsRunInProgress}"
-              Text="{Binding ActiveRunNumber}" />
+              IsVisible="{Binding RunSession.IsRunInProgress}"
+              Text="{Binding RunSession.ActiveRunNumber}" />
         </Grid>
         <StackPanel
             Grid.Row="1"
@@ -179,27 +179,27 @@
           Margin="16,0,0,0"
           Classes="panelSurface contentPanel"
           AutomationProperties.LiveSetting="Polite"
-          AutomationProperties.Name="{Binding RunProgressStatusLabel}"
-          IsVisible="{Binding IsRunInProgress}">
+          AutomationProperties.Name="{Binding RunSession.RunProgressStatusLabel}"
+          IsVisible="{Binding RunSession.IsRunInProgress}">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
             <TextBlock
                 Classes="bodyStrongText"
-                Text="{Binding RunProgressDisplayLabel}"
+                Text="{Binding RunSession.RunProgressDisplayLabel}"
                 TextTrimming="CharacterEllipsis" />
             <TextBlock
                 Grid.Column="1"
                 Classes="captionText"
-                Text="{Binding CompositionProgress.StepOrdinalLabel}" />
+                Text="{Binding RunSession.CompositionProgress.StepOrdinalLabel}" />
           </Grid>
           <TextBlock
               Classes="captionText"
-              Text="{Binding ActiveRunContextLabel}"
+              Text="{Binding RunSession.ActiveRunContextLabel}"
               TextTrimming="CharacterEllipsis" />
           <ItemsControl
               HorizontalAlignment="Center"
-              IsVisible="{Binding HasTypedRunProgress}"
-              ItemsSource="{Binding CompositionProgress.Steps}">
+              IsVisible="{Binding RunSession.HasTypedRunProgress}"
+              ItemsSource="{Binding RunSession.CompositionProgress.Steps}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" />
@@ -225,9 +225,9 @@
           </ItemsControl>
           <ProgressBar
               Height="3"
-              AutomationProperties.Name="{Binding RunProgressStatusLabel}"
+              AutomationProperties.Name="{Binding RunSession.RunProgressStatusLabel}"
               IsIndeterminate="True"
-              IsVisible="{Binding ShouldAnimateRunProgress}" />
+              IsVisible="{Binding RunSession.ShouldAnimateRunProgress}" />
         </StackPanel>
       </Border>
     </Grid>

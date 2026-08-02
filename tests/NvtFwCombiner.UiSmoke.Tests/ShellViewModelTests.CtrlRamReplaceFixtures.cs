@@ -31,13 +31,13 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Replace.CanBuildReplace);
 
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(0x40000, new FileInfo(outputPath).Length);
         Assert.True(viewModel.Reports.HasLoadedReport);
@@ -45,7 +45,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
         Assert.Equal(
             Application.Composition.CompositionRunPhase.PreparingReport,
-            viewModel.CompositionProgress.CurrentPhase);
+            viewModel.RunSession.CompositionProgress.CurrentPhase);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(10, postbuild.RuntimeCommands.Count);
         Assert.All(postbuild.RuntimeCommands, command =>
@@ -85,7 +85,7 @@ public sealed partial class ShellViewModelTests
             Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null), caseId);
 
             await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
                 Assert.Contains(GetCommandOperations(viewModel.Reports.LoadedReport), operation =>
@@ -102,7 +102,7 @@ public sealed partial class ShellViewModelTests
             Assert.True(viewModel.Replace.CanBuildReplace, caseId);
 
             await viewModel.Replace.BuildReplaceAsync(outputPath);
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.True(File.Exists(outputPath), outputPath);
 
             if (fixtures.EnforceExpectedOutput)

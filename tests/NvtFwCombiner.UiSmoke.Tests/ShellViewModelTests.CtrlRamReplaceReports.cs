@@ -34,7 +34,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.True(viewModel.Reports.LoadedReport.HasStepOperations);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
@@ -79,7 +79,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
         Assert.Contains(postbuild.RuntimeCommands, command =>
@@ -121,7 +121,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);
@@ -157,7 +157,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(viewModel.Reports.HasLoadedReport);
         ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(13, postbuild.RuntimeCommands.Count);

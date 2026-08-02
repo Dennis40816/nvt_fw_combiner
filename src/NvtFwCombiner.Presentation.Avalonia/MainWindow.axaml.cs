@@ -89,7 +89,7 @@ public sealed partial class MainWindow : Window, IDisposable
         {
             if (DataContext is MainWindowViewModel finalViewModel)
             {
-                finalViewModel.CancelActiveRun();
+                finalViewModel.RunSession.CancelActiveRun();
             }
 
             base.OnClosing(e);
@@ -107,7 +107,7 @@ public sealed partial class MainWindow : Window, IDisposable
         IsEnabled = false;
         if (DataContext is MainWindowViewModel viewModel)
         {
-            viewModel.CancelActiveRun();
+            viewModel.RunSession.CancelActiveRun();
         }
 
         if (DataContext is INotifyPropertyChanged notifier)

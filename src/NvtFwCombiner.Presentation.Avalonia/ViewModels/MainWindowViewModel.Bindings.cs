@@ -34,8 +34,8 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the shared device context status text.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
-        ? $"{DisplayedDeviceIc} / {DisplayedDeviceNumber}: {DisplayedDeviceContextRefreshSummary}"
-        : $"{DisplayedDeviceIc}: {DisplayedDeviceContextRefreshSummary}";
+        ? $"{RunSession.DisplayedDeviceIc} / {RunSession.DisplayedDeviceNumber}: {RunSession.DisplayedDeviceContextRefreshSummary}"
+        : $"{RunSession.DisplayedDeviceIc}: {RunSession.DisplayedDeviceContextRefreshSummary}";
 
     /// <summary>Gets IC choices admitted by the active authoring context.</summary>
     public IReadOnlyList<string> IcChoices => IsAbMergeContextActive
@@ -44,13 +44,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets settings card content.</summary>
     public PlanningCardText SettingsPreview { get; private set; } = ShellTextResources.For(ShellLanguage.English).SettingsPreview;
-
-    /// <summary>Gets the latest UI-triggered run summary.</summary>
-    public UiRunResultViewModel LastRunResult { get; private set; } = new(
-        "No run yet",
-        "Drop required BIN files, then run Build.",
-        "No output",
-        succeeded: true);
 
     /// <summary>Gets the selected shell page.</summary>
     public ShellPage SelectedPage { get; private set; } = ShellPage.Home;
