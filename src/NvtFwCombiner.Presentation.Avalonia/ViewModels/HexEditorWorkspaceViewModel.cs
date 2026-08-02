@@ -20,6 +20,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private readonly Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> _findAsciiAsync;
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private long? _activeInlineEditAddress;
+    private int _selectedColumnIndex = -1;
     private Dictionary<long, HexViewportSnapshot>? _selectionSnapshots;
     private Dictionary<long, string>? _selectionAddressLabels;
     private HexViewportSnapshot? _unselectedSnapshot;
@@ -567,10 +568,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         int selectedColumn = selectedAddress is long selectedOffset
             ? (int)(selectedOffset & 0xF)
             : -1;
-        foreach (HexEditorColumnHeaderViewModel header in ColumnHeaders)
-        {
-            header.IsSelected = header.Index == selectedColumn;
-        }
+        SetSelectedColumn(selectedColumn);
     }
 
     private void ClearSelection()
@@ -579,9 +577,25 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedByteAddress));
         OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
         PublishViewportSnapshot(GetSelectionSnapshot(null));
-        foreach (HexEditorColumnHeaderViewModel header in ColumnHeaders)
+        SetSelectedColumn(-1);
+    }
+
+    private void SetSelectedColumn(int selectedColumn)
+    {
+        if (_selectedColumnIndex == selectedColumn)
         {
-            header.IsSelected = false;
+            return;
+        }
+
+        if (_selectedColumnIndex >= 0)
+        {
+            ColumnHeaders[_selectedColumnIndex].IsSelected = false;
+        }
+
+        _selectedColumnIndex = selectedColumn;
+        if (_selectedColumnIndex >= 0)
+        {
+            ColumnHeaders[_selectedColumnIndex].IsSelected = true;
         }
     }
 
