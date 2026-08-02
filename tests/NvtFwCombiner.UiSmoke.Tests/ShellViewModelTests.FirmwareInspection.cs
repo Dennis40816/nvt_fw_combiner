@@ -170,10 +170,10 @@ public sealed partial class ShellViewModelTests
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a.bin", new byte[0x37000]),
             TestContext.Current.CancellationToken);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(["single"], observedTopologies);
 
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
         await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.Equal("cascade", viewModel.SelectedNumber);
@@ -306,8 +306,8 @@ public sealed partial class ShellViewModelTests
         await viewModel.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
 
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Contains(
@@ -415,16 +415,16 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
 
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
 
-        viewModel.AcceptFirmwareIcMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.AcceptFirmwareIcMismatchCommand.Execute(null);
         await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.Equal("NT51927", viewModel.SelectedIc);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
     }
 
     /// <summary>A marker within one perfect family silently adopts the detected IC and retains the selected BIN.</summary>
@@ -449,7 +449,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         await viewModel.FirmwareInspectionRefreshTask;
 
-        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51932", viewModel.SelectedIc);
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
         Assert.Equal("NT51932", batches[^1].IcId);
@@ -494,9 +494,9 @@ public sealed partial class ShellViewModelTests
             replacement.SlotId,
             replacementPath,
             TestContext.Current.CancellationToken);
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
 
-        viewModel.AcceptFirmwareIcMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.AcceptFirmwareIcMismatchCommand.Execute(null);
         await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.Equal("NT51927", viewModel.SelectedIc);
@@ -506,7 +506,7 @@ public sealed partial class ShellViewModelTests
         (string successorIc, WorkbenchFirmwareInspectionInput[] successorInputs) = batches[^1];
         Assert.Equal("NT51927", successorIc);
         Assert.Contains(successorInputs, input => input.InspectionId == replacement.SlotId);
-        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
     }
 
     /// <summary>An accepted replacement cannot cross into an IC that lacks the same safe slot silently.</summary>
@@ -531,9 +531,9 @@ public sealed partial class ShellViewModelTests
             replacement.SlotId,
             replacementPath,
             TestContext.Current.CancellationToken);
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
 
-        viewModel.AcceptFirmwareIcMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.AcceptFirmwareIcMismatchCommand.Execute(null);
         await viewModel.FirmwareInspectionRefreshTask;
 
         Assert.Equal("NT51929", viewModel.SelectedIc);

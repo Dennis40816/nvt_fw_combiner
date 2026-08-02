@@ -296,13 +296,13 @@ public sealed partial class ShellViewModelTests
                 Assert.True(await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync(TestContext.Current.CancellationToken));
                 break;
             case "workflow-context":
-                viewModel.IsWorkflowContextModalOpen = true;
+                viewModel.WorkflowSession.IsWorkflowContextModalOpen = true;
                 break;
             case "firmware-ic-mismatch":
-                viewModel.IsFirmwareIcMismatchModalOpen = true;
+                viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen = true;
                 break;
             case "firmware-number-mismatch":
-                viewModel.IsFirmwareNumberMismatchModalOpen = true;
+                viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen = true;
                 break;
             case "navigation-clear":
                 viewModel.IsNavigationClearConfirmationOpen = true;
@@ -341,13 +341,13 @@ public sealed partial class ShellViewModelTests
                 viewModel.CloseCtrlRamFirmwareVersionModal();
                 break;
             case "workflow-context":
-                viewModel.CancelWorkflowContextCommand.Execute(null);
+                viewModel.WorkflowSession.CancelWorkflowContextCommand.Execute(null);
                 break;
             case "firmware-ic-mismatch":
-                viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+                viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
                 break;
             case "firmware-number-mismatch":
-                viewModel.DismissFirmwareNumberMismatchCommand.Execute(null);
+                viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
                 break;
             case "navigation-clear":
                 viewModel.CancelNavigationClearCommand.Execute(null);
@@ -378,9 +378,9 @@ public sealed partial class ShellViewModelTests
         {
             "replace-selection" => viewModel.IsReplaceSelectionModalOpen,
             "ctrlram-version" => viewModel.IsCtrlRamFirmwareVersionModalOpen,
-            "workflow-context" => viewModel.IsWorkflowContextModalOpen,
-            "firmware-ic-mismatch" => viewModel.IsFirmwareIcMismatchModalOpen,
-            "firmware-number-mismatch" => viewModel.IsFirmwareNumberMismatchModalOpen,
+            "workflow-context" => viewModel.WorkflowSession.IsWorkflowContextModalOpen,
+            "firmware-ic-mismatch" => viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen,
+            "firmware-number-mismatch" => viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen,
             "navigation-clear" => viewModel.IsNavigationClearConfirmationOpen,
             "report" => viewModel.Reports.IsReportModalOpen,
             "ab-a-flashcode-delivery" => viewModel.IsAbAFlashCodeDeliveryPromptOpen,

@@ -103,6 +103,19 @@ public sealed partial class MainWindowViewModel
         ApplyTextResources(language, notify: false);
         Reports = new ReportPresentationViewModel(() => Text, CloseReplaceSelectionForRun);
         Reports.PropertyChanged += Reports_OnPropertyChanged;
+        WorkflowSession = new WorkflowSessionPresentationViewModel(
+            () => Text,
+            () => SelectedIc,
+            () => SelectedNumber,
+            () => IcChoices,
+            () => NumberSelectionChoices,
+            () => IsReplaceVisible,
+            ApplyWorkflowContext,
+            value => SelectedIc = value,
+            ApplyDetectedFirmwareNumber,
+            RefreshCtrlRamDisplayFromInspection,
+            Reports.SetShellToast);
+        WorkflowSession.PropertyChanged += WorkflowSession_OnPropertyChanged;
         BuildResult = new BuildResultViewModel(_fileRevealService, () => Text.BuildCompletedOpenFolderError);
         BuildResult.PropertyChanged += BuildResult_OnPropertyChanged;
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
@@ -112,26 +125,20 @@ public sealed partial class MainWindowViewModel
         GoBackCommand = new RelayCommand(GoBack, () => CanGoBack);
         ConfirmNavigationAndClearCommand = new RelayCommand(ConfirmNavigationAndClear);
         CancelNavigationClearCommand = new RelayCommand(CancelNavigationClear);
-        BeginDpReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
-        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
-        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
+        BeginDpReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, DpReplaceMode, showNumber: true));
+        BeginCtrlRamReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, CtrlRamReplaceMode, showNumber: true));
+        BeginGeneralReplaceFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Replace, GeneralReplaceMode, showNumber: true));
         ShowHexEditorCommand = new RelayCommand(ShowHexEditor);
         RequestHexEditorSaveCommand = new RelayCommand(RequestHexEditorSave, CanRequestHexEditorSave);
         RequestHexEditorUndoCommand = new RelayCommand(RequestHexEditorUndo, CanRequestHexEditorUndo);
         RequestHexEditorRedoCommand = new RelayCommand(RequestHexEditorRedo, CanRequestHexEditorRedo);
-        BeginNormalMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
-        BeginAbMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(
+        BeginNormalMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, NormalMergeMode, showNumber: false));
+        BeginAbMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(
             ShellPage.Merge,
             AbCodeMergeMode,
             showNumber: false,
             [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]));
-        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
-        ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
-        CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
-        AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
-        DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
-        AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
-        DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
+        BeginGeneralMergeFromHomeCommand = new RelayCommand(() => WorkflowSession.BeginWorkflowContext(ShellPage.Merge, GeneralMergeMode, showNumber: false));
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         AddGeneralMergeMappingCommand = new RelayCommand(AddGeneralMergeMapping);
         PreviewMergeCommand = new AsyncRelayCommand(

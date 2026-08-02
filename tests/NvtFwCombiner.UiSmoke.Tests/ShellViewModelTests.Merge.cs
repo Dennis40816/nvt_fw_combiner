@@ -83,14 +83,14 @@ public sealed partial class ShellViewModelTests
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
         Assert.Equal(
             ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
-            viewModel.WorkflowContextSetup.IcChoices);
-        Assert.Equal("NT51951", viewModel.WorkflowContextSetup.SelectedIc);
+            viewModel.WorkflowSession.WorkflowContextSetup.IcChoices);
+        Assert.Equal("NT51951", viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc);
 
-        viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsAbCodeMergeModeSelected);
@@ -417,7 +417,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         viewModel.BeginGeneralMergeFromHomeCommand.Execute(null);
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsGeneralMergeModeSelected);

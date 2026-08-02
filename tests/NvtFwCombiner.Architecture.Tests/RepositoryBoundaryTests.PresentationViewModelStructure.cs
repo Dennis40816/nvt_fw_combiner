@@ -2,6 +2,25 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Workflow context and firmware mismatch prompts belong to the shared session child.</summary>
+    [Fact]
+    public void WorkflowSessionPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellSession = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.WorkflowSession.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs");
+        string mismatch = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareIcMismatch.cs");
+
+        Assert.Contains("WorkflowSession = new WorkflowSessionPresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public WorkflowSessionPresentationViewModel WorkflowSession", shellSession, StringComparison.Ordinal);
+        Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
+        Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
+    }
+
     /// <summary>Report parsing, history, and commands belong to a focused child rather than the shell.</summary>
     [Fact]
     public void ReportPresentationLivesBehindFocusedChild()

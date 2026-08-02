@@ -4,7 +4,7 @@ using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-public sealed partial class MainWindowViewModel
+public sealed partial class WorkflowSessionPresentationViewModel
 {
     private string? _firmwareIcMismatchSlotId;
     private string? _firmwareIcMismatchPath;
@@ -21,7 +21,7 @@ public sealed partial class MainWindowViewModel
     public string FirmwareIcMismatchDetectedIc { get; private set; } = string.Empty;
 
     /// <summary>Gets the currently selected workbench IC.</summary>
-    public string FirmwareIcMismatchCurrentIc => SelectedIc;
+    public string FirmwareIcMismatchCurrentIc => _selectedIc();
 
     /// <summary>Command that adopts the prompted IC context and retains the selected BIN.</summary>
     public IRelayCommand AcceptFirmwareIcMismatchCommand { get; }
@@ -29,7 +29,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Command that retains the current IC context despite the prompt.</summary>
     public IRelayCommand DismissFirmwareIcMismatchCommand { get; }
 
-    private bool ReconcileFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
+    internal bool ReconcileFirmwareIcMismatch(FirmwareSlotViewModel slot, string? detectedIc)
     {
         if (IsFirmwareIcMismatchModalOpen ||
             !slot.HasFile ||
@@ -39,13 +39,13 @@ public sealed partial class MainWindowViewModel
         }
 
         if (string.IsNullOrWhiteSpace(detectedIc) ||
-            !IcChoices.Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
-            string.Equals(detectedIc, SelectedIc, StringComparison.OrdinalIgnoreCase))
+            !_icChoices().Contains(detectedIc, StringComparer.OrdinalIgnoreCase) ||
+            string.Equals(detectedIc, _selectedIc(), StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
+        if (WorkbenchCompositionService.ArePerfectFamilyMembers(_selectedIc(), detectedIc))
         {
             SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
             return true;
@@ -82,7 +82,7 @@ public sealed partial class MainWindowViewModel
             slotId is not null && path is not null
                 ? new AcceptedFirmwareMismatchSelection(slotId, path)
                 : null;
-        SelectedIc = detectedIc;
+        _setSelectedIc(detectedIc);
     }
 
     private void DismissFirmwareIcMismatch()
@@ -92,7 +92,7 @@ public sealed partial class MainWindowViewModel
         _firmwareIcMismatchPath = null;
     }
 
-    private void InvalidateFirmwareIcMismatch()
+    internal void InvalidateFirmwareIcMismatch()
     {
         if (IsFirmwareIcMismatchModalOpen)
         {
@@ -104,12 +104,10 @@ public sealed partial class MainWindowViewModel
         _acceptedFirmwareMismatchSelection = null;
     }
 
-    private AcceptedFirmwareMismatchSelection? ConsumeAcceptedFirmwareMismatchSelection()
+    internal AcceptedFirmwareMismatchSelection? ConsumeAcceptedFirmwareMismatchSelection()
     {
         AcceptedFirmwareMismatchSelection? selection = _acceptedFirmwareMismatchSelection;
         _acceptedFirmwareMismatchSelection = null;
         return selection;
     }
-
-    private sealed record AcceptedFirmwareMismatchSelection(string SlotId, string Path);
 }

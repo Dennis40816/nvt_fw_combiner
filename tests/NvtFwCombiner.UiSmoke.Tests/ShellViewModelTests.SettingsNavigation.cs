@@ -129,14 +129,14 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.IsDeviceContextSelectionVisible);
         viewModel.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.True(viewModel.WorkflowContextSetup.IsNumberVisible);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.True(viewModel.WorkflowSession.WorkflowContextSetup.IsNumberVisible);
         Assert.True(viewModel.IsHomeVisible);
-        viewModel.WorkflowContextSetup.SelectedIc = "NT51927";
-        viewModel.WorkflowContextSetup.SelectedNumberChoice = viewModel.WorkflowContextSetup.NumberChoices.Single(choice => choice.Token == "3");
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumberChoice = viewModel.WorkflowSession.WorkflowContextSetup.NumberChoices.Single(choice => choice.Token == "3");
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
 
-        Assert.False(viewModel.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
         Assert.True(viewModel.IsReplaceVisible);
         Assert.True(viewModel.IsNumberSelectorVisible);
         Assert.True(viewModel.IsDeviceContextSelectionVisible);
@@ -147,9 +147,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ShowHomeCommand.Execute(null);
         viewModel.BeginNormalMergeFromHomeCommand.Execute(null);
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.False(viewModel.WorkflowContextSetup.IsNumberVisible);
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.False(viewModel.WorkflowSession.WorkflowContextSetup.IsNumberVisible);
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
         Assert.True(viewModel.IsMergeVisible);
     }
 
@@ -162,17 +162,17 @@ public sealed partial class ShellViewModelTests
         string expectedReplaceNumber = viewModel.SelectedNumber;
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
-        viewModel.WorkflowContextSetup.SelectedIc = "NT51929";
-        viewModel.ConfirmWorkflowContextCommand.Execute(null);
+        viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
+        viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
         viewModel.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
         viewModel.BeginDpReplaceFromHomeCommand.Execute(null);
 
-        Assert.True(viewModel.IsWorkflowContextModalOpen);
-        Assert.Equal(expectedReplaceIc, viewModel.WorkflowContextSetup.SelectedIc);
-        Assert.Equal(expectedReplaceNumber, viewModel.WorkflowContextSetup.SelectedNumber);
+        Assert.True(viewModel.WorkflowSession.IsWorkflowContextModalOpen);
+        Assert.Equal(expectedReplaceIc, viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc);
+        Assert.Equal(expectedReplaceNumber, viewModel.WorkflowSession.WorkflowContextSetup.SelectedNumber);
     }
 
     /// <summary>Verifies an IC marker remains actionable while a hidden Merge TP number stays informational.</summary>
@@ -186,16 +186,16 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("replace-base", markedPath);
 
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
-        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+        viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
         Assert.Equal("NT51926", viewModel.SelectedIc);
 
         using var golden = StandardMergeGoldenManifest.Load();
         string tpPath = golden.ManifestPath(golden.CaseByIc("51926").GetProperty("inputs").GetProperty("tp-input"));
         viewModel.SetSlotFile("merge-tp", tpPath);
 
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("single", viewModel.SelectedNumber);
     }
 
@@ -212,9 +212,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("replace-base", path);
 
-        Assert.True(viewModel.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal("NT51927", viewModel.FirmwareIcMismatchDetectedIc);
-        viewModel.DismissFirmwareIcMismatchCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
+        Assert.Equal("NT51927", viewModel.WorkflowSession.FirmwareIcMismatchDetectedIc);
+        viewModel.WorkflowSession.DismissFirmwareIcMismatchCommand.Execute(null);
         Assert.Equal("NT51926", viewModel.SelectedIc);
     }
 
@@ -229,7 +229,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.SetSlotFile("replace-base", markedPath);
 
-        Assert.False(viewModel.IsFirmwareIcMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
         Assert.Equal("NT51926", viewModel.SelectedIc);
     }
 

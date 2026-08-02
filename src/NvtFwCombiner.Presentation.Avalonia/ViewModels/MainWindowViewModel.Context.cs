@@ -311,7 +311,7 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReplaceModeChanged(string value)
     {
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
         InvalidateFirmwareInspection();
         InvalidateCtrlRamFirmwareVersionContext();
         RefreshContextState(resetRunResult: true);
@@ -320,9 +320,9 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedIcChanged(string value)
     {
-        InvalidateFirmwareNumberMismatch();
-        AcceptedFirmwareMismatchSelection? acceptedMismatch =
-            ConsumeAcceptedFirmwareMismatchSelection();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
+        WorkflowSessionPresentationViewModel.AcceptedFirmwareMismatchSelection? acceptedMismatch =
+            WorkflowSession.ConsumeAcceptedFirmwareMismatchSelection();
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
         if (IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
@@ -365,13 +365,13 @@ public sealed partial class MainWindowViewModel
         }
 
         _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
-        RememberReplaceWorkflowContext();
+        WorkflowSession.RememberReplaceWorkflowContext();
     }
 
     partial void OnSelectedNumberChanged(string value)
     {
-        RememberReplaceWorkflowContext();
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.RememberReplaceWorkflowContext();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
         if (_isRefreshingFirmwareInspectionContext)
         {
             InvalidateCtrlRamFirmwareVersionContext();

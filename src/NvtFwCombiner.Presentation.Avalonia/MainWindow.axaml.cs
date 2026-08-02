@@ -280,9 +280,9 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(ReplaceSelectionModalHost, viewModel.IsReplaceSelectionModalOpen, viewModel);
         LoadContent(CtrlRamFirmwareVersionModalHost, viewModel.IsCtrlRamFirmwareVersionModalOpen, viewModel);
         LoadContent(AbAFlashCodeDeliveryPromptModalHost, viewModel.IsAbAFlashCodeDeliveryPromptOpen, viewModel);
-        LoadContent(WorkflowContextSetupModalHost, viewModel.IsWorkflowContextModalOpen, viewModel);
-        LoadContent(FirmwareIcMismatchModalHost, viewModel.IsFirmwareIcMismatchModalOpen, viewModel);
-        LoadContent(FirmwareNumberMismatchModalHost, viewModel.IsFirmwareNumberMismatchModalOpen, viewModel);
+        LoadContent(WorkflowContextSetupModalHost, viewModel.WorkflowSession.IsWorkflowContextModalOpen, viewModel.WorkflowSession);
+        LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
+        LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
         LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);
         LoadContent(BuildCompletedModalHost, viewModel.BuildResult.IsOpen, viewModel);

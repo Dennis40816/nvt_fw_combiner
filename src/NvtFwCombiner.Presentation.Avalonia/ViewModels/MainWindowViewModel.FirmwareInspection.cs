@@ -197,15 +197,15 @@ public sealed partial class MainWindowViewModel
 
             if (item.PromptForMismatch)
             {
-                if (ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
+                if (WorkflowSession.ReconcileFirmwareIcMismatch(slot, inspection.DetectedIcId))
                 {
                     return;
                 }
             }
 
-            if (item.ApplyVerifiedContext && !IsFirmwareIcMismatchModalOpen)
+            if (item.ApplyVerifiedContext && !WorkflowSession.IsFirmwareIcMismatchModalOpen)
             {
-                PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
+                WorkflowSession.PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
             }
 
             if (item.SlotId == ReplaceBaseSlotId && IsCtrlRamReplaceModeSelected)

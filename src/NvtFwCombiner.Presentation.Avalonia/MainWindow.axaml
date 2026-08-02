@@ -407,9 +407,9 @@
     <ContentControl
         x:Name="WorkflowContextSetupModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsWorkflowContextModalOpen}">
+        IsVisible="{Binding WorkflowSession.IsWorkflowContextModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:WorkflowSessionPresentationViewModel">
           <views:WorkflowContextSetupModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
@@ -418,9 +418,9 @@
     <ContentControl
         x:Name="FirmwareIcMismatchModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsFirmwareIcMismatchModalOpen}">
+        IsVisible="{Binding WorkflowSession.IsFirmwareIcMismatchModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:WorkflowSessionPresentationViewModel">
           <views:FirmwareIcMismatchModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
@@ -429,9 +429,9 @@
     <ContentControl
         x:Name="FirmwareNumberMismatchModalHost"
         Grid.RowSpan="5"
-        IsVisible="{Binding IsFirmwareNumberMismatchModalOpen}">
+        IsVisible="{Binding WorkflowSession.IsFirmwareNumberMismatchModalOpen}">
       <ContentControl.ContentTemplate>
-        <DataTemplate DataType="vm:MainWindowViewModel">
+        <DataTemplate DataType="vm:WorkflowSessionPresentationViewModel">
           <views:FirmwareNumberMismatchModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>

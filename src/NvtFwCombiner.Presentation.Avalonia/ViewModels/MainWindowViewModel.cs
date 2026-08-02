@@ -20,8 +20,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         InvalidateCtrlRamFirmwareVersionContext();
         InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == ReplaceBaseSlotId);
         _firmwareInspectionSession.RemoveProjection(slot.SlotId);
-        InvalidateFirmwareIcMismatch();
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.InvalidateFirmwareIcMismatch();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
         slot.FilePath = path;
         slot.SetFirmwareFacts([]);
         slot.ClearInputInspection();

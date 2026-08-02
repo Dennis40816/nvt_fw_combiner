@@ -42,9 +42,9 @@ public sealed partial class MainWindowViewModel
     private bool IsBlockingSurfaceOpen =>
         IsReplaceSelectionModalOpen ||
         IsCtrlRamFirmwareVersionModalOpen ||
-        IsWorkflowContextModalOpen ||
-        IsFirmwareIcMismatchModalOpen ||
-        IsFirmwareNumberMismatchModalOpen ||
+        WorkflowSession.IsWorkflowContextModalOpen ||
+        WorkflowSession.IsFirmwareIcMismatchModalOpen ||
+        WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
         Reports.IsReportModalOpen ||
         IsAbAFlashCodeDeliveryPromptOpen ||
@@ -56,9 +56,6 @@ public sealed partial class MainWindowViewModel
     {
         if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
             nameof(IsCtrlRamFirmwareVersionModalOpen) or
-            nameof(IsWorkflowContextModalOpen) or
-            nameof(IsFirmwareIcMismatchModalOpen) or
-            nameof(IsFirmwareNumberMismatchModalOpen) or
             nameof(IsNavigationClearConfirmationOpen) or
             nameof(IsAbAFlashCodeDeliveryPromptOpen))
         {
@@ -139,7 +136,7 @@ public sealed partial class MainWindowViewModel
             return IsNavigationClearConfirmationOpen;
         }
 
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
         OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = true;
@@ -208,8 +205,8 @@ public sealed partial class MainWindowViewModel
     {
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         InvalidateCtrlRamFirmwareVersionContext();
-        InvalidateFirmwareIcMismatch();
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.InvalidateFirmwareIcMismatch();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
 
         if (page == ShellPage.Merge)
         {

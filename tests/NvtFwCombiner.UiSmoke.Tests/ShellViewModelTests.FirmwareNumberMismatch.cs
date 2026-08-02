@@ -38,14 +38,14 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal(1, reads);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("1 IC", viewModel.FirmwareNumberMismatchCurrentNumber);
-        Assert.Equal("Cascade", viewModel.FirmwareNumberMismatchDetectedNumber);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("1 IC", viewModel.WorkflowSession.FirmwareNumberMismatchCurrentNumber);
+        Assert.Equal("Cascade", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
 
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
 
         Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.SelectedNumber);
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.NotEmpty(viewModel.CtrlRamRegions);
         Assert.Contains(
             viewModel.ReplaceSlots,
@@ -85,13 +85,13 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("base.bin", viewModel.FirmwareNumberMismatchFileName);
-        Assert.Equal((byte)3, viewModel.FirmwareNumberMismatchDetectedChipCount);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("base.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
+        Assert.Equal((byte)3, viewModel.WorkflowSession.FirmwareNumberMismatchDetectedChipCount);
 
-        viewModel.DismissFirmwareNumberMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
 
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
         Assert.Equal(basePath, viewModel.ReplaceBaseSlot.FilePath);
     }
@@ -129,7 +129,7 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
 
@@ -163,7 +163,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.IsNormalMergeModeSelected);
         Assert.False(viewModel.IsNumberSelectorVisible);
-        Assert.False(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.SelectedNumber);
     }
 
@@ -228,11 +228,11 @@ public sealed partial class ShellViewModelTests
 
         await firstSelection;
 
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("second.bin", viewModel.FirmwareNumberMismatchFileName);
-        Assert.Equal("3 IC", viewModel.FirmwareNumberMismatchDetectedNumber);
-        Assert.Equal((byte)3, viewModel.FirmwareNumberMismatchDetectedChipCount);
-        viewModel.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("second.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
+        Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
+        Assert.Equal((byte)3, viewModel.WorkflowSession.FirmwareNumberMismatchDetectedChipCount);
+        viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
         Assert.Equal("3", viewModel.SelectedNumber);
     }
 
@@ -258,16 +258,16 @@ public sealed partial class ShellViewModelTests
         viewModel.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
         await viewModel.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
 
         var promptPublications = new List<string?>();
         viewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName is nameof(MainWindowViewModel.IsFirmwareNumberMismatchModalOpen) or
-                nameof(MainWindowViewModel.FirmwareNumberMismatchFileName) or
-                nameof(MainWindowViewModel.FirmwareNumberMismatchCurrentNumber) or
-                nameof(MainWindowViewModel.FirmwareNumberMismatchDetectedNumber) or
-                nameof(MainWindowViewModel.FirmwareNumberMismatchDetectedChipCount))
+            if (args.PropertyName is nameof(WorkflowSessionPresentationViewModel.IsFirmwareNumberMismatchModalOpen) or
+                nameof(WorkflowSessionPresentationViewModel.FirmwareNumberMismatchFileName) or
+                nameof(WorkflowSessionPresentationViewModel.FirmwareNumberMismatchCurrentNumber) or
+                nameof(WorkflowSessionPresentationViewModel.FirmwareNumberMismatchDetectedNumber) or
+                nameof(WorkflowSessionPresentationViewModel.FirmwareNumberMismatchDetectedChipCount))
             {
                 promptPublications.Add(args.PropertyName);
             }
@@ -276,10 +276,10 @@ public sealed partial class ShellViewModelTests
         await viewModel.RefreshAllSelectedFirmwareInspectionsAsync("replace-base");
 
         Assert.Empty(promptPublications);
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("base.bin", viewModel.FirmwareNumberMismatchFileName);
-        Assert.Equal("2 IC", viewModel.FirmwareNumberMismatchDetectedNumber);
-        Assert.Equal((byte)2, viewModel.FirmwareNumberMismatchDetectedChipCount);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("base.bin", viewModel.WorkflowSession.FirmwareNumberMismatchFileName);
+        Assert.Equal("2 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
+        Assert.Equal((byte)2, viewModel.WorkflowSession.FirmwareNumberMismatchDetectedChipCount);
     }
 
     /// <summary>Cancel preserves the UI choice but Build still reaches the backend mismatch gate and publishes no output.</summary>
@@ -299,14 +299,14 @@ public sealed partial class ShellViewModelTests
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         await viewModel.FirmwareInspectionRefreshTask;
-        Assert.True(viewModel.IsFirmwareNumberMismatchModalOpen);
-        Assert.Equal("3 IC", viewModel.FirmwareNumberMismatchDetectedNumber);
+        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
+        Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.ReplaceBaseSlot.FilePath);
         byte[] immutableBase = File.ReadAllBytes(basePath);
         FirmwareSlotViewModel nf = viewModel.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
         viewModel.SetSlotFile(nf.SlotId, fixtures.ReplacementPathFor(fixtureCase, nf.SlotId));
 
-        viewModel.DismissFirmwareNumberMismatchCommand.Execute(null);
+        viewModel.WorkflowSession.DismissFirmwareNumberMismatchCommand.Execute(null);
         string outputPath = workspace.PathFor("must-not-exist.bin");
         await viewModel.BuildReplaceAsync(outputPath);
 
