@@ -57,7 +57,8 @@ internal sealed class FirmwareInspectionSession
                 item.AbMergeAddressSpaceId,
                 item.AbMergeTopologyToken,
                 item.DpReplaceAddressSpaceId,
-                request.AuthoringRevision.Value)),
+                request.AuthoringRevision.Value,
+                item.StandardMergeAddressSpaceId)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
@@ -258,6 +259,10 @@ internal static class FirmwareInspectionRequestFactory
                 : slot.AddressSpaceId ?? throw new InvalidOperationException(
                     $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
             : null;
+        string? standardMergeAddressSpaceId = context.IsStandardMerge &&
+            context.StandardMergeSlotIds.Contains(slot.SlotId, StringComparer.Ordinal)
+            ? slot.AddressSpaceId
+            : null;
         // Firmware metadata can request confirmation only when the current page exposes an
         // operator-selectable Number. A hidden control cannot be changed by a modal.
         bool applyWorkflowContext = applyVerifiedContext && context.IsNumberSelectorVisible;
@@ -272,7 +277,8 @@ internal static class FirmwareInspectionRequestFactory
             applyWorkflowContext,
             abMergeAddressSpaceId,
             context.AbMergeTopologyToken,
-            dpReplaceAddressSpaceId);
+            dpReplaceAddressSpaceId,
+            standardMergeAddressSpaceId);
     }
 }
 
@@ -331,18 +337,29 @@ internal static class FirmwareInspectionProjection
         AuthoringInputSlotStatus status,
         ShellTextResources text)
     {
-        if (status.InspectionLifecycle is null &&
-            status.Readiness == ResolvedChildReadiness.Blocked)
-        {
-            slot.SetInputInspection(
-                WorkbenchInputInspectionSeverity.Blocking,
-                text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness));
-            return;
-        }
+        string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.Readiness);
+        string readinessDetail = text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness);
+        slot.SetSelectionReadiness(
+            status.Readiness,
+            readinessLabel,
+            readinessDetail,
+            text.GetInputSelectionReadinessAutomationText(readinessLabel, readinessDetail),
+            status.CanSelect);
 
         if (!status.IsTerminal)
         {
-            throw new ArgumentException("Only terminal slot health can be displayed.", nameof(status));
+            if (status.Readiness == ResolvedChildReadiness.Blocked)
+            {
+                slot.SetInputInspection(
+                    WorkbenchInputInspectionSeverity.Blocking,
+                    readinessDetail);
+            }
+            else
+            {
+                slot.ClearInputInspection();
+            }
+
+            return;
         }
 
         WorkbenchInputInspectionSeverity severity = status.InspectionLifecycle == AuthoringSlotLifecycle.Verified
@@ -361,7 +378,9 @@ internal static class FirmwareInspectionProjection
     {
         bool applied = false;
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null || item.DpReplaceAddressSpaceId is not null))
+                     item.AbMergeAddressSpaceId is not null ||
+                     item.DpReplaceAddressSpaceId is not null ||
+                     item.StandardMergeAddressSpaceId is not null))
         {
             FirmwareSlotViewModel? slot = slots.FirstOrDefault(candidate =>
                 string.Equals(candidate.SlotId, item.SlotId, StringComparison.Ordinal));
@@ -474,7 +493,9 @@ internal readonly record struct FirmwareInspectionRequestContext(
     string? AbMergeTopologyToken,
     string MergeDpSlotId,
     string MergeTpSlotId,
-    string ReplaceBaseSlotId);
+    string ReplaceBaseSlotId,
+    bool IsStandardMerge,
+    IReadOnlyList<string> StandardMergeSlotIds);
 
 internal readonly record struct FirmwareInspectionBatchRequest(
     long Generation,
@@ -496,7 +517,9 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool ApplyVerifiedContext,
     string? AbMergeAddressSpaceId,
     string? AbMergeTopologyToken,
-    string? DpReplaceAddressSpaceId);
+    string? DpReplaceAddressSpaceId,
+    string? StandardMergeAddressSpaceId,
+    AuthoringSlotInspectionLease? StandardMergeInspectionLease = null);
 
 internal readonly record struct FirmwareInspectionBatchResult(
     IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,

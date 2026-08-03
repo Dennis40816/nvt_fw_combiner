@@ -8,8 +8,133 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Proves deployed Standard Merge and DP Replace profiles consume the shared headless contract.</summary>
 [Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
-public sealed class HeadlessInputSlotInspectionContractTests
+public sealed partial class HeadlessInputSlotInspectionContractTests
 {
+    /// <summary>NT51928 optional LDC selection resolves the exact 512-KiB route and slot set.</summary>
+    [Fact]
+    public void StandardMergeAuthoringSnapshotTracksSelectedMapVariant()
+    {
+        ReloadCatalog();
+        WorkbenchStandardMergeAuthoringSnapshot withoutLdc =
+            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+                "NT51928",
+                [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.DpInput] =
+                        new FileStamp(0x80000, new string('a', 64)),
+                },
+                new AuthoringRevision(1));
+        WorkbenchStandardMergeAuthoringSnapshot withLdc =
+            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+                "NT51928",
+                [
+                    CompositionAddressSpaceIds.DpInput,
+                    CompositionAddressSpaceIds.TpInput,
+                    CompositionAddressSpaceIds.LdcInput,
+                ],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.DpInput] =
+                        new FileStamp(0x80000, new string('a', 64)),
+                },
+                new AuthoringRevision(1));
+
+        AuthoringCapabilityRoute withoutRoute = Assert.Single(withoutLdc.Catalog.Routes);
+        AuthoringCapabilityRoute withRoute = Assert.Single(withLdc.Catalog.Routes);
+        Assert.Equal(withoutRoute.Identity.RouteId, withRoute.Identity.RouteId);
+        Assert.Equal(withoutRoute.CapabilityFingerprint, withRoute.CapabilityFingerprint);
+        Assert.NotEqual(withoutRoute.CompilationFingerprint, withRoute.CompilationFingerprint);
+        Assert.DoesNotContain(withoutRoute.SlotDefinitions, static slot =>
+            slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);
+        Assert.Contains(withRoute.SlotDefinitions, static slot =>
+            slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);
+    }
+
+    /// <summary>NT51928 LDC selection keeps its exact 512-KiB map instead of falling back to no-LDC.</summary>
+    [Fact]
+    public void StandardMergeAuthoringSnapshotProjectsSelectionDrivenMapWithoutFallback()
+    {
+        ReloadCatalog();
+        WorkbenchStandardMergeAuthoringSnapshot snapshot =
+            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+                "NT51928",
+                [
+                    CompositionAddressSpaceIds.DpInput,
+                    CompositionAddressSpaceIds.TpInput,
+                    CompositionAddressSpaceIds.LdcInput,
+                ],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.DpInput] =
+                        new FileStamp(0x40000, new string('a', 64)),
+                },
+                new AuthoringRevision(2));
+
+        AuthoringCapabilityRoute route = Assert.Single(snapshot.Catalog.Routes);
+        InputSelectionMemberReadiness ldc = snapshot.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.LdcInput);
+        Assert.NotNull(route.CompilationFingerprint);
+        Assert.Contains(route.SlotDefinitions, static slot =>
+            slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);
+        Assert.Equal(ResolvedChildReadiness.Ready, ldc.Readiness);
+        Assert.True(ldc.CanSelect);
+        Assert.Null(ldc.NextAction);
+        Assert.Empty(snapshot.Issues);
+    }
+
+    /// <summary>NT51928 short DP retains its reviewed pad-short warning under the selected exact LDC map.</summary>
+    [Fact]
+    public void StandardMergeBatchRetainsPadShortWarningUnderSelectedExactMap()
+    {
+        ReloadCatalog();
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51928",
+                [
+                    new WorkbenchFirmwareInspectionInput(
+                        "dp",
+                        "dp.bin",
+                        AuthoringRevision: 3,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
+                    new WorkbenchFirmwareInspectionInput(
+                        "tp",
+                        "tp.bin",
+                        AuthoringRevision: 3,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
+                    new WorkbenchFirmwareInspectionInput(
+                        "ldc",
+                        "ldc.bin",
+                        AuthoringRevision: 3,
+                        StandardMergeAddressSpaceId: CompositionAddressSpaceIds.LdcInput),
+                ],
+                path => path switch
+                {
+                    "dp.bin" => new byte[0x40000],
+                    "tp.bin" => new byte[0x35000],
+                    _ => new byte[0x80000],
+                });
+
+        Assert.Equal(3, results.Count);
+        AuthoringInputSlotStatus[] statuses =
+        [
+            .. results.Select(result => Assert.IsType<AuthoringInputSlotStatus>(
+                result.Inspection.InputSlotStatus)),
+        ];
+        Assert.All(statuses, static status =>
+        {
+            Assert.Equal(ResolvedChildReadiness.Ready, status.Readiness);
+            Assert.NotNull(status.CompilationFingerprint);
+            Assert.True(status.IsTerminal);
+        });
+        AuthoringInputSlotStatus dp = results
+            .Single(static result => result.InspectionId == "dp")
+            .Inspection.InputSlotStatus!;
+        Assert.Equal(AuthoringSlotLifecycle.Warning, dp.InspectionLifecycle);
+        Assert.NotNull(dp.InspectionIssueCode);
+        Assert.False(dp.BlocksBuild);
+    }
+
     /// <summary>NT51928 dependent slots remain pending without inventing a discovery compilation.</summary>
     [Fact]
     public void DpReplaceMissingReferencePublishesPreCompilationReadiness()
@@ -126,6 +251,51 @@ public sealed class HeadlessInputSlotInspectionContractTests
         Assert.True(status.IsTerminal);
         Assert.NotEqual(AuthoringSlotLifecycle.Error, status.InspectionLifecycle);
         Assert.Equal(ExperienceIds.StandardMerge, status.WorkflowId);
+    }
+
+    /// <summary>The desktop headless batch returns one exact Standard Merge compilation identity.</summary>
+    [Fact]
+    public void StandardMergeBatchPublishesOneTerminalCompilation()
+    {
+        ReloadCatalog();
+        byte[] source = [.. Enumerable.Range(0, 0x40000).Select(static index => (byte)index)];
+        var reads = new Dictionary<string, int>(StringComparer.Ordinal);
+        WorkbenchFirmwareInspectionInput[] inputs =
+        [
+            new(
+                "dp",
+                "dp.bin",
+                AuthoringRevision: 7,
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
+            new(
+                "tp",
+                "tp.bin",
+                AuthoringRevision: 7,
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
+        ];
+
+        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                "NT51926",
+                inputs,
+                path =>
+                {
+                    reads[path] = reads.GetValueOrDefault(path) + 1;
+                    return source;
+                });
+
+        AuthoringInputSlotStatus[] statuses =
+        [
+            .. results.Select(result => Assert.IsType<AuthoringInputSlotStatus>(
+                result.Inspection.InputSlotStatus)),
+        ];
+        Assert.All(reads.Values, static count => Assert.Equal(1, count));
+        Assert.All(statuses, static status =>
+        {
+            Assert.True(status.IsTerminal);
+            Assert.Equal(new AuthoringRevision(7), status.AuthoringRevision);
+        });
+        _ = Assert.Single(statuses.Select(static status => status.CompilationFingerprint).Distinct());
     }
 
     /// <summary>A deployed DP Replace source reaches terminal health under its exact compilation.</summary>
@@ -361,6 +531,54 @@ public sealed class HeadlessInputSlotInspectionContractTests
             Assert.Null(status.CompilationFingerprint);
             Assert.Null(status.InspectionLifecycle);
         });
+    }
+
+    private static WorkbenchFirmwareInspection InspectStandardMergeInput(
+        string icId,
+        string path,
+        AuthoringRevision revision,
+        int length)
+    {
+        return Assert.Single(WorkbenchCompositionService.InspectFirmwareBatch(
+            icId,
+            [new WorkbenchFirmwareInspectionInput(
+                "dp",
+                path,
+                AuthoringRevision: revision.Value,
+                StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput)],
+            _ => new byte[length])).Inspection;
+    }
+
+    private static AuthoringInputSlotStatus StatusForRoute(
+        AuthoringCapabilityCatalogSnapshot catalog,
+        AuthoringCapabilityRoute route,
+        AuthoringRevision revision,
+        string selectedPath)
+    {
+        return new AuthoringInputSlotStatus(
+            route.Identity,
+            catalog.ResolutionToken,
+            revision,
+            route.CapabilityFingerprint,
+            route.CompilationFingerprint,
+            Ready(CompositionAddressSpaceIds.DpInput),
+            CompositionAddressSpaceIds.DpInput,
+            AuthoringSlotLifecycle.Verified,
+            FileStamp.FromBytes([1]),
+            inspection: null,
+            selectedPath);
+    }
+
+    private static void AssertStaleWithoutPublication(
+        AuthoringSessionState session,
+        ActiveSessionSnapshot beforeCompletion,
+        AuthoringSessionTransitionResult result)
+    {
+        Assert.False(result.Succeeded);
+        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, result.Issue!.Code);
+        Assert.Same(beforeCompletion, session.CurrentSnapshot);
+        Assert.Empty(session.CurrentSnapshot!.InputSlotStatuses);
+        Assert.Empty(session.CurrentSnapshot.DerivedPublications);
     }
 
     private static void ReloadCatalog()

@@ -24,6 +24,18 @@ public sealed partial class MergePresentationViewModel
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
+        foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
+        {
+            if (slot.UsesSharedSlotPresentation)
+            {
+                slot.ApplyExperienceText(Text);
+            }
+        }
+
+        if (IsNormalMergeModeSelected)
+        {
+            RefreshStandardMergeAuthoringState();
+        }
         foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
                      SelectedIc,
                      GetSelectedAbMergeTopologyToken()))

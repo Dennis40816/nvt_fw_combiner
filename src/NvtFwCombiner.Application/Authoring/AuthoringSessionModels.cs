@@ -125,11 +125,20 @@ public sealed record AuthoringCapabilityRoute
         CapabilityRouteIdentity identity,
         string capabilityFingerprint,
         bool executionAdmitted,
-        IEnumerable<AuthoringSlotDefinitionReference> slotDefinitions)
+        IEnumerable<AuthoringSlotDefinitionReference> slotDefinitions,
+        string? compilationFingerprint = null,
+        ReviewedDiscoveryTransition? discoveryTransition = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
         ArgumentNullException.ThrowIfNull(slotDefinitions);
+        if (compilationFingerprint is not null &&
+            !CapabilityRouteIdentity.IsSha256(compilationFingerprint))
+        {
+            throw new ArgumentException(
+                "Compilation fingerprint must be a lowercase SHA-256 value.",
+                nameof(compilationFingerprint));
+        }
         _slotDefinitions = [.. slotDefinitions];
         if (_slotDefinitions.Length == 0 ||
             _slotDefinitions.Any(static definition => definition is null) ||
@@ -147,6 +156,8 @@ public sealed record AuthoringCapabilityRoute
                 StringComparer.Ordinal.Compare(left.DefinitionId, right.DefinitionId));
         Identity = identity;
         CapabilityFingerprint = capabilityFingerprint;
+        CompilationFingerprint = compilationFingerprint;
+        DiscoveryTransition = discoveryTransition;
         ExecutionAdmitted = executionAdmitted;
         SlotDefinitions = Array.AsReadOnly(_slotDefinitions);
     }
@@ -156,6 +167,12 @@ public sealed record AuthoringCapabilityRoute
 
     /// <summary>Reviewed capability-definition fingerprint of the resolved route.</summary>
     public string CapabilityFingerprint { get; }
+
+    /// <summary>Exact compiled-composition identity for this authoring projection.</summary>
+    public string? CompilationFingerprint { get; }
+
+    /// <summary>Reviewed discovery-to-exact transition proof, when compilation needs a prerequisite.</summary>
+    public ReviewedDiscoveryTransition? DiscoveryTransition { get; }
 
     /// <summary>Whether the compiler admitted execution for this exact route.</summary>
     public bool ExecutionAdmitted { get; }
@@ -244,13 +261,59 @@ public sealed class AuthoringCapabilityCatalogSnapshot
                         capability.CapabilityFingerprint,
                         capability.ExecutionAdmitted,
                         inputContract.Slots.Select(static slot =>
-                            new AuthoringSlotDefinitionReference(slot.SlotId)));
+                            new AuthoringSlotDefinitionReference(slot.SlotId)),
+                        capability.CompiledComposition.CompilationFingerprint);
                 }),
         ];
         return new AuthoringCapabilityCatalogSnapshot(
             workflowId,
             snapshot.ResolutionToken,
             routes);
+    }
+
+    /// <summary>Projects one exact per-authoring compilation into a single-route session catalog.</summary>
+    public static AuthoringCapabilityCatalogSnapshot FromResolvedCapability(
+        ResolvedCapability capability,
+        ReviewedDiscoveryTransition? discoveryTransition = null)
+    {
+        ArgumentNullException.ThrowIfNull(capability);
+        CompiledInputContract inputContract =
+            capability.CompiledComposition.V2Details.InputContract;
+        return new AuthoringCapabilityCatalogSnapshot(
+            capability.Identity.WorkflowId,
+            capability.ResolutionToken,
+            [new AuthoringCapabilityRoute(
+                capability.Identity,
+                capability.CapabilityFingerprint,
+                capability.ExecutionAdmitted,
+                inputContract.Slots.Select(static slot =>
+                    new AuthoringSlotDefinitionReference(slot.SlotId)),
+                capability.CompiledComposition.CompilationFingerprint,
+                discoveryTransition)]);
+    }
+
+    /// <summary>
+    /// Projects reviewed pre-compilation membership without claiming one exact
+    /// compiled composition.
+    /// </summary>
+    public static AuthoringCapabilityCatalogSnapshot FromDiscovery(
+        ResolvedCapability discoveryCapability,
+        IEnumerable<string> slotDefinitionIds,
+        ReviewedDiscoveryTransition? discoveryTransition = null)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryCapability);
+        ArgumentNullException.ThrowIfNull(slotDefinitionIds);
+        return new AuthoringCapabilityCatalogSnapshot(
+            discoveryCapability.Identity.WorkflowId,
+            discoveryCapability.ResolutionToken,
+            [new AuthoringCapabilityRoute(
+                discoveryCapability.Identity,
+                discoveryCapability.CapabilityFingerprint,
+                discoveryCapability.ExecutionAdmitted,
+                slotDefinitionIds.Select(static slotId =>
+                    new AuthoringSlotDefinitionReference(slotId)),
+                compilationFingerprint: null,
+                discoveryTransition)]);
     }
 
     internal IReadOnlyList<string> GetIcCountChoices(string icId)
@@ -444,97 +507,6 @@ public abstract record AuthoringDraftState
     /// The internal abstract member closes concrete contracts to Application.
     /// </summary>
     internal abstract AuthoringDraftState CreateImmutableSnapshot();
-}
-
-/// <summary>Coherent immutable state consumed by UI or CLI adapters.</summary>
-public sealed class ActiveSessionSnapshot
-{
-    private readonly string[] _icChoices;
-    private readonly string[] _icCountChoices;
-    private readonly AuthoringSlotState[] _slots;
-    private readonly AuthoringDerivedPublication[] _derivedPublications;
-
-    internal ActiveSessionSnapshot(
-        string workflowId,
-        ResolutionToken resolutionToken,
-        AuthoringRevision authoringRevision,
-        string selectedRouteId,
-        string capabilityFingerprint,
-        bool executionAdmitted,
-        string selectedIc,
-        string selectedIcCount,
-        string selectedMapVariant,
-        IEnumerable<string> icChoices,
-        IEnumerable<string> icCountChoices,
-        IEnumerable<AuthoringSlotState> slots,
-        AuthoringDraftState? draftState,
-        string? draftCapabilityFingerprint,
-        IEnumerable<AuthoringDerivedPublication> derivedPublications)
-    {
-        WorkflowId = workflowId;
-        ResolutionToken = resolutionToken;
-        AuthoringRevision = authoringRevision;
-        SelectedRouteId = selectedRouteId;
-        CapabilityFingerprint = capabilityFingerprint;
-        ExecutionAdmitted = executionAdmitted;
-        SelectedIc = selectedIc;
-        SelectedIcCount = selectedIcCount;
-        SelectedMapVariant = selectedMapVariant;
-        _icChoices = [.. icChoices];
-        _icCountChoices = [.. icCountChoices];
-        _slots = [.. slots];
-        _derivedPublications = [.. derivedPublications];
-        DraftState = draftState;
-        DraftCapabilityFingerprint = draftCapabilityFingerprint;
-        IcChoices = Array.AsReadOnly(_icChoices);
-        IcCountChoices = Array.AsReadOnly(_icCountChoices);
-        Slots = Array.AsReadOnly(_slots);
-        DerivedPublications = Array.AsReadOnly(_derivedPublications);
-    }
-
-    /// <summary>Mode/workflow identity for this isolated session.</summary>
-    public string WorkflowId { get; }
-
-    /// <summary>Canonical catalog publication identity.</summary>
-    public ResolutionToken ResolutionToken { get; }
-
-    /// <summary>Current authoring-input revision.</summary>
-    public AuthoringRevision AuthoringRevision { get; }
-
-    /// <summary>Selected exact canonical route identity.</summary>
-    public string SelectedRouteId { get; }
-
-    /// <summary>Selected firmware-semantic identity.</summary>
-    public string CapabilityFingerprint { get; }
-
-    /// <summary>Whether Build may proceed after remaining readiness checks.</summary>
-    public bool ExecutionAdmitted { get; }
-
-    /// <summary>Selected canonical IC.</summary>
-    public string SelectedIc { get; }
-
-    /// <summary>Selected IC Count variant.</summary>
-    public string SelectedIcCount { get; }
-
-    /// <summary>Resolved map variant retained for traceability, not user inference.</summary>
-    public string SelectedMapVariant { get; }
-
-    /// <summary>Current workflow IC choices.</summary>
-    public IReadOnlyList<string> IcChoices { get; }
-
-    /// <summary>IC Count choices for the selected IC.</summary>
-    public IReadOnlyList<string> IcCountChoices { get; }
-
-    /// <summary>Resolved slot states.</summary>
-    public IReadOnlyList<AuthoringSlotState> Slots { get; }
-
-    /// <summary>Current immutable typed draft, or null when this mode has none.</summary>
-    public AuthoringDraftState? DraftState { get; }
-
-    internal string? DraftCapabilityFingerprint { get; }
-
-    /// <summary>Derived result references admitted for this exact snapshot.</summary>
-    public IReadOnlyList<AuthoringDerivedPublication> DerivedPublications { get; }
 }
 
 /// <summary>Stable authoring-session issue.</summary>

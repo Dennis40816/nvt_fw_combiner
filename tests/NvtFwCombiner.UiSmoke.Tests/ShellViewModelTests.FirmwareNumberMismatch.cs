@@ -219,7 +219,7 @@ public sealed partial class ShellViewModelTests
         try
         {
             Assert.True(firstInspectionStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken));
-            await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", secondPath, TestContext.Current.CancellationToken);
+            await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", secondPath, TestContext.Current.CancellationToken);
         }
         finally
         {

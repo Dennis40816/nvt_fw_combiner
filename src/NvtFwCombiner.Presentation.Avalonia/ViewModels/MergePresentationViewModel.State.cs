@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -16,23 +17,44 @@ public sealed partial class MergePresentationViewModel
         Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
+    private readonly MergeAuthoringSessionSet _authoringSessions = new();
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
         WorkbenchSlotIds.MergeDp,
         "DP BIN",
         "Display payload for Standard Merge",
-        FirmwareSlotKind.Dp);
+        FirmwareSlotKind.Dp,
+        addressSpaceId: WorkbenchAddressSpaceIds.DpInput);
     internal FirmwareSlotViewModel MergeTpSlot { get; } = new(
         WorkbenchSlotIds.MergeTp,
         "TP BIN",
         "Touch payload for Standard Merge",
-        FirmwareSlotKind.Tp);
+        FirmwareSlotKind.Tp,
+        addressSpaceId: WorkbenchAddressSpaceIds.TpInput);
     internal FirmwareSlotViewModel MergeLdcSlot { get; } = new(
         WorkbenchSlotIds.MergeLdc,
         "LDC BIN",
         "Optional LDC payload when the selected profile exposes an LDC region",
         FirmwareSlotKind.Dp,
-        isOptional: true);
+        isOptional: true,
+        addressSpaceId: WorkbenchAddressSpaceIds.LdcInput);
+    internal IEnumerable<FirmwareSlotViewModel> StandardMergeSlots
+    {
+        get
+        {
+            yield return MergeDpSlot;
+            yield return MergeTpSlot;
+            yield return MergeLdcSlot;
+        }
+    }
+
+    internal bool IsStandardMergeSlot(FirmwareSlotViewModel slot)
+    {
+        return ReferenceEquals(slot, MergeDpSlot) ||
+            ReferenceEquals(slot, MergeTpSlot) ||
+            ReferenceEquals(slot, MergeLdcSlot);
+    }
+
     private int _generalMergeMappingCounter;
     private string _selectedMergeMode = NormalMergeMode;
 

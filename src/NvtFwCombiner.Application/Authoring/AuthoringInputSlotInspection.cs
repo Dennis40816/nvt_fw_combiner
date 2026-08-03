@@ -238,15 +238,21 @@ public static class AuthoringInputSlotInspectionService
         ResolvedCapability capability,
         AuthoringRevision authoringRevision,
         IReadOnlyDictionary<string, ReadOnlyMemory<byte>?> sourceBytesByAddressSpaceId,
-        IReadOnlyDictionary<string, string>? selectedPathsByAddressSpaceId = null)
+        IReadOnlyDictionary<string, string>? selectedPathsByAddressSpaceId = null,
+        IReadOnlyCollection<string>? selectedSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(sourceBytesByAddressSpaceId);
         CompiledInputContract contract = capability.CompiledComposition.V2Details.InputContract;
+        var groupMemberIds = contract.SelectionGroups
+            .SelectMany(static group => group.MemberSlotIds)
+            .ToHashSet(StringComparer.Ordinal);
         InputSelectionReadinessSnapshot readiness = InputSelectionReadinessResolver.Resolve(
             authoringRevision,
             contract.SelectionGroups,
-            contract.SelectionGroups.SelectMany(static group => group.SelectedSlotIds));
+            selectedSlotIds is null
+                ? contract.SelectionGroups.SelectMany(static group => group.SelectedSlotIds)
+                : selectedSlotIds.Where(groupMemberIds.Contains));
         IReadOnlyDictionary<string, InputSelectionMemberReadiness> members = readiness.Groups
             .SelectMany(static group => group.Members).ToDictionary(static member => member.SlotId);
         Dictionary<string, AuthoringInputSlotStatus> statuses = new(StringComparer.Ordinal);
@@ -257,9 +263,13 @@ public static class AuthoringInputSlotInspectionService
             InputSelectionMemberReadiness member = members.GetValueOrDefault(binding.SlotId) ??
                 new InputSelectionMemberReadiness(
                     binding.SlotId, true, ResolvedChildReadiness.Ready, true, null, null);
-            statuses.Add(addressSpaceId, Inspect(
-                capability, authoringRevision, member, addressSpaceId, sourceBytes,
-                selectedPathsByAddressSpaceId?.GetValueOrDefault(addressSpaceId)));
+            statuses.Add(
+                addressSpaceId,
+                member.IsSelected && member.Readiness == ResolvedChildReadiness.Ready
+                    ? Inspect(
+                        capability, authoringRevision, member, addressSpaceId, sourceBytes,
+                        selectedPathsByAddressSpaceId?.GetValueOrDefault(addressSpaceId))
+                    : ProjectReadiness(capability, authoringRevision, member, addressSpaceId));
         }
 
         return statuses;
@@ -281,6 +291,47 @@ public static class AuthoringInputSlotInspectionService
         return Create(discoveryCapability.Identity, discoveryCapability.ResolutionToken, authoringRevision,
             discoveryCapability.CapabilityFingerprint, compilationFingerprint: null, readiness, discoveryBinding.AddressSpaceId,
             inspectionLifecycle: null, fileStamp: null, inspection: null);
+    }
+
+    /// <summary>Projects an explicitly identified selected input rejected before exact compilation.</summary>
+    public static AuthoringInputSlotStatus BlockBeforeCompilation(
+        ResolvedCapability discoveryCapability,
+        AuthoringRevision authoringRevision,
+        string slotId,
+        string addressSpaceId,
+        string issueCode,
+        string reason,
+        FileStamp? fileStamp,
+        string selectedPathHint)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryCapability);
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedPathHint);
+        var readiness = new InputSelectionMemberReadiness(
+            slotId,
+            IsSelected: true,
+            ResolvedChildReadiness.Blocked,
+            CanSelect: false,
+            reason,
+            new InputSelectionNextAction(
+                InputSelectionNextActionKind.CorrectSelection,
+                slotId),
+            issueCode);
+        return Create(
+            discoveryCapability.Identity,
+            discoveryCapability.ResolutionToken,
+            authoringRevision,
+            discoveryCapability.CapabilityFingerprint,
+            compilationFingerprint: null,
+            readiness,
+            addressSpaceId,
+            inspectionLifecycle: null,
+            fileStamp,
+            inspection: null,
+            selectedPathHint);
     }
 
     /// <summary>

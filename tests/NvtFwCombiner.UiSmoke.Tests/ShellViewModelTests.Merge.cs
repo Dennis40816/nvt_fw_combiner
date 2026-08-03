@@ -471,7 +471,7 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        AssertStandardMergeInputsReady(viewModel, goldenCase, ic);
         Assert.True(viewModel.Merge.BuildMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
 

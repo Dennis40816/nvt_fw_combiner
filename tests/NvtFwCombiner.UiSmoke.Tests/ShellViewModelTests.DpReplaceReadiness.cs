@@ -244,9 +244,9 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
-    /// <summary>Keeps shared slot adoption scoped to the DP Replace pilot until issue #208.</summary>
+    /// <summary>Standard Merge is the first #208 route while CtrlRAM retains the legacy card.</summary>
     [Fact]
-    public void SharedSlotPresentationDoesNotPrematurelyAdoptOtherDesktopRoutes()
+    public void StandardMergeAdoptsSharedSlotPresentationBeforeCtrlRamReplace()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
@@ -257,7 +257,7 @@ public sealed partial class ShellViewModelTests
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>

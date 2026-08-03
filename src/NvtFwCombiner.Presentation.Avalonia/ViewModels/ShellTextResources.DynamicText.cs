@@ -436,12 +436,24 @@ public sealed partial class ShellTextResources
         };
     }
 
+    public string GetStandardMergeInputSelectionReadinessDetail(
+        InputSelectionMemberReadiness member)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+        return member.Readiness == ResolvedChildReadiness.Ready
+            ? SelectLanguage(
+                "Available for the resolved Standard Merge map.",
+                "可用於已解析的 Standard Merge map。")
+            : GetDpInputSelectionReadinessDetail(member);
+    }
+
     private static string GetInputArtifactRoleLabel(string artifactId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         return artifactId switch
         {
             WorkbenchAddressSpaceIds.ReferenceBase => "Reference",
+            WorkbenchAddressSpaceIds.DpInput => "DP",
             WorkbenchAddressSpaceIds.TpInput => "TP",
             _ => artifactId,
         };
