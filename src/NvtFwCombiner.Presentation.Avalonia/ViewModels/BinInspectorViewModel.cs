@@ -12,6 +12,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     private readonly RelayCommand<FirmwareBinInspectionStructure> _selectStructureCommand;
     private readonly RelayCommand<FormattedMetadataField> _selectFieldCommand;
     private readonly RelayCommand<HexViewportInteractionIntent> _viewportInteractionCommand;
+    private bool _isStructureTransition;
     private long? _selectedAddress;
 
     /// <summary>Creates a closed inspector without IC, filename, or profile inference inputs.</summary>
@@ -95,7 +96,10 @@ public sealed partial class BinInspectorViewModel : ObservableObject
 
             field = next;
             OnPropertyChanged();
-            PublishViewport();
+            if (!_isStructureTransition)
+            {
+                PublishViewport();
+            }
         }
     }
 
@@ -247,10 +251,18 @@ public sealed partial class BinInspectorViewModel : ObservableObject
 
     partial void OnSelectedStructureChanged(FirmwareBinInspectionStructure value)
     {
-        RangeScrollRow = 0;
-        _selectedAddress = value.Metadata.AddressedRange!.Range.Start;
-        RangeScrollMaximum = CalculateRangeScrollMaximum(value);
-        OnPropertyChanged(nameof(RangeScrollRow));
+        _isStructureTransition = true;
+        try
+        {
+            _selectedAddress = value.Metadata.AddressedRange!.Range.Start;
+            RangeScrollMaximum = CalculateRangeScrollMaximum(value);
+            RangeScrollRow = 0;
+        }
+        finally
+        {
+            _isStructureTransition = false;
+        }
+
         OnPropertyChanged(nameof(RangeScrollMaximum));
         PublishViewport();
         SelectedField = value.Metadata.Fields.Count > 0

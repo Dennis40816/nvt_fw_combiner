@@ -99,6 +99,26 @@ public sealed class BinInspectorViewportAdapterTests
         Assert.Equal(0x80, inspector.ViewportSnapshot.SelectedAddress);
     }
 
+    /// <summary>Switching away from a scrolled structure publishes only state owned by the new structure.</summary>
+    [Fact]
+    public void ScrolledStructureSwitchDoesNotPublishThePriorSelection()
+    {
+        FirmwareBinInspectionSnapshot snapshot = CreateSnapshot(
+            CreatePattern(0x400),
+            Structure("long", 0x20, 0x200, Field("long-value", "Long value", 0, 1)),
+            Structure("next", 0x300, 0x20, Field("next-value", "Next value", 0, 1)));
+        var inspector = new BinInspectorViewModel(snapshot, ShellLanguage.English);
+        inspector.RangeScrollRow = inspector.RangeScrollMaximum;
+        Assert.True(inspector.RangeScrollRow > 0);
+
+        inspector.SelectedStructure = snapshot.Structures[1];
+
+        Assert.Same(snapshot.Structures[1], inspector.SelectedStructure);
+        Assert.Equal(0, inspector.RangeScrollRow);
+        Assert.Equal(0x300, inspector.ViewportSnapshot.SelectedAddress);
+        Assert.Equal(0x300, inspector.SelectedField!.AddressedRange.Range.Start);
+    }
+
     private static FirmwareBinInspectionSnapshot CreateSnapshot(
         byte[] bytes,
         params FirmwareBinInspectionStructureFixture[] structures)
