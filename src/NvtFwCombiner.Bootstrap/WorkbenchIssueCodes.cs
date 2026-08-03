@@ -12,9 +12,6 @@ public static class WorkbenchIssueCodes
     /// <summary>Input artifact could not be read from disk.</summary>
     public const string InputArtifactReadFailed = "input.artifact.read-failed";
 
-    /// <summary>An accepted AB input has no readable informational version metadata.</summary>
-    public const string AbInputVersionUnknown = "ab.input.version-unknown";
-
     /// <summary>General Merge has no explicit mapping rows.</summary>
     public const string GeneralMergeMappingRequired = "ui.general-merge.mapping-required";
 

@@ -207,6 +207,36 @@ public sealed class AuthoringInputSlotInspectionTests
         Assert.Equal("SOURCE_UNIFORM_CONTENT_WARNING", result.Inspection.IssueCode);
     }
 
+    /// <summary>Accepted compiled-role version metadata publishes Application-owned non-blocking Warning.</summary>
+    [Fact]
+    public void AcceptedUnknownVersionPublishesCanonicalWarningAndAction()
+    {
+        ResolvedCapability capability = CreateCapability(
+            ExperienceIds.AbMerge,
+            observeAbVersion: true);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            new byte[] { 0x10, 0x20, 0x30, 0x40 });
+
+        Assert.Equal(AuthoringSlotLifecycle.Warning, result.InspectionLifecycle);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown, result.InspectionIssueCode);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.ReviewUnknownVersion,
+            result.InspectionNextAction);
+        Assert.Equal(
+            InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown,
+            Assert.Single(result.InspectionAdvisories).IssueCode);
+        Assert.False(Assert.Single(result.Observation.Versions).IsKnown);
+        Assert.Equal(
+            CompiledInputArtifactInspectionSeverity.Valid,
+            result.Inspection!.Severity);
+    }
+
     /// <summary>An unreadable selected path is terminal Error without fabricating file identity.</summary>
     [Fact]
     public void UnreadableSelectedSourcePublishesBlockingError()
@@ -517,7 +547,8 @@ public sealed class AuthoringInputSlotInspectionTests
         string workflowId,
         long targetStart = 0,
         string publicationToken = "headless-publication",
-        CompiledValidationRequirement? validationRequirement = null)
+        CompiledValidationRequirement? validationRequirement = null,
+        bool observeAbVersion = false)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -575,12 +606,24 @@ public sealed class AuthoringInputSlotInspectionTests
                 workflowId,
                 workflowId,
                 replace ? CompositionKind.Replace : CompositionKind.Merge),
-            $"synthetic-{workflowId}.bin",
+            observeAbVersion
+                ? CompiledOutputNamingRequirement.AbCodeV1Template
+                : $"synthetic-{workflowId}.bin",
             icNumberPolicy: replace
                 ? CompiledIcNumberPolicy.SingleSelector
                 : CompiledIcNumberPolicy.NotApplicable,
             validationRequirements: validationRequirement is null ? null : [validationRequirement],
-            mapId: mapId);
+            mapId: mapId,
+            inputRolesByAddressSpace: observeAbVersion
+                ? new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [SourceSpace] = "tp-a",
+                }
+                : null,
+            outputRequiredTokenIds: observeAbVersion
+                ? ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
+                : null,
+            allowOutputOverride: false);
         var identity = new CapabilityRouteIdentity(
             "NT-HEADLESS",
             workflowId,

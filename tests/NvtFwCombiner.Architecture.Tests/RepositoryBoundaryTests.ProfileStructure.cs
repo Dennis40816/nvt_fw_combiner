@@ -76,22 +76,25 @@ public sealed partial class RepositoryBoundaryTests
     public void AbExecutionReadsDeclaredCmiRegionsWithoutInformationalMetadataRouting()
     {
         string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
+        string versionDecoder = ReadText(
+            "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
         string inputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
         string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
         string workbenchService = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeWorkbenchCompositionService.cs");
 
-        Assert.Contains("TryGetProfileCmiOffset", outputNaming, StringComparison.Ordinal);
+        Assert.Contains("CompiledInputArtifactObservationService.DecodeDpRegion", outputNaming, StringComparison.Ordinal);
+        Assert.Contains("Provenance.ResolvedMap.ImageMap.Regions", versionDecoder, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("TryReadCmiDpCode", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", inputProjection, StringComparison.Ordinal);
         Assert.DoesNotContain("TryReadCmiDpCode", inputProjection, StringComparison.Ordinal);
-        Assert.DoesNotContain("ProductId", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain(".Pid", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("CommonFw", outputNaming + inputProjection + topologyValidation, StringComparison.Ordinal);
+        string observedMetadataConsumers = outputNaming + inputProjection + topologyValidation + versionDecoder;
+        Assert.DoesNotContain("ProductId", observedMetadataConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Pid", observedMetadataConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("CommonFw", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", workbenchService, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51951", workbenchService, StringComparison.Ordinal);
-        Assert.Contains("not an IC, PID, or", outputNaming, StringComparison.Ordinal);
         Assert.Contains("ChipNumber", topologyValidation, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]

@@ -75,6 +75,8 @@ public sealed partial class MergePresentationViewModel
             _abMergeAddressSpaceBySlotId[input.SlotId] = input.AddressSpaceId;
             MergeSlots.Add(slot);
         }
+
+        RefreshAbMergeAuthoringState();
     }
 
     private void RefreshAbMergeTopologyChoices()
@@ -162,15 +164,31 @@ public sealed partial class MergePresentationViewModel
 
     private bool CanRunAbMerge()
     {
+        ActiveSessionSnapshot? session = _authoringSessions.AbMerge.CurrentSnapshot;
         return IsAbCodeMergeModeSelected &&
             IsAbMergeSupported &&
             (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&
-            MergeSlots.Count > 0 &&
-            MergeSlots.All(static slot =>
-                slot.HasFile &&
-                slot.InputInspectionSeverity is not null &&
-                !slot.BlocksBuild &&
-                !slot.IsInputInspectionPending);
+            session is not null &&
+            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc) &&
+            session.CompilationFingerprint is not null &&
+            session.DerivedPublications.Any(publication =>
+                publication.Kind == AuthoringDerivedResultKind.Inspection &&
+                StringComparer.Ordinal.Equals(
+                    publication.CompilationFingerprint,
+                    session.CompilationFingerprint)) &&
+            session.Slots.Count > 0 &&
+            session.Slots.All(static slot =>
+                slot.SelectedPath is not null &&
+                slot.FileStamp is not null &&
+                slot.Lifecycle is
+                    AuthoringSlotLifecycle.Verified or
+                    AuthoringSlotLifecycle.Warning) &&
+            session.InputSlotStatuses.Count == session.Slots.Count &&
+            session.InputSlotStatuses.All(status =>
+                status.IsTerminal &&
+                StringComparer.Ordinal.Equals(
+                    status.CompilationFingerprint,
+                    session.CompilationFingerprint));
     }
 
     internal bool CanRunMerge()

@@ -34,6 +34,9 @@ public enum CompiledInputArtifactInspectionNextAction
 
     /// <summary>Review an unexpected accepted outer length.</summary>
     ReviewUnexpectedOuterLength,
+
+    /// <summary>Review informational version metadata that could not be decoded.</summary>
+    ReviewUnknownVersion,
 }
 
 /// <summary>

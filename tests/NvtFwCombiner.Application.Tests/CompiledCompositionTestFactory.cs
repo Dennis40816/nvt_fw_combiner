@@ -25,7 +25,9 @@ internal static class CompiledCompositionTestFactory
         CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         string mapId = "application-test-map",
-        bool allowOutputOverride = false)
+        bool allowOutputOverride = false,
+        IReadOnlyDictionary<string, string>? inputRolesByAddressSpace = null,
+        IReadOnlyList<string>? outputRequiredTokenIds = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
@@ -48,13 +50,13 @@ internal static class CompiledCompositionTestFactory
             []);
         var details = new V2CompiledCompositionDetails(
             provenance,
-            CreateInputContract(plan, identity),
+            CreateInputContract(plan, identity, inputRolesByAddressSpace),
             new CompiledRegionAccessContract([], []),
             new CompiledOutputNamingRequirement(
                 defaultOutputFileName,
                 allowOverride: allowOutputOverride,
                 CompiledOutputInvalidCharacterPolicy.Reject,
-                []));
+                outputRequiredTokenIds ?? []));
         var compiledIdentity = new V2CompiledCompositionIdentity(
             identity.ProfileId,
             identity.ProfileVersion,
@@ -69,7 +71,8 @@ internal static class CompiledCompositionTestFactory
 
     private static CompiledInputContract CreateInputContract(
         CompositionPlan plan,
-        TestCompiledCompositionIdentity identity)
+        TestCompiledCompositionIdentity identity,
+        IReadOnlyDictionary<string, string>? inputRolesByAddressSpace)
     {
         var slots = new List<CompiledInputSlotRequirement>();
         var bindings = new List<CompiledInputSpaceBinding>();
@@ -90,7 +93,8 @@ internal static class CompiledCompositionTestFactory
                     isReference);
             slots.Add(new CompiledInputSlotRequirement(
                 slotId,
-                space.AddressSpaceId,
+                inputRolesByAddressSpace?.GetValueOrDefault(space.AddressSpaceId) ??
+                    space.AddressSpaceId,
                 artifactClass,
                 required: true,
                 CompiledInputSlotCardinality.ExactlyOne,

@@ -75,6 +75,8 @@ public static partial class WorkbenchCompositionService
             InspectDpReplaceInputSlots(icId, inputs, ReadOnce);
         WorkbenchStandardMergeInspectionBatch standardMergeInputBatch =
             InspectStandardMergeInputSlots(icId, inputs, ReadOnce);
+        WorkbenchAbMergeInspectionBatch abMergeInputBatch =
+            InspectAbMergeInputSlots(icId, inputs, ReadOnce);
         List<WorkbenchFirmwareInspectionResult> results = [];
         foreach (WorkbenchFirmwareInspectionInput input in inputs)
         {
@@ -88,12 +90,9 @@ public static partial class WorkbenchCompositionService
             {
                 inspection = inspection with
                 {
-                    AbMergeInput = InspectAbMergeInput(
-                        icId,
-                        input.AbMergeAddressSpaceId,
-                        ReadOnce(input.Path),
-                        AbMergeWorkbenchCompositionService.ResolveTopologySelection(
-                            input.AbMergeTopologyToken)),
+                    AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
+                    InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
+                    InputSlotCatalog = abMergeInputBatch.Catalog,
                 };
             }
 

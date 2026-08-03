@@ -125,18 +125,24 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
                 !InspectionSession.TryGetInspection(
                     slot.SlotId,
                     slot.FilePath,
-                    out WorkbenchFirmwareInspection inspection) ||
-                inspection.AbMergeInput is not null)
+                    out WorkbenchFirmwareInspection inspection))
             {
                 continue;
             }
 
-            slot.RelocalizeFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
-                ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
-                : UiCompositionRunner.GetFirmwareSlotFacts(
-                    inspection,
-                    includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
-                    text: Text));
+            if (inspection.AbMergeFacts is not null)
+            {
+                FirmwareInspectionProjection.ApplyAbInputFacts(slot, inspection, Text);
+            }
+            else
+            {
+                slot.RelocalizeFirmwareFacts(slot.SlotKind == FirmwareSlotKind.Dp
+                    ? UiCompositionRunner.GetDpFirmwareSlotFacts(inspection, Text)
+                    : UiCompositionRunner.GetFirmwareSlotFacts(
+                        inspection,
+                        includeBaseFacts: slot.SlotKind == FirmwareSlotKind.Base,
+                        text: Text));
+            }
         }
     }
 
@@ -156,11 +162,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
                 continue;
             }
 
-            if (projected.AbMergeInput is not null)
-            {
-                FirmwareInspectionProjection.ApplyAbInputInspection(slot, projected, Text);
-            }
-            else if (projected.InputSlotStatus is { } status)
+            if (projected.InputSlotStatus is { } status)
             {
                 FirmwareInspectionProjection.ApplyInputSlotInspection(slot, status, Text);
             }
