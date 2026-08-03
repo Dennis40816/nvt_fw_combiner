@@ -34,6 +34,7 @@ internal enum HexViewportNavigation
     AddressJump = 1 << 0,
     DocumentScroll = 1 << 1,
     SemanticRanges = 1 << 2,
+    RangeScroll = 1 << 3,
 }
 
 [Flags]
@@ -97,6 +98,28 @@ internal sealed record HexViewportCapabilityProfile
         HexViewportDecorationCapability.DataChange |
         HexViewportDecorationCapability.StructuralChange |
         HexViewportDecorationCapability.Search,
+        initialRows: 12,
+        maximumRows: 28);
+
+    /// <summary>The exact profile used by the persisted Report Diff host.</summary>
+    public static HexViewportCapabilityProfile ReportDiff { get; } = new(
+        "ReportDiff",
+        HexViewportColumn.Address | HexViewportColumn.Hexadecimal | HexViewportColumn.Ascii,
+        HexViewportInteraction.Inspect | HexViewportInteraction.Select,
+        HexViewportComparison.OptionalOriginalRows,
+        HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+        HexViewportDecorationCapability.DataChange | HexViewportDecorationCapability.SemanticVerdict,
+        initialRows: 12,
+        maximumRows: 28);
+
+    /// <summary>The exact profile used by resolved-metadata BIN inspection hosts.</summary>
+    public static HexViewportCapabilityProfile BinInspector { get; } = new(
+        "BinInspector",
+        HexViewportColumn.Address | HexViewportColumn.Hexadecimal | HexViewportColumn.Ascii,
+        HexViewportInteraction.Inspect | HexViewportInteraction.Select,
+        HexViewportComparison.None,
+        HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+        HexViewportDecorationCapability.None,
         initialRows: 12,
         maximumRows: 28);
 

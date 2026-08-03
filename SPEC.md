@@ -1733,7 +1733,18 @@ must not be restored as a second admission or dependency catalog.
 41. One Presentation-owned read-only Hex Viewport accepts a bounded immutable
     snapshot and emits source-neutral interaction intents. Hex Editor composes
     edit/history/search/save adapters around it; Report Diff and BIN Inspector
-    remain read-only adapters.
+    remain read-only adapters. Report Diff selects only declared changed ranges,
+    renders complete persisted before/output replay bytes plus two aligned
+    context rows on each side, and permits scrolling only inside that selected
+    semantic range. Its compact Changed-ranges accordion shows Why and Result;
+    byte comparison belongs only to the viewport. Historical replay never
+    rereads source paths, and a legacy report without complete replay bytes
+    reports the preview unavailable. Replay context planes and their changed
+    slices remain bound to persisted SHA-256 evidence. BIN Inspector accepts
+    one resolution/revision/hash-bound Application snapshot of resolved
+    metadata instances and immutable bytes, formats facts through the common
+    Application formatter, and never infers IC/map/topology/slot context from
+    bytes.
 42. Hex extraction is not a redesign. It must preserve the current custom-drawn
     16-byte-row appearance, features, accessibility, and equal-or-better
     measured performance.

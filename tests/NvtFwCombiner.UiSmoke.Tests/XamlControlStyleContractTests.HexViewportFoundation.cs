@@ -56,4 +56,64 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", panel, StringComparison.Ordinal);
         Assert.Contains("HexViewport_OnInteractionRequested", codeBehind, StringComparison.Ordinal);
     }
+
+    /// <summary>Each approved host receives one closed profile without inheriting Raw Editor authority.</summary>
+    [Fact]
+    public void ReportAndBinInspectorProfilesRemainReadOnlyAndRangeBounded()
+    {
+        HexViewportCapabilityProfile report = HexViewportCapabilityProfile.ReportDiff;
+        Assert.Equal(HexViewportInteraction.Inspect | HexViewportInteraction.Select, report.Interaction);
+        Assert.Equal(HexViewportComparison.OptionalOriginalRows, report.Comparison);
+        Assert.Equal(
+            HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+            report.Navigation);
+        Assert.Equal(
+            HexViewportDecorationCapability.DataChange | HexViewportDecorationCapability.SemanticVerdict,
+            report.Decorations);
+        Assert.Equal(12, report.InitialRows);
+        Assert.Equal(28, report.MaximumRows);
+
+        HexViewportCapabilityProfile inspector = HexViewportCapabilityProfile.BinInspector;
+        Assert.Equal(HexViewportInteraction.Inspect | HexViewportInteraction.Select, inspector.Interaction);
+        Assert.Equal(HexViewportComparison.None, inspector.Comparison);
+        Assert.Equal(
+            HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+            inspector.Navigation);
+        Assert.Equal(HexViewportDecorationCapability.None, inspector.Decorations);
+        Assert.Equal(12, inspector.InitialRows);
+        Assert.Equal(28, inspector.MaximumRows);
+
+        foreach (HexViewportCapabilityProfile profile in new[] { report, inspector })
+        {
+            Assert.False(profile.Interaction.HasFlag(HexViewportInteraction.Overwrite));
+            Assert.False(profile.Interaction.HasFlag(HexViewportInteraction.StructuralEdit));
+            Assert.False(profile.Navigation.HasFlag(HexViewportNavigation.AddressJump));
+            Assert.False(profile.Navigation.HasFlag(HexViewportNavigation.DocumentScroll));
+            Assert.False(profile.Decorations.HasFlag(HexViewportDecorationCapability.Search));
+        }
+    }
+
+    /// <summary>The reusable desktop BIN Inspector host binds the real read-only viewport contract.</summary>
+    [Fact]
+    public void BinInspectorHasAReusableAccessibleProductionHost()
+    {
+        string host = ReadPresentationFile("Views/BinInspectorPanel.axaml");
+
+        Assert.Contains("x:DataType=\"vm:BinInspectorViewModel\"", host, StringComparison.Ordinal);
+        Assert.Contains("<views:HexViewportControl", host, StringComparison.Ordinal);
+        Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", host, StringComparison.Ordinal);
+        Assert.Contains("InteractionCommand=\"{Binding ViewportInteractionCommand}\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.BinInspectorRangeScrollAutomationName}\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.BinInspectorResizeAutomationName}\"", host, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"",
+            host,
+            StringComparison.Ordinal);
+        Assert.Contains("SelectedItem=\"{Binding SelectedStructure, Mode=TwoWay}\"", host, StringComparison.Ordinal);
+        Assert.Contains("SelectedItem=\"{Binding SelectedField, Mode=TwoWay}\"", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Save", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Search", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("GoTo", host, StringComparison.Ordinal);
+    }
 }

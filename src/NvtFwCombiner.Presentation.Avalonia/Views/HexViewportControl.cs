@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
@@ -48,6 +49,14 @@ public sealed partial class HexViewportControl : Control
     internal static readonly StyledProperty<HexViewportSnapshot?> SnapshotProperty =
         AvaloniaProperty.Register<HexViewportControl, HexViewportSnapshot?>(nameof(Snapshot));
 
+    internal static readonly StyledProperty<ICommand?> InteractionCommandProperty =
+        AvaloniaProperty.Register<HexViewportControl, ICommand?>(nameof(InteractionCommand));
+
+    internal static readonly StyledProperty<string> ComparisonRowLabelProperty =
+        AvaloniaProperty.Register<HexViewportControl, string>(
+            nameof(ComparisonRowLabel),
+            "orig");
+
     private readonly FormattedText[] _normalHex = CreateHexTextCache(NormalTextBrush, NormalTypeface);
     private readonly FormattedText[] _selectedHex = CreateHexTextCache(SelectedTextBrush, StrongTypeface);
     private readonly FormattedText[] _changedHex = CreateHexTextCache(ChangedTextBrush, StrongTypeface);
@@ -86,6 +95,18 @@ public sealed partial class HexViewportControl : Control
     {
         get => GetValue(SnapshotProperty);
         set => SetValue(SnapshotProperty, value);
+    }
+
+    internal ICommand? InteractionCommand
+    {
+        get => GetValue(InteractionCommandProperty);
+        set => SetValue(InteractionCommandProperty, value);
+    }
+
+    internal string ComparisonRowLabel
+    {
+        get => GetValue(ComparisonRowLabelProperty);
+        set => SetValue(ComparisonRowLabelProperty, value);
     }
 
     internal event EventHandler<HexViewportInteractionEventArgs>? InteractionRequested;
@@ -175,6 +196,10 @@ public sealed partial class HexViewportControl : Control
             HoveredAddress = null;
             StartHistoryFeedback();
             InvalidateMeasure();
+            InvalidateVisual();
+        }
+        else if (change.Property == ComparisonRowLabelProperty)
+        {
             InvalidateVisual();
         }
     }

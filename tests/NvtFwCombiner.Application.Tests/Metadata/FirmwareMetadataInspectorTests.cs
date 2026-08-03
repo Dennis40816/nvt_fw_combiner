@@ -40,6 +40,131 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Equal(plan.ResolutionToken, inspected.ResolutionToken);
     }
 
+    /// <summary>The common formatter retains exact resolved geometry and invariant typed values.</summary>
+    [Fact]
+    public void MetadataFormatterUsesOnlyResolvedStructureAndFieldFacts()
+    {
+        ResolvedMetadataPlan plan = CreateDpcmiPlan();
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            plan,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]);
+
+        FormattedMetadataInspectionSnapshot formatted = FirmwareMetadataInspectionFormatter.Format(inspected);
+
+        FormattedMetadataStructure structure = Assert.Single(formatted.Structures);
+        Assert.Equal("map", structure.MapId);
+        Assert.Equal(DpcmiMetadataContract.StructureId, structure.StructureId);
+        Assert.Equal(MetadataInspectionState.Value, structure.State);
+        Assert.Equal(ResolvedChildReadiness.Ready, structure.Readiness);
+        Assert.Equal(
+            new FirmwareAddressedRange(
+                "flash",
+                new ByteRange(0x36, 3)),
+            structure.AddressedRange);
+        Assert.Equal(4, structure.Fields.Count);
+        FormattedMetadataField major = Assert.Single(
+            structure.Fields,
+            static field => field.FieldId == DpcmiMetadataContract.MajorVersionFieldId);
+        Assert.Equal("Dp major", major.DisplayName);
+        Assert.Equal(
+            new FirmwareAddressedRange(
+                "flash",
+                new ByteRange(0x37, 1)),
+            major.AddressedRange);
+        Assert.Equal(FirmwareMetadataFieldApplicabilityState.Active, major.Applicability);
+        Assert.Equal(FirmwareMetadataValueKind.UnsignedInteger, major.ValueKind);
+        Assert.Equal("3", major.Value);
+    }
+
+    /// <summary>The formatter presents only entries and fields selected for its canonical purpose.</summary>
+    [Fact]
+    public void MetadataFormatterHonorsPurposeAndTypedTargetReferences()
+    {
+        DpcmiFixture fixture = CreateDpcmiFixture();
+        ResolvedMetadataPlan plan = new MetadataPlanDefinition(
+        [
+            CreateDpcmiEntry(
+                fixture,
+                bindingId: "formatting",
+                fieldIds: [DpcmiMetadataContract.MajorVersionFieldId],
+                purposes: [MetadataReferencePurpose.Formatting]),
+            CreateDpcmiEntry(
+                fixture,
+                bindingId: "output-naming",
+                purposes: [MetadataReferencePurpose.OutputNaming]),
+        ]).Resolve(new ResolutionToken("test-catalog:formatting"));
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            plan,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]);
+
+        FormattedMetadataStructure structure = Assert.Single(
+            FirmwareMetadataInspectionFormatter.Format(inspected).Structures);
+
+        Assert.Equal("formatting", structure.BindingId);
+        Assert.Equal(
+            DpcmiMetadataContract.MajorVersionFieldId,
+            Assert.Single(structure.Fields).FieldId);
+    }
+
+    /// <summary>The BIN snapshot keeps one formatter root and rejects bytes with a different artifact identity.</summary>
+    [Fact]
+    public void BinInspectionSnapshotBindsFormatterTokenRevisionAndArtifactHash()
+    {
+        ResolvedMetadataPlan plan = CreateDpcmiPlan();
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        var artifact = new FirmwareBinInspectionArtifact(
+            CompositionAddressSpaceIds.DpReplacement,
+            dp);
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            new MetadataInspectionRequest(
+                plan,
+                authoringRevision: 7,
+                [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]));
+
+        var snapshot = FirmwareBinInspectionSnapshot.Create(
+            inspected,
+            [artifact]);
+
+        FirmwareBinInspectionStructure structure = Assert.Single(snapshot.Structures);
+        Assert.Equal(plan.ResolutionToken, snapshot.ResolutionToken);
+        Assert.Equal(7, snapshot.AuthoringRevision);
+        Assert.Equal(new byte[] { 0x2E, 0x03, 0xA4 }, structure.Bytes.ToArray());
+        Assert.Equal(DpcmiMetadataContract.StructureId, structure.Metadata.StructureId);
+
+        byte[] changed = (byte[])dp.Clone();
+        changed[0x37] ^= 0xFF;
+        _ = Assert.Throws<ArgumentException>(() => FirmwareBinInspectionSnapshot.Create(
+            inspected,
+            [new FirmwareBinInspectionArtifact(CompositionAddressSpaceIds.DpReplacement, changed)]));
+    }
+
+    /// <summary>Pending metadata remains an explicit state and never fabricates structure bytes or fields.</summary>
+    [Fact]
+    public void MetadataFormatterPreservesPendingStateWithoutResolvedGeometry()
+    {
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(CreateDpcmiPlan(), []);
+
+        FormattedMetadataStructure structure = Assert.Single(
+            FirmwareMetadataInspectionFormatter.Format(inspected).Structures);
+
+        Assert.Equal(MetadataInspectionState.WaitingForArtifact, structure.State);
+        Assert.Equal(ResolvedChildReadiness.PendingInput, structure.Readiness);
+        Assert.Null(structure.AddressedRange);
+        Assert.Null(structure.ArtifactIdentity);
+        Assert.Empty(structure.Fields);
+    }
+
     /// <summary>A TP artifact never satisfies or executes a DP-slot DPCMI declaration.</summary>
     [Fact]
     public void DpcmiInspectionDoesNotUseTpOnlyArtifact()
@@ -335,6 +460,7 @@ public sealed class FirmwareMetadataInspectorTests
                 MetadataReferencePurpose.OutputNaming,
                 MetadataReferencePurpose.Display,
                 MetadataReferencePurpose.Version,
+                MetadataReferencePurpose.Formatting,
             ]);
     }
 

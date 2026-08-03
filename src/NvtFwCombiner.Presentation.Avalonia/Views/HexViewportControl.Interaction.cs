@@ -237,5 +237,9 @@ public sealed partial class HexViewportControl
     private void RaiseIntent(HexViewportInteractionIntent intent)
     {
         InteractionRequested?.Invoke(this, new HexViewportInteractionEventArgs(intent));
+        if (InteractionCommand?.CanExecute(intent) == true)
+        {
+            InteractionCommand.Execute(intent);
+        }
     }
 }

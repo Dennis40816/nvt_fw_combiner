@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using System.Text.Json.Serialization;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -21,7 +22,8 @@ public sealed class OutputDifferenceSummary
         string afterHexPreview = "",
         int hexPreviewByteCount = 0,
         bool isHexPreviewComplete = false,
-        OutputDifferenceSemantic? semantic = null)
+        OutputDifferenceSemantic? semantic = null,
+        OutputDifferenceReplaySegment? replay = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(differenceId);
         ArgumentOutOfRangeException.ThrowIfNegative(changedByteCount);
@@ -46,6 +48,25 @@ public sealed class OutputDifferenceSummary
         HexPreviewByteCount = hexPreviewByteCount;
         IsHexPreviewComplete = isHexPreviewComplete;
         Semantic = semantic;
+        if (replay is not null && !replay.Range.Contains(range))
+        {
+            throw new ArgumentException(
+                "Replay bytes must contain the complete output difference range.",
+                nameof(replay));
+        }
+
+        if (replay is not null && !replay.MatchesDifferenceEvidence(
+                range,
+                changedByteCount,
+                beforeSha256,
+                afterSha256))
+        {
+            throw new ArgumentException(
+                "Replay bytes must match the output-difference evidence hashes.",
+                nameof(replay));
+        }
+
+        Replay = replay;
     }
 
     /// <summary>Stable row id in report order.</summary>
@@ -94,4 +115,8 @@ public sealed class OutputDifferenceSummary
     /// Application-owned category and field subject for novice-first report rendering. Older report files can omit it.
     /// </summary>
     public OutputDifferenceSemantic? Semantic { get; }
+
+    /// <summary>Exact persisted bytes sufficient to replay this range; absent in legacy reports.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OutputDifferenceReplaySegment? Replay { get; }
 }

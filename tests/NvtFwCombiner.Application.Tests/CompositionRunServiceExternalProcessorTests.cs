@@ -268,6 +268,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("aabb", replacement.AfterHexPreview);
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
+        Assert.Null(replacement.Replay);
         OutputDifferenceSemantic replacementSemantic = Assert.IsType<OutputDifferenceSemantic>(replacement.Semantic);
         Assert.Equal(OutputDifferenceSemanticCategoryIds.CtrlRam, replacementSemantic.CategoryId);
         Assert.Equal(PostbuildWriteSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
@@ -282,6 +283,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("7e", crcHeader.AfterHexPreview);
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
         Assert.True(crcHeader.IsHexPreviewComplete);
+        Assert.Null(crcHeader.Replay);
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 

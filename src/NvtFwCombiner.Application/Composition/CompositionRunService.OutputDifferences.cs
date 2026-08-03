@@ -82,7 +82,11 @@ public sealed partial class CompositionRunService
                     ToSliceHexPreview(outputBytes.Span, segment),
                     checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
                     segment.Length <= OutputDifferenceHexPreviewBytes,
-                    semantic));
+                    semantic,
+                    OutputDifferenceReplaySegment.CreatePersistableWithAlignedContext(
+                        referenceBytes,
+                        outputBytes,
+                        segment)));
             }
         }
 

@@ -1,84 +1,78 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Globalization;
-using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Bounded read-only projection of one verified Replace before/output snapshot.</summary>
+/// <summary>Range-bound, read-only replay of Report before/output bytes.</summary>
 public sealed partial class ReportHexDiffViewModel : ObservableObject
 {
-    private const int BytesPerRow = 16;
-    private const int InitialVisibleRowCount = 48;
-    private const int MaximumVisibleRowCount = 128;
-    private readonly CompositionRunInspectionSnapshot? _snapshot;
+    private readonly CompositionRunInspectionSnapshot? _verifiedSnapshot;
     private readonly ReportHexDiffSource _source;
     private readonly ShellLanguage _language;
-    private readonly bool _canInspectRanges;
+    private readonly bool _reportBoundsValid;
+    private readonly bool _snapshotWasRejected;
     private readonly RelayCommand<ReportHexDiffRangeViewModel> _selectRangeCommand;
-    private readonly RelayCommand _jumpAddressCommand;
+    private readonly RelayCommand<HexViewportInteractionIntent> _viewportInteractionCommand;
+    private OutputDifferenceReplaySegment? _activeReplay;
+    private int _rangeScrollRow;
+    private long? _selectedByteAddress;
 
     private ReportHexDiffViewModel(
-        CompositionRunInspectionSnapshot? snapshot,
+        CompositionRunInspectionSnapshot? verifiedSnapshot,
         ReportHexDiffSource source,
         ShellLanguage language,
         long reportOutputSize,
-        bool hasVerifiedSnapshot,
-        bool canInspectRanges,
-        string availabilityDetail)
+        bool reportBoundsValid,
+        bool snapshotWasRejected)
     {
-        _snapshot = snapshot;
+        _verifiedSnapshot = verifiedSnapshot;
         _source = source;
         _language = language;
-        _canInspectRanges = canInspectRanges;
-        IsAvailable = hasVerifiedSnapshot;
-        IsReportedRangeMode = !hasVerifiedSnapshot && canInspectRanges;
-        AvailabilityTitle = hasVerifiedSnapshot
-            ? T(language, "Complete Hex Diff", "完整 Hex Diff")
-            : canInspectRanges
-                ? T(language, "Reported-range Hex Diff", "Report 區段 Hex Diff")
-                : T(language, "Hex Diff unavailable", "無法使用 Hex Diff");
-        AvailabilityDetail = availabilityDetail;
-        OutputSpaceId = snapshot?.OutputSpaceId ?? source.OutputSpaceId;
-        ReferenceSpaceId = snapshot?.ReferenceSpaceId ?? "reported-reference";
-        TotalByteCount = canInspectRanges ? checked((int)reportOutputSize) : 0;
-        TotalRowCount = canInspectRanges ? checked((TotalByteCount + BytesPerRow - 1) / BytesPerRow) : 0;
+        _reportBoundsValid = reportBoundsValid;
+        _snapshotWasRejected = snapshotWasRejected;
+        OutputSpaceId = verifiedSnapshot?.OutputSpaceId ?? source.OutputSpaceId;
+        ReferenceSpaceId = verifiedSnapshot?.ReferenceSpaceId ?? "reported-reference";
+        TotalByteCount = reportBoundsValid ? checked((int)reportOutputSize) : 0;
+        TotalRowCount = reportBoundsValid
+            ? checked((TotalByteCount + HexViewportSnapshot.BytesPerRow - 1) / HexViewportSnapshot.BytesPerRow)
+            : 0;
         HasDifferenceWorkspace = source.Count > 0;
-        NavigatorPage = ReportWindowedListViewModel.Create(
-            source.NavigatorRows,
-            pageSize: 64,
-            language,
-            loadInitialPage: canInspectRanges);
-        NavigatorPage.PropertyChanged += NavigatorPage_OnPropertyChanged;
+        ViewportSnapshot = HexViewportSnapshot.Empty(
+            HexViewportCapabilityProfile.ReportDiff,
+            OutputSpaceId);
+        Ranges = source.NavigatorRows;
         _selectRangeCommand = new RelayCommand<ReportHexDiffRangeViewModel>(SelectRange, CanSelectRange);
-        _jumpAddressCommand = new RelayCommand(JumpToAddress, () => canInspectRanges);
+        _viewportInteractionCommand = new RelayCommand<HexViewportInteractionIntent>(HandleViewportIntent);
 
-        if (canInspectRanges)
+        ReportHexDiffRangeViewModel? initialRange = reportBoundsValid && Ranges.Count > 0
+            ? Ranges[0]
+            : null;
+        SelectedRange = initialRange;
+        if (initialRange is null)
         {
-            SelectedRange = NavigatorPage.Items.Count > 0
-                ? (ReportHexDiffRangeViewModel)NavigatorPage.Items[0]
-                : null;
-            long initialOffset = SelectedRange?.Start ?? 0;
-            JumpAddress = FormatAddress(initialOffset);
-            ShowSelectedRows(initialOffset);
+            RefreshSelectedReplay();
         }
     }
 
-    /// <summary>True when verified full reference/output bytes match this report.</summary>
-    public bool IsAvailable { get; }
+    /// <summary>True when the current report selection has complete, trusted replay bytes.</summary>
+    public bool IsAvailable { get; private set; }
 
-    /// <summary>Short complete/fallback state.</summary>
-    public string AvailabilityTitle { get; }
+    /// <summary>Short complete/replay/unavailable state.</summary>
+    public string AvailabilityTitle { get; private set; } = string.Empty;
 
-    /// <summary>Why complete inspection is or is not available.</summary>
-    public string AvailabilityDetail { get; }
+    /// <summary>Why the currently selected range can or cannot be replayed.</summary>
+    public string AvailabilityDetail { get; private set; } = string.Empty;
 
-    /// <summary>True when the workspace is backed only by report-retained range previews.</summary>
-    public bool IsReportedRangeMode { get; }
+    /// <summary>True when the selected viewport uses exact bytes persisted in the report.</summary>
+    public bool IsReportedRangeMode { get; private set; }
+
+    /// <summary>True when the selected viewport contains at least one byte row.</summary>
+    public bool HasViewportBytes => ViewportSnapshot.Rows.Count > 0;
+
+    /// <summary>True when the selected report range cannot expose replay bytes.</summary>
+    public bool HasNoViewportBytes => !HasViewportBytes;
 
     /// <summary>True when at least one reported difference belongs in the sole Hex Diff workspace.</summary>
     public bool HasDifferenceWorkspace { get; }
@@ -89,66 +83,93 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     /// <summary>Application-owned canonical reference address space.</summary>
     public string ReferenceSpaceId { get; }
 
-    /// <summary>Number of bytes in each verified comparison buffer.</summary>
+    /// <summary>Declared output byte count used only for checked replay bounds.</summary>
     public int TotalByteCount { get; }
 
-    /// <summary>Total logical 16-byte output rows; only a bounded window is materialized.</summary>
+    /// <summary>Total logical output row count; whole-document navigation is not exposed.</summary>
     public int TotalRowCount { get; }
 
-    /// <summary>Currently materialized output/reference rows.</summary>
-    public ReportHexDiffViewportRowCollection VisibleRows { get; } = [];
+    /// <summary>Immutable input consumed by the shared #191 renderer.</summary>
+    internal HexViewportSnapshot ViewportSnapshot { get; private set; }
 
-    /// <summary>Review-first, bounded range navigator.</summary>
-    public ReportWindowedListViewModel NavigatorPage { get; }
+    /// <summary>Review-first semantic ranges, lazily materialized by the virtualized list.</summary>
+    public IReadOnlyList<ReportHexDiffRangeViewModel> Ranges { get; }
 
-    /// <summary>Selected page-external range kept visible without materializing preceding pages.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPinnedSelectedRange))]
-    [NotifyPropertyChangedFor(nameof(VisibleNavigatorRowCount))]
-    public partial ReportHexDiffRangeViewModel? PinnedSelectedRange { get; private set; }
+    /// <summary>Number of range-detail models materialized by the virtualized navigator.</summary>
+    internal int MaterializedRangeCount => _source.MaterializedCount;
 
-    /// <summary>True when the selected range is outside the currently materialized navigator page.</summary>
-    public bool HasPinnedSelectedRange => PinnedSelectedRange is not null;
-
-    /// <summary>Bounded navigator control count, including at most one pinned selected range.</summary>
-    public int VisibleNavigatorRowCount => NavigatorPage.VisibleCount + (HasPinnedSelectedRange ? 1 : 0);
-
-    /// <summary>Number of navigator range-detail models retained from report JSON.</summary>
-    internal int MaterializedRangeCount => VisibleNavigatorRowCount;
-
-    /// <summary>Selected report-owned range.</summary>
+    /// <summary>Selected report-owned semantic range.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedRange))]
     [NotifyPropertyChangedFor(nameof(HasNoSelectedRange))]
-    public partial ReportHexDiffRangeViewModel? SelectedRange { get; private set; }
+    public partial ReportHexDiffRangeViewModel? SelectedRange { get; set; }
 
-    /// <summary>True when the information panel has one report-owned selection.</summary>
+    /// <summary>True when the accordion has one selected range.</summary>
     public bool HasSelectedRange => SelectedRange is not null;
 
-    /// <summary>True when the current output address is outside every reported difference.</summary>
+    /// <summary>True when no report range is selected.</summary>
     public bool HasNoSelectedRange => SelectedRange is null;
 
-    /// <summary>First output-space offset currently materialized.</summary>
-    [ObservableProperty]
-    public partial long FirstVisibleOffset { get; private set; }
+    /// <summary>Localized screen-reader projection for the selected custom-drawn byte.</summary>
+    public string SelectedByteAccessibleLabel
+    {
+        get
+        {
+            if (_selectedByteAddress is not long selected || !TryGetVisibleCell(selected, out HexViewportCell cell))
+            {
+                return T(_language, "No Hex Diff byte selected.", "尚未選取 Hex Diff 位元組。");
+            }
 
-    /// <summary>Hex address entered by the reviewer.</summary>
-    [ObservableProperty]
-    public partial string JumpAddress { get; set; } = string.Empty;
+            string address = FormattableString.Invariant($"0x{selected:X6}");
+            string output = FormattableString.Invariant($"0x{cell.PrimaryValue:X2}");
+            string state = cell.IsDataChanged
+                ? T(_language, "changed", "已變更")
+                : T(_language, "unchanged context", "未變更的 context");
+            return ShowOriginalRows && cell.ComparisonValue is byte original
+                ? T(
+                    _language,
+                    $"Address {address}, output {output}, original 0x{original:X2}, {state}.",
+                    $"位址 {address}，輸出 {output}，原始值 0x{original:X2}，{state}。")
+                : T(
+                    _language,
+                    $"Address {address}, output {output}, {state}.",
+                    $"位址 {address}，輸出 {output}，{state}。");
+        }
+    }
 
-    /// <summary>Bounded address-jump feedback.</summary>
-    [ObservableProperty]
-    public partial string JumpStatus { get; private set; } = string.Empty;
+    /// <summary>First range-local row currently materialized.</summary>
+    public int RangeScrollRow
+    {
+        get => _rangeScrollRow;
+        set
+        {
+            int next = Math.Clamp(value, 0, RangeScrollMaximum);
+            if (_rangeScrollRow == next)
+            {
+                return;
+            }
 
-    /// <summary>Controls the optional verified reference row beneath each output row.</summary>
+            _rangeScrollRow = next;
+            OnPropertyChanged();
+            PublishViewport();
+        }
+    }
+
+    /// <summary>Last admitted start row inside the selected replay segment.</summary>
+    public int RangeScrollMaximum { get; private set; }
+
+    /// <summary>Controls the optional immutable comparison plane; defaults off.</summary>
     [ObservableProperty]
     public partial bool ShowOriginalRows { get; set; }
 
-    /// <summary>Selects and focuses one report-owned range.</summary>
+    /// <summary>First output-space address currently materialized.</summary>
+    public long FirstVisibleOffset => ViewportSnapshot.StartAddress;
+
+    /// <summary>Selects one report-owned range and replays only its persisted bytes.</summary>
     public IRelayCommand<ReportHexDiffRangeViewModel> SelectRangeCommand => _selectRangeCommand;
 
-    /// <summary>Jumps to a checked output-space offset.</summary>
-    public IRelayCommand JumpAddressCommand => _jumpAddressCommand;
+    /// <summary>Receives source-neutral selection and range-scroll intents from the shared renderer.</summary>
+    internal IRelayCommand<HexViewportInteractionIntent> ViewportInteractionCommand => _viewportInteractionCommand;
 
     internal static ReportHexDiffViewModel Create(
         CompositionRunInspectionSnapshot? snapshot,
@@ -165,48 +186,48 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
             string.Equals(snapshot.OutputSha256, reportOutputSha256, StringComparison.OrdinalIgnoreCase) &&
             snapshot.OutputBytes.Length > 0 &&
             reportOutputSize == snapshot.OutputBytes.Length;
-        if (identityMatches)
-        {
-            return new ReportHexDiffViewModel(
-                snapshot,
-                source,
-                language,
-                reportOutputSize,
-                hasVerifiedSnapshot: true,
-                canInspectRanges: true,
-                T(
-                    language,
-                    $"Verified {snapshot!.OutputSpaceId} output against {snapshot.ReferenceSpaceId} from the same run.",
-                    $"已用同一次執行的 {snapshot.ReferenceSpaceId} 驗證 {snapshot.OutputSpaceId} output。"));
-        }
-
-        string detail = reportBoundsValid
-            ? snapshot is null
-                ? T(
-                    language,
-                    "Historical report: only its stored before/output previews are shown; bytes beyond each preview are unavailable.",
-                    "歷史 Report：僅顯示已儲存的變更前／輸出 preview；各 preview 以外的 bytes 不可用。")
-                : T(
-                    language,
-                    "The in-session bytes do not match this report; only its stored before/output previews are shown.",
-                    "目前 session bytes 與此 Report 不相符；僅顯示 Report 已儲存的變更前／輸出 preview。")
-            : T(
-                language,
-                "The reported ranges do not fit the declared output bounds, so no byte view is exposed.",
-                "已報告區段不符合宣告的輸出範圍，因此不顯示 byte view。 ");
         return new ReportHexDiffViewModel(
-            null,
+            identityMatches ? snapshot : null,
             source,
             language,
             reportOutputSize,
-            hasVerifiedSnapshot: false,
-            canInspectRanges: reportBoundsValid,
-            detail);
+            reportBoundsValid,
+            snapshot is not null && !identityMatches);
+    }
+
+    /// <summary>Consumes source-neutral intents emitted by the shared renderer.</summary>
+    internal void HandleViewportIntent(HexViewportInteractionIntent intent)
+    {
+        if (_activeReplay is null)
+        {
+            return;
+        }
+
+        switch (intent.Trigger)
+        {
+            case HexViewportInteractionTrigger.Scroll:
+                RangeScrollRow = checked(RangeScrollRow + intent.Delta);
+                break;
+            case HexViewportInteractionTrigger.Select when intent.Address is long selected:
+                SelectByte(selected, ensureVisible: false);
+                break;
+            case HexViewportInteractionTrigger.MoveSelection:
+                long current = _selectedByteAddress ?? SelectedRange?.Start ?? _activeReplay.Range.Start;
+                SelectByte(checked(current + intent.Delta), ensureVisible: true);
+                break;
+            case HexViewportInteractionTrigger.Select:
+            case HexViewportInteractionTrigger.Activate:
+            case HexViewportInteractionTrigger.Context:
+            case HexViewportInteractionTrigger.StructuralContext:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(intent), intent.Trigger, null);
+        }
     }
 
     private bool CanSelectRange(ReportHexDiffRangeViewModel? range)
     {
-        return _canInspectRanges && range is not null &&
+        return _reportBoundsValid && range is not null && _source.Contains(range) &&
             string.Equals(range.OutputSpaceId, OutputSpaceId, StringComparison.Ordinal) &&
             range.Start >= 0 && range.Length > 0 && range.Start <= TotalByteCount - range.Length;
     }
@@ -215,215 +236,178 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     {
         if (!CanSelectRange(range))
         {
-            JumpStatus = T(_language, "Range is outside the reported output space.", "Range 超出已報告的 output space。");
             return;
         }
 
         SelectedRange = range;
-        JumpAddress = FormatAddress(range!.Start);
-        JumpStatus = range.AccessibleRange;
-        ShowSelectedRows(range.Start);
     }
 
-    private void JumpToAddress()
+    private void RefreshSelectedReplay()
     {
-        if (!TryParseAddress(JumpAddress, out long offset) || offset < 0 || offset >= TotalByteCount)
+        _activeReplay = CreateReplay(SelectedRange);
+        _rangeScrollRow = 0;
+        _selectedByteAddress = SelectedRange?.Start;
+        RangeScrollMaximum = CalculateRangeScrollMaximum(_activeReplay, ShowOriginalRows);
+        RefreshAvailability();
+        PublishViewport();
+        OnPropertyChanged(nameof(RangeScrollRow));
+        OnPropertyChanged(nameof(RangeScrollMaximum));
+    }
+
+    private OutputDifferenceReplaySegment? CreateReplay(ReportHexDiffRangeViewModel? range)
+    {
+        return range is null || !CanSelectRange(range)
+            ? null
+            : _verifiedSnapshot is not null
+            ? OutputDifferenceReplaySegment.CreateWithAlignedContext(
+                _verifiedSnapshot.ReferenceBytes,
+                _verifiedSnapshot.OutputBytes,
+                range.Start,
+                range.Length)
+            : range.Replay is { } replay &&
+                replay.Range.EndExclusive <= TotalByteCount &&
+                range.Start >= replay.Range.Start &&
+                range.Length <= replay.Range.Length &&
+                range.Start <= replay.Range.EndExclusive - range.Length
+                    ? replay
+                    : null;
+    }
+
+    private static int CalculateRangeScrollMaximum(
+        OutputDifferenceReplaySegment? replay,
+        bool showOriginalRows)
+    {
+        if (replay is null)
         {
-            JumpStatus = T(
+            return 0;
+        }
+
+        int totalRows = checked((int)(
+            (replay.Range.Length + HexViewportSnapshot.BytesPerRow - 1) /
+            HexViewportSnapshot.BytesPerRow));
+        return Math.Max(
+            0,
+            totalRows - ReportHexDiffViewportAdapter.GetLogicalRowBudget(showOriginalRows));
+    }
+
+    private void RefreshAvailability()
+    {
+        IsAvailable = _verifiedSnapshot is not null || _activeReplay is not null;
+        IsReportedRangeMode = _verifiedSnapshot is null && _activeReplay is not null;
+        if (_verifiedSnapshot is not null)
+        {
+            AvailabilityTitle = T(_language, "Complete Hex Diff", "完整 Hex Diff");
+            AvailabilityDetail = T(
                 _language,
-                $"Enter a 0x address inside {OutputSpaceId}.",
-                $"請輸入 {OutputSpaceId} 範圍內的 0x address。");
-            return;
+                $"Verified {OutputSpaceId} output against {ReferenceSpaceId} from the same run.",
+                $"已用同一次執行的 {ReferenceSpaceId} 驗證 {OutputSpaceId} output。");
         }
-
-        SelectedRange = _source.FindContaining(offset);
-        JumpStatus = SelectedRange is null
-            ? T(
-                _language,
-                string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} address 0x{offset:X}; no reported change contains this byte."),
-                string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} 位址 0x{offset:X}；此 byte 不在任何已報告變更內。"))
-            : T(
-                _language,
-                string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} address 0x{offset:X}"),
-                string.Create(CultureInfo.InvariantCulture, $"{OutputSpaceId} 位址 0x{offset:X}"));
-        if (IsAvailable)
+        else if (_activeReplay is not null)
         {
-            ShowRowsAtOffset(offset, InitialVisibleRowCount);
-            return;
+            AvailabilityTitle = T(_language, "Replayable Report Hex Diff", "可重播的 Report Hex Diff");
+            AvailabilityDetail = _snapshotWasRejected
+                ? T(
+                    _language,
+                    "The in-session bytes do not match this report; the exact persisted range replay is shown.",
+                    "目前 session bytes 與此 Report 不相符；顯示 Report 保留的完整 range replay。")
+                : T(
+                    _language,
+                    "The persisted range contains complete before/output bytes and aligned context.",
+                    "Report range 已保留完整變更前／輸出 bytes 與對齊 context。");
         }
-
-        if (SelectedRange is null)
+        else
         {
-            VisibleRows.ReplaceAll([]);
-            return;
+            AvailabilityTitle = T(_language, "Hex Diff unavailable", "無法使用 Hex Diff");
+            AvailabilityDetail = !_reportBoundsValid
+                ? T(
+                    _language,
+                    "The reported ranges do not fit the declared output bounds.",
+                    "已報告區段不符合宣告的 output 範圍。")
+                : SelectedRange?.ReplayCoverage ?? T(
+                    _language,
+                    "Select a reported range to inspect its bytes.",
+                    "選擇一個 Report range 以檢視 bytes。");
         }
 
-        if (IsReportedRangeMode && offset >= SelectedRange.Start + SelectedRange.PreviewByteCount)
-        {
-            JumpStatus = T(
-                _language,
-                string.Create(CultureInfo.InvariantCulture, $"Address 0x{offset:X} belongs to this range, but its byte was not retained in the report preview."),
-                string.Create(CultureInfo.InvariantCulture, $"位址 0x{offset:X} 屬於此區段，但該 byte 未保留在 Report preview。"));
-        }
-
-        ShowPreviewRows(SelectedRange, offset);
+        OnPropertyChanged(nameof(IsAvailable));
+        OnPropertyChanged(nameof(IsReportedRangeMode));
+        OnPropertyChanged(nameof(AvailabilityTitle));
+        OnPropertyChanged(nameof(AvailabilityDetail));
     }
 
-    private void ShowSelectedRows(long offset)
+    private void PublishViewport()
     {
-        if (IsAvailable)
-        {
-            ShowRowsAtOffset(offset, InitialVisibleRowCount);
-        }
-        else if (SelectedRange is not null)
-        {
-            ShowPreviewRows(SelectedRange, offset);
-        }
+        ViewportSnapshot = _activeReplay is null || SelectedRange is null
+            ? HexViewportSnapshot.Empty(
+                HexViewportCapabilityProfile.ReportDiff,
+                OutputSpaceId)
+            : ReportHexDiffViewportAdapter.Create(
+                OutputSpaceId,
+                TotalByteCount,
+                SelectedRange.Start,
+                SelectedRange.Length,
+                _activeReplay,
+                RangeScrollRow,
+                _selectedByteAddress,
+                ShowOriginalRows);
+
+        OnPropertyChanged(nameof(ViewportSnapshot));
+        OnPropertyChanged(nameof(HasViewportBytes));
+        OnPropertyChanged(nameof(HasNoViewportBytes));
+        OnPropertyChanged(nameof(FirstVisibleOffset));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 
-    private void ShowPreviewRows(ReportHexDiffRangeViewModel range, long offset)
+    private void SelectByte(long address, bool ensureVisible)
     {
-        int available = range.PreviewByteCount;
-        if (available == 0)
-        {
-            FirstVisibleOffset = range.Start;
-            VisibleRows.ReplaceAll([]);
-            return;
-        }
-
-        int relativeOffset = checked((int)Math.Clamp(offset - range.Start, 0, available - 1));
-        int firstPreviewIndex = relativeOffset / BytesPerRow * BytesPerRow;
-        FirstVisibleOffset = checked(range.Start + firstPreviewIndex);
-        int rowCount = Math.Min(
-            InitialVisibleRowCount,
-            (available - firstPreviewIndex + BytesPerRow - 1) / BytesPerRow);
-        var rows = new ReportHexDiffViewportRowViewModel[rowCount];
-        ReadOnlySpan<byte> output = range.AfterPreview.Span;
-        ReadOnlySpan<byte> reference = range.BeforePreview.Span;
-        for (int index = 0; index < rowCount; index++)
-        {
-            int previewIndex = firstPreviewIndex + (index * BytesPerRow);
-            int length = Math.Min(BytesPerRow, available - previewIndex);
-            rows[index] = CreateRow(
-                checked(range.Start + previewIndex),
-                output.Slice(previewIndex, length),
-                reference.Slice(previewIndex, length));
-        }
-
-        VisibleRows.ReplaceAll(rows);
-    }
-
-    internal void ShowRowsAtOffset(long offset, int requestedRowCount)
-    {
-        if (!IsAvailable)
+        if (_activeReplay is null)
         {
             return;
         }
 
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(requestedRowCount);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(offset, TotalByteCount);
-
-        int rowCount = Math.Min(requestedRowCount, MaximumVisibleRowCount);
-        long firstOffset = offset / BytesPerRow * BytesPerRow;
-        FirstVisibleOffset = firstOffset;
-        int remainingRows = checked((int)Math.Min(
-            rowCount,
-            (TotalByteCount - firstOffset + BytesPerRow - 1) / BytesPerRow));
-        var rows = new ReportHexDiffViewportRowViewModel[remainingRows];
-        for (int index = 0; index < rows.Length; index++)
+        long selected = Math.Clamp(
+            address,
+            _activeReplay.Range.Start,
+            _activeReplay.Range.EndExclusive - 1);
+        _selectedByteAddress = selected;
+        if (ensureVisible)
         {
-            rows[index] = CreateRow(checked(firstOffset + (index * BytesPerRow)));
-        }
-
-        VisibleRows.ReplaceAll(rows);
-    }
-
-    private ReportHexDiffViewportRowViewModel CreateRow(long start)
-    {
-        ReadOnlySpan<byte> output = _snapshot!.OutputBytes.Span;
-        ReadOnlySpan<byte> reference = _snapshot.ReferenceBytes.Span;
-        int rowStart = checked((int)start);
-        int length = Math.Min(BytesPerRow, output.Length - rowStart);
-        return CreateRow(
-            start,
-            output.Slice(rowStart, length),
-            reference.Slice(rowStart, length));
-    }
-
-    private ReportHexDiffViewportRowViewModel CreateRow(
-        long start,
-        ReadOnlySpan<byte> output,
-        ReadOnlySpan<byte> reference)
-    {
-        ushort changedMask = 0;
-        for (int index = 0; index < output.Length; index++)
-        {
-            if (output[index] != reference[index])
+            int targetRow = checked((int)(
+                (selected - _activeReplay.Range.Start) / HexViewportSnapshot.BytesPerRow));
+            if (targetRow < RangeScrollRow)
             {
-                changedMask |= checked((ushort)(1 << index));
+                RangeScrollRow = targetRow;
+                return;
+            }
+
+            int visibleRows = ReportHexDiffViewportAdapter.GetLogicalRowBudget(ShowOriginalRows);
+            int lastVisibleRow = RangeScrollRow + visibleRows - 1;
+            if (targetRow > lastVisibleRow)
+            {
+                RangeScrollRow = targetRow - visibleRows + 1;
+                return;
             }
         }
 
-        int addressWidth = Math.Max(6, Math.Max(0, TotalByteCount - 1).ToString("X", CultureInfo.InvariantCulture).Length);
-        return new ReportHexDiffViewportRowViewModel(
-            start,
-            $"{OutputSpaceId}:0x{start.ToString($"X{addressWidth}", CultureInfo.InvariantCulture)}",
-            FormatHex(output),
-            FormatAscii(output),
-            FormatHex(reference),
-            FormatAscii(reference),
-            changedMask,
-            ShowOriginalRows,
-            _language);
+        ViewportSnapshot = ViewportSnapshot.WithSelectedAddress(selected);
+        OnPropertyChanged(nameof(ViewportSnapshot));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 
-    private static string FormatHex(ReadOnlySpan<byte> bytes)
+    private bool TryGetVisibleCell(long address, out HexViewportCell cell)
     {
-        string compactHex = Convert.ToHexString(bytes);
-        return compactHex.Length == 0
-            ? string.Empty
-            : string.Create(
-                checked(compactHex.Length + (compactHex.Length / 2) - 1),
-                compactHex,
-                static (destination, source) =>
-                {
-                    int destinationIndex = 0;
-                    for (int sourceIndex = 0; sourceIndex < source.Length; sourceIndex += 2)
-                    {
-                        if (destinationIndex > 0)
-                        {
-                            destination[destinationIndex++] = ' ';
-                        }
-
-                        destination[destinationIndex++] = source[sourceIndex];
-                        destination[destinationIndex++] = source[sourceIndex + 1];
-                    }
-                });
-    }
-
-    private static string FormatAscii(ReadOnlySpan<byte> bytes)
-    {
-        var builder = new StringBuilder(bytes.Length);
-        foreach (byte value in bytes)
+        foreach (HexViewportRow row in ViewportSnapshot.Rows)
         {
-            _ = builder.Append(value is >= 0x20 and <= 0x7e ? (char)value : '.');
+            long index = address - row.Address;
+            if ((ulong)index < (ulong)row.Cells.Count)
+            {
+                cell = row.Cells[(int)index];
+                return true;
+            }
         }
 
-        return builder.ToString();
-    }
-
-    private static string FormatAddress(long offset)
-    {
-        return string.Create(CultureInfo.InvariantCulture, $"0x{offset:X}");
-    }
-
-    private static bool TryParseAddress(string value, out long offset)
-    {
-        offset = 0;
-        string trimmed = value?.Trim() ?? string.Empty;
-        return trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase) &&
-            long.TryParse(trimmed[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out offset);
+        cell = default;
+        return false;
     }
 
     private static string T(ShellLanguage language, string english, string traditionalChinese)
@@ -431,8 +415,27 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         return language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
+    partial void OnShowOriginalRowsChanged(bool value)
+    {
+        RangeScrollMaximum = CalculateRangeScrollMaximum(_activeReplay, value);
+        int nextRow = Math.Min(_rangeScrollRow, RangeScrollMaximum);
+        if (nextRow != _rangeScrollRow)
+        {
+            _rangeScrollRow = nextRow;
+            OnPropertyChanged(nameof(RangeScrollRow));
+        }
+
+        OnPropertyChanged(nameof(RangeScrollMaximum));
+        PublishViewport();
+    }
+
     partial void OnSelectedRangeChanging(ReportHexDiffRangeViewModel? value)
     {
+        if (value is not null && !CanSelectRange(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "The selected Report Diff range is not owned by this report.");
+        }
+
         if (SelectedRange is not null)
         {
             SelectedRange.IsSelected = false;
@@ -446,140 +449,6 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
             value.IsSelected = true;
         }
 
-        UpdatePinnedSelectedRange();
-    }
-
-    private void NavigatorPage_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (string.Equals(e.PropertyName, nameof(ReportWindowedListViewModel.VisibleCount), StringComparison.Ordinal))
-        {
-            UpdatePinnedSelectedRange();
-            OnPropertyChanged(nameof(VisibleNavigatorRowCount));
-        }
-    }
-
-    private void UpdatePinnedSelectedRange()
-    {
-        if (SelectedRange is null)
-        {
-            PinnedSelectedRange = null;
-            return;
-        }
-
-        foreach (object item in NavigatorPage.Items)
-        {
-            if (item is not ReportHexDiffRangeViewModel visibleRange ||
-                visibleRange.SourceIndex != SelectedRange.SourceIndex)
-            {
-                continue;
-            }
-
-            if (!ReferenceEquals(visibleRange, SelectedRange))
-            {
-                SelectedRange = visibleRange;
-                return;
-            }
-
-            PinnedSelectedRange = null;
-            return;
-        }
-
-        PinnedSelectedRange = SelectedRange;
-    }
-
-    partial void OnShowOriginalRowsChanged(bool value)
-    {
-        foreach (ReportHexDiffViewportRowViewModel row in VisibleRows)
-        {
-            row.IsOriginalVisible = value && row.HasChanges;
-        }
-    }
-}
-
-/// <summary>One immutable 16-byte output row plus optional verified reference row.</summary>
-public sealed partial class ReportHexDiffViewportRowViewModel : ObservableObject
-{
-    internal ReportHexDiffViewportRowViewModel(
-        long start,
-        string address,
-        string outputHex,
-        string outputAscii,
-        string originalHex,
-        string originalAscii,
-        ushort changedMask,
-        bool isOriginalVisible,
-        ShellLanguage language)
-    {
-        Start = start;
-        Address = address;
-        OutputHex = outputHex;
-        OutputAscii = outputAscii;
-        OriginalHex = originalHex;
-        OriginalAscii = originalAscii;
-        ChangedMask = changedMask;
-        OutputAccessibleLabel = language == ShellLanguage.ChineseTraditional ? "輸出" : "output";
-        OriginalAccessibleLabel = language == ShellLanguage.ChineseTraditional ? "原始" : "original";
-        ChangeAccessibleLabel = language == ShellLanguage.ChineseTraditional
-            ? HasChanges ? "已變更" : "未變更"
-            : HasChanges ? "changed" : "unchanged";
-        IsOriginalVisible = isOriginalVisible && HasChanges;
-    }
-
-    /// <inheritdoc/>
-    public long Start { get; }
-
-    /// <inheritdoc/>
-    public string Address { get; }
-
-    /// <inheritdoc/>
-    public string OutputHex { get; }
-
-    /// <inheritdoc/>
-    public string OutputAscii { get; }
-
-    /// <inheritdoc/>
-    public string OriginalHex { get; }
-
-    /// <inheritdoc/>
-    public string OriginalAscii { get; }
-
-    /// <inheritdoc/>
-    public ushort ChangedMask { get; }
-
-    /// <inheritdoc/>
-    public bool HasChanges => ChangedMask != 0;
-
-    private string OutputAccessibleLabel { get; }
-
-    private string OriginalAccessibleLabel { get; }
-
-    private string ChangeAccessibleLabel { get; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AccessibleLabel))]
-    public partial bool IsOriginalVisible { get; set; }
-
-    /// <summary>Address-space-qualified row content for assistive review.</summary>
-    public string AccessibleLabel => IsOriginalVisible
-        ? $"{Address}, {ChangeAccessibleLabel}, {OutputAccessibleLabel} {OutputHex}, {OriginalAccessibleLabel} {OriginalHex}"
-        : $"{Address}, {ChangeAccessibleLabel}, {OutputAccessibleLabel} {OutputHex}";
-}
-
-/// <summary>Bounded row window that publishes one collection reset per viewport change.</summary>
-public sealed class ReportHexDiffViewportRowCollection : ObservableCollection<ReportHexDiffViewportRowViewModel>
-{
-    internal void ReplaceAll(IEnumerable<ReportHexDiffViewportRowViewModel> rows)
-    {
-        ArgumentNullException.ThrowIfNull(rows);
-        CheckReentrancy();
-        Items.Clear();
-        foreach (ReportHexDiffViewportRowViewModel row in rows)
-        {
-            Items.Add(row);
-        }
-
-        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        RefreshSelectedReplay();
     }
 }

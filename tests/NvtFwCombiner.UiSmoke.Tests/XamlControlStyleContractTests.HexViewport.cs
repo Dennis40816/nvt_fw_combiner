@@ -28,7 +28,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
-        Assert.Contains("$\"0x{address:X6}  orig\"", renderingSupport, StringComparison.Ordinal);
+        Assert.Contains("$\"0x{address:X6}  {ComparisonRowLabel}\"", renderingSupport, StringComparison.Ordinal);
         Assert.Contains("DecorationVersion", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);

@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -13,6 +15,7 @@ public sealed partial class ReportReviewViewModel
         string reportJson,
         byte[] reportUtf8,
         string outputSpaceId,
+        long outputSize,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
@@ -142,6 +145,7 @@ public sealed partial class ReportReviewViewModel
                 slices[sourceIndex],
                 hexDiffDescriptors[sourceIndex],
                 outputSpaceId,
+                outputSize,
                 language);
         }
 
@@ -241,47 +245,86 @@ public sealed partial class ReportReviewViewModel
         JsonValueSlice slice,
         ReportHexDiffRangeDescriptor descriptor,
         string outputSpaceId,
+        long outputSize,
         ShellLanguage language)
     {
         using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
         JsonElement difference = document.RootElement;
         ReportLineViewModel detail = ParseOutputDifference(difference, language);
-        byte[] beforePreview = ParseHexDiffPreview(difference, "BeforeHexPreview", "BeforeHex");
-        byte[] afterPreview = ParseHexDiffPreview(difference, "AfterHexPreview", "AfterHex");
-        bool usesBoundedPreview = !string.IsNullOrWhiteSpace(GetStringOrNull(difference, "BeforeHexPreview")) ||
-            !string.IsNullOrWhiteSpace(GetStringOrNull(difference, "AfterHexPreview"));
+        OutputDifferenceReplaySegment? replay = ParseHexDiffReplay(
+            difference,
+            descriptor,
+            outputSize);
         return new ReportHexDiffRangeViewModel(
             descriptor,
             detail,
             outputSpaceId,
             language,
-            GetString(difference, "Evidence"),
-            GetString(difference, "BeforeSha256"),
-            GetString(difference, "AfterSha256"),
-            beforePreview,
-            afterPreview,
-            GetBool(difference, "IsHexPreviewComplete") || !usesBoundedPreview);
+            replay);
     }
 
-    private static byte[] ParseHexDiffPreview(JsonElement difference, string previewName, string fullName)
+    private static OutputDifferenceReplaySegment? ParseHexDiffReplay(
+        JsonElement difference,
+        ReportHexDiffRangeDescriptor descriptor,
+        long outputSize)
     {
-        string preview = GetStringOrNull(difference, previewName) ?? string.Empty;
-        string hex = !string.IsNullOrWhiteSpace(preview)
-            ? preview
-            : GetStringOrNull(difference, fullName) ?? string.Empty;
-        string compact = string.Concat(hex.Where(static value => !char.IsWhiteSpace(value)));
-        if (compact.Length == 0 || compact.Length % 2 != 0 || compact.Length > MaximumRenderedHexPreviewBytes * 2)
+        if (!difference.TryGetProperty("Replay", out JsonElement replay) ||
+            replay.ValueKind != JsonValueKind.Object ||
+            !TryGetHexDiffRange(replay, out long start, out long length, out long endExclusive) ||
+            start < 0 || length <= 0 || start > long.MaxValue - length ||
+            endExclusive != start + length ||
+            start % HexViewportSnapshot.BytesPerRow != 0)
         {
-            return [];
+            return null;
+        }
+
+        string? beforeBase64 = GetStringOrNull(replay, "BeforeBytes");
+        string? afterBase64 = GetStringOrNull(replay, "AfterBytes");
+        string? replayBeforeSha256 = GetStringOrNull(replay, "BeforeSha256");
+        string? replayAfterSha256 = GetStringOrNull(replay, "AfterSha256");
+        string? differenceBeforeSha256 = GetStringOrNull(difference, "BeforeSha256");
+        string? differenceAfterSha256 = GetStringOrNull(difference, "AfterSha256");
+        if (string.IsNullOrWhiteSpace(beforeBase64) ||
+            string.IsNullOrWhiteSpace(afterBase64) ||
+            string.IsNullOrWhiteSpace(replayBeforeSha256) ||
+            string.IsNullOrWhiteSpace(replayAfterSha256) ||
+            string.IsNullOrWhiteSpace(differenceBeforeSha256) ||
+            string.IsNullOrWhiteSpace(differenceAfterSha256))
+        {
+            return null;
         }
 
         try
         {
-            return Convert.FromHexString(compact);
+            if (descriptor.Start < start ||
+                descriptor.Length > length ||
+                descriptor.Start > endExclusive - descriptor.Length)
+            {
+                return null;
+            }
+
+            var segment = new OutputDifferenceReplaySegment(
+                start,
+                Convert.FromBase64String(beforeBase64),
+                Convert.FromBase64String(afterBase64));
+            return string.Equals(segment.BeforeSha256, replayBeforeSha256, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(segment.AfterSha256, replayAfterSha256, StringComparison.OrdinalIgnoreCase) &&
+                segment.MatchesPersistableAlignedContext(
+                    outputSize,
+                    descriptor.Start,
+                    descriptor.Length) &&
+                segment.MatchesDifferenceEvidence(
+                    descriptor.Start,
+                    descriptor.Length,
+                    descriptor.ChangedByteCount,
+                    differenceBeforeSha256,
+                    differenceAfterSha256)
+                ? segment
+                : null;
         }
-        catch (FormatException)
+        catch (Exception exception) when (exception is ArgumentException or FormatException or OverflowException)
         {
-            return [];
+            return null;
         }
     }
 

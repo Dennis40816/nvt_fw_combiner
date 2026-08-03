@@ -6,9 +6,9 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
 public sealed partial class HexViewportControl
 {
-    private static string FormatReferenceLabel(long address)
+    private string FormatReferenceLabel(long address)
     {
-        return FormattableString.Invariant($"0x{address:X6}  orig");
+        return FormattableString.Invariant($"0x{address:X6}  {ComparisonRowLabel}");
     }
 
     private static void DrawRoundedRectangle(

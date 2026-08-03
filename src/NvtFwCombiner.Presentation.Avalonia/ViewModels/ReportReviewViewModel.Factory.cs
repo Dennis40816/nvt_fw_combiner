@@ -92,6 +92,7 @@ public sealed partial class ReportReviewViewModel
             json,
             utf8,
             inspectionSnapshot?.OutputSpaceId ?? "reported-output",
+            outputSize,
             language,
             cancellationToken);
         IReadOnlyList<ReportLineViewModel> issues = ParseIssues(root, cancellationToken);

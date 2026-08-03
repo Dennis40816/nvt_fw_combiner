@@ -1,5 +1,6 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -22,12 +23,7 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
         ReportLineViewModel detail,
         string outputSpaceId,
         ShellLanguage language,
-        string evidence,
-        string beforeSha256,
-        string afterSha256,
-        byte[] beforePreview,
-        byte[] afterPreview,
-        bool isPreviewComplete)
+        OutputDifferenceReplaySegment? replay = null)
     {
         ArgumentNullException.ThrowIfNull(detail);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
@@ -42,25 +38,17 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
                 CultureInfo.InvariantCulture,
                 $"{OutputSpaceId} 0x{Start:X}-0x{EndExclusive:X} half-open range");
         AccessibleLabel = string.Join("; ", Status, Title, AccessibleRange, ChangedSummary);
-        Evidence = evidence ?? string.Empty;
-        BeforeSha256 = beforeSha256 ?? string.Empty;
-        AfterSha256 = afterSha256 ?? string.Empty;
-        BeforePreview = beforePreview ?? [];
-        AfterPreview = afterPreview ?? [];
-        PreviewByteCount = Math.Min(BeforePreview.Length, AfterPreview.Length);
-        IsPreviewComplete = isPreviewComplete && PreviewByteCount == Length;
-        PreviewCoverage = IsPreviewComplete
+        Replay = replay;
+        ReplayCoverage = replay is not null
             ? language == ShellLanguage.ChineseTraditional
-                ? $"Report 已保留此區段全部 {PreviewByteCount} bytes。"
-                : $"The report retains all {PreviewByteCount} bytes in this range."
+                ? "Report 已保留完整變更區段與前後最多各兩列對齊 context，可重現此 viewport。"
+                : "The report retains the complete changed range and up to two aligned context rows on each side."
             : language == ShellLanguage.ChineseTraditional
-                ? $"Report 僅保留前 {PreviewByteCount}/{Length} bytes；其餘內容不可用。"
-                : $"The report retains only the first {PreviewByteCount} of {Length} bytes; the remainder is unavailable.";
+                ? "此 Report 未保留完整 replay bytes；byte viewport 不可用。"
+                : "This report does not retain complete replay bytes; the byte viewport is unavailable.";
     }
 
     internal ReportHexDiffRangeDescriptor Descriptor { get; }
-
-    internal int SourceIndex => Descriptor.SourceIndex;
 
     /// <summary>Underlying report detail without Presentation-derived firmware meaning.</summary>
     public ReportLineViewModel Detail { get; }
@@ -71,17 +59,8 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>Application/report-owned modification reason.</summary>
     public string Reason => Detail.Reason;
 
-    /// <summary>Application/report-owned section label.</summary>
-    public string SectionLabel => Detail.SectionLabel;
-
-    /// <summary>Machine-readable report classification.</summary>
-    public string Classification => Detail.Classification;
-
     /// <summary>Localized expected/review label already projected from the report.</summary>
     public string Status => Detail.Badges.Count > 0 ? Detail.Badges[0].Text : string.Empty;
-
-    /// <summary>Readable half-open range summary.</summary>
-    public string RangeLabel => Detail.Range;
 
     /// <summary>Readable changed-byte count.</summary>
     public string ChangedSummary => Detail.ChangedSummary;
@@ -104,33 +83,21 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>True when a reviewer must inspect this range before release.</summary>
     public bool IsReviewRequired => !IsAccepted;
 
-    /// <summary>Typed report evidence id.</summary>
-    public string Evidence { get; }
+    /// <summary>True when persisted before/output bytes can reproduce this selected viewport.</summary>
+    public bool HasReplay => Replay is not null;
 
-    /// <summary>True when a typed evidence id was recorded.</summary>
-    public bool HasEvidence => !string.IsNullOrWhiteSpace(Evidence);
+    /// <summary>Honest replay availability for this report range.</summary>
+    public string ReplayCoverage { get; }
 
-    /// <summary>Reference-range SHA-256.</summary>
-    public string BeforeSha256 { get; }
-
-    /// <summary>Output-range SHA-256.</summary>
-    public string AfterSha256 { get; }
-
-    internal ReadOnlyMemory<byte> BeforePreview { get; }
-
-    internal ReadOnlyMemory<byte> AfterPreview { get; }
-
-    /// <summary>Number of comparable before/output preview bytes retained by the report.</summary>
-    public int PreviewByteCount { get; }
-
-    /// <summary>True when the report preview covers this entire difference range.</summary>
-    public bool IsPreviewComplete { get; }
-
-    /// <summary>Honest report-owned byte coverage for historical/CLI inspection.</summary>
-    public string PreviewCoverage { get; }
+    internal OutputDifferenceReplaySegment? Replay { get; }
 
     /// <summary>Address-space-qualified accessible range label.</summary>
     public string AccessibleRange { get; }
+
+    /// <summary>Compact half-open output range for the visual navigator card.</summary>
+    public string DisplayRange => string.Create(
+        CultureInfo.InvariantCulture,
+        $"[0x{Start:X6}, 0x{EndExclusive:X6})");
 
     /// <summary>Composite subject, verdict, range, and changed-count label for assistive navigation.</summary>
     public string AccessibleLabel { get; }
@@ -144,7 +111,7 @@ internal sealed class ReportHexDiffSource
 {
     private readonly ReportHexDiffRangeDescriptor[] _descriptors;
     private readonly int[] _addressOrder;
-    private readonly Func<int, ReportHexDiffRangeViewModel> _rowFactory;
+    private readonly MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel> _rows;
 
     internal static ReportHexDiffSource Empty { get; } = new(
         [],
@@ -162,7 +129,6 @@ internal sealed class ReportHexDiffSource
 
         _descriptors = [.. descriptors];
         OutputSpaceId = outputSpaceId;
-        _rowFactory = rowFactory;
         if (_descriptors.Where((descriptor, index) => descriptor.SourceIndex != index).Any())
         {
             throw new ArgumentException("Hex Diff descriptors must preserve report source order.", nameof(descriptors));
@@ -170,9 +136,10 @@ internal sealed class ReportHexDiffSource
 
         int[] reviewOrder = [.. Enumerable.Range(0, _descriptors.Length)];
         Array.Sort(reviewOrder, CompareReviewOrder);
-        NavigatorRows = new IndexedReadOnlyList<ReportHexDiffRangeViewModel>(
-            new FactoryReadOnlyList<ReportHexDiffRangeViewModel>(_descriptors.Length, _rowFactory),
-            reviewOrder);
+        _rows = new MemoizedIndexedReadOnlyList<ReportHexDiffRangeViewModel>(
+            _descriptors.Length,
+            rowFactory);
+        NavigatorRows = new IndexedReadOnlyList<ReportHexDiffRangeViewModel>(_rows, reviewOrder);
 
         _addressOrder = [.. Enumerable.Range(0, _descriptors.Length)];
         Array.Sort(_addressOrder, CompareAddressOrder);
@@ -183,6 +150,16 @@ internal sealed class ReportHexDiffSource
     internal string OutputSpaceId { get; }
 
     internal int Count => _descriptors.Length;
+
+    internal int MaterializedCount => _rows.MaterializedCount;
+
+    internal bool Contains(ReportHexDiffRangeViewModel range)
+    {
+        ArgumentNullException.ThrowIfNull(range);
+        int sourceIndex = range.Descriptor.SourceIndex;
+        return (uint)sourceIndex < (uint)_rows.Count &&
+            ReferenceEquals(_rows[sourceIndex], range);
+    }
 
     internal bool IsWithin(long byteLength)
     {
@@ -245,7 +222,7 @@ internal sealed class ReportHexDiffSource
             ReportHexDiffRangeDescriptor candidate = _descriptors[_addressOrder[prior]];
             if (offset < candidate.EndExclusive)
             {
-                return _rowFactory(candidate.SourceIndex);
+                return _rows[candidate.SourceIndex];
             }
         }
 
