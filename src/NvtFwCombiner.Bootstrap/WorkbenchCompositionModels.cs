@@ -95,80 +95,10 @@ public enum WorkbenchInputInspectionSeverity
     Blocking,
 }
 
-/// <summary>Typed corrective action for a workbench input diagnostic.</summary>
-public enum WorkbenchInputInspectionNextAction
-{
-    /// <summary>No action is required.</summary>
-    None,
-
-    /// <summary>Select a readable local BIN.</summary>
-    SelectReadableInput,
-
-    /// <summary>Select an input that reaches the compiled required end.</summary>
-    SelectCompatibleInput,
-
-    /// <summary>Review the ignored immutable source tail.</summary>
-    ReviewIgnoredTrailingBytes,
-
-    /// <summary>Review an unexpected but accepted outer length.</summary>
-    ReviewUnexpectedOuterLength,
-
-    /// <summary>Version metadata is informational; review the Unknown value.</summary>
-    ReviewUnknownVersion,
-}
-
-/// <summary>One stable input diagnostic used for deterministic severity aggregation.</summary>
-public sealed record WorkbenchInputInspectionIssue(
-    WorkbenchInputInspectionSeverity Severity,
-    string Code,
-    bool BlocksBuild,
-    WorkbenchInputInspectionNextAction NextAction);
-
-/// <summary>One explicit AB bank or TP version value shown without routing authority.</summary>
-public enum WorkbenchAbVersionKind
-{
-    /// <summary>DP bank 1 CMI value.</summary>
-    Dp1,
-
-    /// <summary>DP bank 2 CMI value.</summary>
-    Dp2,
-
-    /// <summary>TPA NVT Backup firmware value.</summary>
-    TpA,
-
-    /// <summary>TPB NVT Backup firmware value.</summary>
-    TpB,
-}
-
-/// <summary>One independently decoded AB version value.</summary>
-public sealed record WorkbenchAbVersionValue(
-    WorkbenchAbVersionKind Kind,
-    string Value,
-    string? JiraBadge,
-    bool IsUnknown);
-
-/// <summary>One immutable AB input inspection projected from the compiled contract and accepted prefix.</summary>
-public sealed record WorkbenchAbMergeInputInspection(
+/// <summary>Informational AB version facts decoded only from the canonical accepted source view.</summary>
+public sealed record WorkbenchAbMergeInputFacts(
     string AddressSpaceId,
-    long? ActualLength,
-    long RequiredEndExclusive,
-    IReadOnlyList<long> ExpectedOuterLengths,
-    ByteRange? IgnoredTrailingRange,
-    IReadOnlyList<WorkbenchInputInspectionIssue> Issues,
-    IReadOnlyList<WorkbenchAbVersionValue> Versions)
-{
-    /// <summary>Highest-priority deterministic issue.</summary>
-    public WorkbenchInputInspectionIssue PrimaryIssue => Issues
-        .OrderByDescending(static issue => issue.Severity)
-        .ThenBy(static issue => issue.Code, StringComparer.Ordinal)
-        .First();
-
-    /// <summary>True when the current selected source cannot be built.</summary>
-    public bool BlocksBuild => Issues.Any(static issue => issue.BlocksBuild);
-
-    /// <summary>Number of immutable source bytes excluded from execution.</summary>
-    public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
-}
+    IReadOnlyList<CompiledInputVersionObservation> Versions);
 
 /// <summary>One compiled built-in profile summary exposed without compiler-internal profile data.</summary>
 public sealed record WorkbenchProfileSummary(
@@ -268,7 +198,7 @@ public sealed record WorkbenchFirmwareInspection(
     public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
 
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
-    public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
+    public WorkbenchAbMergeInputFacts? AbMergeFacts { get; init; }
 
     /// <summary>Shared Application-owned terminal slot health for the current compiled input.</summary>
     public AuthoringInputSlotStatus? InputSlotStatus { get; init; }
@@ -299,6 +229,12 @@ public sealed record WorkbenchFirmwareInspectionInput(
     long AuthoringRevision = 1,
     string? StandardMergeAddressSpaceId = null);
 
+/// <summary>Canonical AB Merge authoring projection consumed by desktop and headless adapters.</summary>
+public sealed record WorkbenchAbMergeAuthoringSnapshot(
+    AuthoringCapabilityCatalogSnapshot Catalog,
+    IReadOnlyList<InputSelectionMemberReadiness> Slots,
+    IReadOnlyList<CompositionIssue> Issues);
+
 /// <summary>Canonical Standard Merge authoring projection consumed by desktop and headless adapters.</summary>
 public sealed record WorkbenchStandardMergeAuthoringSnapshot(
     AuthoringCapabilityCatalogSnapshot Catalog,
@@ -313,6 +249,21 @@ internal sealed record WorkbenchStandardMergeInspectionBatch(
 {
     internal static WorkbenchStandardMergeInspectionBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
+}
+
+/// <summary>One coherent AB Merge inspection batch mapped to workbench inspection ids.</summary>
+internal sealed record WorkbenchAbMergeInspectionBatch(
+    AuthoringCapabilityCatalogSnapshot? Catalog,
+    IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
+    IReadOnlyDictionary<string, WorkbenchAbMergeInputFacts> Facts,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    internal static WorkbenchAbMergeInspectionBatch Empty { get; } =
+        new(
+            null,
+            new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal),
+            new Dictionary<string, WorkbenchAbMergeInputFacts>(StringComparer.Ordinal),
+            []);
 }
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>

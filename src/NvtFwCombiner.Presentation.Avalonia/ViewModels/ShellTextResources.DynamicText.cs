@@ -3,6 +3,7 @@
 
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 
@@ -134,43 +135,15 @@ public sealed partial class ShellTextResources
         };
     }
 
-    public static string GetAbVersionLabel(WorkbenchAbVersionKind kind)
+    public static string GetAbVersionLabel(CompiledInputVersionKind kind)
     {
         return kind switch
         {
-            WorkbenchAbVersionKind.Dp1 => "DP1",
-            WorkbenchAbVersionKind.Dp2 => "DP2",
-            WorkbenchAbVersionKind.TpA => "TPA",
-            WorkbenchAbVersionKind.TpB => "TPB",
+            CompiledInputVersionKind.DpA => "DP1",
+            CompiledInputVersionKind.DpB => "DP2",
+            CompiledInputVersionKind.TpA => "TPA",
+            CompiledInputVersionKind.TpB => "TPB",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-        };
-    }
-
-    public string GetAbInputInspectionStatus(WorkbenchAbMergeInputInspection inspection)
-    {
-        ArgumentNullException.ThrowIfNull(inspection);
-        WorkbenchInputInspectionIssue issue = inspection.PrimaryIssue;
-        return issue.NextAction switch
-        {
-            WorkbenchInputInspectionNextAction.SelectReadableInput => SelectLanguage(
-                "Error: this BIN could not be read. Select a readable local file.",
-                "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),
-            WorkbenchInputInspectionNextAction.SelectCompatibleInput => SelectLanguage(
-                $"Error: {FormatInputLength(inspection.ActualLength ?? 0)} selected; at least {FormatInputLength(inspection.RequiredEndExclusive)} is required.",
-                $"錯誤：已選 {FormatInputLength(inspection.ActualLength ?? 0)}；至少需要 {FormatInputLength(inspection.RequiredEndExclusive)}。"),
-            WorkbenchInputInspectionNextAction.ReviewIgnoredTrailingBytes => SelectLanguage(
-                $"Warning: {FormatInputLength(inspection.IgnoredTrailingBytes)} trailing data is ignored; review before Build.",
-                $"警告：尾端 {FormatInputLength(inspection.IgnoredTrailingBytes)} 不會參與執行；Build 前請確認。"),
-            WorkbenchInputInspectionNextAction.ReviewUnexpectedOuterLength => SelectLanguage(
-                "Warning: the BIN has an unexpected accepted outer length; review before Build.",
-                "警告：BIN 的外部長度非預期但可接受；Build 前請確認。"),
-            WorkbenchInputInspectionNextAction.ReviewUnknownVersion => SelectLanguage(
-                "Warning: version metadata is Unknown; Build remains available.",
-                "警告：版本資訊為 Unknown；仍可執行 Build。"),
-            WorkbenchInputInspectionNextAction.None => SelectLanguage(
-                $"Ready: compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix verified.",
-                $"Ready：已驗證 compiled {FormatInputLength(inspection.RequiredEndExclusive)} input prefix。"),
-            _ => throw new InvalidOperationException($"Unsupported AB input next action '{issue.NextAction}'."),
         };
     }
 
@@ -185,6 +158,11 @@ public sealed partial class ShellTextResources
             AuthoringSlotLifecycle.Error => SelectLanguage(
                 "Error: the selected BIN does not satisfy the compiled input contract.",
                 "錯誤：所選 BIN 不符合 compiled input contract。"),
+            AuthoringSlotLifecycle.Warning when StringComparer.Ordinal.Equals(
+                status.InspectionIssueCode,
+                InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => SelectLanguage(
+                "Warning: version metadata is Unknown; Build remains available.",
+                "警告：版本資訊為 Unknown；仍可執行 Build。"),
             AuthoringSlotLifecycle.Warning => SelectLanguage(
                 $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
                 $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),

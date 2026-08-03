@@ -50,6 +50,9 @@ public static class InputArtifactInspectionIssueCodes
 
     /// <summary>The selected source could not be materialized for inspection.</summary>
     public const string SourceUnreadable = "input.inspection.source-unreadable";
+
+    /// <summary>An accepted AB input has no readable informational version metadata.</summary>
+    public const string AbVersionMetadataUnknown = "ab.input.version-unknown";
 }
 
 /// <summary>Immutable content identity for a full selected source or accepted execution snapshot.</summary>
