@@ -266,6 +266,19 @@ public sealed partial class ShellViewModelTests
         Assert.Same(range, report.HexDiff.SelectedRange);
 
         report.HexDiff.ShowOriginalRows = true;
+        report.HexDiff.RangeScrollRow = 0;
+        report.HexDiff.HandleViewportIntent(new HexViewportInteractionIntent(
+            HexViewportInteractionTrigger.MoveSelection,
+            Address: null,
+            Bounds: default,
+            Delta: HexViewportSnapshot.BytesPerRow * 4));
+
+        long keyboardSelection = Assert.IsType<long>(report.HexDiff.ViewportSnapshot.SelectedAddress);
+        Assert.True(report.HexDiff.RangeScrollRow > 0);
+        Assert.Contains(
+            report.HexDiff.ViewportSnapshot.Rows.SelectMany(static row => row.Cells),
+            cell => cell.Address == keyboardSelection);
+
         report.HexDiff.RangeScrollRow = int.MaxValue;
 
         Assert.Equal(6, report.HexDiff.ViewportSnapshot.Rows.Count);

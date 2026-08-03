@@ -151,6 +151,28 @@ public sealed class BinInspectorViewportAdapterTests
         Assert.Equal(0x28, inspector.ViewportSnapshot.SelectedAddress);
     }
 
+    /// <summary>Explicit selection retains the chosen semantic field when bit-slice fields share one byte.</summary>
+    [Fact]
+    public void ExplicitFieldSelectionRetainsAnOverlappingField()
+    {
+        FirmwareBinInspectionSnapshot snapshot = CreateSnapshot(
+            CreatePattern(0x100),
+            Structure(
+                "dpcmi",
+                0x20,
+                0x40,
+                Field("dp-minor", "DP minor", 0x10, 1),
+                Field("jira-high", "Jira high", 0x10, 1)));
+        var inspector = new BinInspectorViewModel(snapshot, ShellLanguage.English);
+        FormattedMetadataField jiraHigh = inspector.Fields.Single(static field => field.FieldId == "jira-high");
+
+        inspector.SelectedField = jiraHigh;
+
+        Assert.Same(jiraHigh, inspector.SelectedField);
+        Assert.Equal(0x30, inspector.ViewportSnapshot.SelectedAddress);
+        Assert.Contains("field Jira high", inspector.SelectedByteAccessibleLabel, StringComparison.Ordinal);
+    }
+
     private static FirmwareBinInspectionSnapshot CreateSnapshot(
         byte[] bytes,
         params FirmwareBinInspectionStructureFixture[] structures)

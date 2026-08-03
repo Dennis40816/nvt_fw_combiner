@@ -184,8 +184,10 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     {
         long selected = Math.Clamp(address, CurrentStart, CurrentEndExclusive - 1);
         _selectedAddress = selected;
-        FormattedMetadataField? containingField = Fields.FirstOrDefault(field =>
-            field.AddressedRange.Range.Contains(selected));
+        FormattedMetadataField? containingField = SelectedField is { } currentField &&
+            currentField.AddressedRange.Range.Contains(selected)
+                ? currentField
+                : Fields.FirstOrDefault(field => field.AddressedRange.Range.Contains(selected));
         if (!ReferenceEquals(containingField, SelectedField))
         {
             _isAddressSelection = true;

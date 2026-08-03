@@ -380,10 +380,11 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
                 return;
             }
 
-            int lastVisibleRow = RangeScrollRow + HexViewportCapabilityProfile.ReportDiff.InitialRows - 1;
+            int visibleRows = ReportHexDiffViewportAdapter.GetLogicalRowBudget(ShowOriginalRows);
+            int lastVisibleRow = RangeScrollRow + visibleRows - 1;
             if (targetRow > lastVisibleRow)
             {
-                RangeScrollRow = targetRow - HexViewportCapabilityProfile.ReportDiff.InitialRows + 1;
+                RangeScrollRow = targetRow - visibleRows + 1;
                 return;
             }
         }
