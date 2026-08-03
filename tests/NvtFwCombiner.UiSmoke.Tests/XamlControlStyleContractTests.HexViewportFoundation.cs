@@ -104,6 +104,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", host, StringComparison.Ordinal);
         Assert.Contains("InteractionCommand=\"{Binding ViewportInteractionCommand}\"", host, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.BinInspectorRangeScrollAutomationName}\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.BinInspectorResizeAutomationName}\"", host, StringComparison.Ordinal);
         Assert.Contains(
             "AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"",
             host,

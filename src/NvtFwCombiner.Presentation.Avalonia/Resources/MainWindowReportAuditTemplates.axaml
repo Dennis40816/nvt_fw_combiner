@@ -116,6 +116,7 @@
                     <ScrollBar
                         Grid.Column="1"
                         Width="14"
+                        AutomationProperties.Name="{Binding Text.HexDiffRangeScrollAutomationName}"
                         Maximum="{Binding LoadedReport.HexDiff.RangeScrollMaximum}"
                         Orientation="Vertical"
                         Value="{Binding LoadedReport.HexDiff.RangeScrollRow, Mode=TwoWay}" />

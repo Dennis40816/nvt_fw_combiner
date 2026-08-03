@@ -9,6 +9,10 @@ public sealed partial class ShellTextResources
 
     public string BinInspectorViewportTitle { get; private init; } = string.Empty;
 
+    public string BinInspectorRangeScrollAutomationName { get; private init; } = string.Empty;
+
+    public string BinInspectorResizeAutomationName { get; private init; } = string.Empty;
+
     public string BinInspectorStructuresTitle { get; private init; } = string.Empty;
 
     public string BinInspectorFieldsTitle { get; private init; } = string.Empty;

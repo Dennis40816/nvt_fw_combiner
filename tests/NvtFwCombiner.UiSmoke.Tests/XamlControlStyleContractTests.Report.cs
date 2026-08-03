@@ -130,6 +130,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("HexDiff.NavigatorPage", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("HexDiff.PinnedSelectedRange", audit, StringComparison.Ordinal);
         Assert.Contains("Maximum=\"{Binding LoadedReport.HexDiff.RangeScrollMaximum}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexDiffRangeScrollAutomationName}\"", audit, StringComparison.Ordinal);
         Assert.Contains("Value=\"{Binding LoadedReport.HexDiff.RangeScrollRow, Mode=TwoWay}\"", audit, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}\"", audit, StringComparison.Ordinal);
         Assert.Contains("Width=\"42\"", originalToggle, StringComparison.Ordinal);

@@ -24,6 +24,7 @@
             <ScrollBar
                 Grid.Column="1"
                 Width="14"
+                AutomationProperties.Name="{Binding Text.BinInspectorRangeScrollAutomationName}"
                 Maximum="{Binding RangeScrollMaximum}"
                 Orientation="Vertical"
                 Value="{Binding RangeScrollRow, Mode=TwoWay}" />
@@ -34,6 +35,7 @@
       <GridSplitter
           Grid.Column="1"
           Width="6"
+          AutomationProperties.Name="{Binding Text.BinInspectorResizeAutomationName}"
           HorizontalAlignment="Stretch"
           ResizeDirection="Columns" />
 
