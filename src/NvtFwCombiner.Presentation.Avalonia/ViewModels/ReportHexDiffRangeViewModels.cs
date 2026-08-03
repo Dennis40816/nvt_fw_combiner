@@ -94,6 +94,11 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
     /// <summary>Address-space-qualified accessible range label.</summary>
     public string AccessibleRange { get; }
 
+    /// <summary>Compact half-open output range for the visual navigator card.</summary>
+    public string DisplayRange => string.Create(
+        CultureInfo.InvariantCulture,
+        $"[0x{Start:X6}, 0x{EndExclusive:X6})");
+
     /// <summary>Composite subject, verdict, range, and changed-count label for assistive navigation.</summary>
     public string AccessibleLabel { get; }
 

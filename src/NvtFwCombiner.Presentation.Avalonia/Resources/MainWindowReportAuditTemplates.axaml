@@ -77,33 +77,35 @@
               <Border Classes="reportHexDiffViewport">
                 <Grid RowDefinitions="Auto,*">
                   <Border Padding="12,10" BorderBrush="{DynamicResource NfcBorderMutedBrush}" BorderThickness="0,0,0,1">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                      <StackPanel Spacing="3">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace4}">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                         <TextBlock Classes="panelTitle" Text="{Binding Text.HexDiffViewportTitle}" />
-                        <TextBlock Classes="captionText" Text="{Binding LoadedReport.HexDiff.AvailabilityDetail}" TextWrapping="Wrap" />
-                      </StackPanel>
-                      <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
-                        <Label Classes="compactBadge neutralBadge reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="7">
-                          <TextBlock
-                              VerticalAlignment="Center"
-                              Classes="fieldLabel"
-                              Text="{Binding Text.HexDiffShowOriginalRowsLabel}" />
-                          <ToggleSwitch
-                              Classes="reportHexDiffOriginalToggle"
-                              Width="42"
-                              MinHeight="24"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name="{Binding Text.HexDiffShowOriginalRowsLabel}"
-                              IsChecked="{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}"
-                              ToolTip.Tip="{Binding Text.HexDiffShowOriginalRowsLabel}" />
-                        </StackPanel>
+                        <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
+                      </Grid>
+                      <TextBlock
+                          Grid.Row="1"
+                          Classes="captionText"
+                          Text="{Binding LoadedReport.HexDiff.AvailabilityDetail}"
+                          TextWrapping="Wrap" />
+                      <StackPanel Grid.Row="2" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="7">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Classes="fieldLabel"
+                            Text="{Binding Text.HexDiffShowOriginalRowsLabel}" />
+                        <ToggleSwitch
+                            Classes="reportHexDiffOriginalToggle"
+                            Width="42"
+                            MinHeight="24"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{Binding Text.HexDiffShowOriginalRowsLabel}"
+                            IsChecked="{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}"
+                            ToolTip.Tip="{Binding Text.HexDiffShowOriginalRowsLabel}" />
                       </StackPanel>
                     </Grid>
                   </Border>
                   <Grid Grid.Row="1" MinHeight="0" Margin="10" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
                     <views:HexViewportControl
-                        MinHeight="300"
+                        MinHeight="0"
                         AutomationProperties.Name="{Binding Text.HexDiffViewportTitle}"
                         InteractionCommand="{Binding LoadedReport.HexDiff.ViewportInteractionCommand}"
                         Snapshot="{Binding LoadedReport.HexDiff.ViewportSnapshot}"
@@ -140,7 +142,13 @@
               <Border Grid.Column="2" Classes="compactSurface contentPanel">
                 <Grid MinHeight="0" RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
                   <StackPanel Spacing="3">
-                    <TextBlock Classes="panelTitle" Text="{Binding Text.HexDiffRangeNavigatorTitle}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+                      <TextBlock Classes="panelTitle" Text="{Binding Text.HexDiffRangeNavigatorTitle}" />
+                      <Label
+                          Grid.Column="1"
+                          Classes="compactBadge neutralBadge reportBadge"
+                          Content="{Binding LoadedReport.HexDiff.Ranges.Count}" />
+                    </Grid>
                     <TextBlock Classes="captionText" Text="{Binding Text.HexDiffRangeNavigatorDetail}" TextWrapping="Wrap" />
                   </StackPanel>
                   <ListBox

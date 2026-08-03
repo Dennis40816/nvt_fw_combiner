@@ -137,6 +137,8 @@ public sealed partial class ShellTextResources
 
     public string HexDiffSelectedRangeLabel { get; private init; } = string.Empty;
 
+    public string HexDiffWhyLabel { get; private init; } = string.Empty;
+
     public string RangeLabel { get; private init; } = string.Empty;
 
     public string ResultLabel { get; private init; } = string.Empty;

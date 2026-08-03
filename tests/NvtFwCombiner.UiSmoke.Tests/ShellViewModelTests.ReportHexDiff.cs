@@ -35,6 +35,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(selected.IsSelected);
         Assert.Contains("output-image", selected.AccessibleRange, StringComparison.Ordinal);
         Assert.Contains("half-open", selected.AccessibleRange, StringComparison.Ordinal);
+        Assert.Equal(
+            $"[0x{selected.Start:X6}, 0x{selected.EndExclusive:X6})",
+            selected.DisplayRange);
         HexViewportCell currentChangedCell = report.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
             .Single(cell => cell.Address == 0x100);
@@ -78,6 +81,21 @@ public sealed partial class ShellViewModelTests
         Assert.True(noDifferenceReport.HexDiff.IsAvailable);
         Assert.False(noDifferenceReport.HexDiff.HasDifferenceWorkspace);
         Assert.True(noDifferenceReport.HexDiff.HasNoViewportBytes);
+    }
+
+    /// <summary>The report navigator labels describe navigation, explanation, and mutation detail clearly.</summary>
+    [Fact]
+    public void ReportHexDiffNavigatorUsesClearLocalizedNavigationLanguage()
+    {
+        var english = ShellTextResources.For(ShellLanguage.English);
+        var traditionalChinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);
+
+        Assert.Equal("Viewing", english.HexDiffSelectedRangeLabel);
+        Assert.Equal("Why", english.HexDiffWhyLabel);
+        Assert.Equal("Mutation details", english.ChangedRangesTitle);
+        Assert.Equal("目前檢視", traditionalChinese.HexDiffSelectedRangeLabel);
+        Assert.Equal("原因", traditionalChinese.HexDiffWhyLabel);
+        Assert.Equal("異動明細", traditionalChinese.ChangedRangesTitle);
     }
 
     /// <summary>Unverified snapshots and invalid ranges never resurrect preview bytes as a trusted viewport.</summary>

@@ -106,31 +106,38 @@
     <StackPanel Spacing="{DynamicResource NfcSpace8}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
         <StackPanel Spacing="3">
-          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
-          <TextBlock Classes="technicalCaption" Text="{Binding AccessibleRange}" TextWrapping="Wrap" />
+          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
+          <TextBlock Classes="technicalCaption" Text="{Binding OutputSpaceId}" TextWrapping="Wrap" />
+          <TextBlock Classes="technicalCaption" Text="{Binding DisplayRange}" TextWrapping="Wrap" />
           <TextBlock Classes="captionText" Text="{Binding ChangedSummary}" />
         </StackPanel>
-        <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="3">
-          <Label
-              Classes="compactBadge neutralBadge reportBadge info"
-              Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
-              IsVisible="{Binding IsSelected}" />
-          <Label
-              Classes="compactBadge neutralBadge reportBadge success"
-              Classes.review="{Binding IsReviewRequired}"
-              Content="{Binding Status}" />
-        </StackPanel>
+        <Label
+            Grid.Column="1"
+            Classes="compactBadge neutralBadge reportBadge info"
+            Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
+            VerticalAlignment="Top"
+            IsVisible="{Binding IsSelected}" />
       </Grid>
-      <Grid
-          ColumnDefinitions="76,*"
-          RowDefinitions="Auto,Auto"
-          ColumnSpacing="{DynamicResource NfcSpace8}"
-          RowSpacing="6"
+      <Border
+          Padding="0,8,0,0"
+          BorderBrush="{DynamicResource NfcDividerBrush}"
+          BorderThickness="0,1,0,0"
           IsVisible="{Binding IsSelected}">
-        <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.PrimaryReasonLabel}" />
-        <TextBlock Grid.Column="1" Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
-        <TextBlock Grid.Row="1" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
-        <TextBlock Grid.Row="1" Grid.Column="1" Classes="bodyStrongText" Text="{Binding Status}" TextWrapping="Wrap" />
+        <StackPanel Spacing="{DynamicResource NfcSpace4}">
+          <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffWhyLabel}" />
+          <TextBlock Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+        <TextBlock
+            VerticalAlignment="Center"
+            Classes="tableHeader"
+            Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
+        <Label
+            Grid.Column="1"
+            Classes="compactBadge neutralBadge reportBadge success"
+            Classes.review="{Binding IsReviewRequired}"
+            Content="{Binding Status}" />
       </Grid>
     </StackPanel>
   </RadioButton>
