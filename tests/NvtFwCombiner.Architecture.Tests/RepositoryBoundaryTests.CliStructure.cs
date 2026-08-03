@@ -303,6 +303,7 @@ public sealed partial class RepositoryBoundaryTests
             [
                 "CliApplication.StandardMerge.cs",
                 "WorkbenchCompositionService.GeneralMerge.Profile.cs",
+                "WorkbenchCompositionService.StandardMerge.Authoring.cs",
                 "WorkbenchCompositionService.StandardMerge.Compilation.cs",
                 "WorkbenchCompositionService.StandardMerge.Display.cs",
                 "WorkbenchCompositionService.StandardMerge.Run.cs",
@@ -334,5 +335,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("new CompositionPlan", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("new CompositionOperation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("RunCompiledCompositionAsync", resolver, StringComparison.Ordinal);
+    }
+
+    /// <summary>Standard Merge hosts adapt compiler and bytes while Application owns readiness semantics.</summary>
+    [Fact]
+    public void StandardMergeReadinessSemanticsStayApplicationOwned()
+    {
+        string application = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
+        string authoringAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Authoring.cs");
+        string inspectionAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.InputInspection.cs");
+        string presentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.StandardMergeAuthoring.cs");
+
+        Assert.Contains("new InputSelectionMemberReadiness", application, StringComparison.Ordinal);
+        Assert.Contains("new InputSelectionNextAction", application, StringComparison.Ordinal);
+        foreach (string adapter in new[] { authoringAdapter, inspectionAdapter })
+        {
+            Assert.DoesNotContain("new InputSelectionMemberReadiness", adapter, StringComparison.Ordinal);
+            Assert.DoesNotContain("new InputSelectionNextAction", adapter, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("File.Exists", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileStandardMerge", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("new InputSelectionMemberReadiness", presentation, StringComparison.Ordinal);
     }
 }

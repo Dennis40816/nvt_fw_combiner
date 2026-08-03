@@ -1533,6 +1533,16 @@ to each `0.10.x` version.
     resolution token and capability fingerprint, the authoring revision, and a
     compiler-owned discovery slot while its compilation fingerprint remains
     absent. The discovery map cannot masquerade as the current compilation.
+    If one canonical publication still represents prerequisite-selected map
+    variants as separate reviewed exact capabilities, it publishes a typed
+    transition proof containing the discovery route/capability and the closed
+    allowed exact `RouteId`/`CapabilityFingerprint` member set under that same
+    `ResolutionToken`. Only a null-compilation discovery lease may use the
+    proof; an exact lease cannot cross members, and token reload, non-member,
+    wrong capability, partial batch, or swapped slot identity is stale without
+    partial publication. The proof is not another fingerprint and is retired
+    when canonical policy publishes those variants as one reviewed dynamic
+    capability.
     Unreadable prerequisites and compilation failures publish typed `Blocked`
     readiness with `CorrectSelection`; they do not publish `Checking` or
     terminal inspection health. `Checking` and every terminal inspection state

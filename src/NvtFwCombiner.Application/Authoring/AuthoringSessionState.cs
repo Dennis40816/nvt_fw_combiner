@@ -78,7 +78,12 @@ public sealed partial class AuthoringSessionState
                 StringComparer.Ordinal.Equals(
                     previous.SelectedRouteId,
                     route.Identity.RouteId);
+            bool sameCompilation = previous is not null &&
+                StringComparer.Ordinal.Equals(
+                    previous.CompilationFingerprint,
+                    route.CompilationFingerprint);
             if (sameSelection &&
+                sameCompilation &&
                 previous!.ResolutionToken == catalog.ResolutionToken)
             {
                 _catalog = catalog;
@@ -92,7 +97,7 @@ public sealed partial class AuthoringSessionState
                     route.CapabilityFingerprint);
             AuthoringRevision revision = previous is null
                 ? new AuthoringRevision(1)
-                : sameSelection && compatibleCapability
+                : sameSelection && compatibleCapability && sameCompilation
                     ? previous.AuthoringRevision
                     : previous.AuthoringRevision.Next();
             ActiveSessionSnapshot snapshot = CreateSnapshot(
@@ -354,7 +359,8 @@ public sealed partial class AuthoringSessionState
                 _current.Slots,
                 _current.DraftState,
                 _current.DraftCapabilityFingerprint,
-                publications);
+                publications,
+                _current.InputSlotStatuses);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringPublicationResult(true, null);
         }
@@ -474,7 +480,8 @@ public sealed partial class AuthoringSessionState
         IEnumerable<AuthoringSlotState> slots,
         AuthoringDraftState? draftState,
         string? draftCapabilityFingerprint,
-        IEnumerable<AuthoringDerivedPublication> publications)
+        IEnumerable<AuthoringDerivedPublication> publications,
+        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
     {
         return new ActiveSessionSnapshot(
             catalog.WorkflowId,
@@ -491,7 +498,9 @@ public sealed partial class AuthoringSessionState
             slots,
             draftState,
             draftCapabilityFingerprint,
-            publications);
+            publications,
+            route.CompilationFingerprint,
+            inputSlotStatuses);
     }
 
     private static ActiveSessionSnapshot CopySnapshot(
@@ -500,7 +509,8 @@ public sealed partial class AuthoringSessionState
         IEnumerable<AuthoringSlotState> slots,
         AuthoringDraftState? draftState,
         string? draftCapabilityFingerprint,
-        IEnumerable<AuthoringDerivedPublication> publications)
+        IEnumerable<AuthoringDerivedPublication> publications,
+        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
     {
         return new ActiveSessionSnapshot(
             current.WorkflowId,
@@ -517,7 +527,9 @@ public sealed partial class AuthoringSessionState
             slots,
             draftState,
             draftCapabilityFingerprint,
-            publications);
+            publications,
+            current.CompilationFingerprint,
+            inputSlotStatuses);
     }
 
     private static bool LeaseMatches(
@@ -534,6 +546,11 @@ public sealed partial class AuthoringSessionState
             !StringComparer.Ordinal.Equals(
                 lease.CapabilityFingerprint,
                 snapshot.CapabilityFingerprint) ||
+            (lease.CompilationFingerprint is not null &&
+                snapshot.CompilationFingerprint is not null &&
+                !StringComparer.Ordinal.Equals(
+                    lease.CompilationFingerprint,
+                    snapshot.CompilationFingerprint)) ||
             lease.Slots.Count != snapshot.Slots.Count)
         {
             return false;

@@ -250,7 +250,7 @@ public sealed record ResolvedCapability
 }
 
 /// <summary>One immutable published catalog projection.</summary>
-public sealed record CanonicalCapabilityCatalogSnapshot
+public sealed partial record CanonicalCapabilityCatalogSnapshot
 {
     private readonly ReadOnlyDictionary<string, ResolvedCapability> _byRouteId;
 

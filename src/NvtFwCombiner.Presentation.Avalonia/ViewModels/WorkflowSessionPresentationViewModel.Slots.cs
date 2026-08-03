@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class WorkflowSessionPresentationViewModel
@@ -51,6 +49,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
         if (page == ShellPage.Merge)
         {
+            _merge.ClearStandardMergeAuthoringSelections();
             foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
                          .Concat(_merge.AbMergeSlots)
                          .Concat([_merge.MergeDpSlot, _merge.MergeTpSlot, _merge.MergeLdcSlot])
@@ -101,6 +100,13 @@ public sealed partial class WorkflowSessionPresentationViewModel
             return null;
         }
 
+        if (_merge.IsNormalMergeModeSelected &&
+            _merge.IsStandardMergeSlot(slot) &&
+            !slot.CanSelectFile)
+        {
+            return null;
+        }
+
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         InvalidateFirmwareInspection(clearBaseCache: slot.SlotId == _replace.ReplaceBaseSlot.SlotId);
         InspectionSession.RemoveProjection(slot.SlotId);
@@ -115,7 +121,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         {
             _replace.ClearCtrlRamInspectionDisplay();
         }
-        else if (slot.SlotId == WorkbenchSlotIds.MergeDp ||
+        else if ((_merge.IsNormalMergeModeSelected && _merge.IsStandardMergeSlot(slot)) ||
             (_merge.IsAbCodeMergeModeSelected && _merge.AbMergeAddressSpaceBySlotId.ContainsKey(slot.SlotId)))
         {
             _merge.RefreshMergeMemoryMapState();
@@ -147,7 +153,8 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     private FirmwareSlotViewModel? FindSlot(string slotId)
     {
-        return _merge.MergeSlots.Concat(_replace.ReplaceSlots)
+        return _merge.MergeSlots.Concat(_merge.StandardMergeSlots)
+            .Concat(_replace.ReplaceSlots)
             .Concat([_replace.ReplaceBaseSlot])
             .FirstOrDefault(slot => string.Equals(slot.SlotId, slotId, StringComparison.Ordinal));
     }

@@ -272,6 +272,9 @@ public sealed record WorkbenchFirmwareInspection(
 
     /// <summary>Shared Application-owned terminal slot health for the current compiled input.</summary>
     public AuthoringInputSlotStatus? InputSlotStatus { get; init; }
+
+    /// <summary>Canonical catalog owning the attached coherent input-inspection batch.</summary>
+    public AuthoringCapabilityCatalogSnapshot? InputSlotCatalog { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -293,7 +296,24 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string? AbMergeAddressSpaceId = null,
     string? AbMergeTopologyToken = null,
     string? DpReplaceAddressSpaceId = null,
-    long AuthoringRevision = 1);
+    long AuthoringRevision = 1,
+    string? StandardMergeAddressSpaceId = null);
+
+/// <summary>Canonical Standard Merge authoring projection consumed by desktop and headless adapters.</summary>
+public sealed record WorkbenchStandardMergeAuthoringSnapshot(
+    AuthoringCapabilityCatalogSnapshot Catalog,
+    IReadOnlyList<InputSelectionMemberReadiness> Slots,
+    IReadOnlyList<CompositionIssue> Issues);
+
+/// <summary>One coherent Standard Merge inspection batch mapped to workbench inspection ids.</summary>
+internal sealed record WorkbenchStandardMergeInspectionBatch(
+    AuthoringCapabilityCatalogSnapshot? Catalog,
+    IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    internal static WorkbenchStandardMergeInspectionBatch Empty { get; } =
+        new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
+}
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(

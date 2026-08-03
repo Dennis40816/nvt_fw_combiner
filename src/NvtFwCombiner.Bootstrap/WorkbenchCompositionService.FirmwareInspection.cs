@@ -73,6 +73,8 @@ public static partial class WorkbenchCompositionService
 
         Dictionary<string, AuthoringInputSlotStatus> dpInputStatuses =
             InspectDpReplaceInputSlots(icId, inputs, ReadOnce);
+        WorkbenchStandardMergeInspectionBatch standardMergeInputBatch =
+            InspectStandardMergeInputSlots(icId, inputs, ReadOnce);
         List<WorkbenchFirmwareInspectionResult> results = [];
         foreach (WorkbenchFirmwareInspectionInput input in inputs)
         {
@@ -100,6 +102,17 @@ public static partial class WorkbenchCompositionService
                 inspection = inspection with
                 {
                     InputSlotStatus = status,
+                };
+            }
+
+            if (standardMergeInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? standardMergeStatus))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = standardMergeStatus,
+                    InputSlotCatalog = standardMergeInputBatch.Catalog,
                 };
             }
 

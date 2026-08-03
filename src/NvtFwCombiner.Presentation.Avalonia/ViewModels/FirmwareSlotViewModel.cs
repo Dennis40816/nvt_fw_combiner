@@ -91,7 +91,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
 
     /// <summary>True when the latest completed input inspection blocks Build.</summary>
-    public bool BlocksBuild => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
+    public bool BlocksBuild =>
+        InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking ||
+        SelectionReadinessState == ResolvedChildReadiness.Blocked;
 
     /// <summary>True while the selected source awaits a current inspection.</summary>
     public bool IsInputInspectionPending { get; private set; }
@@ -332,6 +334,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectionReadinessLabel));
         OnPropertyChanged(nameof(SelectionReadinessDetail));
         OnPropertyChanged(nameof(SelectionReadinessAutomationText));
+        OnPropertyChanged(nameof(BlocksBuild));
         NotifySemanticStateChanged();
     }
 

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -34,6 +35,12 @@ public sealed partial class WorkflowSessionPresentationViewModel
         if (context.IsDpReplace)
         {
             await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
+            return;
+        }
+
+        if (context.IsStandardMerge && _merge.IsStandardMergeSlot(slot))
+        {
+            await RefreshSelectedMergeFirmwareInspectionsAsync();
             return;
         }
 
@@ -76,7 +83,9 @@ public sealed partial class WorkflowSessionPresentationViewModel
             GetSelectedAbMergeTopologyToken(),
             WorkbenchSlotIds.MergeDp,
             WorkbenchSlotIds.MergeTp,
-            WorkbenchSlotIds.ReplaceBase);
+            WorkbenchSlotIds.ReplaceBase,
+            IsStandardMergeModeSelected,
+            [.. _merge.StandardMergeSlots.Select(static slot => slot.SlotId)]);
     }
 
     private async Task RunFirmwareInspectionAsync(
@@ -89,16 +98,22 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
 
         long generation = InspectionSession.NextGeneration();
+        AuthoringRevision authoringRevision = items.Any(static item =>
+            item.StandardMergeAddressSpaceId is not null)
+                ? _merge.StandardMergeAuthoringRevision
+                : InspectionSession.CurrentAuthoringRevision;
         var request = new FirmwareInspectionBatchRequest(
             generation,
-            InspectionSession.CurrentAuthoringRevision,
+            authoringRevision,
             SelectedIc,
             SelectedNumber,
             SelectedMergeMode,
             SelectedReplaceMode,
             items);
         foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null || item.DpReplaceAddressSpaceId is not null))
+                     item.AbMergeAddressSpaceId is not null ||
+                     item.DpReplaceAddressSpaceId is not null ||
+                     item.StandardMergeAddressSpaceId is not null))
         {
             FindSlot(item.SlotId)?.SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
         }
@@ -151,6 +166,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result)
     {
+        bool standardMergeAccepted =
+            !request.Items.Any(static item => item.StandardMergeAddressSpaceId is not null) ||
+            _merge.TryCompleteStandardMergeInputBatch(
+                request.Items,
+                result.InspectionsById);
         foreach (FirmwareInspectionItemRequest item in request.Items)
         {
             WorkbenchFirmwareInspection inspection = result.InspectionsById[item.SlotId];
@@ -189,7 +209,17 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
             if (inspection.InputSlotStatus is { } inputSlotStatus)
             {
-                FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
+                if (item.StandardMergeAddressSpaceId is not null &&
+                    !standardMergeAccepted)
+                {
+                    slot.SetInputInspection(
+                        WorkbenchInputInspectionSeverity.Blocking,
+                        Text.FirmwareInspectionStaleFileStatus);
+                }
+                else
+                {
+                    FirmwareInspectionProjection.ApplyInputSlotInspection(slot, inputSlotStatus, Text);
+                }
             }
 
             if (item.PromptForMismatch)
@@ -218,6 +248,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
             RefreshMergeMemoryMapState();
         }
 
+        if (request.Items.Any(static item => item.StandardMergeAddressSpaceId is not null))
+        {
+            _merge.RefreshStandardMergeAuthoringState();
+        }
+
         if (request.Items.Any(item =>
                 item.SlotId == WorkbenchSlotIds.ReplaceBase &&
                 string.Equals(SelectedReplaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)))
@@ -238,7 +273,11 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal Task RefreshSelectedMergeFirmwareInspectionsAsync()
     {
-        return RefreshSelectedFirmwareInspectionsAsync(MergeSlots, includeEverySelectedSlot: true);
+        return RefreshSelectedFirmwareInspectionsAsync(
+            IsStandardMergeModeSelected
+                ? _merge.CurrentStandardMergeInspectionSlots()
+                : MergeSlots,
+            includeEverySelectedSlot: true);
     }
 
     internal Task RefreshSelectedReplaceFirmwareInspectionsAsync(
@@ -270,6 +309,23 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     string.Equals(slot.SlotId, applyVerifiedContextSlotId, StringComparison.Ordinal)))
             .DistinctBy(static slot => slot.SlotId, StringComparer.Ordinal)
             .ToDictionary(static slot => slot.SlotId, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, AuthoringSlotInspectionLease> standardMergeLeases =
+            IsStandardMergeModeSelected
+                ? _merge.BeginStandardMergeSlotInspections(
+                    slots.Values.Where(_merge.IsStandardMergeSlot))
+                : new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
+        if (IsStandardMergeModeSelected)
+        {
+            foreach (string slotId in slots.Values
+                         .Where(_merge.IsStandardMergeSlot)
+                         .Where(slot => slot.AddressSpaceId is null ||
+                             !standardMergeLeases.ContainsKey(slot.AddressSpaceId))
+                         .Select(static slot => slot.SlotId)
+                         .ToArray())
+            {
+                _ = slots.Remove(slotId);
+            }
+        }
 
         IReadOnlyList<FirmwareInspectionItemRequest> items =
         [
@@ -279,11 +335,17 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     slot.SlotId,
                     applyVerifiedContextSlotId,
                     StringComparison.Ordinal);
-                return CreateFirmwareInspectionItem(
+                FirmwareInspectionItemRequest item = CreateFirmwareInspectionItem(
                     slot,
                     FirmwareInspectionRequestFactory.SupportsFacts(slot),
                     applyVerified,
                     applyVerified && slot.SlotKind is FirmwareSlotKind.Tp or FirmwareSlotKind.Base);
+                return item.StandardMergeAddressSpaceId is not null &&
+                    standardMergeLeases.TryGetValue(
+                        item.StandardMergeAddressSpaceId,
+                        out AuthoringSlotInspectionLease? lease)
+                            ? item with { StandardMergeInspectionLease = lease }
+                            : item;
             }),
         ];
         foreach (FirmwareSlotViewModel slot in slots.Values)

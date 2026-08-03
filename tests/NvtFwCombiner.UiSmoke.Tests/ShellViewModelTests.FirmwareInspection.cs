@@ -272,9 +272,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(replaceCoverage, viewModel.Replace.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel));
     }
 
-    /// <summary>A confirmed TP-derived Number update cannot replace profile-selected CtrlRAM slots with generic slots.</summary>
+    /// <summary>A hidden Standard Merge TP transition cannot replace profile-selected CtrlRAM context.</summary>
     [Fact]
-    public async Task MergeTpContextKeepsProfileSelectedCtrlRamSlots()
+    public async Task HiddenMergeTpContextKeepsProfileSelectedCtrlRamSlots()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-tp-context-ctrlram-slots");
@@ -306,10 +306,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
-        Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
-        viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
-
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Contains(
             viewModel.Replace.ReplaceSlots,
             slot => slot.Description.Contains("max 5728 B", StringComparison.Ordinal));
@@ -318,9 +315,9 @@ public sealed partial class ShellViewModelTests
             slot => slot.Description.Contains("max 5278 B", StringComparison.Ordinal));
     }
 
-    /// <summary>DP facts use the selected TP dependency regardless of file-selection order.</summary>
+    /// <summary>TP-first is rejected until DP resolves, then the admitted sequence publishes paired facts.</summary>
     [Fact]
-    public async Task MergeDpInspectionKeepsTpDependencyAcrossSelectionOrder()
+    public async Task MergeTpInspectionRequiresDpBeforePublishingPairedFacts()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement fixture = golden.CaseByIc("51950");
@@ -330,7 +327,9 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel tpFirst = ShellViewModelFactory.Create();
         tpFirst.WorkflowSession.SelectedIc = "NT51950";
         await tpFirst.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
+        Assert.False(tpFirst.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-tp").HasFile);
         await tpFirst.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
+        await tpFirst.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
         MainWindowViewModel dpFirst = ShellViewModelFactory.Create();
         dpFirst.WorkflowSession.SelectedIc = "NT51950";
@@ -356,9 +355,10 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task MergeTpSelectionUsesOneBatchAndDpCannotApplyVerifiedContext()
     {
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-paired-inspection");
-        string dpPath = workspace.Write("dp.bin", [0x01]);
-        string tpPath = workspace.Write("tp.bin", [0x02]);
+        using var golden = StandardMergeGoldenManifest.Load();
+        JsonElement fixture = golden.CaseByIc("51926");
+        string dpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("dp-input"));
+        string tpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("tp-input"));
         var batches = new List<WorkbenchFirmwareInspectionInput[]>();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         {
@@ -388,7 +388,7 @@ public sealed partial class ShellViewModelTests
         WorkbenchFirmwareInspectionInput[] pairedBatch = Assert.Single(
             batches,
             static batch => batch.Length == 2);
-        Assert.Equal(["merge-tp", "merge-dp"], pairedBatch.Select(static input => input.InspectionId));
+        Assert.Equal(["merge-dp", "merge-tp"], pairedBatch.Select(static input => input.InspectionId));
         Assert.Equal(tpPath, pairedBatch.Single(input => input.InspectionId == "merge-dp").TpPath);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
     }

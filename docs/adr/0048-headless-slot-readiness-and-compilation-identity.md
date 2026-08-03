@@ -108,6 +108,19 @@ compilation failure publishes typed `Blocked` readiness and `CorrectSelection`,
 not `Checking` or terminal inspection health. `Checking` and every terminal
 inspection state require a non-null exact `CompilationFingerprint`.
 
+When one current canonical publication temporarily retains several separately
+reviewed exact capabilities behind that prerequisite, the catalog also
+publishes one immutable `ReviewedDiscoveryTransition`. It binds the same
+`ResolutionToken`, workflow/IC/IC Count axes, discovery route and capability,
+compiler-owned prerequisite slot, and a closed sorted set of allowed exact
+`RouteId` plus `CapabilityFingerprint` members. A lease with a null compilation
+may resolve only to a member of that captured set; an already exact lease may
+not cross members. A reload, non-member, changed capability, or caller-created
+same-axis catalog is stale. This proof is transition authority, not a third
+fingerprint, and it does not permit Bootstrap or Presentation to infer members.
+It is deleted for a route set when canonical policy publishes the variants as
+one reviewed dynamic capability with one stable capability fingerprint.
+
 Worker generation and authoring revision are different lifetimes. Generation
 suppresses or cancels obsolete background work and may advance for a repeated
 refresh. Authoring revision advances only when authoring inputs change. The

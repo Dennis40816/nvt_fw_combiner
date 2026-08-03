@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -14,6 +15,11 @@ public sealed partial class MergePresentationViewModel
 
         IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         IReadOnlyList<string> available = WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(SelectedIc);
+        foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
+        {
+            slot.UsesSharedSlotPresentation = true;
+            slot.ApplyExperienceText(Text);
+        }
         MergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
         MergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
         MergeLdcSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal);
@@ -32,6 +38,8 @@ public sealed partial class MergePresentationViewModel
         {
             MergeSlots.Add(MergeLdcSlot);
         }
+
+        RefreshStandardMergeAuthoringState();
     }
 
     private void RefreshAbMergeSlots()
@@ -111,10 +119,29 @@ public sealed partial class MergePresentationViewModel
 
     private bool CanRunStandardMerge()
     {
-        IReadOnlyList<string> requiredAddressSpaces =
-            WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        return IsNormalMergeModeSelected && requiredAddressSpaces.Count > 0 && requiredAddressSpaces.All(addressSpace =>
-            MergeSlotForAddressSpace(addressSpace) is { HasFile: true });
+        ActiveSessionSnapshot? session = _authoringSessions.StandardMerge.CurrentSnapshot;
+        return IsNormalMergeModeSelected &&
+            session is not null &&
+            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc) &&
+            session.CompilationFingerprint is not null &&
+            session.DerivedPublications.Any(publication =>
+                publication.Kind == AuthoringDerivedResultKind.Inspection &&
+                StringComparer.Ordinal.Equals(
+                    publication.CompilationFingerprint,
+                    session.CompilationFingerprint)) &&
+            session.Slots.Count > 0 &&
+            session.Slots.All(static slot =>
+                slot.SelectedPath is not null &&
+                slot.FileStamp is not null &&
+                slot.Lifecycle is
+                    AuthoringSlotLifecycle.Verified or
+                    AuthoringSlotLifecycle.Warning) &&
+            session.InputSlotStatuses.Count == session.Slots.Count &&
+            session.InputSlotStatuses.All(status =>
+                status.IsTerminal &&
+                StringComparer.Ordinal.Equals(
+                    status.CompilationFingerprint,
+                    session.CompilationFingerprint));
     }
 
     private bool CanRunGeneralMerge()
@@ -159,14 +186,4 @@ public sealed partial class MergePresentationViewModel
             };
     }
 
-    private FirmwareSlotViewModel? MergeSlotForAddressSpace(string addressSpaceId)
-    {
-        return addressSpaceId switch
-        {
-            WorkbenchAddressSpaceIds.DpInput => MergeDpSlot,
-            WorkbenchAddressSpaceIds.TpInput => MergeTpSlot,
-            WorkbenchAddressSpaceIds.LdcInput => MergeLdcSlot,
-            _ => null,
-        };
-    }
 }

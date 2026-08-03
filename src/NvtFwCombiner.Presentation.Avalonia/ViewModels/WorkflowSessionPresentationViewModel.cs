@@ -59,6 +59,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
 
     private bool IsAbCodeMergeModeSelected => _merge.IsAbCodeMergeModeSelected;
 
+    private bool IsStandardMergeModeSelected => _merge.IsNormalMergeModeSelected;
+
     private string SelectedMergeMode => _merge.SelectedMergeMode;
 
     private string SelectedReplaceMode => _replace.SelectedReplaceMode;
@@ -140,7 +142,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
 
     private void RelocalizeInputInspection()
     {
-        foreach (FirmwareSlotViewModel slot in _merge.AbMergeSlots
+        foreach (FirmwareSlotViewModel slot in _merge.MergeSlots
+                     .Concat(_merge.AbMergeSlots)
                      .Concat(_replace.ReplaceSlots)
                      .Concat([_replace.ReplaceBaseSlot])
                      .Distinct())
