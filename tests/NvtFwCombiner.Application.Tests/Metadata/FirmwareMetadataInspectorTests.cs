@@ -80,6 +80,40 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Equal("3", major.Value);
     }
 
+    /// <summary>The formatter presents only entries and fields selected for its canonical purpose.</summary>
+    [Fact]
+    public void MetadataFormatterHonorsPurposeAndTypedTargetReferences()
+    {
+        DpcmiFixture fixture = CreateDpcmiFixture();
+        ResolvedMetadataPlan plan = new MetadataPlanDefinition(
+        [
+            CreateDpcmiEntry(
+                fixture,
+                bindingId: "formatting",
+                fieldIds: [DpcmiMetadataContract.MajorVersionFieldId],
+                purposes: [MetadataReferencePurpose.Formatting]),
+            CreateDpcmiEntry(
+                fixture,
+                bindingId: "output-naming",
+                purposes: [MetadataReferencePurpose.OutputNaming]),
+        ]).Resolve(new ResolutionToken("test-catalog:formatting"));
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            plan,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]);
+
+        FormattedMetadataStructure structure = Assert.Single(
+            FirmwareMetadataInspectionFormatter.Format(inspected).Structures);
+
+        Assert.Equal("formatting", structure.BindingId);
+        Assert.Equal(
+            DpcmiMetadataContract.MajorVersionFieldId,
+            Assert.Single(structure.Fields).FieldId);
+    }
+
     /// <summary>The BIN snapshot keeps one formatter root and rejects bytes with a different artifact identity.</summary>
     [Fact]
     public void BinInspectionSnapshotBindsFormatterTokenRevisionAndArtifactHash()
@@ -426,6 +460,7 @@ public sealed class FirmwareMetadataInspectorTests
                 MetadataReferencePurpose.OutputNaming,
                 MetadataReferencePurpose.Display,
                 MetadataReferencePurpose.Version,
+                MetadataReferencePurpose.Formatting,
             ]);
     }
 

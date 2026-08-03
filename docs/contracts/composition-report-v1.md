@@ -43,9 +43,17 @@ preview unavailable.
 Replay is local firmware-bearing report data. It inherits the report store's
 access, retention, deletion, and export boundary and must not be treated as a
 sanitized support attachment. It never persists the complete BIN merely for
-viewport navigation and never rereads source paths. Older workbench reports
-without `Replay`, including legacy rows with only truncated Hex previews,
-remain readable but report that Diff preview is unavailable.
+viewport navigation: when the aligned replay envelope would cover the complete
+artifact, `Replay` is omitted and Diff preview is explicitly unavailable. It
+never rereads source paths. Older workbench reports without `Replay`, including
+legacy rows with only truncated Hex previews, remain readable but report that
+Diff preview is unavailable.
+
+Readers accept `Replay` only when its range is the unique clipped, aligned
+two-row context envelope for the declared output size and changed range. The
+two replay-plane hashes, changed-range hashes, and observed changed-byte count
+must match the row; otherwise Diff preview fails closed without fabricating
+bytes.
 
 For an explicit General Replace Preview blocked by unavailable required
 POSTBUILD, that workbench projection may instead carry `DiagnosticPreview`,

@@ -119,6 +119,38 @@ public sealed class BinInspectorViewportAdapterTests
         Assert.Equal(0x300, inspector.SelectedField!.AddressedRange.Range.Start);
     }
 
+    /// <summary>Direct byte navigation synchronizes the semantic field without snapping away from the chosen byte.</summary>
+    [Fact]
+    public void ByteSelectionSynchronizesTheContainingField()
+    {
+        FirmwareBinInspectionSnapshot snapshot = CreateSnapshot(
+            CreatePattern(0x100),
+            Structure(
+                "header",
+                0x20,
+                0x40,
+                Field("first", "First", 0, 2),
+                Field("second", "Second", 0x10, 4)));
+        var inspector = new BinInspectorViewModel(snapshot, ShellLanguage.English);
+        FormattedMetadataField second = inspector.Fields.Single(static field => field.FieldId == "second");
+
+        inspector.HandleViewportIntent(new HexViewportInteractionIntent(
+            HexViewportInteractionTrigger.Select,
+            0x32,
+            default));
+
+        Assert.Same(second, inspector.SelectedField);
+        Assert.Equal(0x32, inspector.ViewportSnapshot.SelectedAddress);
+
+        inspector.HandleViewportIntent(new HexViewportInteractionIntent(
+            HexViewportInteractionTrigger.Select,
+            0x28,
+            default));
+
+        Assert.Null(inspector.SelectedField);
+        Assert.Equal(0x28, inspector.ViewportSnapshot.SelectedAddress);
+    }
+
     private static FirmwareBinInspectionSnapshot CreateSnapshot(
         byte[] bytes,
         params FirmwareBinInspectionStructureFixture[] structures)

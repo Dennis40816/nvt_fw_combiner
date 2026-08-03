@@ -129,6 +129,8 @@ public sealed partial class ShellTextResources
 
     public string HexDiffShowOriginalRowsLabel { get; private init; } = string.Empty;
 
+    public string HexDiffOriginalRowLabel { get; private init; } = string.Empty;
+
     public string HexDiffRangeNavigatorTitle { get; private init; } = string.Empty;
 
     public string HexDiffRangeNavigatorDetail { get; private init; } = string.Empty;

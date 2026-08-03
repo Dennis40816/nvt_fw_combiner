@@ -55,7 +55,11 @@ public sealed class OutputDifferenceSummary
                 nameof(replay));
         }
 
-        if (replay is not null && !replay.MatchesDifferenceEvidence(range, beforeSha256, afterSha256))
+        if (replay is not null && !replay.MatchesDifferenceEvidence(
+                range,
+                changedByteCount,
+                beforeSha256,
+                afterSha256))
         {
             throw new ArgumentException(
                 "Replay bytes must match the output-difference evidence hashes.",

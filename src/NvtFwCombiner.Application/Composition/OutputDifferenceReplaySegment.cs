@@ -75,6 +75,21 @@ public sealed class OutputDifferenceReplaySegment
             afterSha256);
     }
 
+    /// <summary>Checks the changed-byte count and evidence hashes for one complete changed range.</summary>
+    public bool MatchesDifferenceEvidence(
+        long differenceStart,
+        long differenceLength,
+        long changedByteCount,
+        string beforeSha256,
+        string afterSha256)
+    {
+        return MatchesDifferenceEvidence(
+            new ByteRange(differenceStart, differenceLength),
+            changedByteCount,
+            beforeSha256,
+            afterSha256);
+    }
+
     /// <summary>Checks that the complete changed range still matches its report evidence hashes.</summary>
     public bool MatchesDifferenceEvidence(
         ByteRange differenceRange,
@@ -100,6 +115,73 @@ public sealed class OutputDifferenceReplaySegment
                 StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Checks the changed-byte count and evidence hashes for one complete changed range.</summary>
+    public bool MatchesDifferenceEvidence(
+        ByteRange differenceRange,
+        long changedByteCount,
+        string beforeSha256,
+        string afterSha256)
+    {
+        if (changedByteCount <= 0 || changedByteCount > differenceRange.Length ||
+            !Range.Contains(differenceRange))
+        {
+            return false;
+        }
+
+        int offset = checked((int)(differenceRange.Start - Range.Start));
+        int length = checked((int)differenceRange.Length);
+        ReadOnlySpan<byte> before = _beforeBytes.AsSpan(offset, length);
+        ReadOnlySpan<byte> after = _afterBytes.AsSpan(offset, length);
+        long observedChangedByteCount = 0;
+        for (int index = 0; index < length; index++)
+        {
+            if (before[index] != after[index])
+            {
+                observedChangedByteCount++;
+            }
+        }
+
+        return observedChangedByteCount == changedByteCount &&
+            MatchesDifferenceEvidence(differenceRange, beforeSha256, afterSha256);
+    }
+
+    /// <summary>
+    /// Checks that persisted replay uses the unique aligned context envelope and does not retain the complete artifact.
+    /// </summary>
+    public bool MatchesPersistableAlignedContext(
+        long artifactLength,
+        long differenceStart,
+        long differenceLength)
+    {
+        try
+        {
+            return MatchesPersistableAlignedContext(
+                artifactLength,
+                new ByteRange(differenceStart, differenceLength));
+        }
+        catch (Exception exception) when (exception is ArgumentException or OverflowException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Checks that persisted replay uses the unique aligned context envelope and does not retain the complete artifact.
+    /// </summary>
+    public bool MatchesPersistableAlignedContext(long artifactLength, ByteRange differenceRange)
+    {
+        try
+        {
+            ByteRange expectedRange = CalculateAlignedContextRange(artifactLength, differenceRange);
+            return (expectedRange.Start != 0 || expectedRange.EndExclusive != artifactLength) &&
+                Range == expectedRange;
+        }
+        catch (Exception exception) when (exception is ArgumentException or OverflowException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Captures a complete difference plus two aligned 16-byte context rows on each side.</summary>
     public static OutputDifferenceReplaySegment CreateWithAlignedContext(
         ReadOnlyMemory<byte> beforeBytes,
@@ -119,12 +201,60 @@ public sealed class OutputDifferenceReplaySegment
         ReadOnlyMemory<byte> afterBytes,
         ByteRange differenceRange)
     {
+        return CreateWithAlignedContextCore(
+            beforeBytes,
+            afterBytes,
+            differenceRange,
+            suppressCompleteArtifact: false)!;
+    }
+
+    /// <summary>
+    /// Captures aligned context for report persistence, or returns null rather than retaining a complete artifact.
+    /// </summary>
+    public static OutputDifferenceReplaySegment? CreatePersistableWithAlignedContext(
+        ReadOnlyMemory<byte> beforeBytes,
+        ReadOnlyMemory<byte> afterBytes,
+        ByteRange differenceRange)
+    {
+        return CreateWithAlignedContextCore(
+            beforeBytes,
+            afterBytes,
+            differenceRange,
+            suppressCompleteArtifact: true);
+    }
+
+    private static OutputDifferenceReplaySegment? CreateWithAlignedContextCore(
+        ReadOnlyMemory<byte> beforeBytes,
+        ReadOnlyMemory<byte> afterBytes,
+        ByteRange differenceRange,
+        bool suppressCompleteArtifact)
+    {
         if (beforeBytes.Length != afterBytes.Length)
         {
             throw new ArgumentException("Output-difference replay byte planes must have equal lengths.");
         }
 
-        if (differenceRange.EndExclusive > beforeBytes.Length)
+        ByteRange replayRange = CalculateAlignedContextRange(beforeBytes.Length, differenceRange);
+        if (suppressCompleteArtifact &&
+            replayRange.Start == 0 && replayRange.EndExclusive == beforeBytes.Length)
+        {
+            return null;
+        }
+
+        int start = checked((int)replayRange.Start);
+        int length = checked((int)replayRange.Length);
+        return new OutputDifferenceReplaySegment(
+            replayRange,
+            beforeBytes.Slice(start, length),
+            afterBytes.Slice(start, length));
+    }
+
+    private static ByteRange CalculateAlignedContextRange(
+        long artifactLength,
+        ByteRange differenceRange)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(artifactLength);
+        if (differenceRange.EndExclusive > artifactLength)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(differenceRange),
@@ -137,15 +267,9 @@ public sealed class OutputDifferenceReplaySegment
         long alignedEnd = checked(
             (differenceRange.EndExclusive + BytesPerRow - 1) / BytesPerRow * BytesPerRow);
         long replayEnd = Math.Min(
-            beforeBytes.Length,
-            alignedEnd + (BytesPerRow * ContextRowCount));
-        var replayRange = ByteRange.FromStartEndExclusive(replayStart, replayEnd);
-        int start = checked((int)replayRange.Start);
-        int length = checked((int)replayRange.Length);
-        return new OutputDifferenceReplaySegment(
-            replayRange,
-            beforeBytes.Slice(start, length),
-            afterBytes.Slice(start, length));
+            artifactLength,
+            checked(alignedEnd + (BytesPerRow * ContextRowCount)));
+        return ByteRange.FromStartEndExclusive(replayStart, replayEnd);
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

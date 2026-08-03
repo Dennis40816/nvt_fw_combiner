@@ -36,7 +36,7 @@ internal static class ReportHexDiffViewportAdapter
         int totalRows = checked((int)(
             (replay.Range.Length + HexViewportSnapshot.BytesPerRow - 1) /
             HexViewportSnapshot.BytesPerRow));
-        int visibleRows = Math.Min(HexViewportCapabilityProfile.ReportDiff.InitialRows, totalRows);
+        int visibleRows = Math.Min(GetLogicalRowBudget(showOriginalRows), totalRows);
         int maximumStartRow = Math.Max(0, totalRows - visibleRows);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(firstReplayRow, maximumStartRow);
 
@@ -87,5 +87,11 @@ internal static class ReportHexDiffViewportAdapter
             selectedAddress,
             showComparisonRows: showOriginalRows,
             decorationVersion: 0);
+    }
+
+    internal static int GetLogicalRowBudget(bool showOriginalRows)
+    {
+        int physicalRowBudget = HexViewportCapabilityProfile.ReportDiff.InitialRows;
+        return showOriginalRows ? Math.Max(1, physicalRowBudget / 2) : physicalRowBudget;
     }
 }

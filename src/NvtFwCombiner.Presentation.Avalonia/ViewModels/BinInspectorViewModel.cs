@@ -12,6 +12,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     private readonly RelayCommand<FirmwareBinInspectionStructure> _selectStructureCommand;
     private readonly RelayCommand<FormattedMetadataField> _selectFieldCommand;
     private readonly RelayCommand<HexViewportInteractionIntent> _viewportInteractionCommand;
+    private bool _isAddressSelection;
     private bool _isStructureTransition;
     private long? _selectedAddress;
 
@@ -183,6 +184,21 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     {
         long selected = Math.Clamp(address, CurrentStart, CurrentEndExclusive - 1);
         _selectedAddress = selected;
+        FormattedMetadataField? containingField = Fields.FirstOrDefault(field =>
+            field.AddressedRange.Range.Contains(selected));
+        if (!ReferenceEquals(containingField, SelectedField))
+        {
+            _isAddressSelection = true;
+            try
+            {
+                SelectedField = containingField;
+            }
+            finally
+            {
+                _isAddressSelection = false;
+            }
+        }
+
         if (ensureVisible)
         {
             int targetRow = checked((int)((selected - CurrentStart) /
@@ -280,7 +296,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
 
     partial void OnSelectedFieldChanged(FormattedMetadataField? value)
     {
-        if (value is not null)
+        if (value is not null && !_isAddressSelection)
         {
             SelectAddress(value.AddressedRange.Range.Start, ensureVisible: true);
         }

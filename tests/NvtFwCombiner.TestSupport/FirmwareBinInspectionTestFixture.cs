@@ -93,7 +93,7 @@ public static class FirmwareBinInspectionTestFixture
                 metadataBinding,
                 structures[index],
                 fixture.Fields.Select(static field => field.FieldId),
-                [MetadataReferencePurpose.Display])));
+                [MetadataReferencePurpose.Display, MetadataReferencePurpose.Formatting])));
         ResolvedMetadataPlan plan = planDefinition.Resolve(new ResolutionToken("test-bin-catalog:1"));
         MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
             new MetadataInspectionRequest(

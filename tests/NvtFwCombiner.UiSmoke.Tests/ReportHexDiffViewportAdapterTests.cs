@@ -1,7 +1,9 @@
+using Avalonia;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -73,5 +75,20 @@ public sealed class ReportHexDiffViewportAdapterTests
         Assert.All(
             snapshot.Rows.SelectMany(static row => row.Cells).Where(static cell => cell.IsDataChanged),
             cell => Assert.True(range.Contains(cell.Address)));
+
+        HexViewportSnapshot comparisonSnapshot = ReportHexDiffViewportAdapter.Create(
+            "output-image",
+            before.Length,
+            range.Start,
+            range.Length,
+            replay,
+            firstReplayRow: 12,
+            selectedAddress: 0x140,
+            showOriginalRows: true);
+        var control = new HexViewportControl { Snapshot = comparisonSnapshot };
+        control.Measure(new Size(1_080, 300));
+
+        Assert.Equal(HexViewportCapabilityProfile.ReportDiff.InitialRows / 2, comparisonSnapshot.Rows.Count);
+        Assert.True(control.DesiredSize.Height <= 300);
     }
 }

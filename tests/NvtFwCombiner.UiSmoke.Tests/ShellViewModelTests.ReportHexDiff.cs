@@ -1,5 +1,7 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Avalonia.Controls;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -54,7 +56,7 @@ public sealed partial class ShellViewModelTests
         ReportHexDiffRangeViewModel reopenedRange = Assert.IsType<ReportHexDiffRangeViewModel>(
             reopened.HexDiff.SelectedRange);
         Assert.True(reopenedRange.HasReplay);
-        Assert.Contains("two context rows", reopenedRange.ReplayCoverage, StringComparison.Ordinal);
+        Assert.Contains("up to two aligned context rows", reopenedRange.ReplayCoverage, StringComparison.Ordinal);
         HexViewportCell reopenedChangedCell = reopened.HexDiff.ViewportSnapshot.Rows
             .SelectMany(static row => row.Cells)
             .Single(cell => cell.Address == 0x100);
@@ -175,7 +177,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(report.HexDiff.IsReportedRangeMode);
         ReportHexDiffRangeViewModel range = Assert.IsType<ReportHexDiffRangeViewModel>(report.HexDiff.SelectedRange);
         Assert.False(range.HasReplay);
-        Assert.Contains("legacy report", range.ReplayCoverage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not retain complete replay bytes", range.ReplayCoverage, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("unavailable", report.HexDiff.AvailabilityDetail, StringComparison.OrdinalIgnoreCase);
         Assert.Empty(report.HexDiff.ViewportSnapshot.Rows);
     }
@@ -207,7 +209,36 @@ public sealed partial class ShellViewModelTests
         }
     }
 
-    /// <summary>Long persisted ranges scroll only inside their replay segment and retain a 12-row window.</summary>
+    /// <summary>Replay must keep the canonical aligned envelope and its observed changed-byte count.</summary>
+    [Fact]
+    public async Task ReportHexDiffRejectsNonCanonicalReplayEvidence()
+    {
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
+        JsonNode shortenedRoot = JsonNode.Parse(result.ReportJson)!;
+        JsonNode shortenedDifference = shortenedRoot["OutputDifferences"]!.AsArray()[0]!;
+        JsonNode shortenedReplay = shortenedDifference["Replay"]!;
+        byte[] before = Convert.FromBase64String(shortenedReplay["BeforeBytes"]!.GetValue<string>())[16..];
+        byte[] after = Convert.FromBase64String(shortenedReplay["AfterBytes"]!.GetValue<string>())[16..];
+        JsonNode range = shortenedReplay["Range"]!;
+        range["Start"] = range["Start"]!.GetValue<long>() + 16;
+        range["Length"] = range["Length"]!.GetValue<long>() - 16;
+        shortenedReplay["BeforeBytes"] = Convert.ToBase64String(before);
+        shortenedReplay["AfterBytes"] = Convert.ToBase64String(after);
+        shortenedReplay["BeforeSha256"] = Convert.ToHexStringLower(SHA256.HashData(before));
+        shortenedReplay["AfterSha256"] = Convert.ToHexStringLower(SHA256.HashData(after));
+
+        var shortened = ReportReviewViewModel.FromJson(shortenedRoot.ToJsonString(), "shortened replay");
+
+        Assert.False(shortened.HexDiff.IsAvailable);
+
+        JsonNode countRoot = JsonNode.Parse(result.ReportJson)!;
+        countRoot["OutputDifferences"]!.AsArray()[0]!["ChangedByteCount"] = 1;
+        var wrongCount = ReportReviewViewModel.FromJson(countRoot.ToJsonString(), "wrong changed count");
+
+        Assert.False(wrongCount.HexDiff.IsAvailable);
+    }
+
+    /// <summary>Long persisted ranges scroll inside their replay segment with a bounded physical-row window.</summary>
     [Fact]
     public async Task ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
     {
@@ -233,6 +264,14 @@ public sealed partial class ShellViewModelTests
             Delta: -3));
         Assert.Equal(maximum - 3, report.HexDiff.RangeScrollRow);
         Assert.Same(range, report.HexDiff.SelectedRange);
+
+        report.HexDiff.ShowOriginalRows = true;
+        report.HexDiff.RangeScrollRow = int.MaxValue;
+
+        Assert.Equal(6, report.HexDiff.ViewportSnapshot.Rows.Count);
+        Assert.Equal(
+            range.Replay.Range.EndExclusive - 1,
+            report.HexDiff.ViewportSnapshot.Rows[^1].Cells[^1].Address);
     }
 
     /// <summary>A 10,000-range report exposes lazy rows for a virtualized semantic navigator.</summary>
@@ -261,6 +300,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(10_000, report.HexDiff.Ranges.Count);
         Assert.Equal(1, report.HexDiff.MaterializedRangeCount);
         Assert.InRange(report.HexDiff.ViewportSnapshot.Rows.Count, 1, 12);
+        ItemsSourceView avaloniaItems = ItemsSourceView.GetOrCreate(report.HexDiff.Ranges);
+        Assert.Equal(10_000, avaloniaItems.Count);
+        Assert.Equal(1, report.HexDiff.MaterializedRangeCount);
         ReportHexDiffRangeViewModel first = report.HexDiff.Ranges[0];
         Assert.Same(first, report.HexDiff.SelectedRange);
 

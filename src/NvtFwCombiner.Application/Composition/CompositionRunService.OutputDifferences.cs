@@ -83,7 +83,7 @@ public sealed partial class CompositionRunService
                     checked((int)Math.Min(segment.Length, OutputDifferenceHexPreviewBytes)),
                     segment.Length <= OutputDifferenceHexPreviewBytes,
                     semantic,
-                    OutputDifferenceReplaySegment.CreateWithAlignedContext(
+                    OutputDifferenceReplaySegment.CreatePersistableWithAlignedContext(
                         referenceBytes,
                         outputBytes,
                         segment)));

@@ -22,6 +22,17 @@ internal sealed class MemoizedIndexedReadOnlyList<T> : IReadOnlyList<T>
 
     internal int MaterializedCount => Volatile.Read(ref _materializedCount);
 
+    internal bool HasMaterializedReference(int index, object? value)
+    {
+        if ((uint)index >= (uint)_items.Length)
+        {
+            return false;
+        }
+
+        Lazy<T>? item = Volatile.Read(ref _items[index]);
+        return item is { IsValueCreated: true } && ReferenceEquals(item.Value, value);
+    }
+
     public T this[int index]
     {
         get
@@ -115,8 +126,10 @@ internal sealed class ObjectReadOnlyList<T>(IReadOnlyList<T> items) : IReadOnlyL
 }
 
 /// <summary>Read-only ordered view over selected indices from a shared report row projection.</summary>
-internal sealed class IndexedReadOnlyList<T> : IReadOnlyList<T>
+internal sealed class IndexedReadOnlyList<T> : IReadOnlyList<T>, IList
+    where T : class
 {
+    private const string ReadOnlyMessage = "The indexed report projection is read-only.";
     private readonly IReadOnlyList<T> _source;
     private readonly int[] _indices;
 
@@ -135,6 +148,76 @@ internal sealed class IndexedReadOnlyList<T> : IReadOnlyList<T>
     public int Count => _indices.Length;
 
     public T this[int index] => _source[_indices[index]];
+
+    object? IList.this[int index]
+    {
+        get => this[index];
+        set => throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    bool IList.IsFixedSize => true;
+
+    bool IList.IsReadOnly => true;
+
+    bool ICollection.IsSynchronized => false;
+
+    object ICollection.SyncRoot => this;
+
+    int IList.Add(object? value)
+    {
+        throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    void IList.Clear()
+    {
+        throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    bool IList.Contains(object? value)
+    {
+        return ((IList)this).IndexOf(value) >= 0;
+    }
+
+    int IList.IndexOf(object? value)
+    {
+        for (int index = 0; index < _indices.Length; index++)
+        {
+            int sourceIndex = _indices[index];
+            bool matches = _source is MemoizedIndexedReadOnlyList<T> memoized
+                ? memoized.HasMaterializedReference(sourceIndex, value)
+                : Equals(_source[sourceIndex], value);
+            if (matches)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    void IList.Insert(int index, object? value)
+    {
+        throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    void IList.Remove(object? value)
+    {
+        throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    void IList.RemoveAt(int index)
+    {
+        throw new NotSupportedException(ReadOnlyMessage);
+    }
+
+    void ICollection.CopyTo(Array array, int index)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        for (int sourceIndex = 0; sourceIndex < Count; sourceIndex++)
+        {
+            array.SetValue(this[sourceIndex], checked(index + sourceIndex));
+        }
+    }
 
     public IEnumerator<T> GetEnumerator()
     {

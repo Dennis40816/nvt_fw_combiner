@@ -122,6 +122,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("MinHeight=\"0\"", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("MinHeight=\"300\"", audit, StringComparison.Ordinal);
         Assert.Contains("Snapshot=\"{Binding LoadedReport.HexDiff.ViewportSnapshot}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("ComparisonRowLabel=\"{Binding Text.HexDiffOriginalRowLabel}\"", audit, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.Ranges}\"", audit, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding LoadedReport.HexDiff.Ranges.Count}\"", audit, StringComparison.Ordinal);
         Assert.Contains("<VirtualizingStackPanel", audit, StringComparison.Ordinal);

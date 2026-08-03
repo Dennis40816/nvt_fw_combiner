@@ -247,7 +247,7 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         _activeReplay = CreateReplay(SelectedRange);
         _rangeScrollRow = 0;
         _selectedByteAddress = SelectedRange?.Start;
-        RangeScrollMaximum = CalculateRangeScrollMaximum(_activeReplay);
+        RangeScrollMaximum = CalculateRangeScrollMaximum(_activeReplay, ShowOriginalRows);
         RefreshAvailability();
         PublishViewport();
         OnPropertyChanged(nameof(RangeScrollRow));
@@ -273,7 +273,9 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
                     : null;
     }
 
-    private static int CalculateRangeScrollMaximum(OutputDifferenceReplaySegment? replay)
+    private static int CalculateRangeScrollMaximum(
+        OutputDifferenceReplaySegment? replay,
+        bool showOriginalRows)
     {
         if (replay is null)
         {
@@ -283,7 +285,9 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         int totalRows = checked((int)(
             (replay.Range.Length + HexViewportSnapshot.BytesPerRow - 1) /
             HexViewportSnapshot.BytesPerRow));
-        return Math.Max(0, totalRows - HexViewportCapabilityProfile.ReportDiff.InitialRows);
+        return Math.Max(
+            0,
+            totalRows - ReportHexDiffViewportAdapter.GetLogicalRowBudget(showOriginalRows));
     }
 
     private void RefreshAvailability()
@@ -412,6 +416,15 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
 
     partial void OnShowOriginalRowsChanged(bool value)
     {
+        RangeScrollMaximum = CalculateRangeScrollMaximum(_activeReplay, value);
+        int nextRow = Math.Min(_rangeScrollRow, RangeScrollMaximum);
+        if (nextRow != _rangeScrollRow)
+        {
+            _rangeScrollRow = nextRow;
+            OnPropertyChanged(nameof(RangeScrollRow));
+        }
+
+        OnPropertyChanged(nameof(RangeScrollMaximum));
         PublishViewport();
     }
 

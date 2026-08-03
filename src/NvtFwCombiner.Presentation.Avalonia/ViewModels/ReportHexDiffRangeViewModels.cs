@@ -41,11 +41,11 @@ public sealed partial class ReportHexDiffRangeViewModel : ObservableObject
         Replay = replay;
         ReplayCoverage = replay is not null
             ? language == ShellLanguage.ChineseTraditional
-                ? "Report 已保留完整變更區段與前後各兩列 context，可重現此 viewport。"
-                : "The report retains the complete changed range and two context rows on each side."
+                ? "Report 已保留完整變更區段與前後最多各兩列對齊 context，可重現此 viewport。"
+                : "The report retains the complete changed range and up to two aligned context rows on each side."
             : language == ShellLanguage.ChineseTraditional
-                ? "此舊版 Report 未保留完整 replay bytes；byte viewport 不可用。"
-                : "This legacy report does not retain complete replay bytes; the byte viewport is unavailable.";
+                ? "此 Report 未保留完整 replay bytes；byte viewport 不可用。"
+                : "This report does not retain complete replay bytes; the byte viewport is unavailable.";
     }
 
     internal ReportHexDiffRangeDescriptor Descriptor { get; }

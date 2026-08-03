@@ -109,6 +109,7 @@
                         AutomationProperties.AccessibilityView="Content"
                         AutomationProperties.HelpText="{Binding LoadedReport.HexDiff.SelectedByteAccessibleLabel}"
                         AutomationProperties.Name="{Binding Text.HexDiffViewportTitle}"
+                        ComparisonRowLabel="{Binding Text.HexDiffOriginalRowLabel}"
                         InteractionCommand="{Binding LoadedReport.HexDiff.ViewportInteractionCommand}"
                         Snapshot="{Binding LoadedReport.HexDiff.ViewportSnapshot}"
                         />

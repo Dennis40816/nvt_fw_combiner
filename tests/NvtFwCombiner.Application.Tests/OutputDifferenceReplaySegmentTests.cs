@@ -75,10 +75,17 @@ public sealed class OutputDifferenceReplaySegmentTests
         Assert.Equal(Hash(replay.AfterBytes.Span), replay.AfterSha256);
         Assert.True(replay.MatchesDifferenceEvidence(
             difference,
+            4,
             Hash(before.AsSpan(0x31, 4)),
             Hash(after.AsSpan(0x31, 4))));
         Assert.False(replay.MatchesDifferenceEvidence(
             difference,
+            3,
+            Hash(before.AsSpan(0x31, 4)),
+            Hash(after.AsSpan(0x31, 4))));
+        Assert.False(replay.MatchesDifferenceEvidence(
+            difference,
+            4,
             Hash(new byte[4]),
             Hash(after.AsSpan(0x31, 4))));
     }
@@ -103,6 +110,28 @@ public sealed class OutputDifferenceReplaySegmentTests
 
         Assert.Equal(new ByteRange(expectedStart, expectedLength), replay.Range);
         Assert.True(replay.Range.Contains(new ByteRange(differenceStart, differenceLength)));
+    }
+
+    /// <summary>Persisted replay accepts only the canonical aligned envelope and never a complete artifact.</summary>
+    [Fact]
+    public void PersistableEnvelopeMustBeCanonicalAndPartial()
+    {
+        byte[] before = new byte[0xA0];
+        byte[] after = (byte[])before.Clone();
+        var difference = new ByteRange(0x31, 0x20);
+        var canonical = OutputDifferenceReplaySegment.CreateWithAlignedContext(before, after, difference);
+        var shortened = new OutputDifferenceReplaySegment(
+            canonical.Range.Start + 0x10,
+            canonical.BeforeBytes[0x10..],
+            canonical.AfterBytes[0x10..]);
+        var complete = OutputDifferenceReplaySegment.CreateWithAlignedContext(
+            before.AsMemory(0, 0x40),
+            after.AsMemory(0, 0x40),
+            new ByteRange(0x10, 0x10));
+
+        Assert.True(canonical.MatchesPersistableAlignedContext(before.Length, difference));
+        Assert.False(shortened.MatchesPersistableAlignedContext(before.Length, difference));
+        Assert.False(complete.MatchesPersistableAlignedContext(0x40, new ByteRange(0x10, 0x10)));
     }
 
     private static string Hash(ReadOnlySpan<byte> bytes)

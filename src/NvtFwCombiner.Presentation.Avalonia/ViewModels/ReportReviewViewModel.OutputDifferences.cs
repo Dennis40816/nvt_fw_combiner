@@ -15,6 +15,7 @@ public sealed partial class ReportReviewViewModel
         string reportJson,
         byte[] reportUtf8,
         string outputSpaceId,
+        long outputSize,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
@@ -144,6 +145,7 @@ public sealed partial class ReportReviewViewModel
                 slices[sourceIndex],
                 hexDiffDescriptors[sourceIndex],
                 outputSpaceId,
+                outputSize,
                 language);
         }
 
@@ -243,12 +245,16 @@ public sealed partial class ReportReviewViewModel
         JsonValueSlice slice,
         ReportHexDiffRangeDescriptor descriptor,
         string outputSpaceId,
+        long outputSize,
         ShellLanguage language)
     {
         using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
         JsonElement difference = document.RootElement;
         ReportLineViewModel detail = ParseOutputDifference(difference, language);
-        OutputDifferenceReplaySegment? replay = ParseHexDiffReplay(difference, descriptor);
+        OutputDifferenceReplaySegment? replay = ParseHexDiffReplay(
+            difference,
+            descriptor,
+            outputSize);
         return new ReportHexDiffRangeViewModel(
             descriptor,
             detail,
@@ -259,7 +265,8 @@ public sealed partial class ReportReviewViewModel
 
     private static OutputDifferenceReplaySegment? ParseHexDiffReplay(
         JsonElement difference,
-        ReportHexDiffRangeDescriptor descriptor)
+        ReportHexDiffRangeDescriptor descriptor,
+        long outputSize)
     {
         if (!difference.TryGetProperty("Replay", out JsonElement replay) ||
             replay.ValueKind != JsonValueKind.Object ||
@@ -302,9 +309,14 @@ public sealed partial class ReportReviewViewModel
                 Convert.FromBase64String(afterBase64));
             return string.Equals(segment.BeforeSha256, replayBeforeSha256, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(segment.AfterSha256, replayAfterSha256, StringComparison.OrdinalIgnoreCase) &&
+                segment.MatchesPersistableAlignedContext(
+                    outputSize,
+                    descriptor.Start,
+                    descriptor.Length) &&
                 segment.MatchesDifferenceEvidence(
                     descriptor.Start,
                     descriptor.Length,
+                    descriptor.ChangedByteCount,
                     differenceBeforeSha256,
                     differenceAfterSha256)
                 ? segment

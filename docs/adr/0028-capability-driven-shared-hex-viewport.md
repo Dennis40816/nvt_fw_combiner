@@ -133,6 +133,8 @@ viewport fabricates missing bytes.
 Each persisted replay plane carries its own SHA-256, and its changed-range
 slice must also match the row's existing before/after evidence hashes. Readers
 fail closed when either the context plane or changed slice loses that identity.
+If the aligned replay envelope would retain the complete artifact, the report
+omits Replay and the viewport states that bytes are unavailable.
 
 The BIN Inspector host is a separate read-only adapter. It receives the exact
 resolved metadata-structure instances and immutable structure bytes from the

@@ -117,7 +117,10 @@ public static class FirmwareMetadataInspectionFormatter
         return new FormattedMetadataInspectionSnapshot(
             snapshot.ResolutionToken,
             snapshot.AuthoringRevision,
-            snapshot.Results.Select(FormatStructure));
+            snapshot.Results
+                .Where(static result => result.PlanEntry.Definition.Purposes.Contains(
+                    MetadataReferencePurpose.Formatting))
+                .Select(FormatStructure));
     }
 
     private static FormattedMetadataStructure FormatStructure(MetadataInspectionResult result)
@@ -138,7 +141,12 @@ public static class FirmwareMetadataInspectionFormatter
             resolved?.ArtifactIdentity,
             structureRange,
             resolved is not null && structureRange is not null
-                ? resolved.Fields.Select(field => FormatField(structureRange, field))
+                ? resolved.Fields
+                    .Where(field => entry.TargetReferences.Any(target =>
+                        entry.StructureDefinition.Definition.ReferenceTargetContainsField(
+                            target,
+                            field.Field)))
+                    .Select(field => FormatField(structureRange, field))
                 : []);
     }
 
