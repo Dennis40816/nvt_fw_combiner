@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Application.Tests;
 public sealed class CompositionReportPerformanceBaselineTests
 {
     private const int DifferenceCount = 10_000;
-    private const int BaselineJsonCharacterCount = 11_721_310;
+    private const int BaselineJsonCharacterCount = 15_868_142;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "6020480dae998eadbdaf695c97e2c061c13a8b3ea8868e7fd351187404961c19";
+    private const string BaselineReportJsonSha256 = "25962675c8c3a24ba1e99f882a5032ac5f93ec2557f0545cb1f23bda1d32e312";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
@@ -69,6 +69,18 @@ public sealed class CompositionReportPerformanceBaselineTests
         AssertDifference(result.Report.OutputDifferences[0], "diff-001", start: 0, afterPreview: "01");
         AssertDifference(result.Report.OutputDifferences[254], "diff-255", start: 508, afterPreview: "ff");
         AssertDifference(result.Report.OutputDifferences[^1], "diff-10000", start: 19_998, afterPreview: "37");
+        AssertReplay(
+            result.Report.OutputDifferences[0],
+            new ByteRange(0, 48),
+            expectedDifferenceOffset: 0);
+        AssertReplay(
+            result.Report.OutputDifferences[254],
+            new ByteRange(464, 80),
+            expectedDifferenceOffset: 44);
+        AssertReplay(
+            result.Report.OutputDifferences[^1],
+            new ByteRange(19_952, 48),
+            expectedDifferenceOffset: 46);
         Assert.Same(
             result.Report.OutputDifferences[0].BeforeSha256,
             result.Report.OutputDifferences[1].BeforeSha256);
@@ -223,5 +235,23 @@ public sealed class CompositionReportPerformanceBaselineTests
         Assert.Equal(new ByteRange(start, 1), difference.Range);
         Assert.Equal("00", difference.BeforeHexPreview);
         Assert.Equal(afterPreview, difference.AfterHexPreview);
+    }
+
+    private static void AssertReplay(
+        OutputDifferenceSummary difference,
+        ByteRange expectedRange,
+        int expectedDifferenceOffset)
+    {
+        OutputDifferenceReplaySegment replay = Assert.IsType<OutputDifferenceReplaySegment>(difference.Replay);
+        Assert.Equal(expectedRange, replay.Range);
+        Assert.Equal(expectedRange.Length, replay.BeforeBytes.Length);
+        Assert.Equal(expectedRange.Length, replay.AfterBytes.Length);
+        Assert.Equal(0, replay.BeforeBytes.Span[expectedDifferenceOffset]);
+        Assert.Equal(
+            byte.Parse(
+                difference.AfterHexPreview,
+                System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture),
+            replay.AfterBytes.Span[expectedDifferenceOffset]);
     }
 }

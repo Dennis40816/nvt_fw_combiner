@@ -389,9 +389,9 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"), StringComparison.Ordinal);
     }
 
-    /// <summary>Locks #191 to one source-neutral viewport while #192 still owns Report Diff adoption.</summary>
+    /// <summary>Locks #191/#192 to one read-only viewport with separate source adapters.</summary>
     [Fact]
-    public void HexViewportIsReadOnlyAndReportAdoptionRemainsDeferred()
+    public void HexViewportIsReadOnlyAndSourceAdaptersStaySeparate()
     {
         string rawEditor = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
@@ -399,6 +399,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
         string reportViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs");
+        string reportAdapter = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewportAdapter.cs");
+        string binAdapter = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BinInspectorViewportAdapter.cs");
         string rawEditorViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string viewport = string.Join(
@@ -409,9 +413,15 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
 
         Assert.Contains("HexViewportControl", rawEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("HexViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportCapabilityProfile.ReportDiff", reportAdapter, StringComparison.Ordinal);
+        Assert.Contains("HexViewportCapabilityProfile.BinInspector", binAdapter, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHexDiffViewModel", binAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("Overwrite", reportAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("Overwrite", binAdapter, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IRelayCommand", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("RawBinaryEditorSession", viewport, StringComparison.Ordinal);

@@ -85,8 +85,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("RowsPage.Items", changes, StringComparison.Ordinal);
         Assert.Contains("OutputDifferenceSummaryPage.Items", panels, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputDifferenceGroupPage.Items", audit, StringComparison.Ordinal);
-        Assert.Contains("HexDiff.NavigatorPage.Items", audit, StringComparison.Ordinal);
-        Assert.Contains("HexDiff.VisibleRows", audit, StringComparison.Ordinal);
+        Assert.Contains("HexDiff.Ranges", audit, StringComparison.Ordinal);
+        Assert.Contains("<VirtualizingStackPanel", audit, StringComparison.Ordinal);
+        Assert.Contains("HexDiff.ViewportSnapshot", audit, StringComparison.Ordinal);
         Assert.Contains("MutationPage.Items", audit, StringComparison.Ordinal);
         Assert.Contains("OperationFlowPage.Items", audit, StringComparison.Ordinal);
         Assert.Contains("StepOperationPage.Items", audit, StringComparison.Ordinal);
@@ -105,29 +106,31 @@ public sealed partial class XamlControlStyleContractTests
         string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
         string audit = ReadPresentationFile("Resources/MainWindowReportAuditTemplates.axaml");
         string hexDiffSurface = string.Join(Environment.NewLine, changes, audit);
-        string changedRowStyle = ExtractStyle(styles, "Border.reportHexDiffRow.changed");
         string selectedRangeStyle = ExtractStyle(styles, "RadioButton.reportHexDiffRange:checked");
 
         Assert.Contains("ColumnDefinitions=\"2*,Auto,*\"", audit, StringComparison.Ordinal);
         Assert.Contains("<GridSplitter", audit, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexDiffResizeAutomationName}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.VisibleRows}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.NavigatorPage.Items}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("<views:HexViewportControl", audit, StringComparison.Ordinal);
+        Assert.Contains("Snapshot=\"{Binding LoadedReport.HexDiff.ViewportSnapshot}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding LoadedReport.HexDiff.Ranges}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("<VirtualizingStackPanel", audit, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasDifferenceWorkspace}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("ContentTemplate=\"{StaticResource ReportWindowedPagerTemplate}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding LoadedReport.HexDiff.PinnedSelectedRange}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding LoadedReport.HexDiff.HasPinnedSelectedRange}\"", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiff.NavigatorPage", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiff.PinnedSelectedRange", audit, StringComparison.Ordinal);
+        Assert.Contains("Maximum=\"{Binding LoadedReport.HexDiff.RangeScrollMaximum}\"", audit, StringComparison.Ordinal);
+        Assert.Contains("Value=\"{Binding LoadedReport.HexDiff.RangeScrollRow, Mode=TwoWay}\"", audit, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("Gesture=\"Enter\" Command=\"{Binding LoadedReport.HexDiff.JumpAddressCommand}\"", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiff.JumpAddress", audit, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("HasPreviewFallback", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportOutputDifferenceGroupTemplate", changes, StringComparison.Ordinal);
-        Assert.Contains("SelectedRange.PreviewCoverage", audit, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"ReportHexDiffViewportRowTemplate\"", changes, StringComparison.Ordinal);
+        Assert.Contains("HexDiff.AvailabilityDetail", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("SelectedRange.PreviewCoverage", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("x:Key=\"ReportHexDiffViewportRowTemplate\"", changes, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleLabel}\"", changes, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsOriginalVisible}\"", changes, StringComparison.Ordinal);
         Assert.Equal(
-            2,
+            1,
             Regex.Count(changes, Regex.Escape("AutomationProperties.Name=\"{Binding AccessibleLabel}\"")));
         Assert.Contains("<RadioButton", changes, StringComparison.Ordinal);
         Assert.Contains("GroupName=\"ReportHexDiffRangeNavigator\"", changes, StringComparison.Ordinal);
@@ -135,11 +138,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", changes, StringComparison.Ordinal);
         Assert.Contains("CommandParameter=\"{Binding}\"", changes, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding Reason}\"", changes, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.HexDiffBeforeSha256Label}\"", audit, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.HexDiffAfterSha256Label}\"", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiffBeforeSha256Label", audit, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexDiffAfterSha256Label", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectedRange.Detail.BeforeLabel", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectedRange.Detail.AfterLabel", audit, StringComparison.Ordinal);
-        Assert.Contains("NfcWarningSurfaceBrush", changedRowStyle, StringComparison.Ordinal);
+        Assert.DoesNotContain("Border.reportHexDiffRow.changed", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleSwitch.reportHexDiffOriginalToggle\"", styles, StringComparison.Ordinal);
         Assert.Contains("BorderThickness\" Value=\"2\"", selectedRangeStyle, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", selectedRangeStyle, StringComparison.Ordinal);
@@ -157,13 +160,9 @@ public sealed partial class XamlControlStyleContractTests
     {
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
         string changes = ReadPresentationFile("Resources/MainWindowReportChangeTemplates.axaml");
-        string viewportRow = ExtractDataTemplate(changes, "ReportHexDiffViewportRowTemplate");
         string rangeRow = ExtractDataTemplate(changes, "ReportHexDiffRangeRowTemplate");
         string selectedRangeStyle = ExtractStyle(styles, "RadioButton.reportHexDiffRange:checked");
 
-        Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffChangedRowLabel}\"", viewportRow, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding HasChanges}\"", viewportRow, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffReferenceRowLabel}\"", viewportRow, StringComparison.Ordinal);
         Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsSelected}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding Status}\"", rangeRow, StringComparison.Ordinal);

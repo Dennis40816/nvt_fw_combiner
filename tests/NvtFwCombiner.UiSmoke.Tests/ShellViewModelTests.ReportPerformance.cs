@@ -287,7 +287,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("newer-report.json", viewModel.Reports.LoadedReport.SourceName);
         Assert.Equal(newerJson, viewModel.Reports.LoadedReportJson);
         Assert.True(viewModel.Reports.LoadedReport.HexDiff.HasDifferenceWorkspace);
-        Assert.True(viewModel.Reports.LoadedReport.HexDiff.IsReportedRangeMode);
+        Assert.False(viewModel.Reports.LoadedReport.HexDiff.IsReportedRangeMode);
+        Assert.True(viewModel.Reports.LoadedReport.HexDiff.HasNoViewportBytes);
         ReportHistoryEntryViewModel historyEntry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("newer-report.json", historyEntry.SourceName);
     }

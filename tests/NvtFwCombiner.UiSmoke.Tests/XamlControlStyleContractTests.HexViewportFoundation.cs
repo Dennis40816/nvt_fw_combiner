@@ -56,4 +56,40 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", panel, StringComparison.Ordinal);
         Assert.Contains("HexViewport_OnInteractionRequested", codeBehind, StringComparison.Ordinal);
     }
+
+    /// <summary>Each approved host receives one closed profile without inheriting Raw Editor authority.</summary>
+    [Fact]
+    public void ReportAndBinInspectorProfilesRemainReadOnlyAndRangeBounded()
+    {
+        HexViewportCapabilityProfile report = HexViewportCapabilityProfile.ReportDiff;
+        Assert.Equal(HexViewportInteraction.Inspect | HexViewportInteraction.Select, report.Interaction);
+        Assert.Equal(HexViewportComparison.OptionalOriginalRows, report.Comparison);
+        Assert.Equal(
+            HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+            report.Navigation);
+        Assert.Equal(
+            HexViewportDecorationCapability.DataChange | HexViewportDecorationCapability.SemanticVerdict,
+            report.Decorations);
+        Assert.Equal(12, report.InitialRows);
+        Assert.Equal(28, report.MaximumRows);
+
+        HexViewportCapabilityProfile inspector = HexViewportCapabilityProfile.BinInspector;
+        Assert.Equal(HexViewportInteraction.Inspect | HexViewportInteraction.Select, inspector.Interaction);
+        Assert.Equal(HexViewportComparison.None, inspector.Comparison);
+        Assert.Equal(
+            HexViewportNavigation.SemanticRanges | HexViewportNavigation.RangeScroll,
+            inspector.Navigation);
+        Assert.Equal(HexViewportDecorationCapability.None, inspector.Decorations);
+        Assert.Equal(12, inspector.InitialRows);
+        Assert.Equal(28, inspector.MaximumRows);
+
+        foreach (HexViewportCapabilityProfile profile in new[] { report, inspector })
+        {
+            Assert.False(profile.Interaction.HasFlag(HexViewportInteraction.Overwrite));
+            Assert.False(profile.Interaction.HasFlag(HexViewportInteraction.StructuralEdit));
+            Assert.False(profile.Navigation.HasFlag(HexViewportNavigation.AddressJump));
+            Assert.False(profile.Navigation.HasFlag(HexViewportNavigation.DocumentScroll));
+            Assert.False(profile.Decorations.HasFlag(HexViewportDecorationCapability.Search));
+        }
+    }
 }

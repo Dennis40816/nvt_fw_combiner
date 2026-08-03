@@ -489,24 +489,6 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
-  <Style Selector="Border.reportHexDiffRow">
-    <Setter Property="Padding" Value="8,6" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
-  </Style>
-  <Style Selector="Border.reportHexDiffRow.changed">
-    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
-  </Style>
-  <Style Selector="Border.reportHexDiffReferenceRow">
-    <Setter Property="Margin" Value="0,4,0,0" />
-    <Setter Property="Padding" Value="8,5" />
-    <Setter Property="Background" Value="{DynamicResource NfcInfoSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcInfoBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
-  </Style>
   <Style Selector="RadioButton.reportHexDiffRange">
     <Setter Property="MinHeight" Value="54" />
     <Setter Property="HorizontalAlignment" Value="Stretch" />

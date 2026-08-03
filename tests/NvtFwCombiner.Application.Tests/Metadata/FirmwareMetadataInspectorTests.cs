@@ -40,6 +40,62 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Equal(plan.ResolutionToken, inspected.ResolutionToken);
     }
 
+    /// <summary>The common formatter retains exact resolved geometry and invariant typed values.</summary>
+    [Fact]
+    public void MetadataFormatterUsesOnlyResolvedStructureAndFieldFacts()
+    {
+        ResolvedMetadataPlan plan = CreateDpcmiPlan();
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            plan,
+            [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]);
+
+        FormattedMetadataInspectionSnapshot formatted = FirmwareMetadataInspectionFormatter.Format(inspected);
+
+        FormattedMetadataStructure structure = Assert.Single(formatted.Structures);
+        Assert.Equal("map", structure.MapId);
+        Assert.Equal(DpcmiMetadataContract.StructureId, structure.StructureId);
+        Assert.Equal(MetadataInspectionState.Value, structure.State);
+        Assert.Equal(ResolvedChildReadiness.Ready, structure.Readiness);
+        Assert.Equal(
+            new FirmwareAddressedRange(
+                "flash",
+                new ByteRange(0x36, 3)),
+            structure.AddressedRange);
+        Assert.Equal(4, structure.Fields.Count);
+        FormattedMetadataField major = Assert.Single(
+            structure.Fields,
+            static field => field.FieldId == DpcmiMetadataContract.MajorVersionFieldId);
+        Assert.Equal("Dp major", major.DisplayName);
+        Assert.Equal(
+            new FirmwareAddressedRange(
+                "flash",
+                new ByteRange(0x37, 1)),
+            major.AddressedRange);
+        Assert.Equal(FirmwareMetadataFieldApplicabilityState.Active, major.Applicability);
+        Assert.Equal(FirmwareMetadataValueKind.UnsignedInteger, major.ValueKind);
+        Assert.Equal("3", major.Value);
+    }
+
+    /// <summary>Pending metadata remains an explicit state and never fabricates structure bytes or fields.</summary>
+    [Fact]
+    public void MetadataFormatterPreservesPendingStateWithoutResolvedGeometry()
+    {
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(CreateDpcmiPlan(), []);
+
+        FormattedMetadataStructure structure = Assert.Single(
+            FirmwareMetadataInspectionFormatter.Format(inspected).Structures);
+
+        Assert.Equal(MetadataInspectionState.WaitingForArtifact, structure.State);
+        Assert.Equal(ResolvedChildReadiness.PendingInput, structure.Readiness);
+        Assert.Null(structure.AddressedRange);
+        Assert.Null(structure.ArtifactIdentity);
+        Assert.Empty(structure.Fields);
+    }
+
     /// <summary>A TP artifact never satisfies or executes a DP-slot DPCMI declaration.</summary>
     [Fact]
     public void DpcmiInspectionDoesNotUseTpOnlyArtifact()

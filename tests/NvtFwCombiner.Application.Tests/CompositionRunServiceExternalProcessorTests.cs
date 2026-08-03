@@ -268,6 +268,10 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("aabb", replacement.AfterHexPreview);
         Assert.Equal(2, replacement.HexPreviewByteCount);
         Assert.True(replacement.IsHexPreviewComplete);
+        OutputDifferenceReplaySegment replacementReplay = Assert.IsType<OutputDifferenceReplaySegment>(replacement.Replay);
+        Assert.Equal(new ByteRange(0, 4), replacementReplay.Range);
+        Assert.Equal([0x10, 0x20, 0x30, 0x40], replacementReplay.BeforeBytes.ToArray());
+        Assert.Equal([0x10, 0xAA, 0xBB, 0x7E], replacementReplay.AfterBytes.ToArray());
         OutputDifferenceSemantic replacementSemantic = Assert.IsType<OutputDifferenceSemantic>(replacement.Semantic);
         Assert.Equal(OutputDifferenceSemanticCategoryIds.CtrlRam, replacementSemantic.CategoryId);
         Assert.Equal(PostbuildWriteSectionIds.CtrlRamReplacement, replacementSemantic.SubjectId);
@@ -282,6 +286,10 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("7e", crcHeader.AfterHexPreview);
         Assert.Equal(1, crcHeader.HexPreviewByteCount);
         Assert.True(crcHeader.IsHexPreviewComplete);
+        OutputDifferenceReplaySegment crcHeaderReplay = Assert.IsType<OutputDifferenceReplaySegment>(crcHeader.Replay);
+        Assert.Equal(new ByteRange(0, 4), crcHeaderReplay.Range);
+        Assert.Equal(replacementReplay.BeforeBytes.ToArray(), crcHeaderReplay.BeforeBytes.ToArray());
+        Assert.Equal(replacementReplay.AfterBytes.ToArray(), crcHeaderReplay.AfterBytes.ToArray());
         Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == ReportIssueCodes.UnexpectedOutputDifference);
     }
 

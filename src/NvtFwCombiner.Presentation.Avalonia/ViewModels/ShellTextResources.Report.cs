@@ -127,35 +127,13 @@ public sealed partial class ShellTextResources
 
     public string HexDiffViewportTitle { get; private init; } = string.Empty;
 
-    public string HexDiffAddressLabel { get; private init; } = string.Empty;
-
-    public string HexDiffOutputBytesLabel { get; private init; } = string.Empty;
-
-    public string HexDiffAsciiLabel { get; private init; } = string.Empty;
-
-    public string HexDiffChangedRowLabel { get; private init; } = string.Empty;
-
-    public string HexDiffReferenceRowLabel { get; private init; } = string.Empty;
-
     public string HexDiffShowOriginalRowsLabel { get; private init; } = string.Empty;
-
-    public string HexDiffJumpAddressLabel { get; private init; } = string.Empty;
-
-    public string HexDiffJumpActionLabel { get; private init; } = string.Empty;
-
-    public string HexDiffChangeInformationTitle { get; private init; } = string.Empty;
-
-    public string HexDiffNoSelectionDetail { get; private init; } = string.Empty;
 
     public string HexDiffRangeNavigatorTitle { get; private init; } = string.Empty;
 
     public string HexDiffRangeNavigatorDetail { get; private init; } = string.Empty;
 
     public string HexDiffResizeAutomationName { get; private init; } = string.Empty;
-
-    public string HexDiffBeforeSha256Label { get; private init; } = string.Empty;
-
-    public string HexDiffAfterSha256Label { get; private init; } = string.Empty;
 
     public string HexDiffSelectedRangeLabel { get; private init; } = string.Empty;
 
