@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Application.Tests;
 public sealed class CompositionReportPerformanceBaselineTests
 {
     private const int DifferenceCount = 10_000;
-    private const int BaselineJsonCharacterCount = 15_868_142;
+    private const int BaselineJsonCharacterCount = 17_718_142;
     private const string BaselineOutputSha256 = "e7b39a736b02c1793f1c22ab4c21e29bc478bd94465614c27bd70c4ac42c25b4";
-    private const string BaselineReportJsonSha256 = "25962675c8c3a24ba1e99f882a5032ac5f93ec2557f0545cb1f23bda1d32e312";
+    private const string BaselineReportJsonSha256 = "38213499fc54f31f0eea54a091124234296fbf065c208b202e581d6015d46d0f";
     private static readonly DateTimeOffset StartedAtUtc = new(2026, 7, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset CompletedAtUtc = StartedAtUtc.AddSeconds(1);
     private static readonly JsonSerializerOptions ReportJsonOptions = new()
@@ -62,6 +62,15 @@ public sealed class CompositionReportPerformanceBaselineTests
         long repeatedSerializationAllocated =
             GC.GetAllocatedBytesForCurrentThread() - repeatedSerializationAllocatedBefore;
 
+        TestContext.Current.TestOutputHelper?.WriteLine(
+            $"REPORT_BASELINE differences={DifferenceCount} outputSha256={result.Report.Output.Sha256} " +
+            $"jsonChars={reportJson.Length} jsonSha256={reportJsonSha256} " +
+            $"runThroughReportMs={runThroughReportTimer.Elapsed.TotalMilliseconds:F3} " +
+            $"runThroughReportAllocated={runThroughReportAllocated} " +
+            $"serializationMs={serializationTimer.Elapsed.TotalMilliseconds:F3} serializationAllocated={serializationAllocated} " +
+            $"repeatedSerializationMs={repeatedSerializationTimer.Elapsed.TotalMilliseconds:F3} " +
+            $"repeatedSerializationAllocated={repeatedSerializationAllocated}");
+
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Equal(DifferenceCount, ByteDiff.FindChangedRanges(referenceBytes, result.OutputBytes.Span).Count);
         Assert.Equal(DifferenceCount, result.Report.OutputDifferences.Count);
@@ -98,14 +107,6 @@ public sealed class CompositionReportPerformanceBaselineTests
         Assert.Contains("\"ExecutionSnapshot\"", reportJson, StringComparison.Ordinal);
         Assert.DoesNotContain("\"DeliveryArtifacts\"", reportJson, StringComparison.Ordinal);
 
-        TestContext.Current.TestOutputHelper?.WriteLine(
-            $"REPORT_BASELINE differences={DifferenceCount} outputSha256={result.Report.Output.Sha256} " +
-            $"jsonChars={reportJson.Length} jsonSha256={reportJsonSha256} " +
-            $"runThroughReportMs={runThroughReportTimer.Elapsed.TotalMilliseconds:F3} " +
-            $"runThroughReportAllocated={runThroughReportAllocated} " +
-            $"serializationMs={serializationTimer.Elapsed.TotalMilliseconds:F3} serializationAllocated={serializationAllocated} " +
-            $"repeatedSerializationMs={repeatedSerializationTimer.Elapsed.TotalMilliseconds:F3} " +
-            $"repeatedSerializationAllocated={repeatedSerializationAllocated}");
     }
 
     /// <summary>Verifies immutable semantic metadata is reused only within one report-generation run.</summary>

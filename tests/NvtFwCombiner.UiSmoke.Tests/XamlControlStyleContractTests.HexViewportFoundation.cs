@@ -92,4 +92,26 @@ public sealed partial class XamlControlStyleContractTests
             Assert.False(profile.Decorations.HasFlag(HexViewportDecorationCapability.Search));
         }
     }
+
+    /// <summary>The reusable desktop BIN Inspector host binds the real read-only viewport contract.</summary>
+    [Fact]
+    public void BinInspectorHasAReusableAccessibleProductionHost()
+    {
+        string host = ReadPresentationFile("Views/BinInspectorPanel.axaml");
+
+        Assert.Contains("x:DataType=\"vm:BinInspectorViewModel\"", host, StringComparison.Ordinal);
+        Assert.Contains("<views:HexViewportControl", host, StringComparison.Ordinal);
+        Assert.Contains("Snapshot=\"{Binding ViewportSnapshot}\"", host, StringComparison.Ordinal);
+        Assert.Contains("InteractionCommand=\"{Binding ViewportInteractionCommand}\"", host, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", host, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.HelpText=\"{Binding SelectedByteAccessibleLabel}\"",
+            host,
+            StringComparison.Ordinal);
+        Assert.Contains("SelectedItem=\"{Binding SelectedStructure, Mode=TwoWay}\"", host, StringComparison.Ordinal);
+        Assert.Contains("SelectedItem=\"{Binding SelectedField, Mode=TwoWay}\"", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Save", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Search", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("GoTo", host, StringComparison.Ordinal);
+    }
 }

@@ -1,0 +1,95 @@
+<UserControl
+    x:Class="NvtFwCombiner.Presentation.Avalonia.Views.BinInspectorPanel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:metadata="using:NvtFwCombiner.Application.Metadata"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+    x:DataType="vm:BinInspectorViewModel">
+  <Grid MinHeight="0" RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
+    <TextBlock Classes="panelTitle" Text="{Binding Text.BinInspectorTitle}" />
+
+    <Grid Grid.Row="1" MinHeight="0" ColumnDefinitions="2*,Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+      <Border Classes="compactSurface contentPanel">
+        <Grid MinHeight="0" RowDefinitions="Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
+          <TextBlock Classes="bodyStrongText" Text="{Binding Text.BinInspectorViewportTitle}" />
+          <Grid Grid.Row="1" MinHeight="0" ColumnDefinitions="*,Auto">
+            <views:HexViewportControl
+                MinHeight="0"
+                AutomationProperties.AccessibilityView="Content"
+                AutomationProperties.HelpText="{Binding SelectedByteAccessibleLabel}"
+                AutomationProperties.Name="{Binding Text.BinInspectorViewportTitle}"
+                InteractionCommand="{Binding ViewportInteractionCommand}"
+                Snapshot="{Binding ViewportSnapshot}" />
+            <ScrollBar
+                Grid.Column="1"
+                Width="14"
+                Maximum="{Binding RangeScrollMaximum}"
+                Orientation="Vertical"
+                Value="{Binding RangeScrollRow, Mode=TwoWay}" />
+          </Grid>
+        </Grid>
+      </Border>
+
+      <GridSplitter
+          Grid.Column="1"
+          Width="6"
+          HorizontalAlignment="Stretch"
+          ResizeDirection="Columns" />
+
+      <Border Grid.Column="2" Classes="compactSurface contentPanel">
+        <Grid MinHeight="0" RowDefinitions="Auto,*,Auto,*" RowSpacing="{DynamicResource NfcSpace8}">
+          <TextBlock Classes="bodyStrongText" Text="{Binding Text.BinInspectorStructuresTitle}" />
+          <ListBox
+              Grid.Row="1"
+              ItemsSource="{Binding Structures}"
+              SelectedItem="{Binding SelectedStructure, Mode=TwoWay}"
+              SelectionMode="Single">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="metadata:FirmwareBinInspectionStructure">
+                <StackPanel
+                    Margin="{DynamicResource NfcSpace4}"
+                    Spacing="{DynamicResource NfcSpace2}">
+                  <TextBlock Classes="bodyStrongText" Text="{Binding Metadata.StructureId}" />
+                  <TextBlock Classes="technicalCaption" Text="{Binding Metadata.BindingId}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <TextBlock Grid.Row="2" Classes="bodyStrongText" Text="{Binding Text.BinInspectorFieldsTitle}" />
+          <ListBox
+              Grid.Row="3"
+              ItemsSource="{Binding Fields}"
+              SelectedItem="{Binding SelectedField, Mode=TwoWay}"
+              SelectionMode="Single">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="metadata:FormattedMetadataField">
+                <Grid
+                    Margin="{DynamicResource NfcSpace4}"
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="{DynamicResource NfcSpace8}">
+                  <StackPanel Spacing="{DynamicResource NfcSpace2}">
+                    <TextBlock Classes="bodyStrongText" Text="{Binding DisplayName}" TextWrapping="Wrap" />
+                    <TextBlock Classes="technicalCaption" Text="{Binding FieldId}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Classes="technicalDetail" Text="{Binding Value}" TextWrapping="Wrap" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -61,8 +62,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(currentChangedCell.ComparisonValue, reopenedChangedCell.ComparisonValue);
         Assert.Equal(currentChangedCell.Decorations, reopenedChangedCell.Decorations);
         Assert.False(reopened.HexDiff.ViewportSnapshot.ShowComparisonRows);
+        Assert.Contains("output 0xA5", reopened.HexDiff.SelectedByteAccessibleLabel, StringComparison.Ordinal);
+        Assert.Contains("changed", reopened.HexDiff.SelectedByteAccessibleLabel, StringComparison.Ordinal);
         reopened.HexDiff.ShowOriginalRows = true;
         Assert.True(reopened.HexDiff.ViewportSnapshot.ShowComparisonRows);
+        Assert.Contains("original", reopened.HexDiff.SelectedByteAccessibleLabel, StringComparison.Ordinal);
         Assert.Contains("\"Replay\"", result.ReportJson, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectionSnapshot", result.ReportJson, StringComparison.Ordinal);
 
@@ -176,6 +180,33 @@ public sealed partial class ShellViewModelTests
         Assert.Empty(report.HexDiff.ViewportSnapshot.Rows);
     }
 
+    /// <summary>Persisted replay bytes are unavailable when either changed bytes or context bytes lose hash identity.</summary>
+    [Fact]
+    public async Task ReportHexDiffRejectsTamperedPersistedReplayBytes()
+    {
+        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
+
+        foreach (bool tamperChangedByte in new[] { false, true })
+        {
+            JsonNode root = JsonNode.Parse(result.ReportJson)!;
+            JsonNode difference = root["OutputDifferences"]!.AsArray()[0]!;
+            JsonNode replay = difference["Replay"]!;
+            byte[] beforeBytes = Convert.FromBase64String(replay["BeforeBytes"]!.GetValue<string>());
+            long replayStart = replay["Range"]!["Start"]!.GetValue<long>();
+            long differenceStart = difference["Range"]!["Start"]!.GetValue<long>();
+            int tamperIndex = tamperChangedByte
+                ? checked((int)(differenceStart - replayStart))
+                : 0;
+            beforeBytes[tamperIndex] ^= 0xFF;
+            replay["BeforeBytes"] = Convert.ToBase64String(beforeBytes);
+
+            var report = ReportReviewViewModel.FromJson(root.ToJsonString(), "tampered replay");
+
+            Assert.False(report.HexDiff.IsAvailable);
+            Assert.True(report.HexDiff.HasNoViewportBytes);
+        }
+    }
+
     /// <summary>Long persisted ranges scroll only inside their replay segment and retain a 12-row window.</summary>
     [Fact]
     public async Task ReportHexDiffKeepsLongRangeScrollingLocalAndBounded()
@@ -240,6 +271,18 @@ public sealed partial class ShellViewModelTests
         Assert.False(first.IsSelected);
         Assert.True(distantSelection.IsSelected);
         Assert.Equal(2, report.HexDiff.MaterializedRangeCount);
+
+        var independentReport = ReportReviewViewModel.FromJsonCancellable(
+            json,
+            "independent large report",
+            outputArtifactPath: null,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            TestContext.Current.CancellationToken);
+        ReportHexDiffRangeViewModel foreignRange = independentReport.HexDiff.Ranges[9_000];
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            report.HexDiff.SelectedRange = foreignRange);
+        Assert.Same(distantSelection, report.HexDiff.SelectedRange);
 
         string mismatchedJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(
             count: 1,

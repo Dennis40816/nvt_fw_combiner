@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
+using System.Security.Cryptography;
 
 namespace NvtFwCombiner.Application.Tests;
 
@@ -57,6 +58,31 @@ public sealed class OutputDifferenceReplaySegmentTests
         Assert.Equal(after.AsSpan(0x10, 0x70).ToArray(), replay.AfterBytes.ToArray());
     }
 
+    /// <summary>Full context planes and the changed slice retain separate evidence identities.</summary>
+    [Fact]
+    public void ReplayHashesBindContextAndDifferenceBytes()
+    {
+        byte[] before = [.. Enumerable.Range(0, 0x80).Select(static value => (byte)value)];
+        byte[] after = (byte[])before.Clone();
+        var difference = new ByteRange(0x31, 4);
+        after.AsSpan(0x31, 4).Fill(0xEE);
+        var replay = OutputDifferenceReplaySegment.CreateWithAlignedContext(
+            before,
+            after,
+            difference);
+
+        Assert.Equal(Hash(replay.BeforeBytes.Span), replay.BeforeSha256);
+        Assert.Equal(Hash(replay.AfterBytes.Span), replay.AfterSha256);
+        Assert.True(replay.MatchesDifferenceEvidence(
+            difference,
+            Hash(before.AsSpan(0x31, 4)),
+            Hash(after.AsSpan(0x31, 4))));
+        Assert.False(replay.MatchesDifferenceEvidence(
+            difference,
+            Hash(new byte[4]),
+            Hash(after.AsSpan(0x31, 4))));
+    }
+
     /// <summary>Context clips to image bounds without dropping the complete changed range.</summary>
     [Theory]
     [InlineData(0x01, 0x02, 0x00, 0x30)]
@@ -77,5 +103,10 @@ public sealed class OutputDifferenceReplaySegmentTests
 
         Assert.Equal(new ByteRange(expectedStart, expectedLength), replay.Range);
         Assert.True(replay.Range.Contains(new ByteRange(differenceStart, differenceLength)));
+    }
+
+    private static string Hash(ReadOnlySpan<byte> bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 }

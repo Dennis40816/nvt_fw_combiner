@@ -403,6 +403,12 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewportAdapter.cs");
         string binAdapter = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BinInspectorViewportAdapter.cs");
+        string binHost = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/BinInspectorPanel.axaml");
+        string binViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BinInspectorViewModel.cs");
+        string binFactory = ReadText(
+            "src/NvtFwCombiner.Application/Metadata/FirmwareBinInspectionSnapshot.cs");
         string rawEditorViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
         string viewport = string.Join(
@@ -414,8 +420,13 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains("HexViewportControl", rawEditor, StringComparison.Ordinal);
         Assert.Contains("HexViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", binHost, StringComparison.Ordinal);
         Assert.Contains("HexViewportCapabilityProfile.ReportDiff", reportAdapter, StringComparison.Ordinal);
         Assert.Contains("HexViewportCapabilityProfile.BinInspector", binAdapter, StringComparison.Ordinal);
+        Assert.Contains("FirmwareBinInspectionSnapshot inspection", binViewModel, StringComparison.Ordinal);
+        Assert.Contains("FirmwareMetadataInspectionFormatter.Format(inspection)", binFactory, StringComparison.Ordinal);
+        Assert.Contains("Matches(identity, artifact)", binFactory, StringComparison.Ordinal);
+        Assert.DoesNotContain("FormattedMetadataStructure metadata,", binViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportAdapter, StringComparison.Ordinal);

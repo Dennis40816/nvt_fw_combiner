@@ -8,75 +8,92 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Read-only semantic structure and field navigation for resolved BIN metadata.</summary>
 public sealed partial class BinInspectorViewModel : ObservableObject
 {
-    private readonly BinInspectorStructureSource[] _structures;
-    private readonly RelayCommand<BinInspectorStructureSource> _selectStructureCommand;
+    private readonly FirmwareBinInspectionStructure[] _structures;
+    private readonly RelayCommand<FirmwareBinInspectionStructure> _selectStructureCommand;
     private readonly RelayCommand<FormattedMetadataField> _selectFieldCommand;
     private readonly RelayCommand<HexViewportInteractionIntent> _viewportInteractionCommand;
-    private int _rangeScrollRow;
     private long? _selectedAddress;
 
     /// <summary>Creates a closed inspector without IC, filename, or profile inference inputs.</summary>
-    public BinInspectorViewModel(IEnumerable<BinInspectorStructureSource> structures)
+    public BinInspectorViewModel(
+        FirmwareBinInspectionSnapshot inspection,
+        ShellLanguage language)
     {
-        ArgumentNullException.ThrowIfNull(structures);
-        _structures = [.. structures];
-        if (_structures.Length == 0 ||
-            _structures.Any(static source => source is null) ||
-            _structures.Select(static source => source.Metadata.BindingId)
-                .Distinct(StringComparer.Ordinal).Count() != _structures.Length)
-        {
-            throw new ArgumentException(
-                "BIN inspection requires one or more uniquely bound resolved structures.",
-                nameof(structures));
-        }
-
+        ArgumentNullException.ThrowIfNull(inspection);
+        Inspection = inspection;
+        Text = ShellTextResources.For(language);
+        _structures = [.. inspection.Structures];
         Structures = Array.AsReadOnly(_structures);
-        _selectStructureCommand = new RelayCommand<BinInspectorStructureSource>(
+        _selectStructureCommand = new RelayCommand<FirmwareBinInspectionStructure>(
             SelectStructure,
             CanSelectStructure);
         _selectFieldCommand = new RelayCommand<FormattedMetadataField>(SelectField, CanSelectField);
         _viewportInteractionCommand = new RelayCommand<HexViewportInteractionIntent>(HandleViewportIntent);
+        ViewportSnapshot = HexViewportSnapshot.Empty(
+            HexViewportCapabilityProfile.BinInspector,
+            _structures[0].Metadata.AddressedRange!.AddressSpaceId);
         SelectedStructure = _structures[0];
-        SelectedField = SelectedStructure.Metadata.Fields.Count > 0
-            ? SelectedStructure.Metadata.Fields[0]
-            : null;
-        _selectedAddress = SelectedField?.AddressedRange.Range.Start ??
-            SelectedStructure.Metadata.AddressedRange!.Range.Start;
-        RangeScrollMaximum = CalculateRangeScrollMaximum(SelectedStructure);
-        ViewportSnapshot = BinInspectorViewportAdapter.Create(
-            SelectedStructure,
-            firstStructureRow: 0,
-            _selectedAddress);
     }
 
+    /// <summary>One formatter-rooted, revision-bound Application inspection snapshot.</summary>
+    public FirmwareBinInspectionSnapshot Inspection { get; }
+
+    /// <summary>Localized labels for the reusable desktop host.</summary>
+    public ShellTextResources Text { get; }
+
     /// <summary>Resolved structures in canonical Application metadata-plan order.</summary>
-    public IReadOnlyList<BinInspectorStructureSource> Structures { get; }
+    public IReadOnlyList<FirmwareBinInspectionStructure> Structures { get; }
 
     /// <summary>The exact resolved structure controlling the current viewport.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Fields))]
-    public partial BinInspectorStructureSource SelectedStructure { get; private set; }
+    public partial FirmwareBinInspectionStructure SelectedStructure { get; set; }
 
     /// <summary>Application-formatted fields for the selected structure.</summary>
     public IReadOnlyList<FormattedMetadataField> Fields => SelectedStructure.Metadata.Fields;
 
     /// <summary>The semantic field currently synchronized with the byte selection.</summary>
     [ObservableProperty]
-    public partial FormattedMetadataField? SelectedField { get; private set; }
+    public partial FormattedMetadataField? SelectedField { get; set; }
+
+    /// <summary>Localized screen-reader projection for the selected custom-drawn byte.</summary>
+    public string SelectedByteAccessibleLabel
+    {
+        get
+        {
+            if (_selectedAddress is not long selected || !TryGetVisibleCell(selected, out HexViewportCell cell))
+            {
+                return Text.BinInspectorNoByteSelectedLabel;
+            }
+
+            string address = FormattableString.Invariant($"0x{selected:X6}");
+            string value = FormattableString.Invariant($"0x{cell.PrimaryValue:X2}");
+            string fieldLabel = SelectedField is { } selectedField &&
+                selectedField.AddressedRange.Range.Contains(selected)
+                    ? selectedField.DisplayName
+                    : Text.BinInspectorNoFieldLabel;
+            return string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                Text.BinInspectorSelectedByteFormat,
+                address,
+                value,
+                fieldLabel);
+        }
+    }
 
     /// <summary>First structure-local row currently materialized.</summary>
     public int RangeScrollRow
     {
-        get => _rangeScrollRow;
+        get;
         set
         {
             int next = Math.Clamp(value, 0, RangeScrollMaximum);
-            if (_rangeScrollRow == next)
+            if (field == next)
             {
                 return;
             }
 
-            _rangeScrollRow = next;
+            field = next;
             OnPropertyChanged();
             PublishViewport();
         }
@@ -86,7 +103,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     public int RangeScrollMaximum { get; private set; }
 
     /// <summary>Selects one already-resolved structure; it does not resolve or infer firmware.</summary>
-    public IRelayCommand<BinInspectorStructureSource> SelectStructureCommand => _selectStructureCommand;
+    public IRelayCommand<FirmwareBinInspectionStructure> SelectStructureCommand => _selectStructureCommand;
 
     /// <summary>Selects one Application-owned field and reveals its exact absolute range.</summary>
     public IRelayCommand<FormattedMetadataField> SelectFieldCommand => _selectFieldCommand;
@@ -128,12 +145,12 @@ public sealed partial class BinInspectorViewModel : ObservableObject
     private long CurrentEndExclusive =>
         SelectedStructure.Metadata.AddressedRange!.Range.EndExclusive;
 
-    private bool CanSelectStructure(BinInspectorStructureSource? source)
+    private bool CanSelectStructure(FirmwareBinInspectionStructure? source)
     {
         return source is not null && _structures.Any(candidate => ReferenceEquals(candidate, source));
     }
 
-    private void SelectStructure(BinInspectorStructureSource? source)
+    private void SelectStructure(FirmwareBinInspectionStructure? source)
     {
         if (!CanSelectStructure(source) || ReferenceEquals(source, SelectedStructure))
         {
@@ -141,15 +158,6 @@ public sealed partial class BinInspectorViewModel : ObservableObject
         }
 
         SelectedStructure = source!;
-        SelectedField = SelectedStructure.Metadata.Fields.Count > 0
-            ? SelectedStructure.Metadata.Fields[0]
-            : null;
-        _rangeScrollRow = 0;
-        _selectedAddress = SelectedField?.AddressedRange.Range.Start ?? CurrentStart;
-        RangeScrollMaximum = CalculateRangeScrollMaximum(SelectedStructure);
-        OnPropertyChanged(nameof(RangeScrollRow));
-        OnPropertyChanged(nameof(RangeScrollMaximum));
-        PublishViewport();
     }
 
     private bool CanSelectField(FormattedMetadataField? field)
@@ -165,7 +173,6 @@ public sealed partial class BinInspectorViewModel : ObservableObject
         }
 
         SelectedField = field;
-        SelectAddress(field!.AddressedRange.Range.Start, ensureVisible: true);
     }
 
     private void SelectAddress(long address, bool ensureVisible)
@@ -194,6 +201,7 @@ public sealed partial class BinInspectorViewModel : ObservableObject
 
         ViewportSnapshot = ViewportSnapshot.WithSelectedAddress(selected);
         OnPropertyChanged(nameof(ViewportSnapshot));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 
     private void PublishViewport()
@@ -203,12 +211,68 @@ public sealed partial class BinInspectorViewModel : ObservableObject
             RangeScrollRow,
             _selectedAddress);
         OnPropertyChanged(nameof(ViewportSnapshot));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 
-    private static int CalculateRangeScrollMaximum(BinInspectorStructureSource source)
+    private bool TryGetVisibleCell(long address, out HexViewportCell cell)
+    {
+        foreach (HexViewportRow row in ViewportSnapshot.Rows)
+        {
+            long index = address - row.Address;
+            if ((ulong)index < (ulong)row.Cells.Count)
+            {
+                cell = row.Cells[(int)index];
+                return true;
+            }
+        }
+
+        cell = default;
+        return false;
+    }
+
+    private static int CalculateRangeScrollMaximum(FirmwareBinInspectionStructure source)
     {
         int totalRows = checked((source.Bytes.Length + HexViewportSnapshot.BytesPerRow - 1) /
             HexViewportSnapshot.BytesPerRow);
         return Math.Max(0, totalRows - HexViewportCapabilityProfile.BinInspector.InitialRows);
+    }
+
+    partial void OnSelectedStructureChanging(FirmwareBinInspectionStructure value)
+    {
+        if (!CanSelectStructure(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "The selected metadata structure is not owned by this inspection.");
+        }
+    }
+
+    partial void OnSelectedStructureChanged(FirmwareBinInspectionStructure value)
+    {
+        RangeScrollRow = 0;
+        _selectedAddress = value.Metadata.AddressedRange!.Range.Start;
+        RangeScrollMaximum = CalculateRangeScrollMaximum(value);
+        OnPropertyChanged(nameof(RangeScrollRow));
+        OnPropertyChanged(nameof(RangeScrollMaximum));
+        PublishViewport();
+        SelectedField = value.Metadata.Fields.Count > 0
+            ? value.Metadata.Fields[0]
+            : null;
+    }
+
+    partial void OnSelectedFieldChanging(FormattedMetadataField? value)
+    {
+        if (value is not null && !CanSelectField(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "The selected metadata field is not owned by the current structure.");
+        }
+    }
+
+    partial void OnSelectedFieldChanged(FormattedMetadataField? value)
+    {
+        if (value is not null)
+        {
+            SelectAddress(value.AddressedRange.Range.Start, ensureVisible: true);
+        }
+
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 }

@@ -1739,9 +1739,12 @@ must not be restored as a second admission or dependency catalog.
     semantic range. Its compact Changed-ranges accordion shows Why and Result;
     byte comparison belongs only to the viewport. Historical replay never
     rereads source paths, and a legacy report without complete replay bytes
-    reports the preview unavailable. BIN Inspector accepts resolved metadata
-    instances and immutable bytes, formats facts through the common Application
-    formatter, and never infers IC/map/topology/slot context from bytes.
+    reports the preview unavailable. Replay context planes and their changed
+    slices remain bound to persisted SHA-256 evidence. BIN Inspector accepts
+    one resolution/revision/hash-bound Application snapshot of resolved
+    metadata instances and immutable bytes, formats facts through the common
+    Application formatter, and never infers IC/map/topology/slot context from
+    bytes.
 42. Hex extraction is not a redesign. It must preserve the current custom-drawn
     16-byte-row appearance, features, accessibility, and equal-or-better
     measured performance.

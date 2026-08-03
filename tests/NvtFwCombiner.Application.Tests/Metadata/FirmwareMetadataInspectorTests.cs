@@ -80,6 +80,41 @@ public sealed class FirmwareMetadataInspectorTests
         Assert.Equal("3", major.Value);
     }
 
+    /// <summary>The BIN snapshot keeps one formatter root and rejects bytes with a different artifact identity.</summary>
+    [Fact]
+    public void BinInspectionSnapshotBindsFormatterTokenRevisionAndArtifactHash()
+    {
+        ResolvedMetadataPlan plan = CreateDpcmiPlan();
+        byte[] dp = new byte[0x80];
+        dp[0x36] = 0x2E;
+        dp[0x37] = 0x03;
+        dp[0x38] = 0xA4;
+        var artifact = new FirmwareBinInspectionArtifact(
+            CompositionAddressSpaceIds.DpReplacement,
+            dp);
+        MetadataInspectionSnapshot inspected = FirmwareMetadataInspector.Inspect(
+            new MetadataInspectionRequest(
+                plan,
+                authoringRevision: 7,
+                [new FirmwareArtifactPayload(CompositionAddressSpaceIds.DpReplacement, dp)]));
+
+        var snapshot = FirmwareBinInspectionSnapshot.Create(
+            inspected,
+            [artifact]);
+
+        FirmwareBinInspectionStructure structure = Assert.Single(snapshot.Structures);
+        Assert.Equal(plan.ResolutionToken, snapshot.ResolutionToken);
+        Assert.Equal(7, snapshot.AuthoringRevision);
+        Assert.Equal(new byte[] { 0x2E, 0x03, 0xA4 }, structure.Bytes.ToArray());
+        Assert.Equal(DpcmiMetadataContract.StructureId, structure.Metadata.StructureId);
+
+        byte[] changed = (byte[])dp.Clone();
+        changed[0x37] ^= 0xFF;
+        _ = Assert.Throws<ArgumentException>(() => FirmwareBinInspectionSnapshot.Create(
+            inspected,
+            [new FirmwareBinInspectionArtifact(CompositionAddressSpaceIds.DpReplacement, changed)]));
+    }
+
     /// <summary>Pending metadata remains an explicit state and never fabricates structure bytes or fields.</summary>
     [Fact]
     public void MetadataFormatterPreservesPendingStateWithoutResolvedGeometry()

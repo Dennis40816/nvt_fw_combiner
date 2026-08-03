@@ -114,6 +114,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("<GridSplitter", audit, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexDiffResizeAutomationName}\"", audit, StringComparison.Ordinal);
         Assert.Contains("<views:HexViewportControl", audit, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", audit, StringComparison.Ordinal);
+        Assert.Contains(
+            "AutomationProperties.HelpText=\"{Binding LoadedReport.HexDiff.SelectedByteAccessibleLabel}\"",
+            audit,
+            StringComparison.Ordinal);
         Assert.Contains("MinHeight=\"0\"", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("MinHeight=\"300\"", audit, StringComparison.Ordinal);
         Assert.Contains("Snapshot=\"{Binding LoadedReport.HexDiff.ViewportSnapshot}\"", audit, StringComparison.Ordinal);
@@ -143,16 +148,18 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal(
             1,
             Regex.Count(changes, Regex.Escape("AutomationProperties.Name=\"{Binding AccessibleLabel}\"")));
-        Assert.Contains("<RadioButton", changes, StringComparison.Ordinal);
-        Assert.Contains("GroupName=\"ReportHexDiffRangeNavigator\"", changes, StringComparison.Ordinal);
-        Assert.Contains("IsChecked=\"{Binding IsSelected, Mode=OneWay}\"", changes, StringComparison.Ordinal);
+        Assert.DoesNotContain("<RadioButton", changes, StringComparison.Ordinal);
+        Assert.Contains(
+            "SelectedItem=\"{Binding LoadedReport.HexDiff.SelectedRange, Mode=TwoWay}\"",
+            audit,
+            StringComparison.Ordinal);
         Assert.Contains("Content=\"{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding OutputSpaceId}\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DisplayRange}\"", changes, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", changes, StringComparison.Ordinal);
         Assert.Contains("Text.ResultLabel", changes, StringComparison.Ordinal);
+        Assert.Equal(2, Regex.Count(changes, Regex.Escape("IsVisible=\"{Binding IsSelected}\"")));
         Assert.DoesNotContain("Text.PrimaryReasonLabel", ExtractDataTemplate(changes, "ReportHexDiffRangeRowTemplate"), StringComparison.Ordinal);
-        Assert.Contains("CommandParameter=\"{Binding}\"", changes, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding Reason}\"", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("HexDiffBeforeSha256Label", audit, StringComparison.Ordinal);
         Assert.DoesNotContain("HexDiffAfterSha256Label", audit, StringComparison.Ordinal);
@@ -161,10 +168,10 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Border.reportHexDiffRow.changed", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ToggleSwitch.reportHexDiffOriginalToggle\"", styles, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"ReportHexDiffRangeCardTheme\"", changes, StringComparison.Ordinal);
-        Assert.Contains("Theme=\"{StaticResource ReportHexDiffRangeCardTheme}\"", changes, StringComparison.Ordinal);
+        Assert.Contains("ResourceKey=\"ReportHexDiffRangeCardTheme\"", audit, StringComparison.Ordinal);
         Assert.Contains("Property=\"CornerRadius\" Value=\"{DynamicResource NfcSurfaceCornerRadius}\"", changes, StringComparison.Ordinal);
         Assert.Contains("Border#PART_SelectedRail", changes, StringComparison.Ordinal);
-        Assert.Contains("^:checked /template/ Border#PART_RangeCard", changes, StringComparison.Ordinal);
+        Assert.Contains("^:selected /template/ Border#PART_RangeCard", changes, StringComparison.Ordinal);
         Assert.Contains("^:focus-visible /template/ Border#PART_RangeCard", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"RadioButton.reportHexDiffRange:checked\"", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorPanel", hexDiffSurface, StringComparison.Ordinal);
@@ -193,7 +200,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("Text=\"{Binding AccessibleRange}\"", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text.HexDiffWhyLabel", rangeRow, StringComparison.Ordinal);
         Assert.Contains("Text.ResultLabel", rangeRow, StringComparison.Ordinal);
-        Assert.Contains("^:checked /template/ Border#PART_SelectedRail", changes, StringComparison.Ordinal);
+        Assert.Contains("^:selected /template/ Border#PART_SelectedRail", changes, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", changes, StringComparison.Ordinal);
         Assert.DoesNotContain("Selector=\"RadioButton.reportHexDiffRange:checked\"", styles, StringComparison.Ordinal);
     }

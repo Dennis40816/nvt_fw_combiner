@@ -3,67 +3,11 @@ using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>One resolved structure paired with a private copy of its exact bytes.</summary>
-public sealed class BinInspectorStructureSource
-{
-    private readonly byte[] _bytes;
-
-    /// <summary>Accepts only Application-resolved structure facts and their exact byte range.</summary>
-    public BinInspectorStructureSource(
-        FormattedMetadataStructure metadata,
-        ReadOnlyMemory<byte> bytes)
-    {
-        ArgumentNullException.ThrowIfNull(metadata);
-        if (metadata.AddressedRange is not { } range)
-        {
-            throw new ArgumentException(
-                "BIN inspection requires resolved structure geometry.",
-                nameof(metadata));
-        }
-
-        if (metadata.State != MetadataInspectionState.Value ||
-            metadata.Readiness != ResolvedChildReadiness.Ready ||
-            metadata.ArtifactIdentity is not { } identity ||
-            !StringComparer.Ordinal.Equals(identity.ArtifactId, metadata.ArtifactBindingId))
-        {
-            throw new ArgumentException(
-                "BIN inspection accepts only ready, identity-bound metadata structures.",
-                nameof(metadata));
-        }
-
-        if (range.Range.Length != bytes.Length)
-        {
-            throw new ArgumentException(
-                "BIN inspection bytes must exactly cover the resolved structure range.",
-                nameof(bytes));
-        }
-
-        if (metadata.Fields.Any(field =>
-            !StringComparer.Ordinal.Equals(
-                field.AddressedRange.AddressSpaceId,
-                range.AddressSpaceId) ||
-            !range.Range.Contains(field.AddressedRange.Range)))
-        {
-            throw new ArgumentException(
-                "BIN inspection fields must remain inside their resolved structure range.",
-                nameof(metadata));
-        }
-
-        Metadata = metadata;
-        _bytes = bytes.ToArray();
-    }
-
-    /// <summary>Application-owned names, values, state, identity, and exact geometry.</summary>
-    public FormattedMetadataStructure Metadata { get; }
-
-    internal ReadOnlySpan<byte> Bytes => _bytes;
-}
-
 /// <summary>Projects one exact resolved metadata structure into the shared read-only viewport.</summary>
 internal static class BinInspectorViewportAdapter
 {
     internal static HexViewportSnapshot Create(
-        BinInspectorStructureSource source,
+        FirmwareBinInspectionStructure source,
         int firstStructureRow,
         long? selectedAddress)
     {
@@ -92,7 +36,7 @@ internal static class BinInspectorViewportAdapter
         int bytesToProject = Math.Min(
             source.Bytes.Length - byteStart,
             visibleRows * HexViewportSnapshot.BytesPerRow);
-        ReadOnlySpan<byte> bytes = source.Bytes.Slice(byteStart, bytesToProject);
+        ReadOnlySpan<byte> bytes = source.Bytes.Span.Slice(byteStart, bytesToProject);
         var rows = new HexViewportRow[visibleRows];
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++)
         {

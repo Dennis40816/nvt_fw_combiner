@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using System.Security.Cryptography;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -42,6 +43,8 @@ public sealed class OutputDifferenceReplaySegment
         Range = range;
         _beforeBytes = beforeBytes.ToArray();
         _afterBytes = afterBytes.ToArray();
+        BeforeSha256 = Hash(_beforeBytes);
+        AfterSha256 = Hash(_afterBytes);
     }
 
     /// <summary>Output-space range covered by both byte planes.</summary>
@@ -52,6 +55,50 @@ public sealed class OutputDifferenceReplaySegment
 
     /// <summary>Exact immutable final-output bytes for <see cref="Range" />.</summary>
     public ReadOnlyMemory<byte> AfterBytes => _afterBytes;
+
+    /// <summary>SHA-256 of the complete persisted reference plane.</summary>
+    public string BeforeSha256 { get; }
+
+    /// <summary>SHA-256 of the complete persisted output plane.</summary>
+    public string AfterSha256 { get; }
+
+    /// <summary>Checks that the complete changed range still matches its report evidence hashes.</summary>
+    public bool MatchesDifferenceEvidence(
+        long differenceStart,
+        long differenceLength,
+        string beforeSha256,
+        string afterSha256)
+    {
+        return MatchesDifferenceEvidence(
+            new ByteRange(differenceStart, differenceLength),
+            beforeSha256,
+            afterSha256);
+    }
+
+    /// <summary>Checks that the complete changed range still matches its report evidence hashes.</summary>
+    public bool MatchesDifferenceEvidence(
+        ByteRange differenceRange,
+        string beforeSha256,
+        string afterSha256)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(beforeSha256);
+        ArgumentException.ThrowIfNullOrWhiteSpace(afterSha256);
+        if (!Range.Contains(differenceRange))
+        {
+            return false;
+        }
+
+        int offset = checked((int)(differenceRange.Start - Range.Start));
+        int length = checked((int)differenceRange.Length);
+        return string.Equals(
+                Hash(_beforeBytes.AsSpan(offset, length)),
+                beforeSha256,
+                StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(
+                Hash(_afterBytes.AsSpan(offset, length)),
+                afterSha256,
+                StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>Captures a complete difference plus two aligned 16-byte context rows on each side.</summary>
     public static OutputDifferenceReplaySegment CreateWithAlignedContext(
@@ -99,5 +146,10 @@ public sealed class OutputDifferenceReplaySegment
             replayRange,
             beforeBytes.Slice(start, length),
             afterBytes.Slice(start, length));
+    }
+
+    private static string Hash(ReadOnlySpan<byte> bytes)
+    {
+        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 }

@@ -3,7 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
-<ControlTheme x:Key="ReportHexDiffRangeCardTheme" TargetType="RadioButton">
+<ControlTheme x:Key="ReportHexDiffRangeCardTheme" TargetType="ListBoxItem">
   <Setter Property="MinHeight" Value="54" />
   <Setter Property="HorizontalAlignment" Value="Stretch" />
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -13,6 +13,7 @@
   <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
   <Setter Property="BorderThickness" Value="1" />
   <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+  <Setter Property="Margin" Value="0,0,0,8" />
   <Setter Property="Template">
     <ControlTemplate>
       <Border
@@ -43,11 +44,11 @@
   <Style Selector="^:pointerover /template/ Border#PART_RangeCard">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
   </Style>
-  <Style Selector="^:checked /template/ Border#PART_RangeCard">
+  <Style Selector="^:selected /template/ Border#PART_RangeCard">
     <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
   </Style>
-  <Style Selector="^:checked /template/ Border#PART_SelectedRail">
+  <Style Selector="^:selected /template/ Border#PART_SelectedRail">
     <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
   <Style Selector="^:focus-visible /template/ Border#PART_RangeCard">
@@ -92,55 +93,47 @@
 </DataTemplate>
 
 <DataTemplate x:Key="ReportHexDiffRangeRowTemplate" DataType="vm:ReportHexDiffRangeViewModel">
-  <RadioButton
-      Classes="reportHexDiffRange"
+  <StackPanel
       AutomationProperties.Name="{Binding AccessibleLabel}"
       AutomationProperties.HelpText="{Binding Reason}"
-      Command="{ReflectionBinding $parent[Window].DataContext.Reports.LoadedReport.HexDiff.SelectRangeCommand}"
-      CommandParameter="{Binding}"
-      GroupName="ReportHexDiffRangeNavigator"
-      IsChecked="{Binding IsSelected, Mode=OneWay}"
-      Margin="0,0,0,8"
-      Theme="{StaticResource ReportHexDiffRangeCardTheme}"
+      Spacing="{DynamicResource NfcSpace8}"
       ToolTip.Tip="{Binding Reason}">
-    <StackPanel Spacing="{DynamicResource NfcSpace8}">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-        <StackPanel Spacing="3">
-          <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
-          <TextBlock Classes="technicalCaption" Text="{Binding OutputSpaceId}" TextWrapping="Wrap" />
-          <TextBlock Classes="technicalCaption" Text="{Binding DisplayRange}" TextWrapping="Wrap" />
-          <TextBlock Classes="captionText" Text="{Binding ChangedSummary}" />
-        </StackPanel>
-        <Label
-            Grid.Column="1"
-            Classes="compactBadge neutralBadge reportBadge info"
-            Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
-            VerticalAlignment="Top"
-            IsVisible="{Binding IsSelected}" />
-      </Grid>
-      <Border
-          Padding="0,8,0,0"
-          BorderBrush="{DynamicResource NfcDividerBrush}"
-          BorderThickness="0,1,0,0"
-          IsVisible="{Binding IsSelected}">
-        <StackPanel Spacing="{DynamicResource NfcSpace4}">
-          <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffWhyLabel}" />
-          <TextBlock Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
-        </StackPanel>
-      </Border>
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-        <TextBlock
-            VerticalAlignment="Center"
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Spacing="3">
+        <TextBlock Classes="bodyStrongText" Text="{Binding Title}" TextWrapping="Wrap" />
+        <TextBlock Classes="technicalCaption" Text="{Binding OutputSpaceId}" TextWrapping="Wrap" />
+        <TextBlock Classes="technicalCaption" Text="{Binding DisplayRange}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding ChangedSummary}" />
+      </StackPanel>
+      <Label
+          Grid.Column="1"
+          Classes="compactBadge neutralBadge reportBadge info"
+          Content="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffSelectedRangeLabel}"
+          VerticalAlignment="Top"
+          IsVisible="{Binding IsSelected}" />
+    </Grid>
+    <Border
+        Padding="0,8,0,0"
+        BorderBrush="{DynamicResource NfcDividerBrush}"
+        BorderThickness="0,1,0,0"
+        IsVisible="{Binding IsSelected}">
+      <StackPanel Spacing="{DynamicResource NfcSpace4}">
+        <TextBlock Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.HexDiffWhyLabel}" />
+        <TextBlock Classes="bodyText" Text="{Binding Reason}" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <TextBlock
+              VerticalAlignment="Center"
             Classes="tableHeader"
             Text="{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}" />
         <Label
             Grid.Column="1"
             Classes="compactBadge neutralBadge reportBadge success"
-            Classes.review="{Binding IsReviewRequired}"
-            Content="{Binding Status}" />
-      </Grid>
-    </StackPanel>
-  </RadioButton>
+              Classes.review="{Binding IsReviewRequired}"
+              Content="{Binding Status}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </StackPanel>
 </DataTemplate>
 
 </ResourceDictionary>

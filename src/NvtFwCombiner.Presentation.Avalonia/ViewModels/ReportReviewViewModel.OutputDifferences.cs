@@ -273,20 +273,41 @@ public sealed partial class ReportReviewViewModel
 
         string? beforeBase64 = GetStringOrNull(replay, "BeforeBytes");
         string? afterBase64 = GetStringOrNull(replay, "AfterBytes");
-        if (string.IsNullOrWhiteSpace(beforeBase64) || string.IsNullOrWhiteSpace(afterBase64))
+        string? replayBeforeSha256 = GetStringOrNull(replay, "BeforeSha256");
+        string? replayAfterSha256 = GetStringOrNull(replay, "AfterSha256");
+        string? differenceBeforeSha256 = GetStringOrNull(difference, "BeforeSha256");
+        string? differenceAfterSha256 = GetStringOrNull(difference, "AfterSha256");
+        if (string.IsNullOrWhiteSpace(beforeBase64) ||
+            string.IsNullOrWhiteSpace(afterBase64) ||
+            string.IsNullOrWhiteSpace(replayBeforeSha256) ||
+            string.IsNullOrWhiteSpace(replayAfterSha256) ||
+            string.IsNullOrWhiteSpace(differenceBeforeSha256) ||
+            string.IsNullOrWhiteSpace(differenceAfterSha256))
         {
             return null;
         }
 
         try
         {
-            return descriptor.Start >= start &&
-                descriptor.Length <= length &&
-                descriptor.Start <= endExclusive - descriptor.Length
-                ? new OutputDifferenceReplaySegment(
-                    start,
-                    Convert.FromBase64String(beforeBase64),
-                    Convert.FromBase64String(afterBase64))
+            if (descriptor.Start < start ||
+                descriptor.Length > length ||
+                descriptor.Start > endExclusive - descriptor.Length)
+            {
+                return null;
+            }
+
+            var segment = new OutputDifferenceReplaySegment(
+                start,
+                Convert.FromBase64String(beforeBase64),
+                Convert.FromBase64String(afterBase64));
+            return string.Equals(segment.BeforeSha256, replayBeforeSha256, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(segment.AfterSha256, replayAfterSha256, StringComparison.OrdinalIgnoreCase) &&
+                segment.MatchesDifferenceEvidence(
+                    descriptor.Start,
+                    descriptor.Length,
+                    differenceBeforeSha256,
+                    differenceAfterSha256)
+                ? segment
                 : null;
         }
         catch (Exception exception) when (exception is ArgumentException or FormatException or OverflowException)

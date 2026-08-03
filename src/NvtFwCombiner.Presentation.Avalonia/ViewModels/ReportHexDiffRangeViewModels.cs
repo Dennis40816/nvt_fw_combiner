@@ -153,6 +153,14 @@ internal sealed class ReportHexDiffSource
 
     internal int MaterializedCount => _rows.MaterializedCount;
 
+    internal bool Contains(ReportHexDiffRangeViewModel range)
+    {
+        ArgumentNullException.ThrowIfNull(range);
+        int sourceIndex = range.Descriptor.SourceIndex;
+        return (uint)sourceIndex < (uint)_rows.Count &&
+            ReferenceEquals(_rows[sourceIndex], range);
+    }
+
     internal bool IsWithin(long byteLength)
     {
         if (byteLength < 0)

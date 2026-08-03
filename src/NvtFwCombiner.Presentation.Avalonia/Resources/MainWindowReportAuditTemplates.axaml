@@ -106,6 +106,8 @@
                   <Grid Grid.Row="1" MinHeight="0" Margin="10" ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
                     <views:HexViewportControl
                         MinHeight="0"
+                        AutomationProperties.AccessibilityView="Content"
+                        AutomationProperties.HelpText="{Binding LoadedReport.HexDiff.SelectedByteAccessibleLabel}"
                         AutomationProperties.Name="{Binding Text.HexDiffViewportTitle}"
                         InteractionCommand="{Binding LoadedReport.HexDiff.ViewportInteractionCommand}"
                         Snapshot="{Binding LoadedReport.HexDiff.ViewportSnapshot}"
@@ -155,7 +157,11 @@
                       Grid.Row="1"
                       Classes="reportHexDiffRanges"
                       ItemsSource="{Binding LoadedReport.HexDiff.Ranges}"
+                      SelectedItem="{Binding LoadedReport.HexDiff.SelectedRange, Mode=TwoWay}"
                       SelectionMode="Single">
+                    <ListBox.ItemContainerTheme>
+                      <StaticResource ResourceKey="ReportHexDiffRangeCardTheme" />
+                    </ListBox.ItemContainerTheme>
                     <ListBox.ItemsPanel>
                       <ItemsPanelTemplate>
                         <VirtualizingStackPanel />

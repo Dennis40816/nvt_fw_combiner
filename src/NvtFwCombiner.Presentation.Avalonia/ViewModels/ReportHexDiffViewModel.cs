@@ -50,7 +50,10 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
             ? Ranges[0]
             : null;
         SelectedRange = initialRange;
-        RefreshSelectedReplay();
+        if (initialRange is null)
+        {
+            RefreshSelectedReplay();
+        }
     }
 
     /// <summary>True when the current report selection has complete, trusted replay bytes.</summary>
@@ -99,13 +102,40 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedRange))]
     [NotifyPropertyChangedFor(nameof(HasNoSelectedRange))]
-    public partial ReportHexDiffRangeViewModel? SelectedRange { get; private set; }
+    public partial ReportHexDiffRangeViewModel? SelectedRange { get; set; }
 
     /// <summary>True when the accordion has one selected range.</summary>
     public bool HasSelectedRange => SelectedRange is not null;
 
     /// <summary>True when no report range is selected.</summary>
     public bool HasNoSelectedRange => SelectedRange is null;
+
+    /// <summary>Localized screen-reader projection for the selected custom-drawn byte.</summary>
+    public string SelectedByteAccessibleLabel
+    {
+        get
+        {
+            if (_selectedByteAddress is not long selected || !TryGetVisibleCell(selected, out HexViewportCell cell))
+            {
+                return T(_language, "No Hex Diff byte selected.", "尚未選取 Hex Diff 位元組。");
+            }
+
+            string address = FormattableString.Invariant($"0x{selected:X6}");
+            string output = FormattableString.Invariant($"0x{cell.PrimaryValue:X2}");
+            string state = cell.IsDataChanged
+                ? T(_language, "changed", "已變更")
+                : T(_language, "unchanged context", "未變更的 context");
+            return ShowOriginalRows && cell.ComparisonValue is byte original
+                ? T(
+                    _language,
+                    $"Address {address}, output {output}, original 0x{original:X2}, {state}.",
+                    $"位址 {address}，輸出 {output}，原始值 0x{original:X2}，{state}。")
+                : T(
+                    _language,
+                    $"Address {address}, output {output}, {state}.",
+                    $"位址 {address}，輸出 {output}，{state}。");
+        }
+    }
 
     /// <summary>First range-local row currently materialized.</summary>
     public int RangeScrollRow
@@ -197,7 +227,7 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
 
     private bool CanSelectRange(ReportHexDiffRangeViewModel? range)
     {
-        return _reportBoundsValid && range is not null &&
+        return _reportBoundsValid && range is not null && _source.Contains(range) &&
             string.Equals(range.OutputSpaceId, OutputSpaceId, StringComparison.Ordinal) &&
             range.Start >= 0 && range.Length > 0 && range.Start <= TotalByteCount - range.Length;
     }
@@ -210,7 +240,6 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         }
 
         SelectedRange = range;
-        RefreshSelectedReplay();
     }
 
     private void RefreshSelectedReplay()
@@ -322,6 +351,7 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
         OnPropertyChanged(nameof(HasViewportBytes));
         OnPropertyChanged(nameof(HasNoViewportBytes));
         OnPropertyChanged(nameof(FirstVisibleOffset));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
     }
 
     private void SelectByte(long address, bool ensureVisible)
@@ -356,6 +386,23 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
 
         ViewportSnapshot = ViewportSnapshot.WithSelectedAddress(selected);
         OnPropertyChanged(nameof(ViewportSnapshot));
+        OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
+    }
+
+    private bool TryGetVisibleCell(long address, out HexViewportCell cell)
+    {
+        foreach (HexViewportRow row in ViewportSnapshot.Rows)
+        {
+            long index = address - row.Address;
+            if ((ulong)index < (ulong)row.Cells.Count)
+            {
+                cell = row.Cells[(int)index];
+                return true;
+            }
+        }
+
+        cell = default;
+        return false;
     }
 
     private static string T(ShellLanguage language, string english, string traditionalChinese)
@@ -370,6 +417,11 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
 
     partial void OnSelectedRangeChanging(ReportHexDiffRangeViewModel? value)
     {
+        if (value is not null && !CanSelectRange(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "The selected Report Diff range is not owned by this report.");
+        }
+
         if (SelectedRange is not null)
         {
             SelectedRange.IsSelected = false;
@@ -383,5 +435,6 @@ public sealed partial class ReportHexDiffViewModel : ObservableObject
             value.IsSelected = true;
         }
 
+        RefreshSelectedReplay();
     }
 }

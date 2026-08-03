@@ -130,6 +130,10 @@ highlighting without rereading source firmware paths. A legacy report without
 complete replay bytes says that Diff preview is unavailable; neither host nor
 viewport fabricates missing bytes.
 
+Each persisted replay plane carries its own SHA-256, and its changed-range
+slice must also match the row's existing before/after evidence hashes. Readers
+fail closed when either the context plane or changed slice loses that identity.
+
 The BIN Inspector host is a separate read-only adapter. It receives the exact
 resolved metadata-structure instances and immutable structure bytes from the
 Application inspection path, presents values from the one common Application
@@ -137,6 +141,14 @@ formatter, and uses semantic structure/field selection to position the shared
 viewport. It never accepts an IC id, infers a map/topology/slot from bytes, or
 duplicates field offsets, encodings, assertions, ranges, or formatter rules in
 Presentation.
+
+The reusable desktop host consumes one Application-owned BIN inspection
+snapshot. That factory retains the formatter root's resolution token and
+authoring revision, verifies the complete artifact identity/hash set evaluated
+by the inspection, and only then copies resolved structure slices. Presentation
+cannot assemble detached structures or pair metadata from one artifact with
+same-length bytes from another. Active workflow route wiring remains owned by
+#208.
 
 ## Delivery constraint
 
