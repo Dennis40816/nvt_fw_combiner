@@ -3,6 +3,62 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels">
 
+<ControlTheme x:Key="ReportHexDiffRangeCardTheme" TargetType="RadioButton">
+  <Setter Property="MinHeight" Value="54" />
+  <Setter Property="HorizontalAlignment" Value="Stretch" />
+  <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  <Setter Property="VerticalContentAlignment" Value="Stretch" />
+  <Setter Property="Padding" Value="12,10" />
+  <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+  <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+  <Setter Property="BorderThickness" Value="1" />
+  <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+  <Setter Property="Template">
+    <ControlTemplate>
+      <Border
+          Name="PART_RangeCard"
+          Padding="{TemplateBinding Padding}"
+          Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}"
+          BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}">
+        <Grid ColumnDefinitions="3,*" ColumnSpacing="10">
+          <Border
+              Name="PART_SelectedRail"
+              Width="3"
+              Background="Transparent"
+              CornerRadius="{DynamicResource NfcPillCornerRadius}" />
+          <ContentPresenter
+              Grid.Column="1"
+              HorizontalAlignment="Stretch"
+              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+              VerticalAlignment="Stretch"
+              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+              Content="{TemplateBinding Content}"
+              ContentTemplate="{TemplateBinding ContentTemplate}" />
+        </Grid>
+      </Border>
+    </ControlTemplate>
+  </Setter>
+  <Style Selector="^:pointerover /template/ Border#PART_RangeCard">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="^:checked /template/ Border#PART_RangeCard">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+  </Style>
+  <Style Selector="^:checked /template/ Border#PART_SelectedRail">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="^:focus-visible /template/ Border#PART_RangeCard">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="^:disabled /template/ Border#PART_RangeCard">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+</ControlTheme>
+
 <DataTemplate x:Key="ReportDifferenceSummaryRowTemplate" DataType="vm:ReportDifferenceSummaryRowViewModel">
   <Border Classes="listRow" Padding="0,9">
     <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
@@ -44,6 +100,8 @@
       CommandParameter="{Binding}"
       GroupName="ReportHexDiffRangeNavigator"
       IsChecked="{Binding IsSelected, Mode=OneWay}"
+      Margin="0,0,0,8"
+      Theme="{StaticResource ReportHexDiffRangeCardTheme}"
       ToolTip.Tip="{Binding Reason}">
     <StackPanel Spacing="{DynamicResource NfcSpace8}">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">

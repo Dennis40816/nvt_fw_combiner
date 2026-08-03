@@ -489,23 +489,18 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
   </Style>
-  <Style Selector="RadioButton.reportHexDiffRange">
-    <Setter Property="MinHeight" Value="54" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  <Style Selector="ListBox.reportHexDiffRanges">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ListBox.reportHexDiffRanges ListBoxItem">
+    <Setter Property="Padding" Value="0" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="Padding" Value="10,8" />
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcDividerBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="RadioButton.reportHexDiffRange:pointerover">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-  </Style>
-  <Style Selector="RadioButton.reportHexDiffRange:checked">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderThickness" Value="2" />
+  <Style Selector="ListBox.reportHexDiffRanges ListBoxItem:selected">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
   <Style Selector="ToggleSwitch.reportHexDiffOriginalToggle">
     <Setter Property="VerticalAlignment" Value="Center" />

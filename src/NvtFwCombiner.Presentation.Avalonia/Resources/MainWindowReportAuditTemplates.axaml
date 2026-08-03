@@ -84,11 +84,20 @@
                       </StackPanel>
                       <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="6">
                         <Label Classes="compactBadge neutralBadge reportBadge success" Content="{Binding LoadedReport.OutputDifferenceCount}" />
-                        <ToggleSwitch
-                            Classes="reportHexDiffOriginalToggle"
-                            AutomationProperties.Name="{Binding Text.HexDiffShowOriginalRowsLabel}"
-                            Content="{Binding Text.HexDiffShowOriginalRowsLabel}"
-                            IsChecked="{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}" />
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="7">
+                          <TextBlock
+                              VerticalAlignment="Center"
+                              Classes="fieldLabel"
+                              Text="{Binding Text.HexDiffShowOriginalRowsLabel}" />
+                          <ToggleSwitch
+                              Classes="reportHexDiffOriginalToggle"
+                              Width="42"
+                              MinHeight="24"
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name="{Binding Text.HexDiffShowOriginalRowsLabel}"
+                              IsChecked="{Binding LoadedReport.HexDiff.ShowOriginalRows, Mode=TwoWay}"
+                              ToolTip.Tip="{Binding Text.HexDiffShowOriginalRowsLabel}" />
+                        </StackPanel>
                       </StackPanel>
                     </Grid>
                   </Border>
@@ -136,6 +145,7 @@
                   </StackPanel>
                   <ListBox
                       Grid.Row="1"
+                      Classes="reportHexDiffRanges"
                       ItemsSource="{Binding LoadedReport.HexDiff.Ranges}"
                       SelectionMode="Single">
                     <ListBox.ItemsPanel>
