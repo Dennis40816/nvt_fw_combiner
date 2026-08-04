@@ -41,7 +41,14 @@ Replace profiles may declare `experience.icNumInputMode` as `single`, `cascade`,
 
 General Merge and General Replace use runtime [`explicitMappings`](composition-request-v1.md). Each mapping compiles to a normal `copy-range` or `replace-range` operation and passes the same bounds, equal-length, overlap, alignment, region-access, atomicity, and processor-dependency checks. Scripts, commands, and undeclared processors are forbidden.
 
-Validated general mappings may be promoted to saved rules. A saved rule is a versioned profile fragment, not a script. Its schema is [`saved-composition-rule-v1.schema.json`](saved-composition-rule-v1.schema.json). Promotion requires compatibility checks, protected-range policy, deterministic operation fragments, owner/reviewer metadata, and golden evidence when firmware semantics are affected.
+Validated general mappings may be promoted only through the
+[`saved-composition-rule-v2`](saved-composition-rule-v2.md) contract. A saved
+rule is a versioned profile fragment, not a script. The former
+[`saved-composition-rule-v1.schema.json`](saved-composition-rule-v1.schema.json)
+is historical evidence only and has no production parser, migration, or
+emission path. Promotion requires exact Parent binding, compatibility and
+protected-range checks, deterministic operation fragments, owner/reviewer
+metadata, and golden evidence when firmware semantics are affected.
 
 ## Operation order and overlap
 

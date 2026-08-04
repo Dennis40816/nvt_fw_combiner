@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
@@ -24,7 +26,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         CancellationToken cancellationToken,
         string? outputPath = null,
-        CompositionRunProgressFeed? progress = null)
+        CompositionRunProgressFeed? progress = null,
+        ResolvedCapability? acceptedCapability = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         GeneralMappingDraftState? mappingDraft = draft?.Mappings;
@@ -79,22 +82,6 @@ public static partial class WorkbenchCompositionService
                     icId)]);
         }
 
-        var capabilityIdentity = new CapabilityRouteIdentity(
-            icId,
-            IcWorkflowIds.GeneralMerge,
-            "not-applicable",
-            "generic");
-        CapabilityRouteResolutionResult capabilityResolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(
-                capabilityIdentity.RouteId);
-        if (!capabilityResolution.Succeeded)
-        {
-            return Blocked(
-                [new CompositionIssue(
-                    capabilityResolution.Issue!.Code,
-                    capabilityResolution.Issue.Message)]);
-        }
-
         if (draftIssues is { Count: > 0 })
         {
             return Blocked(draftIssues);
@@ -109,102 +96,28 @@ public static partial class WorkbenchCompositionService
                     IcWorkflowIds.GeneralMerge)]);
         }
 
-        GeneralSelectedFileBindingResult acceptedFiles =
-            RequireAcceptedGeneralSelectedFiles(mappingDraft!);
-        if (!acceptedFiles.Succeeded)
-        {
-            return Blocked(acceptedFiles.Issues);
-        }
-
-        mappingDraft = acceptedFiles.Draft!;
-        draft = new GeneralMergeDraftState(
-            draft.OutputInitializer,
-            mappingDraft);
-        admission = AdmitGeneralMappingDraft(
-            mappingDraft,
-            draft.OutputInitializer.Capacity,
-            CreateCurrentGeneralTrustedParentPolicy(
-                registration.ProfileId,
-                mappingDraft,
-                registration.Bundle
-                    .GetGeneralMergeSavedRuleAdmissionContext(
-                        registration.ProfileId)
-                    .ParentBinding),
-            savedRulePolicy);
-        if (!admission.IsAdmitted)
-        {
-            return Blocked(admission.ToCompositionIssues());
-        }
-
-        if (!TryCreateGeneralMergeMappings(
-                admission,
-                out IReadOnlyList<ExplicitMapping> explicitMappings,
-                out IReadOnlyList<AddressSpace> requestAddressSpaces,
-                out IReadOnlyList<InputArtifactBinding> mappingBindings,
-                out IReadOnlyList<CompositionIssue> mappingIssues))
-        {
-            return Blocked(
-                mappingIssues,
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
-        }
-
-        if (requestAddressSpaces.Any(static addressSpace => addressSpace.Length > int.MaxValue))
-        {
-            return Blocked(
-                [new CompositionIssue(
-                    GeneralMergeV2CandidateInputLengthUnsupported,
-                    "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
-                    "source")],
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
-        }
-
-        V2CompositionPlanCompileResult compile = registration.Bundle.CompileLogicalOutput(
-            registration.ProfileId,
-            registration.ProfileVersion,
+        GeneralMergePlanningResult planning = PlanGeneralMergeDraft(
             icId,
-            new V2LogicalOutputCompileRequest(
-                draft.OutputInitializer,
-                requestAddressSpaces.Select(static addressSpace => new V2LogicalOutputInputBinding(
-                    addressSpace.AddressSpaceId,
-                    "source",
-                    (int)addressSpace.Length)),
-                explicitMappings.Select(static mapping => new ExplicitMapping(
-                    mapping.MappingId,
-                    mapping.Sequence,
-                    mapping.OperationKind,
-                    mapping.SourceBindingId,
-                    mapping.SourceRange,
-                    mapping.TargetSpaceId,
-                    mapping.TargetRange,
-                    mapping.OverlapPolicy,
-                    mapping.Alignment,
-                    mapping.Reason,
-                    targetRegionId: null,
-                    provenance: mapping.Provenance))));
-        if (!compile.IsCompiled || compile.CompiledComposition is not { } composition)
+            registration,
+            draft,
+            savedRulePolicy,
+            acceptedCapability: acceptedCapability);
+        admission = planning.Admission;
+        if (planning.Plan is not { } plan)
         {
             return Blocked(
-                NormalizeGeneralMergeV2Issues(compile.Issues),
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
+                planning.Issues,
+                CreateExplicitMappingPlanningOperations(
+                    planning.ExplicitMappings,
+                    CompositionOperationKind.CopyRange));
         }
 
-        if (!IsExpectedGeneralMergeV2Candidate(composition, registration))
-        {
-            return Blocked(
-                [new CompositionIssue(
-                    GeneralMergeV2CandidateCompilationUnexpected,
-                    "The selected General Merge V2 artifact does not match the candidate admission contract.",
-                    registration.ProfileId)],
-                CreateExplicitMappingPlanningOperations(explicitMappings, CompositionOperationKind.CopyRange));
-        }
-
-        ResolvedCapability resolvedCapability =
-            capabilityResolution.Route!.BindCompilation(composition);
-        composition = resolvedCapability.CompiledComposition;
+        mappingDraft = plan.MappingDraft;
+        CompiledComposition composition = plan.Capability.CompiledComposition;
 
         InputArtifactBinding[] candidateBindings =
         [
-            .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
+            .. plan.MappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 composition,
                 binding.AddressSpaceId,
                 binding.ArtifactId,
@@ -222,9 +135,304 @@ public static partial class WorkbenchCompositionService
             cancellationToken: cancellationToken,
             progress: progress,
             generalAdmission: admission,
-            resolvedCapability: resolvedCapability).ConfigureAwait(false);
+            resolvedCapability: plan.Capability).ConfigureAwait(false);
         return result with { AcceptedGeneralMappingDraft = mappingDraft };
     }
+
+    /// <summary>Compiles one accepted General Merge draft into exact-route action readiness.</summary>
+    public static CapabilityActionReadinessSnapshot? GetGeneralMergeActionReadiness(
+        AuthoringSessionState session,
+        string icId,
+        GeneralMergeDraftState draft)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentNullException.ThrowIfNull(draft);
+        ActiveSessionSnapshot? retainedSession = session.CurrentSnapshot;
+        ResolvedCapability? retainedCapability =
+            retainedSession?.DraftState is GeneralMergeDraftState retainedDraft &&
+            Equals(retainedDraft.OutputInitializer, draft.OutputInitializer) &&
+            retainedDraft.Mappings.HasSameCompilationInputs(draft.Mappings) &&
+            retainedSession.Slots.All(static slot =>
+                    slot.Lifecycle is AuthoringSlotLifecycle.Verified or
+                        AuthoringSlotLifecycle.Warning)
+            ? retainedSession.ExactCapability
+            : null;
+        if (!BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration) ||
+            PlanGeneralMergeDraft(
+                icId,
+                registration,
+                draft,
+                savedRulePolicy: null,
+                acceptedCapability: retainedCapability).Plan is not { } plan)
+        {
+            return null;
+        }
+
+        if (!StringComparer.Ordinal.Equals(
+                session.CurrentSnapshot?.CompilationFingerprint,
+                plan.Capability.CompiledComposition.CompilationFingerprint))
+        {
+            return null;
+        }
+        AuthoringSessionTransitionResult activated = session.Activate(CreateGeneralExactCatalog(
+            plan.Capability,
+            plan.InputResources,
+            plan.MappingDraft));
+        if (!activated.Succeeded)
+        {
+            return null;
+        }
+        AuthoringSessionTransitionResult drafted = session.SetDraft(draft);
+        if (!drafted.Succeeded ||
+            !ReferenceEquals(drafted.Snapshot!.ExactCapability, plan.Capability))
+        {
+            return null;
+        }
+        ActiveSessionSnapshot current = drafted.Snapshot;
+        var admission = CapabilityAdmissionSnapshot.FromResolvedCapability(
+            plan.Capability,
+            current.AuthoringRevision);
+        var runtime = new RuntimeDependencyReadinessSnapshot(
+            admission.RouteId,
+            admission.CapabilityFingerprint,
+            admission.CompilationFingerprint,
+            admission.ResolutionToken,
+            admission.AuthoringRevision,
+            generation: 1,
+            DateTimeOffset.UnixEpoch,
+            []);
+        CapabilityActionReadinessSnapshot readiness = CapabilityActionReadinessResolver.Resolve(
+            admission,
+            plan.MappingDraft.Rows.Select(static row =>
+                new CapabilityChildReadiness(row.MappingId, ResolvedChildReadiness.Ready)),
+            runtime,
+            currentRuntimeDependencyGeneration: 1);
+        AuthoringPublicationLease lease = session.CapturePublicationLease(
+            AuthoringDerivedResultKind.Validation,
+            plan.Capability.CompiledComposition.CompilationFingerprint);
+        return session.TryPublish(lease, new AuthoringDerivedPublication(
+            AuthoringDerivedResultKind.Validation,
+            $"general-merge-readiness:{current.AuthoringRevision.Value}",
+            plan.Capability.CompiledComposition.CompilationFingerprint)).Succeeded ? readiness : null;
+    }
+
+    /// <summary>Publishes General Merge mapping membership before range parsing succeeds.</summary>
+    public static bool PrepareGeneralMergeSelectionSession(
+        AuthoringSessionState session,
+        string icId,
+        IEnumerable<string> mappingIds)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(mappingIds);
+        string[] definitions = [.. mappingIds];
+        var identity = new CapabilityRouteIdentity(
+            icId,
+            IcWorkflowIds.GeneralMerge,
+            "not-applicable",
+            "generic");
+        CapabilityRouteResolutionResult resolution =
+            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+        return resolution.Succeeded &&
+            session.Activate(AuthoringCapabilityCatalogSnapshot.FromDynamicRoute(
+                resolution.Route!,
+                definitions)).Succeeded;
+    }
+
+    /// <summary>Compiles the exact candidate input contract before entering Checking.</summary>
+    public static AuthoringSlotInspectionStartResult BeginGeneralMergeSelectedFileInspection(
+        AuthoringSessionState session,
+        string icId,
+        GeneralMergeDraftState draft,
+        string mappingId,
+        long observedLength)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(draft);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mappingId);
+        ActiveSessionSnapshot? current = session.CurrentSnapshot;
+        ResolvedCapability? retained = current?.DraftState is GeneralMergeDraftState currentDraft &&
+            Equals(currentDraft.OutputInitializer, draft.OutputInitializer)
+                ? TryRetainGeneralMappingCompilation(
+                    session, draft.Mappings, mappingId, observedLength)
+                : null;
+        bool hasCandidateLengths = TryCollectGeneralCandidateFileLengths(
+            session,
+            draft.Mappings,
+            mappingId,
+            observedLength,
+            out IReadOnlyDictionary<string, long> observedFileLengths);
+        bool prepared = retained is not null
+            ? session.SetDraft(draft).Succeeded
+            : hasCandidateLengths &&
+            BuiltInV2RegistrationRegistry.GeneralMergeByIc.TryGetValue(
+                icId,
+                out GeneralMergeV2CandidateRegistration? registration) &&
+            PlanGeneralMergeDraft(
+                icId,
+                registration,
+                draft,
+                savedRulePolicy: null,
+                observedFileLengths).Plan is { } plan &&
+            session.Activate(CreateGeneralExactCatalog(
+                plan.Capability,
+                plan.InputResources,
+                plan.MappingDraft)).Succeeded &&
+            session.SetDraft(draft).Succeeded;
+        return prepared
+            ? session.BeginSlotFileInspection(
+                mappingId,
+                draft.Mappings.Rows.Single(row =>
+                    StringComparer.Ordinal.Equals(row.MappingId, mappingId)).Source.Reference)
+            : new AuthoringSlotInspectionStartResult(
+                session.CurrentSnapshot,
+                Lease: null,
+                new AuthoringSessionIssue(
+                    AuthoringSessionIssueCodes.RouteUnavailable,
+                    "The selected General file did not compile one exact input contract.",
+                    mappingId));
+    }
+
+    private static GeneralMergePlanningResult PlanGeneralMergeDraft(
+        string icId,
+        GeneralMergeV2CandidateRegistration registration,
+        GeneralMergeDraftState draft,
+        GeneralSavedRuleResourcePolicy? savedRulePolicy,
+        IReadOnlyDictionary<string, long>? observedFileLengths = null,
+        ResolvedCapability? acceptedCapability = null)
+    {
+        GeneralMappingDraftState mappingDraft = draft.Mappings;
+        if (observedFileLengths is null)
+        {
+            GeneralSelectedFileBindingResult accepted = RequireAcceptedGeneralSelectedFiles(mappingDraft);
+            if (!accepted.Succeeded)
+            {
+                return new(null, null, [], accepted.Issues);
+            }
+        }
+
+        GeneralTrustedParentResourcePolicy trustedParent =
+            CreateCurrentGeneralTrustedParentPolicy(
+                registration.ProfileId,
+                mappingDraft,
+                registration.Bundle.GetGeneralMergeSavedRuleAdmissionContext(
+                    registration.ProfileId).ParentBinding);
+        GeneralAuthoringAdmissionResult admission = observedFileLengths is null
+            ? AdmitGeneralMappingDraft(
+                mappingDraft,
+                draft.OutputInitializer.Capacity,
+                trustedParent,
+                savedRulePolicy)
+            : AdmitGeneralMappingCandidate(
+                mappingDraft,
+                draft.OutputInitializer.Capacity,
+                trustedParent,
+                observedFileLengths);
+        if (!admission.IsAdmitted)
+        {
+            return new(null, admission, [], admission.ToCompositionIssues());
+        }
+
+        if (!TryCreateGeneralMergeMappings(
+                admission,
+                out IReadOnlyList<ExplicitMapping> mappings,
+                out IReadOnlyList<AddressSpace> spaces,
+                out IReadOnlyList<InputArtifactBinding> bindings,
+                out IReadOnlyList<CompositionIssue> mappingIssues,
+                allowUnbound: observedFileLengths is not null))
+        {
+            return new(null, admission, mappings, mappingIssues);
+        }
+
+        if (spaces.Any(static space => space.Length > int.MaxValue))
+        {
+            return new(null, admission, mappings, [new CompositionIssue(
+                GeneralMergeV2CandidateInputLengthUnsupported,
+                "The General Merge V2 candidate accepts source inputs up to the supported in-memory composition size.",
+                "source")]);
+        }
+
+        var identity = new CapabilityRouteIdentity(
+            icId,
+            IcWorkflowIds.GeneralMerge,
+            "not-applicable",
+            "generic");
+        CapabilityRouteResolutionResult resolution =
+            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+        if (!resolution.Succeeded)
+        {
+            return new(null, admission, mappings, [new CompositionIssue(
+                resolution.Issue!.Code,
+                resolution.Issue.Message)]);
+        }
+
+        if (acceptedCapability is not null)
+        {
+            return !StringComparer.Ordinal.Equals(
+                    acceptedCapability.Identity.RouteId,
+                    resolution.Route!.Identity.RouteId)
+                ? new(null, admission, mappings, [new CompositionIssue(
+                    GeneralMergeV2CandidateCompilationUnexpected,
+                    "The retained General Merge compilation belongs to another route.")])
+                : new(new GeneralMergeCompiledPlan(
+                    mappingDraft, acceptedCapability, bindings, admission.InputResources),
+                    admission, mappings, []);
+        }
+
+        V2CompositionPlanCompileResult compile = registration.Bundle.CompileLogicalOutput(
+            registration.ProfileId,
+            registration.ProfileVersion,
+            icId,
+            new V2LogicalOutputCompileRequest(
+                draft.OutputInitializer,
+                spaces.Select(static space => new V2LogicalOutputInputBinding(
+                    space.AddressSpaceId,
+                    "source",
+                    (int)space.Length)),
+                mappings.Select(static mapping => new ExplicitMapping(
+                    mapping.MappingId,
+                    mapping.Sequence,
+                    mapping.OperationKind,
+                    mapping.SourceBindingId,
+                    mapping.SourceRange,
+                    mapping.TargetSpaceId,
+                    mapping.TargetRange,
+                    mapping.OverlapPolicy,
+                    mapping.Alignment,
+                    mapping.Reason,
+                    targetRegionId: null,
+                    provenance: mapping.Provenance))));
+        return !compile.IsCompiled || compile.CompiledComposition is not { } composition
+            ? new(null, admission, mappings, NormalizeGeneralMergeV2Issues(compile.Issues))
+            : !IsExpectedGeneralMergeV2Candidate(composition, registration)
+            ? new(null, admission, mappings, [new CompositionIssue(
+                GeneralMergeV2CandidateCompilationUnexpected,
+                "The selected General Merge V2 artifact does not match the candidate admission contract.",
+                registration.ProfileId)])
+            : new(
+                new GeneralMergeCompiledPlan(
+                mappingDraft,
+                resolution.Route!.BindCompilation(composition),
+                bindings,
+                admission.InputResources),
+                admission,
+                mappings,
+                []);
+    }
+
+    private sealed record GeneralMergePlanningResult(
+        GeneralMergeCompiledPlan? Plan,
+        GeneralAuthoringAdmissionResult? Admission,
+        IReadOnlyList<ExplicitMapping> ExplicitMappings,
+        IReadOnlyList<CompositionIssue> Issues);
+
+    private sealed record GeneralMergeCompiledPlan(
+        GeneralMappingDraftState MappingDraft,
+        ResolvedCapability Capability,
+        IReadOnlyList<InputArtifactBinding> MappingBindings,
+        IReadOnlyList<GeneralInputResource> InputResources);
 
     private static bool IsExpectedGeneralMergeV2Candidate(
         CompiledComposition composition,

@@ -1,4 +1,5 @@
 using Avalonia;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
@@ -13,22 +14,22 @@ public sealed partial class XamlControlStyleContractTests
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
-        string historyFeedback = ReadPresentationFile("Views/HexEditorViewportControl.HistoryFeedback.cs");
-        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
+        string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
+        string historyFeedback = ReadPresentationFile("Views/HexViewportControl.HistoryFeedback.cs");
+        string renderingSupport = ReadPresentationFile("Views/HexViewportControl.RenderingSupport.cs");
         string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
 
         Assert.Contains("Gesture=\"Ctrl+S\"", shell, StringComparison.Ordinal);
         Assert.Contains("RequestHexEditorSaveCommand", shell, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"HexInlineEditor\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("row.IsOriginalRowVisible", viewport, StringComparison.Ordinal);
+        Assert.Contains("<views:HexViewportControl", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("IsComparisonRowVisible", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawReferenceRow", viewport, StringComparison.Ordinal);
         Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
-        Assert.Contains("$\"{displayAddress}  orig\"", renderingSupport, StringComparison.Ordinal);
-        Assert.Contains("HistoryFeedbackVersion", viewport, StringComparison.Ordinal);
+        Assert.Contains("$\"0x{address:X6}  {ComparisonRowLabel}\"", renderingSupport, StringComparison.Ordinal);
+        Assert.Contains("DecorationVersion", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DispatcherTimer", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawHistoryFeedback", historyFeedback, StringComparison.Ordinal);
         Assert.Contains("DrawAsciiSearchRanges", viewport, StringComparison.Ordinal);
@@ -55,12 +56,22 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void HexEditorHoverOutlineDoesNotDisappearBehindByteState()
     {
-        foreach (HexEditorCellVisualState state in Enum.GetValues<HexEditorCellVisualState>())
+        foreach (HexViewportCellVisualState state in Enum.GetValues<HexViewportCellVisualState>())
         {
-            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: true, state));
-            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
-            Assert.False(HexEditorViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
+            Assert.True(HexViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: true, state));
+            Assert.False(HexViewportControl.ShouldDrawHoverOutline(isReference: false, isHovered: false, state));
+            Assert.False(HexViewportControl.ShouldDrawHoverOutline(isReference: true, isHovered: true, state));
         }
+    }
+
+    /// <summary>Preserves the legacy blank for a comparison byte beyond the original document tail.</summary>
+    [Fact]
+    public void HexViewportKeepsMissingComparisonAsciiBlank()
+    {
+        Assert.Equal(' ', HexViewportControl.ResolveAsciiCharacter(null, isReference: true));
+        Assert.Equal('.', HexViewportControl.ResolveAsciiCharacter(null, isReference: false));
+        Assert.Equal('.', HexViewportControl.ResolveAsciiCharacter(0x00, isReference: true));
+        Assert.Equal('A', HexViewportControl.ResolveAsciiCharacter(0x41, isReference: true));
     }
 
     /// <summary>Every pixel inside a byte cell, including glyph-free corners, resolves to that byte.</summary>
@@ -76,7 +87,7 @@ public sealed partial class XamlControlStyleContractTests
         double y,
         int expectedIndex)
     {
-        int index = HexEditorViewportControl.ResolveCellIndex(
+        int index = HexViewportControl.ResolveCellIndex(
             new Point(x, y),
             cellStart: 100,
             cellWidth: 30,
@@ -95,15 +106,14 @@ public sealed partial class XamlControlStyleContractTests
         string sourcePath = workspace.Write("hover.bin", [.. Enumerable.Range(0, 32).Select(index => (byte)index)]);
         MainWindowViewModel shell = ShellViewModelFactory.Create();
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
-        var viewport = new HexEditorViewportControl
+        var viewport = new HexViewportControl
         {
-            DataContext = shell.HexEditorWorkspace,
+            Snapshot = shell.HexEditorWorkspace.ViewportSnapshot,
         };
         viewport.Measure(new Size(1080, 50));
         viewport.Arrange(new Rect(0, 0, 1080, 50));
 
-        Assert.True(viewport.TryGetCellAt(new Point(117, 1), out HexEditorByteCellViewModel? cell, out Rect bounds));
-        HexEditorByteCellViewModel resolvedCell = Assert.IsType<HexEditorByteCellViewModel>(cell);
+        Assert.True(viewport.TryGetCellAt(new Point(117, 1), out HexViewportCell resolvedCell, out Rect bounds));
         Point[] glyphFreeCorners =
         [
             new(bounds.Left + 0.01, bounds.Top + 0.01),
@@ -114,18 +124,17 @@ public sealed partial class XamlControlStyleContractTests
         {
             viewport.UpdateHoveredCell(point);
             Assert.Equal(resolvedCell.Address, viewport.HoveredAddress);
-            Assert.True(HexEditorViewportControl.ShouldDrawHoverOutline(
+            Assert.True(HexViewportControl.ShouldDrawHoverOutline(
                 isReference: false,
                 isHovered: true,
-                HexEditorCellVisualState.Normal));
+                HexViewportCellVisualState.Normal));
         }
 
         viewport.ClearHoveredCell();
         Assert.Null(viewport.HoveredAddress);
 
-        shell.HexEditorWorkspace.SelectByteCommand.Execute(resolvedCell);
-        Assert.Equal(resolvedCell.Address, shell.HexEditorWorkspace.SelectedByteAddress);
-        Assert.True(resolvedCell.IsSelected);
+        shell.HexEditorWorkspace.SelectByte(resolvedCell.Address);
+        Assert.Equal(resolvedCell.Address, shell.HexEditorWorkspace.ViewportSnapshot.SelectedAddress);
     }
 
     /// <summary>Ensures the Hex Editor inspector remains compact and the source and data surfaces share one workbench grid.</summary>
@@ -150,6 +159,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ViewportSize=\"{Binding VisibleRowCount}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ValueChanged=\"HexDocumentScrollBar_OnValueChanged\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.HexEditorDocumentScrollBarAutomationName}\"", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AccessibilityView=\"Content\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Classes=\"iconButton hexGoToAddress\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Tip=\"{Binding Text.HexEditorGoToAddressLabel}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding FindAsciiCommand}\"", hexEditor, StringComparison.Ordinal);

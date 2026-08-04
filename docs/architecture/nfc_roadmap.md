@@ -37,7 +37,7 @@ newline defect and visible clean-Windows UI-smoke gap remain explicit in the
 verification report; neither is represented as closed by this planning
 release.
 
-## Later `0.10.x`: dependency-allocated implementation
+## `0.10.1` through `0.10.6`: owner-allocated implementation
 
 The approved GitHub issues named in the
 [`0.10.x` ticket dependency plan](../governance/0.10.x-ticket-dependency-plan.md)
@@ -46,17 +46,35 @@ numbers are not assumed to be a contiguous range; later approved tickets such
 as #207, #214, #219, and #221 remain first-class program work. Dependency depth
 is not a release version. The owner allocates only dependency-ready,
 reviewable slices after considering risk, evidence, file ownership, and
-available reviewers.
+available reviewers. The owner release allocation recorded on 2026-08-04 is:
 
-The final `0.10.x` integration release is downstream of #197 and all applicable
+1. `v0.10.1` closes the headless canonical foundation.
+2. `v0.10.2` publishes the reviewed desktop adoption through #208, the shallow
+   shell and shared read-only Hex viewport, and the first General/Saved Rule
+   compatibility deletion through #254 as a support-neutral stable checkpoint.
+3. `v0.10.3` completes the remaining approved refactoring graph through #197,
+   including deferred UI, Workbench/parallel-catalog deletion, all four Core
+   Convergence slices, and the hard 22,607-line gate.
+4. `v0.10.4` re-measures that result and audits whether any ownership or code
+   can be removed or expressed more simply without weakening evidence.
+5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
+   and user-controllable performance lifecycle.
+6. `v0.10.6` reserves a configured-path update screen so routine delivery does
+   not require repackaging and email. Its trust, rollback, version,
+   network/share, and release-policy contract remains deferred to a later owner
+   specification discussion, so no implementation ticket is created yet.
+
+The complete refactoring release `v0.10.3` is downstream of #197 and all applicable
 architecture, firmware-owner, golden, package, clean-Windows, protected-CI, and
 release-owner gates. No roadmap entry may waive those gates or move, overwrite,
-or redefine an existing stable tag or asset.
+or redefine an existing stable tag or asset. The later audit, performance, and
+update-experience releases do not reopen #197 or weaken its retained gate.
 
 ## `0.11.0`: AB certification and family evidence
 
-`0.11.0` starts only from the official reviewed final `v0.10.x` integration
-release tag allocated through #197. It keeps independent certification tracks
+`0.11.0` starts only from the latest official reviewed `v0.10.x` predecessor;
+the current owner sequence places it after the reserved `v0.10.6` milestone.
+It keeps independent certification tracks
 for:
 
 1. NT51950 AB `1 IC` and `Cascade`;

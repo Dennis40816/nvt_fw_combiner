@@ -21,41 +21,23 @@ public sealed record PlanOnlyCoverageSegment(
     string? MappingId);
 
 /// <summary>Explicit non-executing report marker for POSTBUILD-unavailable Preview.</summary>
-public sealed class GeneralReplaceDiagnosticPreviewSummary
+/// <param name="RequiredStageId">Exact compiled stage id, or null when Parent stage authority is absent.</param>
+/// <param name="Blocker">The same highest-priority typed blocker used by Build readiness.</param>
+/// <param name="Coverage">Complete projected Kept/Changed reference coverage.</param>
+public sealed record GeneralReplaceDiagnosticPreviewSummary(
+    string? RequiredStageId,
+    CapabilityActionBlocker Blocker,
+    IReadOnlyList<PlanOnlyCoverageSegment> Coverage)
 {
-    internal GeneralReplaceDiagnosticPreviewSummary(
-        string? requiredStageId,
-        CapabilityActionBlocker blocker,
-        IReadOnlyList<PlanOnlyCoverageSegment> coverage)
-    {
-        Mode = "diagnostic-plan-only";
-        Message =
-            "POSTBUILD required but unavailable — plan only; no output was produced.";
-        PostbuildRequired = true;
-        RequiredStageId = requiredStageId;
-        Blocker = blocker;
-        Coverage = coverage;
-        OutputProduced = false;
-        ClaimsFinalIntegrity = false;
-    }
-
     /// <summary>Stable report mode that cannot be confused with executable Preview.</summary>
-    public string Mode { get; }
+    public string Mode { get; } = "diagnostic-plan-only";
 
     /// <summary>Required operator-facing statement from the accepted contract.</summary>
-    public string Message { get; }
+    public string Message { get; } =
+        "POSTBUILD required but unavailable — plan only; no output was produced.";
 
     /// <summary>True because this diagnostic exists only for POSTBUILD-dependent targets.</summary>
-    public bool PostbuildRequired { get; }
-
-    /// <summary>Exact compiled stage id, or null when Parent stage authority is absent.</summary>
-    public string? RequiredStageId { get; }
-
-    /// <summary>The same highest-priority typed blocker used by Build readiness.</summary>
-    public CapabilityActionBlocker Blocker { get; }
-
-    /// <summary>Complete projected Kept/Changed reference coverage.</summary>
-    public IReadOnlyList<PlanOnlyCoverageSegment> Coverage { get; }
+    public bool PostbuildRequired { get; } = true;
 
     /// <summary>No output artifact exists for this result.</summary>
     public bool OutputProduced { get; }

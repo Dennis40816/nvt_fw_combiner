@@ -13,7 +13,9 @@ public sealed partial class ReplaceCliCommandTests
                 System.Reflection.BindingFlags.Public |
                 System.Reflection.BindingFlags.Static),
             method =>
-                method.Name == "RunGeneralReplaceEphemeralDraftAsync" &&
+                method.Name.EndsWith(
+                    "GeneralReplaceEphemeralDraftAsync",
+                    StringComparison.Ordinal) &&
                 method.GetParameters().Any(parameter =>
                     parameter.ParameterType ==
                         typeof(GeneralSavedRuleResourcePolicy)));

@@ -30,6 +30,24 @@ public sealed class FileContentSnapshotInspector
     }
 
     /// <inheritdoc />
+    public ValueTask<long> ObserveLengthAsync(
+        string selectedPath,
+        long maximumBytes,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
+            selectedPath,
+            _allowedRoots);
+        long observedLength = new FileInfo(path).Length;
+        return observedLength <= maximumBytes
+            ? ValueTask.FromResult(observedLength)
+            : ValueTask.FromException<long>(
+                new SelectedFileSizeLimitExceededException(observedLength, maximumBytes));
+    }
+
+    /// <inheritdoc />
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
         long maximumBytes,
@@ -111,48 +129,5 @@ public sealed class FileContentSnapshotInspector
             ? hash.GetHashAndReset()
             : throw new IOException(
                 "Selected file length changed during complete-content inspection.");
-    }
-}
-
-/// <summary>
-/// Named one-way adapter for legacy callers that still expect a filesystem
-/// timestamp capture step. It never converts a timestamp into identity:
-/// accepted identity is always projected through complete content inspection.
-///
-/// Caller inventory: no General Merge, General Replace, CLI, or Saved Rule
-/// binding caller. Retain only while non-General host selection boundaries
-/// migrate. Delete when those boundaries use <see cref="FileContentSnapshotInspector"/>
-/// directly.
-/// </summary>
-public sealed class LegacyTimestampFileStampCompatibilityAdapter
-    : ISelectedFileContentInspector
-{
-    private readonly FileContentSnapshotInspector _contentInspector;
-
-    /// <summary>Creates the one-way compatibility projection.</summary>
-    public LegacyTimestampFileStampCompatibilityAdapter(
-        IEnumerable<string> allowedRoots)
-    {
-        _contentInspector = new FileContentSnapshotInspector(allowedRoots);
-    }
-
-    /// <inheritdoc />
-    public async ValueTask<SelectedFileContentInspection> InspectAsync(
-        string selectedPath,
-        long maximumBytes,
-        CancellationToken cancellationToken)
-    {
-        SelectedFileContentInspection inspected =
-            await _contentInspector.InspectAsync(
-                    selectedPath,
-                    maximumBytes,
-                    cancellationToken)
-                .ConfigureAwait(false);
-        DateTimeOffset lastWriteTimeUtcHint =
-            new(File.GetLastWriteTimeUtc(Path.GetFullPath(selectedPath)), TimeSpan.Zero);
-        return new SelectedFileContentInspection(
-            inspected.FileStamp,
-            inspected.DisplayNameHint,
-            lastWriteTimeUtcHint);
     }
 }

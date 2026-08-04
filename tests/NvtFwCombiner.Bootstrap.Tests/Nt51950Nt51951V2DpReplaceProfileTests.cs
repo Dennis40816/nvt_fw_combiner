@@ -11,16 +11,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 {
     private const string BundleDirectory = "nt51950-nt51951-standard-merge";
-    private const string BundleContentHash = "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c";
+    private const string BundleContentHash = "56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b";
     private const int TpOverlayStart = 0x0A000;
     private const int TpOverlayLength = 0x2D000;
     private const int CustomerInfoStart = 0x37000;
     private const int CustomerInfoLength = 0x1000;
 
-    /// <summary>Verifies every public synthetic case satisfies the direct V2 plan contract and static expected hashes.</summary>
+    /// <summary>Preserves historical short-input hashes while proving production now rejects every superseded case.</summary>
     [Theory]
     [MemberData(nameof(PublicSyntheticCases))]
-    public void SupportedProfileMatchesDirectV2DpReplaceContractAcrossDeclaredCapacities(
+    public void SupportedProfileRejectsSupersededShortInputOracleCases(
         string icId,
         int capacity,
         int replacementLength,
@@ -40,6 +40,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 
         byte[] reference = CreatePattern(capacity, baseSalt);
         byte[] replacement = CreatePattern(replacementLength, replacementSalt);
+        Assert.Equal(expectedSha256, Sha256Hex(CreateHistoricalExpectedOutput(reference, replacement)));
+
         CompositionExecutionResult candidateExecution = CompositionEngine.Execute(
             candidate.Plan,
             new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
@@ -47,14 +49,11 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
                 [CompositionAddressSpaceIds.ReferenceBase] = reference,
                 [CompositionAddressSpaceIds.DpReplacement] = replacement,
             }));
-        Assert.Equal(CompositionExecutionStatus.Succeeded, candidateExecution.Status);
-        byte[] candidateOutput = candidateExecution.OutputBytes.ToArray();
-        Assert.Equal(expectedSha256, Sha256Hex(candidateOutput));
-        AssertRangeEquals(reference, TpOverlayStart, candidateOutput, TpOverlayStart, TpOverlayLength);
-        Assert.Equal(ReplacementOrPadding(replacement, CustomerInfoStart), candidateOutput[CustomerInfoStart]);
+        Assert.Equal(CompositionExecutionStatus.Failed, candidateExecution.Status);
+        Assert.True(candidateExecution.OutputBytes.IsEmpty);
         Assert.Equal(
-            ReplacementOrPadding(replacement, CustomerInfoStart + CustomerInfoLength - 1),
-            candidateOutput[CustomerInfoStart + CustomerInfoLength - 1]);
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+            Assert.Single(candidateExecution.Issues).Code);
     }
 
     /// <summary>Uses the two available owner DP Perspective outputs as self-replacement controls without claiming direct replacement-golden parity.</summary>
@@ -80,11 +79,63 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         Assert.Equal(reference, execution.OutputBytes.ToArray());
     }
 
-    /// <summary>Locks the supported profile evidence reference to the archived owner-approved legacy comparison record.</summary>
+    /// <summary>Both supported ICs execute every owner-approved exact capacity without normalization.</summary>
+    [Theory]
+    [InlineData("NT51950", 0x40000)]
+    [InlineData("NT51950", 0x80000)]
+    [InlineData("NT51950", 0x100000)]
+    [InlineData("NT51951", 0x40000)]
+    [InlineData("NT51951", 0x80000)]
+    [InlineData("NT51951", 0x100000)]
+    public void SupportedProfileExecutesEveryExactCapacity(string icId, int capacity)
+    {
+        CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
+        byte[] reference = CreatePattern(capacity, 0x31);
+        byte[] replacement = CreatePattern(capacity, 0xA7);
+        byte[] expected = [.. replacement];
+        reference.AsSpan(TpOverlayStart, TpOverlayLength).CopyTo(expected.AsSpan(TpOverlayStart));
+
+        CompositionExecutionResult execution = CompositionEngine.Execute(
+            candidate.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.ReferenceBase] = reference,
+                [CompositionAddressSpaceIds.DpReplacement] = replacement,
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, execution.Status);
+        Assert.Equal(expected, execution.OutputBytes.ToArray());
+    }
+
+    /// <summary>Short, oversized, and cross-capacity replacement pairs fail before producing output.</summary>
+    [Theory]
+    [MemberData(nameof(InvalidExactPairCases))]
+    public void SupportedProfileRejectsEveryNonExactPair(
+        string icId,
+        int capacity,
+        int replacementLength)
+    {
+        CompiledComposition candidate = CompileSupportedProfile(icId, capacity);
+        CompositionExecutionResult execution = CompositionEngine.Execute(
+            candidate.Plan,
+            new CompositionExecutionInput(new Dictionary<string, byte[]>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.ReferenceBase] = new byte[capacity],
+                [CompositionAddressSpaceIds.DpReplacement] = new byte[replacementLength],
+            }));
+
+        Assert.Equal(CompositionExecutionStatus.Failed, execution.Status);
+        Assert.True(execution.OutputBytes.IsEmpty);
+        Assert.Equal(
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+            Assert.Single(execution.Issues).Code);
+    }
+
+    /// <summary>Locks the supported profile to the exact-pair owner decision and archives the superseded legacy comparison.</summary>
     [Theory]
     [InlineData("NT51950", 0x40000)]
     [InlineData("NT51951", 0x80000)]
-    public void SupportedProfileReferencesArchivedLegacyComparisonEvidence(string icId, int capacity)
+    public void SupportedProfileReferencesExactPairOwnerDecision(string icId, int capacity)
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -92,14 +143,16 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
             "dp-replace",
             "nt51950-nt51951-dp-replace-oracle-v1.json")));
         string evidenceId = document.RootElement
-            .GetProperty("ownerApprovedLegacyComparison")
+            .GetProperty("productionAdmissionSupersession")
             .GetProperty("evidenceId")
             .GetString()!;
         CompiledComposition composition = CompileSupportedProfile(icId, capacity);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
 
-        Assert.Equal("dp-replace-owner-approved-legacy-comparison-v1", evidenceId);
+        Assert.Equal("dp-replace-exact-pair-owner-decision-20260802", evidenceId);
         Assert.Contains(evidenceId, details.Provenance.ProfileEvidenceRefs);
+        Assert.DoesNotContain("dp-replace-owner-approved-legacy-comparison-v1", details.Provenance.ProfileEvidenceRefs);
+        Assert.DoesNotContain("dp-replace-synthetic-oracle-v1", details.Provenance.ProfileEvidenceRefs);
     }
 
     private static CompiledComposition CompileSupportedProfile(string icId, int capacity)
@@ -107,7 +160,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
             V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
             $"nt{icId[2..]}-dp-replace-dp-perspective",
-            "0.7.0",
+            "0.8.0",
             icId,
             ExperienceIds.DpReplace,
             capacity);
@@ -129,8 +182,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         AddressSpace replacement = Assert.Single(plan.AddressSpaces, space => space.AddressSpaceId == CompositionAddressSpaceIds.DpReplacement);
         Assert.Equal(capacity, replacement.Length);
         Assert.Equal(AddressSpaceMutability.Immutable, replacement.Mutability);
-        Assert.Equal((byte)0x00, replacement.InputPaddingByte);
-        Assert.Empty(replacement.AllowedInputLengths);
+        Assert.Null(replacement.InputPaddingByte);
+        Assert.Equal([capacity], replacement.AllowedInputLengths);
         Assert.Equal(InputOversizePolicy.Reject, replacement.InputOversizePolicy);
         AddressSpace output = Assert.Single(plan.AddressSpaces, space => space.AddressSpaceId == CompositionAddressSpaceIds.OutputImage);
         Assert.Equal(capacity, output.Length);
@@ -215,21 +268,34 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         return cases;
     }
 
+    /// <summary>Enumerates both sides of every supported exact-capacity boundary.</summary>
+    public static TheoryData<string, int, int> InvalidExactPairCases()
+    {
+        var cases = new TheoryData<string, int, int>();
+        foreach (string icId in new[] { "NT51950", "NT51951" })
+        {
+            cases.Add(icId, 0x40000, 0x3FFFF);
+            cases.Add(icId, 0x40000, 0x80000);
+            cases.Add(icId, 0x80000, 0x40000);
+            cases.Add(icId, 0x80000, 0x80001);
+            cases.Add(icId, 0x100000, 0x80000);
+            cases.Add(icId, 0x100000, 0x100001);
+        }
+
+        return cases;
+    }
+
     private static string Sha256Hex(ReadOnlySpan<byte> bytes)
     {
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
-    private static byte ReplacementOrPadding(byte[] replacement, int offset)
+    private static byte[] CreateHistoricalExpectedOutput(byte[] reference, byte[] replacement)
     {
-        return offset < replacement.Length ? replacement[offset] : (byte)0;
-    }
-
-    private static void AssertRangeEquals(byte[] expected, int expectedStart, byte[] actual, int actualStart, int length)
-    {
-        Assert.Equal(
-            expected.AsSpan(expectedStart, length).ToArray(),
-            actual.AsSpan(actualStart, length).ToArray());
+        byte[] output = new byte[reference.Length];
+        replacement.CopyTo(output, 0);
+        reference.AsSpan(TpOverlayStart, TpOverlayLength).CopyTo(output.AsSpan(TpOverlayStart));
+        return output;
     }
 
     private static string FormatIssues(IEnumerable<CompositionIssue> issues)

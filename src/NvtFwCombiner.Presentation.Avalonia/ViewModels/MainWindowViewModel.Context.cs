@@ -1,196 +1,30 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private string DeviceContextRefreshSummary { get; set; } = string.Empty;
-
-    private void RefreshNumberChoicesForSelectedIc()
-    {
-        IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = IsAbMergeContextActive
-            ?
-            [
-                .. AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc)
-                    .Select(static choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
-            ]
-            : UiCompositionRunner.GetNumberSelectionChoices(SelectedIc);
-        NumberSelectionChoices = nextDisplayChoices;
-        if (nextDisplayChoices.Count == 0)
-        {
-            OnPropertyChanged(nameof(SelectedNumberChoice));
-            return;
-        }
-
-        if (!nextDisplayChoices.Any(choice =>
-                string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
-        {
-            SelectedNumber = nextDisplayChoices.FirstOrDefault(choice =>
-                string.Equals(choice.Token, WorkbenchIcNumberTokens.SingleChip, StringComparison.Ordinal))?.Token ??
-                nextDisplayChoices[0].Token;
-        }
-
-        OnPropertyChanged(nameof(SelectedNumberChoice));
-    }
-
-    private void RefreshContextState(
-        bool resetRunResult = false,
-        bool preserveReplaceSlotFiles = false)
-    {
-        _deferredState.EnsureWorkflow(
-            RefreshNumberChoicesForSelectedIc,
-            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(SelectedIc),
-            value => GeneralMergeOutputLength = value,
-            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(SelectedIc),
-            value => GeneralMergeOutputFillByte = value,
-            AddGeneralReplaceMapping,
-            AddGeneralMergeMapping);
-
-        RefreshCtrlRamRegions();
-        RefreshMergeSlotRequirements();
-        RefreshReplaceModeState(preserveSlotFiles: preserveReplaceSlotFiles);
-        RefreshMemoryMapState();
-        RefreshCommandState();
-        NotifyContextTextChanged();
-        if (resetRunResult)
-        {
-            ResetRunResultForContextChange();
-        }
-    }
-
-    private void RefreshReplaceSlotGroups()
-    {
-        ReplaceSlotGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
-        {
-            return;
-        }
-
-        foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
-            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
-        {
-            ReplaceSlotGroups.Add(group);
-        }
-    }
-
-    private void RefreshReplaceCoverageGroups()
-    {
-        ReplaceCoverageGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
-        {
-            return;
-        }
-
-        foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
-            ReplaceCoverageSegments))
-        {
-            ReplaceCoverageGroups.Add(group);
-        }
-    }
-
-    private static void ReplaceRows<T>(
-        ObservableCollection<T> target,
-        IEnumerable<T> rows)
-    {
-        target.Clear();
-        foreach (T row in rows)
-        {
-            target.Add(row);
-        }
-    }
-
-    private void NotifyContextTextChanged()
-    {
-        OnPropertyChanged(nameof(IsStandardMergeSupported));
-        OnPropertyChanged(nameof(IsAbMergeSupported));
-        OnPropertyChanged(nameof(MergeModeChoices));
-        OnPropertyChanged(nameof(StandardMergeSupportSummary));
-        OnPropertyChanged(nameof(StandardMergeOutputFileName));
-        OnPropertyChanged(nameof(GeneralMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeOutputFileName));
-        OnPropertyChanged(nameof(AbMergeOutputFileName));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        OnPropertyChanged(nameof(ReplaceOutputFileName));
-        OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
-        OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeEvidenceGated));
-        OnPropertyChanged(nameof(IsSelectedReplaceModeUnavailable));
-        OnPropertyChanged(nameof(SelectedIcFamilySummary));
-        OnPropertyChanged(nameof(SelectedIcFamilyLabel));
-        OnPropertyChanged(nameof(SelectedIcFamilyTooltip));
-        OnPropertyChanged(nameof(HasSelectedIcFamily));
-        OnPropertyChanged(nameof(SelectedIcDetailFamily));
-        OnPropertyChanged(nameof(SelectedIcDetailReuse));
-        OnPropertyChanged(nameof(SelectedIcDetailRuntime));
-        OnPropertyChanged(nameof(SelectedIcDetailEvidence));
-        OnPropertyChanged(nameof(SelectedIcDetailSupport));
-        OnPropertyChanged(nameof(SelectedIcDetailAutomationText));
-        OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        NotifyActiveRunContextChanged();
-    }
-
-    private void ResetRunResultForContextChange()
-    {
-        LastRunResult = new UiRunResultViewModel(
-            "Context changed",
-            $"{SelectedIc} / {SelectedNumber}: run Build to validate the latest context.",
-            "No output",
-            succeeded: false);
-        OnPropertyChanged(nameof(LastRunResult));
-    }
-
     private void SelectReplaceMode(string mode)
     {
-        if (ReplaceModeChoices.Contains(mode, StringComparer.Ordinal))
-        {
-            SelectedReplaceMode = mode;
-        }
-
+        Replace.SelectReplaceMode(mode);
         NavigateToPage(ShellPage.Replace);
-    }
-
-    private void SelectMergeMode(string mode)
-    {
-        string nextMode = MergeModeChoices.Contains(mode, StringComparer.Ordinal)
-            ? mode
-            : NormalMergeMode;
-        if (!string.Equals(_selectedMergeMode, nextMode, StringComparison.Ordinal))
-        {
-            _selectedMergeMode = nextMode;
-            OnPropertyChanged(nameof(SelectedMergeMode));
-            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
-            OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
-            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-            OnPropertyChanged(nameof(IcChoices));
-            OnPropertyChanged(nameof(IsNumberSelectorVisible));
-            OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-            OnPropertyChanged(nameof(DeviceContextStatus));
-            OnPropertyChanged(nameof(MergeOutputFileName));
-            OnPropertyChanged(nameof(MergeReadinessStatus));
-            OnPropertyChanged(nameof(MergeMemorySummary));
-            ResetRunResultForContextChange();
-            RefreshNumberChoicesForSelectedIc();
-            RefreshMergeSlotRequirements();
-            if (IsAbCodeMergeModeSelected && MergeSlots.Any(slot => slot.HasFile))
-            {
-                _ = RefreshSelectedMergeFirmwareInspectionsAsync();
-            }
-
-            RefreshMergeMemoryMapState();
-            RefreshCommandState();
-        }
     }
 
     private void ApplySelectedPage(ShellPage page)
     {
-        _deferredState.EnsurePage(page, RefreshSettingsState, () => RefreshContextState());
+        if (page == ShellPage.Settings)
+        {
+            _deferredState.EnsureSettings(RefreshSettingsState);
+        }
+        else if (page is ShellPage.Merge or ShellPage.Replace)
+        {
+            bool wasWorkflowLoaded = WorkflowSession.IsWorkflowLoaded;
+            WorkflowSession.EnsureWorkflowLoaded();
+            if (!wasWorkflowLoaded)
+            {
+                WorkflowSession.RefreshContextState();
+            }
+        }
 
         if (SelectedPage == page)
         {
@@ -199,7 +33,7 @@ public sealed partial class MainWindowViewModel
         }
 
         SelectedPage = page;
-        RefreshNumberChoicesForSelectedIc();
+        WorkflowSession.RefreshNumberChoicesForSelectedIc();
         OnPropertyChanged(nameof(SelectedPage));
         OnPropertyChanged(nameof(IsHomeVisible));
         OnPropertyChanged(nameof(IsSettingsVisible));
@@ -209,10 +43,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(IsCompositionActionRailVisible));
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
-        OnPropertyChanged(nameof(IcChoices));
+        WorkflowSession.NotifyContextTextChanged();
         UpdateNavigationState();
     }
 
@@ -287,154 +118,15 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshCommandState()
     {
-        RefreshDpReplaceInputSelectionReadiness();
-        PreviewMergeCommand.NotifyCanExecuteChanged();
-        BuildMergeCommand.NotifyCanExecuteChanged();
-        PreviewReplaceCommand.NotifyCanExecuteChanged();
-        BuildReplaceCommand.NotifyCanExecuteChanged();
-        ShowReportCommand.NotifyCanExecuteChanged();
-        OnPropertyChanged(nameof(IsRunInProgress));
+        Merge.NotifyCommandStateChanged();
+        Replace.NotifyCommandStateChanged();
+        RunSession.NotifyCommandStateChanged();
+        Merge.PreviewMergeCommand.NotifyCanExecuteChanged();
+        Merge.BuildMergeCommand.NotifyCanExecuteChanged();
+        Reports.ShowReportCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(IsDeviceContextVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorVisible));
-        OnPropertyChanged(nameof(IsNumberSelectorPlaceholderVisible));
-        OnPropertyChanged(nameof(DeviceContextStatus));
-        OnPropertyChanged(nameof(HasTypedRunProgress));
-        OnPropertyChanged(nameof(RunProgressStatusLabel));
-        OnPropertyChanged(nameof(RunProgressDisplayLabel));
-        OnPropertyChanged(nameof(ShouldAnimateRunProgress));
-        OnPropertyChanged(nameof(CanBuildMerge));
-        OnPropertyChanged(nameof(MergeReadinessStatus));
-        OnPropertyChanged(nameof(CanBuildReplace));
-        OnPropertyChanged(nameof(ReplaceReadinessStatus));
-        RefreshReplaceSelectionState();
+        OnPropertyChanged(nameof(Merge.CanBuildMerge));
+        OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
     }
 
-    partial void OnSelectedReplaceModeChanged(string value)
-    {
-        InvalidateFirmwareNumberMismatch();
-        InvalidateFirmwareInspection();
-        InvalidateCtrlRamFirmwareVersionContext();
-        RefreshContextState(resetRunResult: true);
-        RefreshCtrlRamDisplayFromInspection();
-    }
-
-    partial void OnSelectedIcChanged(string value)
-    {
-        InvalidateFirmwareNumberMismatch();
-        AcceptedFirmwareMismatchSelection? acceptedMismatch =
-            ConsumeAcceptedFirmwareMismatchSelection();
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        InvalidateCtrlRamFirmwareVersionContext();
-        if (IsAbCodeMergeModeSelected && !AbMergeWorkbenchCompositionService.IsAbMergeSupported(value))
-        {
-            _selectedMergeMode = NormalMergeMode;
-            OnPropertyChanged(nameof(SelectedMergeMode));
-            OnPropertyChanged(nameof(IsNormalMergeModeSelected));
-            OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-            OnPropertyChanged(nameof(IcChoices));
-        }
-
-        _isRefreshingFirmwareInspectionContext = true;
-        try
-        {
-            RefreshNumberChoicesForSelectedIc();
-            GeneralMergeOutputLength = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(value);
-            GeneralMergeOutputFillByte =
-                WorkbenchCompositionService.GetGeneralMergeDefaultOutputFillByte(value);
-        }
-        finally
-        {
-            _isRefreshingFirmwareInspectionContext = false;
-        }
-
-        RefreshContextState(
-            resetRunResult: true,
-            preserveReplaceSlotFiles: acceptedMismatch is not null);
-        string? acceptedMismatchSlotId = null;
-        if (acceptedMismatch is { } selection &&
-            FindSlot(selection.SlotId) is { } acceptedSlot &&
-            string.Equals(acceptedSlot.FilePath, selection.Path, StringComparison.Ordinal))
-        {
-            acceptedMismatchSlotId = selection.SlotId;
-        }
-        else if (acceptedMismatch is { } missingSelection)
-        {
-            SetShellToast(
-                Text.ContextUpdatedToastTitle,
-                Text.FormatFirmwareSelectionNotRetainedToast(Path.GetFileName(missingSelection.Path)));
-        }
-
-        _ = RefreshAllSelectedFirmwareInspectionsAsync(acceptedMismatchSlotId);
-        RememberReplaceWorkflowContext();
-    }
-
-    partial void OnSelectedNumberChanged(string value)
-    {
-        RememberReplaceWorkflowContext();
-        InvalidateFirmwareNumberMismatch();
-        if (_isRefreshingFirmwareInspectionContext)
-        {
-            InvalidateCtrlRamFirmwareVersionContext();
-            OnPropertyChanged(nameof(SelectedNumberChoice));
-            return;
-        }
-
-        if (_isApplyingFirmwareInspectionContext)
-        {
-            InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
-            InvalidateCtrlRamFirmwareVersionContext();
-            OnPropertyChanged(nameof(SelectedNumberChoice));
-            RefreshContextState(
-                resetRunResult: true,
-                preserveReplaceSlotFiles: true);
-            RefreshAbMergeInputsAfterTopologyChange();
-            return;
-        }
-
-        // AB validation is topology-sensitive.  Preserve no projection across a topology
-        // switch, then let the shared refresh below inspect the currently selected inputs.
-        InvalidateFirmwareInspection(clearFileProjections: IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
-        InvalidateCtrlRamFirmwareVersionContext();
-        OnPropertyChanged(nameof(SelectedNumberChoice));
-        RefreshContextState(
-            resetRunResult: true,
-            preserveReplaceSlotFiles: true);
-        RefreshAbMergeInputsAfterTopologyChange();
-
-        RefreshCtrlRamDisplayFromInspection();
-    }
-
-    private void RefreshAbMergeInputsAfterTopologyChange()
-    {
-        if (IsAbCodeMergeModeSelected &&
-            HasAbMergeTopologyChoices &&
-            MergeSlots.Any(slot => slot.HasFile))
-        {
-            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
-        }
-    }
-
-    partial void OnGeneralMergeOutputLengthChanged(string value)
-    {
-        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
-        {
-            return;
-        }
-
-        RefreshMergeMemoryMapState();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
-
-    partial void OnGeneralMergeOutputFillByteChanged(string value)
-    {
-        if (_deferredState.IsLoadingWorkflow || !_deferredState.IsWorkflowLoaded)
-        {
-            return;
-        }
-
-        RefreshMergeMemoryMapState();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
 }

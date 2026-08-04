@@ -1,8 +1,8 @@
-using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,14 +14,19 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 {
     private const int BytesPerRow = 16;
-    private const int CurrentViewportRowCount = 12;
+    private static readonly int CurrentViewportRowCount = HexViewportCapabilityProfile.RawEditor.InitialRows;
     private readonly RawBinaryEditorSession _editor = new();
     private readonly WorkbenchRawBinaryEditorSession _files;
     private readonly Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> _findAsciiAsync;
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
-    private HexEditorByteCellViewModel? _activeInlineEdit;
-    private HexEditorByteCellViewModel? _selectedCell;
-    private HexEditorViewportRowViewModel? _selectedRow;
+    private long? _activeInlineEditAddress;
+    private int _selectedColumnIndex = -1;
+    private Dictionary<long, HexViewportSnapshot>? _selectionSnapshots;
+    private Dictionary<long, string>? _selectionAddressLabels;
+    private HexViewportSnapshot? _unselectedSnapshot;
+    private HexViewportSnapshot CurrentViewportSnapshot { get; set; } = HexViewportSnapshot.Empty(
+        HexViewportCapabilityProfile.RawEditor,
+        "raw-binary-work-buffer");
 
     /// <summary>Creates the standalone raw-BIN workspace with its initial localized text bundle.</summary>
     public HexEditorWorkspaceViewModel(ShellTextResources text)
@@ -36,20 +41,18 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         GoToCommand = new RelayCommand(GoToViewport);
         FindAsciiCommand = new AsyncRelayCommand(FindAsciiAsync, CanFindAscii);
         SetViewportStartRowCommand = new RelayCommand<int>(SetViewportStartRow);
-        SelectByteCommand = new RelayCommand<HexEditorByteCellViewModel>(SelectByte);
-        MoveSelectionCommand = new RelayCommand<int>(MoveSelection);
-        BeginByteEditCommand = new RelayCommand<HexEditorByteCellViewModel>(BeginByteEdit);
-        CommitByteEditCommand = new RelayCommand<HexEditorByteCellViewModel>(CommitByteEdit);
-        CancelByteEditCommand = new RelayCommand<HexEditorByteCellViewModel>(CancelByteEdit);
-        InsertZeroBeforeCommand = new RelayCommand<HexEditorByteCellViewModel>(InsertZeroBefore);
-        InsertZeroAfterCommand = new RelayCommand<HexEditorByteCellViewModel>(InsertZeroAfter);
-        RequestInsertBytesBeforeCommand = new RelayCommand<HexEditorByteCellViewModel>(RequestInsertBytesBefore);
-        RequestInsertBytesAfterCommand = new RelayCommand<HexEditorByteCellViewModel>(RequestInsertBytesAfter);
+        BeginByteEditCommand = new RelayCommand<long>(BeginByteEdit);
+        CommitByteEditCommand = new RelayCommand<HexEditorByteEditRequest>(CommitByteEdit);
+        CancelByteEditCommand = new RelayCommand<long>(CancelByteEdit);
+        InsertZeroBeforeCommand = new RelayCommand<long>(InsertZeroBefore);
+        InsertZeroAfterCommand = new RelayCommand<long>(InsertZeroAfter);
+        RequestInsertBytesBeforeCommand = new RelayCommand<long>(RequestInsertBytesBefore);
+        RequestInsertBytesAfterCommand = new RelayCommand<long>(RequestInsertBytesAfter);
         ConfirmInsertBytesCommand = new RelayCommand(ConfirmInsertBytes, CanConfirmInsertBytes);
         CancelInsertBytesCommand = new RelayCommand(CancelInsertBytes);
-        DeleteByteCommand = new RelayCommand<HexEditorByteCellViewModel>(DeleteByte);
-        SetByteToZeroCommand = new RelayCommand<HexEditorByteCellViewModel>(SetByteToZero);
-        SetByteToFfCommand = new RelayCommand<HexEditorByteCellViewModel>(SetByteToFf);
+        DeleteByteCommand = new RelayCommand<long>(DeleteByte);
+        SetByteToZeroCommand = new RelayCommand<long>(SetByteToZero);
+        SetByteToFfCommand = new RelayCommand<long>(SetByteToFf);
         SelectNextChangedBlockCommand = new RelayCommand(SelectNextChangedBlock, () => HasChangedBlocks);
         SelectChangedBlockCommand = new RelayCommand<HexEditorChangedBlockViewModel>(SelectChangedBlock);
         GoToChangedBlockStartCommand = new RelayCommand<HexEditorChangedBlockViewModel>(GoToChangedBlockStart);
@@ -78,8 +81,8 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>Gets fixed byte-offset headers for the 16-column grid.</summary>
     public IReadOnlyList<HexEditorColumnHeaderViewModel> ColumnHeaders { get; }
 
-    /// <summary>Gets the bounded current window of rows projected from the in-memory raw-BIN document.</summary>
-    public HexEditorViewportRowCollection ViewportRows { get; } = [];
+    /// <summary>Gets the bounded immutable window consumed by the source-neutral renderer.</summary>
+    internal HexViewportSnapshot ViewportSnapshot => CurrentViewportSnapshot;
 
     /// <summary>Gets or sets the address used by the explicit Go to command.</summary>
     [ObservableProperty]
@@ -143,7 +146,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     public bool CanSave => HasDocument && HasUnsavedChanges;
 
     /// <summary>True while one byte is receiving direct inline text input.</summary>
-    public bool IsInlineEditActive => _activeInlineEdit is not null;
+    public bool IsInlineEditActive => _activeInlineEditAddress.HasValue;
 
     /// <summary>True while an editor text box owns the keyboard, preserving its native editing shortcuts.</summary>
     [ObservableProperty]
@@ -153,7 +156,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     public string? SelectedByteAddress { get; private set; }
 
     /// <summary>Accessible value and change context for the currently selected byte.</summary>
-    public string SelectedByteAccessibleLabel => _selectedCell?.AccessibleLabel ?? SelectedByteAddress ?? string.Empty;
+    public string SelectedByteAccessibleLabel => TryGetViewportCell(SelectedByteAddress, out HexViewportCell cell)
+        ? CreateAccessibleLabel(cell)
+        : SelectedByteAddress ?? string.Empty;
 
     /// <summary>Compact hexadecimal length of the in-memory work buffer.</summary>
     public string WorkingLengthLabel => FormattableString.Invariant($"0x{_state.WorkingLength:X} bytes");
@@ -182,35 +187,29 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     /// <summary>Moves the bounded viewport to a coalesced document-scrollbar row position.</summary>
     public IRelayCommand<int> SetViewportStartRowCommand { get; }
 
-    /// <summary>Selects one current-data byte for focus, range defaults, and context actions.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> SelectByteCommand { get; }
-
-    /// <summary>Moves the byte selection by a signed in-memory offset for keyboard navigation.</summary>
-    public IRelayCommand<int> MoveSelectionCommand { get; }
-
     /// <summary>Starts direct two-character editing for one current-data byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> BeginByteEditCommand { get; }
+    public IRelayCommand<long> BeginByteEditCommand { get; }
 
     /// <summary>Commits the current inline byte value through the raw-BIN application session.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> CommitByteEditCommand { get; }
+    internal IRelayCommand<HexEditorByteEditRequest> CommitByteEditCommand { get; }
 
     /// <summary>Cancels one inline edit without changing the in-memory work buffer.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> CancelByteEditCommand { get; }
+    public IRelayCommand<long> CancelByteEditCommand { get; }
 
     /// <summary>Inserts one 00 byte before the selected current-data byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> InsertZeroBeforeCommand { get; }
+    public IRelayCommand<long> InsertZeroBeforeCommand { get; }
 
     /// <summary>Inserts one 00 byte after the selected current-data byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> InsertZeroAfterCommand { get; }
+    public IRelayCommand<long> InsertZeroAfterCommand { get; }
 
     /// <summary>Deletes the selected current-data byte.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> DeleteByteCommand { get; }
+    public IRelayCommand<long> DeleteByteCommand { get; }
 
     /// <summary>Sets the selected current-data byte to 00.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> SetByteToZeroCommand { get; }
+    public IRelayCommand<long> SetByteToZeroCommand { get; }
 
     /// <summary>Sets the selected current-data byte to FF.</summary>
-    public IRelayCommand<HexEditorByteCellViewModel> SetByteToFfCommand { get; }
+    public IRelayCommand<long> SetByteToFfCommand { get; }
 
     /// <summary>Applies an exact byte sequence to the chosen inclusive range.</summary>
     public IRelayCommand ApplyOverwriteRangeCommand { get; }
@@ -278,23 +277,24 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
 
         SetViewportStartRow(Math.Max(0, targetRowIndex - 4));
-        UpdateSelection(FormatAddress(targetAddress));
+        UpdateSelection(targetAddress);
         EditorStatus = CreateReadyStatus();
     }
 
-    private void SelectByte(HexEditorByteCellViewModel? cell)
+    internal void SelectByte(long address)
     {
-        if (cell is null || cell.IsReference)
+        if (!TryGetRowIndex(address, out _))
         {
             return;
         }
 
-        RangeStartAddress = cell.Address;
-        RangeEndAddress = cell.Address;
-        UpdateSelection(cell.Address);
+        string label = GetSelectionAddressLabel(address);
+        RangeStartAddress = label;
+        RangeEndAddress = label;
+        UpdateSelection(address, label);
     }
 
-    private void MoveSelection(int offsetDelta)
+    internal void MoveSelection(int offsetDelta)
     {
         if (offsetDelta == 0 ||
             !TryParseAddressLabel(SelectedByteAddress ?? string.Empty, out long selectedAddress) ||
@@ -310,103 +310,92 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
             SetViewportStartRow(Math.Max(0, rowIndex - 4));
         }
 
-        UpdateSelection(FormatAddress(nextAddress));
+        UpdateSelection(nextAddress);
     }
 
-    private void BeginByteEdit(HexEditorByteCellViewModel? cell)
+    private void BeginByteEdit(long address)
     {
-        if (cell is null || !cell.IsEditable)
+        if (!TryGetRowIndex(address, out _))
         {
             return;
         }
 
-        if (_activeInlineEdit is not null && !ReferenceEquals(_activeInlineEdit, cell))
-        {
-            CancelByteEdit(_activeInlineEdit);
-        }
-
-        SelectByte(cell);
-        cell.EditValue = cell.ValueHex;
-        cell.IsEditing = true;
-        _activeInlineEdit = cell;
+        SelectByte(address);
+        _activeInlineEditAddress = address;
         OnPropertyChanged(nameof(IsInlineEditActive));
     }
 
-    private void CommitByteEdit(HexEditorByteCellViewModel? cell)
+    private void CommitByteEdit(HexEditorByteEditRequest? request)
     {
-        if (cell is null || !cell.IsEditable || !cell.IsEditing)
+        if (request is null || _activeInlineEditAddress != request.Address)
         {
             return;
         }
 
-        RawBinaryEditorOperationResult result = _editor.OverwriteByte(cell.Address, cell.EditValue);
+        string address = FormatAddress(request.Address);
+        RawBinaryEditorOperationResult result = _editor.OverwriteByte(address, request.Value);
         if (!result.Succeeded)
         {
+            EditorStatus = DescribeIssue(result.Issue!);
             return;
         }
 
-        cell.IsEditing = false;
-        _activeInlineEdit = null;
+        _activeInlineEditAddress = null;
         OnPropertyChanged(nameof(IsInlineEditActive));
-        ApplySuccessfulOperation(result, cell.Address);
+        ApplySuccessfulOperation(result, address);
     }
 
-    private void CancelByteEdit(HexEditorByteCellViewModel? cell)
+    private void CancelByteEdit(long address)
     {
-        if (cell is null)
+        if (_activeInlineEditAddress == address)
         {
-            return;
-        }
-
-        cell.EditValue = cell.ValueHex;
-        cell.IsEditing = false;
-        if (ReferenceEquals(_activeInlineEdit, cell))
-        {
-            _activeInlineEdit = null;
+            _activeInlineEditAddress = null;
             OnPropertyChanged(nameof(IsInlineEditActive));
         }
     }
 
-    private void InsertZeroBefore(HexEditorByteCellViewModel? cell)
+    private void InsertZeroBefore(long address)
     {
-        if (cell is not null && cell.IsEditable)
+        if (TryGetRowIndex(address, out _))
         {
-            ApplyOperation(_editor.InsertZeroBefore(cell.Address), cell.Address);
+            string label = FormatAddress(address);
+            ApplyOperation(_editor.InsertZeroBefore(label), label);
         }
     }
 
-    private void InsertZeroAfter(HexEditorByteCellViewModel? cell)
+    private void InsertZeroAfter(long address)
     {
-        if (cell is not null && cell.IsEditable)
+        if (TryGetRowIndex(address, out _))
         {
-            string selectedAddress = TryParseAddressLabel(cell.Address, out long anchor)
-                ? FormatAddress(checked(anchor + 1))
-                : cell.Address;
-            ApplyOperation(_editor.InsertZeroAfter(cell.Address), selectedAddress);
+            string label = FormatAddress(address);
+            ApplyOperation(_editor.InsertZeroAfter(label), FormatAddress(checked(address + 1)));
         }
     }
 
-    private void DeleteByte(HexEditorByteCellViewModel? cell)
+    private void DeleteByte(long address)
     {
-        if (cell is not null && cell.IsEditable)
+        if (TryGetRowIndex(address, out _))
         {
-            ApplyOperation(_editor.DeleteByte(cell.Address), cell.Address);
+            string label = FormatAddress(address);
+            ApplyOperation(_editor.DeleteByte(label), label);
         }
     }
 
-    private void SetByteToZero(HexEditorByteCellViewModel? cell)
+    private void SetByteToZero(long address)
     {
-        if (cell is not null && cell.IsEditable)
+        if (TryGetRowIndex(address, out _))
         {
-            ApplyOperation(_editor.OverwriteByte(cell.Address, "00"), cell.Address);
+            string label = FormatAddress(address);
+            ApplyOperation(_editor.OverwriteByte(label, "00"), label);
         }
     }
 
-    private void SetByteToFf(HexEditorByteCellViewModel? cell)
+    private void SetByteToFf(long address)
     {
-        if (cell is not null && cell.IsEditable)
+        if (TryGetRowIndex(address, out _))
         {
-            ApplyOperation(_editor.OverwriteByte(cell.Address, "FF"), cell.Address);
+            string label = FormatAddress(address);
+            ApplyOperation(_editor.OverwriteByte(label, "FF"), label);
         }
     }
 
@@ -422,7 +411,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
     private void Undo()
     {
-        IReadOnlyDictionary<string, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
+        IReadOnlyDictionary<long, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
         RawBinaryEditorOperationResult result = _editor.Undo();
         ApplyOperation(result, SelectedByteAddress);
         if (result.Succeeded)
@@ -433,7 +422,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
     private void Redo()
     {
-        IReadOnlyDictionary<string, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
+        IReadOnlyDictionary<long, VisibleByteFingerprint> before = CaptureVisibleByteFingerprints();
         RawBinaryEditorOperationResult result = _editor.Redo();
         ApplyOperation(result, SelectedByteAddress);
         if (result.Succeeded)
@@ -473,7 +462,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         ClearAsciiSearchResults(refreshViewport: false);
         RefreshChangeTracking();
         ViewportStartRow = Math.Min(ViewportStartRow, DocumentScrollMaximum);
-        RefreshViewportRows();
+        RefreshViewportSnapshot();
 
         if (!string.IsNullOrWhiteSpace(selectedAddress))
         {
@@ -492,14 +481,16 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         }
 
         ViewportStartRow = nextRow;
-        RefreshViewportRows();
+        RefreshViewportSnapshot();
     }
 
-    private void RefreshViewportRows()
+    private void RefreshViewportSnapshot()
     {
         if (!HasDocument || TotalRowCount == 0)
         {
-            ViewportRows.ReplaceAll([]);
+            PublishViewportSnapshot(HexViewportSnapshot.Empty(
+                HexViewportCapabilityProfile.RawEditor,
+                "raw-binary-work-buffer"));
             return;
         }
 
@@ -507,14 +498,34 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         RawBinaryEditorViewport viewport = _editor.CreatePage(address, ViewportRowCount);
         if (!viewport.Succeeded)
         {
-            ViewportRows.ReplaceAll([]);
+            PublishViewportSnapshot(HexViewportSnapshot.Empty(
+                HexViewportCapabilityProfile.RawEditor,
+                "raw-binary-work-buffer"));
             ClearSelection();
             EditorStatus = DescribeIssue(viewport.Issue!);
             return;
         }
 
-        ViewportRows.ReplaceAll(viewport.Rows.Select(CreateCurrentRow));
-        RestoreVisibleSelection();
+        long? selectedAddress = TryParseAddressLabel(SelectedByteAddress ?? string.Empty, out long selected) &&
+                                selected >= 0 &&
+                                selected < _state.WorkingLength
+            ? selected
+            : null;
+        var rows = new HexViewportRow[viewport.Rows.Count];
+        for (int index = 0; index < rows.Length; index++)
+        {
+            rows[index] = CreateViewportRow(viewport.Rows[index]);
+        }
+
+        PublishViewportSnapshot(HexViewportSnapshot.CreateOwned(
+            HexViewportCapabilityProfile.RawEditor,
+            "raw-binary-work-buffer",
+            _state.WorkingLength,
+            address,
+            rows,
+            selectedAddress,
+            IsOriginalRowsVisible,
+            HistoryFeedbackVersion));
     }
 
     private int GetRowCount()
@@ -536,126 +547,55 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         return true;
     }
 
-    private HexEditorViewportRowViewModel CreateCurrentRow(RawBinaryEditorViewportRow row)
-    {
-        IReadOnlyList<HexEditorByteCellViewModel> bytes = [.. row.Bytes.Select(value => CreateViewportByte(value, isReference: false))];
-        IReadOnlyList<HexEditorByteCellViewModel> originalBytes = row.HasChanges
-            ? [.. row.Bytes.Select(value => CreateViewportByte(value, isReference: true))]
-            : [];
-        bool hasReferenceComparison = bytes.Any(cell => cell.IsDataChanged || cell.IsStructuralChanged);
-        return new HexEditorViewportRowViewModel(
-            FormatAddress(row.Address),
-            bytes,
-            originalBytes,
-            row.OriginalAscii,
-            row.CurrentAscii,
-            row.HasChanges,
-            hasReferenceComparison)
-        {
-            IsOriginalRowsVisible = IsOriginalRowsVisible,
-        };
-    }
-
-    private HexEditorByteCellViewModel CreateViewportByte(RawBinaryEditorByte value, bool isReference)
-    {
-        HexEditorStructuralBoundaryInfo boundary = GetStructuralBoundary(value.Address);
-        string original = value.OriginalValueAtAddress is byte originalAtAddress
-            ? originalAtAddress.ToString("X2", CultureInfo.InvariantCulture)
-            : "--";
-        return new HexEditorByteCellViewModel(
-            FormatAddress(value.Address),
-            original,
-            isReference ? original : value.CurrentValue.ToString("X2", CultureInfo.InvariantCulture),
-            value.HasOriginalValueAtAddress,
-            value.IsDataChanged,
-            value.IsStructuralChanged,
-            boundary.IsStart,
-            boundary.IsEnd,
-            boundary.Index,
-            boundary.Label,
-            isReference,
-            !isReference && IsAsciiSearchMatch(value.Address));
-    }
-
     private void UpdateSelection(string address)
     {
-        HexEditorViewportRowViewModel? row = null;
-        HexEditorByteCellViewModel? selected = null;
-        if (TryParseAddressLabel(address, out long offset) &&
-            TryGetRowIndex(offset, out int rowIndex) &&
-            rowIndex - ViewportStartRow is int viewportRowIndex &&
-            viewportRowIndex >= 0 &&
-            viewportRowIndex < ViewportRows.Count)
-        {
-            row = ViewportRows[viewportRowIndex];
-            selected = row.Bytes[(int)(offset & 0xF)];
-        }
+        UpdateSelection(TryParseAddressLabel(address, out long selectedAddress) ? selectedAddress : -1);
+    }
 
-        if (_selectedCell is not null && !ReferenceEquals(_selectedCell, selected))
-        {
-            _selectedCell.IsSelected = false;
-        }
+    private void UpdateSelection(long address)
+    {
+        UpdateSelection(address, TryGetRowIndex(address, out _) ? GetSelectionAddressLabel(address) : null);
+    }
 
-        if (_selectedRow is not null && !ReferenceEquals(_selectedRow, row))
-        {
-            _selectedRow.IsSelected = false;
-        }
-
-        _selectedCell = selected;
-        _selectedRow = row;
-        SelectedByteAddress = TryParseAddressLabel(address, out long selectedAddress) &&
-            TryGetRowIndex(selectedAddress, out _)
-            ? FormatAddress(selectedAddress)
-            : null;
+    private void UpdateSelection(long address, string? addressLabel)
+    {
+        long? selectedAddress = TryGetRowIndex(address, out _) ? address : null;
+        SelectedByteAddress = selectedAddress.HasValue ? addressLabel : null;
         OnPropertyChanged(nameof(SelectedByteAddress));
         OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
-        if (selected is { })
-        {
-            selected.IsSelected = true;
-        }
+        PublishViewportSnapshot(GetSelectionSnapshot(selectedAddress));
 
-        if (row is { })
-        {
-            row.IsSelected = true;
-        }
-
-        int selectedColumn = SelectedByteAddress is not null && TryParseAddressLabel(SelectedByteAddress, out long selectedOffset)
+        int selectedColumn = selectedAddress is long selectedOffset
             ? (int)(selectedOffset & 0xF)
             : -1;
-        foreach (HexEditorColumnHeaderViewModel header in ColumnHeaders)
-        {
-            header.IsSelected = header.Index == selectedColumn;
-        }
+        SetSelectedColumn(selectedColumn);
     }
 
     private void ClearSelection()
     {
-        if (_selectedCell is { })
-        {
-            _selectedCell.IsSelected = false;
-        }
-
-        if (_selectedRow is { })
-        {
-            _selectedRow.IsSelected = false;
-        }
-
-        _selectedCell = null;
-        _selectedRow = null;
         SelectedByteAddress = null;
         OnPropertyChanged(nameof(SelectedByteAddress));
         OnPropertyChanged(nameof(SelectedByteAccessibleLabel));
-        foreach (HexEditorColumnHeaderViewModel header in ColumnHeaders)
-        {
-            header.IsSelected = false;
-        }
+        PublishViewportSnapshot(GetSelectionSnapshot(null));
+        SetSelectedColumn(-1);
     }
 
-    private void RestoreVisibleSelection()
+    private void SetSelectedColumn(int selectedColumn)
     {
-        if (!string.IsNullOrWhiteSpace(SelectedByteAddress))
+        if (_selectedColumnIndex == selectedColumn)
         {
-            UpdateSelection(SelectedByteAddress);
+            return;
+        }
+
+        if (_selectedColumnIndex >= 0)
+        {
+            ColumnHeaders[_selectedColumnIndex].IsSelected = false;
+        }
+
+        _selectedColumnIndex = selectedColumn;
+        if (_selectedColumnIndex >= 0)
+        {
+            ColumnHeaders[_selectedColumnIndex].IsSelected = true;
         }
     }
 
@@ -681,3 +621,5 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     }
 
 }
+
+internal sealed record HexEditorByteEditRequest(long Address, string Value);

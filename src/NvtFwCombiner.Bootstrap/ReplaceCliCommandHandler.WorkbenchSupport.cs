@@ -47,7 +47,8 @@ internal static partial class ReplaceCliCommandHandler
         string workflowId,
         ParsedCliOptions options,
         IReadOnlyDictionary<string, string> protectedInputPaths,
-        Func<bool, string?, CancellationToken, ValueTask<WorkbenchRunResult>> run,
+        Func<string?, CancellationToken, ValueTask<WorkbenchRunResult>> preview,
+        Func<string?, CancellationToken, ValueTask<WorkbenchRunResult>> buildRun,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -69,7 +70,9 @@ internal static partial class ReplaceCliCommandHandler
             build);
 
         string? outputPath = build ? outputTarget.FullPath : null;
-        WorkbenchRunResult result = await run(build, outputPath, cancellationToken).ConfigureAwait(false);
+        WorkbenchRunResult result = build
+            ? await buildRun(outputPath, cancellationToken).ConfigureAwait(false)
+            : await preview(outputPath, cancellationToken).ConfigureAwait(false);
         if (result.HasRunReport &&
             options.Values.TryGetValue("--report", out string? reportPath))
         {

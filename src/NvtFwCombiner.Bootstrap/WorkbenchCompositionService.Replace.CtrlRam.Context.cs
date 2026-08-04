@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -294,19 +295,32 @@ public static partial class WorkbenchCompositionService
     private static InputArtifactBinding[] CreateCtrlRamReplaceBindings(
         CompiledComposition compiledComposition,
         CtrlRamReplaceRunContext context,
-        IReadOnlyDictionary<string, string> slotPaths)
+        IReadOnlyDictionary<string, string> slotPaths,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         return [
-            CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                CompositionAddressSpaceIds.ReferenceBase,
-                context.BasePath!),
+            acceptedSession is null
+                ? CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    CompositionAddressSpaceIds.ReferenceBase,
+                    context.BasePath!)
+                : CreateAcceptedSessionBinding(
+                    compiledComposition,
+                    CompositionAddressSpaceIds.ReferenceBase,
+                    context.BasePath!,
+                    acceptedSession),
             .. context.SelectedSources
                 .Select(source => CtrlRamSlotId(source.SourceId))
-                .Select(sourceSpaceId => CompiledCompositionInputBindingFactory.Create(
-                    compiledComposition,
-                    sourceSpaceId,
-                    Path.GetFullPath(slotPaths[sourceSpaceId]))),
+                .Select(sourceSpaceId => acceptedSession is null
+                    ? CompiledCompositionInputBindingFactory.Create(
+                        compiledComposition,
+                        sourceSpaceId,
+                        Path.GetFullPath(slotPaths[sourceSpaceId]))
+                    : CreateAcceptedSessionBinding(
+                        compiledComposition,
+                        sourceSpaceId,
+                        slotPaths[sourceSpaceId],
+                        acceptedSession)),
         ];
     }
 

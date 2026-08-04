@@ -6,6 +6,194 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.10.2] - 2026-08-04
+
+### Summary
+
+This stable release carries the completed headless canonical foundation into
+the desktop workflows. Standard Merge, AB Merge, General Merge, DP Replace,
+CtrlRAM Replace, and General Replace now consume the same Application-owned
+per-slot readiness/inspection and exact compiled-composition identity used by
+headless execution. It also introduces a shallow main-window shell, reuses one
+read-only Hex viewport across Raw Hex Editor, Report Diff, and BIN Inspector,
+and deletes the superseded General/Saved Rule v1 production owners.
+
+This is a support-neutral checkpoint through #254. Remaining deferred UI,
+Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
+22,607-line integration gate move to `v0.10.3`.
+
+### Product changes
+
+#### Canonical desktop readiness and immutable execution identity
+
+- Before → After: desktop workflows reconstructed prerequisite, selected-file,
+  and Build state through Presentation or Workbench projections; all six
+  Merge/Replace workflows now render typed Application readiness/inspection and
+  retain one accepted `CompiledComposition` across inspection, Preview, Build,
+  naming, Memory Layout, and reports.
+- Affected: Standard Merge, AB Merge, General Merge, DP Replace, CtrlRAM
+  Replace, and General Replace. Selected firmware is bound to normalized paths,
+  terminal file stamps, authoring revision, capability/catalog identity, and
+  `CompilationFingerprint`; changed or stale input fails closed.
+- General Replace now carries the inspected Base `FileStamp` through its exact
+  authoring session into the reference binding. Replacing the Base bytes after
+  readiness therefore fails before Preview/Build output can be committed.
+- Support status: unchanged/support-neutral. The desktop adoption does not
+  promote an IC, workflow, topology, profile, golden, or publication state.
+- Compatibility: prerequisite slots remain visible but unavailable until their
+  required parent selections are valid. Pending input is distinct from verified
+  input and warning/fatal inspection states. CtrlRAM firmware-version edits and
+  General mappings use typed authoring transitions rather than UI-owned rules.
+- Firmware correction: NT51950/NT51951 DP Replace now requires the replacement
+  length to exactly equal the selected Base capacity at `0x40000`, `0x80000`,
+  or `0x100000`; short, oversize, and cross-capacity pairs fail with no committed
+  output. Existing replacement `[0, capacity)`, TP restore
+  `[0x0A000,0x37000)`, and customer-info behavior is unchanged.
+- Verification: exact-capacity, authoring lifecycle, stale-publication,
+  readiness, output naming, report, UI smoke, architecture, firmware-semantic,
+  golden, and exact-write-range tests run through the canonical verifier.
+- Limitations: the focused Support Matrix and Message Center/System Information
+  surfaces remain deferred. Direct hardware golden evidence for the exact-pair
+  DP correction is unavailable, so its evidence remains contract-only and does
+  not claim support promotion.
+
+#### Shallow shell and shared read-only Hex experience
+
+- Before → After: one large main-window model and separate Raw Hex, Report Diff,
+  and BIN-inspection renderers duplicated navigation and byte projection; the
+  shell now coordinates focused child view models and all three read-only byte
+  experiences use one immutable 16-byte HEX/ASCII viewport.
+- Affected: application navigation, Merge/Replace sessions, Reports/History,
+  Settings, Raw Hex Editor, Report Diff replay, and BIN Inspector.
+- Support status: presentation-only and support-neutral; firmware bytes,
+  profiles, processors, output naming, and support truth are unchanged.
+- Compatibility: Raw Hex editing/search/history/file authority remains in its
+  host. Report replay is accepted only when its range envelope, original and
+  comparison hashes, changed slices, and changed-byte count match. Original
+  rows remain optional and off by default. BIN inspection accepts only a
+  formatter-rooted snapshot bound to exact resolution, revision, and artifact
+  hashes.
+- Verification: UI Automation, keyboard navigation, immutable snapshot,
+  selection, viewport parity, range replay, 10,000-range virtualization,
+  Application formatter, and architecture-boundary tests pass.
+- Limitations: Report replay remains read-only and cannot reconstruct bytes
+  outside its persisted, hash-bound context envelope. Raw Hex editing, search,
+  history, save, and filesystem authority remain intentionally host-owned.
+- Measured result: `MainWindowViewModel*.cs` fell from 5,111 to 889 nonblank
+  lines. The read-only viewport reduced routine selection and hover allocation;
+  its recorded rendered-loop timing/allocation trade-offs remain explicit and
+  are not presented as general startup improvement.
+
+#### Saved Rule v2-only runtime and General compatibility deletion
+
+- Before → After: a separate Saved Rule v1 parser/projection and boolean
+  General Replace action adapters retained parallel ownership; production now
+  accepts strict Saved Rule v2 only, uses one shared schema-version gate, and
+  exposes explicit General Replace Preview and Build entry points.
+- Affected: `saved-rule validate`, `saved-rule mappings`, General Merge
+  `--rule`, General Replace `--rule`, desktop General Replace, and CLI General
+  Replace.
+- Support status: support-neutral. General Merge still initializes a declared
+  blank image and General Replace still clones an immutable required reference
+  before bounded mappings/processors execute.
+- Compatibility: Saved Rule v1 is rejected with the stable
+  `saved-rule.schema-version.unsupported` issue and migration guidance; it is
+  not silently rewritten. Preserve a copy and migrate its intended mappings to
+  an independently reviewed v2 rule. Local/imported rules remain untrusted
+  Drafts and cannot gain Preview/Build authority without exact Trusted Catalog
+  identity.
+- Verification: standalone and workflow loader parity, schema migration,
+  explicit Preview/Build routing, readiness-only Build rejection, no-output
+  diagnostic Preview, CLI/UI command-boundary, and architecture reintroduction
+  guards pass.
+- Limitations: this release supplies no automatic v1-to-v2 converter and no
+  installed Saved Rule publication catalog. Stage-bearing TP/POSTBUILD rule
+  execution remains closed until its processor-range, byte-golden, and
+  firmware-owner gates are approved.
+- Measured result: runtime production code moved from 76,633 lines at the
+  post-#208 checkpoint to 75,638 lines at the reviewed #254 tree, a net deletion
+  of 995 lines. This does not claim the deferred 22,607-line integration gate.
+
+#### Deterministic verification and release identity
+
+- Before → After: the release candidate was a sequence of separately reviewed
+  desktop and compatibility slices; the stable candidate now binds their exact
+  integrated tree, complete product notes, package manifest, and immutable
+  promotion inputs as one release identity.
+- Affected: repository verification, Windows x64 portable packaging, annotated
+  tag creation, GitHub Release notes/assets, SBOM/provenance, checksums, and
+  downloaded-package smoke.
+- Support status: release-process only and support-neutral; green CI or a
+  packaged profile does not promote firmware support or close missing goldens.
+- Compatibility: the existing five-asset stable Release contract, self-contained
+  portable-folder layout, and `python scripts/verify.py --all` interface remain
+  unchanged; package consumers replace the complete folder between versions.
+- Verification: canonical full verification at the exact reviewed product tree passed:
+  repository Python 348 passed/4 skipped; CRC worker 28 passed; Domain 410;
+  Profile Contract 431; Application 511; Infrastructure 380 plus 2 declared
+  platform skips; Golden 17; Architecture 144; Bootstrap 962; UI Smoke 423;
+  release build 0 warnings/0 errors.
+- .NET coverage was 85.53% lines and 77.61% branches. Independent architecture,
+  firmware-semantic, and Polytail reviews reported no P0/P1 findings.
+- The protected release workflow still binds the final `main` SHA/tree, exact
+  reviewed pull request, annotated tag, candidate manifest, artifact digests,
+  SBOM/provenance, five-asset allowlist, and downloaded-package smoke.
+- Limitations: visible clean-Windows UI launch, private-runner evidence for
+  still-missing golden cells, and final organizational license/legal approval
+  remain explicit attestations and are not inferred from headless CI.
+
+### Security
+
+- Firmware inputs and references remain immutable. External processors receive
+  only host-created staging copies, and writes outside declared half-open ranges
+  are rejected before atomic output promotion.
+- Exact selected-file identity and compilation fingerprints prevent a stale or
+  changed input from inheriting prior inspection or Build authority.
+- Saved Rule v1 rejection removes an ambiguous compatibility parser; strict v2
+  schema and trust identity remain separate from publication and execution
+  authority.
+- Release promotion grants write authority only inside the protected release
+  environment and publishes a closed, integrity-manifested asset set.
+
+### Known issues
+
+- The owner-approved `0.10.x` program is 39 of 49 tickets complete (79.6%), its
+  headless foundation is 29 of 29 (100%), and its weighted total is 72.4% at
+  this release boundary.
+- Runtime production size is 75,638 nonblank lines. Workbench deletion and the
+  four Core Convergence slices remain necessary before the hard 22,607-line
+  `v0.10.3` integration gate can close.
+- Direct AB goldens remain missing for NT51919, NT51932, NT51950 Cascade, and
+  NT51951. NT51928 remains `ContractOnly` without a complete project golden.
+  These evidence gaps stay visible and block support certification, not the
+  reviewed function-open routes.
+- The configured-path update experience, unified preload controls, and the
+  post-refactor simplification audit are later milestones and are not included.
+
+### Upgrade and rollback
+
+- Upgrade from `v0.10.1` by replacing the complete portable folder with
+  `NvtFwCombiner-v0.10.2-win-x64`; do not mix files across versions.
+- Saved Rule v1 is no longer a runtime import format. Preserve the original and
+  recreate or migrate the intended mappings as a reviewed v2 rule before use.
+- Preserve an earlier package if NT51920, NT51925, NT51930, or NT51931 is still
+  required; this release does not re-admit them.
+- Roll back by restoring the untouched `v0.10.1` portable folder. Firmware
+  outputs remain ordinary BIN files and require no database migration.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes exactly
+  `NvtFwCombiner-v0.10.2-win-x64.zip`,
+  `NvtFwCombiner-v0.10.2-win-x64.spdx.json`,
+  `NvtFwCombiner-v0.10.2-win-x64.provenance.json`,
+  `NvtFwCombiner-v0.10.2-candidate.json`, and
+  `NvtFwCombiner-v0.10.2-assets.sha256`. GitHub also provides tag-derived
+  source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list, candidate source SHA/tree, provenance, and
+  package manifest before distribution. The Windows x64 ZIP is self-contained
+  and does not require a separately installed .NET or Python runtime.
+
 ## [0.10.1] - 2026-08-01
 
 ### Summary

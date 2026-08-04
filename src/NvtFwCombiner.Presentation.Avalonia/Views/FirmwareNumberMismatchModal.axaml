@@ -3,7 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
-    x:DataType="vm:MainWindowViewModel"
+    x:DataType="vm:WorkflowSessionPresentationViewModel"
     Background="{DynamicResource NfcModalScrimBrush}">
   <Border
       Classes="modalSurface"

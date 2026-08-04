@@ -747,8 +747,8 @@
     {
       "bundleDirectory": "nt51950-nt51951-standard-merge",
       "bundleSchemaVersion": "1.0",
-      "bundleVersion": "0.10.1-tp-header-closure.1",
-      "contentHash": "45cf7836211d3447563ecbf196e5cd777878617fd43bbb99657f4eafdf1dca2c",
+      "bundleVersion": "0.10.2-headless-refactor.1",
+      "contentHash": "56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.13.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"
@@ -770,13 +770,13 @@
           "workflowId": "dp-replace",
           "icId": "NT51950",
           "profileId": "nt51950-dp-replace-dp-perspective",
-          "profileVersion": "0.7.0"
+          "profileVersion": "0.8.0"
         },
         {
           "workflowId": "dp-replace",
           "icId": "NT51951",
           "profileId": "nt51951-dp-replace-dp-perspective",
-          "profileVersion": "0.7.0"
+          "profileVersion": "0.8.0"
         }
       ]
     }

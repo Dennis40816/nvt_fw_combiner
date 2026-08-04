@@ -69,7 +69,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         OnPropertyChanged(nameof(HasAsciiSearchResults));
         int row = checked((int)(result.Address / BytesPerRow));
         SetViewportStartRow(Math.Max(0, row - 4));
-        RefreshViewportRows();
+        RefreshViewportSnapshot();
         string startAddress = FormatAddress(result.Address);
         string endAddress = FormatAddress(result.Address + result.Length - 1L);
         ViewportAddress = startAddress;
@@ -122,7 +122,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         OnPropertyChanged(nameof(HasAsciiSearchResults));
         if (hadResults && refreshViewport && HasDocument)
         {
-            RefreshViewportRows();
+            RefreshViewportSnapshot();
         }
     }
 }

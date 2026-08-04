@@ -65,7 +65,7 @@ public sealed partial class GeneralMappingRow : UserControl
     {
         DropZoneDragState.SetActive(sender, isActive: false);
 
-        if (DataContext is not GeneralMappingRowViewModel mapping ||
+        if (DataContext is not GeneralMappingRowViewModel { CanSelectFile: true } mapping ||
             ShellViewModel is not MainWindowViewModel viewModel)
         {
             return;
@@ -74,13 +74,13 @@ public sealed partial class GeneralMappingRow : UserControl
         string? path = DropZoneDragState.GetFirstLocalFilePath(e);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 
     private async void BrowseButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not GeneralMappingRowViewModel mapping ||
+        if (DataContext is not GeneralMappingRowViewModel { CanSelectFile: true } mapping ||
             ShellViewModel is not MainWindowViewModel viewModel ||
             TopLevel.GetTopLevel(this) is not { } topLevel)
         {
@@ -95,7 +95,7 @@ public sealed partial class GeneralMappingRow : UserControl
             title);
         if (!string.IsNullOrWhiteSpace(path))
         {
-            await viewModel.SetSlotFileAsync(mapping.MappingId, path);
+            await viewModel.WorkflowSession.SetSlotFileAsync(mapping.MappingId, path);
         }
     }
 
@@ -104,7 +104,7 @@ public sealed partial class GeneralMappingRow : UserControl
         if (DataContext is GeneralMappingRowViewModel mapping &&
             ShellViewModel is MainWindowViewModel viewModel)
         {
-            viewModel.RemoveGeneralMappingRow(mapping);
+            viewModel.WorkflowSession.RemoveGeneralMappingRow(mapping);
         }
     }
 }

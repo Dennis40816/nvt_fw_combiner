@@ -1,12 +1,13 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests the headless per-slot readiness and inspection publication contract.</summary>
-public sealed class AuthoringInputSlotInspectionTests
+public sealed partial class AuthoringInputSlotInspectionTests
 {
     private const string CapabilityFingerprint =
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -177,6 +178,175 @@ public sealed class AuthoringInputSlotInspectionTests
         Assert.Equal(CapabilityFingerprint, result.CapabilityFingerprint);
         Assert.Equal(capability.CompiledComposition.CompilationFingerprint, result.CompilationFingerprint);
         Assert.NotNull(result.Inspection);
+    }
+
+    /// <summary>Profile-declared input-load plausibility is part of terminal slot health.</summary>
+    [Fact]
+    public void UniformAcceptedSourcePublishesWarning()
+    {
+        CompiledValidationRequirement validation =
+            CompiledValidationRequirements.RejectUniformInputRanges(
+                "source-content-plausibility",
+                CompiledValidationSeverity.Warning,
+                "SOURCE_UNIFORM_CONTENT_WARNING",
+                SourceSpace,
+                [new ByteRange(0, 2)]);
+        ResolvedCapability capability = CreateCapability(
+            ExperienceIds.DpReplace,
+            validationRequirement: validation);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            new byte[] { 0xAA, 0xAA, 0x10, 0x20 });
+
+        Assert.Equal(AuthoringSlotLifecycle.Warning, result.InspectionLifecycle);
+        Assert.False(result.Inspection!.BlocksBuild);
+        Assert.Equal("SOURCE_UNIFORM_CONTENT_WARNING", result.Inspection.IssueCode);
+    }
+
+    /// <summary>Accepted compiled-role version metadata publishes Application-owned non-blocking Warning.</summary>
+    [Fact]
+    public void AcceptedUnknownVersionPublishesCanonicalWarningAndAction()
+    {
+        ResolvedCapability capability = CreateCapability(
+            ExperienceIds.AbMerge,
+            observeAbVersion: true);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            new byte[] { 0x10, 0x20, 0x30, 0x40 });
+
+        Assert.Equal(AuthoringSlotLifecycle.Warning, result.InspectionLifecycle);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown, result.InspectionIssueCode);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.ReviewUnknownVersion,
+            result.InspectionNextAction);
+        Assert.Equal(
+            InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown,
+            Assert.Single(result.InspectionAdvisories).IssueCode);
+        Assert.False(Assert.Single(result.Observation.Versions).IsKnown);
+        Assert.Equal(
+            CompiledInputArtifactInspectionSeverity.Valid,
+            result.Inspection!.Severity);
+    }
+
+    /// <summary>An unreadable selected path is terminal Error without fabricating file identity.</summary>
+    [Fact]
+    public void UnreadableSelectedSourcePublishesBlockingError()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            sourceBytes: null);
+
+        Assert.True(result.IsTerminal);
+        Assert.Equal(AuthoringSlotLifecycle.Error, result.InspectionLifecycle);
+        Assert.True(result.BlocksBuild);
+        Assert.Equal(InputArtifactInspectionIssueCodes.SourceUnreadable, result.InspectionIssueCode);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.SelectReadableInput,
+            result.InspectionNextAction);
+        Assert.Null(result.FileStamp);
+        Assert.Null(result.Inspection);
+    }
+
+    /// <summary>An unreadable terminal error publishes against the captured null stamp and exact compilation.</summary>
+    [Fact]
+    public void UnreadableSelectedSourcePublishesWithoutFabricatedFileStamp()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        var revision = new AuthoringRevision(7);
+        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            revision,
+            ReadySelection(),
+            SourceSpace,
+            sourceBytes: null,
+            selectedPathHint: "selected.bin");
+
+        AuthoringInputSlotPublicationResult publication =
+            AuthoringInputSlotInspectionService.TryCreatePublication(
+                status,
+                InspectionLease(capability, revision, fileStamp: null),
+                "unreadable-source");
+
+        Assert.True(publication.Succeeded);
+        Assert.Equal(status.CompilationFingerprint, publication.Publication!.CompilationFingerprint);
+    }
+
+    /// <summary>An unreadable result is bound to the exact selected path even without a content stamp.</summary>
+    [Fact]
+    public void UnreadableSelectedSourceRejectsAnotherPathLease()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        var revision = new AuthoringRevision(7);
+        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            revision,
+            ReadySelection(),
+            SourceSpace,
+            sourceBytes: null,
+            selectedPathHint: "selected.bin");
+
+        AuthoringInputSlotPublicationResult publication =
+            AuthoringInputSlotInspectionService.TryCreatePublication(
+                status,
+                InspectionLease(capability, revision, fileStamp: null, selectedPath: "other.bin"),
+                "unreadable-source");
+
+        Assert.False(publication.Succeeded);
+        Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, publication.Issue!.Code);
+    }
+
+    /// <summary>The canonical session publishes an unreadable terminal result for its current path and compilation.</summary>
+    [Fact]
+    public void CanonicalSessionPublishesUnreadableSelectedSource()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        var route = new AuthoringCapabilityRoute(
+            capability.Identity,
+            capability.CapabilityFingerprint,
+            executionAdmitted: true,
+            [new AuthoringSlotDefinitionReference(SourceSlot)]);
+        var session = new AuthoringSessionState(ExperienceIds.DpReplace);
+        Assert.True(session.Activate(new AuthoringCapabilityCatalogSnapshot(
+            ExperienceIds.DpReplace,
+            capability.ResolutionToken,
+            [route])).Succeeded);
+        AuthoringSlotInspectionStartResult start = session.BeginSlotFileInspection(
+            SourceSlot,
+            "selected.bin");
+        Assert.True(start.Succeeded);
+        AuthoringInputSlotStatus status = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            start.Snapshot!.AuthoringRevision,
+            ReadySelection(),
+            SourceSpace,
+            sourceBytes: null,
+            selectedPathHint: "selected.bin");
+        AuthoringPublicationLease lease = session.CapturePublicationLease(
+            AuthoringDerivedResultKind.Inspection,
+            capability.CompiledComposition.CompilationFingerprint);
+
+        AuthoringInputSlotPublicationResult created =
+            AuthoringInputSlotInspectionService.TryCreatePublication(
+                status,
+                lease,
+                "unreadable-source");
+
+        Assert.True(created.Succeeded, created.Issue?.Message);
+        Assert.True(session.TryPublish(lease, created.Publication!).Succeeded);
     }
 
     /// <summary>A short concrete CtrlRAM source is terminal Error rather than endless Checking.</summary>
@@ -357,9 +527,10 @@ public sealed class AuthoringInputSlotInspectionTests
     private static AuthoringPublicationLease InspectionLease(
         ResolvedCapability capability,
         AuthoringRevision authoringRevision,
-        FileStamp fileStamp,
+        FileStamp? fileStamp,
         string slotId = SourceSlot,
-        AuthoringDerivedResultKind kind = AuthoringDerivedResultKind.Inspection)
+        AuthoringDerivedResultKind kind = AuthoringDerivedResultKind.Inspection,
+        string selectedPath = "selected.bin")
     {
         return new AuthoringPublicationLease(
             new object(),
@@ -368,14 +539,16 @@ public sealed class AuthoringInputSlotInspectionTests
             authoringRevision,
             capability.Identity.RouteId,
             capability.CapabilityFingerprint,
-            [new AuthoringSlotPublicationIdentity(slotId, "selected.bin", fileStamp)],
+            [new AuthoringSlotPublicationIdentity(slotId, selectedPath, fileStamp)],
             capability.CompiledComposition.CompilationFingerprint);
     }
 
     private static ResolvedCapability CreateCapability(
         string workflowId,
         long targetStart = 0,
-        string publicationToken = "headless-publication")
+        string publicationToken = "headless-publication",
+        CompiledValidationRequirement? validationRequirement = null,
+        bool observeAbVersion = false)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -433,11 +606,24 @@ public sealed class AuthoringInputSlotInspectionTests
                 workflowId,
                 workflowId,
                 replace ? CompositionKind.Replace : CompositionKind.Merge),
-            $"synthetic-{workflowId}.bin",
+            observeAbVersion
+                ? CompiledOutputNamingRequirement.AbCodeV1Template
+                : $"synthetic-{workflowId}.bin",
             icNumberPolicy: replace
                 ? CompiledIcNumberPolicy.SingleSelector
                 : CompiledIcNumberPolicy.NotApplicable,
-            mapId: mapId);
+            validationRequirements: validationRequirement is null ? null : [validationRequirement],
+            mapId: mapId,
+            inputRolesByAddressSpace: observeAbVersion
+                ? new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    [SourceSpace] = "tp-a",
+                }
+                : null,
+            outputRequiredTokenIds: observeAbVersion
+                ? ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
+                : null,
+            allowOutputOverride: false);
         var identity = new CapabilityRouteIdentity(
             "NT-HEADLESS",
             workflowId,

@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class SavedRuleCliCommandTests
 {
-    private static string ValidGeneralMergeRuleJson()
+    private static string ValidGeneralMergeRuleV1Json()
     {
         return /*lang=json,strict*/ """
             {
@@ -21,43 +21,14 @@ public sealed partial class SavedRuleCliCommandTests
                 "icIds": ["NT51950"],
                 "modeIds": ["general-merge"]
               },
-              "inputSlotTemplates": [
-                {
-                  "slotTemplateId": "source-bin",
-                  "role": "Source BIN",
-                  "cardinality": "one",
-                  "acceptedExtensions": [".bin"]
-                }
-              ],
-              "mappingRows": [
-                {
-                  "rowId": "copy-fw-window",
-                  "sourceSlotTemplateId": "source-bin",
-                  "sourceRange": { "start": 16, "length": 32 },
-                  "targetAddressSpaceId": "output-image",
-                  "targetRange": { "start": 256, "length": 32 },
-                  "overlapPolicy": "reject",
-                  "reason": "Reviewed General Merge mapping."
-                }
-              ],
-              "operationFragments": [
-                {
-                  "operationId": "copy-fw-window",
-                  "kind": "copy-range",
-                  "reason": "Compile mapping row to a copy operation.",
-                  "mappingRowIds": ["copy-fw-window"]
-                }
-              ],
-              "validationRuleIds": ["reviewed-bounds"],
+              "inputSlotTemplates": [],
+              "mappingRows": [],
+              "operationFragments": [],
+              "validationRuleIds": [],
               "owner": "firmware-owner",
               "evidenceRefs": []
             }
             """;
-    }
-
-    private static JsonObject ValidGeneralMergeRuleObject()
-    {
-        return JsonNode.Parse(ValidGeneralMergeRuleJson())!.AsObject();
     }
 
     private static JsonObject ValidGeneralMergeV2RuleObject(
@@ -135,38 +106,16 @@ public sealed partial class SavedRuleCliCommandTests
             """)!.AsObject();
     }
 
-    private static JsonObject ValidGeneralReplaceRuleObject()
-    {
-        JsonObject json = ValidGeneralMergeRuleObject();
-        json["compositionKind"] = "replace";
-        json["sourceExperience"] = "general-replace";
-        json["compatibility"]!["modeIds"] = new JsonArray("general-replace");
-        OperationFragments(json)[0]!.AsObject()["kind"] = "replace-range";
-        return json;
-    }
-
-    private static JsonArray MappingRows(JsonObject json)
-    {
-        return json["mappingRows"]!.AsArray();
-    }
-
-    private static JsonArray OperationFragments(JsonObject json)
-    {
-        return json["operationFragments"]!.AsArray();
-    }
-
-    private static JsonObject CloneObject(JsonNode node)
-    {
-        return JsonNode.Parse(node.ToJsonString())!.AsObject();
-    }
-
     private static async Task<string> WriteRuleAsync(
         TempWorkspace workspace,
         JsonObject json,
         string fileName = "rule.json")
     {
         string rule = workspace.PathFor(fileName);
-        await File.WriteAllTextAsync(rule, json.ToJsonString(), TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(
+            rule,
+            json.ToJsonString(),
+            TestContext.Current.CancellationToken);
         return rule;
     }
 

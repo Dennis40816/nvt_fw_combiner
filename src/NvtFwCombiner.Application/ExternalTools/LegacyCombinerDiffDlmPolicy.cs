@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
@@ -250,6 +251,33 @@ public sealed class LegacyCombinerDiffDlmPolicy
     public long GetActiveTargetEndExclusive(int icCount)
     {
         return checked(TargetBase + (GetActiveRecordCount(icCount) * TargetRecordStride));
+    }
+
+    /// <summary>Returns the one primary Flash segment containing every active record.</summary>
+    public ByteRange GetActiveTargetRange(int icCount)
+    {
+        return ByteRange.FromStartEndExclusive(TargetBase, GetActiveTargetEndExclusive(icCount));
+    }
+
+    /// <summary>Projects every reference-owned active Diff NF range from this canonical policy.</summary>
+    public IReadOnlyList<MemoryLayoutPreservationDetail> GetPreservationDetails(int icCount)
+    {
+        return
+        [
+            .. Enumerable.Range(0, GetActiveRecordCount(icCount))
+                .SelectMany(blockIndex => _preservationMasks.Select((mask, maskIndex) =>
+                    new MemoryLayoutPreservationDetail(
+                        $"{PolicyId}-block-{blockIndex}-mask-{maskIndex}",
+                        blockIndex,
+                        MemoryEndpointIdentity.NotApplicable,
+                        StagedArtifactId,
+                        new ByteRange(
+                            checked((blockIndex * SourceRecordStride) + mask.Range.Start),
+                            mask.Range.Length),
+                        new ByteRange(
+                            checked(TargetBase + (blockIndex * TargetRecordStride) + mask.Range.Start),
+                            mask.Range.Length)))),
+        ];
     }
 
     /// <summary>Returns the owner-declared fixed or active-record-derived expected FWConfig Backup start.</summary>

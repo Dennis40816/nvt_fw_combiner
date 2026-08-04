@@ -1,7 +1,6 @@
 using System.Globalization;
-using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
 
@@ -92,56 +91,58 @@ internal static class AbCodeOutputNameResolver
         string cmiRegionId,
         string tokenId)
     {
-        return !TryGetAcceptedSnapshot(
+        if (!TryGetAcceptedSnapshot(
                 request,
                 inputBytes,
                 inputSummaries,
-            CompositionAddressSpaceIds.DpAbInput,
+                CompositionAddressSpaceIds.DpAbInput,
                 out ReadOnlyMemory<byte> snapshot,
-                out string? hash)
-            ? UnknownToken(output, tokenId, CompositionAddressSpaceIds.DpAbInput, hash, "cmi-reg16-18")
-            : TryGetProfileCmiOffset(request.CompiledComposition, cmiRegionId, snapshot.Length, out int cmiOffset)
-                ? KnownDpToken(tokenId, snapshot.Span.Slice(cmiOffset, 3), hash, "profile-cmi-reg16-18")
-            : UnknownToken(output, tokenId, CompositionAddressSpaceIds.DpAbInput, hash, "cmi-reg16-18");
-    }
-
-    private static bool TryGetProfileCmiOffset(
-        CompiledComposition composition,
-        string regionId,
-        int snapshotLength,
-        out int offset)
-    {
-        offset = 0;
-        FirmwareRegion? region = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
-        if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
-            region.Range.EndExclusive > snapshotLength || region.Range.Start > int.MaxValue)
+                out string? hash))
         {
-            return false;
+            return UnknownToken(
+                output,
+                tokenId,
+                CompositionAddressSpaceIds.DpAbInput,
+                hash,
+                "cmi-reg16-18");
         }
 
-        offset = checked((int)region.Range.Start);
-        return true;
+        CompiledInputVersionKind kind = cmiRegionId switch
+        {
+            "a-cmi-dp-version" => CompiledInputVersionKind.DpA,
+            "b-cmi-dp-version" => CompiledInputVersionKind.DpB,
+            _ => throw new InvalidOperationException($"Unsupported AB CMI region '{cmiRegionId}'."),
+        };
+        CompiledInputVersionObservation version =
+            CompiledInputArtifactObservationService.DecodeDpRegion(
+                request.CompiledComposition,
+                kind,
+                cmiRegionId,
+                snapshot);
+        return version.IsKnown
+            ? KnownDpToken(tokenId, version, hash)
+            : UnknownToken(
+                output,
+                tokenId,
+                CompositionAddressSpaceIds.DpAbInput,
+                hash,
+                "cmi-reg16-18");
     }
 
     private static TokenResolution KnownDpToken(
         string tokenId,
-        ReadOnlySpan<byte> registers16To18,
-        string? hash,
-        string parserId)
+        CompiledInputVersionObservation version,
+        string? hash)
     {
-        byte register16 = registers16To18[0];
-        byte major = registers16To18[1];
-        byte register18 = registers16To18[2];
-        byte minor = (byte)(register18 >> 4);
-        ushort jira = (ushort)(register16 | ((register18 & 0x0F) << 8));
+        ushort trackerId = version.TrackerId ?? 0;
+        byte register18 = (byte)((version.Minor!.Value << 4) | (trackerId >> 8));
         return new TokenResolution(new OutputNamingTokenSummary(
             tokenId,
-            FormattableString.Invariant($"D{major:X2}{minor:X2}"),
+            FormattableString.Invariant($"D{version.Major!.Value:X2}{version.Minor!.Value:X2}"),
             IsKnown: true,
             CompositionAddressSpaceIds.DpAbInput,
             hash,
-            FormattableString.Invariant($"{parserId};reg16=0x{register16:X2};reg17=0x{major:X2};reg18=0x{register18:X2};jira={jira}")));
+            FormattableString.Invariant($"profile-cmi-reg16-18;reg16=0x{(byte)trackerId:X2};reg17=0x{version.Major!.Value:X2};reg18=0x{register18:X2};jira={trackerId}")));
     }
 
     private static TokenResolution ReadTpToken(
@@ -152,23 +153,32 @@ internal static class AbCodeOutputNameResolver
         string addressSpaceId,
         string tokenId)
     {
-        return TryGetAcceptedSnapshot(request, inputBytes, inputSummaries, addressSpaceId, out ReadOnlyMemory<byte> snapshot, out string? hash) &&
-               FirmwareConfigMetadataReader.TryReadBackup(snapshot.Span, out FirmwareConfigMetadata metadata) &&
-               metadata.IsFirmwareVersionBarValid
+        bool accepted = TryGetAcceptedSnapshot(
+            request,
+            inputBytes,
+            inputSummaries,
+            addressSpaceId,
+            out ReadOnlyMemory<byte> snapshot,
+            out string? hash);
+        CompiledInputVersionKind kind = addressSpaceId switch
+        {
+            CompositionAddressSpaceIds.TpAInput => CompiledInputVersionKind.TpA,
+            CompositionAddressSpaceIds.TpBInput => CompiledInputVersionKind.TpB,
+            _ => throw new InvalidOperationException(
+                $"Unsupported AB TP address space '{addressSpaceId}'."),
+        };
+        CompiledInputVersionObservation? version = accepted
+            ? CompiledInputArtifactObservationService.DecodeTp(kind, snapshot)
+            : null;
+        return version?.IsKnown == true
             ? new TokenResolution(new OutputNamingTokenSummary(
                 tokenId,
-                FormattableString.Invariant($"T{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}"),
+                FormattableString.Invariant($"T{version.Major:X2}{version.Minor:X2}"),
                 IsKnown: true,
                 addressSpaceId,
                 hash,
                 "fwconfig-backup"))
-            : new TokenResolution(new OutputNamingTokenSummary(
-                tokenId,
-                GetCompiledPlaceholder(output, tokenId),
-                IsKnown: false,
-                addressSpaceId,
-                hash,
-                "fwconfig-backup"));
+            : UnknownToken(output, tokenId, addressSpaceId, hash, "fwconfig-backup");
     }
 
     private static TokenResolution UnknownToken(
@@ -227,9 +237,7 @@ internal static class AbCodeOutputNameResolver
             return true;
         }
 
-        // Exact contracts accept the complete immutable input; they deliberately have no
-        // declared-prefix execution snapshot.  The profile contract, not an IC, PID, or
-        // version value, is the sole authority for this fallback.
+        // Exact contracts use the complete immutable input solely because the compiled profile authorizes it.
         CompiledInputSpaceBinding? spaceBinding = request.CompiledComposition.V2Details
             .InputContract.SpaceBindings
             .SingleOrDefault(binding => StringComparer.Ordinal.Equals(binding.AddressSpaceId, addressSpaceId));

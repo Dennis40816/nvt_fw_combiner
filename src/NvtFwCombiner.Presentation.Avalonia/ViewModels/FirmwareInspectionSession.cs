@@ -1,3 +1,6 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -45,13 +48,20 @@ internal sealed class FirmwareInspectionSession
             StringComparer.Ordinal);
         WorkbenchFirmwareInspectionInput[] inputs =
         [
-            .. request.Items.Select(static item => new WorkbenchFirmwareInspectionInput(
+            .. request.Items.Select(item => new WorkbenchFirmwareInspectionInput(
                 item.SlotId,
                 item.Path,
                 item.TpPath,
                 item.CtrlRamRequest,
                 item.AbMergeAddressSpaceId,
-                item.AbMergeTopologyToken)),
+                item.AbMergeTopologyToken,
+                item.DpReplaceAddressSpaceId,
+                request.AuthoringRevision.Value,
+                item.StandardMergeAddressSpaceId,
+                item.CtrlRamReplaceAddressSpaceId,
+                item.ReplaceInspectionLease?.ExactCapability ??
+                    item.StandardMergeInspectionLease?.ExactCapability ??
+                    item.AbMergeInspectionLease?.ExactCapability)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
@@ -192,20 +202,9 @@ internal static class FirmwareInspectionRequestFactory
 
     internal static IReadOnlyList<FirmwareInspectionItemRequest> CreateSelectionItems(
         FirmwareSlotViewModel selectedSlot,
-        bool includeCtrlRamBase,
         FirmwareInspectionRequestContext context)
     {
         List<FirmwareInspectionItemRequest> items = [];
-        if (includeCtrlRamBase && !ReferenceEquals(selectedSlot, context.ReplaceBaseSlot))
-        {
-            items.Add(CreateItem(
-                context.ReplaceBaseSlot,
-                context,
-                publishFacts: true,
-                promptForMismatch: true,
-                applyVerifiedContext: true));
-        }
-
         items.Add(CreateItem(
             selectedSlot,
             context,
@@ -245,6 +244,23 @@ internal static class FirmwareInspectionRequestFactory
         string? abMergeAddressSpaceId = context.IsAbMerge
             ? context.AbAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
             : null;
+        string? dpReplaceAddressSpaceId = context.IsDpReplace
+            ? ReferenceEquals(slot, context.ReplaceBaseSlot)
+                ? WorkbenchAddressSpaceIds.ReferenceBase
+                : slot.AddressSpaceId ?? throw new InvalidOperationException(
+                    $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
+            : null;
+        string? standardMergeAddressSpaceId = context.IsStandardMerge &&
+            context.StandardMergeSlotIds.Contains(slot.SlotId, StringComparer.Ordinal)
+            ? slot.AddressSpaceId
+            : null;
+        string? ctrlRamReplaceAddressSpaceId = context.IsCtrlRamReplace &&
+            (ReferenceEquals(slot, context.ReplaceBaseSlot) ||
+                slot.ReplaceInputRole == WorkbenchReplaceInputRole.CtrlRam)
+            ? ReferenceEquals(slot, context.ReplaceBaseSlot)
+                ? WorkbenchAddressSpaceIds.ReferenceBase
+                : slot.AddressSpaceId
+            : null;
         // Firmware metadata can request confirmation only when the current page exposes an
         // operator-selectable Number. A hidden control cannot be changed by a modal.
         bool applyWorkflowContext = applyVerifiedContext && context.IsNumberSelectorVisible;
@@ -258,7 +274,10 @@ internal static class FirmwareInspectionRequestFactory
             promptForMismatch,
             applyWorkflowContext,
             abMergeAddressSpaceId,
-            context.AbMergeTopologyToken);
+            context.AbMergeTopologyToken,
+            dpReplaceAddressSpaceId,
+            standardMergeAddressSpaceId,
+            CtrlRamReplaceAddressSpaceId: ctrlRamReplaceAddressSpaceId);
     }
 }
 
@@ -301,18 +320,53 @@ internal static class FirmwareInspectionProjection
                     inspection.FirmwareConfig);
     }
 
-    internal static void ApplyAbInputInspection(
+    internal static void ApplyAbInputFacts(
         FirmwareSlotViewModel slot,
         WorkbenchFirmwareInspection inspection,
         ShellTextResources text)
     {
-        slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection));
-        slot.SetInputInspection(
-            inspection.AbMergeInput!.PrimaryIssue.Severity,
-            text.GetAbInputInspectionStatus(inspection.AbMergeInput));
+        slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection, text));
     }
 
-    internal static bool ApplyStaleAbInputInspection(
+    internal static void ApplyInputSlotInspection(
+        FirmwareSlotViewModel slot,
+        AuthoringInputSlotStatus status,
+        ShellTextResources text)
+    {
+        string readinessLabel = text.GetDpInputSelectionReadinessLabel(status.Readiness);
+        string readinessDetail = text.GetDpInputSelectionReadinessDetail(status.SelectionReadiness);
+        slot.SetSelectionReadiness(
+            status.Readiness,
+            readinessLabel,
+            readinessDetail,
+            text.GetInputSelectionReadinessAutomationText(readinessLabel, readinessDetail),
+            status.CanSelect);
+
+        if (!status.IsTerminal)
+        {
+            if (status.Readiness == ResolvedChildReadiness.Blocked)
+            {
+                slot.SetInputInspection(
+                    WorkbenchInputInspectionSeverity.Blocking,
+                    readinessDetail);
+            }
+            else
+            {
+                slot.ClearInputInspection();
+            }
+
+            return;
+        }
+
+        WorkbenchInputInspectionSeverity severity = status.InspectionLifecycle == AuthoringSlotLifecycle.Verified
+            ? WorkbenchInputInspectionSeverity.Valid
+            : status.InspectionLifecycle == AuthoringSlotLifecycle.Warning
+                ? WorkbenchInputInspectionSeverity.Warning
+                : WorkbenchInputInspectionSeverity.Blocking;
+        slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status));
+    }
+
+    internal static bool ApplyStaleInputInspection(
         IEnumerable<FirmwareSlotViewModel> slots,
         FirmwareInspectionBatchRequest request,
         FirmwareInspectionBatchResult result,
@@ -320,7 +374,10 @@ internal static class FirmwareInspectionProjection
     {
         bool applied = false;
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
-                     item.AbMergeAddressSpaceId is not null))
+                     item.AbMergeAddressSpaceId is not null ||
+                     item.DpReplaceAddressSpaceId is not null ||
+                     item.CtrlRamReplaceAddressSpaceId is not null ||
+                     item.StandardMergeAddressSpaceId is not null))
         {
             FirmwareSlotViewModel? slot = slots.FirstOrDefault(candidate =>
                 string.Equals(candidate.SlotId, item.SlotId, StringComparison.Ordinal));
@@ -342,21 +399,37 @@ internal static class FirmwareInspectionProjection
     }
 
     internal static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(
-        WorkbenchFirmwareInspection inspection)
+        WorkbenchFirmwareInspection inspection,
+        ShellTextResources text)
     {
-        WorkbenchAbMergeInputInspection abInput = inspection.AbMergeInput ??
-            throw new ArgumentException("AB firmware facts require an AB input inspection.", nameof(inspection));
+        WorkbenchAbMergeInputFacts abInput = inspection.AbMergeFacts ??
+            throw new ArgumentException("AB firmware facts require AB input facts.", nameof(inspection));
         return
         [
             .. abInput.Versions.Select(version => new FirmwareSlotFactViewModel(
                 ShellTextResources.GetAbVersionLabel(version.Kind),
-                version.JiraBadge is null ? version.Value : $"{version.Value} · {version.JiraBadge}",
-                version.IsUnknown)),
+                !version.IsKnown
+                    ? text.FirmwareSlotUnknownValueLabel
+                    : FormatAbVersion(version),
+                !version.IsKnown ? FirmwareSlotFactState.Unknown : FirmwareSlotFactState.Ordinary,
+                !version.IsKnown ? text.FirmwareSlotUnknownValueLabel : null,
+                !version.IsKnown ? text.FirmwareSlotUnknownFactDetail : null)),
             // AB owns the bank-specific TP A/TP B version labels. Reuse the standard
             // typed FWConfig projection for the remaining per-input TP identity facts.
             .. UiCompositionRunner.GetFirmwareSlotFacts(inspection).Where(static fact =>
                 !string.Equals(fact.Label, "TP", StringComparison.Ordinal)),
         ];
+    }
+
+    private static string FormatAbVersion(CompiledInputVersionObservation version)
+    {
+        string value = version.Kind is CompiledInputVersionKind.DpA or CompiledInputVersionKind.DpB
+            ? WorkbenchDpVersionMetadata.FormatDisplayValue(
+                FormattableString.Invariant($"{version.Major:X2}{version.Minor:X2}"))
+            : FormattableString.Invariant($"T{version.Major:X2}-{version.Minor:X2}");
+        return version.TrackerId is { } trackerId
+            ? $"{value} · AUTO_PRJ-{trackerId}"
+            : value;
     }
 }
 
@@ -420,6 +493,7 @@ internal readonly record struct FirmwareInspectionRequestContext(
     FirmwareSlotViewModel MergeTpSlot,
     FirmwareSlotViewModel ReplaceBaseSlot,
     bool IsCtrlRamReplace,
+    bool IsDpReplace,
     bool IsNumberSelectorVisible,
     string SelectedNumber,
     bool IsAbMerge,
@@ -427,10 +501,13 @@ internal readonly record struct FirmwareInspectionRequestContext(
     string? AbMergeTopologyToken,
     string MergeDpSlotId,
     string MergeTpSlotId,
-    string ReplaceBaseSlotId);
+    string ReplaceBaseSlotId,
+    bool IsStandardMerge,
+    IReadOnlyList<string> StandardMergeSlotIds);
 
 internal readonly record struct FirmwareInspectionBatchRequest(
     long Generation,
+    AuthoringRevision AuthoringRevision,
     string IcId,
     string Number,
     string MergeMode,
@@ -447,7 +524,13 @@ internal readonly record struct FirmwareInspectionItemRequest(
     bool PromptForMismatch,
     bool ApplyVerifiedContext,
     string? AbMergeAddressSpaceId,
-    string? AbMergeTopologyToken);
+    string? AbMergeTopologyToken,
+    string? DpReplaceAddressSpaceId,
+    string? StandardMergeAddressSpaceId,
+    string? CtrlRamReplaceAddressSpaceId = null,
+    AuthoringSlotInspectionLease? ReplaceInspectionLease = null,
+    AuthoringSlotInspectionLease? StandardMergeInspectionLease = null,
+    AuthoringSlotInspectionLease? AbMergeInspectionLease = null);
 
 internal readonly record struct FirmwareInspectionBatchResult(
     IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,

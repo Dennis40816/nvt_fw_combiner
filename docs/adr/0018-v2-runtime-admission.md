@@ -4,7 +4,7 @@
 - Date: 2026-07-12
 - Owners: Product owner + architecture owner
 - Amends: ADR 0015 and composition-profile-v2
-- Amended by: ADR 0019; `0.10.x` issue #196
+- Amended by: ADR 0019; `0.10.x` issues #196 and #182/#277
 
 ## Context
 
@@ -33,7 +33,9 @@ Profiles is the only production assembly that can mint either artifact. A V2 run
   range; partial, uncovered, cross-space, and reversed writes remain rejected;
 - DP short-input padding is allowed only for `dp-replace`, only at exact resolved-map capacity, and
   only when no processor or integrity stage exists. Oversized DP and every reference image remain
-  exact/fail-closed;
+  exact/fail-closed. This is an upper-bound compiler permission, not a default. The 2026-08-02
+  NT51950/NT51951 owner decision removes padding from those profiles: replacement and selected
+  Reference must be the same declared `0x40000`, `0x80000`, or `0x100000` capacity;
 - no metadata bindings, validations, processor stages, or extra mutable space;
 - a token-free output template using the `reject` invalid-character policy.
 

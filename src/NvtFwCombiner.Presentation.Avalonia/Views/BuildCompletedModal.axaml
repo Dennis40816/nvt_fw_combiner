@@ -22,30 +22,30 @@
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="fieldLabel" Text="{Binding Text.BuildCompletedOutputLabel}" />
           <Button
-              AutomationProperties.HelpText="{Binding BuildCompletedOutputPath}"
-              AutomationProperties.Name="{Binding BuildCompletedOutputDisplayName}"
+              AutomationProperties.HelpText="{Binding BuildResult.OutputPath}"
+              AutomationProperties.Name="{Binding BuildResult.OutputDisplayName}"
               Classes="fileRevealAction"
-              Command="{Binding RevealBuildCompletedOutputCommand}"
-              Content="{Binding BuildCompletedOutputDisplayName}"
+              Command="{Binding BuildResult.RevealOutputCommand}"
+              Content="{Binding BuildResult.OutputDisplayName}"
               HorizontalAlignment="Left"
-              Tag="{Binding BuildCompletedOutputPath}"
-              ToolTip.Tip="{Binding BuildCompletedOutputPath}" />
+              Tag="{Binding BuildResult.OutputPath}"
+              ToolTip.Tip="{Binding BuildResult.OutputPath}" />
         </StackPanel>
       </Border>
 
-      <Border Grid.Row="2" Classes="subtleSurface" IsVisible="{Binding HasBuildCompletedAdditionalOutput}" Padding="12,10">
+      <Border Grid.Row="2" Classes="subtleSurface" IsVisible="{Binding BuildResult.HasAdditionalOutput}" Padding="12,10">
         <StackPanel Spacing="{DynamicResource NfcSpace4}">
           <TextBlock Classes="fieldLabel" Text="{Binding Text.BuildCompletedAdditionalOutputLabel}" />
           <Button
-              AutomationProperties.HelpText="{Binding BuildCompletedAdditionalOutputPath}"
-              AutomationProperties.Name="{Binding BuildCompletedAdditionalOutputDisplayName}"
+              AutomationProperties.HelpText="{Binding BuildResult.AdditionalOutputPath}"
+              AutomationProperties.Name="{Binding BuildResult.AdditionalOutputDisplayName}"
               Classes="fileRevealAction"
               Command="{Binding RevealFileCommand}"
-              CommandParameter="{Binding BuildCompletedAdditionalOutputPath}"
-              Content="{Binding BuildCompletedAdditionalOutputDisplayName}"
+              CommandParameter="{Binding BuildResult.AdditionalOutputPath}"
+              Content="{Binding BuildResult.AdditionalOutputDisplayName}"
               HorizontalAlignment="Left"
-              Tag="{Binding BuildCompletedAdditionalOutputPath}"
-              ToolTip.Tip="{Binding BuildCompletedAdditionalOutputPath}" />
+              Tag="{Binding BuildResult.AdditionalOutputPath}"
+              ToolTip.Tip="{Binding BuildResult.AdditionalOutputPath}" />
         </StackPanel>
       </Border>
 
@@ -53,20 +53,20 @@
           Grid.Row="3"
           Classes="warningText"
           AutomationProperties.LiveSetting="Polite"
-          IsVisible="{Binding HasBuildCompletedOpenFolderError}"
-          Text="{Binding BuildCompletedOpenFolderError}"
+          IsVisible="{Binding BuildResult.HasOpenFolderError}"
+          Text="{Binding BuildResult.OpenFolderError}"
           TextWrapping="Wrap" />
 
       <StackPanel Grid.Row="4" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
         <Button
             Classes="secondary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOpenFolderLabel}"
-            Command="{Binding RevealBuildCompletedOutputCommand}"
+            Command="{Binding BuildResult.RevealOutputCommand}"
             Content="{Binding Text.BuildCompletedOpenFolderLabel}" />
         <Button
             Classes="primary"
             AutomationProperties.Name="{Binding Text.BuildCompletedOkLabel}"
-            Command="{Binding CloseBuildCompletedModalCommand}"
+            Command="{Binding BuildResult.CloseCommand}"
             Content="{Binding Text.BuildCompletedOkLabel}" />
       </StackPanel>
     </Grid>

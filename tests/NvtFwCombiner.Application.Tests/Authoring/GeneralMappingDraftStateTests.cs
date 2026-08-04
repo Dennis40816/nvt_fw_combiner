@@ -28,7 +28,7 @@ public sealed class GeneralMappingDraftStateTests
         Assert.Equal("dp.bin", row.Source.Reference);
         Assert.Equal(new ByteRange(0x10, 0x20), row.SourceRange);
         Assert.Equal(new ByteRange(0x100, 0x20), row.TargetRange);
-        Assert.Equal(0x11F, row.TargetEndInclusive);
+        Assert.Equal(0x120, row.TargetRange.EndExclusive);
         Assert.Equal(ExplicitMappingOperationKind.CopyRange, row.OperationKind);
         Assert.Equal(OverlapPolicy.Reject, row.OverlapPolicy);
     }
@@ -79,6 +79,27 @@ public sealed class GeneralMappingDraftStateTests
                 OverlapPolicy.Reject,
                 alignment: 1,
                 "Copy explicit mapping."));
+    }
+
+    /// <summary>Editable state reports non-range mapping invariants without throwing.</summary>
+    [Fact]
+    public void AuthoringStateCapturesMappingInvariantFailure()
+    {
+        var state = AuthoringMappingState.Create(
+            "bad-alignment",
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("input.bin"),
+            "0",
+            "0",
+            "1",
+            CompositionAddressSpaceIds.OutputImage,
+            OverlapPolicy.Reject,
+            alignment: 0,
+            "Copy explicit mapping.");
+
+        Assert.False(state.IsValid);
+        Assert.Null(state.Mapping);
+        Assert.Equal(AuthoringMappingIssueCodes.MappingInvalid, state.Issue!.Code);
     }
 
     /// <summary>Hexadecimal and decimal authoring text produce one half-open range.</summary>

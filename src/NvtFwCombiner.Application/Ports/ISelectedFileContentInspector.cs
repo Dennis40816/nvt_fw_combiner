@@ -8,6 +8,12 @@ namespace NvtFwCombiner.Application.Ports;
 /// </summary>
 public interface ISelectedFileContentInspector
 {
+    /// <summary>Observes the bounded current length before exact input-contract compilation.</summary>
+    ValueTask<long> ObserveLengthAsync(
+        string selectedPath,
+        long maximumBytes,
+        CancellationToken cancellationToken);
+
     /// <summary>Inspects the complete currently selected file exactly once.</summary>
     ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,

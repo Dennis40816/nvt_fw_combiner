@@ -218,8 +218,10 @@
                 PointerPressed="HexDocumentSurface_OnPointerPressed"
                 PointerWheelChanged="HexDocumentSurface_OnPointerWheelChanged">
               <Grid Grid.Column="0">
-                <views:HexEditorViewportControl
+                <views:HexViewportControl
                     x:Name="HexViewport"
+                    Snapshot="{Binding ViewportSnapshot}"
+                    AutomationProperties.AccessibilityView="Content"
                     AutomationProperties.Name="{Binding Text.HexEditorTitle}"
                     AutomationProperties.HelpText="{Binding SelectedByteAccessibleLabel}" />
                 <TextBox

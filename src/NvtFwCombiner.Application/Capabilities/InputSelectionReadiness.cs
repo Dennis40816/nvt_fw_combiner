@@ -26,9 +26,6 @@ public enum InputSelectionNextActionKind
     /// <summary>Load one prerequisite artifact before independently selecting this slot.</summary>
     LoadArtifactFirst,
 
-    /// <summary>Compatibility name retained for pre-contract Presentation consumers.</summary>
-    LoadPrerequisite = LoadArtifactFirst,
-
     /// <summary>Select another applicable member to satisfy group cardinality.</summary>
     SelectMember,
 
@@ -56,7 +53,9 @@ public sealed record InputSelectionMemberReadiness(
     ResolvedChildReadiness Readiness,
     bool CanSelect,
     string? Reason,
-    InputSelectionNextAction? NextAction);
+    InputSelectionNextAction? NextAction,
+    string? IssueCode = null,
+    bool IsRequired = false);
 
 /// <summary>Resolved state and cardinality for one canonical input-selection group.</summary>
 public sealed record InputSelectionGroupReadiness(
@@ -270,6 +269,8 @@ public static class InputSelectionReadinessResolver
     {
         bool applicabilityPending = !string.IsNullOrWhiteSpace(
             unresolvedApplicabilityPrerequisiteSlotId);
+        bool individuallyRequired = !applicabilityPending && group.MinimumSelected >=
+            group.MemberSlotIds.Count(member => !group.NotApplicableReasons.ContainsKey(member));
         InputSelectionMemberReadiness[] members =
         [
             .. group.MemberSlotIds.Select(slotId =>
@@ -308,7 +309,8 @@ public static class InputSelectionReadinessResolver
                         ResolvedChildReadiness.Ready,
                         CanSelect: true,
                         Reason: null,
-                        NextAction: null),
+                        NextAction: null,
+                        IsRequired: individuallyRequired),
                 };
             }),
         ];

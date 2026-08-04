@@ -12,9 +12,6 @@ public static class WorkbenchIssueCodes
     /// <summary>Input artifact could not be read from disk.</summary>
     public const string InputArtifactReadFailed = "input.artifact.read-failed";
 
-    /// <summary>An accepted AB input has no readable informational version metadata.</summary>
-    public const string AbInputVersionUnknown = "ab.input.version-unknown";
-
     /// <summary>General Merge has no explicit mapping rows.</summary>
     public const string GeneralMergeMappingRequired = "ui.general-merge.mapping-required";
 
@@ -31,10 +28,6 @@ public static class WorkbenchIssueCodes
     /// <summary>General Merge output capacity exceeds supported in-memory composition limits.</summary>
     public const string GeneralMergeCapacityUnsupported =
         Application.Authoring.GeneralMergeInitializerIssueCodes.CapacityUnsupported;
-
-    /// <summary>General Merge fill-byte text is outside the complete byte domain.</summary>
-    public const string GeneralMergeFillByteInvalid =
-        Application.Authoring.GeneralMergeInitializerIssueCodes.FillByteInvalid;
 
     /// <summary>Standard Merge DP Perspective input length is not approved by the profile.</summary>
     public const string StandardMergeDpLengthUnsupported = "standard-merge.dp-length-unsupported";

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -70,6 +71,14 @@ public static partial class WorkbenchCompositionService
             return image;
         }
 
+        WorkbenchCompiledAuthoringInspectionBatch dpInputBatch =
+            InspectDpReplaceInputSlots(icId, inputs, ReadOnce);
+        WorkbenchCompiledAuthoringInspectionBatch standardMergeInputBatch =
+            InspectStandardMergeInputSlots(icId, inputs, ReadOnce);
+        WorkbenchCompiledAuthoringInspectionBatch ctrlRamInputBatch =
+            InspectCtrlRamReplaceInputSlots(icId, inputs, ReadOnce);
+        WorkbenchAbMergeInspectionBatch abMergeInputBatch =
+            InspectAbMergeInputSlots(icId, inputs, ReadOnce);
         List<WorkbenchFirmwareInspectionResult> results = [];
         foreach (WorkbenchFirmwareInspectionInput input in inputs)
         {
@@ -83,12 +92,40 @@ public static partial class WorkbenchCompositionService
             {
                 inspection = inspection with
                 {
-                    AbMergeInput = InspectAbMergeInput(
-                        icId,
-                        input.AbMergeAddressSpaceId,
-                        ReadOnce(input.Path),
-                        AbMergeWorkbenchCompositionService.ResolveTopologySelection(
-                            input.AbMergeTopologyToken)),
+                    AbMergeFacts = abMergeInputBatch.Facts[input.InspectionId],
+                    InputSlotStatus = abMergeInputBatch.Statuses[input.InspectionId],
+                    InputSlotCatalog = abMergeInputBatch.Catalog,
+                };
+            }
+
+            if (dpInputBatch.Statuses.TryGetValue(input.InspectionId, out AuthoringInputSlotStatus? status))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = status,
+                    InputSlotCatalog = dpInputBatch.Catalog,
+                };
+            }
+
+            if (standardMergeInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? standardMergeStatus))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = standardMergeStatus,
+                    InputSlotCatalog = standardMergeInputBatch.Catalog,
+                };
+            }
+
+            if (ctrlRamInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? ctrlRamStatus))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = ctrlRamStatus,
+                    InputSlotCatalog = ctrlRamInputBatch.Catalog,
                 };
             }
 
@@ -158,6 +195,7 @@ public static partial class WorkbenchCompositionService
             artifactKind)
         {
             ArtifactClassification = artifactClassification,
+            FileStamp = FileStamp.FromBytes(image),
         };
     }
 

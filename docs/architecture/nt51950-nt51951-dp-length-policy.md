@@ -50,20 +50,19 @@ source image; only the TP overlay range is copied from a different source.
 Clone the base firmware as the Replace reference image, replace the DP container at the selected base length, then restore only the original TP range from the base firmware. Customer information follows the replacement DP image.
 
 1. Reject the base firmware unless `base.Length` is exactly `0x40000`, `0x80000`, or `0x100000`. Repository policy keeps reference/base firmware exact-length to the selected container.
-2. Reject the replacement DP when `replacement.Length > base.Length`.
-3. Pad the replacement DP to the selected `base.Length` work length with the profile padding byte.
-4. Replace the full output container from the padded replacement DP.
-5. Copy the original base firmware TP range back into output.
-6. Leave customer-information `0x37000-0x37FFF (len 0x1000)` from the replacement DP image, or from its declared `0x00` padding when the replacement ends before that range.
+2. Reject the replacement DP unless `replacement.Length == base.Length`.
+3. Replace the full output container from the exact-length replacement DP.
+4. Copy the original base firmware TP range back into output.
+5. Leave customer-information `0x37000-0x37FFF (len 0x1000)` from the exact-length replacement DP image.
 
 This implements DP Replace without requiring CRC recalculation and without enumerating every DP-owned segment. CtrlRAM Replace remains different: it must run the Combiner postbuild sequence after replacing TP/CtrlRAM content.
 
 ## Required Tests Before 1.0 Support Claim
 
 - V2 Merge golden for the recorded NT51950 `0x40000` and NT51951 `0x80000` owner DP Perspective cases.
-- Deterministic six-case public oracle hashes for NT51950/NT51951 and all declared capacities, plus customer-padding boundary cases and direct V2 plan-contract assertions.
+- Exact-pair execution coverage for NT51950/NT51951 and every declared capacity, plus shorter/larger rejection boundaries and direct V2 plan-contract assertions.
 - Standard Merge tests showing only `0x40000`, `0x80000`, and `0x100000` DP inputs are accepted and accepted outputs keep the selected DP input length.
-- DP Replace tests showing approved base-length enforcement, shorter replacement padding to the selected base length, and larger replacement rejection.
+- DP Replace tests showing exact selected base/replacement length pairing plus shorter and larger replacement rejection.
 - DP Replace test proving the TP range is restored byte-for-byte from base while customer information follows replacement DP.
 - A map confirmation test that locks TP overlay to `0x0A000-0x36FFF (len 0x2D000)` and keeps customer info at `0x37000-0x37FFF (len 0x1000)` outside that overlay.
-- Firmware-owner decisions recorded on 2026-07-13: the archived comparison to the pre-V2 workflow plus the committed public synthetic expected hashes is accepted for V2 runtime admission; DP Replace customer information follows replacement DP. `knownDeviations` is empty, so the direct V2 result must remain full-byte exact against the frozen hashes; a future deviation requires a separate R3 record with a declared half-open range, reason, evidence, and approver. This is migration evidence, not independent hardware validation or a product support claim.
+- Firmware-owner decision recorded on 2026-08-02: NT51950/NT51951 DP Replace replacement input must exactly match the selected reference/base capacity. The 2026-07-13 short-input public synthetic hashes remain immutable historical migration evidence, but no longer authorize production admission or padding. Exact-pair output behavior remains byte-for-byte unchanged; a future cross-capacity or short-input exception requires a separate R3 record with a declared route, input geometry, padding rule, evidence, and approver.

@@ -23,7 +23,9 @@ internal static partial class SavedRuleV2GeneralMergeDraftLoader
         try
         {
             using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
-            return parser(document.RootElement);
+            return SavedRuleSchemaVersionGate.Validate(document.RootElement) is { } issue
+                ? failed(issue)
+                : parser(document.RootElement);
         }
         catch (JsonException exception)
         {

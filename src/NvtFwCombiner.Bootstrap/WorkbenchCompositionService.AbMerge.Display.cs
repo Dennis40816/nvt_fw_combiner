@@ -24,47 +24,6 @@ public static partial class WorkbenchCompositionService
         return WorkbenchAbMergeInputProjection.GetInputSlots(icId, abMergeTopologySelection);
     }
 
-    /// <summary>Reads one selected AB file once and projects compiled health plus informational versions.</summary>
-    public static WorkbenchAbMergeInputInspection InspectAbMergeInput(
-        string icId,
-        string addressSpaceId,
-        string path,
-        TopologySelection? abMergeTopologySelection = null)
-    {
-        return WorkbenchAbMergeInputProjection.Inspect(
-            icId,
-            addressSpaceId,
-            TryReadFirmwareImage(path),
-            abMergeTopologySelection);
-    }
-
-    /// <summary>Reads one selected AB file using a Bootstrap-owned symbolic topology token.</summary>
-    public static WorkbenchAbMergeInputInspection InspectAbMergeInput(
-        string icId,
-        string addressSpaceId,
-        string path,
-        string? abMergeTopologyToken)
-    {
-        return InspectAbMergeInput(
-            icId,
-            addressSpaceId,
-            path,
-            AbMergeWorkbenchCompositionService.ResolveTopologySelection(abMergeTopologyToken));
-    }
-
-    internal static WorkbenchAbMergeInputInspection InspectAbMergeInput(
-        string icId,
-        string addressSpaceId,
-        byte[]? image,
-        TopologySelection? abMergeTopologySelection = null)
-    {
-        return WorkbenchAbMergeInputProjection.Inspect(
-            icId,
-            addressSpaceId,
-            image,
-            abMergeTopologySelection);
-    }
-
     /// <summary>Gets user-facing AB final input ownership from the compiled profile and selected DP length.</summary>
     public static WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
         string icId,

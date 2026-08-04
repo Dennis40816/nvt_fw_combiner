@@ -1,12 +1,34 @@
 # Repository Verification Report
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
-baseline, updated for the 0.10.1 headless-foundation release candidate. Current
+baseline, updated for the 0.10.2 canonical desktop-adoption release candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.1`
+Specification package version: `0.10.2`
+
+## 0.10.2 canonical desktop-adoption release candidate
+
+The candidate advances the stable line from `v0.10.1` through reviewed PRs
+#279, #281–#287. All six desktop Merge/Replace workflows consume the canonical
+Application readiness/inspection and exact-compilation contracts; the main
+window is a shallow shell; Raw Hex Editor, Report Diff, and BIN Inspector share
+one read-only Hex viewport; and superseded General/Saved Rule v1 production
+owners are deleted. NT51950/NT51951 DP Replace requires exact selected Base
+capacity. Support, publication, and golden status remain unchanged and
+explicit.
+
+The exact integrated product tree before version/release documentation is
+commit `235db183804ba097ebb26a002d0365aaedce910a`, tree
+`21a17fb7b5439bb1f1b411056ca99044c00386a5`. The release candidate must pass
+the canonical full verifier at its frozen version-branch head, exact-main PR
+CI/review, deterministic Windows x64 packaging, visible local startup smoke
+where a desktop is available, protected-environment promotion, exact five-asset
+verification, and downloaded-package smoke. The canonical runtime metric is
+75,638 nonblank lines. Remaining deferred UI, Workbench deletion, Core
+convergence, and the hard 22,607-line #197 gate are allocated to `v0.10.3`, not
+claimed by this release.
 
 ## 0.10.1 headless canonical foundation release candidate
 

@@ -6,18 +6,40 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Keeps firmware fact content in the ViewModel while shared styles own its exact normal and warning presentation.</summary>
+    /// <summary>General rows expose prerequisite blocking and typed inspection failures without local firmware rules.</summary>
+    [Fact]
+    public void GeneralMappingRowBindsCanonicalSelectionAndInspectionState()
+    {
+        string row = ReadPresentationFile("Views/GeneralMappingRow.axaml");
+        string codeBehind = ReadPresentationFile("Views/GeneralMappingRow.axaml.cs");
+
+        Assert.Contains("DragDrop.AllowDrop=\"{Binding CanSelectFile}\"", row, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding CanSelectFile}\"", row, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"firmwareSlotFact pendingInput\"", row, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding FileSelectionAvailabilityMessage}\"", row, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"firmwareSlotFact error\"", row, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding InspectionIssueMessage}\"", row, StringComparison.Ordinal);
+        Assert.Contains("CanSelectFile: true", codeBehind, StringComparison.Ordinal);
+        Assert.DoesNotContain("replace-base", row, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("replace-base", codeBehind, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Keeps typed firmware fact state in the ViewModel while shared styles own each presentation.</summary>
     [Fact]
     public void FirmwareSlotFactsUseSharedNormalAndWarningVisualStates()
     {
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
+            ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
         string factTemplate = ExtractDataTemplate(
             ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml"),
-            "FirmwareSlotFactTemplate");
+            "FirmwareSlotInformationFactTemplate");
         string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotFactViewModel.cs");
         string normalStyle = ExtractStyle(styles, "Border.firmwareSlotFact");
+        string pendingStyle = ExtractStyle(styles, "Border.firmwareSlotFact.pendingInput");
+        string unknownStyle = ExtractStyle(styles, "Border.firmwareSlotFact.unknown");
         string warningStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning");
+        string errorStyle = ExtractStyle(styles, "Border.firmwareSlotFact.error");
         string warningTextStyle = ExtractStyle(styles, "Border.firmwareSlotFact.warning TextBlock");
 
         Assert.Contains("x:Key=\"NfcSlotFactSurfaceBrush\" Color=\"#EEF6FF\"", tokens, StringComparison.Ordinal);
@@ -25,11 +47,17 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Value=\"{DynamicResource NfcAccentBorderLightBrush}\"", normalStyle, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningSurfaceBrush}\"", warningStyle, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningBorderStrongBrush}\"", warningStyle, StringComparison.Ordinal);
+        Assert.Contains("NfcAccentSurfaceBrush", pendingStyle, StringComparison.Ordinal);
+        Assert.Contains("NfcSurfaceSubtleBrush", unknownStyle, StringComparison.Ordinal);
+        Assert.Contains("NfcCriticalSurfaceBrush", errorStyle, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.firmwareSlotFactLabel\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.firmwareSlotFactValue\"", styles, StringComparison.Ordinal);
         Assert.Contains("Value=\"{DynamicResource NfcWarningTextBrush}\"", warningTextStyle, StringComparison.Ordinal);
 
         Assert.Contains("Classes=\"firmwareSlotFact\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Classes.error=\"{Binding IsError}\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Classes.pendingInput=\"{Binding IsPendingInput}\"", factTemplate, StringComparison.Ordinal);
+        Assert.Contains("Classes.unknown=\"{Binding IsUnknown}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes.warning=\"{Binding IsWarning}\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactLabel\"", factTemplate, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFactValue\"", factTemplate, StringComparison.Ordinal);
@@ -41,24 +69,24 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.DoesNotContain("Avalonia.Media", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("Brush.Parse", viewModel, StringComparison.Ordinal);
-        Assert.Contains("string Label, string Value, bool IsWarning", viewModel, StringComparison.Ordinal);
+        Assert.Contains("FirmwareSlotFactState State", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool IsWarning = false", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("Legacy", factTemplate, StringComparison.Ordinal);
     }
 
-    /// <summary>Keeps missing, selected, and optional slot completion states distinct while localized text remains the non-color cue.</summary>
+    /// <summary>Keeps empty requirements distinct while one semantic state surface owns selected-file meaning.</summary>
     [Fact]
     public void FirmwareSlotCompletionUsesOrderedSharedVisualStates()
     {
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml");
+        string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
+            ReadPresentationFile("Styles/FirmwareSlotExperienceStyles.axaml");
         string slotCard = ReadPresentationFile("Views/FirmwareSlotCard.axaml");
         string viewModel = ReadPresentationFile("ViewModels/FirmwareSlotViewModel.cs");
         string missingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot");
         string optionalSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.optional");
         string selectedSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile");
-        string pendingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.pending");
-        string validSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.valid");
-        string warningSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.warning");
-        string blockingSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.hasFile.blocking");
+        string compactSlot = ExtractStyle(styles, "Border.fileDropZone.firmwareSlot.compactExperience");
         string missingBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement");
         string optionalBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.optional");
         string selectedBadge = ExtractStyle(styles, "Label.slotBadge.firmwareSlotRequirement.hasFile");
@@ -66,7 +94,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("x:Key=\"NfcRequiredMissingBorderBrush\" Color=\"#FCA5A5\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcRequiredMissingBadgeSurfaceBrush\" Color=\"#FEE2E2\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcRequiredSelectedBorderBrush\" Color=\"#86EFAC\"", tokens, StringComparison.Ordinal);
-        Assert.Contains("x:Key=\"NfcRequiredSelectedBadgeSurfaceBrush\" Color=\"#DCFCE7\"", tokens, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"NfcSuccessEmphasisBrush\" Color=\"#15803D\"", tokens, StringComparison.Ordinal);
 
         Assert.Contains("NfcCriticalSurfaceBrush", missingSlot, StringComparison.Ordinal);
@@ -78,43 +105,33 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcRequiredSelectedBorderBrush", selectedSlot, StringComparison.Ordinal);
         Assert.True(
             styles.IndexOf(selectedSlot, StringComparison.Ordinal) > styles.IndexOf(optionalSlot, StringComparison.Ordinal),
-            "A selected optional slot must override the empty optional state with the common success surface.");
-        Assert.Contains("NfcSurfaceBrush", pendingSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcBorderBrush", pendingSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcSuccessSurfaceBrush", validSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcRequiredSelectedBorderBrush", validSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcWarningSurfaceBrush", warningSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcWarningBorderStrongBrush", warningSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcCriticalSurfaceBrush", blockingSlot, StringComparison.Ordinal);
-        Assert.Contains("NfcRequiredMissingBorderBrush", blockingSlot, StringComparison.Ordinal);
+            "The retired full-card state remains earlier than the canonical compact override.");
+        Assert.Contains("NfcSurfaceBrush", compactSlot, StringComparison.Ordinal);
+        Assert.Contains("NfcBorderBrush", compactSlot, StringComparison.Ordinal);
         Assert.True(
-            styles.IndexOf(pendingSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal) &&
-            styles.IndexOf(validSlot, StringComparison.Ordinal) > styles.IndexOf(pendingSlot, StringComparison.Ordinal) &&
-            styles.IndexOf(warningSlot, StringComparison.Ordinal) > styles.IndexOf(validSlot, StringComparison.Ordinal) &&
-            styles.IndexOf(blockingSlot, StringComparison.Ordinal) > styles.IndexOf(warningSlot, StringComparison.Ordinal),
-            "Pending, valid, warning, and blocking health must override generic selected styling in severity order.");
+            styles.IndexOf(compactSlot, StringComparison.Ordinal) > styles.IndexOf(selectedSlot, StringComparison.Ordinal),
+            "The canonical card keeps semantic color on its compact indicator rather than the whole card.");
 
         Assert.Contains("NfcRequiredMissingBadgeSurfaceBrush", missingBadge, StringComparison.Ordinal);
         Assert.Contains("NfcDangerTextBrush", missingBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentSurfaceBrush", optionalBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", optionalBadge, StringComparison.Ordinal);
         Assert.Contains("NfcRequiredSelectedBadgeSurfaceBrush", selectedBadge, StringComparison.Ordinal);
-        Assert.Contains("NfcSuccessEmphasisBrush", selectedBadge, StringComparison.Ordinal);
-        Assert.True(
-            styles.IndexOf(selectedBadge, StringComparison.Ordinal) > styles.IndexOf(optionalBadge, StringComparison.Ordinal),
-            "A selected optional badge must override the empty optional state with the common success state.");
-
-        Assert.Contains("Classes=\"fileDropZone firmwareSlot\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"fileDropZone firmwareSlot compactExperience\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.hasFile=\"{Binding HasFile}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes.blocking=\"{Binding IsInputInspectionBlocking}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes.pending=\"{Binding IsInputInspectionPending}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes.valid=\"{Binding IsInputInspectionValid}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes.warning=\"{Binding IsInputInspectionWarning}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("LegacySlotPresentation", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.checking=\"{Binding IsSemanticStateChecking}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.error=\"{Binding IsSemanticStateError}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.notApplicable=\"{Binding IsSemanticStateNotApplicable}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.verified=\"{Binding IsSemanticStateVerified}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes.warning=\"{Binding IsSemanticStateWarning}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Stretch=\"Uniform\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("ToolTip.Tip=\"{Binding InputInspectionStatus}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("ToolTip.Tip=\"{Binding SemanticStateAutomationText}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Classes.optional=\"{Binding IsOptional}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("Content=\"{Binding RequirementLabel}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRequirementLabelVisible}\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("firmwareSlotRequirement.hasFile", styles, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBackgroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("RequirementBadgeForegroundBrush", slotCard, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotBackgroundBrush", viewModel, StringComparison.Ordinal);
@@ -142,35 +159,45 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(slot.HasFile);
         slot.FilePath = "C:\\firmware\\base.bin";
         Assert.True(slot.HasFile);
+        Assert.True(slot.IsSemanticStateChecking);
         Assert.Contains(nameof(FirmwareSlotViewModel.HasFile), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateChecking), notifications);
 
         notifications.Clear();
         slot.SetInputInspectionPending("Inspecting");
         Assert.True(slot.IsInputInspectionPending);
         Assert.False(slot.IsInputInspectionValid);
+        Assert.True(slot.IsSemanticStateChecking);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionPending), notifications);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateChecking), notifications);
 
         notifications.Clear();
         slot.SetInputInspection(WorkbenchInputInspectionSeverity.Valid, "Ready");
         Assert.False(slot.IsInputInspectionPending);
         Assert.True(slot.IsInputInspectionValid);
+        Assert.True(slot.IsSemanticStateVerified);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionPending), notifications);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateVerified), notifications);
 
         notifications.Clear();
         slot.SetInputInspection(WorkbenchInputInspectionSeverity.Warning, "Review warning");
         Assert.False(slot.IsInputInspectionValid);
         Assert.True(slot.IsInputInspectionWarning);
+        Assert.True(slot.IsSemanticStateWarning);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionValid), notifications);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionWarning), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateWarning), notifications);
 
         notifications.Clear();
         slot.SetInputInspection(WorkbenchInputInspectionSeverity.Blocking, "Fix input");
         Assert.False(slot.IsInputInspectionWarning);
         Assert.True(slot.IsInputInspectionBlocking);
+        Assert.True(slot.IsSemanticStateError);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionWarning), notifications);
         Assert.Contains(nameof(FirmwareSlotViewModel.IsInputInspectionBlocking), notifications);
+        Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateError), notifications);
     }
 
     /// <summary>Keeps each slot icon category visually distinct while geometry and accessible tooltips stay in the ViewModel.</summary>
@@ -274,6 +301,13 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", tooltip, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding DetailsLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasPreservationDetails}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("<Flyout Placement=\"RightEdgeAlignedTop\">", replaceList, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding PreservationDetails}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ArtifactRangeLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding FlashRangeLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding DispositionLabel}\"", replaceList, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesKeptPattern", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesKeptPattern", mergeList, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
@@ -313,6 +347,51 @@ public sealed partial class XamlControlStyleContractTests
         Assert.NotNull(changed.FillBrush);
     }
 
+    /// <summary>Masked and full DiffDLM routes expose localized equivalent disclosure semantics.</summary>
+    [Fact]
+    public void DiffDlmCoverageFormatsPreservationAndFullArtifactStates()
+    {
+        var detail = new Application.MemoryLayout.MemoryLayoutPreservationDetail(
+            "diff-nf-0",
+            blockIndex: 0,
+            Application.MemoryLayout.MemoryEndpointIdentity.NotApplicable,
+            "postbuild-diffdlm",
+            new Domain.Composition.ByteRange(0xB90, 0x870),
+            new Domain.Composition.ByteRange(0x2DC90, 0x870));
+        var masked = new MemoryCoverageSegmentViewModel(
+            "0x2D100-0x2E4FF",
+            "DiffDLM",
+            "Canonical DiffDLM",
+            "#D97706",
+            20,
+            isDiffDlm: true,
+            preservationDetails: [detail],
+            text: ShellTextResources.For(ShellLanguage.English));
+        var localized = new MemoryCoverageSegmentViewModel(
+            "0x2D100-0x2E4FF",
+            "DiffDLM",
+            "Canonical DiffDLM",
+            "#D97706",
+            20,
+            isDiffDlm: true,
+            preservationDetails: [detail],
+            text: ShellTextResources.For(ShellLanguage.ChineseTraditional));
+        var full = new MemoryCoverageSegmentViewModel(
+            "0x27800-0x29FFF",
+            "DiffDLM",
+            "Canonical DiffDLM",
+            "#D97706",
+            20,
+            isDiffDlm: true);
+
+        Assert.Equal("Kept 1 active Diff NF segments", masked.PreservationSummary);
+        Assert.Contains("Block 0", masked.AccessibleDetail, StringComparison.Ordinal);
+        Assert.True(masked.HasPreservationDetails);
+        Assert.Contains("保留 1 個有效 Diff NF 區段", localized.PreservationSummary, StringComparison.Ordinal);
+        Assert.Equal("Entire DiffDLM", full.PreservationSummary);
+        Assert.False(full.HasPreservationDetails);
+    }
+
     /// <summary>Bootstrap's typed coverage role reaches Replace hatching while Merge stays plain.</summary>
     [Fact]
     public void MemoryCoveragePatternUsesTypedWorkbenchRole()
@@ -328,7 +407,7 @@ public sealed partial class XamlControlStyleContractTests
             UiCompositionRunner.GetGeneralMergeMemoryDisplay(
                 "NT51950",
                 "0x100",
-                []);
+                null);
 
         Assert.Contains(replaceCoverage, segment => segment.UsesBaseFirmwarePattern);
         Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);

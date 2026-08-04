@@ -17,13 +17,43 @@ The report is an immutable audit record for UI, CLI, CI, regression, and release
 
 `integrityDisposition` describes the required firmware outcome. `processorAuthority` separately describes what the external process may do. Reports never conflate the two.
 
-Reports may contain sanitized display names but not firmware bytes, secrets, arbitrary environment variables, or portable absolute input paths.
+The canonical `composition-report-v1` document may contain sanitized display
+names but not firmware bytes, secrets, arbitrary environment variables, or
+portable absolute input paths. The separately versioned workbench projection
+has the narrow Replace-only replay exception below; it does not alter the
+canonical schema or permit complete-BIN persistence.
 
 Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.schema.json).
 
 ## Workbench Report Semantic Extension
 
 `CompositionRunReport` is an Application/workbench projection and is not the canonical `composition-report-v1` wire model. Its Replace-only `OutputDifferences[]` rows may carry an optional `Semantic` object with category, field/section subject, and plain-language explanation. This allows a report renderer to show `TP Flash Header` / `DLM CRC 0` without calculating firmware meaning from an address.
+
+An `OutputDifferences[]` row may also carry an optional `Replay` object for the
+read-only Report Diff viewport. `Replay.Range` covers the complete changed
+range plus at most two aligned 16-byte context rows before and after, clipped
+to the declared output bounds. `BeforeBytes` and `AfterBytes` are Base64 byte
+planes for exactly that range; `BeforeSha256` and `AfterSha256` bind each full
+replay plane. The row's existing `BeforeSha256` and `AfterSha256` continue to
+bind the changed range itself. A reader must validate both layers before
+showing replay bytes. Missing hashes, invalid Base64, range/length mismatch, a
+changed-range hash mismatch, or a full replay-plane hash mismatch makes Diff
+preview unavailable.
+
+Replay is local firmware-bearing report data. It inherits the report store's
+access, retention, deletion, and export boundary and must not be treated as a
+sanitized support attachment. It never persists the complete BIN merely for
+viewport navigation: when the aligned replay envelope would cover the complete
+artifact, `Replay` is omitted and Diff preview is explicitly unavailable. It
+never rereads source paths. Older workbench reports without `Replay`, including
+legacy rows with only truncated Hex previews, remain readable but report that
+Diff preview is unavailable.
+
+Readers accept `Replay` only when its range is the unique clipped, aligned
+two-row context envelope for the declared output size and changed range. The
+two replay-plane hashes, changed-range hashes, and observed changed-byte count
+must match the row; otherwise Diff preview fails closed without fabricating
+bytes.
 
 For an explicit General Replace Preview blocked by unavailable required
 POSTBUILD, that workbench projection may instead carry `DiagnosticPreview`,
@@ -44,4 +74,4 @@ inspection and create no report.
 
 `Validations[]` is another optional projection field. Each immutable row contains `RuleId`, `Stage`, `Status`, `Severity`, and the requirement's declared or emitted `IssueCode`. `Passed` and `Failed` mean the rule evaluated against the completed image; an `Error`-severity failure blocks publication. `Skipped` means an earlier stage produced no image suitable for that rule, so it neither passes nor fails. Older report JSON that lacks `Semantic` or `Validations` is interpreted as an empty collection for the absent field.
 
-These extensions do not add properties to [`composition-report-v1.schema.json`](composition-report-v1.schema.json). See [TP Header Semantic Catalog](../architecture/tp-binary-model-catalog.md) and [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md).
+These extensions do not add properties to [`composition-report-v1.schema.json`](composition-report-v1.schema.json). See [TP Header Semantic Catalog](../architecture/tp-binary-model-catalog.md), [ADR 0013](../adr/0013-tp-binary-model-and-report-semantic-projection.md), and [ADR 0028](../adr/0028-capability-driven-shared-hex-viewport.md).

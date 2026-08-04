@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -24,8 +25,8 @@ public sealed partial class HexEditorPanel : UserControl
     private readonly MenuItem _structuralGoToEnd;
     private readonly MenuItem _structuralGoToStart;
     private readonly ContextMenu _structuralBlockContextMenu;
-    private HexEditorByteCellViewModel? _contextCell;
-    private HexEditorByteCellViewModel? _inlineEditCell;
+    private long? _contextAddress;
+    private long? _inlineEditAddress;
     private bool _isCompletingInlineEdit;
     private bool _isDocumentScrollQueued;
     private TopLevel? _layoutTopLevel;
@@ -61,10 +62,7 @@ public sealed partial class HexEditorPanel : UserControl
         _structuralBlockContextMenu = new ContextMenu();
         _ = _structuralBlockContextMenu.Items.Add(_structuralGoToStart);
         _ = _structuralBlockContextMenu.Items.Add(_structuralGoToEnd);
-        HexViewport.EditRequested += HexViewport_OnEditRequested;
-        HexViewport.ContextMenuRequested += HexViewport_OnContextRequested;
-        HexViewport.StructuralBlockContextMenuRequested += HexViewport_OnStructuralBlockContextRequested;
-        HexViewport.ScrollRequested += HexViewport_OnScrollRequested;
+        HexViewport.InteractionRequested += HexViewport_OnInteractionRequested;
         AddHandler(KeyDownEvent, HexEditorPanel_OnKeyDown, RoutingStrategies.Tunnel);
         AttachedToVisualTree += HexEditorPanel_OnAttachedToVisualTree;
         DetachedFromVisualTree += HexEditorPanel_OnDetachedFromVisualTree;
@@ -142,7 +140,7 @@ public sealed partial class HexEditorPanel : UserControl
             return;
         }
 
-        if (_inlineEditCell is not null)
+        if (_inlineEditAddress is not null)
         {
             CompleteInlineEdit(viewModel, commit: true);
         }
@@ -217,43 +215,67 @@ public sealed partial class HexEditorPanel : UserControl
         }
     }
 
-    private void HexViewport_OnEditRequested(object? sender, HexEditorViewportCellEventArgs e)
-    {
-        if (DataContext is HexEditorWorkspaceViewModel viewModel)
-        {
-            BeginInlineHexByteEdit(viewModel, e.Cell, e.Bounds);
-        }
-    }
-
-    private void HexViewport_OnContextRequested(object? sender, HexEditorViewportCellEventArgs e)
+    private void HexViewport_OnInteractionRequested(object? sender, HexViewportInteractionEventArgs e)
     {
         if (DataContext is not HexEditorWorkspaceViewModel viewModel)
         {
             return;
         }
 
-        _contextCell = e.Cell;
+        HexViewportInteractionIntent intent = e.Intent;
+        if (intent.Trigger == HexViewportInteractionTrigger.Select && intent.Address is long selectAddress)
+        {
+            viewModel.SelectByte(selectAddress);
+        }
+        else if (intent.Trigger == HexViewportInteractionTrigger.Activate && intent.Address is long activateAddress)
+        {
+            BeginInlineHexByteEdit(viewModel, activateAddress, intent.Bounds);
+        }
+        else if (intent.Trigger == HexViewportInteractionTrigger.Context && intent.Address is long contextAddress)
+        {
+            OpenByteContextMenu(viewModel, contextAddress);
+        }
+        else if (intent.Trigger == HexViewportInteractionTrigger.StructuralContext)
+        {
+            OpenStructuralContextMenu(viewModel, intent.StructuralBlockIndex);
+        }
+        else if (intent.Trigger == HexViewportInteractionTrigger.MoveSelection)
+        {
+            viewModel.MoveSelection(intent.Delta);
+        }
+        else if (intent.Trigger == HexViewportInteractionTrigger.Scroll)
+        {
+            if (_inlineEditAddress is not null)
+            {
+                CompleteInlineEdit(viewModel, commit: true);
+            }
+
+            RequestDocumentScroll(viewModel, intent.Delta);
+        }
+    }
+
+    private void OpenByteContextMenu(HexEditorWorkspaceViewModel viewModel, long address)
+    {
+        _contextAddress = address;
         _contextEdit.Header = viewModel.Text.HexEditorEditByteLabel;
-        BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);
-        BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);
-        BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);
-        BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);
-        BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);
-        BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);
-        BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);
+        BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, address);
+        BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, address);
+        BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, address);
+        BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, address);
+        BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, address);
+        BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, address);
+        BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, address);
         _hexByteContextMenu.Open(HexViewport);
     }
 
-    private void HexViewport_OnStructuralBlockContextRequested(object? sender, HexEditorViewportCellEventArgs e)
+    private void OpenStructuralContextMenu(HexEditorWorkspaceViewModel viewModel, int blockIndex)
     {
-        if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
-            e.Cell.StructuralBlockIndex < 0 ||
-            e.Cell.StructuralBlockIndex >= viewModel.ChangedBlockCount)
+        if (blockIndex < 0 || blockIndex >= viewModel.ChangedBlockCount)
         {
             return;
         }
 
-        HexEditorChangedBlockViewModel? block = viewModel.GetChangedBlock(e.Cell.StructuralBlockIndex);
+        HexEditorChangedBlockViewModel? block = viewModel.GetChangedBlock(blockIndex);
         if (block is null)
         {
             return;
@@ -268,7 +290,7 @@ public sealed partial class HexEditorPanel : UserControl
     {
         if (DataContext is not HexEditorWorkspaceViewModel viewModel ||
             sender is not TextBox ||
-            _inlineEditCell is null)
+            _inlineEditAddress is null)
         {
             return;
         }
@@ -289,7 +311,7 @@ public sealed partial class HexEditorPanel : UserControl
     {
         if (!_isCompletingInlineEdit &&
             DataContext is HexEditorWorkspaceViewModel viewModel &&
-            _inlineEditCell is not null)
+            _inlineEditAddress is not null)
         {
             CompleteInlineEdit(viewModel, commit: true);
         }
@@ -313,10 +335,8 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void HexByteEditBox_OnTextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (_inlineEditCell is not null && sender is TextBox textBox)
-        {
-            _inlineEditCell.EditValue = textBox.Text ?? string.Empty;
-        }
+        _ = sender;
+        _ = e;
     }
 
     private void AsciiSearch_OnTextInput(object? sender, TextInputEventArgs e)
@@ -350,26 +370,31 @@ public sealed partial class HexEditorPanel : UserControl
     private void ContextEdit_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is HexEditorWorkspaceViewModel viewModel &&
-            _contextCell is { } cell &&
-            HexViewport.TryGetCellBounds(cell, out Rect bounds))
+            _contextAddress is long address &&
+            HexViewport.TryGetCellBounds(address, out Rect bounds))
         {
-            BeginInlineHexByteEdit(viewModel, cell, bounds);
+            BeginInlineHexByteEdit(viewModel, address, bounds);
         }
     }
 
     private void BeginInlineHexByteEdit(
         HexEditorWorkspaceViewModel viewModel,
-        HexEditorByteCellViewModel cell,
+        long address,
         Rect bounds)
     {
-        if (_inlineEditCell is not null)
+        if (_inlineEditAddress is not null)
         {
             CompleteInlineEdit(viewModel, commit: true);
         }
 
-        viewModel.BeginByteEditCommand.Execute(cell);
-        _inlineEditCell = cell;
-        HexInlineEditor.Text = cell.EditValue;
+        viewModel.BeginByteEditCommand.Execute(address);
+        if (!viewModel.IsInlineEditActive)
+        {
+            return;
+        }
+
+        _inlineEditAddress = address;
+        HexInlineEditor.Text = viewModel.GetCurrentHex(address);
         HexInlineEditor.Width = Math.Max(24, bounds.Width - 2);
         HexInlineEditor.Height = bounds.Height;
         HexInlineEditor.Margin = new Thickness(bounds.X + 1, bounds.Y, 0, 0);
@@ -383,7 +408,7 @@ public sealed partial class HexEditorPanel : UserControl
 
     private void CompleteInlineEdit(HexEditorWorkspaceViewModel viewModel, bool commit)
     {
-        if (_isCompletingInlineEdit || _inlineEditCell is not { } cell)
+        if (_isCompletingInlineEdit || _inlineEditAddress is not long address)
         {
             return;
         }
@@ -391,11 +416,12 @@ public sealed partial class HexEditorPanel : UserControl
         _isCompletingInlineEdit = true;
         try
         {
-            cell.EditValue = HexInlineEditor.Text ?? string.Empty;
             if (commit)
             {
-                viewModel.CommitByteEditCommand.Execute(cell);
-                if (cell.IsEditing)
+                viewModel.CommitByteEditCommand.Execute(new HexEditorByteEditRequest(
+                    address,
+                    HexInlineEditor.Text ?? string.Empty));
+                if (viewModel.IsInlineEditActive)
                 {
                     viewModel.SetTextEntryFocused(true);
                     Dispatcher.UIThread.Post(() =>
@@ -408,11 +434,11 @@ public sealed partial class HexEditorPanel : UserControl
             }
             else
             {
-                viewModel.CancelByteEditCommand.Execute(cell);
+                viewModel.CancelByteEditCommand.Execute(address);
             }
 
             HexInlineEditor.IsVisible = false;
-            _inlineEditCell = null;
+            _inlineEditAddress = null;
             viewModel.SetTextEntryFocused(false);
             _ = HexViewport.Focus();
         }
@@ -436,28 +462,13 @@ public sealed partial class HexEditorPanel : UserControl
             return;
         }
 
-        if (_inlineEditCell is not null)
+        if (_inlineEditAddress is not null)
         {
             CompleteInlineEdit(viewModel, commit: true);
         }
 
         _pendingDocumentScrollRow = checked((int)Math.Floor(e.NewValue));
         QueueDocumentScroll(viewModel);
-    }
-
-    private void HexViewport_OnScrollRequested(object? sender, HexEditorViewportScrollEventArgs e)
-    {
-        if (DataContext is not HexEditorWorkspaceViewModel viewModel)
-        {
-            return;
-        }
-
-        if (_inlineEditCell is not null)
-        {
-            CompleteInlineEdit(viewModel, commit: true);
-        }
-
-        RequestDocumentScroll(viewModel, e.RowDelta);
     }
 
     private void HexDocumentSurface_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -467,7 +478,7 @@ public sealed partial class HexEditorPanel : UserControl
             return;
         }
 
-        if (_inlineEditCell is not null)
+        if (_inlineEditAddress is not null)
         {
             CompleteInlineEdit(viewModel, commit: true);
         }
@@ -499,29 +510,26 @@ public sealed partial class HexEditorPanel : UserControl
         if (isRightButton &&
             HexViewport.TryGetStructuralBlockAt(
                 point,
-                out HexEditorByteCellViewModel? structuralCell,
-                out Rect structuralBounds))
+                out HexViewportCell structuralCell,
+                out _))
         {
             _ = HexViewport.Focus();
-            HexViewport_OnStructuralBlockContextRequested(
-                this,
-                new HexEditorViewportCellEventArgs(structuralCell!, structuralBounds));
+            OpenStructuralContextMenu(viewModel, structuralCell.StructuralBlockIndex);
             e.Handled = true;
             return;
         }
 
-        if (!HexViewport.TryGetCellAt(point, out HexEditorByteCellViewModel? cell, out Rect bounds) &&
-            !HexViewport.TryGetAsciiCellAt(point, out cell, out bounds))
+        if (!HexViewport.TryGetCellAt(point, out HexViewportCell cell, out _) &&
+            !HexViewport.TryGetAsciiCellAt(point, out cell, out _))
         {
             return;
         }
 
         _ = HexViewport.Focus();
-        viewModel.SelectByteCommand.Execute(cell);
-        HexViewport.InvalidateVisual();
+        viewModel.SelectByte(cell.Address);
         if (isRightButton)
         {
-            HexViewport_OnContextRequested(this, new HexEditorViewportCellEventArgs(cell!, bounds));
+            OpenByteContextMenu(viewModel, cell.Address);
         }
 
         e.Handled = true;
@@ -530,9 +538,9 @@ public sealed partial class HexEditorPanel : UserControl
     private void HexDocumentSurface_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is HexEditorWorkspaceViewModel viewModel &&
-            HexViewport.TryGetCellAt(e.GetPosition(HexViewport), out HexEditorByteCellViewModel? cell, out Rect bounds))
+            HexViewport.TryGetCellAt(e.GetPosition(HexViewport), out HexViewportCell cell, out Rect bounds))
         {
-            BeginInlineHexByteEdit(viewModel, cell!, bounds);
+            BeginInlineHexByteEdit(viewModel, cell.Address, bounds);
             e.Handled = true;
         }
     }

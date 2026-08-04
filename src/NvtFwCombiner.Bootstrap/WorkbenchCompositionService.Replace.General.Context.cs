@@ -12,31 +12,29 @@ public static partial class WorkbenchCompositionService
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         GeneralMappingDraftState mappingDraft,
-        bool build,
         out GeneralReplaceRunContext? context,
-        out WorkbenchRunResult? failure)
+        out IReadOnlyDictionary<string, string> reportSlotPaths,
+        out CompositionIssue? failure)
     {
-        Dictionary<string, string> reportSlotPaths = new(slotPaths, StringComparer.Ordinal);
+        Dictionary<string, string> reportPaths = new(slotPaths, StringComparer.Ordinal);
         foreach (GeneralMappingDraftRow mapping in mappingDraft.Rows)
         {
             if (mapping.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
                 !string.IsNullOrWhiteSpace(mapping.Source.Reference))
             {
-                reportSlotPaths[mapping.MappingId] = mapping.Source.Reference;
+                reportPaths[mapping.MappingId] = mapping.Source.Reference;
             }
         }
+        reportSlotPaths = reportPaths;
         IcNumberSelection selection = ToIcNumberSelection(number);
 
         if (!IcNumberChoicePolicy.IsNumberSelectionSupported(selection, GetPostbuildProfiles(icId)))
         {
             context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
+            failure = new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported,
-                $"IC number selection '{number}' is not supported for {icId} General Replace.");
+                $"IC number selection '{number}' is not supported for {icId} General Replace.",
+                WorkbenchReplaceModes.General.ToLowerInvariant());
             return false;
         }
 
@@ -44,13 +42,10 @@ public static partial class WorkbenchCompositionService
             string.IsNullOrWhiteSpace(basePath))
         {
             context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
+            failure = new CompositionIssue(
                 WorkbenchIssueCodes.InputMissing,
-                "Base flash BIN is required before General Replace can compile explicit mappings.");
+                "Base flash BIN is required before General Replace can compile explicit mappings.",
+                WorkbenchReplaceModes.General.ToLowerInvariant());
             return false;
         }
 
@@ -58,26 +53,20 @@ public static partial class WorkbenchCompositionService
         if (!File.Exists(fullBasePath))
         {
             context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
+            failure = new CompositionIssue(
                 WorkbenchIssueCodes.InputArtifactReadFailed,
-                "Base flash BIN path does not exist.");
+                "Base flash BIN path does not exist.",
+                WorkbenchReplaceModes.General.ToLowerInvariant());
             return false;
         }
 
         if (mappingDraft.Rows.Count == 0)
         {
             context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
+            failure = new CompositionIssue(
                 WorkbenchIssueCodes.InputMissing,
-                "At least one General Replace mapping row or hexadecimal patch is required.");
+                "At least one General Replace mapping row or hexadecimal patch is required.",
+                WorkbenchReplaceModes.General.ToLowerInvariant());
             return false;
         }
 
@@ -85,13 +74,10 @@ public static partial class WorkbenchCompositionService
         if (capacity <= 0)
         {
             context = null;
-            failure = CreatePlanningRunResult(
-                icId,
-                WorkbenchReplaceModes.General,
-                reportSlotPaths,
-                build,
+            failure = new CompositionIssue(
                 CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                "Base flash BIN must not be empty.");
+                "Base flash BIN must not be empty.",
+                WorkbenchReplaceModes.General.ToLowerInvariant());
             return false;
         }
 

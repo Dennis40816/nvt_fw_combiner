@@ -37,8 +37,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         WorkbenchCompositionService.GeneralReplacePostbuildReadinessOverride
             runtime = RuntimeOverride(provider);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
+        WorkbenchRunResult result = await RunWithPostbuildReadinessAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -96,8 +95,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
             CreateStageBearingExactParent(workspace);
         var progress = new CompositionRunProgressFeed();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
+        WorkbenchRunResult result = await RunWithPostbuildReadinessAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -138,8 +136,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
             CreateStageBearingExactParent(workspace);
         var progress = new CompositionRunProgressFeed();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunGeneralReplaceEphemeralDraftWithPostbuildReadinessAsync(
+        WorkbenchRunResult result = await RunWithPostbuildReadinessAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -177,6 +174,48 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 provider,
                 Generation: 1,
                 generation => generationIsCurrent && generation == 1);
+    }
+
+    private static ValueTask<WorkbenchRunResult> RunWithPostbuildReadinessAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState mappingDraft,
+        bool build,
+        TrustedProfileBundleCatalog exactParentCatalog,
+        string exactParentProfileId,
+        WorkbenchCompositionService.GeneralReplacePostbuildReadinessOverride runtime,
+        CompositionRunProgressFeed progress,
+        string? outputPath,
+        CancellationToken cancellationToken)
+    {
+        SavedRuleV2GeneralReplaceExactParent exactParent =
+            SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
+                exactParentCatalog,
+                exactParentProfileId);
+        return build
+            ? WorkbenchCompositionService.BuildGeneralReplaceWithInitialInspectionAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                new AuthoringRevision(1),
+                outputPath,
+                progress,
+                cancellationToken,
+                savedRulePolicy: null,
+                runtime,
+                exactParent)
+            : WorkbenchCompositionService.PreviewGeneralReplaceWithInitialInspectionAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                new AuthoringRevision(1),
+                cancellationToken,
+                savedRulePolicy: null,
+                runtime,
+                exactParent);
     }
 
     private static byte[] CreatePostbuildReference(byte seed)

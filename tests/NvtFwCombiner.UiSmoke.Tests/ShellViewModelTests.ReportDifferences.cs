@@ -11,10 +11,10 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(json, "replace-report.json");
+        viewModel.Reports.LoadReportJson(json, "replace-report.json");
 
-        Assert.True(viewModel.LoadedReport.HasOutputDifferences);
-        ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        Assert.True(viewModel.Reports.LoadedReport.HasOutputDifferences);
+        ReportLineViewModel difference = Assert.Single(viewModel.Reports.LoadedReport.OutputDifferences);
         Assert.Equal("DLM CRC 0", difference.Title);
         Assert.Equal("Header", difference.SectionLabel);
         Assert.Equal("0x1C-0x1F (len 0x4)", difference.Range);
@@ -29,42 +29,42 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(difference.Facts, fact => fact.Label == "Reason" &&
             fact.Value.Contains("DLM CRC 0", StringComparison.Ordinal));
         Assert.DoesNotContain(difference.Facts, fact => fact.Value.Contains("...", StringComparison.Ordinal));
-        Assert.True(viewModel.LoadedReport.HasOperationFlow);
-        Assert.Contains(viewModel.LoadedReport.OperationFlow, node =>
+        Assert.True(viewModel.Reports.LoadedReport.HasOperationFlow);
+        Assert.Contains(viewModel.Reports.LoadedReport.OperationFlow, node =>
             node.Title == "Refresh header and CRC" &&
             node.Number == "100" &&
             node.Meta == "command details in Postbuild tab");
-        Assert.DoesNotContain(viewModel.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
-        Assert.NotEmpty(GetCommandOperations(viewModel.LoadedReport));
-        Assert.True(viewModel.LoadedReport.HasPostbuildInvocations);
-        ReportPostbuildInvocationViewModel invocation = Assert.Single(viewModel.LoadedReport.PostbuildInvocations);
+        Assert.DoesNotContain(viewModel.Reports.LoadedReport.StepOperations, operation => operation.HasCodeBlock);
+        Assert.NotEmpty(GetCommandOperations(viewModel.Reports.LoadedReport));
+        Assert.True(viewModel.Reports.LoadedReport.HasPostbuildInvocations);
+        ReportPostbuildInvocationViewModel invocation = Assert.Single(viewModel.Reports.LoadedReport.PostbuildInvocations);
         Assert.Equal("900.01", invocation.Number);
         Assert.Equal("Runtime invocation", invocation.Title);
-        Assert.Equal("Expected changes", viewModel.LoadedReport.ByteDifferenceTitle);
-        Assert.Contains("section", viewModel.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
-        Assert.Equal("1/1 expected", viewModel.LoadedReport.ByteDifferenceMeta);
-        Assert.Equal("Inspect expected changes", viewModel.LoadedReport.NextStepTitle);
-        Assert.Contains("Inspect 1 expected change", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
-        Assert.Contains("affected data field", viewModel.LoadedReport.NextStepDetail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
+        Assert.Equal("Expected changes", viewModel.Reports.LoadedReport.ByteDifferenceTitle);
+        Assert.Contains("section", viewModel.Reports.LoadedReport.ByteDifferenceDetail, StringComparison.Ordinal);
+        Assert.Equal("1/1 expected", viewModel.Reports.LoadedReport.ByteDifferenceMeta);
+        Assert.Equal("Inspect expected changes", viewModel.Reports.LoadedReport.NextStepTitle);
+        Assert.Contains("Inspect 1 expected change", viewModel.Reports.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains("affected data field", viewModel.Reports.LoadedReport.NextStepDetail, StringComparison.Ordinal);
+        Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferenceSummaryRows, row =>
             row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "expected");
-        ReportDifferenceGroupViewModel differenceGroup = Assert.Single(viewModel.LoadedReport.OutputDifferenceGroups);
+        ReportDifferenceGroupViewModel differenceGroup = Assert.Single(viewModel.Reports.LoadedReport.OutputDifferenceGroups);
         Assert.Equal("Header", differenceGroup.Title);
         Assert.Equal("1 expected field update", differenceGroup.Detail);
         viewModel.SelectedLanguage = "Traditional Chinese";
-        await Assert.IsType<Task>(viewModel.ReportRelocalizationTask, exactMatch: false);
+        await Assert.IsType<Task>(viewModel.Reports.RelocalizationTask, exactMatch: false);
 
         Assert.Equal("差異", viewModel.Text.ReportTabChanges);
-        Assert.Equal("預期變更", viewModel.LoadedReport.ByteDifferenceTitle);
-        Assert.Equal("1/1 預期", viewModel.LoadedReport.ByteDifferenceMeta);
-        ReportLineViewModel localizedDifference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        Assert.Equal("預期變更", viewModel.Reports.LoadedReport.ByteDifferenceTitle);
+        Assert.Equal("1/1 預期", viewModel.Reports.LoadedReport.ByteDifferenceMeta);
+        ReportLineViewModel localizedDifference = Assert.Single(viewModel.Reports.LoadedReport.OutputDifferences);
         Assert.Contains(localizedDifference.Badges, badge => badge.Text == "預期");
         Assert.Equal("Header", localizedDifference.SectionLabel);
         Assert.Equal("變更前 bytes", localizedDifference.BeforeLabel);
         Assert.Equal("AA BB CC DD", localizedDifference.BeforeValue);
-        Assert.Contains(viewModel.LoadedReport.OutputDifferenceSummaryRows, row =>
+        Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferenceSummaryRows, row =>
             row.Label == "Header" &&
             row.Count == "1" &&
             row.Status == "預期");
@@ -79,9 +79,9 @@ public sealed partial class ShellViewModelTests
             hexPreviewByteCount: 2);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(json, "replace-report.json");
+        viewModel.Reports.LoadReportJson(json, "replace-report.json");
 
-        ReportLineViewModel difference = Assert.Single(viewModel.LoadedReport.OutputDifferences);
+        ReportLineViewModel difference = Assert.Single(viewModel.Reports.LoadedReport.OutputDifferences);
         Assert.Equal("Before preview, first 2 bytes", difference.BeforeLabel);
         Assert.Equal("After preview, first 2 bytes", difference.AfterLabel);
     }
@@ -92,15 +92,15 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(ReportJsonSamples.CtrlRamInputs(), "ctrlram-inputs.json");
+        viewModel.Reports.LoadReportJson(ReportJsonSamples.CtrlRamInputs(), "ctrlram-inputs.json");
 
-        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+        Assert.Contains(viewModel.Reports.LoadedReport.Inputs, input =>
             input.Title == "Base flash image" &&
             input.Classification == "base");
-        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+        Assert.Contains(viewModel.Reports.LoadedReport.Inputs, input =>
             input.Title == "VN CtrlRAM" &&
             input.Classification == "ctrlram");
-        Assert.Contains(viewModel.LoadedReport.Inputs, input =>
+        Assert.Contains(viewModel.Reports.LoadedReport.Inputs, input =>
             input.Title == "Normal CtrlRAM (Slave R)" &&
             input.Classification == "ctrlram");
     }

@@ -99,7 +99,7 @@ public sealed partial class MainWindow
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (DataContext is MainWindowViewModel { IsRunInProgress: true })
+        if (DataContext is MainWindowViewModel { RunSession.IsRunInProgress: true })
         {
             return;
         }

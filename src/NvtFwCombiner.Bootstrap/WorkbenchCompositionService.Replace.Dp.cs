@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
@@ -14,6 +15,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         string? outputPath,
         CompositionRunProgressFeed? progress,
+        ResolvedCapability? acceptedCapability,
+        ActiveSessionSnapshot? acceptedSession,
         CancellationToken cancellationToken)
     {
         if (!TryCreateBuiltInV2DpReplaceRunContext(
@@ -69,13 +72,16 @@ public static partial class WorkbenchCompositionService
                 issue.Message);
         }
 
-        if (!TryCompileBuiltInV2DpReplace(
+        ResolvedCapability? resolvedCapability = acceptedCapability;
+        CompiledComposition? compiledComposition = acceptedCapability?.CompiledComposition;
+        IReadOnlyList<CompositionIssue> issues = [];
+        if (resolvedCapability is null && !TryCompileBuiltInV2DpReplace(
                 icId,
                 context!.Capacity,
                 selectedInputSlotIds,
-                out CompiledComposition? compiledComposition,
-                out ResolvedCapability? resolvedCapability,
-                out IReadOnlyList<CompositionIssue> issues))
+                out compiledComposition,
+                out resolvedCapability,
+                out issues))
         {
             return CreatePlanningRunResult(
                 icId,
@@ -104,19 +110,31 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                CompositionAddressSpaceIds.ReferenceBase,
-                context.BasePath),
+            acceptedSession is null
+                ? CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    CompositionAddressSpaceIds.ReferenceBase,
+                    context.BasePath)
+                : CreateAcceptedSessionBinding(
+                    compiledComposition,
+                    CompositionAddressSpaceIds.ReferenceBase,
+                    context.BasePath,
+                    acceptedSession),
             .. replacementSlots
                 .Where(slot => compiledComposition.Plan.RequiredInputAddressSpaceIds.Contains(
                     slot.AddressSpaceId,
                     StringComparer.Ordinal))
                 .Select(slot =>
-                CompiledCompositionInputBindingFactory.Create(
-                    compiledComposition,
-                    slot.AddressSpaceId,
-                    Path.GetFullPath(context.SlotPaths[slot.SlotId]))),
+                acceptedSession is null
+                    ? CompiledCompositionInputBindingFactory.Create(
+                        compiledComposition,
+                        slot.AddressSpaceId,
+                        Path.GetFullPath(context.SlotPaths[slot.SlotId]))
+                    : CreateAcceptedSessionBinding(
+                        compiledComposition,
+                        slot.AddressSpaceId,
+                        context.SlotPaths[slot.SlotId],
+                        acceptedSession)),
         ];
 
         return await RunCompiledCompositionAsync(
@@ -151,7 +169,8 @@ public static partial class WorkbenchCompositionService
                     : "Replacement DP payload. Build stays gated until this IC has approved DP Replace mapping evidence.",
                 IsDpReplaceSelectionGroupMember(icId, primaryReplacementAddressSpaceId),
                 primaryReplacementAddressSpaceId,
-                "dp"),
+                "dp",
+                InputRole: WorkbenchReplaceInputRole.Dp),
         ];
         foreach (DpReplaceAdditionalPayloadRule rule in DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId))
         {
@@ -161,7 +180,8 @@ public static partial class WorkbenchCompositionService
                 rule.Description,
                 IsDpReplaceSelectionGroupMember(icId, rule.AddressSpaceId),
                 rule.AddressSpaceId,
-                rule.RegionId));
+                rule.RegionId,
+                InputRole: WorkbenchReplaceInputRole.Dp));
         }
 
         return slots;

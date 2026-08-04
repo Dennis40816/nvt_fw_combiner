@@ -10,10 +10,10 @@ public sealed partial class XamlControlStyleContractTests
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
 
         Assert.Contains("<views:BuildCompletedModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsBuildCompletedModalOpen}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding BuildCompletedOutputDisplayName}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding RevealBuildCompletedOutputCommand}\"", modal, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding CloseBuildCompletedModalCommand}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding BuildResult.IsOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Content=\"{Binding BuildResult.OutputDisplayName}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.RevealOutputCommand}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.CloseCommand}\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("Click=\"RevealOutputFileButton_OnClick\"", modal, StringComparison.Ordinal);
     }
 
@@ -27,7 +27,7 @@ public sealed partial class XamlControlStyleContractTests
         string modal = ReadPresentationFile("Views/BuildCompletedModal.axaml");
 
         Assert.Contains("<views:AbAFlashCodeDeliveryPromptModal", shell, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding Merge.IsAbAFlashCodeDeliveryPromptOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding AcceptAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding DeclineAbAFlashCodeDeliveryPromptCommand}\"", prompt, StringComparison.Ordinal);
         Assert.Contains("Classes=\"danger\"", prompt, StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(
             buildCodeBehind.IndexOf("PromptForAbAFlashCodeDeliveryAsync", StringComparison.Ordinal) <
             buildCodeBehind.IndexOf("PickMergedFirmwareOutputPathAsync", StringComparison.Ordinal));
-        Assert.Contains("IsVisible=\"{Binding HasBuildCompletedAdditionalOutput}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding BuildResult.HasAdditionalOutput}\"", modal, StringComparison.Ordinal);
         Assert.DoesNotContain("ExportAbAFlashCode", modal, StringComparison.Ordinal);
     }
 

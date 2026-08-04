@@ -15,7 +15,7 @@ public sealed partial class CompositionRunService
             CompositionIssue? issue = requirement switch
             {
                 CompiledUniformInputRangeValidation uniform =>
-                    ValidateUniformInputRanges(inputBytes, uniform),
+                    CompiledInputLoadValidationEvaluator.Evaluate(inputBytes, uniform),
                 _ => new CompositionIssue(
                     requirement.IssueCode,
                     $"Input-load validation rule '{requirement.RuleId}' has no executable runtime evaluator.",
@@ -52,49 +52,6 @@ public sealed partial class CompositionRunService
                         requirement.IssueCode),
                     Issue: null)),
         ];
-    }
-
-    private static CompositionIssue? ValidateUniformInputRanges(
-        IReadOnlyDictionary<string, byte[]> inputBytes,
-        CompiledUniformInputRangeValidation requirement)
-    {
-        if (!inputBytes.TryGetValue(
-                requirement.AddressSpaceId,
-                out byte[]? bytes))
-        {
-            return new CompositionIssue(
-                requirement.IssueCode,
-                $"Input validation cannot read required address space '{requirement.AddressSpaceId}'.",
-                requirement.RuleId,
-                ToIssueSeverity(requirement.Severity));
-        }
-
-        foreach (ByteRange range in requirement.Ranges)
-        {
-            if (range.EndExclusive > bytes.LongLength)
-            {
-                return new CompositionIssue(
-                    requirement.IssueCode,
-                    $"Input validation range {range} is outside address space '{requirement.AddressSpaceId}'.",
-                    requirement.RuleId,
-                    ToIssueSeverity(requirement.Severity));
-            }
-
-            ReadOnlySpan<byte> candidate = bytes.AsSpan(
-                checked((int)range.Start),
-                checked((int)range.Length));
-            byte first = candidate[0];
-            if (candidate[1..].IndexOfAnyExcept(first) < 0)
-            {
-                return new CompositionIssue(
-                    requirement.IssueCode,
-                    $"Input range {range} in '{requirement.AddressSpaceId}' is a repeated-byte placeholder and cannot be used.",
-                    requirement.RuleId,
-                    ToIssueSeverity(requirement.Severity));
-            }
-        }
-
-        return null;
     }
 
     private sealed record InputLoadValidationEvaluation(

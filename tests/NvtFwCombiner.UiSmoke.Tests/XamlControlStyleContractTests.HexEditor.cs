@@ -10,7 +10,7 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void HexEditorByteCellsCenterTheirContentUnderTheHeader()
     {
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
+        string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
 
         Assert.Contains("private const int BytesPerRow = 16", viewport, StringComparison.Ordinal);
         Assert.Contains("rect.X + ((rect.Width - text.Width) / 2)", viewport, StringComparison.Ordinal);
@@ -24,20 +24,20 @@ public sealed partial class XamlControlStyleContractTests
     {
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
         string codeBehind = ReadPresentationFile("Views/HexEditorPanel.axaml.cs");
-        string viewport = ReadPresentationFile("Views/HexEditorViewportControl.cs");
-        string viewportInteraction = ReadPresentationFile("Views/HexEditorViewportControl.Interaction.cs");
-        string viewportStructuralBlocks = ReadPresentationFile("Views/HexEditorViewportControl.StructuralBlocks.cs");
-        string renderingSupport = ReadPresentationFile("Views/HexEditorViewportControl.RenderingSupport.cs");
+        string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
+        string viewportInteraction = ReadPresentationFile("Views/HexViewportControl.Interaction.cs");
+        string viewportStructuralBlocks = ReadPresentationFile("Views/HexViewportControl.StructuralBlocks.cs");
+        string renderingSupport = ReadPresentationFile("Views/HexViewportControl.RenderingSupport.cs");
         string hexInputBehavior = ReadPresentationFile("Behaviors/HexTextInputBehavior.cs");
 
-        Assert.Contains("<views:HexEditorViewportControl", hexEditor, StringComparison.Ordinal);
+        Assert.Contains("<views:HexViewportControl", hexEditor, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ViewportRows}\"", hexEditor, StringComparison.Ordinal);
         Assert.Equal(2, hexEditor.Split("<ContentControl", StringSplitOptions.None).Length);
         Assert.Contains("Content=\"{Binding ChangedBlockPage}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource HexEditorChangedBlockPagerTemplate}\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("public override void Render(DrawingContext context)", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawByte(context", viewport, StringComparison.Ordinal);
-        Assert.Contains("internal string? HoveredAddress { get; private set; }", viewport, StringComparison.Ordinal);
+        Assert.Contains("internal long? HoveredAddress { get; private set; }", viewport, StringComparison.Ordinal);
         Assert.Contains("internal void UpdateHoveredCell(Point point)", viewportInteraction, StringComparison.Ordinal);
         Assert.Contains("CreateHexTextCache", renderingSupport, StringComparison.Ordinal);
         Assert.Contains("PointerPressed += OnPointerPressed", viewport, StringComparison.Ordinal);
@@ -48,7 +48,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("!TryHitTestAscii(point, out cell, out bounds)", viewportInteraction, StringComparison.Ordinal);
         Assert.Contains("HexViewport.TryGetAsciiCellAt(point", codeBehind, StringComparison.Ordinal);
         Assert.Contains("protected override void OnPointerWheelChanged", viewportInteraction, StringComparison.Ordinal);
-        Assert.Contains("ScrollRequested?.Invoke", viewportInteraction, StringComparison.Ordinal);
+        Assert.Contains("HexViewportInteractionTrigger.Scroll", viewportInteraction, StringComparison.Ordinal);
         Assert.Contains("Background=\"Transparent\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("KeyDown += OnKeyDown", viewport, StringComparison.Ordinal);
         Assert.Contains("GotFocus=\"HexTextInput_OnGotFocus\"", hexEditor, StringComparison.Ordinal);
@@ -61,22 +61,22 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("_hexByteContextMenu.Open(HexViewport)", codeBehind, StringComparison.Ordinal);
         string[] byteContextBindings =
         [
-            "BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, e.Cell);",
-            "BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, e.Cell);",
-            "BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, e.Cell);",
-            "BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, e.Cell);",
-            "BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, e.Cell);",
-            "BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, e.Cell);",
-            "BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, e.Cell);",
+            "BindContextCommand(_contextInsertBefore, viewModel.Text.HexEditorContextInsertZeroBeforeLabel, viewModel.InsertZeroBeforeCommand, address);",
+            "BindContextCommand(_contextInsertAfter, viewModel.Text.HexEditorContextInsertZeroAfterLabel, viewModel.InsertZeroAfterCommand, address);",
+            "BindContextCommand(_contextInsertManyBefore, viewModel.Text.HexEditorContextInsertBytesBeforeLabel, viewModel.RequestInsertBytesBeforeCommand, address);",
+            "BindContextCommand(_contextInsertManyAfter, viewModel.Text.HexEditorContextInsertBytesAfterLabel, viewModel.RequestInsertBytesAfterCommand, address);",
+            "BindContextCommand(_contextDeleteByte, viewModel.Text.HexEditorContextDeleteByteLabel, viewModel.DeleteByteCommand, address);",
+            "BindContextCommand(_contextSetToZero, viewModel.Text.HexEditorContextSetToZeroLabel, viewModel.SetByteToZeroCommand, address);",
+            "BindContextCommand(_contextSetToFf, viewModel.Text.HexEditorContextSetToFfLabel, viewModel.SetByteToFfCommand, address);",
         ];
         Assert.All(byteContextBindings, binding => Assert.Contains(binding, codeBehind, StringComparison.Ordinal));
         Assert.Contains("menuItem.Header = header", codeBehind, StringComparison.Ordinal);
         Assert.Contains("menuItem.Command = command", codeBehind, StringComparison.Ordinal);
         Assert.Contains("menuItem.CommandParameter = parameter", codeBehind, StringComparison.Ordinal);
-        Assert.Contains("StructuralBlockContextMenuRequested", viewport, StringComparison.Ordinal);
+        Assert.Contains("InteractionRequested", viewport, StringComparison.Ordinal);
         Assert.Contains("TryHitTestStructuralAscii", viewportStructuralBlocks, StringComparison.Ordinal);
         Assert.Contains("ContainsStructuralPoint", viewportStructuralBlocks, StringComparison.Ordinal);
-        Assert.Contains("row.IsOriginalRowVisible ? RowHeight * 2 : RowHeight", viewportStructuralBlocks, StringComparison.Ordinal);
+        Assert.Contains("IsComparisonRowVisible(snapshot, row) ? RowHeight * 2 : RowHeight", viewportStructuralBlocks, StringComparison.Ordinal);
         Assert.Contains("HexViewport.TryGetStructuralBlockAt", codeBehind, StringComparison.Ordinal);
         Assert.True(
             codeBehind.IndexOf("HexViewport.TryGetStructuralBlockAt", StringComparison.Ordinal) <
@@ -94,7 +94,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("KeepAsciiHexOnly", codeBehind, StringComparison.Ordinal);
         Assert.Contains("HexDocumentScrollBar_OnValueChanged", codeBehind, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"HexDocumentSurface\"", hexEditor, StringComparison.Ordinal);
-        Assert.Contains("HexViewport_OnScrollRequested", codeBehind, StringComparison.Ordinal);
+        Assert.Contains("HexViewport_OnInteractionRequested", codeBehind, StringComparison.Ordinal);
         Assert.Contains("HexDocumentSurface_OnPointerWheelChanged", codeBehind, StringComparison.Ordinal);
         Assert.Contains("PointerMoved=\"HexDocumentSurface_OnPointerMoved\"", hexEditor, StringComparison.Ordinal);
         Assert.Contains("PointerExited=\"HexDocumentSurface_OnPointerExited\"", hexEditor, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void HexEditorStructuralOutlineIncludesBlankAndCrossRowAreas()
     {
-        MethodInfo hitTest = typeof(HexEditorViewportControl).GetMethod(
+        MethodInfo hitTest = typeof(HexViewportControl).GetMethod(
             "ContainsStructuralPoint",
             BindingFlags.NonPublic | BindingFlags.Static) ??
             throw new InvalidOperationException("Structural outline hit test was not found.");

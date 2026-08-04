@@ -61,6 +61,34 @@ public sealed partial class ShellTextResources
 
     public string NoBinSelectedLabel { get; private init; } = string.Empty;
 
+    public string FirmwareSlotCheckingLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotVerifiedLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotWarningLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotErrorLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotNotApplicableLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotUnknownValueLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotUnknownFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotPendingFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotWarningFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotErrorFactDetail { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowDetailsLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotHideDetailsLabel { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowMoreFactsTemplate { get; private init; } = string.Empty;
+
+    public string FirmwareSlotShowFewerFactsLabel { get; private init; } = string.Empty;
+
     public string MergeDpSlotDescription { get; private init; } = string.Empty;
 
     public string MergeTpSlotDescription { get; private init; } = string.Empty;
@@ -92,6 +120,20 @@ public sealed partial class ShellTextResources
     public string GeneralReplaceValidationDetail { get; private init; } = string.Empty;
 
     public string GeneralReplaceMappingsDetail { get; private init; } = string.Empty;
+
+    public string GeneralSourceKindLabel { get; private init; } = string.Empty;
+
+    public string GeneralSourceValueLabel { get; private init; } = string.Empty;
+
+    public string GeneralFileSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralHexOverwriteSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralHexFillSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralInlineHexPlaceholder { get; private init; } = string.Empty;
+
+    public string GeneralInlineHexGuidance { get; private init; } = string.Empty;
 
     /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;

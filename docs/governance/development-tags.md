@@ -59,6 +59,38 @@ commit.
   #194, keeps missing golden/support gates explicit, and leaves the desktop UI,
   compatibility deletion, legacy runtime deletion, and Core convergence waves
   for later releases.
+- `v0.10.2` — canonical desktop-adoption and compatibility-deletion release:
+  carry the completed headless foundation into all six desktop workflows,
+  extract the shallow shell and shared read-only Hex viewport, and delete the
+  superseded General/Saved Rule v1 owners through #254. Remaining deferred UI,
+  Workbench deletion, Core convergence, and #197 stay explicit follow-up.
+- `v0.10.3` — complete canonical-refactoring release: tag only after the
+  remaining deferred UI adoption, Workbench/parallel-catalog deletion, all four
+  Core Convergence slices, and the hard #197 production-size gate are complete
+  and reviewed. It is the end of the currently approved refactoring program.
+- `v0.10.4` — post-refactor simplification audit: measure the `v0.10.3` result
+  again and review the new architecture for remaining removable ownership or a
+  simpler expression. The milestone does not pre-authorize speculative
+  abstractions, safety removal, or a line-count-only rewrite.
+- `v0.10.5` — unified preload performance-control release: consolidate startup
+  and background preload scheduling behind one observable, cancellable,
+  bounded, and user-controllable lifecycle. Performance work must retain
+  deterministic results, current cache identity, and the canonical verifier.
+- `v0.10.6` — reserved path-based update experience: add a screen that can
+  obtain reviewed update artifacts from a configured path so routine delivery
+  no longer depends on repackaging and email. Trust source, rollback, version
+  selection, share/network behavior, and release authorization are intentionally
+  deferred to a later owner discussion; no implementation ticket is implied by
+  this reservation.
+
+### Recorded `v0.10.2` pre-deletion comparison point
+
+The post-#208 integration point immediately before #254 compatibility deletion
+is commit `604199ab4a6bdb2f2da3f976851ce1c00b467bc8`, tree
+`35d83c477fff39f0fc11404f5dbcee7f007a3f4d`. It is retained as a reproducible
+comparison/rollback identity only. It is not a release tag and does not relax
+the `v0.10.3` completion or 22,607-line gates above. The later reviewed #254
+merge is included in the `v0.10.2` release scope.
 
 The original `0.9.17` certification and `0.9.18` family-model proposals were
 superseded before release. The owner subsequently reused those version numbers
@@ -108,8 +140,11 @@ for `v0.9.3` through `v0.9.10` are maintained in
   the canonical dependency plan rather than this tag.
 - `0.10.1` integrates the exact reviewed `0.10.x` head into the protected-main
   lineage after the headless foundation and its R3 review gates complete. It
-  does not allocate the remaining UI/deletion/Core-convergence tickets or
-  silently promote `ContractOnly`/missing-golden routes.
+  does not silently promote `ContractOnly`/missing-golden routes. Owner decision
+  on 2026-08-04 allocates the reviewed desktop-adoption and first compatibility
+  deletion state through #254 to `0.10.2`, and moves the remaining UI,
+  Workbench deletion, Core-convergence, and #197 integration graph to
+  `0.10.3`.
 
 The former `0.9.17` certification and `0.9.18` family-model delivery roadmap
 remains historical evidence only. The bounded maintenance releases that reused
@@ -177,6 +212,11 @@ and cannot re-admit a retired IC.
 | `v0.9.18` | NT51928 optional-input compatibility hot-fix | Make LDC optional in Standard Merge and allow Initial Code, LDC, or both in DP Replace while retaining exact declared capacities and support-neutral status. |
 | `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and canonical dependency-gated execution plan without changing firmware behavior or support truth. |
 | `v0.10.1` | Headless canonical foundation | Complete all 78 admitted headless routes, reviewed capability/per-compilation identity, allocated firmware contracts, and explicit retirements without claiming deferred UI, deletion, Core convergence, or support certification. |
+| `v0.10.2` | Canonical desktop adoption and first compatibility deletion | Adopt the canonical headless readiness/inspection and exact-compilation contracts in all six desktop workflows, extract the shallow shell and shared read-only Hex viewport, and delete the General/Saved Rule v1 owners through #254 without support promotion. |
+| `v0.10.3` | Complete canonical refactoring | Complete the remaining deferred UI adoption, Workbench/parallel-catalog deletion, four Canonical Core Convergence slices, and the hard 22,607-line integration gate before tagging. |
+| `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
+| `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
+| `v0.10.6` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -233,6 +273,11 @@ v0.9.17         exceptional DiffDLM active-NF preservation hot-fix
 v0.9.18         NT51928 optional-input compatibility hot-fix
 v0.10.0         maintainability planning and dependency-gated execution program
 v0.10.1         headless canonical foundation and reviewed firmware contracts
+v0.10.2         canonical desktop adoption and first compatibility deletion
+v0.10.3         complete canonical refactoring and hard integration-size gate
+v0.10.4         post-refactor simplification and ownership audit
+v0.10.5         unified controllable preload performance lifecycle
+v0.10.6         reserved configured-path update experience
 v1.0.0          stable
 ```
 
@@ -250,7 +295,7 @@ v1.0.0          stable
 `v0.5.0` can be merged to `main` and packaged only after review gates pass on the milestone branch:
 
 - Standard Merge verified against the available owner-approved golden set.
-- NT51950/NT51951 DP Replace workbench output verified for the implemented exact-base/variable-DP rule.
+- NT51950/NT51951 DP Replace workbench output verified for the then-implemented exact-base/variable-DP rule. This historical `v0.5.0` gate is superseded for current production admission by the 2026-08-02 exact base/replacement capacity-pair decision.
 - CtrlRAM Replace UI/report trace and staged Combiner Preview/Build output verified, with private golden outputs and firmware-owner review still required before support parity is claimed.
 - `python scripts/verify.py --all`, Polytail, Codex review, and required human firmware review notes are complete.
 - A Windows x64 self-contained package is produced from the reviewed commit, with version metadata aligned to `0.5.0`.

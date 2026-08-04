@@ -17,8 +17,8 @@ public sealed partial class ShellViewModelTests
             "nt51927-2chip-self-20260705");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.SelectedIc = "NT51927";
-        viewModel.SelectedNumber = "2";
+        viewModel.WorkflowSession.SelectedIc = "NT51927";
+        viewModel.WorkflowSession.SelectedNumber = "2";
         OpenReplace(viewModel, "CtrlRAM");
 
         string outputPath = workspace.PathFor("ctrlram-build-output.bin");
@@ -26,31 +26,31 @@ public sealed partial class ShellViewModelTests
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
-        Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null));
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.True(viewModel.CanBuildReplace);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.True(viewModel.Replace.CanBuildReplace);
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
-        Assert.Equal(outputPath, viewModel.LastRunResult.Output);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(0x40000, new FileInfo(outputPath).Length);
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal(outputPath, viewModel.LoadedReport.OutputArtifactPath);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal(outputPath, viewModel.Reports.LoadedReport.OutputArtifactPath);
         Assert.Equal(
             Application.Composition.CompositionRunPhase.PreparingReport,
-            viewModel.CompositionProgress.CurrentPhase);
-        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.LoadedReport));
+            viewModel.RunSession.CompositionProgress.CurrentPhase);
+        ReportLineViewModel postbuild = Assert.Single(GetCommandOperations(viewModel.Reports.LoadedReport));
         Assert.Equal(10, postbuild.RuntimeCommands.Count);
         Assert.All(postbuild.RuntimeCommands, command =>
             Assert.Contains("Combiner.exe", command.ArgumentListEvidence, StringComparison.OrdinalIgnoreCase));
-        using var firstReportDocument = JsonDocument.Parse(viewModel.LoadedReportJson);
+        using var firstReportDocument = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         AssertAcceptedPostbuildOnlyOutputDifferences(firstReportDocument.RootElement, "postbuild-twochip");
     }
 
@@ -75,20 +75,20 @@ public sealed partial class ShellViewModelTests
             string caseId = fixtureCase.GetProperty("id").GetString()!;
             using var workspace = TempWorkspace.Create("nvt-fw-combiner-private-ctrlram");
             MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-            viewModel.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
-            viewModel.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
+            viewModel.WorkflowSession.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
+            viewModel.WorkflowSession.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
             OpenReplace(viewModel, "CtrlRAM");
             fixtures.SetBaseSlot(viewModel, fixtureCase);
             fixtures.SetReplacementSlots(viewModel, fixtureCase);
 
             string outputPath = workspace.PathFor($"{caseId}.bin");
-            Assert.True(viewModel.PreviewReplaceCommand.CanExecute(null), caseId);
+            Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null), caseId);
 
-            await viewModel.PreviewReplaceCommand.ExecuteAsync(null);
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             if (caseId.StartsWith("nt51926-", StringComparison.Ordinal))
             {
-                Assert.Contains(GetCommandOperations(viewModel.LoadedReport), operation =>
+                Assert.Contains(GetCommandOperations(viewModel.Reports.LoadedReport), operation =>
                     operation.Facts.Any(fact =>
                         fact.Label == "Processor" &&
                         fact.Value.Contains("nfc.nt51926.ctrlram-postbuild-fw1.4.1", StringComparison.Ordinal)) &&
@@ -99,10 +99,10 @@ public sealed partial class ShellViewModelTests
                         command.ArgumentListEvidence.Contains("0x32F50", StringComparison.Ordinal)));
             }
 
-            Assert.True(viewModel.CanBuildReplace, caseId);
+            Assert.True(viewModel.Replace.CanBuildReplace, caseId);
 
-            await viewModel.BuildReplaceAsync(outputPath);
-            Assert.True(viewModel.LastRunResult.Succeeded, viewModel.LastRunResult.Detail);
+            await viewModel.Replace.BuildReplaceAsync(outputPath);
+            Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
             Assert.True(File.Exists(outputPath), outputPath);
 
             if (fixtures.EnforceExpectedOutput)

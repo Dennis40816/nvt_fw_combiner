@@ -15,7 +15,8 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
         out IReadOnlyList<GeneralReplacePatchArtifact> patchArtifacts,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        bool allowUnbound = false)
     {
         GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
         var resources =
@@ -45,6 +46,7 @@ public static partial class WorkbenchCompositionService
                     input,
                     operationIndex,
                     resources,
+                    allowUnbound,
                     out ExplicitMapping? mapping,
                     out AddressSpace? space,
                     out InputArtifactBinding? binding,
@@ -61,7 +63,10 @@ public static partial class WorkbenchCompositionService
 
                 mappings.Add(mapping!);
                 spaces.Add(space!);
-                bindings.Add(binding!);
+                if (binding is not null)
+                {
+                    bindings.Add(binding);
+                }
             }
             else
             {
@@ -105,6 +110,7 @@ public static partial class WorkbenchCompositionService
         GeneralMappingDraftRow input,
         int operationIndex,
         Dictionary<string, GeneralInputResource> resources,
+        bool allowUnbound,
         out ExplicitMapping? mapping,
         out AddressSpace? addressSpace,
         out InputArtifactBinding? binding,
@@ -123,7 +129,8 @@ public static partial class WorkbenchCompositionService
                 $"Admitted General Replace mapping '{input.MappingId}' has no observed input resource.");
         }
 
-        if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+        FileStamp? acceptedStamp = input.Source.AcceptedFileStamp;
+        if (acceptedStamp is null && !allowUnbound)
         {
             issue = new CompositionIssue(
                 GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
@@ -132,7 +139,7 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        long declaredLength = acceptedStamp.AcceptedLength;
+        long declaredLength = acceptedStamp?.AcceptedLength ?? resource.LengthBytes;
         if (resource.LengthBytes != declaredLength)
         {
             issue = new CompositionIssue(
@@ -152,11 +159,13 @@ public static partial class WorkbenchCompositionService
         }
 
         addressSpace = new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable);
-        binding = new InputArtifactBinding(
-            addressSpaceId,
-            input.MappingId,
-            fullPath,
-            acceptedContentStamp: acceptedStamp);
+        binding = acceptedStamp is null
+            ? null
+            : new InputArtifactBinding(
+                addressSpaceId,
+                input.MappingId,
+                fullPath,
+                acceptedContentStamp: acceptedStamp);
         mapping = CreateGeneralReplaceMapping(
             input,
             operationIndex,
@@ -248,7 +257,7 @@ public static partial class WorkbenchCompositionService
         overwriteBytes = null;
         fillByte = null;
         reason = null;
-        if (!TryParseHexBytes(input.Source.InlineValue, out byte[]? suppliedBytes))
+        if (!GeneralInlineSourceCodec.TryParse(input.Source.InlineValue, out byte[]? suppliedBytes))
         {
             issue = new CompositionIssue(
                 WorkbenchIssueCodes.GeneralReplacePatchHexInvalid,
@@ -367,37 +376,21 @@ public static partial class WorkbenchCompositionService
         }
     }
 
-    private static bool TryParseHexBytes(string? value, out byte[]? bytes)
-    {
-        bytes = null;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        string compact = string.Concat(value.Where(character =>
-            !char.IsWhiteSpace(character) && character is not '-' and not ',' and not '_'));
-        try
-        {
-            bytes = Convert.FromHexString(compact);
-            return bytes.Length > 0;
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-    }
-
     private static bool TryRegisterGeneralReplaceId(
         string? id,
         HashSet<string> ids,
         List<CompositionIssue> issues)
     {
-        if (string.IsNullOrWhiteSpace(id) || id.IndexOfAny(['/', '\\', ':']) >= 0 || id is "." or "..")
+        if (string.IsNullOrWhiteSpace(id) ||
+            id.IndexOfAny(['/', '\\', ':']) >= 0 ||
+            id is "." or ".." ||
+            StringComparer.Ordinal.Equals(
+                id,
+                GeneralReplaceV2Registration.ReferenceAddressSpaceId))
         {
             issues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.GeneralReplacePatchIdInvalid,
-                "General Replace mapping and patch ids must be non-empty report-safe identifiers.",
+                "General Replace mapping and patch ids must be non-empty report-safe identifiers and cannot use the reserved Base slot id.",
                 id));
             return false;
         }
@@ -415,10 +408,3 @@ public static partial class WorkbenchCompositionService
     }
 
 }
-
-/// <summary>One user-authored General Replace mapping row from the workbench surface.</summary>
-public sealed record WorkbenchGeneralReplaceMappingInput(
-    string MappingId,
-    string FilePath,
-    string TargetStart,
-    string TargetEndInclusive);

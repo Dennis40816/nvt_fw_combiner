@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -95,80 +96,10 @@ public enum WorkbenchInputInspectionSeverity
     Blocking,
 }
 
-/// <summary>Typed corrective action for a workbench input diagnostic.</summary>
-public enum WorkbenchInputInspectionNextAction
-{
-    /// <summary>No action is required.</summary>
-    None,
-
-    /// <summary>Select a readable local BIN.</summary>
-    SelectReadableInput,
-
-    /// <summary>Select an input that reaches the compiled required end.</summary>
-    SelectCompatibleInput,
-
-    /// <summary>Review the ignored immutable source tail.</summary>
-    ReviewIgnoredTrailingBytes,
-
-    /// <summary>Review an unexpected but accepted outer length.</summary>
-    ReviewUnexpectedOuterLength,
-
-    /// <summary>Version metadata is informational; review the Unknown value.</summary>
-    ReviewUnknownVersion,
-}
-
-/// <summary>One stable input diagnostic used for deterministic severity aggregation.</summary>
-public sealed record WorkbenchInputInspectionIssue(
-    WorkbenchInputInspectionSeverity Severity,
-    string Code,
-    bool BlocksBuild,
-    WorkbenchInputInspectionNextAction NextAction);
-
-/// <summary>One explicit AB bank or TP version value shown without routing authority.</summary>
-public enum WorkbenchAbVersionKind
-{
-    /// <summary>DP bank 1 CMI value.</summary>
-    Dp1,
-
-    /// <summary>DP bank 2 CMI value.</summary>
-    Dp2,
-
-    /// <summary>TPA NVT Backup firmware value.</summary>
-    TpA,
-
-    /// <summary>TPB NVT Backup firmware value.</summary>
-    TpB,
-}
-
-/// <summary>One independently decoded AB version value.</summary>
-public sealed record WorkbenchAbVersionValue(
-    WorkbenchAbVersionKind Kind,
-    string Value,
-    string? JiraBadge,
-    bool IsUnknown);
-
-/// <summary>One immutable AB input inspection projected from the compiled contract and accepted prefix.</summary>
-public sealed record WorkbenchAbMergeInputInspection(
+/// <summary>Informational AB version facts decoded only from the canonical accepted source view.</summary>
+public sealed record WorkbenchAbMergeInputFacts(
     string AddressSpaceId,
-    long? ActualLength,
-    long RequiredEndExclusive,
-    IReadOnlyList<long> ExpectedOuterLengths,
-    ByteRange? IgnoredTrailingRange,
-    IReadOnlyList<WorkbenchInputInspectionIssue> Issues,
-    IReadOnlyList<WorkbenchAbVersionValue> Versions)
-{
-    /// <summary>Highest-priority deterministic issue.</summary>
-    public WorkbenchInputInspectionIssue PrimaryIssue => Issues
-        .OrderByDescending(static issue => issue.Severity)
-        .ThenBy(static issue => issue.Code, StringComparer.Ordinal)
-        .First();
-
-    /// <summary>True when the current selected source cannot be built.</summary>
-    public bool BlocksBuild => Issues.Any(static issue => issue.BlocksBuild);
-
-    /// <summary>Number of immutable source bytes excluded from execution.</summary>
-    public long IgnoredTrailingBytes => IgnoredTrailingRange?.Length ?? 0;
-}
+    IReadOnlyList<CompiledInputVersionObservation> Versions);
 
 /// <summary>One compiled built-in profile summary exposed without compiler-internal profile data.</summary>
 public sealed record WorkbenchProfileSummary(
@@ -227,8 +158,19 @@ public readonly record struct WorkbenchCmiDpCodeMetadata(
     public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
 }
 
-/// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
+/// <summary>TP FW version values requested for one CtrlRAM authoring transition.</summary>
 public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
+
+/// <summary>Result of compiling and re-inspecting one typed CtrlRAM authoring transition.</summary>
+public sealed record WorkbenchCtrlRamAuthoringTransitionResult(
+    ActiveSessionSnapshot? Session,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    /// <summary>True only when the new exact compilation owns current accepted input inspection.</summary>
+    public bool Succeeded =>
+        Session?.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection) is not null &&
+        Issues.Count == 0;
+}
 
 /// <summary>
 /// A verified NVT Backup FWConfig suggestion for the shared workbench IC-number selection.
@@ -264,11 +206,20 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay,
     WorkbenchBaseFirmwareArtifactKind BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Content identity captured from the same immutable bytes used by this inspection.</summary>
+    public FileStamp? FileStamp { get; init; }
+
     /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
     public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
 
     /// <summary>AB-specific typed inspection when the request names one compiled AB input space.</summary>
-    public WorkbenchAbMergeInputInspection? AbMergeInput { get; init; }
+    public WorkbenchAbMergeInputFacts? AbMergeFacts { get; init; }
+
+    /// <summary>Shared Application-owned terminal slot health for the current compiled input.</summary>
+    public AuthoringInputSlotStatus? InputSlotStatus { get; init; }
+
+    /// <summary>Canonical catalog owning the attached coherent input-inspection batch.</summary>
+    public AuthoringCapabilityCatalogSnapshot? InputSlotCatalog { get; init; }
 }
 
 /// <summary>Optional CtrlRAM display context projected during firmware inspection.</summary>
@@ -288,7 +239,49 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string? TpPath = null,
     WorkbenchCtrlRamInspectionRequest? CtrlRamRequest = null,
     string? AbMergeAddressSpaceId = null,
-    string? AbMergeTopologyToken = null);
+    string? AbMergeTopologyToken = null,
+    string? DpReplaceAddressSpaceId = null,
+    long AuthoringRevision = 1,
+    string? StandardMergeAddressSpaceId = null,
+    string? CtrlRamReplaceAddressSpaceId = null,
+    ResolvedCapability? ExactCapability = null);
+
+/// <summary>Canonical AB Merge authoring projection consumed by desktop and headless adapters.</summary>
+public sealed record WorkbenchAbMergeAuthoringSnapshot(
+    AuthoringCapabilityCatalogSnapshot Catalog,
+    IReadOnlyList<InputSelectionMemberReadiness> Slots,
+    IReadOnlyList<CompositionIssue> Issues);
+
+/// <summary>Canonical Standard Merge authoring projection consumed by desktop and headless adapters.</summary>
+public sealed record WorkbenchStandardMergeAuthoringSnapshot(
+    AuthoringCapabilityCatalogSnapshot Catalog,
+    IReadOnlyList<InputSelectionMemberReadiness> Slots,
+    IReadOnlyList<CompositionIssue> Issues);
+
+/// <summary>One coherent compiled input-inspection batch mapped to workbench inspection ids.</summary>
+internal sealed record WorkbenchCompiledAuthoringInspectionBatch(
+    AuthoringCapabilityCatalogSnapshot? Catalog,
+    IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    internal static WorkbenchCompiledAuthoringInspectionBatch Empty { get; } =
+        new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
+}
+
+/// <summary>One coherent AB Merge inspection batch mapped to workbench inspection ids.</summary>
+internal sealed record WorkbenchAbMergeInspectionBatch(
+    AuthoringCapabilityCatalogSnapshot? Catalog,
+    IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
+    IReadOnlyDictionary<string, WorkbenchAbMergeInputFacts> Facts,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    internal static WorkbenchAbMergeInspectionBatch Empty { get; } =
+        new(
+            null,
+            new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal),
+            new Dictionary<string, WorkbenchAbMergeInputFacts>(StringComparer.Ordinal),
+            []);
+}
 
 /// <summary>One named materialized result from a shared distinct-path read batch.</summary>
 public sealed record WorkbenchFirmwareInspectionResult(
@@ -351,6 +344,36 @@ public enum WorkbenchMemoryCoverageRole
     BaseFirmware,
 }
 
+/// <summary>Typed Replace presentation group derived before the UI boundary.</summary>
+public enum WorkbenchReplaceRegionGroup
+{
+    /// <summary>Cascade-only or DiffDLM content.</summary>
+    Cascade,
+    /// <summary>Shared or unpartitioned content.</summary>
+    Common,
+    /// <summary>Master-controller content.</summary>
+    Master,
+    /// <summary>Right-slave content.</summary>
+    SlaveRight,
+    /// <summary>Left-slave content.</summary>
+    SlaveLeft,
+    /// <summary>Retained base-firmware content.</summary>
+    Base,
+    /// <summary>Content outside the reviewed grouping vocabulary.</summary>
+    Other,
+}
+
+/// <summary>Typed workflow role used to admit a Replace input to canonical inspection.</summary>
+public enum WorkbenchReplaceInputRole
+{
+    /// <summary>No fixed Replace inspection workflow is declared.</summary>
+    None,
+    /// <summary>One DP Replace input selected by the exact compiled contract.</summary>
+    Dp,
+    /// <summary>One CtrlRAM Replace input selected by the exact compiled contract.</summary>
+    CtrlRam,
+}
+
 /// <summary>One visual memory coverage segment for shell display.</summary>
 public sealed record WorkbenchMemoryCoverageSegment(
     string RangeLabel,
@@ -360,7 +383,10 @@ public sealed record WorkbenchMemoryCoverageSegment(
     double BarWidth,
     bool IsChanged,
     WorkbenchMemoryCoverageRole Role,
-    string? RegionId = null);
+    string? RegionId = null,
+    bool IsDiffDlm = false,
+    IReadOnlyList<MemoryLayoutPreservationDetail>? PreservationDetails = null,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common);
 
 /// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
 public sealed record WorkbenchMemoryDisplay(
@@ -375,7 +401,18 @@ public sealed record WorkbenchReplaceInputSlot(
     string Description,
     bool IsOptional,
     string AddressSpaceId,
-    string? RegionId);
+    string? RegionId,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common,
+    WorkbenchReplaceInputRole InputRole = WorkbenchReplaceInputRole.None);
+
+/// <summary>One explicit General Replace action selected by a Presentation command boundary.</summary>
+public delegate ValueTask<WorkbenchRunResult> WorkbenchGeneralReplaceAcceptedSessionRunner(
+    string icId,
+    string number,
+    IReadOnlyDictionary<string, string> slotPaths,
+    ActiveSessionSnapshot acceptedSession,
+    CompositionRunProgressFeed progress,
+    CancellationToken cancellationToken);
 
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record WorkbenchCtrlRamRegion(
@@ -410,6 +447,10 @@ public sealed record WorkbenchRunResult(
     /// <summary>Shared action state retained for CLI and later Presentation consumers.</summary>
     [JsonIgnore]
     public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal init; }
+
+    /// <summary>Exact immutable capability consumed by this in-memory run.</summary>
+    [JsonIgnore]
+    public ResolvedCapability? ResolvedCapability { get; internal init; }
 
     /// <summary>Whether this result owns a serialized run report.</summary>
     [JsonIgnore]
@@ -481,4 +522,7 @@ internal sealed record CoverageSegment(
     string Fill,
     bool IsChanged,
     WorkbenchMemoryCoverageRole Role,
-    string? RegionId = null);
+    string? RegionId = null,
+    bool IsDiffDlm = false,
+    IReadOnlyList<MemoryLayoutPreservationDetail>? PreservationDetails = null,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common);

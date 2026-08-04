@@ -134,116 +134,6 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.Contains("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", result.ReportJson, StringComparison.Ordinal);
     }
 
-    /// <summary>Load inspection projects independent DP1/DP2 and TPA/TPB values without routing on them.</summary>
-    [Theory]
-    [InlineData("NT51919")]
-    [InlineData("NT51929")]
-    [InlineData("NT51932")]
-    public void WorkbenchLoadInspectionProjectsHealthAndFourVersionValues(string icId)
-    {
-        using var workspace = TempWorkspace.Create("nfc-ab-load-inspection");
-        byte[] dpAb = new byte[DpLength];
-        WriteCmi(dpAb, bankStart: 0, major: 0x06, minor: 0x05, jira: 0x123);
-        WriteCmi(dpAb, bankStart: TpLength, major: 0x07, minor: 0x08, jira: 0x456);
-        byte[] tpA = CreateTpImage(version: 0x81, subVersion: 0x00);
-        byte[] tpB = CreateTpImage(version: 0x82, subVersion: 0x03);
-
-        WorkbenchAbMergeInputInspection dp = WorkbenchCompositionService.InspectAbMergeInput(
-            icId,
-            CompositionAddressSpaceIds.DpAbInput,
-            workspace.Write("dp-ab.bin", dpAb));
-        WorkbenchAbMergeInputInspection a = WorkbenchCompositionService.InspectAbMergeInput(
-            icId,
-            CompositionAddressSpaceIds.TpAInput,
-            workspace.Write("tp-a.bin", tpA));
-        WorkbenchAbMergeInputInspection b = WorkbenchCompositionService.InspectAbMergeInput(
-            icId,
-            CompositionAddressSpaceIds.TpBInput,
-            workspace.Write("tp-b.bin", tpB));
-
-        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, dp.PrimaryIssue.Severity);
-        Assert.Equal(
-            [
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D06-05", "AUTO_PRJ-291", false),
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D07-08", "AUTO_PRJ-1110", false),
-            ],
-            dp.Versions);
-        Assert.Equal(
-            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpA, "T81-00", null, false),
-            Assert.Single(a.Versions));
-        Assert.Equal(
-            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpB, "T82-03", null, false),
-            Assert.Single(b.Versions));
-        Assert.False(dp.BlocksBuild);
-        Assert.False(a.BlocksBuild);
-        Assert.False(b.BlocksBuild);
-    }
-
-    /// <summary>NT51950 Cascade projects DP versions from the compiled map CMI regions, not a version- or PID-selected rule.</summary>
-    [Fact]
-    public void Nt51950CascadeLoadInspectionUsesCompiledCmiRegions()
-    {
-        using var workspace = TempWorkspace.Create("nfc-nt51950-cascade-load-inspection");
-        byte[] dpAb = new byte[0x100000];
-        WriteCmiAt(dpAb, 0x5016, major: 0x82, minor: 0x03, jira: 0x123);
-        WriteCmiAt(dpAb, 0x45016, major: 0x83, minor: 0x04, jira: 0x456);
-
-        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
-            "NT51950",
-            CompositionAddressSpaceIds.DpAbInput,
-            workspace.Write("dp-ab-cascade.bin", dpAb),
-            RequestedTopology("cascade"));
-
-        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, inspection.PrimaryIssue.Severity);
-        Assert.Equal(
-            [
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp1, "D82-03", "AUTO_PRJ-291", false),
-                new WorkbenchAbVersionValue(WorkbenchAbVersionKind.Dp2, "D83-04", "AUTO_PRJ-1110", false),
-            ],
-            inspection.Versions);
-    }
-
-    /// <summary>Non-authoritative tails remain accepted while metadata stays bounded to the compiled source view.</summary>
-    [Fact]
-    public void WorkbenchLoadInspectionBoundsMetadataToAcceptedPrefix()
-    {
-        using var workspace = TempWorkspace.Create("nfc-ab-load-tail");
-        byte[] exact = CreateTpImage(version: 0x81, subVersion: 0x02);
-        byte[] oversized = [.. exact, .. CreateTpImage(version: 0x99, subVersion: 0x09)];
-
-        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
-            "NT51929",
-            CompositionAddressSpaceIds.TpAInput,
-            workspace.Write("tp-a-oversized.bin", oversized));
-
-        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, inspection.PrimaryIssue.Severity);
-        Assert.Equal("input.inspection.ready", inspection.PrimaryIssue.Code);
-        Assert.False(inspection.BlocksBuild);
-        Assert.Equal(TpLength, inspection.IgnoredTrailingBytes);
-        Assert.Equal(
-            new WorkbenchAbVersionValue(WorkbenchAbVersionKind.TpA, "T81-02", null, false),
-            Assert.Single(inspection.Versions));
-    }
-
-    /// <summary>A short selected source immediately blocks and keeps version metadata explicitly Unknown.</summary>
-    [Fact]
-    public void WorkbenchLoadInspectionBlocksShortSource()
-    {
-        using var workspace = TempWorkspace.Create("nfc-ab-load-short");
-        WorkbenchAbMergeInputInspection inspection = WorkbenchCompositionService.InspectAbMergeInput(
-            "NT51929",
-            CompositionAddressSpaceIds.DpAbInput,
-            workspace.Write("dp-ab-short.bin", new byte[DpLength - 1]));
-
-        Assert.True(inspection.BlocksBuild);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, inspection.PrimaryIssue.Severity);
-        Assert.Equal(CompositionIssueCodes.InputAddressSpaceLengthMismatch, inspection.PrimaryIssue.Code);
-        Assert.All(inspection.Versions, static version => Assert.True(version.IsUnknown));
-        Assert.DoesNotContain(
-            inspection.Issues,
-            static issue => issue.Code == WorkbenchIssueCodes.AbInputVersionUnknown);
-    }
-
     /// <summary>Each selected source that ends one byte early blocks under its canonical input geometry.</summary>
     [Theory]
     [InlineData(CompositionAddressSpaceIds.DpAbInput, DpLength - 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
@@ -607,6 +497,23 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 "inputs/tp-b.bin",
                 CreateTpImage(0x82, 0x01, tpBChipCount, 0x37000)),
         };
+    }
+
+    private static WorkbenchFirmwareInspection InspectAbInput(
+        string icId,
+        string addressSpaceId,
+        string path,
+        string? topologyToken = null)
+    {
+        WorkbenchFirmwareInspectionResult result = Assert.Single(
+            WorkbenchCompositionService.InspectFirmwareBatch(
+                icId,
+                [new WorkbenchFirmwareInspectionInput(
+                    addressSpaceId,
+                    path,
+                    AbMergeAddressSpaceId: addressSpaceId,
+                    AbMergeTopologyToken: topologyToken)]));
+        return result.Inspection;
     }
 
     private static Domain.Firmware.TopologySelection RequestedTopology(string token)

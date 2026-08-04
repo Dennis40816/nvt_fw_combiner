@@ -96,12 +96,20 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.DpReplace,
                 options,
                 slotPaths,
-                (build, outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (_, token) => WorkbenchCompositionService.RunReplaceAsync(
                     icId,
                     icNumber,
                     WorkbenchReplaceModes.Dp,
                     slotPaths,
-                    build,
+                    build: false,
+                    token,
+                    outputPath: null),
+                (outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                    icId,
+                    icNumber,
+                    WorkbenchReplaceModes.Dp,
+                    slotPaths,
+                    build: true,
                     token,
                     outputPath),
                 output,

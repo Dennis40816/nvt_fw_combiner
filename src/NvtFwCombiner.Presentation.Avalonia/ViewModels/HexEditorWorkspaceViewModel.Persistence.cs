@@ -32,7 +32,7 @@ public sealed partial class HexEditorWorkspaceViewModel
         CancelInsertBytes();
         RefreshChangeTracking();
         ViewportStartRow = 0;
-        RefreshViewportRows();
+        RefreshViewportSnapshot();
         EditorStatus = CreateReadyStatus();
     }
 

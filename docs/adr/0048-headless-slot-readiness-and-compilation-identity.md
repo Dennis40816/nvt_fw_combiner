@@ -90,17 +90,43 @@ that boundary to per-slot inspection publication.
 `ResolutionToken`, `AuthoringRevision`, and `FileStamp` retain their accepted
 independent lifetime meanings. A terminal per-slot inspection publication must
 match the active resolution token, authoring revision, slot definition,
-accepted file length/SHA-256, and `CompilationFingerprint`. A definition-level
+accepted file length/SHA-256, and `CompilationFingerprint`. The sole exception
+is a typed unreadable-source `Error`: it binds the selected slot/path, active
+revision, route, capability, and exact compilation while retaining a null
+`FileStamp`; it must never fabricate bytes or a content hash. A definition-level
 artifact inspection cache may reuse content under an unchanged
 `CapabilityFingerprint`, but it cannot publish terminal health until projected
 against the current compilation.
 
-Before a prerequisite permits one unique compilation, readiness may bind the
-reviewed dynamic route, resolution token, authoring revision, capability
-fingerprint, and a compiler-owned discovery slot while leaving
-`CompilationFingerprint` absent. A discovery-map fingerprint must never be
-presented as the current compilation. `Checking` and every terminal inspection
-state require a non-null exact `CompilationFingerprint`.
+Before a prerequisite permits one unique compilation, readiness may bind a
+reviewed dynamic route or deterministic reviewed discovery capability, its
+resolution token and capability fingerprint, the authoring revision, and a
+compiler-owned discovery slot while leaving `CompilationFingerprint` absent.
+The discovery capability identifies the reviewed definition and binding only;
+its compiled map is not the current compilation. An unreadable prerequisite or
+compilation failure publishes typed `Blocked` readiness and `CorrectSelection`,
+not `Checking` or terminal inspection health. `Checking` and every terminal
+inspection state require a non-null exact `CompilationFingerprint`.
+
+When one current canonical publication temporarily retains several separately
+reviewed exact capabilities behind that prerequisite, the catalog also
+publishes one immutable `ReviewedDiscoveryTransition`. It binds the same
+`ResolutionToken`, workflow/IC/IC Count axes, discovery route and capability,
+compiler-owned prerequisite slot, and a closed sorted set of allowed exact
+`RouteId` plus `CapabilityFingerprint` members. A lease with a null compilation
+may resolve only to a member of that captured set; an already exact lease may
+not cross members. A reload, non-member, changed capability, or caller-created
+same-axis catalog is stale. This proof is transition authority, not a third
+fingerprint, and it does not permit Bootstrap or Presentation to infer members.
+It is deleted for a route set when canonical policy publishes the variants as
+one reviewed dynamic capability with one stable capability fingerprint.
+
+Worker generation and authoring revision are different lifetimes. Generation
+suppresses or cancels obsolete background work and may advance for a repeated
+refresh. Authoring revision advances only when authoring inputs change. The
+#182 DP pilot may keep a dedicated Presentation adapter for this distinction;
+#208 must replace it with the six canonical `AuthoringSessionState` instances
+and delete that adapter rather than preserve a second session owner.
 
 ### Workflow application
 
@@ -142,7 +168,9 @@ but issue #277 does not redefine their authoring semantics.
 
 Issue #182 consumes this result for the DP Replace shared-card pilot. Issue
 #208 owns bounded per-route desktop adoption. Neither ticket may reopen the
-headless state or fingerprint definitions.
+headless state or fingerprint definitions. #208 also owns deletion of the
+temporary DP pilot authoring-revision adapter after all six desktop workflows
+publish through their canonical Application sessions.
 
 ## Alternatives
 

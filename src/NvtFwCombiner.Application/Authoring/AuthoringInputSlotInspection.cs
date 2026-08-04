@@ -11,6 +11,8 @@ namespace NvtFwCombiner.Application.Authoring;
 /// </summary>
 public sealed class AuthoringInputSlotStatus
 {
+    private readonly CompiledInputArtifactInspectionAdvisory[] _inspectionAdvisories;
+
     internal AuthoringInputSlotStatus(
         CapabilityRouteIdentity identity,
         ResolutionToken resolutionToken,
@@ -21,7 +23,9 @@ public sealed class AuthoringInputSlotStatus
         string addressSpaceId,
         AuthoringSlotLifecycle? inspectionLifecycle,
         FileStamp? fileStamp,
-        CompiledInputArtifactInspectionResult? inspection)
+        CompiledInputArtifactInspectionResult? inspection,
+        string? selectedPathHint = null,
+        CompiledInputArtifactObservationResult? observation = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(selectionReadiness);
@@ -32,7 +36,6 @@ public sealed class AuthoringInputSlotStatus
                 "Selected-artifact inspection health requires one exact compilation fingerprint.",
                 nameof(compilationFingerprint));
         }
-
         WorkflowId = identity.WorkflowId;
         RouteId = identity.RouteId;
         ResolutionToken = resolutionToken;
@@ -41,9 +44,27 @@ public sealed class AuthoringInputSlotStatus
         CompilationFingerprint = compilationFingerprint;
         SelectionReadiness = selectionReadiness;
         AddressSpaceId = addressSpaceId;
+        SelectedPathHint = selectedPathHint;
         InspectionLifecycle = inspectionLifecycle;
         FileStamp = fileStamp;
         Inspection = inspection;
+        Observation = observation ?? CompiledInputArtifactObservationResult.Empty;
+        _inspectionAdvisories =
+        [
+            .. Observation.Advisories.OrderBy(
+                static advisory => advisory.IssueCode,
+                StringComparer.Ordinal),
+        ];
+        InspectionAdvisories = Array.AsReadOnly(_inspectionAdvisories);
+        if (_inspectionAdvisories.Length > 0 &&
+            (inspectionLifecycle != AuthoringSlotLifecycle.Warning ||
+                inspection is null ||
+                inspection.BlocksBuild))
+        {
+            throw new ArgumentException(
+                "Non-blocking inspection advisories require terminal Warning health.",
+                nameof(observation));
+        }
     }
 
     /// <summary>Canonical workflow owning this slot.</summary>
@@ -66,6 +87,9 @@ public sealed class AuthoringInputSlotStatus
 
     /// <summary>Compiler-owned immutable address-space binding.</summary>
     public string AddressSpaceId { get; }
+
+    /// <summary>Selected path hint used only to reject stale inspection publication.</summary>
+    public string? SelectedPathHint { get; }
 
     /// <summary>Compiler-owned slot definition.</summary>
     public string SlotId => SelectionReadiness.SlotId;
@@ -93,6 +117,30 @@ public sealed class AuthoringInputSlotStatus
 
     /// <summary>Compiler-owned terminal diagnostic, or null while absent/checking.</summary>
     public CompiledInputArtifactInspectionResult? Inspection { get; }
+
+    /// <summary>Typed observations decoded by the same canonical inspection.</summary>
+    public CompiledInputArtifactObservationResult Observation { get; }
+
+    /// <summary>Stable non-blocking advisories attached to otherwise accepted input bytes.</summary>
+    public IReadOnlyList<CompiledInputArtifactInspectionAdvisory> InspectionAdvisories { get; }
+
+    /// <summary>Stable terminal issue code, including source-access failures.</summary>
+    public string? InspectionIssueCode => _inspectionAdvisories.FirstOrDefault()?.IssueCode ??
+        Inspection?.IssueCode ??
+        (InspectionLifecycle == AuthoringSlotLifecycle.Error && FileStamp is null
+            ? InputArtifactInspectionIssueCodes.SourceUnreadable
+            : null);
+
+    /// <summary>True when the terminal input health prevents Build.</summary>
+    public bool BlocksBuild => Inspection?.BlocksBuild ??
+        (InspectionLifecycle == AuthoringSlotLifecycle.Error);
+
+    /// <summary>Typed corrective action for the terminal input diagnostic.</summary>
+    public CompiledInputArtifactInspectionNextAction InspectionNextAction =>
+        InspectionLifecycle == AuthoringSlotLifecycle.Error && Inspection is null
+            ? CompiledInputArtifactInspectionNextAction.SelectReadableInput
+            : _inspectionAdvisories.FirstOrDefault()?.NextAction ??
+                Inspection?.NextAction ?? CompiledInputArtifactInspectionNextAction.None;
 
     /// <summary>True only for a completed immutable artifact inspection.</summary>
     public bool IsTerminal => InspectionLifecycle is
@@ -161,16 +209,8 @@ public static class AuthoringInputSlotInspectionService
         ArgumentNullException.ThrowIfNull(selectionReadiness);
         ValidateBinding(capability, selectionReadiness, addressSpaceId);
         return Create(
-            capability.Identity,
-            capability.ResolutionToken,
-            authoringRevision,
-            capability.CapabilityFingerprint,
-            capability.CompiledComposition.CompilationFingerprint,
-            selectionReadiness,
-            addressSpaceId,
-            inspectionLifecycle: null,
-            fileStamp: null,
-            inspection: null);
+            capability, authoringRevision, selectionReadiness, addressSpaceId,
+            inspectionLifecycle: null, fileStamp: null, inspection: null);
     }
 
     /// <summary>Begins one admitted selected-artifact inspection as transient Checking.</summary>
@@ -184,48 +224,161 @@ public static class AuthoringInputSlotInspectionService
         ArgumentNullException.ThrowIfNull(selectionReadiness);
         ValidateInspectable(capability, selectionReadiness, addressSpaceId);
         return Create(
-            capability.Identity,
-            capability.ResolutionToken,
-            authoringRevision,
-            capability.CapabilityFingerprint,
-            capability.CompiledComposition.CompilationFingerprint,
-            selectionReadiness,
-            addressSpaceId,
-            AuthoringSlotLifecycle.Checking,
-            fileStamp: null,
-            inspection: null);
+            capability, authoringRevision, selectionReadiness, addressSpaceId,
+            AuthoringSlotLifecycle.Checking, fileStamp: null, inspection: null);
     }
 
-    /// <summary>Inspects one immutable source and publishes terminal typed health.</summary>
+    /// <summary>Inspects immutable bytes, or publishes terminal Error when the selected source is unreadable.</summary>
     public static AuthoringInputSlotStatus Inspect(
         ResolvedCapability capability,
         AuthoringRevision authoringRevision,
         InputSelectionMemberReadiness selectionReadiness,
         string addressSpaceId,
-        ReadOnlyMemory<byte> sourceBytes)
+        ReadOnlyMemory<byte>? sourceBytes,
+        string? selectedPathHint = null)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(selectionReadiness);
         ValidateInspectable(capability, selectionReadiness, addressSpaceId);
+        if (sourceBytes is null)
+        {
+            CompiledInputArtifactObservationResult unreadableObservation =
+                CompiledInputArtifactObservationService.Observe(
+                    capability.CompiledComposition,
+                    addressSpaceId,
+                    sourceBytes: null,
+                    inspection: null);
+            return Create(
+                capability, authoringRevision, selectionReadiness, addressSpaceId,
+                AuthoringSlotLifecycle.Error, fileStamp: null, inspection: null,
+                selectedPathHint, unreadableObservation);
+        }
+
         CompiledInputArtifactInspectionResult inspection =
             CompiledInputArtifactInspectionService.Inspect(
                 capability.CompiledComposition,
                 addressSpaceId,
-                sourceBytes);
+                sourceBytes.Value);
         var fileStamp = new FileStamp(
             inspection.ActualLength,
             inspection.ActualSha256);
+        CompiledInputArtifactObservationResult observation =
+            CompiledInputArtifactObservationService.Observe(
+                capability.CompiledComposition,
+                addressSpaceId,
+                sourceBytes,
+                inspection);
+        AuthoringSlotLifecycle lifecycle = observation.Advisories.Count > 0
+            ? AuthoringSlotLifecycle.Warning
+            : MapLifecycle(inspection.Severity);
         return Create(
-            capability.Identity,
-            capability.ResolutionToken,
+            capability, authoringRevision, selectionReadiness, addressSpaceId,
+            lifecycle, fileStamp, inspection, selectedPathHint, observation);
+    }
+
+    /// <summary>Inspects one coherent selected-input batch under one exact compilation identity.</summary>
+    public static IReadOnlyDictionary<string, AuthoringInputSlotStatus> InspectBatch(
+        ResolvedCapability capability,
+        AuthoringRevision authoringRevision,
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>?> sourceBytesByAddressSpaceId,
+        IReadOnlyDictionary<string, string>? selectedPathsByAddressSpaceId = null,
+        IReadOnlyCollection<string>? selectedSlotIds = null)
+    {
+        ArgumentNullException.ThrowIfNull(capability);
+        ArgumentNullException.ThrowIfNull(sourceBytesByAddressSpaceId);
+        CompiledInputContract contract = capability.CompiledComposition.V2Details.InputContract;
+        var groupMemberIds = contract.SelectionGroups
+            .SelectMany(static group => group.MemberSlotIds)
+            .ToHashSet(StringComparer.Ordinal);
+        InputSelectionReadinessSnapshot readiness = InputSelectionReadinessResolver.Resolve(
             authoringRevision,
-            capability.CapabilityFingerprint,
-            capability.CompiledComposition.CompilationFingerprint,
-            selectionReadiness,
+            contract.SelectionGroups,
+            selectedSlotIds is null
+                ? contract.SelectionGroups.SelectMany(static group => group.SelectedSlotIds)
+                : selectedSlotIds.Where(groupMemberIds.Contains));
+        IReadOnlyDictionary<string, InputSelectionMemberReadiness> members = readiness.Groups
+            .SelectMany(static group => group.Members).ToDictionary(static member => member.SlotId);
+        Dictionary<string, AuthoringInputSlotStatus> statuses = new(StringComparer.Ordinal);
+        foreach ((string addressSpaceId, ReadOnlyMemory<byte>? sourceBytes) in sourceBytesByAddressSpaceId)
+        {
+            CompiledInputSpaceBinding binding = contract.SpaceBindings.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
+            InputSelectionMemberReadiness member = members.GetValueOrDefault(binding.SlotId) ??
+                new InputSelectionMemberReadiness(
+                    binding.SlotId, true, ResolvedChildReadiness.Ready, true, null, null);
+            if (binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding)
+            {
+                member = member with { SlotId = binding.AddressSpaceId };
+            }
+            statuses.Add(
+                addressSpaceId,
+                member.IsSelected && member.Readiness == ResolvedChildReadiness.Ready
+                    ? Inspect(
+                        capability, authoringRevision, member, addressSpaceId, sourceBytes,
+                        selectedPathsByAddressSpaceId?.GetValueOrDefault(addressSpaceId))
+                    : ProjectReadiness(capability, authoringRevision, member, addressSpaceId));
+        }
+
+        return statuses;
+    }
+
+    /// <summary>Projects a selected input blocked before one exact compilation exists.</summary>
+    public static AuthoringInputSlotStatus BlockBeforeCompilation(
+        ResolvedCapability discoveryCapability, AuthoringRevision authoringRevision,
+        CompiledInputSpaceBinding discoveryBinding, string issueCode, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryCapability);
+        ArgumentNullException.ThrowIfNull(discoveryBinding);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        var readiness = new InputSelectionMemberReadiness(
+            discoveryBinding.SlotId, true, ResolvedChildReadiness.Blocked, false, reason,
+            new InputSelectionNextAction(InputSelectionNextActionKind.CorrectSelection, discoveryBinding.SlotId),
+            issueCode);
+        return Create(discoveryCapability.Identity, discoveryCapability.ResolutionToken, authoringRevision,
+            discoveryCapability.CapabilityFingerprint, compilationFingerprint: null, readiness, discoveryBinding.AddressSpaceId,
+            inspectionLifecycle: null, fileStamp: null, inspection: null);
+    }
+
+    /// <summary>Projects an explicitly identified selected input rejected before exact compilation.</summary>
+    public static AuthoringInputSlotStatus BlockBeforeCompilation(
+        ResolvedCapability discoveryCapability,
+        AuthoringRevision authoringRevision,
+        string slotId,
+        string addressSpaceId,
+        string issueCode,
+        string reason,
+        FileStamp? fileStamp,
+        string selectedPathHint)
+    {
+        ArgumentNullException.ThrowIfNull(discoveryCapability);
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectedPathHint);
+        var readiness = new InputSelectionMemberReadiness(
+            slotId,
+            IsSelected: true,
+            ResolvedChildReadiness.Blocked,
+            CanSelect: false,
+            reason,
+            new InputSelectionNextAction(
+                InputSelectionNextActionKind.CorrectSelection,
+                slotId),
+            issueCode);
+        return Create(
+            discoveryCapability.Identity,
+            discoveryCapability.ResolutionToken,
+            authoringRevision,
+            discoveryCapability.CapabilityFingerprint,
+            compilationFingerprint: null,
+            readiness,
             addressSpaceId,
-            MapLifecycle(inspection.Severity),
+            inspectionLifecycle: null,
             fileStamp,
-            inspection);
+            inspection: null,
+            selectedPathHint);
     }
 
     /// <summary>
@@ -241,7 +394,11 @@ public static class AuthoringInputSlotInspectionService
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(lease);
         ArgumentException.ThrowIfNullOrWhiteSpace(resultReference);
-        if (!status.IsTerminal || status.Inspection is null || status.FileStamp is null)
+        bool unreadableTerminal = status.InspectionLifecycle == AuthoringSlotLifecycle.Error &&
+            status.Inspection is null && status.FileStamp is null;
+        if (!status.IsTerminal ||
+            (unreadableTerminal && string.IsNullOrWhiteSpace(status.SelectedPathHint)) ||
+            (!unreadableTerminal && (status.Inspection is null || status.FileStamp is null)))
         {
             return Failure(
                 AuthoringSessionIssueCodes.InvalidPublication,
@@ -260,14 +417,12 @@ public static class AuthoringInputSlotInspectionService
         bool stale = status.ResolutionToken != lease.ResolutionToken ||
             status.AuthoringRevision != lease.AuthoringRevision ||
             !StringComparer.Ordinal.Equals(status.RouteId, lease.SelectedRouteId) ||
-            !StringComparer.Ordinal.Equals(
-                status.CapabilityFingerprint,
-                lease.CapabilityFingerprint) ||
-            !StringComparer.Ordinal.Equals(
-                status.CompilationFingerprint,
-                lease.CompilationFingerprint) ||
+            !StringComparer.Ordinal.Equals(status.CapabilityFingerprint, lease.CapabilityFingerprint) ||
+            !StringComparer.Ordinal.Equals(status.CompilationFingerprint, lease.CompilationFingerprint) ||
             !lease.Slots.Any(captured =>
                 StringComparer.Ordinal.Equals(captured.DefinitionId, status.SlotId) &&
+                (status.SelectedPathHint is null ||
+                    StringComparer.Ordinal.Equals(captured.SelectedPath, status.SelectedPathHint)) &&
                 captured.FileStamp == status.FileStamp);
         return stale
             ? Failure(
@@ -283,6 +438,24 @@ public static class AuthoringInputSlotInspectionService
     }
 
     private static AuthoringInputSlotStatus Create(
+        ResolvedCapability capability,
+        AuthoringRevision authoringRevision,
+        InputSelectionMemberReadiness selectionReadiness,
+        string addressSpaceId,
+        AuthoringSlotLifecycle? inspectionLifecycle,
+        FileStamp? fileStamp,
+        CompiledInputArtifactInspectionResult? inspection,
+        string? selectedPathHint = null,
+        CompiledInputArtifactObservationResult? observation = null)
+    {
+        return Create(
+            capability.Identity, capability.ResolutionToken, authoringRevision,
+            capability.CapabilityFingerprint, capability.CompiledComposition.CompilationFingerprint,
+            selectionReadiness, addressSpaceId, inspectionLifecycle, fileStamp, inspection,
+            selectedPathHint, observation);
+    }
+
+    private static AuthoringInputSlotStatus Create(
         CapabilityRouteIdentity identity,
         ResolutionToken resolutionToken,
         AuthoringRevision authoringRevision,
@@ -292,7 +465,9 @@ public static class AuthoringInputSlotInspectionService
         string addressSpaceId,
         AuthoringSlotLifecycle? inspectionLifecycle,
         FileStamp? fileStamp,
-        CompiledInputArtifactInspectionResult? inspection)
+        CompiledInputArtifactInspectionResult? inspection,
+        string? selectedPathHint = null,
+        CompiledInputArtifactObservationResult? observation = null)
     {
         return new AuthoringInputSlotStatus(
             identity,
@@ -304,7 +479,9 @@ public static class AuthoringInputSlotInspectionService
             addressSpaceId,
             inspectionLifecycle,
             fileStamp,
-            inspection);
+            inspection,
+            selectedPathHint,
+            observation);
     }
 
     private static void ValidateInspectable(
@@ -333,8 +510,10 @@ public static class AuthoringInputSlotInspectionService
         CompiledInputSpaceBinding? binding = capability.CompiledComposition.V2Details
             .InputContract.SpaceBindings.SingleOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
-        if (binding is null ||
-            !StringComparer.Ordinal.Equals(binding.SlotId, selectionReadiness.SlotId))
+        string? expectedSlotId = binding?.InstancePolicy == CompiledInputInstancePolicy.PerBinding
+            ? binding.AddressSpaceId
+            : binding?.SlotId;
+        if (!StringComparer.Ordinal.Equals(expectedSlotId, selectionReadiness.SlotId))
         {
             throw new ArgumentException(
                 "Selection readiness must identify the compiler-owned slot for the requested address space.",

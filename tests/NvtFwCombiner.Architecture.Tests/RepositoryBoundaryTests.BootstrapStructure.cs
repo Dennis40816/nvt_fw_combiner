@@ -158,7 +158,8 @@ public sealed partial class RepositoryBoundaryTests
         string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
         string ctrlRamRoutes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
         string ctrlRamVersionAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2FirmwareVersionAdapter.cs");
-        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs") +
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs");
         string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
@@ -252,10 +253,10 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("postbuildPolicy", ctrlRamV2, StringComparison.Ordinal);
         Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamV2, StringComparison.Ordinal);
+        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains(
             "context.Selection",
             ctrlRamRuntime,
@@ -387,7 +388,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51926-ctrlram-replace-candidate",
             generalV2,
             StringComparison.Ordinal);
-        Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
+        Assert.Contains("selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
         Assert.Contains(
             "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",
             generalV2,
@@ -467,7 +468,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GeneralReplaceRunIdPrefix", replaceGeneral, StringComparison.Ordinal);
         Assert.Contains("GetReplaceRunIdPrefix(replaceMode)", replaceReport, StringComparison.Ordinal);
         Assert.Contains(
-            "$\"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}\"",
+            "$\"{runIdPrefix}-{runAction}-{FormatWorkbenchRunTimestamp(timestamp)}\"",
             replaceReport,
             StringComparison.Ordinal);
         foreach (string source in new[]
@@ -601,7 +602,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"input.artifact.", bootstrapWithoutIssueCodes, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies saved-rule validation codes stay centralized as a Bootstrap CLI contract.</summary>
+    /// <summary>Verifies v2 saved-rule validation codes stay centralized without restoring v1 codes.</summary>
     [Fact]
     public void BootstrapOwnsSavedRuleIssueCodes()
     {
@@ -609,15 +610,20 @@ public sealed partial class RepositoryBoundaryTests
         string issueCodes = ReadText("src/NvtFwCombiner.Bootstrap/SavedRuleIssueCodes.cs");
         string bootstrapWithoutIssueCodes = bootstrapSource.Replace(issueCodes, string.Empty, StringComparison.Ordinal);
 
-        Assert.Contains("public const string PropertyUnknown = \"saved-rule.property.unknown\"", issueCodes, StringComparison.Ordinal);
         Assert.Contains(
-            "public const string ProcessorDependencyUnsupported = \"saved-rule.processor-dependency.unsupported\"",
+            "public const string SchemaVersionUnsupported =",
             issueCodes,
             StringComparison.Ordinal);
         Assert.Contains(
-            "public const string OperationFragmentProcessorDependencyUnsupported = \"saved-rule.operation-fragment.processor-dependency.unsupported\"",
+            "public const string V2ContractInvalid = \"saved-rule.v2.contract-invalid\"",
             issueCodes,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string ProcessorDependencyUnsupported =",
+            issueCodes,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PropertyUnknown", issueCodes, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationFragmentProcessorDependencyUnsupported", issueCodes, StringComparison.Ordinal);
         Assert.DoesNotContain("\"saved-rule.", bootstrapWithoutIssueCodes, StringComparison.Ordinal);
     }
 

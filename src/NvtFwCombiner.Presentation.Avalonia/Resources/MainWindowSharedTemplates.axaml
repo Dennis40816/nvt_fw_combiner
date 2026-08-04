@@ -92,7 +92,7 @@
             Grid.Column="1"
             FontSize="{DynamicResource NfcFontSize11}"
             Foreground="{DynamicResource NfcTextBrush}"
-            Text="{Binding CompactDetail}"
+            Text="{Binding PreservationSummary}"
             TextWrapping="Wrap" />
 
         <TextBlock Grid.Row="2" Classes="tableHeader" Text="{ReflectionBinding $parent[Window].DataContext.Text.DetailLabel}" />
@@ -112,7 +112,8 @@
   <Border
       Classes="memoryCoverageMarker"
       Classes.changed="{Binding IsChanged}"
-      AutomationProperties.HelpText="{Binding Detail}"
+      AutomationProperties.HelpText="{Binding AccessibleDetail}"
+      AutomationProperties.Name="{Binding AccessibleDetail}"
       behaviors:FocusToolTipBehavior.IsEnabled="True"
       Focusable="True"
       Width="{Binding BarWidth}"
@@ -129,7 +130,8 @@
 
 <DataTemplate x:Key="MemoryCoveragePlainSegmentBarTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
-      AutomationProperties.HelpText="{Binding Detail}"
+      AutomationProperties.HelpText="{Binding AccessibleDetail}"
+      AutomationProperties.Name="{Binding AccessibleDetail}"
       behaviors:FocusToolTipBehavior.IsEnabled="True"
       Focusable="True"
       Width="{Binding BarWidth}"
@@ -146,7 +148,7 @@
     <ToolTip.Tip>
       <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" />
     </ToolTip.Tip>
-    <Grid ColumnDefinitions="12,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+    <Grid ColumnDefinitions="12,*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
       <Border
           Classes="memoryCoverageMarker"
           Classes.changed="{Binding IsChanged}"
@@ -164,8 +166,42 @@
       <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
         <TextBlock Classes="bodyEmphasisText" Text="{Binding SourceLabel}" TextWrapping="Wrap" />
         <TextBlock Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-        <TextBlock Classes="captionText" Text="{Binding CompactDetail}" TextWrapping="Wrap" />
+        <TextBlock Classes="captionText" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
       </StackPanel>
+      <Button
+          Grid.Column="2"
+          AutomationProperties.HelpText="{Binding AccessibleDetail}"
+          AutomationProperties.Name="{Binding DetailsLabel}"
+          Classes="quietDisclosure"
+          Content="{Binding DetailsLabel}"
+          IsVisible="{Binding HasPreservationDetails}">
+        <Button.Flyout>
+          <Flyout Placement="RightEdgeAlignedTop">
+            <Border Classes="surface" MaxWidth="420" Padding="12">
+              <StackPanel Spacing="{DynamicResource NfcSpace8}">
+                <TextBlock Classes="panelTitle" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding PreservationDetails}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:DiffDlmPreservationDetailViewModel" x:DataType="vm:DiffDlmPreservationDetailViewModel">
+                      <Border Classes="subtleSurface" Margin="0,0,0,6" Padding="9,7">
+                        <StackPanel Spacing="{DynamicResource NfcSpace2}">
+                          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+                            <TextBlock Classes="bodyEmphasisText" Text="{Binding IcLabel}" />
+                            <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding BlockLabel}" />
+                          </Grid>
+                          <TextBlock Classes="technicalValue" Text="{Binding ArtifactRangeLabel}" TextWrapping="Wrap" />
+                          <TextBlock Classes="technicalValue" Text="{Binding FlashRangeLabel}" TextWrapping="Wrap" />
+                          <TextBlock Classes="captionText" Text="{Binding DispositionLabel}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
     </Grid>
   </Border>
 </DataTemplate>
@@ -236,7 +272,7 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="ReplaceOutputLayoutPanelTemplate" DataType="vm:ReplacePresentationViewModel">
   <Border Classes="panelSurface">
     <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
@@ -311,7 +347,7 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MainWindowViewModel">
+<DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MergePresentationViewModel">
   <Border Classes="panelSurface">
     <views:SpaciousPanel>
       <StackPanel Spacing="{DynamicResource NfcSpace16}">
@@ -346,17 +382,34 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="FirmwareSlotFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
+<DataTemplate x:Key="FirmwareSlotInformationFactTemplate" DataType="vm:FirmwareSlotFactViewModel">
   <Border
       Classes="firmwareSlotFact"
+      Classes.error="{Binding IsError}"
+      Classes.pendingInput="{Binding IsPendingInput}"
+      Classes.unknown="{Binding IsUnknown}"
       Classes.warning="{Binding IsWarning}"
       Margin="0,2,6,0"
-      Padding="7,2"
+      MinWidth="136"
+      Padding="10,7"
       BorderThickness="1"
-      CornerRadius="{DynamicResource NfcPillCornerRadius}">
-    <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+      CornerRadius="{DynamicResource NfcSurfaceCornerRadius}">
+    <StackPanel Orientation="Vertical" Spacing="{DynamicResource NfcSpace2}">
       <TextBlock Classes="firmwareSlotFactLabel" FontSize="{DynamicResource NfcFontSize10}" FontWeight="SemiBold" Text="{Binding Label}" />
-      <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize10}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding Value}" />
+      <StackPanel Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}">
+        <TextBlock Classes="firmwareSlotFactValue" FontSize="{DynamicResource NfcFontSize10}" FontFamily="{DynamicResource NfcTechnicalFontFamily}" FontWeight="SemiBold" Text="{Binding Value}" />
+        <Path
+            AutomationProperties.Name="{Binding StateAutomationText}"
+            behaviors:FocusToolTipBehavior.IsEnabled="True"
+            Classes="firmwareSlotFactStateIcon"
+            Data="{Binding StateIconPathData}"
+            Focusable="True"
+            Height="12"
+            IsVisible="{Binding HasStateIcon}"
+            Stretch="Uniform"
+            ToolTip.Tip="{Binding StateAutomationText}"
+            Width="12" />
+      </StackPanel>
     </StackPanel>
   </Border>
 </DataTemplate>

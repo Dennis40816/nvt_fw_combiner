@@ -30,39 +30,32 @@ public sealed partial class MainWindowViewModel
     public bool CanGoBack => _pageHistory.Count > 1;
 
     /// <summary>True when the selected page or active run needs the captured device context.</summary>
-    public bool IsDeviceContextVisible => IsRunInProgress || SelectedPage is ShellPage.Merge or ShellPage.Replace;
+    public bool IsDeviceContextVisible => RunSession.IsRunInProgress ||
+        SelectedPage is ShellPage.Merge or ShellPage.Replace;
 
     /// <summary>True when the fixed composition action rail belongs to the active page.</summary>
     public bool IsCompositionActionRailVisible =>
         (SelectedPage is ShellPage.Merge or ShellPage.Replace) && !IsBlockingSurfaceOpen;
 
     /// <summary>True when the current composition page can reopen the latest committed output.</summary>
-    public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && HasLatestCommittedOutput;
+    public bool IsLatestOutputActionVisible => IsCompositionActionRailVisible && BuildResult.HasLatestCommittedOutput;
 
     private bool IsBlockingSurfaceOpen =>
-        IsReplaceSelectionModalOpen ||
-        IsCtrlRamFirmwareVersionModalOpen ||
-        IsWorkflowContextModalOpen ||
-        IsFirmwareIcMismatchModalOpen ||
-        IsFirmwareNumberMismatchModalOpen ||
+        Replace.IsReplaceSelectionModalOpen ||
+        Replace.IsCtrlRamFirmwareVersionModalOpen ||
+        WorkflowSession.IsWorkflowContextModalOpen ||
+        WorkflowSession.IsFirmwareIcMismatchModalOpen ||
+        WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
-        IsReportModalOpen ||
-        IsAbAFlashCodeDeliveryPromptOpen ||
-        IsBuildCompletedModalOpen ||
+        Reports.IsReportModalOpen ||
+        Merge.IsAbAFlashCodeDeliveryPromptOpen ||
+        BuildResult.IsOpen ||
         LoadedHexEditorWorkspace?.IsInsertBytesPromptOpen == true ||
         LoadedHexEditorWorkspace?.IsSaveConfirmationOpen == true;
 
     private void MainWindowViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(IsReplaceSelectionModalOpen) or
-            nameof(IsCtrlRamFirmwareVersionModalOpen) or
-            nameof(IsWorkflowContextModalOpen) or
-            nameof(IsFirmwareIcMismatchModalOpen) or
-            nameof(IsFirmwareNumberMismatchModalOpen) or
-            nameof(IsNavigationClearConfirmationOpen) or
-            nameof(IsReportModalOpen) or
-            nameof(IsAbAFlashCodeDeliveryPromptOpen) or
-            nameof(IsBuildCompletedModalOpen))
+        if (e.PropertyName == nameof(IsNavigationClearConfirmationOpen))
         {
             NotifyCompositionActionRailVisibilityChanged();
         }
@@ -74,23 +67,6 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLatestOutputActionVisible));
     }
 
-    /// <summary>True when the shared context row should expose the IC Number selector.</summary>
-    public bool IsNumberSelectorVisible => IsRunInProgress
-        ? ActiveRunShowsNumberSelector
-        : ShouldShowNumberSelectorForSelectedPage();
-
-    /// <summary>True when the hidden IC Number selector should keep its layout space.</summary>
-    public bool IsNumberSelectorPlaceholderVisible => IsDeviceContextVisible && !IsNumberSelectorVisible;
-
-    /// <summary>True when the mutable shell selection controls may be shown.</summary>
-    public bool IsDeviceContextSelectionVisible => !IsRunInProgress;
-
-    /// <summary>True when the mutable IC Number selection control may be shown.</summary>
-    public bool IsDeviceContextNumberSelectionVisible => IsNumberSelectorVisible && !IsRunInProgress;
-
-    /// <summary>True when the selected-family badge describes the visible mutable context.</summary>
-    public bool IsDeviceContextFamilyBadgeVisible => !IsRunInProgress && HasSelectedIcFamily;
-
     /// <summary>Command that returns to the previous navigation entry.</summary>
     public IRelayCommand GoBackCommand { get; }
 
@@ -99,12 +75,6 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Command that keeps the current page and all of its selections.</summary>
     public IRelayCommand CancelNavigationClearCommand { get; }
-
-    private bool ShouldShowNumberSelectorForSelectedPage()
-    {
-        return IsReplaceVisible ||
-            (IsMergeVisible && IsAbCodeMergeModeSelected && HasAbMergeTopologyChoices);
-    }
 
     private void NavigateToPage(ShellPage page)
     {
@@ -136,12 +106,12 @@ public sealed partial class MainWindowViewModel
 
     private bool RequestNavigation(ShellPage target, bool isBack)
     {
-        if (IsNavigationClearConfirmationOpen || !HasSelectedInputs(SelectedPage))
+        if (IsNavigationClearConfirmationOpen || !WorkflowSession.HasSelectedInputs(SelectedPage))
         {
             return IsNavigationClearConfirmationOpen;
         }
 
-        InvalidateFirmwareNumberMismatch();
+        WorkflowSession.InvalidateFirmwareNumberMismatch();
         _pendingNavigation = new PendingNavigation(target, isBack);
         OnPropertyChanged(nameof(NavigationClearRoute));
         IsNavigationClearConfirmationOpen = true;
@@ -159,7 +129,7 @@ public sealed partial class MainWindowViewModel
         ShellPage pageBeingLeft = SelectedPage;
         _pendingNavigation = null;
         IsNavigationClearConfirmationOpen = false;
-        ClearSelectedInputs(pageBeingLeft);
+        WorkflowSession.ClearSelectedInputs(pageBeingLeft);
         CompleteNavigation(pending.Target, pending.IsBack);
     }
 
@@ -186,77 +156,6 @@ public sealed partial class MainWindowViewModel
         ApplySelectedPage(target);
     }
 
-    private bool HasSelectedInputs(ShellPage page)
-    {
-        return page switch
-        {
-            ShellPage.Merge =>
-                _mergeDpSlot.HasFile ||
-                _mergeTpSlot.HasFile ||
-                _mergeLdcSlot.HasFile ||
-                _abMergeSlotsByAddressSpace.Values.Any(static slot => slot.HasFile) ||
-                MergeSlots.Any(static slot => slot.HasFile) ||
-                GeneralMergeMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Replace =>
-                ReplaceBaseSlot.HasFile ||
-                ReplaceSlots.Any(static slot => slot.HasFile) ||
-                GeneralReplaceMappings.Any(static mapping => mapping.HasFile),
-            ShellPage.Home or ShellPage.Settings or ShellPage.HexEditor => false,
-            _ => false,
-        };
-    }
-
-    private void ClearSelectedInputs(ShellPage page)
-    {
-        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
-        InvalidateCtrlRamFirmwareVersionContext();
-        InvalidateFirmwareIcMismatch();
-        InvalidateFirmwareNumberMismatch();
-
-        if (page == ShellPage.Merge)
-        {
-            foreach (FirmwareSlotViewModel slot in MergeSlots
-                         .Concat(_abMergeSlotsByAddressSpace.Values)
-                         .Concat([_mergeDpSlot, _mergeTpSlot, _mergeLdcSlot])
-                         .Distinct())
-            {
-                ClearFirmwareSlot(slot);
-            }
-
-            foreach (GeneralMergeMappingViewModel mapping in GeneralMergeMappings)
-            {
-                mapping.FilePath = null;
-            }
-
-            RefreshMergeMemoryMapState();
-        }
-        else if (page == ShellPage.Replace)
-        {
-            foreach (FirmwareSlotViewModel slot in ReplaceSlots.Concat([ReplaceBaseSlot]).Distinct())
-            {
-                ClearFirmwareSlot(slot);
-            }
-
-            foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
-            {
-                mapping.FilePath = null;
-            }
-
-            ClearCtrlRamInspectionDisplay();
-            RefreshReplaceMemoryMapState();
-        }
-
-        NotifySlotFileOutputNames();
-        ResetRunResultForContextChange();
-        RefreshCommandState();
-    }
-
-    private static void ClearFirmwareSlot(FirmwareSlotViewModel slot)
-    {
-        slot.FilePath = null;
-        slot.SetFirmwareFacts([]);
-    }
-
     private ShellNavigationEntryViewModel CreateNavigationEntry(ShellPage page, bool isCurrent)
     {
         return new ShellNavigationEntryViewModel(page, PageLabel(page), NavigateToPage, isCurrent);
@@ -268,8 +167,8 @@ public sealed partial class MainWindowViewModel
         {
             ShellPage.Home => Text.HomeLabel,
             ShellPage.Settings => SettingsPreview.Title,
-            ShellPage.Merge => MergePreview.Title,
-            ShellPage.Replace => ReplacePreview.Title,
+            ShellPage.Merge => Merge.MergePreview.Title,
+            ShellPage.Replace => Replace.ReplacePreview.Title,
             ShellPage.HexEditor => Text.HexEditorTitle,
             _ => page.ToString(),
         };

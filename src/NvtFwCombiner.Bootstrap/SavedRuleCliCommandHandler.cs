@@ -35,54 +35,11 @@ internal static partial class SavedRuleCliCommandHandler
             return UsageError;
         }
 
-        if (HasV2SchemaVersion(args[1]))
-        {
-            return await RunV2Async(
-                action,
-                args[1],
-                output,
-                error).ConfigureAwait(false);
-        }
-
-        SavedCompositionRuleLoadResult result = SavedCompositionRuleLoader.Load(args[1]);
-        if (!result.IsValid)
-        {
-            await PrintIssuesAsync(result.Issues, error).ConfigureAwait(false);
-            return CompositionFailed;
-        }
-
-        SavedCompositionRule rule = result.Rule!;
-        await PrintSummaryAsync(rule, output).ConfigureAwait(false);
-        if (action == "mappings")
-        {
-            if (!SavedRuleGeneralMappingDraftAdapter.TryCreate(
-                    rule,
-                    static row => row.SourceReference,
-                    out GeneralMappingDraftState? draft,
-                    out IReadOnlyList<SavedRuleValidationIssue> projectionIssues))
-            {
-                await PrintIssuesAsync(projectionIssues, error).ConfigureAwait(false);
-                return CompositionFailed;
-            }
-
-            await PrintMappingsAsync(draft, output).ConfigureAwait(false);
-        }
-
-        return Success;
-    }
-
-    private static async Task PrintSummaryAsync(SavedCompositionRule rule, TextWriter output)
-    {
-        await output.WriteLineAsync($"Rule: {rule.RuleId} {rule.RuleVersion}").ConfigureAwait(false);
-        await output.WriteLineAsync($"Name: {rule.DisplayName}").ConfigureAwait(false);
-        await output.WriteLineAsync($"Status: {rule.SupportStatus}").ConfigureAwait(false);
-        await output.WriteLineAsync($"Composition: {rule.CompositionKind} / {rule.SourceExperience}").ConfigureAwait(false);
-        await output.WriteLineAsync(
-                $"Compatibility: IC={JoinOrAll(rule.Compatibility.IcIds)} mode={JoinOrAll(rule.Compatibility.ModeIds)} profile={JoinOrAll(rule.Compatibility.ProfileIds)}")
-            .ConfigureAwait(false);
-        await output.WriteLineAsync(
-                string.Create(CultureInfo.InvariantCulture, $"Mappings: {rule.MappingRows.Count}"))
-            .ConfigureAwait(false);
+        return await RunV2Async(
+            action,
+            args[1],
+            output,
+            error).ConfigureAwait(false);
     }
 
     private static async Task PrintMappingsAsync(
@@ -141,11 +98,6 @@ internal static partial class SavedRuleCliCommandHandler
         return string.Create(
             CultureInfo.InvariantCulture,
             $"0x{range.Start:X}-0x{range.EndExclusive - 1:X} (len 0x{range.Length:X})");
-    }
-
-    private static string JoinOrAll(IReadOnlyList<string> values)
-    {
-        return values.Count == 0 ? "(any)" : string.Join(",", values);
     }
 
     private static Task WriteUsageAsync(TextWriter output)

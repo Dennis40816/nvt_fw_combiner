@@ -61,7 +61,7 @@ public static partial class WorkbenchCompositionService
             advisoryIssues,
             generalAdmission,
             resolvedCapability).ConfigureAwait(false);
-        return ToWorkbenchRunResult(result);
+        return ToWorkbenchRunResult(result) with { ResolvedCapability = resolvedCapability };
     }
 
     /// <summary>Runs one composition and retains the typed Application result for a bounded adapter delivery phase.</summary>

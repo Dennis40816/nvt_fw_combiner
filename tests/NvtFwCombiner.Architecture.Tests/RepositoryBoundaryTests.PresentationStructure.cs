@@ -33,23 +33,30 @@ public sealed partial class RepositoryBoundaryTests
         string progressResources = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.RunProgress.cs");
         string progressConsumer = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs");
         string inspectionProjection = string.Join(
             Environment.NewLine,
-            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffRangeViewModels.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewportAdapter.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.cs"),
             ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Bindings.cs"),
-            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs"));
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Factory.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.OutputDifferences.cs"));
         string presentationSource = ReadPresentationSources(
             "CompositionRunProgressViewModel.cs",
             "ShellTextResources.RunProgress.cs",
-            "MainWindowViewModel.RunLifecycle.cs",
-            "MainWindowViewModel.Report.cs",
+            "CompositionRunPresentationViewModel.cs",
+            "CompositionRunContracts.cs",
+            "ReportPresentationViewModel.cs",
             "ReportHexDiffViewModel.cs",
+            "ReportHexDiffRangeViewModels.cs",
+            "ReportHexDiffViewportAdapter.cs",
             "ReportReviewViewModel.cs",
             "ReportReviewViewModel.Bindings.cs",
-            "ReportReviewViewModel.Factory.cs");
+            "ReportReviewViewModel.Factory.cs",
+            "ReportReviewViewModel.OutputDifferences.cs");
         string[] forbiddenTokens =
         [
             "NvtFwCombiner.Application.Composition",

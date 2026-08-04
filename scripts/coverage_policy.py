@@ -837,6 +837,7 @@ def changed_module_lines(root: Path, base_revision: str, module_path: Path) -> i
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     )
     if resolved.returncode != 0:
         raise ValueError(
@@ -857,6 +858,7 @@ def changed_module_lines(root: Path, base_revision: str, module_path: Path) -> i
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     ).stdout
     changed = changed_lines_from_zero_context_diff(diff)
     untracked = subprocess.run(
@@ -865,6 +867,7 @@ def changed_module_lines(root: Path, base_revision: str, module_path: Path) -> i
         check=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
     ).stdout.splitlines()
     for relative_path in untracked:
         candidate = root / relative_path

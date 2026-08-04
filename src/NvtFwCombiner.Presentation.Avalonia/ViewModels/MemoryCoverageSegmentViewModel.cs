@@ -1,4 +1,6 @@
 using Avalonia.Media;
+using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,7 +16,11 @@ public sealed class MemoryCoverageSegmentViewModel
         double barWidth,
         bool isChanged = false,
         bool usesBaseFirmwarePattern = false,
-        string? regionId = null)
+        string? regionId = null,
+        bool isDiffDlm = false,
+        IReadOnlyList<MemoryLayoutPreservationDetail>? preservationDetails = null,
+        ShellTextResources? text = null,
+        WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -33,7 +39,30 @@ public sealed class MemoryCoverageSegmentViewModel
         IsChanged = isChanged;
         UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
-        ChangeLabel = isChanged ? "Changed" : "Kept";
+        text ??= ShellTextResources.For(ShellLanguage.English);
+        ChangeLabel = isChanged
+            ? text.OutputLayoutChangedStateLabel
+            : text.OutputLayoutKeptStateLabel;
+        IsDiffDlm = isDiffDlm;
+        RegionGroup = regionGroup;
+        PreservationDetails =
+        [
+            .. (preservationDetails ?? []).Select(detail =>
+                new DiffDlmPreservationDetailViewModel(detail, text)),
+        ];
+        PreservationSummary = PreservationDetails.Count > 0
+            ? text.FormatDiffDlmPreservationSummary(PreservationDetails.Count)
+            : isDiffDlm
+                ? text.FormatEntireDiffDlmSummary()
+                : CompactDetail;
+        DetailsLabel = text.FormatDiffDlmDetailsLabel();
+        string preservationAccessibility = string.Join(
+            ". ",
+            PreservationDetails.Select(item =>
+                $"{item.IcLabel}, {item.BlockLabel}, {item.ArtifactRangeLabel}, {item.FlashRangeLabel}, {item.DispositionLabel}"));
+        AccessibleDetail = string.IsNullOrEmpty(preservationAccessibility)
+            ? $"{SourceLabel}. {RangeLabel}. {PreservationSummary}. {Detail}"
+            : $"{SourceLabel}. {RangeLabel}. {PreservationSummary}. {preservationAccessibility}. {Detail}";
     }
 
     /// <summary>Address range in half-open hex notation.</summary>
@@ -73,6 +102,27 @@ public sealed class MemoryCoverageSegmentViewModel
     /// <summary>Compact changed/kept label for the legend.</summary>
     public string ChangeLabel { get; }
 
+    /// <summary>True when this primary segment is the canonical DiffDLM artifact.</summary>
+    public bool IsDiffDlm { get; }
+
+    /// <summary>Typed Replace grouping supplied before localized display text.</summary>
+    public WorkbenchReplaceRegionGroup RegionGroup { get; }
+
+    /// <summary>Reference-owned active Diff NF details, empty for full-artifact replacement.</summary>
+    public IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails { get; }
+
+    /// <summary>True when the quiet side-detail affordance is applicable.</summary>
+    public bool HasPreservationDetails => PreservationDetails.Count > 0;
+
+    /// <summary>Compact localized primary-result summary.</summary>
+    public string PreservationSummary { get; }
+
+    /// <summary>Localized label for the quiet detail affordance.</summary>
+    public string DetailsLabel { get; }
+
+    /// <summary>Equivalent screen-reader description of the visible and disclosed facts.</summary>
+    public string AccessibleDetail { get; }
+
     private static string CreateCompactDetail(string sourceLabel, bool isChanged)
     {
         return sourceLabel switch
@@ -104,5 +154,42 @@ public sealed class MemoryCoverageSegmentViewModel
         return sourceLabel.StartsWith("Blank", StringComparison.OrdinalIgnoreCase)
             ? "Reserved"
             : sourceLabel;
+    }
+}
+
+/// <summary>Localized display-only projection of one canonical kept Diff NF range.</summary>
+public sealed class DiffDlmPreservationDetailViewModel
+{
+    internal DiffDlmPreservationDetailViewModel(
+        MemoryLayoutPreservationDetail detail,
+        ShellTextResources text)
+    {
+        IcLabel = text.FormatDiffDlmIcLabel(detail.BlockIndex);
+        BlockLabel = text.FormatDiffDlmBlockLabel(detail.BlockIndex);
+        ArtifactRangeLabel = text.FormatDiffDlmArtifactRangeLabel(
+            detail.SourceSpaceId,
+            FormatRange(
+                detail.ArtifactRelativeRange.Start,
+                detail.ArtifactRelativeRange.EndExclusive));
+        FlashRangeLabel = text.FormatDiffDlmFlashRangeLabel(FormatRange(
+            detail.ResolvedRange.Start,
+            detail.ResolvedRange.EndExclusive));
+        DispositionLabel = text.FormatDiffDlmKeptDisposition();
+    }
+
+    /// <summary>One-based physical IC label.</summary>
+    public string IcLabel { get; }
+    /// <summary>Zero-based DiffDLM block label.</summary>
+    public string BlockLabel { get; }
+    /// <summary>Source-artifact identity and half-open relative range.</summary>
+    public string ArtifactRangeLabel { get; }
+    /// <summary>Half-open resolved Flash range.</summary>
+    public string FlashRangeLabel { get; }
+    /// <summary>Reference-owned disposition.</summary>
+    public string DispositionLabel { get; }
+
+    private static string FormatRange(long start, long endExclusive)
+    {
+        return FormattableString.Invariant($"[0x{start:X}, 0x{endExclusive:X})");
     }
 }

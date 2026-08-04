@@ -2,6 +2,206 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Merge-only presentation lifetime belongs to a focused child rather than the shell.</summary>
+    [Fact]
+    public void MergePresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellMerge = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.MergePresentation.cs");
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string mergeRequirements = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Requirements.cs");
+        string mergeGeneral = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.General.cs");
+        string mergeMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
+        string mergeExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
+        string mergePrompt = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.AbAFlashCodeDeliveryPrompt.cs");
+        string shellPartials = ReadViewModelPartials();
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+
+        Assert.Contains("Merge = new MergePresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public MergePresentationViewModel Merge", shellMerge, StringComparison.Ordinal);
+        Assert.Contains("public ObservableCollection<FirmwareSlotViewModel> MergeSlots", mergeState, StringComparison.Ordinal);
+        Assert.Contains("public string MergeReadinessStatus", mergeState, StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeSlotRequirements", mergeRequirements, StringComparison.Ordinal);
+        Assert.Contains("AddGeneralMergeMapping", mergeGeneral, StringComparison.Ordinal);
+        Assert.Contains("RefreshMergeMemoryMapState", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("public Task BuildMergeAsync", mergeExecution, StringComparison.Ordinal);
+        Assert.Contains("PromptForAbAFlashCodeDeliveryAsync", mergePrompt, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate DataType=\"vm:MergePresentationViewModel\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadContent(MergePageHost, viewModel.IsMergeVisible, viewModel.Merge)", shellCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("public ObservableCollection<FirmwareSlotViewModel> MergeSlots", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public string MergeReadinessStatus", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public Task BuildMergeAsync", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsAbAFlashCodeDeliveryPromptOpen", shellPartials, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "MainWindowViewModel.AbAFlashCodeDeliveryPrompt.cs")));
+    }
+
+    /// <summary>Replace-only selection policy and modal lifetime belong to a focused child.</summary>
+    [Fact]
+    public void ReplacePresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellReplace = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReplacePresentation.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string replaceMemory = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
+        string replaceGeneral = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.General.cs");
+        string replaceExecution = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
+        string ctrlRamVersion = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.CtrlRamFirmwareVersion.cs");
+        string replaceSelection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Selection.cs");
+        string shellPartials = ReadViewModelPartials();
+        string shell = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string shellCode = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
+
+        Assert.Contains("Replace = new ReplacePresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public ReplacePresentationViewModel Replace", shellReplace, StringComparison.Ordinal);
+        Assert.Contains("public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots", replaceState, StringComparison.Ordinal);
+        Assert.Contains("public string SelectedReplaceMode", replaceState, StringComparison.Ordinal);
+        Assert.Contains("RefreshReplaceMemoryMapState", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("AddGeneralReplaceMapping", replaceGeneral, StringComparison.Ordinal);
+        Assert.Contains("public Task BuildReplaceAsync", replaceExecution, StringComparison.Ordinal);
+        Assert.Contains("TryOpenCtrlRamFirmwareVersionModalAsync", ctrlRamVersion, StringComparison.Ordinal);
+        Assert.Contains("CreateReplaceSelectionMissingRows", replaceSelection, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate DataType=\"vm:ReplacePresentationViewModel\"", shell, StringComparison.Ordinal);
+        Assert.Contains("LoadContent(ReplacePageHost, viewModel.IsReplaceVisible, viewModel.Replace)", shellCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("public ObservableCollection<FirmwareSlotViewModel> ReplaceSlots", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public string SelectedReplaceMode", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public Task BuildReplaceAsync", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsCtrlRamFirmwareVersionModalOpen", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsReplaceSelectionModalOpen", shellPartials, StringComparison.Ordinal);
+    }
+
+    /// <summary>Workflow context and firmware mismatch prompts belong to the shared session child.</summary>
+    [Fact]
+    public void WorkflowSessionPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellSession = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.WorkflowSession.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.WorkflowContext.cs");
+        string mismatch = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareIcMismatch.cs");
+        string inspection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
+        string session = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs");
+        string deviceContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
+        string slots = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.Slots.cs");
+        string outputNaming = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.OutputNaming.cs");
+        string shellPartials = ReadViewModelPartials();
+
+        Assert.Contains("WorkflowSession = new WorkflowSessionPresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public WorkflowSessionPresentationViewModel WorkflowSession", shellSession, StringComparison.Ordinal);
+        Assert.Contains("WorkflowContextSetupViewModel", context, StringComparison.Ordinal);
+        Assert.Contains("ReconcileFirmwareIcMismatch", mismatch, StringComparison.Ordinal);
+        Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
+        Assert.Contains("InspectionSession.ReadBatch", inspection, StringComparison.Ordinal);
+        Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
+        Assert.Contains("public partial string SelectedIc", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("public partial string SelectedNumber", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.GetIcFamilySummary", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("private FirmwareSlotViewModel? SelectSlotFile", slots, StringComparison.Ordinal);
+        Assert.Contains("public void RemoveGeneralMappingRow", slots, StringComparison.Ordinal);
+        Assert.Contains("FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareInspectionSession", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSlotFileAsync", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public partial string SelectedIc", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public partial string SelectedNumber", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("private FirmwareSlotViewModel? SelectSlotFile", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public void RemoveGeneralMappingRow", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareOutputNamingProjection", shellPartials, StringComparison.Ordinal);
+    }
+
+    /// <summary>Report parsing, history, and commands belong to a focused child rather than the shell.</summary>
+    [Fact]
+    public void ReportPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellReport = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+        string report = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
+        string history = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
+
+        Assert.Contains("Reports = new ReportPresentationViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public ReportPresentationViewModel Reports", shellReport, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportReviewViewModel.FromJson", shellReport, StringComparison.Ordinal);
+        Assert.Contains("ReportReviewViewModel.FromJson", report, StringComparison.Ordinal);
+        Assert.Contains("ObservableCollection<ReportHistoryEntryViewModel>", history, StringComparison.Ordinal);
+    }
+
+    /// <summary>Build-result state and actions belong to a focused child rather than the shell.</summary>
+    [Fact]
+    public void BuildResultPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellBuildResult = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.BuildCompleted.cs");
+        string buildResult = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BuildResultViewModel.cs");
+        string shell = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml");
+        string modal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/BuildCompletedModal.axaml");
+
+        Assert.Contains("BuildResult = new BuildResultViewModel", construction, StringComparison.Ordinal);
+        Assert.Contains("public BuildResultViewModel BuildResult", shellBuildResult, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchDeliveryArtifact?", shellBuildResult, StringComparison.Ordinal);
+        Assert.Contains("IFileRevealService", buildResult, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding BuildResult.IsOpen}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.RevealOutputCommand}\"", modal, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding BuildResult.CloseCommand}\"", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>Settings catalog presentation belongs to a focused child rather than the shell.</summary>
+    [Fact]
+    public void SettingsPresentationLivesBehindFocusedChild()
+    {
+        string construction = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
+        string shellSettings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
+        string settings = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs");
+        string pageTemplates = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
+
+        Assert.Contains("Settings = new SettingsViewModel(appVersion);", construction, StringComparison.Ordinal);
+        Assert.Contains("public SettingsViewModel Settings", shellSettings, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", shellSettings, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.GetSettingsSnapshot()", settings, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Settings.OverviewRows}\"", pageTemplates, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding Settings.CapabilityRows}\"", pageTemplates, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the Presentation projection keeps only UI-owned contract adaptation.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()
@@ -11,12 +211,12 @@ public sealed partial class RepositoryBoundaryTests
         string facts = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.FirmwareFacts.cs");
         string merge = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
         string replace = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
-        string bindings = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Bindings.cs");
+        string deviceContext = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
         string mergeViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replaceViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
 
         Assert.Contains("GetNumberSelectionChoices", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSupportedIcIds", catalog, StringComparison.Ordinal);
@@ -31,9 +231,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", bindings, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
@@ -41,18 +241,26 @@ public sealed partial class RepositoryBoundaryTests
     public void CompositionCommandsShareRunLifecycle()
     {
         string lifecycle = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs");
         string merge = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Merge.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string replace = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Replace.cs");
-
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
+        string selection = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
         Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
-        Assert.Equal(1, CountOccurrences(replace, "return RunCompositionAsync("));
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeWithProgressAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunGeneralMergeWithProgressAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(replace, "await RunCompositionAsync("));
+        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeEphemeralDraftWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralReplaceEphemeralDraftWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("InspectGeneralSelectedFileAsync", selection, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains(
@@ -63,18 +271,18 @@ public sealed partial class RepositoryBoundaryTests
             "internal async Task ProjectAndApplyRunResultAsync(",
             StringComparison.Ordinal);
         int generationIndex = lifecycle.IndexOf(
-            "long reportProjectionGeneration = BeginReportProjection();",
+            "long reportProjectionGeneration = reports.BeginReportProjection();",
             projectionMethodIndex,
             StringComparison.Ordinal);
         int reportProjectionIndex = lifecycle.IndexOf(
-            "ReportReviewViewModel report = await ProjectReportAsync(",
+            "ReportReviewViewModel report = await reports.ProjectReportAsync(",
             generationIndex,
             StringComparison.Ordinal);
         int cancellationIndex = lifecycle.IndexOf(
             "cancellationToken.ThrowIfCancellationRequested();",
             reportProjectionIndex,
             StringComparison.Ordinal);
-        int publishIndex = lifecycle.IndexOf("publishReport: IsCurrentReportProjection(", StringComparison.Ordinal);
+        int publishIndex = lifecycle.IndexOf("publishReport: reports.IsCurrentReportProjection(", StringComparison.Ordinal);
         Assert.True(
             projectionMethodIndex >= 0 &&
             generationIndex > projectionMethodIndex &&
@@ -82,25 +290,25 @@ public sealed partial class RepositoryBoundaryTests
             cancellationIndex > reportProjectionIndex &&
             publishIndex > cancellationIndex,
             "Run cancellation must be rechecked after report projection and before publishing UI/history state.");
-        Assert.Contains("long reportProjectionGeneration = BeginReportProjection();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("long reportProjectionGeneration = reports.BeginReportProjection();", lifecycle, StringComparison.Ordinal);
         Assert.Contains("result.CommittedOutputId", lifecycle, StringComparison.Ordinal);
         Assert.Contains("materializationErrorsAsReport: false", lifecycle, StringComparison.Ordinal);
         Assert.Contains("inspectionSnapshot: result.InspectionSnapshot", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("publishReport: IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration)", lifecycle, StringComparison.Ordinal);
         Assert.DoesNotContain("ProjectRunReport(", ReadViewModelPartials(), StringComparison.Ordinal);
         Assert.Contains("ReportReviewViewModel.FromJsonCancellable(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs"), StringComparison.Ordinal);
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs"), StringComparison.Ordinal);
         Assert.Contains("loadErrorReport(action, exception.Message);", lifecycle, StringComparison.Ordinal);
         Assert.Contains("CompleteRun(cancellationSource);", lifecycle, StringComparison.Ordinal);
         Assert.Equal(
             1,
             CountOccurrences(
-                ReadViewModelPartials(),
+                lifecycle,
                 "catch (OperationCanceledException) when (cancellationSource is { IsCancellationRequested: true })"));
         Assert.Equal(
             1,
             CountOccurrences(
-                ReadViewModelPartials(),
+                lifecycle,
                 "catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)"));
     }
 
@@ -109,11 +317,11 @@ public sealed partial class RepositoryBoundaryTests
     public void ReportReviewProjectsOffDispatcherAndPagesLargeEvidence()
     {
         string report = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Report.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string reportHistory = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
         string localization = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Localization.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.cs");
         string reportHistoryTemplate = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml");
         string factory = ReadText(
@@ -185,13 +393,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("CreateLinkedTokenSource(cancellationToken)", reportHistory, StringComparison.Ordinal);
         Assert.Contains("requestVersion == Volatile.Read(ref _reportRelocalizationRequestVersion)", reportHistory, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportReviewViewModel.FromJson(\n                LoadedReportJson", reportHistory, StringComparison.Ordinal);
-        Assert.Contains("await ProjectReportAsync(", ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.RunLifecycle.cs"), StringComparison.Ordinal);
+        Assert.Contains("await reports.ProjectReportAsync(", ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunPresentationViewModel.cs"), StringComparison.Ordinal);
     }
 
-    /// <summary>Locks the shared Hex viewport redesign out of v0.9.11 while preserving both existing hosts.</summary>
+    /// <summary>Locks #191/#192 to one read-only viewport with separate source adapters.</summary>
     [Fact]
-    public void V0911KeepsRawEditorAndReportDiffRenderersSeparate()
+    public void HexViewportIsReadOnlyAndSourceAdaptersStaySeparate()
     {
         string rawEditor = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml");
@@ -199,13 +407,49 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml");
         string reportViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewModel.cs");
+        string reportAdapter = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHexDiffViewportAdapter.cs");
+        string binAdapter = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BinInspectorViewportAdapter.cs");
+        string binHost = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/BinInspectorPanel.axaml");
+        string binViewModel = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/BinInspectorViewModel.cs");
+        string binFactory = ReadText(
+            "src/NvtFwCombiner.Application/Metadata/FirmwareBinInspectionSnapshot.cs");
         string rawEditorViewModel = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorWorkspaceViewModel.cs");
+        string viewport = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Presentation.Avalonia", "Views"),
+                    "HexViewportControl*.cs")
+                .Select(File.ReadAllText));
 
-        Assert.Contains("HexEditorViewportControl", rawEditor, StringComparison.Ordinal);
-        Assert.DoesNotContain("HexEditorViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", rawEditor, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", reportDiff, StringComparison.Ordinal);
+        Assert.Contains("HexViewportControl", binHost, StringComparison.Ordinal);
+        Assert.Contains("HexViewportCapabilityProfile.ReportDiff", reportAdapter, StringComparison.Ordinal);
+        Assert.Contains("HexViewportCapabilityProfile.BinInspector", binAdapter, StringComparison.Ordinal);
+        Assert.Contains("FirmwareBinInspectionSnapshot inspection", binViewModel, StringComparison.Ordinal);
+        Assert.Contains("FirmwareMetadataInspectionFormatter.Format(inspection)", binFactory, StringComparison.Ordinal);
+        Assert.Contains("Matches(identity, artifact)", binFactory, StringComparison.Ordinal);
+        Assert.DoesNotContain("FormattedMetadataStructure metadata,", binViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportViewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHexDiffViewModel", rawEditorViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", reportAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportHexDiffViewModel", binAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("Overwrite", reportAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("Overwrite", binAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("HexEditorWorkspaceViewModel", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("IRelayCommand", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("RawBinaryEditorSession", viewport, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "HexEditorViewportViewModels.cs")));
     }
 
     /// <summary>Prevents retired, unbound shell inspector projections from returning.</summary>
@@ -291,10 +535,12 @@ public sealed partial class RepositoryBoundaryTests
         string coverage = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MemoryCoverageSegmentViewModel.cs");
         string hexCell = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/HexEditorViewportViewModels.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/HexViewport/HexViewportContracts.cs");
 
         Assert.DoesNotContain("TooltipText", coverage, StringComparison.Ordinal);
         Assert.DoesNotContain("InlineValidationMessage", hexCell, StringComparison.Ordinal);
+        Assert.DoesNotContain("EditValue", hexCell, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsEditing", hexCell, StringComparison.Ordinal);
     }
 
     /// <summary>Locks stale internal Hex searches to the unfiltered cancellation boundary.</summary>
@@ -348,14 +594,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshContextState();", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshSettingsState();", construction, StringComparison.Ordinal);
-        Assert.Contains("_deferredState.EnsurePage(page, RefreshSettingsState", context, StringComparison.Ordinal);
+        Assert.Contains("_deferredState.EnsureSettings(RefreshSettingsState)", context, StringComparison.Ordinal);
+        Assert.Contains("WorkflowSession.EnsureWorkflowLoaded()", context, StringComparison.Ordinal);
         Assert.Contains("if (!_isInitializing)", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportHistoryFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.Save(viewModel)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("e.Cancel = true", mainWindow, StringComparison.Ordinal);
         Assert.Contains("IsEnabled = false", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("viewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("finalViewModel.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("viewModel.RunSession.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("finalViewModel.RunSession.CancelActiveRun();", mainWindow, StringComparison.Ordinal);
         Assert.Contains("Task.WhenAll(", mainWindow, StringComparison.Ordinal);
         Assert.Contains("completion.WaitAsync(LocalStateCloseFlushTimeout)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_reportHistoryPersistence.CompleteAsync()", mainWindow, StringComparison.Ordinal);
@@ -372,7 +619,7 @@ public sealed partial class RepositoryBoundaryTests
         string entry = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportHistoryEntryViewModel.cs");
         string history = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.ReportHistory.cs");
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportPresentationViewModel.History.cs");
 
         Assert.Contains("private readonly ReportHistorySnapshot snapshot;", entry, StringComparison.Ordinal);
         Assert.Contains("public long StoredByteCount", entry, StringComparison.Ordinal);

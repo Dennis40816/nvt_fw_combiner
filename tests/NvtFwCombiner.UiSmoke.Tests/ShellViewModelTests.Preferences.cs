@@ -60,8 +60,8 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("Dark", restoredViewModel.SelectedTheme);
         Assert.Equal("Traditional Chinese", restoredViewModel.SelectedLanguage);
         Assert.True(restoredViewModel.IsReducedMotionEnabled);
-        Assert.True(restoredViewModel.CompositionProgress.IsReducedMotionEnabled);
-        Assert.False(restoredViewModel.CompositionProgress.ShouldAnimateActiveStep);
+        Assert.True(restoredViewModel.RunSession.CompositionProgress.IsReducedMotionEnabled);
+        Assert.False(restoredViewModel.RunSession.CompositionProgress.ShouldAnimateActiveStep);
         Assert.Equal("設定", restoredViewModel.SettingsPreview.Title);
         Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
 

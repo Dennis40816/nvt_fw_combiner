@@ -10,7 +10,7 @@ public sealed partial class ShellViewModelTests
 {
     /// <summary>Emits non-gating Node B/C observations for the bounded 10,000-range Hex Diff path.</summary>
     [Fact]
-    public async Task ReportHexDiffEmitsColdWarmProjectionAndJumpObservations()
+    public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
         WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
         using var source = JsonDocument.Parse(result.ReportJson);
@@ -68,39 +68,36 @@ public sealed partial class ShellViewModelTests
         long workingSetAfterWarm = process.WorkingSet64;
         long testhostLifetimePeakWorkingSet = process.PeakWorkingSet64;
 
-        warm.HexDiff.JumpAddress = "0x8CA4";
-        long jumpAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        long jumpTimestamp = Stopwatch.GetTimestamp();
-        warm.HexDiff.JumpAddressCommand.Execute(null);
-        TimeSpan jumpElapsed = Stopwatch.GetElapsedTime(jumpTimestamp);
-        long jumpAllocated = GC.GetAllocatedBytesForCurrentThread() - jumpAllocatedBefore;
+        ReportHexDiffRangeViewModel target = warm.HexDiff.Ranges[1];
+        long selectionAllocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        long selectionTimestamp = Stopwatch.GetTimestamp();
+        warm.HexDiff.SelectRangeCommand.Execute(target);
+        TimeSpan selectionElapsed = Stopwatch.GetElapsedTime(selectionTimestamp);
+        long selectionAllocated = GC.GetAllocatedBytesForCurrentThread() - selectionAllocatedBefore;
 
         Assert.True(cold.HexDiff.IsAvailable);
         Assert.True(warm.HexDiff.IsAvailable);
-        Assert.Equal(10_000, cold.HexDiff.NavigatorPage.TotalCount);
-        Assert.Equal(64, cold.HexDiff.NavigatorPage.VisibleCount);
-        Assert.InRange(cold.HexDiff.MaterializedRangeCount, 1, 64);
-        Assert.InRange(cold.HexDiff.VisibleRows.Count, 1, 48);
-        Assert.Equal(10_000, warm.HexDiff.NavigatorPage.TotalCount);
-        Assert.Equal(64, warm.HexDiff.NavigatorPage.VisibleCount);
-        Assert.InRange(warm.HexDiff.MaterializedRangeCount, 1, 65);
+        Assert.Equal(10_000, cold.HexDiff.Ranges.Count);
+        Assert.Equal(1, cold.HexDiff.MaterializedRangeCount);
+        Assert.InRange(cold.HexDiff.ViewportSnapshot.Rows.Count, 1, 12);
+        Assert.Equal(10_000, warm.HexDiff.Ranges.Count);
+        Assert.Equal(2, warm.HexDiff.MaterializedRangeCount);
         ReportHexDiffRangeViewModel selected = Assert.IsType<ReportHexDiffRangeViewModel>(
             warm.HexDiff.SelectedRange);
-        Assert.Equal(0x8CA4, selected.Start);
-        Assert.False(selected.IsReviewRequired);
+        Assert.Same(target, selected);
+        Assert.True(selected.IsReviewRequired);
         Assert.True(selected.IsSelected);
-        Assert.Equal(65, warm.HexDiff.VisibleNavigatorRowCount);
 
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"HEX_DIFF_BASELINE ranges=10000 outputSha256={result.OutputSha256} jsonChars={json.Length} " +
-            $"coldFirstPageMs={coldElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"coldProjectionMs={coldElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
             $"coldAllocated={coldAllocated} " +
             $"coldGc0={coldGen0} coldGc1={coldGen1} coldGc2={coldGen2} " +
-            $"warmFirstPageMs={warmElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"warmProjectionMs={warmElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
             $"warmAllocated={warmAllocated} " +
             $"warmGc0={warmGen0} warmGc1={warmGen1} warmGc2={warmGen2} " +
-            $"jumpMs={jumpElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
-            $"jumpAllocated={jumpAllocated} " +
+            $"selectionMs={selectionElapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} " +
+            $"selectionAllocated={selectionAllocated} " +
             $"workingSetBefore={workingSetBefore} workingSetAfterCold={workingSetAfterCold} " +
             $"workingSetAfterWarm={workingSetAfterWarm} " +
             $"testhostLifetimePeakWorkingSet={testhostLifetimePeakWorkingSet}");

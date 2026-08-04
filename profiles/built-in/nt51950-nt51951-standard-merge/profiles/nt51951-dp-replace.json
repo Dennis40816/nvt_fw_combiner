@@ -2,7 +2,7 @@
   "schemaVersion": "2.13",
   "compilationContext": { "kind": "resolved-map" },
   "profileId": "nt51951-dp-replace-dp-perspective",
-  "profileVersion": "0.7.0",
+  "profileVersion": "0.8.0",
   "promotion": {
     "stage": "supported",
     "blockers": []
@@ -58,11 +58,7 @@
       "acceptedExtensions": [".bin"],
       "acceptance": {
         "lengthRule": { "kind": "exact-resolved-map-capacity" },
-        "normalization": {
-          "kind": "pad-shorter",
-          "fillByte": 0,
-          "evidenceRef": "dp-replace-synthetic-oracle-v1"
-        }
+        "normalization": { "kind": "none" }
       }
     }
   ],
@@ -171,8 +167,7 @@
     "dp-perspective-51950-51951-owner-map",
     "legacy-v2-dp-perspective-parity-matrix",
     "dp-replace-customer-info-follows-dp-owner-decision",
-    "dp-replace-synthetic-oracle-v1",
-    "dp-replace-owner-approved-legacy-comparison-v1",
+    "dp-replace-exact-pair-owner-decision-20260802",
     "ic-flashmap-20260725-51950-tp-firmware-config",
     "ic-flashmap-20260725-51950-dp-perspective"
   ]

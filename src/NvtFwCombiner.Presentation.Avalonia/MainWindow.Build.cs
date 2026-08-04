@@ -8,23 +8,23 @@ public sealed partial class MainWindow
 {
     private async void BuildMergeButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildMerge)
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Merge.CanBuildMerge)
         {
             return;
         }
 
-        await viewModel.RefreshSelectedMergeFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildMerge)
+        await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync();
+        if (!viewModel.Merge.CanBuildMerge)
         {
-            if (viewModel.IsAbCodeMergeModeSelected)
+            if (viewModel.Merge.IsAbCodeMergeModeSelected)
             {
-                _ = await viewModel.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
+                _ = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(CancellationToken.None);
             }
 
             return;
         }
 
-        MergeBuildSavePreparation? preparation = await viewModel.TryPrepareMergeBuildSaveAsync(
+        MergeBuildSavePreparation? preparation = await viewModel.Merge.TryPrepareMergeBuildSaveAsync(
             CancellationToken.None);
         if (preparation is null)
         {
@@ -33,7 +33,7 @@ public sealed partial class MainWindow
 
         WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
         bool exportAFlashCode = aFlashCodePlan is not null &&
-            await viewModel.PromptForAbAFlashCodeDeliveryAsync();
+            await viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(
             StorageProvider,
             preparation.SuggestedFileName);
@@ -41,7 +41,7 @@ public sealed partial class MainWindow
         {
             return;
         }
-        bool outputPathUsesAutomaticName = viewModel.IsAbCodeMergeModeSelected &&
+        bool outputPathUsesAutomaticName = viewModel.Merge.IsAbCodeMergeModeSelected &&
             string.Equals(
                 Path.GetFileName(outputPath),
                 preparation.SuggestedFileName,
@@ -64,7 +64,7 @@ public sealed partial class MainWindow
                 StringComparison.Ordinal);
         }
 
-        await viewModel.BuildMergeAsync(
+        await viewModel.Merge.BuildMergeAsync(
             outputPath,
             aFlashCodeOutputPath,
             outputPathUsesAutomaticName,
@@ -73,31 +73,31 @@ public sealed partial class MainWindow
 
     private async void BuildReplaceButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel || !viewModel.CanBuildReplace)
+        if (DataContext is not MainWindowViewModel viewModel || !viewModel.Replace.CanBuildReplace)
         {
             return;
         }
 
-        await viewModel.RefreshSelectedReplaceFirmwareInspectionsAsync();
-        if (!viewModel.CanBuildReplace)
+        await viewModel.Replace.RefreshSelectedFirmwareInspectionsAsync();
+        if (!viewModel.Replace.CanBuildReplace)
         {
             return;
         }
 
-        if (viewModel.IsCtrlRamReplaceModeSelected)
+        if (viewModel.Replace.IsCtrlRamReplaceModeSelected)
         {
-            _ = await viewModel.TryOpenCtrlRamFirmwareVersionModalAsync();
+            _ = await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync();
             return;
         }
 
         string? outputPath = await FirmwareFilePickerDialogs.PickReplacedFirmwareOutputPathAsync(
             StorageProvider,
-            viewModel.ReplaceOutputFileName);
+            viewModel.Replace.ReplaceOutputFileName);
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             return;
         }
 
-        await viewModel.BuildReplaceAsync(outputPath);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
     }
 }

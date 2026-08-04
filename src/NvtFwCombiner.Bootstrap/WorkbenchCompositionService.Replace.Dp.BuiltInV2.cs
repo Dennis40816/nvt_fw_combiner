@@ -34,7 +34,7 @@ public static partial class WorkbenchCompositionService
     internal static bool TryCompileBuiltInV2DpReplace(
         string icId,
         long baseCapacity,
-        IReadOnlyCollection<string> selectedInputSlotIds,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -50,12 +50,11 @@ public static partial class WorkbenchCompositionService
     internal static bool TryCompileBuiltInV2DpReplace(
         string icId,
         long baseCapacity,
-        IReadOnlyCollection<string> selectedInputSlotIds,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
         return TryCompilePublishedDynamicCapability(
                 icId,
                 IcWorkflowIds.DpReplace,
@@ -142,32 +141,6 @@ public static partial class WorkbenchCompositionService
             selectedInputSlotIds,
             baseCapacity is null ? CompositionAddressSpaceIds.ReferenceBase : null);
         return true;
-    }
-
-    /// <summary>
-    /// Exposes the Application-owned DP Replace selection result unchanged to Presentation clients.
-    /// </summary>
-    public static bool TryGetDpReplaceInputSelectionReadiness(
-        string icId,
-        long? baseCapacity,
-        IEnumerable<string> selectedInputAddressSpaceIds,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out InputSelectionReadinessSnapshot? readiness)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(selectedInputAddressSpaceIds);
-        if (!HasBuiltInV2DpReplaceSelectionGroup(icId))
-        {
-            readiness = null;
-            return false;
-        }
-
-        return TryResolveBuiltInV2DpReplaceInputSelection(
-            icId,
-            baseCapacity,
-            [.. selectedInputAddressSpaceIds],
-            out readiness,
-            out _);
     }
 
     /// <summary>Resolves the V2 DP Replace facts needed by the workbench display without consulting legacy maps.</summary>

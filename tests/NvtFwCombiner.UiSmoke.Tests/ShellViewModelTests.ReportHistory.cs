@@ -19,53 +19,53 @@ public sealed partial class ShellViewModelTests
         string buildJson = ReportJsonSamples.CtrlRamCommandSucceeded();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(previewJson, "preview-report.json");
-        viewModel.LoadReportJson(buildJson, "build-report.json");
+        viewModel.Reports.LoadReportJson(previewJson, "preview-report.json");
+        viewModel.Reports.LoadReportJson(buildJson, "build-report.json");
 
-        Assert.True(viewModel.HasReportHistory);
-        Assert.Equal(2, viewModel.ReportHistoryCount);
-        Assert.Equal("2 reports in history", viewModel.ReportHistorySummary);
-        Assert.Equal("nt51927-ctrlram-replace (NT51927)", viewModel.ReportHistoryEntries[0].Title);
-        Assert.Equal("1 command", viewModel.ReportHistoryEntries[0].CommandSummary);
-        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.ReportHistoryEntries[1].Title);
-        Assert.Equal("abcdef0123456789...", viewModel.ReportHistoryEntries[1].OutputHash);
+        Assert.True(viewModel.Reports.HasReportHistory);
+        Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("2 reports in history", viewModel.Reports.ReportHistorySummary);
+        Assert.Equal("nt51927-ctrlram-replace (NT51927)", viewModel.Reports.ReportHistoryEntries[0].Title);
+        Assert.Equal("1 command", viewModel.Reports.ReportHistoryEntries[0].CommandSummary);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.Reports.ReportHistoryEntries[1].Title);
+        Assert.Equal("abcdef0123456789...", viewModel.Reports.ReportHistoryEntries[1].OutputHash);
 
-        viewModel.ShowReportHistoryCommand.Execute(null);
+        viewModel.Reports.ShowReportHistoryCommand.Execute(null);
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.True(viewModel.IsReportHistoryViewOpen);
-        Assert.False(viewModel.IsReportReviewViewOpen);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.True(viewModel.Reports.IsReportHistoryViewOpen);
+        Assert.False(viewModel.Reports.IsReportReviewViewOpen);
 
-        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(viewModel.ReportHistoryEntries[1]);
+        await viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(viewModel.Reports.ReportHistoryEntries[1]);
 
-        Assert.True(viewModel.IsReportModalOpen);
-        Assert.False(viewModel.IsReportHistoryViewOpen);
-        Assert.True(viewModel.IsReportReviewViewOpen);
-        Assert.False(viewModel.HasReportToast);
-        Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
-        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.LoadedReport.Title);
-        Assert.Equal(previewJson, viewModel.LoadedReportJson);
-        Assert.Equal(2, viewModel.ReportHistoryCount);
+        Assert.True(viewModel.Reports.IsReportModalOpen);
+        Assert.False(viewModel.Reports.IsReportHistoryViewOpen);
+        Assert.True(viewModel.Reports.IsReportReviewViewOpen);
+        Assert.False(viewModel.Reports.HasReportToast);
+        Assert.Equal("preview-report.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", viewModel.Reports.LoadedReport.Title);
+        Assert.Equal(previewJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
 
-        viewModel.ShowReportHistoryCommand.Execute(null);
-        viewModel.RemoveReportHistoryEntryCommand.Execute(viewModel.ReportHistoryEntries[0]);
+        viewModel.Reports.ShowReportHistoryCommand.Execute(null);
+        viewModel.Reports.RemoveReportHistoryEntryCommand.Execute(viewModel.Reports.ReportHistoryEntries[0]);
 
-        Assert.True(viewModel.HasReportHistory);
-        Assert.Equal(1, viewModel.ReportHistoryCount);
-        Assert.Equal("1 report in history", viewModel.ReportHistorySummary);
-        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", Assert.Single(viewModel.ReportHistoryEntries).Title);
+        Assert.True(viewModel.Reports.HasReportHistory);
+        Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("1 report in history", viewModel.Reports.ReportHistorySummary);
+        Assert.Equal("nt51927-standard-merge-gen-flash (NT51927)", Assert.Single(viewModel.Reports.ReportHistoryEntries).Title);
 
-        viewModel.ClearReportHistoryCommand.Execute(null);
+        viewModel.Reports.ClearReportHistoryCommand.Execute(null);
 
-        Assert.False(viewModel.HasReportHistory);
-        Assert.True(viewModel.IsReportHistoryEmpty);
-        Assert.Equal(0, viewModel.ReportHistoryCount);
-        Assert.Equal("No reports in history", viewModel.ReportHistorySummary);
-        Assert.False(viewModel.CanOpenReportHistory);
-        Assert.False(viewModel.ShowReportHistoryCommand.CanExecute(null));
-        Assert.False(viewModel.ClearReportHistoryCommand.CanExecute(null));
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.Equal("preview-report.json", viewModel.LoadedReport.SourceName);
+        Assert.False(viewModel.Reports.HasReportHistory);
+        Assert.True(viewModel.Reports.IsReportHistoryEmpty);
+        Assert.Equal(0, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("No reports in history", viewModel.Reports.ReportHistorySummary);
+        Assert.False(viewModel.Reports.CanOpenReportHistory);
+        Assert.False(viewModel.Reports.ShowReportHistoryCommand.CanExecute(null));
+        Assert.False(viewModel.Reports.ClearReportHistoryCommand.CanExecute(null));
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.Equal("preview-report.json", viewModel.Reports.LoadedReport.SourceName);
     }
 
     /// <summary>A blocked build is recorded as having no artifact, not as a zero-byte output file.</summary>
@@ -74,9 +74,9 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(ReportJsonSamples.CtrlRamCommandIssue(), "blocked-report.json");
+        viewModel.Reports.LoadReportJson(ReportJsonSamples.CtrlRamCommandIssue(), "blocked-report.json");
 
-        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("No output generated", entry.Output);
         Assert.Equal("No output hash", entry.OutputHash);
     }
@@ -89,26 +89,26 @@ public sealed partial class ShellViewModelTests
         string paddedJson = json.Insert(json.LastIndexOf('}'), $",\"Padding\":\"{new string('A', 1024 * 1024)}\"");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(paddedJson, "large-report.json");
-        viewModel.ShowReportHistoryCommand.Execute(null);
+        viewModel.Reports.LoadReportJson(paddedJson, "large-report.json");
+        viewModel.Reports.ShowReportHistoryCommand.Execute(null);
 
-        Assert.True(viewModel.IsReportHistoryViewOpen);
-        Assert.True(viewModel.HasReportHistoryStorageWarning);
-        Assert.Contains("MB", viewModel.ReportHistoryStorageSummary, StringComparison.Ordinal);
-        Assert.Contains("Clear history", viewModel.ReportHistoryStorageWarning, StringComparison.Ordinal);
+        Assert.True(viewModel.Reports.IsReportHistoryViewOpen);
+        Assert.True(viewModel.Reports.HasReportHistoryStorageWarning);
+        Assert.Contains("MB", viewModel.Reports.ReportHistoryStorageSummary, StringComparison.Ordinal);
+        Assert.Contains("Clear history", viewModel.Reports.ReportHistoryStorageWarning, StringComparison.Ordinal);
 
-        viewModel.ClearReportHistoryCommand.Execute(null);
+        viewModel.Reports.ClearReportHistoryCommand.Execute(null);
 
-        Assert.False(viewModel.HasReportHistoryStorageWarning);
-        Assert.Equal("0 B stored locally", viewModel.ReportHistoryStorageSummary);
-        Assert.Empty(viewModel.ExportReportHistory());
+        Assert.False(viewModel.Reports.HasReportHistoryStorageWarning);
+        Assert.Equal("0 B stored locally", viewModel.Reports.ReportHistoryStorageSummary);
+        Assert.Empty(viewModel.Reports.ExportReportHistory());
     }
 
     /// <summary>Large local reports keep the newest review without allowing older history to exceed its byte budget.</summary>
     [Fact]
     public void ReportHistoryKeepsNewestEntryWithinStorageBudget()
     {
-        int paddingLength = checked((int)(MainWindowViewModel.MaximumReportHistoryStorageBytes / 2) + 1024);
+        int paddingLength = checked((int)(ReportPresentationViewModel.MaximumReportHistoryStorageBytes / 2) + 1024);
         string firstBase = ReportJsonSamples.Succeeded(runId: "first-large");
         string secondBase = ReportJsonSamples.Succeeded(runId: "second-large");
         string first = firstBase.Insert(
@@ -119,10 +119,10 @@ public sealed partial class ShellViewModelTests
             $",\"Padding\":\"{new string('B', paddingLength)}\"");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(first, "first-large.json");
-        viewModel.LoadReportJson(second, "second-large.json");
+        viewModel.Reports.LoadReportJson(first, "first-large.json");
+        viewModel.Reports.LoadReportJson(second, "second-large.json");
 
-        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("second-large.json", entry.SourceName);
         Assert.Equal(second, entry.ReportJson);
     }
@@ -134,11 +134,11 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.Succeeded(runId: "多位元組-report");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportJson(json, "report.json");
+        viewModel.Reports.LoadReportJson(json, "report.json");
 
         long expected = Encoding.UTF8.GetByteCount(json);
-        Assert.Equal(expected, viewModel.LoadedReport.ReportJsonUtf8ByteCount);
-        Assert.Equal(expected, Assert.Single(viewModel.ReportHistoryEntries).StoredByteCount);
+        Assert.Equal(expected, viewModel.Reports.LoadedReport.ReportJsonUtf8ByteCount);
+        Assert.Equal(expected, Assert.Single(viewModel.Reports.ReportHistoryEntries).StoredByteCount);
     }
 
     /// <summary>Verifies persisted report history snapshots restore report metadata and artifact path context.</summary>
@@ -162,19 +162,19 @@ public sealed partial class ShellViewModelTests
             "C:/nfc/output/build.bin");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportHistory([snapshot]);
+        viewModel.Reports.LoadReportHistory([snapshot]);
 
-        Assert.True(viewModel.HasLoadedReport);
-        Assert.True(viewModel.CanOpenReport);
-        Assert.False(viewModel.HasReportToast);
-        Assert.Equal("Open report", viewModel.ReportActionLabel);
-        Assert.Equal("Succeeded", viewModel.ReportActionStatus);
-        Assert.Equal("build-report.json", viewModel.LoadedReport.SourceName);
-        Assert.True(viewModel.LoadedReport.HasOutputArtifactPath);
-        Assert.Equal("C:/nfc/output/build.bin", viewModel.LoadedReport.OutputArtifactPath);
-        Assert.Equal("C:/nfc/output/build.bin", Assert.Single(viewModel.ReportHistoryEntries).ArtifactPath);
+        Assert.True(viewModel.Reports.HasLoadedReport);
+        Assert.True(viewModel.Reports.CanOpenReport);
+        Assert.False(viewModel.Reports.HasReportToast);
+        Assert.Equal("Open report", viewModel.Reports.ReportActionLabel);
+        Assert.Equal("Succeeded", viewModel.Reports.ReportActionStatus);
+        Assert.Equal("build-report.json", viewModel.Reports.LoadedReport.SourceName);
+        Assert.True(viewModel.Reports.LoadedReport.HasOutputArtifactPath);
+        Assert.Equal("C:/nfc/output/build.bin", viewModel.Reports.LoadedReport.OutputArtifactPath);
+        Assert.Equal("C:/nfc/output/build.bin", Assert.Single(viewModel.Reports.ReportHistoryEntries).ArtifactPath);
 
-        IReadOnlyList<ReportHistorySnapshot> exported = viewModel.ExportReportHistory();
+        IReadOnlyList<ReportHistorySnapshot> exported = viewModel.Reports.ExportReportHistory();
         ReportHistorySnapshot exportedSnapshot = Assert.Single(exported);
         Assert.Equal("build-report.json", exportedSnapshot.SourceName);
         Assert.Equal(json, exportedSnapshot.ReportJson);
@@ -187,11 +187,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("0 inputs / 0 steps / 0 mutations", exportedSnapshot.Metadata.EvidenceSummary);
 
         MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
-        restoredViewModel.LoadReportHistory(exported);
+        restoredViewModel.Reports.LoadReportHistory(exported);
 
-        Assert.Equal("nt51927-ctrlram-replace (NT51927)", restoredViewModel.LoadedReport.Title);
-        Assert.Equal("C:/nfc/output/build.bin", restoredViewModel.LoadedReport.OutputArtifactPath);
-        Assert.Equal(1, restoredViewModel.ReportHistoryCount);
+        Assert.Equal("nt51927-ctrlram-replace (NT51927)", restoredViewModel.Reports.LoadedReport.Title);
+        Assert.Equal("C:/nfc/output/build.bin", restoredViewModel.Reports.LoadedReport.OutputArtifactPath);
+        Assert.Equal(1, restoredViewModel.Reports.ReportHistoryCount);
     }
 
     /// <summary>A slow startup history load cannot replace a report published by a newer UI action.</summary>
@@ -204,14 +204,14 @@ public sealed partial class ShellViewModelTests
             TaskCreationOptions.RunContinuationsAsynchronously);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task<bool> load = viewModel.LoadReportHistoryAsync(_ => pending.Task, CancellationToken.None);
-        viewModel.LoadReportJson(userJson, "user-report.json");
+        Task<bool> load = viewModel.Reports.LoadReportHistoryAsync(_ => pending.Task, CancellationToken.None);
+        viewModel.Reports.LoadReportJson(userJson, "user-report.json");
         pending.SetResult([new ReportHistorySnapshot("startup.json", startupJson, string.Empty)]);
 
         Assert.False(await load);
-        Assert.Equal("newer-user-run", viewModel.LoadedReport.RunId);
-        Assert.Equal(userJson, viewModel.LoadedReportJson);
-        Assert.Equal("user-report.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+        Assert.Equal("newer-user-run", viewModel.Reports.LoadedReport.RunId);
+        Assert.Equal(userJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("user-report.json", Assert.Single(viewModel.Reports.ReportHistoryEntries).SourceName);
     }
 
     /// <summary>The production startup path publishes the same latest report and compact history semantics.</summary>
@@ -225,14 +225,14 @@ public sealed partial class ShellViewModelTests
             "C:/output/prepared.bin");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        bool published = await viewModel.LoadReportHistoryAsync(
+        bool published = await viewModel.Reports.LoadReportHistoryAsync(
             _ => Task.FromResult<IReadOnlyList<ReportHistorySnapshot>>([snapshot]),
             CancellationToken.None);
 
         Assert.True(published);
-        Assert.Equal("prepared-startup-run", viewModel.LoadedReport.RunId);
-        Assert.Equal(startupJson, viewModel.LoadedReportJson);
-        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.ReportHistoryEntries);
+        Assert.Equal("prepared-startup-run", viewModel.Reports.LoadedReport.RunId);
+        Assert.Equal(startupJson, viewModel.Reports.LoadedReportJson);
+        ReportHistoryEntryViewModel entry = Assert.Single(viewModel.Reports.ReportHistoryEntries);
         Assert.Equal("prepared-startup.json", entry.SourceName);
         Assert.NotEqual(ReportHistoryMetadataSnapshot.Empty, entry.ToSnapshot().Metadata);
     }
@@ -247,14 +247,14 @@ public sealed partial class ShellViewModelTests
         using var cancellation = new CancellationTokenSource();
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task<bool> load = viewModel.LoadReportHistoryAsync(_ => pending.Task, cancellation.Token);
+        Task<bool> load = viewModel.Reports.LoadReportHistoryAsync(_ => pending.Task, cancellation.Token);
         cancellation.Cancel();
         pending.SetResult([new ReportHistorySnapshot("cancelled.json", startupJson, string.Empty)]);
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => load);
-        Assert.Empty(viewModel.ReportHistoryEntries);
-        Assert.False(viewModel.HasLoadedReport);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.Empty(viewModel.Reports.ReportHistoryEntries);
+        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A slow explicit startup report cannot replace a report published by a newer UI action.</summary>
@@ -266,17 +266,17 @@ public sealed partial class ShellViewModelTests
         var pending = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        Task<bool> load = viewModel.LoadReportJsonAsync(
+        Task<bool> load = viewModel.Reports.LoadReportJsonAsync(
             _ => pending.Task,
             "startup-report.json",
             CancellationToken.None);
-        viewModel.LoadReportJson(userJson, "user-report.json");
+        viewModel.Reports.LoadReportJson(userJson, "user-report.json");
         pending.SetResult(startupJson);
 
         Assert.False(await load);
-        Assert.Equal("newer-explicit-user-run", viewModel.LoadedReport.RunId);
-        Assert.Equal(userJson, viewModel.LoadedReportJson);
-        Assert.Equal("user-report.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+        Assert.Equal("newer-explicit-user-run", viewModel.Reports.LoadedReport.RunId);
+        Assert.Equal(userJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("user-report.json", Assert.Single(viewModel.Reports.ReportHistoryEntries).SourceName);
     }
 
     /// <summary>The production startup source path projects and publishes a current report normally.</summary>
@@ -286,15 +286,15 @@ public sealed partial class ShellViewModelTests
         string startupJson = ReportJsonSamples.Succeeded(runId: "current-explicit-startup-run");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        bool published = await viewModel.LoadReportJsonAsync(
+        bool published = await viewModel.Reports.LoadReportJsonAsync(
             _ => Task.FromResult(startupJson),
             "current-startup.json",
             CancellationToken.None);
 
         Assert.True(published);
-        Assert.Equal("current-explicit-startup-run", viewModel.LoadedReport.RunId);
-        Assert.Equal(startupJson, viewModel.LoadedReportJson);
-        Assert.Equal("current-startup.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+        Assert.Equal("current-explicit-startup-run", viewModel.Reports.LoadedReport.RunId);
+        Assert.Equal(startupJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("current-startup.json", Assert.Single(viewModel.Reports.ReportHistoryEntries).SourceName);
     }
 
     /// <summary>A current startup source failure keeps the existing readable load-error contract.</summary>
@@ -303,16 +303,16 @@ public sealed partial class ShellViewModelTests
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        bool published = await viewModel.LoadReportJsonAsync(
+        bool published = await viewModel.Reports.LoadReportJsonAsync(
             _ => Task.FromException<string>(new IOException("startup storage unavailable")),
             "missing-startup.json",
             CancellationToken.None);
 
         Assert.True(published);
-        Assert.Equal("Load failed", viewModel.LoadedReport.Status);
-        Assert.Contains("startup storage unavailable", viewModel.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
-        Assert.Equal("missing-startup.json", Assert.Single(viewModel.ReportHistoryEntries).SourceName);
+        Assert.Equal("Load failed", viewModel.Reports.LoadedReport.Status);
+        Assert.Contains("startup storage unavailable", viewModel.Reports.LoadedReport.PrimaryIssue.Detail, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("missing-startup.json", Assert.Single(viewModel.Reports.ReportHistoryEntries).SourceName);
     }
 
     /// <summary>Verifies local report history persistence round-trips and fails closed for bad JSON.</summary>
@@ -400,23 +400,23 @@ public sealed partial class ShellViewModelTests
         ReportHistorySnapshot deferred = new("deferred.json", deferredJson, "C:/output/deferred.bin", deferredMetadata);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportHistory([latest, deferred]);
+        viewModel.Reports.LoadReportHistory([latest, deferred]);
 
-        Assert.Equal(2, viewModel.ReportHistoryCount);
-        Assert.Equal("latest-run", viewModel.LoadedReport.RunId);
-        ReportHistoryEntryViewModel deferredEntry = viewModel.ReportHistoryEntries[1];
+        Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("latest-run", viewModel.Reports.LoadedReport.RunId);
+        ReportHistoryEntryViewModel deferredEntry = viewModel.Reports.ReportHistoryEntries[1];
         Assert.Equal("Deferred report", deferredEntry.Title);
         Assert.Equal(
             Encoding.UTF8.GetByteCount(deferredJson) + Encoding.UTF8.GetByteCount(deferred.OutputArtifactPath),
             deferredEntry.StoredByteCount);
         Assert.Same(deferred, deferredEntry.ToSnapshot());
 
-        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(deferredEntry);
+        await viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(deferredEntry);
 
-        Assert.Equal(deferredJson, viewModel.LoadedReportJson);
-        Assert.Equal("deferred-run", viewModel.LoadedReport.RunId);
-        Assert.NotEqual(deferredEntry.Title, viewModel.LoadedReport.Title);
-        Assert.Equal(2, viewModel.ReportHistoryCount);
+        Assert.Equal(deferredJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal("deferred-run", viewModel.Reports.LoadedReport.RunId);
+        Assert.NotEqual(deferredEntry.Title, viewModel.Reports.LoadedReport.Title);
+        Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
     }
 
     /// <summary>A metadata-backed invalid latest report becomes a readable error instead of breaking restore.</summary>
@@ -431,12 +431,12 @@ public sealed partial class ShellViewModelTests
         ReportHistorySnapshot invalid = new("invalid-latest.json", "[]", string.Empty, metadata);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportHistory([invalid]);
+        viewModel.Reports.LoadReportHistory([invalid]);
 
-        Assert.Equal(1, viewModel.ReportHistoryCount);
-        Assert.Equal("Invalid JSON", viewModel.LoadedReport.Status);
-        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal("[]", viewModel.LoadedReportJson);
+        Assert.Equal(1, viewModel.Reports.ReportHistoryCount);
+        Assert.Equal("Invalid JSON", viewModel.Reports.LoadedReport.Status);
+        Assert.True(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal("[]", viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A metadata-backed entry with malformed raw JSON is excluded during restore.</summary>
@@ -451,11 +451,11 @@ public sealed partial class ShellViewModelTests
         ReportHistorySnapshot malformed = new("malformed.json", "{not json", string.Empty, metadata);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportHistory([malformed]);
+        viewModel.Reports.LoadReportHistory([malformed]);
 
-        Assert.Empty(viewModel.ReportHistoryEntries);
-        Assert.False(viewModel.HasLoadedReport);
-        Assert.Equal(string.Empty, viewModel.LoadedReportJson);
+        Assert.Empty(viewModel.Reports.ReportHistoryEntries);
+        Assert.False(viewModel.Reports.HasLoadedReport);
+        Assert.Equal(string.Empty, viewModel.Reports.LoadedReportJson);
     }
 
     /// <summary>A metadata-backed invalid older report degrades safely only when the user opens it.</summary>
@@ -481,16 +481,16 @@ public sealed partial class ShellViewModelTests
             invalidMetadata);
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
-        viewModel.LoadReportHistory([latest, invalid]);
+        viewModel.Reports.LoadReportHistory([latest, invalid]);
 
-        Assert.Equal("latest-safe-run", viewModel.LoadedReport.RunId);
-        ReportHistoryEntryViewModel invalidEntry = viewModel.ReportHistoryEntries[1];
+        Assert.Equal("latest-safe-run", viewModel.Reports.LoadedReport.RunId);
+        ReportHistoryEntryViewModel invalidEntry = viewModel.Reports.ReportHistoryEntries[1];
 
-        await viewModel.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(invalidEntry);
+        await viewModel.Reports.OpenReportHistoryEntryAsyncCommand.ExecuteAsync(invalidEntry);
 
-        Assert.Equal("Invalid JSON", viewModel.LoadedReport.Status);
-        Assert.True(viewModel.LoadedReport.HasPrimaryIssue);
-        Assert.Equal(invalid.ReportJson, viewModel.LoadedReportJson);
-        Assert.Equal(2, viewModel.ReportHistoryCount);
+        Assert.Equal("Invalid JSON", viewModel.Reports.LoadedReport.Status);
+        Assert.True(viewModel.Reports.LoadedReport.HasPrimaryIssue);
+        Assert.Equal(invalid.ReportJson, viewModel.Reports.LoadedReportJson);
+        Assert.Equal(2, viewModel.Reports.ReportHistoryCount);
     }
 }

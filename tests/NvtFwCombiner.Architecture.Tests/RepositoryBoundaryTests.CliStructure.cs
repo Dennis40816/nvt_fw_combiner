@@ -59,7 +59,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync",
+            "WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync",
+            general,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync",
             general,
             StringComparison.Ordinal);
     }
@@ -95,88 +99,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("WriteReportAsync", result, StringComparison.Ordinal);
         Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", dispatch, StringComparison.Ordinal);
         Assert.Contains("private static Task WriteUsageAsync", usage, StringComparison.Ordinal);
-    }
-
-    /// <summary>Verifies saved-rule loading keeps schema shape, compatibility policy, and input slots out of the root parser.</summary>
-    [Fact]
-    public void SavedCompositionRuleLoaderConcernsStaySplit()
-    {
-        string root = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.cs");
-        string schema = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Schema.cs");
-        string schemaTokens = ReadText("src/NvtFwCombiner.Bootstrap/SavedRuleSchemaTokens.cs");
-        string compatibility = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Compatibility.cs");
-        string inputSlots = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.InputSlots.cs");
-        string mappingRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
-        string operationFragments = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.OperationFragments.cs");
-        string savedRuleCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
-        string savedRuleV2GeneralMerge = ReadText(
-            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
-        string mappingDraftAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/SavedRuleGeneralMappingDraftAdapter.cs");
-        string json = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Json.cs");
-        string ranges = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Ranges.cs");
-        string grammar = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Grammar.cs");
-        string issues = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.Issues.cs");
-
-        Assert.Contains("public static SavedCompositionRuleLoadResult Load", root, StringComparison.Ordinal);
-        Assert.Contains("private static SavedCompositionRuleLoadResult Parse", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static readonly HashSet<string> TopLevelProperties", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static SavedRuleCompatibility ReadCompatibility", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static HashSet<string> ReadInputSlotTemplateIds", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static void ValidateRuleCompatibility", root, StringComparison.Ordinal);
-        Assert.Contains("TopLevelProperties", schema, StringComparison.Ordinal);
-        Assert.Contains("MappingRowProperties", schema, StringComparison.Ordinal);
-        Assert.Contains("OperationFragmentKindValues", schema, StringComparison.Ordinal);
-        Assert.Contains("internal const string CompositionKindMerge = \"merge\";", schemaTokens, StringComparison.Ordinal);
-        Assert.Contains("internal const string MappingOverlapReject = \"reject\";", schemaTokens, StringComparison.Ordinal);
-        Assert.Contains("internal const string OperationKindCopyRange = \"copy-range\";", schemaTokens, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", schema, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", schema, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", schema, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", compatibility, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindReplace", compatibility, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.SupportStatusCandidate", compatibility, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", mappingRows, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingRows, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.CompositionKindMerge", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRuleCli, StringComparison.Ordinal);
-        Assert.Contains(
-            "SavedRuleSchemaTokens.OperationKindCopyRange",
-            savedRuleV2GeneralMerge,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "SavedRuleSchemaTokens.MappingOverlapReject",
-            savedRuleV2GeneralMerge,
-            StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.MappingOverlapReject", mappingDraftAdapter, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.OperationKindCopyRange", mappingDraftAdapter, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleSchemaTokens.OperationKindReplaceRange", mappingDraftAdapter, StringComparison.Ordinal);
-        Assert.Contains("GeneralMappingDraftState", mappingDraftAdapter, StringComparison.Ordinal);
-        Assert.Contains("OperationProvenance.SavedRule", mappingDraftAdapter, StringComparison.Ordinal);
-        foreach (string literal in new[] { "\"merge\"", "\"reject\"", "\"copy-range\"" })
-        {
-            Assert.DoesNotContain(literal, compatibility, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, mappingRows, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, operationFragments, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, savedRuleCli, StringComparison.Ordinal);
-            Assert.DoesNotContain(literal, mappingDraftAdapter, StringComparison.Ordinal);
-        }
-
-        Assert.Contains("private static SavedRuleCompatibility ReadCompatibility", compatibility, StringComparison.Ordinal);
-        Assert.Contains("private static void ValidateRuleCompatibility", compatibility, StringComparison.Ordinal);
-        Assert.Contains("private static HashSet<string> ReadInputSlotTemplateIds", inputSlots, StringComparison.Ordinal);
-        Assert.Contains("private static List<SavedRuleMappingRow> ReadMappingRows", mappingRows, StringComparison.Ordinal);
-        Assert.Contains("private static List<SavedRuleOperationFragment> ReadOperationFragments", operationFragments, StringComparison.Ordinal);
-        Assert.Contains("private static string RequiredEnum", json, StringComparison.Ordinal);
-        Assert.DoesNotContain("ByteRange", json, StringComparison.Ordinal);
-        Assert.DoesNotContain("GeneratedRegex", json, StringComparison.Ordinal);
-        Assert.Contains("private static ByteRange? ParseByteRange", ranges, StringComparison.Ordinal);
-        Assert.Contains("private static int? OptionalPositiveInt", ranges, StringComparison.Ordinal);
-        Assert.Contains("private static partial Regex IdRegex", grammar, StringComparison.Ordinal);
-        Assert.Contains("private static partial Regex SemverRegex", grammar, StringComparison.Ordinal);
-        Assert.Contains("private static SavedRuleValidationIssue Issue", issues, StringComparison.Ordinal);
-        Assert.Contains("private static void AddDuplicateIssues", issues, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies normal v2 rule execution admits the complete canonical contract before draft projection.</summary>
@@ -303,6 +225,7 @@ public sealed partial class RepositoryBoundaryTests
             [
                 "CliApplication.StandardMerge.cs",
                 "WorkbenchCompositionService.GeneralMerge.Profile.cs",
+                "WorkbenchCompositionService.StandardMerge.Authoring.cs",
                 "WorkbenchCompositionService.StandardMerge.Compilation.cs",
                 "WorkbenchCompositionService.StandardMerge.Display.cs",
                 "WorkbenchCompositionService.StandardMerge.Run.cs",
@@ -334,5 +257,32 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("new CompositionPlan", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("new CompositionOperation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("RunCompiledCompositionAsync", resolver, StringComparison.Ordinal);
+    }
+
+    /// <summary>Standard Merge hosts adapt compiler and bytes while Application owns readiness semantics.</summary>
+    [Fact]
+    public void StandardMergeReadinessSemanticsStayApplicationOwned()
+    {
+        string application = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
+        string authoringAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Authoring.cs");
+        string inspectionAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.InputInspection.cs");
+        string presentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.StandardMergeAuthoring.cs");
+
+        Assert.Contains("new InputSelectionMemberReadiness", application, StringComparison.Ordinal);
+        Assert.Contains("new InputSelectionNextAction", application, StringComparison.Ordinal);
+        foreach (string adapter in new[] { authoringAdapter, inspectionAdapter })
+        {
+            Assert.DoesNotContain("new InputSelectionMemberReadiness", adapter, StringComparison.Ordinal);
+            Assert.DoesNotContain("new InputSelectionNextAction", adapter, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("File.Exists", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileStandardMerge", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("new InputSelectionMemberReadiness", presentation, StringComparison.Ordinal);
     }
 }

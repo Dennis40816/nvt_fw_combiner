@@ -133,6 +133,44 @@ them with an equally broad facade, generated hidden owner, excluded-path
 implementation, or weaker contract. If the canonical core still exceeds
 22,607 lines, #197 remains blocked.
 
+Owner decision, 2026-08-02: merged PR #278 establishes the post-headless,
+pre-Core measurement baseline at commit
+`4dddf1a2822ee74a343d2b20a565115d745313ae`, with 72,750 counted nonblank
+runtime lines. Until #229 freezes the Core-entry slice ratchets:
+
+- all remaining pre-Core PRs together may consume at most 2,000 positive
+  counted lines above that baseline;
+- a negative delta does not refill this allowance or authorize unrelated
+  growth, and the measured pre-Core high-water mark remains 74,750;
+- #214 may contribute at most 1,300 counted lines of net growth; and
+- each counted-positive PR records its baseline/head measurement, allowance
+  consumed, superseded owner, remaining caller/evidence blocker, and deletion
+  milestone. The existing verifier remains the only measurement command.
+
+Owner amendment, 2026-08-04: #208 may raise the measured pre-Core high-water
+mark once, and only once, from 74,750 to exactly 75,481 counted runtime lines.
+The 731-line excess is non-transferable, creates no reusable allowance, and is
+not refilled by a later negative delta. #254 is the immediate next
+implementation ticket and must record its exact General/Saved Rule compatibility
+reduction. This exception does not increase the 22,607 final gate, the 607-line
+integration reserve, or any other issue budget.
+
+Verifier evidence for #254 records a pre-existing measurement mismatch rather
+than silently changing that owner amendment. The exact reviewed #208 merge
+checkpoint `604199ab4a6bdb2f2da3f976851ce1c00b467bc8` (tree
+`35d83c477fff39f0fc11404f5dbcee7f007a3f4d`) measured 76,633 runtime nonblank
+lines with the canonical verifier, while the amendment expected 75,481. The
+#254 candidate measures 75,638 after the explicit General Replace Preview/Build
+boundary and shared Saved Rule schema gate, an exact reduction of 995 lines from that
+observed merge tree. The 1,152-line baseline discrepancy creates no allowance,
+does not alter the 75,481 authority, and must be reconciled before any later
+pre-Core positive growth is accepted.
+
+This envelope is a temporary review ceiling, not a new target, transferable
+slice budget, or permission to move runtime logic into excluded Presentation,
+generated output, profiles, scripts, or tests. It does not increase the 22,607
+final gate or the 607-line unallocated integration reserve.
+
 Canonical Core Convergence is one umbrella outcome, not one repository-wide
 implementation PR. It is delivered through four independently reviewable,
 ownership-bounded slices:

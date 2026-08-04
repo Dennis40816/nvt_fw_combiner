@@ -20,7 +20,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         FirmwareSlotKind kind,
         bool isOptional = false,
         string? regionId = null,
-        string? addressSpaceId = null)
+        string? addressSpaceId = null,
+        WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common,
+        WorkbenchReplaceInputRole replaceInputRole = WorkbenchReplaceInputRole.None)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -30,13 +32,22 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         Title = title;
         Description = description;
         SlotKind = kind;
+        DeclaredIsOptional = isOptional;
         IsOptional = isOptional;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
         AddressSpaceId = string.IsNullOrWhiteSpace(addressSpaceId) ? null : addressSpaceId;
+        RegionGroup = regionGroup;
+        ReplaceInputRole = replaceInputRole;
     }
 
     /// <summary>Stable slot id used by drag/drop handlers.</summary>
     public string SlotId { get; }
+
+    /// <summary>Canonical fixed Replace workflow role projected by Bootstrap.</summary>
+    public WorkbenchReplaceInputRole ReplaceInputRole { get; }
+
+    /// <summary>Typed Replace grouping supplied by the Bootstrap projection.</summary>
+    public WorkbenchReplaceRegionGroup RegionGroup { get; }
 
     /// <summary>Displayed slot title.</summary>
     public string Title { get; private set; }
@@ -52,6 +63,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Canonical composition address space used by Application selection readiness.</summary>
     public string? AddressSpaceId { get; }
+
+    /// <summary>Profile projection used when no compiled selection-group cardinality is available.</summary>
+    public bool DeclaredIsOptional { get; }
 
     /// <summary>Requirement label for the active workflow.</summary>
     public string RequirementLabel => IsOptional ? OptionalText : RequiredText;
@@ -71,14 +85,25 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     /// <summary>Firmware facts decoded from the selected file, when the active IC has a FWConfig map.</summary>
     public ObservableCollection<FirmwareSlotFactViewModel> FirmwareFacts { get; } = [];
 
+    /// <summary>At most four facts kept immediately visible for scanability.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> PrimaryFirmwareFacts => [.. FirmwareFacts.Take(4)];
+
+    /// <summary>Facts disclosed on demand after the four primary facts.</summary>
+    public IReadOnlyList<FirmwareSlotFactViewModel> AdditionalFirmwareFacts => [.. FirmwareFacts.Skip(4)];
+
     /// <summary>True when the slot has decoded firmware facts to show.</summary>
     public bool HasFirmwareFacts => FirmwareFacts.Count > 0;
+
+    /// <summary>True when decoded firmware facts exceed the four-card primary limit.</summary>
+    public bool HasAdditionalFirmwareFacts => FirmwareFacts.Count > 4;
 
     /// <summary>True when the selected source has a current health or pending inspection state.</summary>
     public bool HasInputInspectionStatus => IsInputInspectionPending || InputInspectionSeverity is not null;
 
     /// <summary>True when the latest completed input inspection blocks Build.</summary>
-    public bool BlocksBuild => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
+    public bool BlocksBuild =>
+        InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking ||
+        SelectionReadinessState == ResolvedChildReadiness.Blocked;
 
     /// <summary>True while the selected source awaits a current inspection.</summary>
     public bool IsInputInspectionPending { get; private set; }
@@ -94,6 +119,12 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Application-owned applicability state projected for display.</summary>
     public ResolvedChildReadiness? SelectionReadinessState { get; private set; }
+
+    /// <summary>Application-owned admission for an independent picker transition.</summary>
+    public bool? SelectionReadinessCanSelect { get; private set; }
+
+    /// <summary>True when this slot's picker and file drop are currently admitted.</summary>
+    public bool CanSelectFile => SelectionReadinessCanSelect ?? true;
 
     /// <summary>Localized short label for the projected selection state.</summary>
     public string SelectionReadinessLabel { get; private set; } = string.Empty;
@@ -112,17 +143,6 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>True when the highest completed input health is valid.</summary>
     public bool IsInputInspectionValid => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Valid;
-
-    /// <summary>Vector icon path for the highest completed or pending input health.</summary>
-    public string InputInspectionIconPathData => IsInputInspectionPending
-        ? "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14"
-        : InputInspectionSeverity switch
-        {
-            WorkbenchInputInspectionSeverity.Blocking => "M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3 M12 7V13 M12 17H12.01",
-            WorkbenchInputInspectionSeverity.Warning => "M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01",
-            WorkbenchInputInspectionSeverity.Valid => "M4 12L9 17L20 6",
-            _ => string.Empty,
-        };
 
     /// <summary>Selected local file path.</summary>
     [ObservableProperty]
@@ -161,6 +181,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(Description));
         OnPropertyChanged(nameof(RequirementLabel));
         OnPropertyChanged(nameof(DisplayName));
+        NotifySemanticStateChanged();
     }
 
     /// <summary>Replaces decoded firmware facts for this slot.</summary>
@@ -171,10 +192,29 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         FirmwareFacts.Clear();
         foreach (FirmwareSlotFactViewModel fact in facts)
         {
-            FirmwareFacts.Add(fact);
+            if (!fact.IsNotApplicable)
+            {
+                FirmwareFacts.Add(fact);
+            }
         }
 
+        IsFirmwareFactsExpanded = false;
+        IsAdditionalFirmwareFactsExpanded = false;
         OnPropertyChanged(nameof(HasFirmwareFacts));
+        OnPropertyChanged(nameof(PrimaryFirmwareFacts));
+        OnPropertyChanged(nameof(AdditionalFirmwareFacts));
+        OnPropertyChanged(nameof(HasAdditionalFirmwareFacts));
+        OnPropertyChanged(nameof(AdditionalFirmwareFactsLabel));
+    }
+
+    /// <summary>Reprojects cached facts after a language change without collapsing disclosure state.</summary>
+    internal void RelocalizeFirmwareFacts(IEnumerable<FirmwareSlotFactViewModel> facts)
+    {
+        bool isExpanded = IsFirmwareFactsExpanded;
+        bool areAdditionalFactsExpanded = IsAdditionalFirmwareFactsExpanded;
+        SetFirmwareFacts(facts);
+        IsFirmwareFactsExpanded = isExpanded;
+        IsAdditionalFirmwareFactsExpanded = areAdditionalFactsExpanded;
     }
 
     /// <summary>Marks the current selected source as awaiting a fresh typed inspection.</summary>
@@ -218,7 +258,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         ResolvedChildReadiness state,
         string label,
         string detail,
-        string automationText)
+        string automationText,
+        bool canSelect = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
@@ -229,6 +270,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         if (SelectionReadinessState == state &&
+            SelectionReadinessCanSelect == canSelect &&
             string.Equals(SelectionReadinessLabel, label, StringComparison.Ordinal) &&
             string.Equals(SelectionReadinessDetail, detail, StringComparison.Ordinal) &&
             string.Equals(SelectionReadinessAutomationText, automationText, StringComparison.Ordinal))
@@ -237,6 +279,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         SelectionReadinessState = state;
+        SelectionReadinessCanSelect = canSelect;
         SelectionReadinessLabel = label;
         SelectionReadinessDetail = detail;
         SelectionReadinessAutomationText = automationText;
@@ -247,6 +290,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public void ClearSelectionReadiness()
     {
         if (SelectionReadinessState is null &&
+            SelectionReadinessCanSelect is null &&
             SelectionReadinessLabel.Length == 0 &&
             SelectionReadinessDetail.Length == 0 &&
             SelectionReadinessAutomationText.Length == 0)
@@ -255,6 +299,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         }
 
         SelectionReadinessState = null;
+        SelectionReadinessCanSelect = null;
         SelectionReadinessLabel = string.Empty;
         SelectionReadinessDetail = string.Empty;
         SelectionReadinessAutomationText = string.Empty;
@@ -271,16 +316,20 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInputInspectionBlocking));
         OnPropertyChanged(nameof(IsInputInspectionWarning));
         OnPropertyChanged(nameof(IsInputInspectionValid));
-        OnPropertyChanged(nameof(InputInspectionIconPathData));
+        NotifySemanticStateChanged();
     }
 
     private void NotifySelectionReadinessChanged()
     {
         OnPropertyChanged(nameof(HasSelectionReadinessStatus));
         OnPropertyChanged(nameof(SelectionReadinessState));
+        OnPropertyChanged(nameof(SelectionReadinessCanSelect));
+        OnPropertyChanged(nameof(CanSelectFile));
         OnPropertyChanged(nameof(SelectionReadinessLabel));
         OnPropertyChanged(nameof(SelectionReadinessDetail));
         OnPropertyChanged(nameof(SelectionReadinessAutomationText));
+        OnPropertyChanged(nameof(BlocksBuild));
+        NotifySemanticStateChanged();
     }
 
 }

@@ -19,11 +19,11 @@
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               Classes="previewTitle"
-              Text="{Binding ReplacePreview.Title}" />
+              Text="{Binding Replace.ReplacePreview.Title}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"
               Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding ReplacePreview.Subtitle}"
+              Text="{Binding Replace.ReplacePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
@@ -79,11 +79,11 @@
               Text="{Binding Text.WorkflowKicker}" />
           <TextBlock
               Classes="previewTitle"
-              Text="{Binding MergePreview.Title}" />
+              Text="{Binding Merge.MergePreview.Title}" />
           <TextBlock
               FontSize="{DynamicResource NfcFontSize13}"
               Foreground="{DynamicResource NfcTextMutedBrush}"
-              Text="{Binding MergePreview.Subtitle}"
+              Text="{Binding Merge.MergePreview.Subtitle}"
               TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" Margin="0,18,0,0" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace8}">
@@ -221,7 +221,7 @@
           </StackPanel>
           <ItemsControl
               ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
-              ItemsSource="{Binding SettingsOverviewRows}" />
+              ItemsSource="{Binding Settings.OverviewRows}" />
         </StackPanel>
       </Border>
 
@@ -234,7 +234,7 @@
             </StackPanel>
             <ItemsControl
                 ItemTemplate="{StaticResource SettingsSummaryRowTemplate}"
-                ItemsSource="{Binding SettingsCapabilityRows}" />
+                ItemsSource="{Binding Settings.CapabilityRows}" />
           </StackPanel>
         </Border>
 
@@ -246,10 +246,10 @@
             </StackPanel>
             <Grid ColumnDefinitions="92,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace12}" RowSpacing="10">
               <TextBlock Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ThemeLabel}" />
-              <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+              <ComboBox Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding Settings.ThemeChoices}" SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
 
               <TextBlock Grid.Row="1" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.LanguageLabel}" />
-              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
+              <ComboBox Grid.Row="1" Grid.Column="1" Classes="settingsSelect" ItemsSource="{Binding Settings.LanguageChoices}" SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}" />
 
               <TextBlock Grid.Row="2" Classes="fieldLabel" VerticalAlignment="Center" Text="{Binding Text.ReducedMotionLabel}" />
               <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace12}">
