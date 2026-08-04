@@ -14,14 +14,16 @@ public static partial class WorkbenchCompositionService
         string icId,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        AuthoringRevision authoringRevision)
+        AuthoringRevision authoringRevision,
+        ActiveSessionSnapshot? retainedSession = null)
     {
         CompiledAuthoringSelectionSnapshot snapshot =
             s_standardMergeAuthoring.ProjectSelection(
                 icId,
                 authoringRevision,
                 selectedSlotIds,
-                acceptedFileStamps);
+                acceptedFileStamps,
+                retainedSession);
         return new WorkbenchStandardMergeAuthoringSnapshot(
             snapshot.Catalog,
             snapshot.Slots,

@@ -17,34 +17,6 @@ public sealed partial class FirmwareSlotViewModel
     private string _showMoreFactsTemplate = "Show {0} more details";
     private string _showFewerFactsLabel = "Show fewer details";
 
-    /// <summary>True only for the DP Replace pilot until desktop adoption issue #208.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UsesLegacySlotPresentation))]
-    [NotifyPropertyChangedFor(nameof(IsLegacyInputInspectionBlocking))]
-    [NotifyPropertyChangedFor(nameof(IsLegacyInputInspectionPending))]
-    [NotifyPropertyChangedFor(nameof(IsLegacyInputInspectionValid))]
-    [NotifyPropertyChangedFor(nameof(IsLegacyInputInspectionWarning))]
-    public partial bool UsesSharedSlotPresentation { get; set; }
-
-    /// <summary>True while an existing workflow retains the pre-pilot slot presentation.</summary>
-    public bool UsesLegacySlotPresentation => !UsesSharedSlotPresentation;
-
-    /// <summary>Preserves blocking card chrome outside the DP Replace pilot.</summary>
-    public bool IsLegacyInputInspectionBlocking =>
-        UsesLegacySlotPresentation && IsInputInspectionBlocking;
-
-    /// <summary>Preserves pending card chrome outside the DP Replace pilot.</summary>
-    public bool IsLegacyInputInspectionPending =>
-        UsesLegacySlotPresentation && IsInputInspectionPending;
-
-    /// <summary>Preserves valid card chrome outside the DP Replace pilot.</summary>
-    public bool IsLegacyInputInspectionValid =>
-        UsesLegacySlotPresentation && IsInputInspectionValid;
-
-    /// <summary>Preserves warning card chrome outside the DP Replace pilot.</summary>
-    public bool IsLegacyInputInspectionWarning =>
-        UsesLegacySlotPresentation && IsInputInspectionWarning;
-
     /// <summary>One presentation state composed from selection readiness and typed input inspection.</summary>
     public FirmwareSlotSemanticState SemanticState =>
         InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking

@@ -6,9 +6,9 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>Background refresh generations never masquerade as authoring-input revisions.</summary>
+    /// <summary>Each explicit DP reinspection advances one coherent canonical authoring revision.</summary>
     [Fact]
-    public async Task RepeatedDpInspectionRetainsRevisionUntilSelectionChanges()
+    public async Task RepeatedDpInspectionAdvancesCanonicalBatchRevision()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-authoring-revision");
         string referencePath = workspace.Write("reference.bin", new byte[0x40000]);
@@ -32,11 +32,12 @@ public sealed partial class ShellViewModelTests
         long stableRevision = Assert.Single(revisions.Distinct());
         revisions.Clear();
         await viewModel.WorkflowSession.RefreshSelectedReplaceFirmwareInspectionsAsync();
-        Assert.Equal(stableRevision, Assert.Single(revisions.Distinct()));
+        long repeatedRevision = Assert.Single(revisions.Distinct());
+        Assert.True(repeatedRevision > stableRevision);
 
         revisions.Clear();
         viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceDp, secondDpPath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
-        Assert.True(Assert.Single(revisions.Distinct()) > stableRevision);
+        Assert.True(Assert.Single(revisions.Distinct()) > repeatedRevision);
     }
 }

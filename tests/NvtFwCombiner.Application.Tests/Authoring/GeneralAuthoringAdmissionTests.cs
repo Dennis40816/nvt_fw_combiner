@@ -343,21 +343,15 @@ public sealed class GeneralAuthoringAdmissionTests
         Assert.True(result.IsAdmitted);
     }
 
-    /// <summary>The production use case observes lengths through its inward port and fails closed for an undeclared Parent slot.</summary>
+    /// <summary>The production use case consumes accepted content identity and fails closed for an undeclared Parent slot.</summary>
     [Fact]
     public void UseCaseRejectsFileSlotMissingFromExactTrustedParent()
     {
         GeneralMappingDraftRow row =
-            CreateRow("file", GeneralMappingSource.File("opaque.bin"), 0, 4);
+            CreateRow("file", StampedFile("opaque.bin", 4), 0, 4);
         GeneralResourceLimits parent = CreateLimits();
-        var observer = new FakeResourceObserver(
-            new Dictionary<string, long>(StringComparer.Ordinal)
-            {
-                ["opaque.bin"] = 4,
-            });
-        var useCase = new GeneralAuthoringAdmissionUseCase(observer);
 
-        GeneralAuthoringAdmissionResult result = useCase.Resolve(
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmissionUseCase.Resolve(
             new GeneralAuthoringAdmissionRequest(
                 new GeneralMappingDraftState([row]),
                 new Dictionary<string, long>(StringComparer.Ordinal)
@@ -381,7 +375,7 @@ public sealed class GeneralAuthoringAdmissionTests
     public void UseCaseAppliesSavedRuleNarrowingToObservedLength()
     {
         GeneralMappingDraftRow row =
-            CreateRow("file", GeneralMappingSource.File("opaque.bin"), 0, 4);
+            CreateRow("file", StampedFile("opaque.bin", 0x28), 0, 4);
         GeneralResourceLimits parent = CreateLimits(
             [new GeneralSlotLengthLimits("file", 1, 0x40)]);
         GeneralResourceLimits savedRule = new(
@@ -390,14 +384,7 @@ public sealed class GeneralAuthoringAdmissionTests
             maximumFileBytes: 0x20,
             maximumSafeMaterializationBytes: 0x20,
             [new GeneralSlotLengthLimits("file", 0x10, 0x20)]);
-        var useCase = new GeneralAuthoringAdmissionUseCase(
-            new FakeResourceObserver(
-                new Dictionary<string, long>(StringComparer.Ordinal)
-                {
-                    ["opaque.bin"] = 0x28,
-                }));
-
-        GeneralAuthoringAdmissionResult result = useCase.Resolve(
+        GeneralAuthoringAdmissionResult result = GeneralAuthoringAdmissionUseCase.Resolve(
             new GeneralAuthoringAdmissionRequest(
                 new GeneralMappingDraftState([row]),
                 new Dictionary<string, long>(StringComparer.Ordinal)
@@ -589,6 +576,13 @@ public sealed class GeneralAuthoringAdmissionTests
             "Test mapping.");
     }
 
+    private static GeneralMappingSource StampedFile(string path, long length)
+    {
+        return GeneralMappingSource.File(
+            path,
+            new FileStamp(length, new string('a', 64)));
+    }
+
     private static GeneralMappingDraftRow CreateInlineRow(
         string id,
         string targetSpaceId,
@@ -606,17 +600,4 @@ public sealed class GeneralAuthoringAdmissionTests
             "Test inline mapping.");
     }
 
-    private sealed class FakeResourceObserver(
-        IReadOnlyDictionary<string, long> lengths) :
-        IGeneralInputResourceObservationPort
-    {
-        public bool TryObserveLength(
-            GeneralInputResourceObservationRequest request,
-            out long lengthBytes)
-        {
-            return lengths.TryGetValue(
-                request.ResourceReference,
-                out lengthBytes);
-        }
-    }
 }

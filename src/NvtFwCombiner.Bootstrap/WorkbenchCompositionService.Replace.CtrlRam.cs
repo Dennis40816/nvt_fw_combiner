@@ -5,8 +5,6 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Domain.Firmware;
-using V2CompositionPlanCompileResult = NvtFwCombiner.Profiles.V2.V2CompositionPlanCompileResult;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -20,6 +18,7 @@ public static partial class WorkbenchCompositionService
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit,
         CompositionRunProgressFeed? progress,
+        ActiveSessionSnapshot? acceptedSession,
         CancellationToken cancellationToken)
     {
         ExternalProcessorGenerationLease runtime =
@@ -36,6 +35,7 @@ public static partial class WorkbenchCompositionService
             runtime.Generation,
             ExternalProcessorFactory.IsCurrent,
             progress,
+            acceptedSession,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -46,6 +46,50 @@ public static partial class WorkbenchCompositionService
     public static void RefreshCtrlRamRuntimeDependencies()
     {
         ExternalProcessorFactory.Refresh();
+    }
+
+    /// <summary>Refreshes CtrlRAM Preview/Build readiness without creating a run report.</summary>
+    public static async ValueTask<CapabilityActionReadinessSnapshot?>
+        GetCtrlRamReplaceActionReadinessAsync(
+            string icId,
+            string number,
+            IReadOnlyDictionary<string, string> slotPaths,
+            ActiveSessionSnapshot acceptedSession,
+            CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        ArgumentNullException.ThrowIfNull(acceptedSession);
+        ResolvedCapability? capability = acceptedSession.GetAcceptedCapability(
+            AuthoringDerivedResultKind.Inspection);
+        CtrlRamReplaceRunContext context = CreateCtrlRamReplaceRunContext(
+            icId, number, slotPaths, firmwareVersionEdit: null);
+        if (capability is null ||
+            !StringComparer.Ordinal.Equals(
+                acceptedSession.WorkflowId,
+                Profiles.IcWorkflowIds.CtrlRamReplace) ||
+            !IsAcceptedCtrlRamSession(
+                context, slotPaths, acceptedSession, capability))
+        {
+            return null;
+        }
+
+        ExternalProcessorGenerationLease runtime =
+            ExternalProcessorFactory.AcquireCurrent();
+        return await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
+            CapabilityAdmissionSnapshot.FromResolvedCapability(
+                capability,
+                acceptedSession.AuthoringRevision),
+            acceptedSession.InputSlotStatuses.Select(static status =>
+                new CapabilityChildReadiness(
+                    status.SlotId,
+                    ResolvedChildReadiness.Ready)),
+            RuntimeDependencyReadinessRequest.FromResolvedCapability(
+                capability,
+                acceptedSession.AuthoringRevision),
+            runtime.ReadinessProvider,
+            runtime.Generation,
+            ExternalProcessorFactory.IsCurrent,
+            cancellationToken).ConfigureAwait(false);
     }
 
     internal static async ValueTask<WorkbenchRunResult> RunCtrlRamReplaceWithProcessorAsync(
@@ -70,6 +114,7 @@ public static partial class WorkbenchCompositionService
             runtimeDependencyGeneration: 1,
             static generation => generation == 1,
             progress: null,
+            acceptedSession: null,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -98,6 +143,7 @@ public static partial class WorkbenchCompositionService
             runtimeDependencyGeneration,
             runtimeGenerationIsCurrent,
             progress: null,
+            acceptedSession: null,
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -113,6 +159,7 @@ public static partial class WorkbenchCompositionService
         long runtimeDependencyGeneration,
         Func<long, bool> runtimeGenerationIsCurrent,
         CompositionRunProgressFeed? progress,
+        ActiveSessionSnapshot? acceptedSession,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(runtimeDependencyReadinessProvider);
@@ -144,131 +191,118 @@ public static partial class WorkbenchCompositionService
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.CtrlRam));
         }
 
-        if (context.ValidationIssues.Count != 0 || context.BasePath is null || context.BaseBytes is null ||
-            context.PostbuildProfile is null ||
-            context.CommandPlan is null)
+        ResolvedCapability? acceptedCapability = acceptedSession is null
+            ? null
+            : RequireAcceptedCapability(
+                acceptedSession,
+                Profiles.IcWorkflowIds.CtrlRamReplace,
+                icId,
+                AuthoringDerivedResultKind.Inspection);
+        if (acceptedCapability is not null &&
+            !IsAcceptedCtrlRamSession(
+                context, slotPaths, acceptedSession!, acceptedCapability))
         {
-            return Blocked(context.ValidationIssues);
+            return Blocked([new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                "The accepted CtrlRAM compilation does not match the current IC Count or map.",
+                "number")]);
+        }
+        CtrlRamFirmwareVersionDraftState? requestedDraft = firmwareVersionEdit is null
+            ? null
+            : new CtrlRamFirmwareVersionDraftState(
+                firmwareVersionEdit.FirmwareVersion,
+                firmwareVersionEdit.FirmwareSubVersion);
+        if (acceptedSession is not null &&
+            !HasSameCtrlRamVersionDraft(
+                acceptedSession.DraftState,
+                requestedDraft))
+        {
+            return Blocked([new CompositionIssue(
+                AuthoringSessionIssueCodes.StaleInspection,
+                "The confirmed CtrlRAM firmware-version edit was not compiled and inspected in the accepted authoring revision.")]);
+        }
+        if (acceptedSession is not null &&
+            !HasCurrentCtrlRamSessionFiles(context, acceptedSession))
+        {
+            return Blocked([new CompositionIssue(
+                AuthoringSessionIssueCodes.StaleInspection,
+                "One or more CtrlRAM inputs changed after the accepted inspection. Reload the changed input before running again.")]);
         }
 
-        byte[] referenceBytes = context.BaseBytes;
-        var referencePayload = new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, referenceBytes);
-        if (CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
+        ResolvedCapability? resolvedCapability = acceptedCapability;
+        if (acceptedCapability is null)
         {
-            CapabilityRouteIdentity capabilityIdentity =
-                CanonicalDynamicRouteInventory.ResolveCtrlRamIdentity(
-                    route,
-                    context.CommandPlan,
-                    referencePayload.LengthBytes);
-            CapabilityRouteResolutionResult capabilityResolution =
-                s_canonicalCapabilityCatalog.ResolveDynamicRoute(
-                    capabilityIdentity.RouteId);
-            if (!capabilityResolution.Succeeded)
+            if (!TryResolveCtrlRamCapability(
+                    context, out ResolvedCapability? currentCapability,
+                    out IReadOnlyList<CompositionIssue> capabilityIssues))
             {
-                return Blocked(
-                    [new CompositionIssue(
-                        capabilityResolution.Issue!.Code,
-                        capabilityResolution.Issue.Message)]);
+                return Blocked(capabilityIssues);
             }
+            ResolvedCapability current = currentCapability!;
+            resolvedCapability = current;
+        }
 
-            int topologyCount = context.CommandPlan.TopologyCount;
-            V2CompositionPlanCompileResult v2Compile = CompileCtrlRamV2(
+        byte[] referenceBytes = context.BaseBytes!;
+        CompiledComposition compiledComposition = resolvedCapability!.CompiledComposition;
+        IReadOnlyList<InputArtifactBinding> bindings =
+            CreateCtrlRamReplaceBindings(
+                compiledComposition,
                 context,
-                route,
-                new(
-                    topologyCount,
-                    context.CommandPlan.Selector.Token,
-                    TopologySelectionSource.Requested,
-                    "ic-number"),
-                referencePayload);
-            if (!v2Compile.IsCompiled)
-            {
-                return Blocked(
-                    v2Compile.Issues,
-                    $"{icId.ToLowerInvariant()}-ctrlram-replace.bin");
-            }
-
-            CompiledComposition unboundComposition =
-                v2Compile.CompiledComposition!;
-            MetadataPlanDefinition metadataPlan =
-                CreateCtrlRamReportMetadataPlan(
-                    route.Key.IcId,
-                    referencePayload.LengthBytes);
-            ResolvedCapability resolvedCapability =
-                capabilityResolution.Route!.BindCompilation(
-                    unboundComposition,
-                    metadataPlan,
-                    RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
-                        unboundComposition,
-                        context.CommandPlan));
-            CompiledComposition compiledComposition =
-                resolvedCapability.CompiledComposition;
-            IReadOnlyList<InputArtifactBinding> bindings =
-                CreateCtrlRamReplaceBindings(
-                    compiledComposition,
-                    context,
-                    slotPaths);
-            var authoringRevision = new AuthoringRevision(0);
-            var admission =
-                CapabilityAdmissionSnapshot.FromResolvedCapability(
-                    resolvedCapability,
-                    authoringRevision);
-            var dependencyRequest =
-                RuntimeDependencyReadinessRequest.FromResolvedCapability(
-                    resolvedCapability,
-                    authoringRevision);
-            CapabilityActionReadinessSnapshot readiness =
-                await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
-                    admission,
-                    CreateInputReadiness(compiledComposition, bindings),
-                    dependencyRequest,
-                    runtimeDependencyReadinessProvider,
-                    runtimeDependencyGeneration,
-                    runtimeGenerationIsCurrent,
-                    cancellationToken).ConfigureAwait(false);
-            IReadOnlyList<CapabilityActionBlocker> attemptBlockers = build
-                ? readiness.Build.Blockers
-                :
-                [
-                    .. readiness.Build.Blockers.Where(static blocker =>
+                slotPaths,
+                acceptedSession);
+        AuthoringRevision authoringRevision =
+            acceptedSession?.AuthoringRevision ?? new AuthoringRevision(1);
+        var admission =
+            CapabilityAdmissionSnapshot.FromResolvedCapability(
+                resolvedCapability,
+                authoringRevision);
+        var dependencyRequest =
+            RuntimeDependencyReadinessRequest.FromResolvedCapability(
+                resolvedCapability,
+                authoringRevision);
+        CapabilityActionReadinessSnapshot readiness =
+            await CapabilityActionReadinessResolver.RefreshAndResolveAsync(
+                admission,
+                CreateInputReadiness(compiledComposition, bindings),
+                dependencyRequest,
+                runtimeDependencyReadinessProvider,
+                runtimeDependencyGeneration,
+                runtimeGenerationIsCurrent,
+                cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<CapabilityActionBlocker> attemptBlockers = build
+            ? readiness.Build.Blockers
+            :
+            [
+                .. readiness.Build.Blockers.Where(static blocker =>
                         blocker.Dimension ==
                         CapabilityReadinessDimension.RuntimeDependency),
-                ];
-            return attemptBlockers.Count != 0
-                ? Blocked(
-                    [
-                        .. attemptBlockers.Select(static blocker =>
+            ];
+        return attemptBlockers.Count != 0
+            ? Blocked(
+                [
+                    .. attemptBlockers.Select(static blocker =>
                         new CompositionIssue(
                             blocker.Code,
                             $"{blocker.Message} ({blocker.SubjectId})")),
-                    ],
-                    $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
-                : await RunCompiledCompositionAsync(
-                    CtrlRamReplaceRunIdPrefix,
-                    compiledComposition,
-                    bindings,
-                    context.BasePath!,
-                    build,
-                    outputPath,
-                    externalProcessor,
-                    icNumberSelection: context.Selection,
-                    cancellationToken,
-                    virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
-                    {
-                        [context.BasePath!] = referenceBytes,
-                    },
-                    progress: progress,
-                    advisoryIssues: context.AdvisoryIssues,
-                    resolvedCapability: resolvedCapability).ConfigureAwait(false);
-        }
-
-        return Blocked(
-            [
-                new CompositionIssue(
-                    WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
-                    "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
-                    "number"),
-            ]);
+                ],
+                $"{icId.ToLowerInvariant()}-ctrlram-replace.bin")
+            : await RunCompiledCompositionAsync(
+                CtrlRamReplaceRunIdPrefix,
+                compiledComposition,
+                bindings,
+                context.BasePath!,
+                build,
+                outputPath,
+                externalProcessor,
+                icNumberSelection: context.Selection,
+                cancellationToken,
+                virtualArtifacts: new Dictionary<string, byte[]>(StringComparer.Ordinal)
+                {
+                    [context.BasePath!] = referenceBytes,
+                },
+                progress: progress,
+                advisoryIssues: context.AdvisoryIssues,
+                 resolvedCapability: resolvedCapability).ConfigureAwait(false);
     }
 
     private static IReadOnlyList<CapabilityChildReadiness> CreateInputReadiness(

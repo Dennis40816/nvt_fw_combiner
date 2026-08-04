@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -58,7 +59,9 @@ public static partial class UiCompositionRunner
                     kind,
                     slot.IsOptional,
                     slot.RegionId,
-                    slot.AddressSpaceId)),
+                    slot.AddressSpaceId,
+                    slot.RegionGroup,
+                    slot.InputRole)),
         ];
     }
 
@@ -76,7 +79,9 @@ public static partial class UiCompositionRunner
                 FirmwareSlotKind.CtrlRam,
                 slot.IsOptional,
                 slot.RegionId,
-                slot.AddressSpaceId)),
+                slot.AddressSpaceId,
+                slot.RegionGroup,
+                slot.InputRole)),
         ];
     }
 
@@ -89,7 +94,8 @@ public static partial class UiCompositionRunner
         string number,
         string replaceMode,
         long? dpBaseLength = null,
-        IEnumerable<string>? selectedRegionIds = null)
+        IEnumerable<string>? selectedRegionIds = null,
+        ShellTextResources? text = null)
     {
         WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
             icId,
@@ -106,7 +112,39 @@ public static partial class UiCompositionRunner
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
-            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
+            [.. display.CoverageSegments.Select(segment => ToMemoryCoverageSegment(segment, text))]);
+    }
+
+    /// <summary>Projects General Replace from one canonical Application admission result.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralReplaceMemoryDisplay(
+        long referenceCapacity,
+        GeneralAuthoringAdmissionResult admission)
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService
+            .GetGeneralReplaceMemoryDisplay(referenceCapacity, admission);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(segment => ToMemoryCoverageSegment(segment))]);
+    }
+
+    /// <summary>Projects stable General Replace authoring issues beside the Reference layout.</summary>
+    public static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralReplaceMemoryDisplay(
+        long referenceCapacity,
+        IReadOnlyList<AuthoringMappingState> authoringStates)
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService
+            .GetGeneralReplaceMemoryDisplay(referenceCapacity, authoringStates);
+        return (
+            display.RangeLabel,
+            [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
+            [.. display.CoverageSegments.Select(segment => ToMemoryCoverageSegment(segment))]);
     }
 
     /// <summary>Projects one already-read Replace memory display snapshot.</summary>
@@ -115,7 +153,8 @@ public static partial class UiCompositionRunner
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
         WorkbenchMemoryDisplay display,
-        IEnumerable<string>? selectedRegionIds = null)
+        IEnumerable<string>? selectedRegionIds = null,
+        ShellTextResources? text = null)
     {
         ArgumentNullException.ThrowIfNull(display);
         if (selectedRegionIds is not null)
@@ -126,7 +165,7 @@ public static partial class UiCompositionRunner
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
-            [.. display.CoverageSegments.Select(ToMemoryCoverageSegment)]);
+            [.. display.CoverageSegments.Select(segment => ToMemoryCoverageSegment(segment, text))]);
     }
 
 }

@@ -22,7 +22,7 @@ public sealed partial class ReplacePresentationViewModel
             ApplyReplaceSlotText(slot);
         }
 
-        foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(static slot => slot.UsesSharedSlotPresentation))
+        foreach (FirmwareSlotViewModel slot in ReplaceSlots)
         {
             slot.ApplyExperienceText(Text);
         }

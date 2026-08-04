@@ -14,6 +14,28 @@ public static partial class WorkbenchCompositionService
         byte[]? baseImage = null)
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetPostbuildProfiles(icId);
+        string? commonFwVersion = null;
+        bool hasCommonFwVersion = baseImage is null
+            ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
+            : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) &&
+                (commonFwVersion = metadata.CommonFwVersion) is not null;
+        return TryResolvePostbuildProfile(
+            icId,
+            profiles,
+            hasCommonFwVersion,
+            commonFwVersion,
+            out postbuildProfile,
+            out issue);
+    }
+
+    private static bool TryResolvePostbuildProfile(
+        string icId,
+        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles,
+        bool hasCommonFwVersion,
+        string? commonFwVersion,
+        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out CompositionIssue? issue)
+    {
         if (profiles.Count == 0)
         {
             postbuildProfile = null;
@@ -24,11 +46,6 @@ public static partial class WorkbenchCompositionService
             return false;
         }
 
-        string? commonFwVersion = null;
-        bool hasCommonFwVersion = baseImage is null
-            ? TryReadBaseCommonFwVersion(icId, basePath, out commonFwVersion)
-            : TryReadFirmwareConfigBackupMetadata(icId, baseImage, out FirmwareConfigMetadata metadata) &&
-                (commonFwVersion = metadata.CommonFwVersion) is not null;
         if (profiles.Count > 1 && !hasCommonFwVersion)
         {
             postbuildProfile = null;

@@ -20,7 +20,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         FirmwareSlotKind kind,
         bool isOptional = false,
         string? regionId = null,
-        string? addressSpaceId = null)
+        string? addressSpaceId = null,
+        WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common,
+        WorkbenchReplaceInputRole replaceInputRole = WorkbenchReplaceInputRole.None)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -34,10 +36,18 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         IsOptional = isOptional;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
         AddressSpaceId = string.IsNullOrWhiteSpace(addressSpaceId) ? null : addressSpaceId;
+        RegionGroup = regionGroup;
+        ReplaceInputRole = replaceInputRole;
     }
 
     /// <summary>Stable slot id used by drag/drop handlers.</summary>
     public string SlotId { get; }
+
+    /// <summary>Canonical fixed Replace workflow role projected by Bootstrap.</summary>
+    public WorkbenchReplaceInputRole ReplaceInputRole { get; }
+
+    /// <summary>Typed Replace grouping supplied by the Bootstrap projection.</summary>
+    public WorkbenchReplaceRegionGroup RegionGroup { get; }
 
     /// <summary>Displayed slot title.</summary>
     public string Title { get; private set; }
@@ -133,17 +143,6 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>True when the highest completed input health is valid.</summary>
     public bool IsInputInspectionValid => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Valid;
-
-    /// <summary>Vector icon path for the pre-#208 slot health presentation.</summary>
-    public string InputInspectionIconPathData => IsInputInspectionPending
-        ? "M12 3A9 9 0 1 0 21 12 M12 7V12L15 14"
-        : InputInspectionSeverity switch
-        {
-            WorkbenchInputInspectionSeverity.Blocking => "M12 3A9 9 0 1 0 12 21A9 9 0 1 0 12 3 M12 7V13 M12 17H12.01",
-            WorkbenchInputInspectionSeverity.Warning => "M12 3L22 20H2L12 3 M12 9V14 M12 17H12.01",
-            WorkbenchInputInspectionSeverity.Valid => "M4 12L9 17L20 6",
-            _ => string.Empty,
-        };
 
     /// <summary>Selected local file path.</summary>
     [ObservableProperty]
@@ -317,11 +316,6 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInputInspectionBlocking));
         OnPropertyChanged(nameof(IsInputInspectionWarning));
         OnPropertyChanged(nameof(IsInputInspectionValid));
-        OnPropertyChanged(nameof(InputInspectionIconPathData));
-        OnPropertyChanged(nameof(IsLegacyInputInspectionBlocking));
-        OnPropertyChanged(nameof(IsLegacyInputInspectionPending));
-        OnPropertyChanged(nameof(IsLegacyInputInspectionValid));
-        OnPropertyChanged(nameof(IsLegacyInputInspectionWarning));
         NotifySemanticStateChanged();
     }
 

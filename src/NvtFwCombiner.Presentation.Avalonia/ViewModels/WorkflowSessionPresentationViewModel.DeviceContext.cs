@@ -293,8 +293,14 @@ public sealed partial class WorkflowSessionPresentationViewModel
         OnPropertyChanged(nameof(SelectedNumberChoice));
         RefreshContextState(resetRunResult: true, preserveReplaceSlotFiles: true);
         RefreshAbMergeInputsAfterTopologyChange();
+        bool refreshCtrlRamInputs = IsCtrlRamReplaceModeSelected &&
+            ReplaceSlots.Append(ReplaceBaseSlot).Any(static slot => slot.HasFile);
+        if (refreshCtrlRamInputs)
+        {
+            _ = RefreshSelectedReplaceFirmwareInspectionsAsync();
+        }
 
-        if (!IsApplyingFirmwareInspectionContext)
+        if (!IsApplyingFirmwareInspectionContext && !refreshCtrlRamInputs)
         {
             RefreshCtrlRamDisplayFromInspection();
         }

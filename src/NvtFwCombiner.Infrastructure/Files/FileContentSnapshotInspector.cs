@@ -30,6 +30,24 @@ public sealed class FileContentSnapshotInspector
     }
 
     /// <inheritdoc />
+    public ValueTask<long> ObserveLengthAsync(
+        string selectedPath,
+        long maximumBytes,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
+            selectedPath,
+            _allowedRoots);
+        long observedLength = new FileInfo(path).Length;
+        return observedLength <= maximumBytes
+            ? ValueTask.FromResult(observedLength)
+            : ValueTask.FromException<long>(
+                new SelectedFileSizeLimitExceededException(observedLength, maximumBytes));
+    }
+
+    /// <inheritdoc />
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
         long maximumBytes,
@@ -134,6 +152,18 @@ public sealed class LegacyTimestampFileStampCompatibilityAdapter
         IEnumerable<string> allowedRoots)
     {
         _contentInspector = new FileContentSnapshotInspector(allowedRoots);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<long> ObserveLengthAsync(
+        string selectedPath,
+        long maximumBytes,
+        CancellationToken cancellationToken)
+    {
+        return _contentInspector.ObserveLengthAsync(
+            selectedPath,
+            maximumBytes,
+            cancellationToken);
     }
 
     /// <inheritdoc />

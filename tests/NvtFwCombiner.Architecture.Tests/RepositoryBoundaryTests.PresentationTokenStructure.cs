@@ -135,31 +135,20 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM slot/coverage grouping keys stay centralized inside Presentation.</summary>
+    /// <summary>Verifies CtrlRAM grouping reaches Presentation as typed Bootstrap data.</summary>
     [Fact]
-    public void ReplaceRegionGroupKeysStayPresentationOwned()
+    public void ReplaceRegionGroupsDoNotDependOnLocalizedLabels()
     {
-        string keys = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupKeys.cs");
+        string models = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
         string builder = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs");
 
-        Assert.Contains("public const string Cascade = \"cascade\";", keys, StringComparison.Ordinal);
-        Assert.Contains("public const string Common = \"common\";", keys, StringComparison.Ordinal);
-        Assert.Contains("public const string Master = \"master\";", keys, StringComparison.Ordinal);
-        Assert.Contains("public const string SlaveRight = \"slave-r\";", keys, StringComparison.Ordinal);
-        Assert.Contains("public const string SlaveLeft = \"slave-l\";", keys, StringComparison.Ordinal);
-        Assert.Contains("public const string Base = \"base\";", keys, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.Cascade", builder, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.Common", builder, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.Master", builder, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.SlaveRight", builder, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.SlaveLeft", builder, StringComparison.Ordinal);
-        Assert.Contains("ReplaceRegionGroupKeys.Base", builder, StringComparison.Ordinal);
-        foreach (string keyLiteral in new[] { "\"cascade\"", "\"common\"", "\"master\"", "\"slave-r\"", "\"slave-l\"", "\"base\"" })
-        {
-            Assert.DoesNotContain(keyLiteral, builder, StringComparison.Ordinal);
-        }
+        Assert.Contains("public enum WorkbenchReplaceRegionGroup", models, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(static slot => slot.RegionGroup)", builder, StringComparison.Ordinal);
+        Assert.Contains("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("SourceLabel", builder, StringComparison.Ordinal);
+        Assert.DoesNotContain("Title.Contains", builder, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Presentation reads report output-difference classifications through Bootstrap tokens.</summary>

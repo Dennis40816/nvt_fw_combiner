@@ -120,11 +120,12 @@
                   Command="{Binding AddGeneralReplaceMappingCommand}"
                   Content="{Binding Text.AddRangeLabel}" />
             </Grid>
-            <Grid ColumnDefinitions="34,128,22,128,*,82,40" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <Grid ColumnDefinitions="34,112,128,128,*,82,40" ColumnSpacing="{DynamicResource NfcSpace8}">
               <TextBlock Grid.Column="0" Classes="tableHeader" Text="#" />
-              <TextBlock Grid.Column="1" Classes="tableHeader" Text="{Binding Text.StartLabel}" />
-              <TextBlock Grid.Column="3" Classes="tableHeader" Text="{Binding Text.EndLabel}" />
-              <TextBlock Grid.Column="4" Classes="tableHeader" Text="{Binding Text.ReplacementBinLabel}" />
+              <TextBlock Grid.Column="1" Classes="tableHeader" Text="{Binding Text.GeneralSourceKindLabel}" />
+              <TextBlock Grid.Column="2" Classes="tableHeader" Text="{Binding Text.StartLabel}" />
+              <TextBlock Grid.Column="3" Classes="tableHeader" Text="{Binding Text.LengthLabel}" />
+              <TextBlock Grid.Column="4" Classes="tableHeader" Text="{Binding Text.GeneralSourceValueLabel}" />
             </Grid>
             <ItemsControl ItemContainerTheme="{StaticResource StretchContentPresenterTheme}" ItemsSource="{Binding GeneralReplaceMappings}">
               <ItemsControl.ItemTemplate>

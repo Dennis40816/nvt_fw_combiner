@@ -113,9 +113,19 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotGroupViewModel common = viewModel.Replace.ReplaceSlotGroups[1];
         Assert.Contains(cascade.Slots, slot => slot.Title == "DiffDLM");
         Assert.DoesNotContain(common.Slots, slot => slot.Title == "DiffDLM");
+        MemoryCoverageGroupViewModel cascadeCoverage = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.Title == "Cascade");
+        MemoryCoverageSegmentViewModel diffDlm = Assert.Single(
+            cascadeCoverage.Segments,
+            segment => segment.SourceLabel == "DiffDLM");
+        Assert.True(diffDlm.IsDiffDlm);
+        Assert.True(diffDlm.HasPreservationDetails);
+        Assert.NotEmpty(diffDlm.PreservationDetails);
+        Assert.StartsWith("Kept ", diffDlm.PreservationSummary, StringComparison.Ordinal);
         Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
             group.Title == "Cascade" &&
-            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+            group.Segments.Contains(diffDlm));
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups, group => group.Title == "Single IC");
 
         viewModel.WorkflowSession.SelectedNumber = "single";
@@ -136,9 +146,16 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(["Cascade", "Common"], viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
         Assert.Contains(viewModel.Replace.ReplaceSlotGroups[0].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
         Assert.DoesNotContain(viewModel.Replace.ReplaceSlotGroups[1].Slots, slot => slot.SlotId == "replace-ctrlram-diff");
-        Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
-            group.Title == "Cascade" &&
-            group.Segments.Any(segment => segment.SourceLabel == "DIFF CtrlRAM"));
+        MemoryCoverageGroupViewModel cascadeCoverage = Assert.Single(
+            viewModel.Replace.ReplaceCoverageGroups,
+            group => group.Title == "Cascade");
+        MemoryCoverageSegmentViewModel diffDlm = Assert.Single(
+            cascadeCoverage.Segments,
+            segment => segment.SourceLabel == "DiffDLM");
+        Assert.True(diffDlm.IsDiffDlm);
+        Assert.False(diffDlm.HasPreservationDetails);
+        Assert.Empty(diffDlm.PreservationDetails);
+        Assert.Equal("Entire DiffDLM", diffDlm.PreservationSummary);
     }
 
     /// <summary>Verifies NT51927 three-chip CtrlRAM Replace exposes physical shared and per-chip inputs.</summary>
@@ -237,14 +254,14 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("1 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.Equal("1/2", sharedGroup.CountLabel);
         Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);
-        Assert.Equal("Ready for Build", viewModel.Replace.ReplaceSelectionStatusLabel);
+        Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
         Assert.Empty(viewModel.Replace.ReplaceSelectionMissingRows);
         Assert.Contains(viewModel.Replace.ReplaceSelectionRows, row =>
             row.Title == "VN CtrlRAM (Shared)" &&
             row.Detail == "vn.bin" &&
             row.Meta.Contains("VN_Ctrlram.bin", StringComparison.Ordinal) &&
             row.Meta.Contains("VN CtrlRAM (Slave L)", StringComparison.Ordinal));
-        Assert.Contains("Build will validate", viewModel.Replace.ReplaceSelectionRunHint, StringComparison.Ordinal);
+        Assert.Contains("Complete the required inputs", viewModel.Replace.ReplaceSelectionRunHint, StringComparison.Ordinal);
 
         Assert.False(viewModel.Replace.IsReplaceSelectionModalOpen);
         viewModel.Replace.ShowReplaceSelectionCommand.Execute(null);

@@ -47,6 +47,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.NotEqual(withoutRoute.CompilationFingerprint, withRoute.CompilationFingerprint);
         Assert.DoesNotContain(withoutRoute.SlotDefinitions, static slot =>
             slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);
+        Assert.True(withoutLdc.Slots.Single(static slot =>
+            slot.SlotId == CompositionAddressSpaceIds.LdcInput).CanSelect);
         Assert.Contains(withRoute.SlotDefinitions, static slot =>
             slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);
     }

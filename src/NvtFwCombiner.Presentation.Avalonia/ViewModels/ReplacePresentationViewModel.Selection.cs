@@ -95,7 +95,7 @@ public sealed partial class ReplacePresentationViewModel
     private int GetSelectedReplacementCount()
     {
         return IsGeneralReplaceModeSelected
-            ? GeneralReplaceMappings.Count(mapping => mapping.HasFile)
+            ? GeneralReplaceMappings.Count(mapping => mapping.HasSource)
             : ReplaceSlots.Count(IsSelectedReplacementSlot);
     }
 
@@ -124,10 +124,10 @@ public sealed partial class ReplacePresentationViewModel
         return
         [
             .. GeneralReplaceMappings
-            .Where(mapping => mapping.HasFile)
+            .Where(mapping => mapping.HasSource)
             .Select(mapping => new ReportLineViewModel(
                 $"Range {mapping.Index}",
-                $"{mapping.StartAddress}-{mapping.EndAddress} -> {mapping.DisplayName}",
+                $"{mapping.TargetStartAddress}+{mapping.Length} -> {mapping.DisplayName}",
                 mapping.DisplayDetail)),
         ];
     }
@@ -145,12 +145,12 @@ public sealed partial class ReplacePresentationViewModel
 
         if (IsGeneralReplaceModeSelected)
         {
-            if (!GeneralReplaceMappings.Any(mapping => mapping.HasFile))
+            if (!GeneralReplaceMappings.Any(mapping => mapping.HasSource))
             {
                 rows.Add(new ReportLineViewModel(
                     "Replacement mapping",
-                    "No mapping row has a BIN file selected.",
-                    "Add a range and choose a replacement BIN before Build."));
+                    "No mapping row has a source.",
+                    "Add a range and choose a BIN, Hex Overwrite, or Hex Fill source before Build."));
             }
 
             return rows;

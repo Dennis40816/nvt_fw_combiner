@@ -109,7 +109,11 @@ internal static partial class BuiltInTpFlashMapCatalog
                     blocks.Select(block => block.StagedArtifactId).Distinct(StringComparer.Ordinal).Single()!,
                     requiredLength,
                     blocks,
-                    sourceRegions);
+                    sourceRegions,
+                    sourceRegions.Any(static region =>
+                        region.Tags.Contains("diff", StringComparer.Ordinal))
+                            ? TpCtrlRamPostbuildArtifactRole.DiffDlm
+                            : TpCtrlRamPostbuildArtifactRole.CtrlRam);
             }),
         ];
     }

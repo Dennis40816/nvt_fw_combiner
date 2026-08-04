@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 
@@ -7,12 +8,13 @@ namespace NvtFwCombiner.Bootstrap;
 public static partial class WorkbenchCompositionService
 {
     private static bool IsGeneralReplaceDpV2Route(
-        GeneralReplaceRunContext context,
+        IcNumberSelection selection,
+        GeneralMappingDraftState mappingDraft,
         IReadOnlyList<TpFlashMapRegion> regions,
         IReadOnlyList<ExplicitMapping> mappings)
     {
-        if (context.Selection.Mode != IcNumberInputMode.SingleSelector ||
-            context.MappingDraft.Rows.Any(static row =>
+        if (selection.Mode != IcNumberInputMode.SingleSelector ||
+            mappingDraft.Rows.Any(static row =>
                 row.Source.Kind != GeneralMappingSourceKind.FileArtifact))
         {
             return false;

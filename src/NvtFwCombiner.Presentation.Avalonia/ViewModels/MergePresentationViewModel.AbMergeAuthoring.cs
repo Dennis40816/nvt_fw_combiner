@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -15,7 +14,7 @@ public sealed partial class MergePresentationViewModel
         ArgumentNullException.ThrowIfNull(slots);
         if (!IsAbCodeMergeModeSelected)
         {
-            return new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
+            return EmptyInspectionLeases();
         }
 
         WorkbenchAbMergeAuthoringSnapshot projection = ResolveAbMergeAuthoringSnapshot();
@@ -23,29 +22,13 @@ public sealed partial class MergePresentationViewModel
             _authoringSessions.AbMerge.Activate(projection.Catalog);
         ApplyAbMergeReadiness(projection);
         SyncAbMergeMembership(activated.Snapshot);
-        if (!activated.Succeeded)
-        {
-            return new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
-        }
-
-        var members = activated.Snapshot!.Slots
-            .Select(static slot => slot.DefinitionId)
-            .ToHashSet(StringComparer.Ordinal);
-        var selections = slots
-            .Where(slot =>
-                slot.FilePath is not null &&
-                members.Contains(slot.SlotId))
-            .ToDictionary(
-                static slot => slot.SlotId,
-                static slot => slot.FilePath!,
-                StringComparer.Ordinal);
-        AuthoringSlotInspectionBatchStartResult started =
-            _authoringSessions.AbMerge.BeginSlotFileInspections(selections);
-        return started.Succeeded
-            ? started.Leases.ToDictionary(
-                static lease => lease.DefinitionId,
-                StringComparer.Ordinal)
-            : new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
+        return !activated.Succeeded
+            ? EmptyInspectionLeases()
+            : BeginInputInspections(
+                _authoringSessions.AbMerge,
+                activated.Snapshot!,
+                slots,
+                static slot => slot.SlotId);
     }
 
     internal bool TryCompleteAbMergeInputBatch(
@@ -56,39 +39,17 @@ public sealed partial class MergePresentationViewModel
         [
             .. items.Where(static item => item.AbMergeAddressSpaceId is not null),
         ];
-        if (selected.Length == 0)
+        bool completed = TryCompleteInputBatch(
+            _authoringSessions.AbMerge,
+            selected,
+            inspections,
+            static item => item.AbMergeInspectionLease,
+            out ActiveSessionSnapshot? snapshot);
+        if (completed && selected.Length > 0)
         {
-            return true;
+            SyncAbMergeMembership(snapshot);
         }
-
-        WorkbenchFirmwareInspection[] results =
-        [
-            .. selected.Select(item => inspections[item.SlotId]),
-        ];
-        AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
-        if (catalog is null ||
-            results.Any(result => result.InputSlotCatalog is null || result.InputSlotStatus is null) ||
-            selected.Any(static item => item.AbMergeInspectionLease is null))
-        {
-            return false;
-        }
-
-        AuthoringSessionTransitionResult completed =
-            _authoringSessions.AbMerge.TryCompleteSlotFileInspectionBatch(
-                catalog,
-                [
-                    .. selected.Select(static item => item.AbMergeInspectionLease!),
-                ],
-                results.ToDictionary(
-                    static result => result.InputSlotStatus!.SlotId,
-                    static result => result.InputSlotStatus!,
-                    StringComparer.Ordinal));
-        if (!completed.Succeeded)
-        {
-            return false;
-        }
-        SyncAbMergeMembership(completed.Snapshot);
-        return true;
+        return completed;
     }
 
     internal void RefreshAbMergeAuthoringState()
@@ -113,60 +74,26 @@ public sealed partial class MergePresentationViewModel
                 .Where(static slot => slot.HasFile)
                 .Select(static slot => slot.SlotId),
         ];
-        ActiveSessionSnapshot? current = _authoringSessions.AbMerge.CurrentSnapshot;
-        Dictionary<string, FileStamp> accepted = current?.Slots
-            .Where(slot =>
-                slot.FileStamp is not null &&
-                AbMergeSlots.Any(candidate =>
-                    StringComparer.Ordinal.Equals(candidate.SlotId, slot.DefinitionId) &&
-                    StringComparer.Ordinal.Equals(candidate.FilePath, slot.SelectedPath)))
-            .ToDictionary(
-                static slot => slot.DefinitionId,
-                static slot => slot.FileStamp!.Value,
-                StringComparer.Ordinal) ??
-            new Dictionary<string, FileStamp>(StringComparer.Ordinal);
+        Dictionary<string, FileStamp> accepted = AcceptedInputStamps(
+            _authoringSessions.AbMerge,
+            AbMergeSlots,
+            static slot => slot.SlotId);
         return WorkbenchCompositionService.GetAbMergeAuthoringSnapshot(
             SelectedIc,
             GetSelectedAbMergeTopologyToken(),
             selectedSlotIds,
             accepted,
-            AbMergeAuthoringRevision);
+            AbMergeAuthoringRevision,
+            _authoringSessions.AbMerge.CurrentSnapshot);
     }
 
     private void ApplyAbMergeReadiness(WorkbenchAbMergeAuthoringSnapshot projection)
     {
-        foreach (FirmwareSlotViewModel slot in AbMergeSlots)
-        {
-            InputSelectionMemberReadiness? member = projection.Slots.SingleOrDefault(candidate =>
-                StringComparer.Ordinal.Equals(candidate.SlotId, slot.SlotId));
-            if (member is null)
-            {
-                slot.ClearSelectionReadiness();
-                continue;
-            }
-
-            string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
-            string detail = Text.GetStandardMergeInputSelectionReadinessDetail(member);
-            slot.SetSelectionReadiness(
-                member.Readiness,
-                label,
-                detail,
-                Text.GetInputSelectionReadinessAutomationText(label, detail),
-                member.CanSelect);
-        }
+        ApplyInputReadiness(AbMergeSlots, projection.Slots, static slot => slot.SlotId);
     }
 
     private void SyncAbMergeMembership(ActiveSessionSnapshot? snapshot)
     {
-        var members = (snapshot?.Slots ?? [])
-            .Select(static slot => slot.DefinitionId)
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (FirmwareSlotViewModel slot in AbMergeSlots.Where(slot =>
-                     !members.Contains(slot.SlotId)))
-        {
-            slot.FilePath = null;
-            slot.SetFirmwareFacts([]);
-            slot.ClearInputInspection();
-        }
+        SyncInputMembership(snapshot, AbMergeSlots, static slot => slot.SlotId);
     }
 }

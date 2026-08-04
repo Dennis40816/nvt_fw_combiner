@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
@@ -125,7 +126,8 @@ public static class AbMergeWorkbenchCompositionService
             additionalOutputProtectedPaths: null,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
             aFlashCodeOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            acceptedCapability: null);
     }
 
     /// <summary>Runs AB Merge for the focused CLI adapter while preserving explicit output policy.</summary>
@@ -155,7 +157,8 @@ public static class AbMergeWorkbenchCompositionService
                 : [new ProtectedPathGuard.ProtectedPath(reportPath, "CLI report")],
             outputPathUsesAutomaticName: false,
             aFlashCodeOutputPathUsesAutomaticName: false,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            acceptedCapability: null);
     }
 
     /// <summary>Runs AB Merge and publishes bounded Application-owned lifecycle phases.</summary>
@@ -185,7 +188,36 @@ public static class AbMergeWorkbenchCompositionService
             additionalOutputProtectedPaths: null,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
             aFlashCodeOutputPathUsesAutomaticName: aFlashCodeOutputPathUsesAutomaticName,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            acceptedCapability: null);
+    }
+
+    /// <summary>Runs AB Merge from one exact accepted desktop session.</summary>
+    public static ValueTask<WorkbenchRunResult> RunAbMergeAcceptedSessionWithProgressAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        ActiveSessionSnapshot acceptedSession,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null,
+        string? abMergeTopologyToken = null,
+        string? aFlashCodeOutputPath = null,
+        bool outputPathUsesAutomaticName = false,
+        bool aFlashCodeOutputPathUsesAutomaticName = false)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        ResolvedCapability capability = WorkbenchCompositionService.RequireAcceptedCapability(
+            acceptedSession,
+            IcWorkflowIds.AbMerge,
+            icId,
+            AuthoringDerivedResultKind.Inspection);
+        return RunAbMergeCoreAsync(
+            icId, slotPaths, build, outputPath, previewOutputFileName: null, progress,
+            ResolveTopologySelection(abMergeTopologyToken), aFlashCodeOutputPath,
+            automaticOutputDirectory: null, additionalOutputProtectedPaths: null,
+            outputPathUsesAutomaticName, aFlashCodeOutputPathUsesAutomaticName,
+            capability, cancellationToken, acceptedSession);
     }
 
     /// <summary>Runs AB Merge with a Bootstrap-owned symbolic topology token.</summary>
@@ -219,15 +251,21 @@ public static class AbMergeWorkbenchCompositionService
         string icId,
         IReadOnlyDictionary<string, string> slotPaths,
         CancellationToken cancellationToken,
-        string? abMergeTopologyToken = null)
+        string? abMergeTopologyToken = null,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         TopologySelection? topology = ResolveTopologySelection(abMergeTopologyToken);
-        CompiledComposition composition = CompileExecutableAbMerge(normalizedIcId, topology);
+        CompiledComposition composition = acceptedSession is null
+            ? CompileExecutableAbMerge(normalizedIcId, topology)
+            : WorkbenchCompositionService.RequireAcceptedCapability(
+                acceptedSession, IcWorkflowIds.AbMerge, icId,
+                AuthoringDerivedResultKind.Inspection).CompiledComposition;
 
-        InputArtifactBinding[] bindings = CreateInputBindings(composition, slotPaths);
+        InputArtifactBinding[] bindings = CreateInputBindings(
+            composition, slotPaths, acceptedSession);
         CompositionOutputNamePreview preview = await WorkbenchCompositionService
             .ResolveAutomaticOutputNameAsync(
                 RunIdPrefix,
@@ -246,14 +284,20 @@ public static class AbMergeWorkbenchCompositionService
         string icId,
         IReadOnlyDictionary<string, string> slotPaths,
         CancellationToken cancellationToken,
-        string? abMergeTopologyToken = null)
+        string? abMergeTopologyToken = null,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         TopologySelection? topology = ResolveTopologySelection(abMergeTopologyToken);
-        CompiledComposition composition = CompileExecutableAbMerge(normalizedIcId, topology);
-        InputArtifactBinding[] bindings = CreateInputBindings(composition, slotPaths);
+        CompiledComposition composition = acceptedSession is null
+            ? CompileExecutableAbMerge(normalizedIcId, topology)
+            : WorkbenchCompositionService.RequireAcceptedCapability(
+                acceptedSession, IcWorkflowIds.AbMerge, icId,
+                AuthoringDerivedResultKind.Inspection).CompiledComposition;
+        InputArtifactBinding[] bindings = CreateInputBindings(
+            composition, slotPaths, acceptedSession);
         CompositionOutputNamePreview preview = await WorkbenchCompositionService
             .ResolveAutomaticOutputNameAsync(
                 RunIdPrefix,
@@ -284,14 +328,18 @@ public static class AbMergeWorkbenchCompositionService
         IReadOnlyList<ProtectedPathGuard.ProtectedPath>? additionalOutputProtectedPaths,
         bool outputPathUsesAutomaticName,
         bool aFlashCodeOutputPathUsesAutomaticName,
-        CancellationToken cancellationToken)
+        ResolvedCapability? acceptedCapability,
+        CancellationToken cancellationToken,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(slotPaths);
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
-        CompiledComposition composition = CompileExecutableAbMerge(normalizedIcId, abMergeTopologySelection);
+        CompiledComposition composition = acceptedCapability?.CompiledComposition ??
+            CompileExecutableAbMerge(normalizedIcId, abMergeTopologySelection);
 
-        InputArtifactBinding[] bindings = CreateInputBindings(composition, slotPaths);
+        InputArtifactBinding[] bindings = CreateInputBindings(
+            composition, slotPaths, acceptedSession);
         string firstInputPath = bindings.Single(static binding =>
             binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput).ArtifactId;
 
@@ -356,7 +404,8 @@ public static class AbMergeWorkbenchCompositionService
             automaticOutputDirectory: automaticOutputDirectory,
             additionalOutputProtectedPaths: additionalOutputProtectedPaths,
             outputPathUsesAutomaticName: outputPathUsesAutomaticName,
-            additionalOutputPreflight: additionalOutputPreflight).ConfigureAwait(false);
+            additionalOutputPreflight: additionalOutputPreflight,
+            resolvedCapability: acceptedCapability).ConfigureAwait(false);
         if (aFlashCodePlan is null || !build || result.Status != CompositionExecutionStatus.Succeeded ||
             string.IsNullOrWhiteSpace(result.CommittedOutputId) ||
             string.IsNullOrWhiteSpace(resolvedAFlashCodeOutputPath))
@@ -428,7 +477,8 @@ public static class AbMergeWorkbenchCompositionService
 
     private static InputArtifactBinding[] CreateInputBindings(
         CompiledComposition composition,
-        IReadOnlyDictionary<string, string> slotPaths)
+        IReadOnlyDictionary<string, string> slotPaths,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         return
         [
@@ -436,10 +486,16 @@ public static class AbMergeWorkbenchCompositionService
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
                     !string.IsNullOrWhiteSpace(path)
-                        ? CompiledCompositionInputBindingFactory.Create(
-                            composition,
-                            addressSpaceId,
-                            Path.GetFullPath(path))
+                        ? acceptedSession is null
+                            ? CompiledCompositionInputBindingFactory.Create(
+                                composition,
+                                addressSpaceId,
+                                Path.GetFullPath(path))
+                            : WorkbenchCompositionService.CreateAcceptedSessionBinding(
+                                composition,
+                                addressSpaceId,
+                                path,
+                                acceptedSession)
                         : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
         ];
     }

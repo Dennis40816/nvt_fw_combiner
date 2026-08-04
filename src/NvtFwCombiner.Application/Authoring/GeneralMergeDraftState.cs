@@ -109,4 +109,17 @@ public sealed record GeneralMergeDraftState : AuthoringDraftState
     {
         return this;
     }
+
+    /// <summary>Returns true when initializer and ordered mapping values match.</summary>
+    public bool HasSameValue(GeneralMergeDraftState other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        return Equals(OutputInitializer, other.OutputInitializer) &&
+            Mappings.HasSameValue(other.Mappings);
+    }
+
+    internal override bool HasSameValue(AuthoringDraftState other)
+    {
+        return other is GeneralMergeDraftState merge && HasSameValue(merge);
+    }
 }

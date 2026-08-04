@@ -1936,6 +1936,13 @@ after the grill closes so issues do not become a competing draft specification.
     exceed 74,750. Ticket #214 may consume at most 1,300 counted net lines.
     Presentation exclusion cannot be used to hide runtime ownership, and this
     temporary envelope does not increase the final gate or integration reserve.
+    Owner decision on 2026-08-04 grants #208 one non-transferable exception:
+    its reviewed tree may raise the pre-Core high-water mark exactly to 75,481
+    counted runtime lines. This consumes no reusable allowance, does not refill
+    after deletion, and does not authorize any other pre-Core growth. #254 is
+    the immediate next implementation ticket and records the superseded
+    General/Saved Rule reduction. The 22,607 final gate and 607-line
+    integration reserve remain unchanged.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
     firmware/route migration may temporarily grow only when a golden,

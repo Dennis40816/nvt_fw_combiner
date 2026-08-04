@@ -1,17 +1,21 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Collapsible memory coverage group for repeated region families.</summary>
 public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
 {
+    private readonly ShellTextResources _text;
     /// <summary>Creates a memory coverage group.</summary>
     public MemoryCoverageGroupViewModel(
         string title,
         string summary,
         IEnumerable<MemoryCoverageSegmentViewModel> segments,
-        bool isExpanded)
+        bool isExpanded,
+        WorkbenchReplaceRegionGroup regionGroup,
+        ShellTextResources text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(summary);
@@ -21,6 +25,8 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
         Summary = summary;
         Segments = [.. segments];
         IsExpanded = isExpanded;
+        RegionGroup = regionGroup;
+        _text = text ?? throw new ArgumentNullException(nameof(text));
     }
 
     /// <summary>Group label shown in the expander header.</summary>
@@ -35,6 +41,9 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     /// <summary>Number of memory segments in this group.</summary>
     public int SegmentCount => Segments.Count;
 
+    /// <summary>Typed grouping independent of localized title text.</summary>
+    public WorkbenchReplaceRegionGroup RegionGroup { get; }
+
     /// <summary>Number of coverage segments written by the active operation type.</summary>
     public int ChangedCount => Segments.Count(segment => segment.IsChanged);
 
@@ -42,13 +51,14 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     public string CountLabel => IsBaseFirmwareGroup ? $"{SegmentCount}" : $"{ChangedCount}/{SegmentCount}";
 
     /// <summary>Plain-language group summary that is quick to scan.</summary>
-    public string ChangeSummary => IsBaseFirmwareGroup
-        ? "Kept from base firmware."
-        : $"{ChangedCount} selected / {SegmentCount} areas.";
+    public string ChangeSummary => _text.FormatCoverageChangeSummary(
+        IsBaseFirmwareGroup,
+        ChangedCount,
+        SegmentCount);
 
     /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
 
-    private bool IsBaseFirmwareGroup => Title.StartsWith("Base firmware", StringComparison.Ordinal);
+    private bool IsBaseFirmwareGroup => RegionGroup == WorkbenchReplaceRegionGroup.Base;
 }

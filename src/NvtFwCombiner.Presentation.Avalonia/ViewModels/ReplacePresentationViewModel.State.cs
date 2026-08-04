@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -9,6 +10,7 @@ public sealed partial class ReplacePresentationViewModel
     private const string DpReplaceMode = WorkbenchReplaceModes.Dp;
     private const string CtrlRamReplaceMode = WorkbenchReplaceModes.CtrlRam;
     private const string GeneralReplaceMode = WorkbenchReplaceModes.General;
+    private readonly ReplaceAuthoringSessionSet _authoringSessions = new();
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = DpReplaceMode;
 
@@ -123,7 +125,10 @@ public sealed partial class ReplacePresentationViewModel
         SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
 
     /// <summary>True when Replace build can run for the active mode.</summary>
-    public bool CanBuildReplace => CanRunReplace() && !IsCtrlRamFirmwareVersionMetadataLoading;
+    public bool CanBuildReplace => CanRunReplace() &&
+        !IsCtrlRamFirmwareVersionMetadataLoading &&
+        (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
+        (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }

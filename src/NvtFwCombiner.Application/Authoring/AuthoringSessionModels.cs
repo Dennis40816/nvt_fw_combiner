@@ -8,13 +8,10 @@ public enum AuthoringDerivedResultKind
 {
     /// <summary>Decoded input metadata and input health.</summary>
     Inspection,
-
     /// <summary>Resolved validation and readiness.</summary>
     Validation,
-
     /// <summary>Preview output and its report projection.</summary>
     Preview,
-
     /// <summary>Build output and its report projection.</summary>
     Build,
 }
@@ -103,14 +100,24 @@ public readonly record struct AuthoringRevision
 /// <summary>Reference to one canonical resolved input-slot definition.</summary>
 public sealed record AuthoringSlotDefinitionReference
 {
-    internal AuthoringSlotDefinitionReference(string definitionId)
+    internal AuthoringSlotDefinitionReference(
+        string definitionId,
+        long? expectedLength = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
+        if (expectedLength is not null)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedLength.Value);
+        }
         DefinitionId = definitionId;
+        ExpectedLength = expectedLength;
     }
 
     /// <summary>Stable slot-definition identity from the resolved input contract.</summary>
     public string DefinitionId { get; }
+
+    /// <summary>Exact pre-binding length compiled for this slot, when required.</summary>
+    public long? ExpectedLength { get; }
 }
 
 /// <summary>
@@ -127,7 +134,8 @@ public sealed record AuthoringCapabilityRoute
         bool executionAdmitted,
         IEnumerable<AuthoringSlotDefinitionReference> slotDefinitions,
         string? compilationFingerprint = null,
-        ReviewedDiscoveryTransition? discoveryTransition = null)
+        ReviewedDiscoveryTransition? discoveryTransition = null,
+        ResolvedCapability? exactCapability = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
@@ -138,6 +146,19 @@ public sealed record AuthoringCapabilityRoute
             throw new ArgumentException(
                 "Compilation fingerprint must be a lowercase SHA-256 value.",
                 nameof(compilationFingerprint));
+        }
+        if (exactCapability is not null &&
+            (!Equals(exactCapability.Identity, identity) ||
+             !StringComparer.Ordinal.Equals(
+                 exactCapability.CapabilityFingerprint,
+                 capabilityFingerprint) ||
+             !StringComparer.Ordinal.Equals(
+                 exactCapability.CompiledComposition.CompilationFingerprint,
+                 compilationFingerprint)))
+        {
+            throw new ArgumentException(
+                "The retained exact capability must own this route and compilation.",
+                nameof(exactCapability));
         }
         _slotDefinitions = [.. slotDefinitions];
         if (_slotDefinitions.Length == 0 ||
@@ -158,6 +179,7 @@ public sealed record AuthoringCapabilityRoute
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = compilationFingerprint;
         DiscoveryTransition = discoveryTransition;
+        ExactCapability = exactCapability;
         ExecutionAdmitted = executionAdmitted;
         SlotDefinitions = Array.AsReadOnly(_slotDefinitions);
     }
@@ -173,6 +195,9 @@ public sealed record AuthoringCapabilityRoute
 
     /// <summary>Reviewed discovery-to-exact transition proof, when compilation needs a prerequisite.</summary>
     public ReviewedDiscoveryTransition? DiscoveryTransition { get; }
+
+    /// <summary>Exact immutable capability retained for this compiled route.</summary>
+    public ResolvedCapability? ExactCapability { get; }
 
     /// <summary>Whether the compiler admitted execution for this exact route.</summary>
     public bool ExecutionAdmitted { get; }
@@ -260,9 +285,14 @@ public sealed class AuthoringCapabilityCatalogSnapshot
                         capability.Identity,
                         capability.CapabilityFingerprint,
                         capability.ExecutionAdmitted,
-                        inputContract.Slots.Select(static slot =>
-                            new AuthoringSlotDefinitionReference(slot.SlotId)),
-                        capability.CompiledComposition.CompilationFingerprint);
+                        inputContract.SpaceBindings
+                            .Select(static binding => new AuthoringSlotDefinitionReference(
+                                binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding
+                                    ? binding.AddressSpaceId
+                                    : binding.SlotId))
+                            .DistinctBy(static definition => definition.DefinitionId),
+                        capability.CompiledComposition.CompilationFingerprint,
+                        exactCapability: capability);
                 }),
         ];
         return new AuthoringCapabilityCatalogSnapshot(
@@ -279,17 +309,37 @@ public sealed class AuthoringCapabilityCatalogSnapshot
         ArgumentNullException.ThrowIfNull(capability);
         CompiledInputContract inputContract =
             capability.CompiledComposition.V2Details.InputContract;
-        return new AuthoringCapabilityCatalogSnapshot(
-            capability.Identity.WorkflowId,
+        return CreateSingleRouteCatalog(
+            capability.Identity,
             capability.ResolutionToken,
-            [new AuthoringCapabilityRoute(
-                capability.Identity,
-                capability.CapabilityFingerprint,
-                capability.ExecutionAdmitted,
-                inputContract.Slots.Select(static slot =>
-                    new AuthoringSlotDefinitionReference(slot.SlotId)),
-                capability.CompiledComposition.CompilationFingerprint,
-                discoveryTransition)]);
+            capability.CapabilityFingerprint,
+            capability.ExecutionAdmitted,
+            inputContract.SpaceBindings.Select(static binding =>
+                new AuthoringSlotDefinitionReference(
+                    binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding
+                        ? binding.AddressSpaceId
+                        : binding.SlotId)).DistinctBy(static definition => definition.DefinitionId),
+            capability.CompiledComposition.CompilationFingerprint,
+            discoveryTransition,
+            capability);
+    }
+
+    /// <summary>Projects an exact capability with request-scoped General binding identities.</summary>
+    public static AuthoringCapabilityCatalogSnapshot FromResolvedCapability(
+        ResolvedCapability capability,
+        IReadOnlyDictionary<string, long> slotLengths)
+    {
+        ArgumentNullException.ThrowIfNull(capability);
+        ArgumentNullException.ThrowIfNull(slotLengths);
+        return CreateSingleRouteCatalog(
+            capability.Identity,
+            capability.ResolutionToken,
+            capability.CapabilityFingerprint,
+            capability.ExecutionAdmitted,
+            slotLengths.Select(static item =>
+                new AuthoringSlotDefinitionReference(item.Key, item.Value)),
+            capability.CompiledComposition.CompilationFingerprint,
+            exactCapability: capability);
     }
 
     /// <summary>
@@ -303,17 +353,51 @@ public sealed class AuthoringCapabilityCatalogSnapshot
     {
         ArgumentNullException.ThrowIfNull(discoveryCapability);
         ArgumentNullException.ThrowIfNull(slotDefinitionIds);
-        return new AuthoringCapabilityCatalogSnapshot(
-            discoveryCapability.Identity.WorkflowId,
+        return CreateSingleRouteCatalog(
+            discoveryCapability.Identity,
             discoveryCapability.ResolutionToken,
-            [new AuthoringCapabilityRoute(
-                discoveryCapability.Identity,
-                discoveryCapability.CapabilityFingerprint,
-                discoveryCapability.ExecutionAdmitted,
-                slotDefinitionIds.Select(static slotId =>
-                    new AuthoringSlotDefinitionReference(slotId)),
-                compilationFingerprint: null,
-                discoveryTransition)]);
+            discoveryCapability.CapabilityFingerprint,
+            discoveryCapability.ExecutionAdmitted,
+            slotDefinitionIds.Select(static slotId =>
+                new AuthoringSlotDefinitionReference(slotId)),
+            compilationFingerprint: null,
+            discoveryTransition);
+    }
+
+    /// <summary>Projects reviewed dynamic-route membership before exact compilation.</summary>
+    public static AuthoringCapabilityCatalogSnapshot FromDynamicRoute(
+        ResolvedCapabilityRoute route,
+        IEnumerable<string> slotDefinitionIds)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentNullException.ThrowIfNull(slotDefinitionIds);
+        return CreateSingleRouteCatalog(
+            route.Identity,
+            route.ResolutionToken,
+            route.CapabilityFingerprint,
+            executionAdmitted: false,
+            slotDefinitionIds.Select(static slotId =>
+                new AuthoringSlotDefinitionReference(slotId)));
+    }
+
+    private static AuthoringCapabilityCatalogSnapshot CreateSingleRouteCatalog(
+        CapabilityRouteIdentity identity,
+        ResolutionToken resolutionToken,
+        string capabilityFingerprint,
+        bool executionAdmitted,
+        IEnumerable<AuthoringSlotDefinitionReference> slots,
+        string? compilationFingerprint = null,
+        ReviewedDiscoveryTransition? discoveryTransition = null,
+        ResolvedCapability? exactCapability = null)
+    {
+        return new(identity.WorkflowId, resolutionToken, [new AuthoringCapabilityRoute(
+                identity,
+                capabilityFingerprint,
+                executionAdmitted,
+                slots,
+                compilationFingerprint,
+                discoveryTransition,
+                exactCapability)]);
     }
 
     internal IReadOnlyList<string> GetIcCountChoices(string icId)
@@ -450,7 +534,6 @@ public sealed record AuthoringDerivedPublication
                 "Compilation fingerprint must be a lowercase SHA-256 value.",
                 nameof(compilationFingerprint));
         }
-
         Kind = kind;
         ResultReference = resultReference;
         CompilationFingerprint = compilationFingerprint;
@@ -467,160 +550,5 @@ public sealed record AuthoringDerivedPublication
     /// null when the result kind has no compiled projection.
     /// </summary>
     public string? CompilationFingerprint { get; }
+
 }
-
-/// <summary>Closed authoring-draft contracts admitted by session policy.</summary>
-public enum AuthoringDraftKind
-{
-    /// <summary>One typed General Merge/Replace explicit-mapping draft.</summary>
-    GeneralMapping,
-
-    /// <summary>One exact General Merge initializer plus shared mapping draft.</summary>
-    GeneralMerge,
-}
-
-/// <summary>
-/// Closed typed draft carried by one authoring session. Application-owned
-/// contracts must project caller state into a deeply immutable snapshot.
-/// </summary>
-public abstract record AuthoringDraftState
-{
-    /// <summary>Creates one typed draft with a stable closed-contract identity.</summary>
-    internal AuthoringDraftState(AuthoringDraftKind draftKind)
-    {
-        if (!Enum.IsDefined(draftKind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(draftKind),
-                draftKind,
-                "Unknown authoring draft kind.");
-        }
-
-        DraftKind = draftKind;
-    }
-
-    /// <summary>Stable identity of the concrete typed draft contract.</summary>
-    public AuthoringDraftKind DraftKind { get; }
-
-    /// <summary>
-    /// Defensively projects caller-owned state before a session publishes it.
-    /// The internal abstract member closes concrete contracts to Application.
-    /// </summary>
-    internal abstract AuthoringDraftState CreateImmutableSnapshot();
-}
-
-/// <summary>Stable authoring-session issue.</summary>
-public sealed record AuthoringSessionIssue(
-    string Code,
-    string Message,
-    string? Subject = null);
-
-/// <summary>Stable issue codes shared by UI and CLI session adapters.</summary>
-public static class AuthoringSessionIssueCodes
-{
-    /// <summary>The workflow has no authorable exact route.</summary>
-    public const string CatalogUnavailable = "authoring.session.catalog-unavailable";
-
-    /// <summary>The selected IC and IC Count do not identify a route.</summary>
-    public const string RouteUnavailable = "authoring.session.route-unavailable";
-
-    /// <summary>The selected axes identify multiple map variants.</summary>
-    public const string RouteAmbiguous = "authoring.session.route-ambiguous";
-
-    /// <summary>The selected slot definition is absent from the active route.</summary>
-    public const string SlotUnavailable = "authoring.session.slot-unavailable";
-
-    /// <summary>The workflow does not declare authoring-draft semantics.</summary>
-    public const string DraftUnavailable = "authoring.session.draft-unavailable";
-
-    /// <summary>The asynchronous result belongs to older session state.</summary>
-    public const string StalePublication = "authoring.session.publication-stale";
-
-    /// <summary>The selected-file inspection belongs to older session state.</summary>
-    public const string StaleInspection = "authoring.session.inspection-stale";
-
-    /// <summary>The result kind does not match its captured lease.</summary>
-    public const string InvalidPublication = "authoring.session.publication-invalid";
-}
-
-/// <summary>Typed outcome of one authoring-state transition.</summary>
-public sealed record AuthoringSessionTransitionResult(
-    ActiveSessionSnapshot? Snapshot,
-    AuthoringSessionIssue? Issue)
-{
-    /// <summary>True only when a coherent new or unchanged snapshot is available.</summary>
-    public bool Succeeded => Snapshot is not null && Issue is null;
-}
-
-/// <summary>One slot identity captured with an asynchronous publication lease.</summary>
-public sealed record AuthoringSlotPublicationIdentity(
-    string DefinitionId,
-    string? SelectedPath,
-    FileStamp? FileStamp);
-
-/// <summary>
-/// Complete identity required before an asynchronous result may publish.
-/// Carries no firmware bytes or derived result.
-/// </summary>
-public sealed class AuthoringPublicationLease
-{
-    private readonly AuthoringSlotPublicationIdentity[] _slots;
-
-    internal AuthoringPublicationLease(
-        object sessionIdentity,
-        AuthoringDerivedResultKind kind,
-        ResolutionToken resolutionToken,
-        AuthoringRevision authoringRevision,
-        string selectedRouteId,
-        string capabilityFingerprint,
-        IEnumerable<AuthoringSlotPublicationIdentity> slots,
-        string? compilationFingerprint)
-    {
-        ArgumentNullException.ThrowIfNull(sessionIdentity);
-        if (compilationFingerprint is not null &&
-            !CapabilityRouteIdentity.IsSha256(compilationFingerprint))
-        {
-            throw new ArgumentException(
-                "Compilation fingerprint must be a lowercase SHA-256 value.",
-                nameof(compilationFingerprint));
-        }
-
-        SessionIdentity = sessionIdentity;
-        Kind = kind;
-        ResolutionToken = resolutionToken;
-        AuthoringRevision = authoringRevision;
-        SelectedRouteId = selectedRouteId;
-        CapabilityFingerprint = capabilityFingerprint;
-        CompilationFingerprint = compilationFingerprint;
-        _slots = [.. slots];
-        Slots = Array.AsReadOnly(_slots);
-    }
-
-    internal object SessionIdentity { get; }
-
-    /// <summary>Expected result kind.</summary>
-    public AuthoringDerivedResultKind Kind { get; }
-
-    /// <summary>Captured canonical publication identity.</summary>
-    public ResolutionToken ResolutionToken { get; }
-
-    /// <summary>Captured authoring-input revision.</summary>
-    public AuthoringRevision AuthoringRevision { get; }
-
-    /// <summary>Captured exact route.</summary>
-    public string SelectedRouteId { get; }
-
-    /// <summary>Captured firmware-semantic identity.</summary>
-    public string CapabilityFingerprint { get; }
-
-    /// <summary>Expected exact compilation identity, when work is compilation-bound.</summary>
-    public string? CompilationFingerprint { get; }
-
-    /// <summary>Captured slot definition, path, and file-stamp identities.</summary>
-    public IReadOnlyList<AuthoringSlotPublicationIdentity> Slots { get; }
-}
-
-/// <summary>Typed result of one derived-result publication attempt.</summary>
-public sealed record AuthoringPublicationResult(
-    bool Succeeded,
-    AuthoringSessionIssue? Issue);

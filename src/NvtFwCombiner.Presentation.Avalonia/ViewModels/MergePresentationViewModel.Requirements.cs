@@ -17,7 +17,6 @@ public sealed partial class MergePresentationViewModel
         IReadOnlyList<string> available = WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(SelectedIc);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
-            slot.UsesSharedSlotPresentation = true;
             slot.ApplyExperienceText(Text);
         }
         MergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
@@ -123,34 +122,16 @@ public sealed partial class MergePresentationViewModel
     {
         ActiveSessionSnapshot? session = _authoringSessions.StandardMerge.CurrentSnapshot;
         return IsNormalMergeModeSelected &&
-            session is not null &&
-            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc) &&
-            session.CompilationFingerprint is not null &&
-            session.DerivedPublications.Any(publication =>
-                publication.Kind == AuthoringDerivedResultKind.Inspection &&
-                StringComparer.Ordinal.Equals(
-                    publication.CompilationFingerprint,
-                    session.CompilationFingerprint)) &&
-            session.Slots.Count > 0 &&
-            session.Slots.All(static slot =>
-                slot.SelectedPath is not null &&
-                slot.FileStamp is not null &&
-                slot.Lifecycle is
-                    AuthoringSlotLifecycle.Verified or
-                    AuthoringSlotLifecycle.Warning) &&
-            session.InputSlotStatuses.Count == session.Slots.Count &&
-            session.InputSlotStatuses.All(status =>
-                status.IsTerminal &&
-                StringComparer.Ordinal.Equals(
-                    status.CompilationFingerprint,
-                    session.CompilationFingerprint));
+            session?.HasCurrentInputInspection == true &&
+            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc);
     }
 
     private bool CanRunGeneralMerge()
     {
         return IsGeneralMergeModeSelected &&
-            TryResolveGeneralMergeOutputInitializer(out _) &&
-            GeneralMergeMappings.Any(mapping => mapping.HasFile);
+            _generalMergeDraft is not null &&
+            _generalMergeAdmission?.IsAdmitted == true &&
+            _generalMergeActionReadiness?.Preview.IsAvailable == true;
     }
 
     internal bool TryResolveGeneralMergeOutputInitializer(
@@ -168,27 +149,8 @@ public sealed partial class MergePresentationViewModel
         return IsAbCodeMergeModeSelected &&
             IsAbMergeSupported &&
             (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&
-            session is not null &&
-            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc) &&
-            session.CompilationFingerprint is not null &&
-            session.DerivedPublications.Any(publication =>
-                publication.Kind == AuthoringDerivedResultKind.Inspection &&
-                StringComparer.Ordinal.Equals(
-                    publication.CompilationFingerprint,
-                    session.CompilationFingerprint)) &&
-            session.Slots.Count > 0 &&
-            session.Slots.All(static slot =>
-                slot.SelectedPath is not null &&
-                slot.FileStamp is not null &&
-                slot.Lifecycle is
-                    AuthoringSlotLifecycle.Verified or
-                    AuthoringSlotLifecycle.Warning) &&
-            session.InputSlotStatuses.Count == session.Slots.Count &&
-            session.InputSlotStatuses.All(status =>
-                status.IsTerminal &&
-                StringComparer.Ordinal.Equals(
-                    status.CompilationFingerprint,
-                    session.CompilationFingerprint));
+            session?.HasCurrentInputInspection == true &&
+            StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc);
     }
 
     internal bool CanRunMerge()

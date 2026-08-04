@@ -14,9 +14,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Workbench facade tests for report generation around gated workflows.</summary>
 public sealed class WorkbenchCompositionServiceTests
 {
-    /// <summary>Progress-aware UI entry points do not replace the existing CLI/public CLR signatures.</summary>
+    /// <summary>General facades expose typed drafts without restoring raw mapping compatibility overloads.</summary>
     [Fact]
-    public void ProgressAwareFacadePreservesLegacyPublicOverloads()
+    public void GeneralFacadesExposeTypedDraftsWithoutRawMappingOverloads()
     {
         MethodInfo[] methods = typeof(WorkbenchCompositionService).GetMethods(
             BindingFlags.Public | BindingFlags.Static);
@@ -25,19 +25,18 @@ public sealed class WorkbenchCompositionServiceTests
         MethodInfo[] replace = [.. methods.Where(static method => method.Name == "RunReplaceAsync")];
 
         Assert.Equal([5], standardMerge.Select(static method => method.GetParameters().Length));
-        Assert.Equal(
-            [6, 7],
-            generalMerge.Select(static method => method.GetParameters().Length).Order());
-        Assert.Equal([8, 9, 10], replace.Select(static method => method.GetParameters().Length).Order());
+        Assert.Empty(generalMerge);
+        Assert.Equal([8], replace.Select(static method => method.GetParameters().Length));
         Assert.All(
             standardMerge.Concat(generalMerge).Concat(replace),
             static method => Assert.DoesNotContain(
                 method.GetParameters(),
                 static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
         AssertProgressAwareMethod(methods, "RunStandardMergeWithProgressAsync", expectedParameterCount: 6);
-        AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 7);
-        AssertProgressAwareMethod(methods, "RunGeneralMergeWithProgressAsync", expectedParameterCount: 8);
-        AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 11);
+        AssertProgressAwareMethod(methods, "RunGeneralMergeAcceptedSessionWithProgressAsync", expectedParameterCount: 6);
+        AssertProgressAwareMethod(methods, "RunGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 8);
+        AssertProgressAwareMethod(methods, "RunReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 10);
+        AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 9);
     }
 
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -231,12 +230,13 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             slotPaths,
-            [new WorkbenchGeneralReplaceMappingInput("general-map-1", replacementPath, "0x00100", "0x00101")],
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x00100", "0x2"),
+            ]),
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
@@ -259,12 +259,13 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             slotPaths,
-            [new WorkbenchGeneralReplaceMappingInput("general-map-1", replacementPath, "0x22C00", "0x22C01")],
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x22C00", "0x2"),
+            ]),
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -284,12 +285,13 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             slotPaths,
-            [new WorkbenchGeneralReplaceMappingInput("general-map-1", replacementPath, "0x36000", "0x36000")],
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x36000", "0x1"),
+            ]),
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -524,11 +526,11 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = missingBase,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51927",
             "single",
-            "General",
             slotPaths,
+            GeneralTestDraftFactory.CreateReplaceDraft([]),
             build: false,
             CancellationToken.None);
 

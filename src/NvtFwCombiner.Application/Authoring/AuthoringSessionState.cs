@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -10,6 +11,8 @@ public sealed partial class AuthoringSessionState
 {
     private readonly Lock _transitionLock = new();
     private readonly object _publicationIdentity = new();
+    private readonly Dictionary<string, CachedGeneralSelectedFileInspection> _generalInspectionCache =
+        new(StringComparer.Ordinal);
     private AuthoringCapabilityCatalogSnapshot? _catalog;
     private ActiveSessionSnapshot? _current;
 
@@ -74,6 +77,20 @@ public sealed partial class AuthoringSessionState
             AuthoringCapabilityRoute route = FindSelectedRoute(
                 catalog,
                 resolution.Snapshot!.SelectedRouteId);
+            foreach (string cachedDefinitionId in _generalInspectionCache
+                .Where(entry =>
+                    entry.Value.ResolutionToken != catalog.ResolutionToken ||
+                    !StringComparer.Ordinal.Equals(
+                        entry.Value.CapabilityFingerprint,
+                        route.CapabilityFingerprint) ||
+                    !route.SlotDefinitions.Any(slot => StringComparer.Ordinal.Equals(
+                        slot.DefinitionId,
+                        entry.Key)))
+                .Select(static entry => entry.Key)
+                .ToArray())
+            {
+                _ = _generalInspectionCache.Remove(cachedDefinitionId);
+            }
             bool sameSelection = previous is not null &&
                 StringComparer.Ordinal.Equals(
                     previous.SelectedRouteId,
@@ -82,12 +99,26 @@ public sealed partial class AuthoringSessionState
                 StringComparer.Ordinal.Equals(
                     previous.CompilationFingerprint,
                     route.CompilationFingerprint);
+            bool sameSlots = previous is not null &&
+                previous.Slots.Select(static slot => slot.DefinitionId)
+                    .SequenceEqual(route.SlotDefinitions.Select(static slot => slot.DefinitionId));
+            bool sameExactCapability = previous is not null &&
+                ReferenceEquals(previous.ExactCapability, route.ExactCapability);
             if (sameSelection &&
                 sameCompilation &&
+                sameSlots &&
+                previous!.ResolutionToken == catalog.ResolutionToken &&
+                sameExactCapability)
+            {
+                return new AuthoringSessionTransitionResult(previous, null);
+            }
+            if (sameSelection && sameCompilation && sameSlots &&
                 previous!.ResolutionToken == catalog.ResolutionToken)
             {
-                _catalog = catalog;
-                return new AuthoringSessionTransitionResult(previous, null);
+                return Failure(
+                    AuthoringSessionIssueCodes.InvalidPublication,
+                    "Matching fingerprints cannot replace the retained exact compilation instance.",
+                    route.Identity.RouteId);
             }
 
             AuthoringDraftState? draftState = ProjectDraft(route, previous);
@@ -97,7 +128,7 @@ public sealed partial class AuthoringSessionState
                     route.CapabilityFingerprint);
             AuthoringRevision revision = previous is null
                 ? new AuthoringRevision(1)
-                : sameSelection && compatibleCapability && sameCompilation
+                : sameSelection && compatibleCapability && sameCompilation && sameSlots
                     ? previous.AuthoringRevision
                     : previous.AuthoringRevision.Next();
             ActiveSessionSnapshot snapshot = CreateSnapshot(
@@ -178,10 +209,10 @@ public sealed partial class AuthoringSessionState
         FileStamp? fileStamp)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotDefinitionId);
-        if ((selectedPath is null) != (fileStamp is null))
+        if (selectedPath is null && fileStamp is not null)
         {
             throw new ArgumentException(
-                "Selected path and file stamp must be supplied or cleared together.",
+                "A selected-file stamp requires one selected path.",
                 nameof(selectedPath));
         }
 
@@ -215,6 +246,11 @@ public sealed partial class AuthoringSessionState
                 existing.FileStamp == fileStamp)
             {
                 return new AuthoringSessionTransitionResult(_current, null);
+            }
+
+            if (!StringComparer.Ordinal.Equals(existing.SelectedPath, selectedPath))
+            {
+                _ = _generalInspectionCache.Remove(slotDefinitionId);
             }
 
             AuthoringSlotState[] slots = [.. _current.Slots];
@@ -264,7 +300,10 @@ public sealed partial class AuthoringSessionState
 
             AuthoringDraftState? immutableDraft =
                 draftState?.CreateImmutableSnapshot();
-            if (Equals(_current.DraftState, immutableDraft))
+            if (_current.DraftState is null
+                    ? immutableDraft is null
+                    : immutableDraft is not null &&
+                        _current.DraftState.HasSameValue(immutableDraft))
             {
                 return new AuthoringSessionTransitionResult(_current, null);
             }
@@ -314,6 +353,17 @@ public sealed partial class AuthoringSessionState
                         slot.SelectedPath,
                         slot.FileStamp)),
                 compilationFingerprint);
+        }
+    }
+
+    /// <summary>Checks whether one asynchronous result still belongs to the active inputs.</summary>
+    public bool IsPublicationCurrent(AuthoringPublicationLease lease)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        lock (_transitionLock)
+        {
+            return _current is not null &&
+                LeaseMatches(lease, _current, _publicationIdentity);
         }
     }
 
@@ -469,6 +519,8 @@ public sealed partial class AuthoringSessionState
                 draftKind is null or AuthoringDraftKind.GeneralMerge,
             ExperienceIds.GeneralReplace =>
                 draftKind is null or AuthoringDraftKind.GeneralMapping,
+            ExperienceIds.CtrlRamReplace =>
+                draftKind is null or AuthoringDraftKind.CtrlRamFirmwareVersionEdit,
             _ => draftKind is null,
         };
     }
@@ -500,6 +552,7 @@ public sealed partial class AuthoringSessionState
             draftCapabilityFingerprint,
             publications,
             route.CompilationFingerprint,
+            route.ExactCapability,
             inputSlotStatuses);
     }
 
@@ -529,6 +582,7 @@ public sealed partial class AuthoringSessionState
             draftCapabilityFingerprint,
             publications,
             current.CompilationFingerprint,
+            current.ExactCapability,
             inputSlotStatuses);
     }
 
@@ -587,4 +641,9 @@ public sealed partial class AuthoringSessionState
             false,
             new AuthoringSessionIssue(code, message));
     }
+
+    private sealed record CachedGeneralSelectedFileInspection(
+        ResolutionToken ResolutionToken,
+        string CapabilityFingerprint,
+        GeneralSelectedFileInspection Inspection);
 }

@@ -15,7 +15,9 @@ public static partial class UiCompositionRunner
             row.Detail);
     }
 
-    private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(WorkbenchMemoryCoverageSegment segment)
+    private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
+        WorkbenchMemoryCoverageSegment segment,
+        ShellTextResources? text = null)
     {
         return new(
             segment.RangeLabel,
@@ -25,7 +27,11 @@ public static partial class UiCompositionRunner
             segment.BarWidth,
             segment.IsChanged,
             segment.Role == WorkbenchMemoryCoverageRole.BaseFirmware,
-            segment.RegionId);
+            segment.RegionId,
+            segment.IsDiffDlm,
+            segment.PreservationDetails,
+            text,
+            segment.RegionGroup);
     }
 
     private static string ToRange(long start, long length)

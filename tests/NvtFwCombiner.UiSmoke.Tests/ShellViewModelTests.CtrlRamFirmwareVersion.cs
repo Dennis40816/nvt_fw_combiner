@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -89,6 +90,33 @@ public sealed partial class ShellViewModelTests
         JsonElement validation = Assert.Single(report.RootElement.GetProperty("Validations").EnumerateArray());
         Assert.Equal("verify-nvt-fwconfig-backup-version", validation.GetProperty("RuleId").GetString());
         Assert.Equal("Passed", validation.GetProperty("Status").GetString());
+    }
+
+    /// <summary>Build rejects source bytes changed after the accepted CtrlRAM inspection.</summary>
+    [Fact]
+    public async Task CtrlRamBuildRejectsFileChangedAfterAcceptedInspection()
+    {
+        using var golden = StandardMergeGoldenManifest.Load();
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-stale-build");
+        byte[] baseBytes = golden.ReadExpectedOutput(golden.CaseByIc("51926"));
+        MainWindowViewModel viewModel = CreateCtrlRamVersionReadyViewModel(baseBytes, workspace);
+        FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(static slot =>
+            slot.HasFile && slot.SlotId != WorkbenchSlotIds.ReplaceBase);
+        string replacementPath = Assert.IsType<string>(replacement.FilePath);
+        byte[] changed = File.ReadAllBytes(replacementPath);
+        changed[0] ^= 0x01;
+        File.WriteAllBytes(replacementPath, changed);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
+
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.False(File.Exists(outputPath));
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+        Assert.Contains(
+            report.RootElement.GetProperty("Issues").EnumerateArray(),
+            issue => issue.GetProperty("Code").GetString() ==
+                AuthoringSessionIssueCodes.StaleInspection);
     }
 
     /// <summary>The CtrlRAM metadata read yields immediately, runs off-thread, and admits only one request.</summary>

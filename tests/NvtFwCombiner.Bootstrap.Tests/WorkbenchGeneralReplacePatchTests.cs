@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -25,27 +26,26 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string patchOutput = workspace.PathFor("patch.bin");
         Dictionary<string, string> slots = CreateBaseSlots(basePath);
 
-        WorkbenchRunResult fileMapping = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult fileMapping = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             slots,
-            [new WorkbenchGeneralReplaceMappingInput("file-map", mappingPath, "0x00100", "0x00101")],
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplaceFile("file-map", mappingPath, "0x00100", "0x2"),
+            ]),
             build: true,
             TestContext.Current.CancellationToken,
             fileMappingOutput);
-        WorkbenchRunResult virtualPatch = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult virtualPatch = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             slots,
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-patch-1",
                 "0x00100",
-                "0x00101",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                patchValue)],
+                "0x2",
+                GeneralMappingSourceKind.HexOverwrite,
+                patchValue)]),
             build: true,
             TestContext.Current.CancellationToken,
             patchOutput);
@@ -63,18 +63,16 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x50));
         string outputPath = workspace.PathFor("fill.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-fill-1",
                 "0x00110",
-                "0x00112",
-                WorkbenchGeneralReplacePatchKind.Fill,
-                "FF")],
+                "0x3",
+                GeneralMappingSourceKind.HexFill,
+                "FF")]),
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
@@ -91,39 +89,35 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", baseBytes);
         string malformedOutput = workspace.PathFor("malformed.bin");
 
-        WorkbenchRunResult malformed = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult malformed = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-invalid-1",
                 "0x00100",
-                "0x00101",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                "ABC")],
+                "0x2",
+                GeneralMappingSourceKind.HexOverwrite,
+                "ABC")]),
             build: true,
             TestContext.Current.CancellationToken,
             malformedOutput);
-        WorkbenchRunResult protectedRange = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult protectedRange = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-protected-1",
                 "0x36000",
-                "0x36000",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                "A5")],
+                "0x1",
+                GeneralMappingSourceKind.HexOverwrite,
+                "A5")]),
             build: false,
             TestContext.Current.CancellationToken);
 
         Assert.False(malformed.Succeeded);
         Assert.False(File.Exists(malformedOutput));
-        AssertReportHasIssue(malformed.ReportJson, "ui.general-replace.patch-hex-invalid");
+        AssertReportHasIssue(malformed.ReportJson, GeneralAuthoringIssueCodes.InlineHexInvalid);
         Assert.False(protectedRange.Succeeded);
         AssertReportHasIssue(protectedRange.ReportJson, "replace.workflow.not-supported");
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
@@ -137,18 +131,16 @@ public sealed class WorkbenchGeneralReplacePatchTests
         byte[] baseBytes = CreatePattern(0x40000, 0x71);
         string basePath = workspace.Write("base.bin", baseBytes);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-fill-outside-base",
                 "0x00100",
-                "0x7FFFFFFF",
-                WorkbenchGeneralReplacePatchKind.Fill,
-                "FF")],
+                "0x7FFFFF00",
+                GeneralMappingSourceKind.HexFill,
+                "FF")]),
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -166,26 +158,25 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x75));
         string filePath = workspace.Write("mapping.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [new WorkbenchGeneralReplaceMappingInput("file", filePath, "0x100", "0x103")],
-            [
-                new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplaceFile("file", filePath, "0x100", "0x4"),
+                GeneralTestDraftFactory.ReplacePatch(
                     "overwrite",
                     "0x102",
-                    "0x104",
-                    WorkbenchGeneralReplacePatchKind.Overwrite,
+                    "0x3",
+                    GeneralMappingSourceKind.HexOverwrite,
                     "AABBCC"),
-                new WorkbenchGeneralReplacePatchInput(
+                GeneralTestDraftFactory.ReplacePatch(
                     "fill",
                     "0x104",
-                    "0x105",
-                    WorkbenchGeneralReplacePatchKind.Fill,
+                    "0x2",
+                    GeneralMappingSourceKind.HexFill,
                     "FF"),
-            ],
+            ]),
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -225,18 +216,16 @@ public sealed class WorkbenchGeneralReplacePatchTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-number");
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51929",
             "9",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-dp-number",
                 "0x00100",
-                "0x00100",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                "A5")],
+                "0x1",
+                GeneralMappingSourceKind.HexOverwrite,
+                "A5")]),
             build: false,
             TestContext.Current.CancellationToken);
 
@@ -253,18 +242,16 @@ public sealed class WorkbenchGeneralReplacePatchTests
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
 
         string outputPath = workspace.PathFor("output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([GeneralTestDraftFactory.ReplacePatch(
                 "hex-tp-1",
                 "0x22C00",
-                "0x22C01",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                Convert.ToHexString(baseBytes[0x22C00..0x22C02]))],
+                "0x2",
+                GeneralMappingSourceKind.HexOverwrite,
+                Convert.ToHexString(baseBytes[0x22C00..0x22C02]))]),
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
@@ -278,29 +265,27 @@ public sealed class WorkbenchGeneralReplacePatchTests
     {
         string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
-        WorkbenchGeneralReplacePatchInput[] patches =
+        AuthoringMappingState[] patches =
         [
-            .. Enumerable.Range(0, 80).Select(index => new WorkbenchGeneralReplacePatchInput(
+            .. Enumerable.Range(0, 80).Select(index => GeneralTestDraftFactory.ReplacePatch(
                 $"hex-dp-{index:D2}",
                 $"0x{0x100 + index:X6}",
-                $"0x{0x100 + index:X6}",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "0x1",
+                GeneralMappingSourceKind.HexOverwrite,
                 "A5")),
-            new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.ReplacePatch(
                 "hex-tp-final",
                 "0x022C00",
-                "0x022C00",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
+                "0x1",
+                GeneralMappingSourceKind.HexOverwrite,
                 baseBytes[0x22C00].ToString("X2", CultureInfo.InvariantCulture)),
         ];
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
-            "General",
             CreateBaseSlots(basePath),
-            [],
-            patches,
+            GeneralTestDraftFactory.CreateReplaceDraft(patches),
             build: false,
             TestContext.Current.CancellationToken);
 

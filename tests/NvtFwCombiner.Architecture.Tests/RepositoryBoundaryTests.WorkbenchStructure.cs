@@ -64,7 +64,7 @@ public sealed partial class RepositoryBoundaryTests
         string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
         string candidate = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
 
-        Assert.Contains("RunGeneralMergeAsync", orchestration, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralMergeEphemeralDraftAsync", orchestration, StringComparison.Ordinal);
         Assert.Contains("GetGeneralMergeMemoryDisplay", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateGeneralMergeMappings", orchestration, StringComparison.Ordinal);
         Assert.DoesNotContain("private static CompositionProfileDefinition CreateGeneralMergeProfile", orchestration, StringComparison.Ordinal);
@@ -75,7 +75,7 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Bootstrap",
             "WorkbenchCompositionService.GeneralMerge.Report.cs")));
         Assert.Contains("private static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
-        Assert.Contains("public sealed record WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
         Assert.Contains("TryResolveGeneralMergeInitializer", profile, StringComparison.Ordinal);
         Assert.Contains("GeneralMergeDraftState", orchestration, StringComparison.Ordinal);
         Assert.Contains("draft.OutputInitializer", candidate, StringComparison.Ordinal);
@@ -86,6 +86,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CompositionProfileDefinition", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", orchestration, StringComparison.Ordinal);
         Assert.Contains("CreateBlockedReportRunResult(", candidate, StringComparison.Ordinal);
+    }
+
+    /// <summary>Current General workflows cannot restore raw or inclusive-end workbench adapters.</summary>
+    [Fact]
+    public void GeneralWorkflowsExposeOnlyCanonicalStartLengthDrafts()
+    {
+        string bootstrap = ReadBootstrapSources() + ReadBootstrapTestSources();
+        string applicationDraft = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralMappingDraftState.cs");
+
+        Assert.DoesNotContain("WorkbenchGeneralMergeMappingInput", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchGeneralReplaceMappingInput", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchGeneralReplacePatchInput", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryParseLegacyInclusiveRange", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetEndInclusive", applicationDraft, StringComparison.Ordinal);
     }
 
     /// <summary>General authoring has one Application admission snapshot from observation through compilation and report.</summary>
@@ -114,20 +129,15 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
 
         Assert.Contains(
-            "public sealed class GeneralAuthoringAdmissionUseCase",
+            "public static class GeneralAuthoringAdmissionUseCase",
             useCase,
             StringComparison.Ordinal);
-        Assert.Contains(
-            "IGeneralInputResourceObservationPort",
-            useCase,
-            StringComparison.Ordinal);
+        Assert.Contains("AcceptedFileStamp", useCase, StringComparison.Ordinal);
+        Assert.Contains("AcceptedLength", useCase, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", useCase, StringComparison.Ordinal);
         Assert.DoesNotContain("FileInfo", useCase, StringComparison.Ordinal);
-        Assert.Contains(
-            "GeneralFileResourceObservationAdapter",
-            bootstrapAdmission,
-            StringComparison.Ordinal);
-        Assert.Contains("new FileInfo", bootstrapAdmission, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", bootstrapAdmission, StringComparison.Ordinal);
+        Assert.DoesNotContain("FileInfo", bootstrapAdmission, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSlotOrGlobal", resolver, StringComparison.Ordinal);
         Assert.Contains(
             "TrustedParentSlotMissing",

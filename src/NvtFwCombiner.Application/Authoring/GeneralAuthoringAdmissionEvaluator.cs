@@ -277,8 +277,21 @@ public static class GeneralAuthoringAdmission
             }
             else
             {
-                long requiredBytes = GetInlineMaterializationLength(row);
-                if (requiredBytes > limits.MaximumSafeMaterializationBytes)
+                bool parsed = GeneralInlineSourceCodec.TryMeasure(
+                    row.Source.InlineValue,
+                    out long payloadBytes);
+                long requiredBytes = row.Source.Kind == GeneralMappingSourceKind.HexFill
+                    ? row.TargetRange.Length
+                    : Math.Max(row.TargetRange.Length, payloadBytes);
+                if (!parsed)
+                {
+                    issues.Add(CreateIssue(
+                        GeneralAuthoringIssueCodes.InlineHexInvalid,
+                        row.MappingId,
+                        $"General inline mapping '{row.MappingId}' must contain complete hexadecimal byte pairs.",
+                        [row.MappingId]));
+                }
+                else if (requiredBytes > limits.MaximumSafeMaterializationBytes)
                 {
                     issues.Add(CreateIssue(
                         GeneralAuthoringIssueCodes.InlineMaterializationExceeded,
@@ -286,6 +299,25 @@ public static class GeneralAuthoringAdmission
                         $"General inline mapping '{row.MappingId}' requires {requiredBytes} bytes, exceeding the safe materialization maximum {limits.MaximumSafeMaterializationBytes}.",
                         [row.MappingId]));
                 }
+                else if (row.Source.Kind == GeneralMappingSourceKind.HexOverwrite &&
+                         payloadBytes != row.TargetRange.Length)
+                {
+                    issues.Add(CreateIssue(
+                        GeneralAuthoringIssueCodes.InlineOverwriteLengthMismatch,
+                        row.MappingId,
+                        $"General overwrite '{row.MappingId}' supplies {payloadBytes} byte(s) for a {row.TargetRange.Length}-byte target range.",
+                        [row.MappingId]));
+                }
+                else if (row.Source.Kind == GeneralMappingSourceKind.HexFill &&
+                         payloadBytes != 1)
+                {
+                    issues.Add(CreateIssue(
+                        GeneralAuthoringIssueCodes.InlineFillByteInvalid,
+                        row.MappingId,
+                        $"General fill '{row.MappingId}' must contain exactly one hexadecimal byte.",
+                        [row.MappingId]));
+                }
+
             }
         }
 
@@ -409,27 +441,6 @@ public static class GeneralAuthoringAdmission
                     exact));
             }
         }
-    }
-
-    private static long GetInlineMaterializationLength(GeneralMappingDraftRow row)
-    {
-        if (row.Source.Kind == GeneralMappingSourceKind.HexFill)
-        {
-            return row.TargetRange.Length;
-        }
-
-        int hexadecimalCharacterCount = 0;
-        foreach (char character in row.Source.InlineValue!)
-        {
-            if (!char.IsWhiteSpace(character) &&
-                character is not '-' and not ',' and not '_')
-            {
-                hexadecimalCharacterCount++;
-            }
-        }
-
-        long payloadBytes = (hexadecimalCharacterCount + 1L) / 2L;
-        return Math.Max(row.TargetRange.Length, payloadBytes);
     }
 
     private static GeneralAuthoringAdmissionIssue CreateIssue(

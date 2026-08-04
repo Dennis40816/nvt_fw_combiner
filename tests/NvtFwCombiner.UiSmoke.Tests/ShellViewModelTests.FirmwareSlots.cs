@@ -165,8 +165,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact =>
             fact.Label == "DP" &&
             fact.Value == "Unknown" &&
-            fact.IsUnknown &&
-            fact.UsesLegacyWarningPresentation);
+            fact.IsUnknown);
         Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label == "Jira");
         Assert.DoesNotContain(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Label is "TP" or "Common FW" or "PID");
         Assert.StartsWith("NT51951_FlashCode_DxxxxTxxxx_", viewModel.Replace.ReplaceOutputFileName, StringComparison.Ordinal);

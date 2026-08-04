@@ -16,6 +16,52 @@ public sealed partial class ShellTextResources
         return Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
     }
 
+    public string FormatDiffDlmPreservationSummary(int count)
+    {
+        return SelectLanguage(
+            $"Kept {count} active Diff NF segments",
+            $"保留 {count} 個有效 Diff NF 區段");
+    }
+
+    public string FormatEntireDiffDlmSummary()
+    {
+        return SelectLanguage("Entire DiffDLM", "完整 DiffDLM");
+    }
+
+    public string FormatDiffDlmDetailsLabel()
+    {
+        return SelectLanguage("Details", "詳細資料");
+    }
+
+    public string FormatDiffDlmIcLabel(int zeroBasedBlock)
+    {
+        return SelectLanguage($"IC {zeroBasedBlock + 1}", $"IC {zeroBasedBlock + 1}");
+    }
+
+    public string FormatDiffDlmBlockLabel(int zeroBasedBlock)
+    {
+        return SelectLanguage(
+            $"Block {zeroBasedBlock}",
+            $"區塊 {zeroBasedBlock}");
+    }
+
+    public string FormatDiffDlmArtifactRangeLabel(string sourceSpaceId, string range)
+    {
+        return SelectLanguage(
+            $"Artifact {sourceSpaceId}: {range}",
+            $"Artifact {sourceSpaceId}：{range}");
+    }
+
+    public string FormatDiffDlmFlashRangeLabel(string range)
+    {
+        return SelectLanguage($"Flash: {range}", $"Flash：{range}");
+    }
+
+    public string FormatDiffDlmKeptDisposition()
+    {
+        return SelectLanguage("Kept from Reference", "從 Reference 保留");
+    }
+
     public string GetReplaceModeDescription(string mode)
     {
         return mode switch

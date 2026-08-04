@@ -96,7 +96,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
         FirmwareSlotViewModel? slot = FindSlot(slotId);
         if (slot is null)
         {
-            _ = TrySetGeneralMappingFile(slotId, path);
             return null;
         }
 
@@ -137,12 +136,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
         _stateBindings.RefreshCommandState();
         return slot;
-    }
-
-    private bool TrySetGeneralMappingFile(string mappingId, string path)
-    {
-        return _merge.TrySetGeneralMappingFile(mappingId, path) ||
-            _replace.TrySetGeneralMappingFile(mappingId, path);
     }
 
     private void NotifySlotFileOutputNames()
