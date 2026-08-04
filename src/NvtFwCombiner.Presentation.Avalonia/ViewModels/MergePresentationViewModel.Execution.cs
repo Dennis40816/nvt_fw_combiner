@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -63,7 +64,8 @@ public sealed partial class MergePresentationViewModel
                 SelectedIc,
                 slotPaths,
                 cancellationToken,
-                GetSelectedAbMergeTopologyToken())
+                GetSelectedAbMergeTopologyToken(),
+                _authoringSessions.AbMerge.CurrentSnapshot)
             .ConfigureAwait(false);
     }
 
@@ -86,7 +88,8 @@ public sealed partial class MergePresentationViewModel
                 SelectedIc,
                 slotPaths,
                 cancellationToken,
-                GetSelectedAbMergeTopologyToken())
+                GetSelectedAbMergeTopologyToken(),
+                _authoringSessions.AbMerge.CurrentSnapshot)
             .ConfigureAwait(false);
     }
 
@@ -125,9 +128,11 @@ public sealed partial class MergePresentationViewModel
             WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
+            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync(
                 icId,
                 slotPaths,
+                _authoringSessions.StandardMerge.CurrentSnapshot ?? throw new InvalidOperationException(
+                    "Standard Merge requires one accepted authoring session."),
                 build,
                 progress,
                 cancellationToken,
@@ -145,56 +150,36 @@ public sealed partial class MergePresentationViewModel
     {
         string icId = SelectedIc;
         string number = SelectedNumber;
-        string outputLength = GeneralMergeOutputLength;
-        string outputFillByte = GeneralMergeOutputFillByte;
-        bool hasInitializer =
-            WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
-                outputLength,
-                outputFillByte,
-                out WorkbenchGeneralMergeInitializer? initializer);
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappingInputs = CreateGeneralMergeMappingInputs();
+        ActiveSessionSnapshot acceptedSession =
+            _authoringSessions.GeneralMerge.CurrentSnapshot ??
+            throw new InvalidOperationException("General Merge requires one active authoring session.");
+        GeneralMergeDraftState draft = acceptedSession.DraftState as GeneralMergeDraftState ??
+            throw new InvalidOperationException("General Merge requires one admitted typed draft.");
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
         string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
             async (progress, cancellationToken) =>
             {
-                WorkbenchRunResult result = !hasInitializer
-                    ? await WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
-                            icId,
-                            outputLength,
-                            outputFillByte,
-                            mappingInputs,
-                            build,
-                            progress,
-                            cancellationToken,
-                            outputPath)
-                        .ConfigureAwait(false)
-                    : AcceptedGeneralMergeDraft is null
-                        ? await WorkbenchCompositionService
-                            .RunGeneralMergeInitializerWithProgressAsync(
-                                icId,
-                                initializer!,
-                                mappingInputs,
-                                build,
-                                progress,
-                                cancellationToken,
-                                outputPath)
-                            .ConfigureAwait(false)
-                        : await WorkbenchCompositionService
-                            .RunGeneralMergeAcceptedDraftWithProgressAsync(
-                                icId,
-                                initializer!,
-                                AcceptedGeneralMergeDraft,
-                                build,
-                                progress,
-                                cancellationToken,
-                                outputPath)
-                            .ConfigureAwait(false);
+                WorkbenchRunResult result = await WorkbenchCompositionService
+                    .RunGeneralMergeAcceptedSessionWithProgressAsync(
+                        icId,
+                        acceptedSession,
+                        build,
+                        progress,
+                        cancellationToken,
+                        outputPath)
+                    .ConfigureAwait(false);
 
-                AcceptedGeneralMergeDraft =
-                    result.AcceptedGeneralMappingDraft ??
-                    AcceptedGeneralMergeDraft;
+                if (result.AcceptedGeneralMappingDraft is { } accepted &&
+                    ReferenceEquals(draft, _generalMergeDraft) &&
+                    _authoringSessions.GeneralMerge.CurrentSnapshot?.AuthoringRevision ==
+                        acceptedSession.AuthoringRevision)
+                {
+                    _generalMergeDraft = new GeneralMergeDraftState(
+                        draft.OutputInitializer,
+                        accepted);
+                }
                 return result;
             },
             (action, errorMessage) => Reports.LoadRunErrorReport(
@@ -223,9 +208,11 @@ public sealed partial class MergePresentationViewModel
             .ProfileId;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync(
+            (progress, cancellationToken) => AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync(
                 icId,
                 slotPaths,
+                _authoringSessions.AbMerge.CurrentSnapshot ?? throw new InvalidOperationException(
+                    "AB Merge requires one accepted authoring session."),
                 build,
                 progress,
                 cancellationToken,

@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests the headless per-slot readiness and inspection publication contract.</summary>
-public sealed class AuthoringInputSlotInspectionTests
+public sealed partial class AuthoringInputSlotInspectionTests
 {
     private const string CapabilityFingerprint =
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Bootstrap;
 
@@ -32,61 +33,34 @@ public sealed partial class ReplacePresentationViewModel
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => CanRunDpReplace(),
-                CtrlRamReplaceMode => ReplaceBaseSlot.HasFile &&
-                    ReplaceSlots.Any(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile),
+                CtrlRamReplaceMode =>
+                    CanRunCompiledReplaceSession(_authoringSessions.CtrlRamReplace) &&
+                    HasCurrentCtrlRamActionReadiness(build: false),
                 GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
-                    GeneralReplaceMappings.Any(mapping => mapping.HasFile),
+                    _generalReplaceDraft is not null &&
+                    _generalReplaceAdmission?.IsAdmitted == true &&
+                    _generalReplaceActionReadiness?.Preview.IsAvailable == true,
                 _ => false,
             });
     }
 
     private bool CanRunDpReplace()
     {
-        bool selectionReady = WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(SelectedIc)
-            ? ReplaceBaseSlot.HasFile &&
-                TryGetDpReplaceInputSelectionReadiness(
-                    out InputSelectionReadinessSnapshot? readiness) &&
-                readiness.CanBuild
-            : ReplaceBaseSlot.HasFile &&
-                ReplaceSlots.Count > 0 &&
-                ReplaceSlots.Where(slot => !slot.IsOptional).All(slot => slot.HasFile);
-        return selectionReady && ReplaceSlots.Where(static slot => slot.HasFile).All(static slot =>
-            slot.InputInspectionSeverity is not null && !slot.BlocksBuild);
-    }
-
-    private bool TryGetDpReplaceInputSelectionReadiness(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out InputSelectionReadinessSnapshot? readiness)
-    {
-        string[] selectedInputAddressSpaceIds =
-        [
-            .. ReplaceSlots
-                .Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot) && slot.HasFile)
-                .Select(static slot => slot.AddressSpaceId ??
-                    throw new InvalidOperationException(
-                        $"Replace input slot '{slot.SlotId}' has no canonical address-space id.")),
-        ];
-        return WorkbenchCompositionService.TryGetDpReplaceInputSelectionReadiness(
-            SelectedIc,
-            GetSelectedReplaceBaseLength(),
-            selectedInputAddressSpaceIds,
-            out readiness);
+        return CanRunCompiledReplaceSession(_authoringSessions.DpReplace);
     }
 
     private void RefreshDpReplaceInputSelectionReadiness()
     {
-        InputSelectionReadinessSnapshot? readiness = null;
-        bool hasReadiness = SelectedReplaceMode == DpReplaceMode &&
-            TryGetDpReplaceInputSelectionReadiness(out readiness);
+        FirmwareSlotViewModel[] selected = [.. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId)];
+        CompiledAuthoringSelectionSnapshot? projection = SelectedReplaceMode == DpReplaceMode
+            ? _dpReplaceSelection is { } current && IsCurrentDpReplaceSelection(current, selected)
+                    ? current
+                    : ResolveDpReplaceAuthoringSnapshot(selected)
+            : null;
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
-            InputSelectionGroupReadiness? group = hasReadiness
-                ? readiness!.Groups
-                    .FirstOrDefault(candidate => candidate.Members.Any(member =>
-                        string.Equals(member.SlotId, slot.AddressSpaceId, StringComparison.Ordinal)))
-                : null;
-            InputSelectionMemberReadiness? member = group?.Members.First(candidate =>
+            InputSelectionMemberReadiness? member = projection?.Slots.FirstOrDefault(candidate =>
                 string.Equals(candidate.SlotId, slot.AddressSpaceId, StringComparison.Ordinal));
             if (member is null)
             {
@@ -95,13 +69,8 @@ public sealed partial class ReplacePresentationViewModel
                 continue;
             }
 
-            int applicableMemberCount = group!.Members.Count(static candidate =>
-                candidate.Readiness == ResolvedChildReadiness.Ready);
-            bool applicabilityResolved = group.Members.All(static candidate =>
-                candidate.Readiness != ResolvedChildReadiness.PendingInput);
-            slot.IsOptional = applicabilityResolved
-                ? member.Readiness != ResolvedChildReadiness.Ready ||
-                    group.MinimumSelected < applicableMemberCount
+            slot.IsOptional = member.Readiness == ResolvedChildReadiness.Ready
+                ? !member.IsRequired
                 : slot.DeclaredIsOptional;
 
             string label = Text.GetDpInputSelectionReadinessLabel(member.Readiness);
@@ -115,7 +84,7 @@ public sealed partial class ReplacePresentationViewModel
         }
     }
 
-    private Task RunReplaceAsync(
+    private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
@@ -125,42 +94,81 @@ public sealed partial class ReplacePresentationViewModel
         string number = SelectedNumber;
         string replaceMode = SelectedReplaceMode;
         IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
-        IReadOnlyList<WorkbenchGeneralReplaceMappingInput> mappingInputs = CreateGeneralReplaceMappingInputs();
-        return RunCompositionAsync(
+        WorkbenchCtrlRamAuthoringTransitionResult? ctrlRamTransition =
+            replaceMode == CtrlRamReplaceMode
+                ? WorkbenchCompositionService.TransitionCtrlRamFirmwareVersionCompilation(
+                    _authoringSessions.CtrlRamReplace,
+                    icId,
+                    number,
+                    slotPaths,
+                    ctrlRamFirmwareVersionEdit)
+                : null;
+        if (ctrlRamTransition?.Succeeded == true)
+        {
+            await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
+        }
+        ActiveSessionSnapshot? generalSession = replaceMode == GeneralReplaceMode
+            ? _authoringSessions.GeneralReplace.CurrentSnapshot ??
+                throw new InvalidOperationException(
+                    "General Replace requires one accepted authoring session.")
+            : null;
+        var generalDraft =
+            generalSession?.DraftState as GeneralMappingDraftState;
+        ActiveSessionSnapshot? compiledSession = replaceMode switch
+        {
+            DpReplaceMode => _authoringSessions.DpReplace.CurrentSnapshot,
+            CtrlRamReplaceMode => ctrlRamTransition?.Session,
+            _ => null,
+        };
+        await RunCompositionAsync(
             build,
             async (progress, cancellationToken) =>
             {
                 WorkbenchRunResult result =
-                    replaceMode == GeneralReplaceMode &&
-                    _acceptedGeneralReplaceDraft is not null
+                    replaceMode == GeneralReplaceMode
                         ? await WorkbenchCompositionService
-                            .RunGeneralReplaceAcceptedDraftWithProgressAsync(
+                            .RunGeneralReplaceAcceptedSessionWithProgressAsync(
                                 icId,
                                 number,
                                 slotPaths,
-                                _acceptedGeneralReplaceDraft,
+                                generalSession!,
                                 build,
                                 progress,
                                 cancellationToken,
                                 outputPath)
                             .ConfigureAwait(false)
-                        : await WorkbenchCompositionService.RunReplaceWithProgressAsync(
+                        : compiledSession?.GetAcceptedCapability(
+                            AuthoringDerivedResultKind.Inspection) is null
+                        ? WorkbenchCompositionService.CreateRejectedReplaceAttemptResult(
                             icId,
                             number,
                             replaceMode,
                             slotPaths,
-                            mappingInputs,
-                            [],
+                            replaceMode == DpReplaceMode
+                                ? _dpReplaceSelection?.Issues ?? []
+                                : ctrlRamTransition?.Issues ?? [],
+                            build)
+                        : await WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync(
+                            icId,
+                            number,
+                            replaceMode,
+                            slotPaths,
+                            compiledSession,
                             build,
                             progress,
                             cancellationToken,
                             outputPath,
                             ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
+
                 if (replaceMode == GeneralReplaceMode)
                 {
-                    _acceptedGeneralReplaceDraft =
-                        result.AcceptedGeneralMappingDraft ??
-                        _acceptedGeneralReplaceDraft;
+                    if (result.AcceptedGeneralMappingDraft is { } accepted &&
+                        ReferenceEquals(generalDraft, _generalReplaceDraft) &&
+                        _authoringSessions.GeneralReplace.CurrentSnapshot?.AuthoringRevision ==
+                            generalSession!.AuthoringRevision)
+                    {
+                        _generalReplaceDraft = accepted;
+                    }
                 }
                 return result;
             },
@@ -190,7 +198,7 @@ public sealed partial class ReplacePresentationViewModel
 
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
         {
-            if (!string.IsNullOrWhiteSpace(mapping.FilePath))
+            if (mapping.UsesFileSource && !string.IsNullOrWhiteSpace(mapping.FilePath))
             {
                 paths[mapping.MappingId] = mapping.FilePath;
             }

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Metadata;
@@ -9,6 +10,84 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private static bool IsAcceptedCtrlRamCapability(
+        CtrlRamReplaceRunContext context,
+        ResolvedCapability capability)
+    {
+        if (context.ValidationIssues.Count != 0 || context.BaseBytes is null ||
+            context.CommandPlan is null ||
+            !CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
+        {
+            return false;
+        }
+        CapabilityRouteIdentity identity = CanonicalDynamicRouteInventory.ResolveCtrlRamIdentity(
+            route,
+            context.CommandPlan,
+            context.BaseBytes.LongLength);
+        return Equals(capability.Identity, identity);
+    }
+
+    private static bool TryResolveCtrlRamCapability(
+        CtrlRamReplaceRunContext context,
+        out ResolvedCapability? capability,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        capability = null;
+        if (context.ValidationIssues.Count != 0 || context.BaseBytes is null ||
+            context.PostbuildProfile is null || context.CommandPlan is null)
+        {
+            issues = context.ValidationIssues;
+            return false;
+        }
+
+        var reference = new FirmwareArtifactPayload(
+            CompositionAddressSpaceIds.ReferenceBase,
+            context.BaseBytes);
+        if (!CtrlRamV2RouteRegistry.TryResolve(context.CommandPlan, out CtrlRamV2Route? route))
+        {
+            issues = [new CompositionIssue(
+                WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+                "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
+                "number")];
+            return false;
+        }
+
+        CapabilityRouteIdentity identity = CanonicalDynamicRouteInventory.ResolveCtrlRamIdentity(
+            route, context.CommandPlan, reference.LengthBytes);
+        CapabilityRouteResolutionResult resolution =
+            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+        if (!resolution.Succeeded)
+        {
+            issues = [new CompositionIssue(resolution.Issue!.Code, resolution.Issue.Message)];
+            return false;
+        }
+
+        V2CompositionPlanCompileResult compile = CompileCtrlRamV2(
+            context,
+            route,
+            new TopologySelection(
+                context.CommandPlan.TopologyCount,
+                context.CommandPlan.Selector.Token,
+                TopologySelectionSource.Requested,
+                "ic-number"),
+            reference);
+        if (!compile.IsCompiled)
+        {
+            issues = compile.Issues;
+            return false;
+        }
+
+        CompiledComposition composition = compile.CompiledComposition!;
+        capability = resolution.Route!.BindCompilation(
+            composition,
+            CreateCtrlRamReportMetadataPlan(route.Key.IcId, reference.LengthBytes),
+            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
+                composition,
+                context.CommandPlan));
+        issues = [];
+        return true;
+    }
+
     internal static MetadataPlanDefinition CreateCtrlRamReportMetadataPlan(
         string icId,
         long referenceCapacity)
@@ -145,9 +224,7 @@ public static partial class WorkbenchCompositionService
         TpCtrlRamPostbuildSource? diffDlmSource = diffDlmPolicy is null
             ? null
             : context.SelectedSources.SingleOrDefault(source =>
-                StringComparer.Ordinal.Equals(
-                    source.SourceFileName,
-                    diffDlmPolicy.SourceFileName));
+                source.ArtifactRole == TpCtrlRamPostbuildArtifactRole.DiffDlm);
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy =
             diffDlmPolicy is null
                 ? null

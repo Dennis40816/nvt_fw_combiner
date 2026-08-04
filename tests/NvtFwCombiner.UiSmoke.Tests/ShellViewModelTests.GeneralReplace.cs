@@ -63,7 +63,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             "Build blocked: base BIN and at least one explicit replacement mapping are required.",
             viewModel.Replace.ReplaceReadinessStatus);
-        _ = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        GeneralReplaceMappingViewModel initial = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        Assert.False(initial.CanSelectFile);
+        Assert.True(initial.IsFileSelectionPending);
 
         viewModel.Replace.AddGeneralReplaceMappingCommand.Execute(null);
         Assert.Equal(2, viewModel.Replace.GeneralReplaceMappings.Count);
@@ -75,48 +77,55 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(string.Empty, viewModel.Replace.GeneralReplaceMappings[0].DisplayDetail);
     }
 
+    /// <summary>Reference inspection owns General Replace BIN-selection availability.</summary>
+    [Fact]
+    public void GeneralReplaceMappingSelectionWaitsForReferenceInspection()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-prerequisite");
+        string basePath = workspace.Write("base.bin", new byte[0x40000]);
+        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        OpenReplace(viewModel, "General");
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
+
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+
+        Assert.False(mapping.HasFile);
+        Assert.True(mapping.IsFileSelectionPending);
+        viewModel.SetSlotFile("replace-base", basePath);
+        Assert.True(mapping.CanSelectFile);
+
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+
+        Assert.Equal(replacementPath, mapping.FilePath);
+        _ = Assert.NotNull(mapping.AcceptedFileStamp);
+    }
+
     /// <summary>Verifies a General Replace shape without an exact V2 route fails closed.</summary>
     [Fact]
-    public async Task GeneralReplacePreviewAndBuildUseExplicitMappingRows()
+    public void GeneralReplaceWithoutExactRouteStaysBlocked()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace");
         byte[] baseBytes = CreatePattern(0x40000, 0x40);
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
-        string outputPath = workspace.PathFor("general-replace.bin");
 
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.StartAddress = "0x00100";
-        mapping.EndAddress = "0x00101";
+        mapping.TargetStartAddress = "0x00100";
+        mapping.Length = "0x2";
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
-        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
-        Assert.Contains("Ready", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-
-        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
-
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Equal(
-            "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(viewModel.Reports.HasLoadedReport);
-        using (var previewReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson))
-        {
-            JsonElement issue = Assert.Single(previewReport.RootElement.GetProperty("Issues").EnumerateArray());
-            Assert.Equal("replace.workflow.not-supported", issue.GetProperty("Code").GetString());
-        }
-
-        await viewModel.Replace.BuildReplaceAsync(outputPath);
-
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Equal(
-            "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.RunSession.LastRunResult.Detail);
-        Assert.False(File.Exists(outputPath));
+        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.Contains("blocked", viewModel.Replace.ReplaceReadinessStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.Reports.HasLoadedReport);
     }
 
     /// <summary>Verifies the shared UI reaches the NT51926 single full-Flash DP-only V2 route.</summary>
@@ -134,8 +143,8 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.StartAddress = "0x3E020";
-        mapping.EndAddress = "0x3E021";
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
@@ -163,9 +172,42 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
+    /// <summary>A queued General Replace run cannot swap or overwrite its immutable draft.</summary>
+    [Fact]
+    public async Task GeneralReplaceRunUsesCapturedDraftAndRejectsStalePublication()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-replace-run-snapshot");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x26));
+        string sourcePath = workspace.Write("source.bin", [0x10, 0x11]);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        OpenReplace(viewModel, "General");
+        viewModel.SetSlotFile("replace-base", basePath);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
+        viewModel.SetSlotFile(mapping.MappingId, sourcePath);
+
+        Task previewTask = viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+        mapping.TargetStartAddress = "0x3E030";
+        await previewTask;
+
+        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+        JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
+        Assert.Equal(0x3E020, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+        Assert.Equal("0x3E030", mapping.TargetStartAddress);
+
+        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+        using var currentReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+        JsonElement currentOperation = Assert.Single(
+            currentReport.RootElement.GetProperty("Operations").EnumerateArray());
+        Assert.Equal(0x3E030, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
+    }
+
     /// <summary>Verifies TP-touching General Replace remains fail-closed without an exact V2 route.</summary>
     [Fact]
-    public async Task GeneralReplacePreviewRunsPostbuildForTpMapping()
+    public void GeneralReplaceTpMappingWithoutExactRouteStaysBlocked()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51950"));
@@ -178,25 +220,14 @@ public sealed partial class ShellViewModelTests
         OpenReplace(viewModel, "General");
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.StartAddress = "0x22C00";
-        mapping.EndAddress = "0x22C01";
+        mapping.TargetStartAddress = "0x22C00";
+        mapping.Length = "0x2";
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
-        Assert.True(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("run postbuild", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
-
-        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
-
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Equal(
-            "The selected General Replace shape has no exact evidence-backed V2 route.",
-            viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(viewModel.Reports.HasLoadedReport);
-        ReportLineViewModel issue = Assert.Single(viewModel.Reports.LoadedReport.Issues);
-        Assert.Contains("no exact evidence-backed V2 route", issue.Detail, StringComparison.Ordinal);
-        using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
-        JsonElement reportIssue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("replace.workflow.not-supported", reportIssue.GetProperty("Code").GetString());
+        Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.False(viewModel.Replace.CanBuildReplace);
+        Assert.Contains("blocked", viewModel.Replace.ReplaceReadinessStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.Reports.HasLoadedReport);
     }
 
 }

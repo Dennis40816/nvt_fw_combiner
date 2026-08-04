@@ -8,13 +8,8 @@
     x:Name="Root"
     x:DataType="vm:FirmwareSlotViewModel">
   <Border
-      Classes="fileDropZone firmwareSlot"
-      Classes.blocking="{Binding IsLegacyInputInspectionBlocking}"
-      Classes.compactExperience="{Binding UsesSharedSlotPresentation}"
+      Classes="fileDropZone firmwareSlot compactExperience"
       Classes.hasFile="{Binding HasFile}"
-      Classes.pending="{Binding IsLegacyInputInspectionPending}"
-      Classes.valid="{Binding IsLegacyInputInspectionValid}"
-      Classes.warning="{Binding IsLegacyInputInspectionWarning}"
       Classes.optional="{Binding IsOptional}"
       HorizontalAlignment="Stretch"
       Margin="0,0,0,10"
@@ -43,27 +38,7 @@
                   Data="{Binding SlotIconPathData}" />
             </Border>
             <TextBlock VerticalAlignment="Center" FontSize="{DynamicResource NfcFontSize14}" FontWeight="SemiBold" Foreground="{DynamicResource NfcTextStrongBrush}" Text="{Binding Title}" />
-            <StackPanel IsVisible="{Binding UsesLegacySlotPresentation}" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
-              <Label
-                  Classes="compactBadge slotBadge firmwareSlotRequirement"
-                  Classes.hasFile="{Binding HasFile}"
-                  Classes.optional="{Binding IsOptional}"
-                  Content="{Binding RequirementLabel}" />
-              <Path
-                  Width="16"
-                  Height="16"
-                  VerticalAlignment="Center"
-                  Classes="slotHealthIcon"
-                  Classes.blocking="{Binding IsInputInspectionBlocking}"
-                  Classes.warning="{Binding IsInputInspectionWarning}"
-                  Classes.valid="{Binding IsInputInspectionValid}"
-                  Classes.pending="{Binding IsInputInspectionPending}"
-                  Data="{Binding InputInspectionIconPathData}"
-                  IsVisible="{Binding HasInputInspectionStatus}"
-                  Stretch="Uniform"
-                  ToolTip.Tip="{Binding InputInspectionStatus}" />
-            </StackPanel>
-            <StackPanel IsVisible="{Binding UsesSharedSlotPresentation}" Orientation="Horizontal">
+            <StackPanel Orientation="Horizontal">
               <Label
                   Classes="compactBadge slotBadge firmwareSlotRequirement availableInput"
                   Classes.optional="{Binding IsOptional}"
@@ -123,7 +98,7 @@
               ToolTip.ShowDelay="300"
               ToolTip.Tip="{Binding DisplayDetail}"
               ToolTip.VerticalOffset="8" />
-          <StackPanel IsVisible="{Binding UsesSharedSlotPresentation}" Spacing="{DynamicResource NfcSpace4}">
+          <StackPanel Spacing="{DynamicResource NfcSpace4}">
             <ToggleButton
                 AutomationProperties.Name="{Binding FirmwareFactsDisclosureLabel}"
                 Classes="quietDisclosure"
@@ -165,38 +140,6 @@
                 IsVisible="{Binding IsSemanticStateDetailExpanded}"
                 Text="{Binding SemanticStateAutomationText}"
                 TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel IsVisible="{Binding UsesLegacySlotPresentation}" Spacing="{DynamicResource NfcSpace4}">
-            <ItemsControl IsVisible="{Binding HasFirmwareFacts}" ItemsSource="{Binding FirmwareFacts}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <WrapPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <StaticResource ResourceKey="FirmwareSlotFactTemplate" />
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <TextBlock
-                AutomationProperties.LiveSetting="Polite"
-                Classes="slotHealthText"
-                Classes.blocking="{Binding IsInputInspectionBlocking}"
-                Classes.warning="{Binding IsInputInspectionWarning}"
-                Classes.valid="{Binding IsInputInspectionValid}"
-                Classes.pending="{Binding IsInputInspectionPending}"
-                IsVisible="{Binding HasInputInspectionStatus}"
-                Text="{Binding InputInspectionStatus}"
-                TextWrapping="Wrap" />
-            <Grid
-                AutomationProperties.LiveSetting="Polite"
-                AutomationProperties.Name="{Binding SelectionReadinessAutomationText}"
-                ColumnDefinitions="Auto,*"
-                ColumnSpacing="{DynamicResource NfcSpace8}"
-                IsVisible="{Binding HasSelectionReadinessStatus}"
-                VerticalAlignment="Center">
-              <Label Classes="compactBadge neutralBadge" Content="{Binding SelectionReadinessLabel}" />
-              <TextBlock Grid.Column="1" Classes="captionText" Text="{Binding SelectionReadinessDetail}" TextWrapping="Wrap" />
-            </Grid>
           </StackPanel>
         </StackPanel>
         <Button

@@ -510,7 +510,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains("ui.general-replace.patch-hex-invalid", result.Error, StringComparison.Ordinal);
+        Assert.Contains(GeneralAuthoringIssueCodes.InlineHexInvalid, result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects retired fixed-profile range options at the workflow allowlist.</summary>

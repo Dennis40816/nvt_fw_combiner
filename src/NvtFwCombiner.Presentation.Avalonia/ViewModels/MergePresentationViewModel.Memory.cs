@@ -7,6 +7,11 @@ public sealed partial class MergePresentationViewModel
 {
     internal void RefreshMergeMemoryMapState()
     {
+        if (IsGeneralMergeModeSelected)
+        {
+            RefreshGeneralMergeAuthoringState();
+        }
+
         long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
         long? selectedAbMergeDpInputLength = GetSelectedAbMergeDpInputLength();
         (
@@ -36,14 +41,16 @@ public sealed partial class MergePresentationViewModel
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay()
     {
-        IReadOnlyList<WorkbenchGeneralMergeMappingInput> mappings = CreateGeneralMergeMappingInputs();
         return TryResolveGeneralMergeOutputInitializer(out WorkbenchGeneralMergeInitializer? initializer)
-            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(SelectedIc, initializer!, mappings)
+            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                SelectedIc,
+                initializer!,
+                _generalMergeAuthoringStates,
+                _generalMergeAdmission)
             : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
                 SelectedIc,
                 GeneralMergeOutputLength,
-                GeneralMergeOutputFillByte,
-                mappings);
+                GeneralMergeOutputFillByte);
     }
 
     private long? GetSelectedMergeDpInputLength()

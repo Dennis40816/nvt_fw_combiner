@@ -13,7 +13,7 @@ General Replace needs an advanced hex-authoring surface for correcting a bounded
 
 General Replace binary patch authoring remains a `Replace` composition with the selected base flash BIN as its immutable reference initializer.
 
-- A patch is a typed, equal-length `overwrite` or single-byte `fill` instruction with a checked inclusive target range.
+- A patch is a typed, equal-length `overwrite` or single-byte `fill` source in the canonical `AuthoringMappingState` / `GeneralMappingDraftState` contract. Its editable target is Start + Length and compiles only as a checked half-open `[start, endExclusive)` range.
 - Bootstrap materializes each accepted instruction as a host-owned virtual immutable artifact and compiles it to the existing General Replace `explicitMappings` contract with a normal `replace-range` operation.
 - The shared profile compiler remains the sole authority for bounds, region access, protected ranges, alignment, overlap, and processor dependencies.
 - The shared runner serves virtual artifacts through an infrastructure artifact-reader overlay; virtual artifact identifiers are never paths, cannot be output/report targets, and are reported using their stable report-safe binding ids.
@@ -33,7 +33,7 @@ True insert, delete, and image-length changes are not General Replace patch oper
 
 ## Consequences
 
-- The `WorkbenchGeneralReplacePatchInput` contract remains available to General Replace core/CLI callers. The Home Hex Editor no longer uses it; raw BIN editing is governed by ADR 0014.
+- General Replace UI, CLI, Saved Rule, readiness, display, and execution consume the same canonical `AuthoringMappingState` / `GeneralMappingDraftState` contract; the retired `WorkbenchGeneralReplacePatchInput` DTO must not be restored. The Home Hex Editor remains independent and is governed by ADR 0014.
 - A virtual patch is visible in reports as a named generated input rather than a local file path.
 - Existing file mapping rows remain supported and can be combined with non-overlapping patches.
 - Repeated preview/build uses the immutable virtual bytes supplied in the request, so the preview token captures the same input hash and plan fingerprint as a regular mapping.

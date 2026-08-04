@@ -1,10 +1,11 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static WorkbenchStandardMergeInspectionBatch InspectStandardMergeInputSlots(
+    private static WorkbenchCompiledAuthoringInspectionBatch InspectStandardMergeInputSlots(
         string icId,
         IReadOnlyList<WorkbenchFirmwareInspectionInput> inputs,
         Func<string, byte[]?> readFirmwareImage)
@@ -15,11 +16,16 @@ public static partial class WorkbenchCompositionService
         ];
         if (selected.Length == 0)
         {
-            return WorkbenchStandardMergeInspectionBatch.Empty;
+            return WorkbenchCompiledAuthoringInspectionBatch.Empty;
         }
 
         var authoringRevision = new AuthoringRevision(
             selected.Select(static input => input.AuthoringRevision).Distinct().Single());
+        ResolvedCapability? exactCapability = selected[0].ExactCapability;
+        if (selected.Any(input => !ReferenceEquals(input.ExactCapability, exactCapability)))
+        {
+            throw new InvalidOperationException("Standard Merge inspection leases disagree on the exact compilation.");
+        }
         CompiledAuthoringInspectionBatch batch = s_standardMergeAuthoring.InspectBatch(
             icId,
             authoringRevision,
@@ -28,8 +34,9 @@ public static partial class WorkbenchCompositionService
                     input.StandardMergeAddressSpaceId!,
                     input.Path,
                     readFirmwareImage(input.Path))),
-            ]);
-        return new WorkbenchStandardMergeInspectionBatch(
+            ],
+            exactCapability);
+        return new WorkbenchCompiledAuthoringInspectionBatch(
             batch.Catalog,
             selected.ToDictionary(
                 static input => input.InspectionId,

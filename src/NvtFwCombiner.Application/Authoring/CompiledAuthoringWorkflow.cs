@@ -78,14 +78,24 @@ public sealed class CompiledAuthoringWorkflowService
         string icId,
         AuthoringRevision authoringRevision,
         IReadOnlyCollection<string> selectedSlotIds,
-        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps)
+        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
+        ActiveSessionSnapshot? retainedSession = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(selectedSlotIds);
         ArgumentNullException.ThrowIfNull(acceptedFileStamps);
         CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
         ValidateDiscovery(discovery);
-        if (discovery.CompilationPrerequisiteSlotId is { } prerequisite &&
+        ResolvedCapability? retained = TryRetainExactCapability(
+            retainedSession,
+            icId,
+            selectedSlotIds,
+            acceptedFileStamps,
+            discovery.CompilationPrerequisiteSlotId is null
+                ? discovery.DiscoveryCapability
+                : null);
+        if (retained is null &&
+            discovery.CompilationPrerequisiteSlotId is { } prerequisite &&
             !acceptedFileStamps.ContainsKey(prerequisite))
         {
             return new CompiledAuthoringSelectionSnapshot(
@@ -100,23 +110,33 @@ public sealed class CompiledAuthoringWorkflowService
         long? prerequisiteLength = discovery.CompilationPrerequisiteSlotId is { } prerequisiteSlot
             ? acceptedFileStamps[prerequisiteSlot].Length
             : null;
-        CompiledAuthoringWorkflowResolution exact = _resolver.ResolveExact(
-            icId,
-            prerequisiteLength,
-            selectedSlotIds);
+        CompiledAuthoringWorkflowResolution exact = retained is null
+            ? _resolver.ResolveExact(icId, prerequisiteLength, selectedSlotIds)
+            : new CompiledAuthoringWorkflowResolution(retained, []);
         if (!exact.Succeeded)
         {
+            ResolvedCapability? nearestCapability = selectedSlotIds
+                .Where(slotId => !StringComparer.Ordinal.Equals(
+                    slotId, discovery.CompilationPrerequisiteSlotId))
+                .Select(removed => _resolver.ResolveExact(
+                    icId,
+                    prerequisiteLength,
+                    [.. selectedSlotIds.Where(slotId => !StringComparer.Ordinal.Equals(slotId, removed))]))
+                .FirstOrDefault(static candidate => candidate.Succeeded)?.Capability;
             return new CompiledAuthoringSelectionSnapshot(
                 DiscoveryCatalog(discovery),
-                ProjectRejectedSelection(
-                    discovery,
-                    selectedSlotIds,
-                    prerequisiteLength,
-                    exact.Issues),
+                nearestCapability is null
+                    ? ProjectRejectedSelection(
+                        discovery, selectedSlotIds, prerequisiteLength, exact.Issues)
+                    : ProjectExactSelection(
+                        discovery, nearestCapability, authoringRevision,
+                        selectedSlotIds, prerequisiteLength),
                 exact.Issues);
         }
 
-        ResolvedCapability capability = exact.Capability!;
+        ResolvedCapability capability = RetainEquivalentExactCapability(
+            retainedSession?.ExactCapability,
+            exact.Capability!);
         return new CompiledAuthoringSelectionSnapshot(
             AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
                 capability,
@@ -134,7 +154,8 @@ public sealed class CompiledAuthoringWorkflowService
     public CompiledAuthoringInspectionBatch InspectBatch(
         string icId,
         AuthoringRevision authoringRevision,
-        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs)
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs,
+        ResolvedCapability? retainedCapability = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentNullException.ThrowIfNull(inputs);
@@ -149,6 +170,21 @@ public sealed class CompiledAuthoringWorkflowService
                 nameof(inputs));
         }
 
+        string[] selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
+        if (retainedCapability is not null &&
+            CanInspectRetainedExactCapability(
+                retainedCapability,
+                icId,
+                selectedSlotIds,
+                selected))
+        {
+            return InspectExactBatch(
+                retainedCapability,
+                authoringRevision,
+                selected,
+                selectedSlotIds);
+        }
+
         CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
         ValidateDiscovery(discovery);
         CompiledAuthoringSelectedInput? prerequisiteInput =
@@ -158,7 +194,6 @@ public sealed class CompiledAuthoringWorkflowService
                     prerequisiteSlotId))
                 : null;
         long? prerequisiteLength = prerequisiteInput?.Bytes?.Length;
-        string[] selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
         CompiledAuthoringWorkflowResolution exact =
             discovery.CompilationPrerequisiteSlotId is not null && prerequisiteLength is null
                 ? new CompiledAuthoringWorkflowResolution(
@@ -193,25 +228,106 @@ public sealed class CompiledAuthoringWorkflowService
                 issues);
         }
 
-        ResolvedCapability capability = exact.Capability!;
-        Dictionary<string, ReadOnlyMemory<byte>?> sources = selected.ToDictionary(
-            static input => input.SlotId,
-            static input => input.Bytes,
+        ResolvedCapability resolved = exact.Capability ??
+            throw new InvalidOperationException(
+                "A successful exact workflow resolution requires one capability.");
+        ResolvedCapability capability = retainedCapability is null
+            ? resolved
+            : RetainEquivalentExactCapability(retainedCapability, resolved);
+        return InspectExactBatch(
+            capability,
+            authoringRevision,
+            selected,
+            selectedSlotIds,
+            discovery.DiscoveryTransition);
+    }
+
+    private static CompiledAuthoringInspectionBatch InspectExactBatch(
+        ResolvedCapability capability,
+        AuthoringRevision authoringRevision,
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> selected,
+        IReadOnlyCollection<string> selectedSlotIds,
+        ReviewedDiscoveryTransition? discoveryTransition = null)
+    {
+        var selectedBySlotId =
+            selected.ToDictionary(
+                static input => input.SlotId,
+                StringComparer.Ordinal);
+        CompiledInputSpaceBinding[] selectedBindings =
+        [
+            .. capability.CompiledComposition.V2Details.InputContract.SpaceBindings
+                .Where(binding => selectedBySlotId.ContainsKey(binding.SlotId)),
+        ];
+        Dictionary<string, ReadOnlyMemory<byte>?> sources = selectedBindings.ToDictionary(
+            static binding => binding.AddressSpaceId,
+            binding => selectedBySlotId[binding.SlotId].Bytes,
             StringComparer.Ordinal);
         return new CompiledAuthoringInspectionBatch(
             AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
                 capability,
-                discovery.DiscoveryTransition),
+                discoveryTransition),
             AuthoringInputSlotInspectionService.InspectBatch(
                 capability,
                 authoringRevision,
                 sources,
-                selected.ToDictionary(
-                    static input => input.SlotId,
-                    static input => input.SelectedPathHint,
+                selectedBindings.ToDictionary(
+                    static binding => binding.AddressSpaceId,
+                    binding => selectedBySlotId[binding.SlotId].SelectedPathHint,
                     StringComparer.Ordinal),
                 selectedSlotIds),
             []);
+    }
+
+    private bool CanInspectRetainedExactCapability(
+        ResolvedCapability capability,
+        string icId,
+        IReadOnlyCollection<string> selectedSlotIds,
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> selected)
+    {
+        if (!StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) ||
+            !StringComparer.Ordinal.Equals(
+                capability.Identity.WorkflowId,
+                _resolver.WorkflowId))
+        {
+            return false;
+        }
+
+        CompiledInputContract contract =
+            capability.CompiledComposition.V2Details.InputContract;
+        if (!contract.Slots.Select(static slot => slot.SlotId)
+                .ToHashSet(StringComparer.Ordinal)
+                .SetEquals(selectedSlotIds))
+        {
+            return false;
+        }
+
+        foreach (CompiledAuthoringSelectedInput input in selected)
+        {
+            CompiledInputSpaceBinding? spaceBinding = contract.SpaceBindings
+                .SingleOrDefault(binding => StringComparer.Ordinal.Equals(
+                    binding.SlotId,
+                    input.SlotId));
+            if (spaceBinding is null || input.Bytes is not { } bytes)
+            {
+                continue;
+            }
+            AddressSpace? addressSpace = capability.CompiledComposition.Plan.AddressSpaces
+                .SingleOrDefault(space => StringComparer.Ordinal.Equals(
+                    space.AddressSpaceId,
+                    spaceBinding.AddressSpaceId));
+            if (addressSpace is null ||
+                (addressSpace.AllowedInputLengths.Count > 0 &&
+                    !addressSpace.AllowedInputLengths.Contains(bytes.Length)) ||
+                (addressSpace.AllowedInputLengths.Count == 0 &&
+                    addressSpace.InputPaddingByte is null &&
+                    addressSpace.InputOversizePolicy == InputOversizePolicy.Reject &&
+                    addressSpace.Length != bytes.Length))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private ReadOnlyCollection<InputSelectionMemberReadiness> ProjectExactSelection(
@@ -229,23 +345,35 @@ public sealed class CompiledAuthoringWorkflowService
             authoringRevision,
             contract.SelectionGroups,
             selectedSlotIds.Where(groupMembers.Contains));
-        IReadOnlyDictionary<string, InputSelectionMemberReadiness> resolvedMembers = readiness.Groups
+        var resolvedMembers = readiness.Groups
             .SelectMany(static group => group.Members)
             .ToDictionary(static member => member.SlotId, StringComparer.Ordinal);
         return Array.AsReadOnly(
         [
             .. discovery.AvailableSlotIds.Select(slotId =>
             {
-                if (contract.Slots.Any(slot => StringComparer.Ordinal.Equals(slot.SlotId, slotId)))
+                if (resolvedMembers.TryGetValue(slotId, out InputSelectionMemberReadiness? member) &&
+                    (member.IsSelected ||
+                        member.Readiness != ResolvedChildReadiness.NotApplicable ||
+                        !_resolver.ResolveExact(
+                            capability.Identity.IcId,
+                            prerequisiteLength,
+                            [.. selectedSlotIds, slotId]).Succeeded))
                 {
-                    return resolvedMembers.GetValueOrDefault(slotId) ??
-                        new InputSelectionMemberReadiness(
-                            slotId,
-                            selectedSlotIds.Contains(slotId, StringComparer.Ordinal),
-                            ResolvedChildReadiness.Ready,
-                            CanSelect: true,
-                            Reason: null,
-                            NextAction: null);
+                    return member;
+                }
+                CompiledInputSlotRequirement? slot = contract.Slots.SingleOrDefault(candidate =>
+                    StringComparer.Ordinal.Equals(candidate.SlotId, slotId));
+                if (slot is not null)
+                {
+                    return new InputSelectionMemberReadiness(
+                        slotId,
+                        selectedSlotIds.Contains(slotId, StringComparer.Ordinal),
+                        ResolvedChildReadiness.Ready,
+                        CanSelect: true,
+                        Reason: null,
+                        NextAction: null,
+                        IsRequired: slot.Required);
                 }
 
                 bool selected = selectedSlotIds.Contains(slotId, StringComparer.Ordinal);
@@ -269,6 +397,64 @@ public sealed class CompiledAuthoringWorkflowService
                     selected ? InputSelectionReadinessIssueCodes.SelectionNotApplicable : null);
             }),
         ]);
+    }
+
+    private ResolvedCapability? TryRetainExactCapability(
+        ActiveSessionSnapshot? session,
+        string icId,
+        IReadOnlyCollection<string> selectedSlotIds,
+        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
+        ResolvedCapability? discoveredExactCapability)
+    {
+        if (session?.ExactCapability is not { } capability ||
+            !StringComparer.Ordinal.Equals(session.WorkflowId, _resolver.WorkflowId) ||
+            !StringComparer.Ordinal.Equals(session.SelectedIc, icId) ||
+            (discoveredExactCapability is not null &&
+                !IsEquivalentExactCapability(capability, discoveredExactCapability)) ||
+            !session.Slots.Where(static slot => slot.SelectedPath is not null)
+                .Select(static slot => slot.DefinitionId)
+                .ToHashSet(StringComparer.Ordinal)
+                .SetEquals(selectedSlotIds) ||
+            session.Slots.Where(static slot => slot.SelectedPath is not null)
+                .Any(static slot => slot.FileStamp is null ||
+                    slot.Lifecycle is not (
+                        AuthoringSlotLifecycle.Verified or
+                        AuthoringSlotLifecycle.Warning)))
+        {
+            return null;
+        }
+
+        var retainedStamps = session.Slots
+            .Where(static slot => slot.FileStamp is not null)
+            .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
+                StringComparer.Ordinal);
+        return retainedStamps.Count == acceptedFileStamps.Count &&
+            retainedStamps.All(pair => acceptedFileStamps.GetValueOrDefault(pair.Key) == pair.Value)
+                ? capability
+                : null;
+    }
+
+    private static ResolvedCapability RetainEquivalentExactCapability(
+        ResolvedCapability? retained,
+        ResolvedCapability resolved)
+    {
+        return retained is not null && IsEquivalentExactCapability(retained, resolved)
+                ? retained
+                : resolved;
+    }
+
+    private static bool IsEquivalentExactCapability(
+        ResolvedCapability left,
+        ResolvedCapability right)
+    {
+        return Equals(left.Identity, right.Identity) &&
+            left.ResolutionToken == right.ResolutionToken &&
+            StringComparer.Ordinal.Equals(
+                left.CapabilityFingerprint,
+                right.CapabilityFingerprint) &&
+            StringComparer.Ordinal.Equals(
+                left.CompiledComposition.CompilationFingerprint,
+                right.CompiledComposition.CompilationFingerprint);
     }
 
     private static ReadOnlyCollection<InputSelectionMemberReadiness> ProjectPendingPrerequisite(

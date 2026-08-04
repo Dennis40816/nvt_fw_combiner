@@ -22,9 +22,94 @@ public sealed partial class WorkflowSessionPresentationViewModel
             RefreshContextState();
         }
 
-        bool preservePendingCtrlRamBase = IsFirmwareInspectionLoading &&
-            IsCtrlRamReplaceModeSelected &&
-            ReplaceBaseSlot.HasFile;
+        GeneralMappingRowViewModel? mapping = _merge.GeneralMergeMappings
+            .Cast<GeneralMappingRowViewModel>()
+            .Concat(_replace.GeneralReplaceMappings)
+            .FirstOrDefault(row => StringComparer.Ordinal.Equals(row.MappingId, slotId));
+        if (mapping is not null)
+        {
+            if (!mapping.CanSelectFile)
+            {
+                return;
+            }
+
+            mapping.FilePath = path;
+            GeneralSelectedFileLengthResult length =
+                await WorkbenchCompositionService.ObserveGeneralSelectedFileLengthAsync(
+                    mapping.MappingId,
+                    path,
+                    cancellationToken);
+            if (!length.Succeeded)
+            {
+                if (StringComparer.Ordinal.Equals(mapping.FilePath, path))
+                {
+                    mapping.ApplyFileInspection(null, length.Issue);
+                }
+                return;
+            }
+
+            AuthoringSlotInspectionStartResult started = mapping switch
+            {
+                GeneralMergeMappingViewModel merge =>
+                    _merge.BeginGeneralMergeFileInspection(merge, length.ObservedLength!.Value),
+                GeneralReplaceMappingViewModel replace =>
+                    _replace.BeginGeneralReplaceFileInspection(replace, length.ObservedLength!.Value),
+                _ => throw new InvalidOperationException("Unknown General mapping row."),
+            };
+            if (!started.Succeeded)
+            {
+                AuthoringPublicationLease? lease = mapping switch
+                {
+                    GeneralMergeMappingViewModel merge =>
+                        _merge.CaptureGeneralMergePrebindingLease(merge, path),
+                    GeneralReplaceMappingViewModel replace =>
+                        _replace.CaptureGeneralReplacePrebindingLease(replace, path),
+                    _ => throw new InvalidOperationException("Unknown General mapping row."),
+                };
+                if (lease is null)
+                {
+                    return;
+                }
+                GeneralSelectedFileInspectionResult cached =
+                    await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                        mapping.MappingId,
+                        path,
+                        lease.AuthoringRevision,
+                        length.ObservedLength.Value,
+                        cancellationToken);
+                _ = mapping switch
+                {
+                    GeneralMergeMappingViewModel merge =>
+                        _merge.TryCacheGeneralMergeInspection(merge, lease, cached),
+                    GeneralReplaceMappingViewModel replace =>
+                        _replace.TryCacheGeneralReplaceInspection(replace, lease, cached),
+                    _ => false,
+                };
+                return;
+            }
+
+            GeneralSelectedFileInspectionResult inspection =
+                await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                    mapping.MappingId,
+                    path,
+                    started.Snapshot!.AuthoringRevision,
+                    length.ObservedLength.Value,
+                    cancellationToken);
+            _ = mapping switch
+            {
+                GeneralMergeMappingViewModel merge =>
+                    _merge.TryPublishGeneralMergeFileInspection(merge, started.Lease!, inspection),
+                GeneralReplaceMappingViewModel replace =>
+                    _replace.TryPublishGeneralReplaceFileInspection(replace, started.Lease!, inspection),
+                _ => false,
+            };
+            if (mapping is GeneralReplaceMappingViewModel)
+            {
+                await _replace.GeneralReplaceReadinessRefreshTask;
+            }
+            return;
+        }
+
         FirmwareSlotViewModel? slot = SelectSlotFile(slotId, path);
         if (slot is null)
         {
@@ -32,7 +117,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
 
         FirmwareInspectionRequestContext context = CreateFirmwareInspectionRequestContext();
-        if (context.IsDpReplace)
+        if (context.IsDpReplace || context.IsCtrlRamReplace)
         {
             await RefreshSelectedReplaceFirmwareInspectionsAsync(slot.SlotId);
             return;
@@ -47,7 +132,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
         IReadOnlyList<FirmwareInspectionItemRequest> items = FirmwareInspectionRequestFactory.CreateSelectionItems(
             slot,
-            preservePendingCtrlRamBase,
             context);
         FirmwareInspectionRefreshTask = RunFirmwareInspectionAsync(items, cancellationToken);
         await FirmwareInspectionRefreshTask;
@@ -104,7 +188,10 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 ? _merge.StandardMergeAuthoringRevision
                 : items.Any(static item => item.AbMergeAddressSpaceId is not null)
                     ? _merge.AbMergeAuthoringRevision
-                : InspectionSession.CurrentAuthoringRevision;
+                : items.Any(static item => item.DpReplaceAddressSpaceId is not null ||
+                    item.CtrlRamReplaceAddressSpaceId is not null)
+                    ? _replace.ReplaceInputAuthoringRevision
+                    : new AuthoringRevision(1);
         var request = new FirmwareInspectionBatchRequest(
             generation,
             authoringRevision,
@@ -116,6 +203,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         foreach (FirmwareInspectionItemRequest item in items.Where(static item =>
                      item.AbMergeAddressSpaceId is not null ||
                      item.DpReplaceAddressSpaceId is not null ||
+                     item.CtrlRamReplaceAddressSpaceId is not null ||
                      item.StandardMergeAddressSpaceId is not null))
         {
             FindSlot(item.SlotId)?.SetInputInspectionPending(Text.FirmwareInspectionLoadingStatus);
@@ -136,11 +224,17 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     FindSlot, MergeTpSlot.FilePath))
             {
                 ApplyFirmwareInspectionBatch(request, result);
+                if (request.Items.Any(static item =>
+                        item.CtrlRamReplaceAddressSpaceId is not null))
+                {
+                    await _replace.RefreshCtrlRamActionReadinessAsync(
+                        cancellationToken);
+                }
             }
             else if (generation == InspectionSession.CurrentGeneration &&
                 !result.IsFileIdentityStable &&
                 FirmwareInspectionProjection.ApplyStaleInputInspection(
-                    MergeSlots.Concat(ReplaceSlots),
+                    MergeSlots.Concat(ReplaceSlots).Append(ReplaceBaseSlot),
                     request,
                     result,
                     Text))
@@ -179,6 +273,15 @@ public sealed partial class WorkflowSessionPresentationViewModel
             _merge.TryCompleteAbMergeInputBatch(
                 request.Items,
                 result.InspectionsById);
+        bool replaceAccepted = _replace.TryCompleteReplaceInputBatch(
+            request.Items,
+            result.InspectionsById);
+        FirmwareInspectionItemRequest ctrlRamBase = request.Items.FirstOrDefault(item =>
+            item.SlotId == WorkbenchSlotIds.ReplaceBase && IsCtrlRamReplaceModeSelected);
+        if (ctrlRamBase.SlotId == WorkbenchSlotIds.ReplaceBase)
+        {
+            ApplyCtrlRamDisplayFromInspection(result.InspectionsById[ctrlRamBase.SlotId]);
+        }
         foreach (FirmwareInspectionItemRequest item in request.Items)
         {
             WorkbenchFirmwareInspection inspection = result.InspectionsById[item.SlotId];
@@ -220,7 +323,10 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 if ((item.StandardMergeAddressSpaceId is not null &&
                         !standardMergeAccepted) ||
                     (item.AbMergeAddressSpaceId is not null &&
-                        !abMergeAccepted))
+                        !abMergeAccepted) ||
+                    ((item.DpReplaceAddressSpaceId is not null ||
+                        item.CtrlRamReplaceAddressSpaceId is not null) &&
+                        !replaceAccepted))
                 {
                     slot.SetInputInspection(
                         WorkbenchInputInspectionSeverity.Blocking,
@@ -245,10 +351,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 PromptForFirmwareNumberMismatch(slot, inspection.ContextSuggestion);
             }
 
-            if (item.SlotId == WorkbenchSlotIds.ReplaceBase && IsCtrlRamReplaceModeSelected)
-            {
-                ApplyCtrlRamDisplayFromInspection(inspection);
-            }
         }
 
         if (request.Items.Any(static item =>
@@ -268,9 +370,8 @@ public sealed partial class WorkflowSessionPresentationViewModel
             _merge.RefreshAbMergeAuthoringState();
         }
 
-        if (request.Items.Any(item =>
-                item.SlotId == WorkbenchSlotIds.ReplaceBase &&
-                string.Equals(SelectedReplaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal)))
+        if (request.Items.Any(static item =>
+                item.SlotId == WorkbenchSlotIds.ReplaceBase))
         {
             RefreshReplaceMemoryMapState();
         }
@@ -366,6 +467,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             }),
         ];
         items = AttachAbMergeInspectionLeases(items);
+        items = _replace.AttachReplaceInspectionLeases(items, slots.Values);
         foreach (FirmwareSlotViewModel slot in slots.Values)
         {
             InspectionSession.RemoveProjection(slot.SlotId);

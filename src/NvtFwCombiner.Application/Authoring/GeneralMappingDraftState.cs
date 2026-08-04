@@ -28,6 +28,54 @@ public enum GeneralMappingFileRangePreset
     FromFileStart,
 }
 
+/// <summary>Canonical parser shared by General inline admission and lowering adapters.</summary>
+public static class GeneralInlineSourceCodec
+{
+    /// <summary>Validates approved hexadecimal text and measures payload bytes without allocation.</summary>
+    public static bool TryMeasure(string? value, out long byteCount)
+    {
+        byteCount = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        long hexadecimalCharacters = 0;
+        foreach (char character in value)
+        {
+            if (char.IsWhiteSpace(character) || character is '-' or ',' or '_')
+            {
+                continue;
+            }
+
+            if (!Uri.IsHexDigit(character))
+            {
+                return false;
+            }
+
+            hexadecimalCharacters++;
+        }
+
+        byteCount = hexadecimalCharacters / 2;
+        return hexadecimalCharacters > 0 && hexadecimalCharacters % 2 == 0;
+    }
+
+    /// <summary>Parses non-empty hexadecimal byte pairs with approved visual separators.</summary>
+    public static bool TryParse(string? value, out byte[]? bytes)
+    {
+        bytes = null;
+        if (!TryMeasure(value, out _))
+        {
+            return false;
+        }
+
+        string compact = string.Concat(value!.Where(character =>
+            !char.IsWhiteSpace(character) && character is not '-' and not ',' and not '_'));
+        bytes = Convert.FromHexString(compact);
+        return true;
+    }
+}
+
 /// <summary>
 /// Immutable source identity for one General mapping row. The Application
 /// retains references and authoring payload text, never filesystem bytes.
@@ -293,10 +341,6 @@ public sealed record GeneralMappingDraftRow
     /// </summary>
     public GeneralMappingFileRangePreset? FileRangePreset { get; }
 
-    /// <summary>Derived read-only inclusive target end for display adapters.</summary>
-    public long TargetEndInclusive =>
-        AuthoringByteRangeCodec.GetEndInclusive(TargetRange);
-
     /// <summary>Returns this row bound to one accepted complete-file stamp.</summary>
     public GeneralMappingDraftRow WithAcceptedFileStamp(FileStamp fileStamp)
     {
@@ -386,6 +430,23 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
     /// <summary>Ordered typed mapping rows; row order determines operation order.</summary>
     public IReadOnlyList<GeneralMappingDraftRow> Rows { get; }
 
+    /// <summary>Returns true when every ordered mapping value and accepted content identity matches.</summary>
+    public bool HasSameValue(GeneralMappingDraftState other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        return HasSameRows(other, includeAcceptedFileStamps: true);
+    }
+
+    /// <summary>
+    /// Returns true when both drafts compile the same mapping semantics. Accepted
+    /// file stamps are inspection evidence and deliberately excluded.
+    /// </summary>
+    public bool HasSameCompilationInputs(GeneralMappingDraftState other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        return HasSameRows(other, includeAcceptedFileStamps: false);
+    }
+
     /// <summary>
     /// Materializes the currently accepted full file length into one From File
     /// Start row. Reload never reapplies this helper.
@@ -420,5 +481,56 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
     internal override AuthoringDraftState CreateImmutableSnapshot()
     {
         return this;
+    }
+
+    internal override bool HasSameValue(AuthoringDraftState other)
+    {
+        return other is GeneralMappingDraftState mapping && HasSameValue(mapping);
+    }
+
+    private bool HasSameRows(
+        GeneralMappingDraftState other,
+        bool includeAcceptedFileStamps)
+    {
+        return _rows.Length == other._rows.Length &&
+            _rows.Zip(other._rows).All(pair =>
+                HasSameRow(pair.First, pair.Second, includeAcceptedFileStamps));
+    }
+
+    private static bool HasSameRow(
+        GeneralMappingDraftRow left,
+        GeneralMappingDraftRow right,
+        bool includeAcceptedFileStamps)
+    {
+        return StringComparer.Ordinal.Equals(left.MappingId, right.MappingId) &&
+            left.OperationKind == right.OperationKind &&
+            left.Source.Kind == right.Source.Kind &&
+            StringComparer.Ordinal.Equals(left.Source.Reference, right.Source.Reference) &&
+            StringComparer.Ordinal.Equals(left.Source.InlineValue, right.Source.InlineValue) &&
+            (!includeAcceptedFileStamps ||
+                left.Source.AcceptedFileStamp == right.Source.AcceptedFileStamp) &&
+            left.SourceRange == right.SourceRange &&
+            StringComparer.Ordinal.Equals(
+                left.TargetAddressSpaceId,
+                right.TargetAddressSpaceId) &&
+            StringComparer.Ordinal.Equals(left.TargetRegionId, right.TargetRegionId) &&
+            left.TargetRange == right.TargetRange &&
+            left.OverlapPolicy == right.OverlapPolicy &&
+            left.Alignment == right.Alignment &&
+            StringComparer.Ordinal.Equals(left.Reason, right.Reason) &&
+            HasSameProvenance(left.Provenance, right.Provenance) &&
+            left.FileRangePreset == right.FileRangePreset;
+    }
+
+    private static bool HasSameProvenance(
+        OperationProvenance? left,
+        OperationProvenance? right)
+    {
+        return left is null
+            ? right is null
+            : right is not null &&
+                StringComparer.Ordinal.Equals(left.Kind, right.Kind) &&
+                StringComparer.Ordinal.Equals(left.SourceId, right.SourceId) &&
+                StringComparer.Ordinal.Equals(left.SourceVersion, right.SourceVersion);
     }
 }

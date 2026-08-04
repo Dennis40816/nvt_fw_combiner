@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
@@ -202,6 +203,21 @@ public sealed partial class CompositionRunRequestV2Tests
             MetadataPlanDefinition.Empty,
             proof);
 
+        var authoringCatalog =
+            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(resolved);
+        Assert.Equal(
+            ["reference-slot", "source-a"],
+            authoringCatalog.Routes.Single().SlotDefinitions.Select(static slot => slot.DefinitionId));
+        IReadOnlyDictionary<string, AuthoringInputSlotStatus> authoringStatuses =
+            AuthoringInputSlotInspectionService.InspectBatch(
+                resolved,
+                new AuthoringRevision(1),
+                new Dictionary<string, ReadOnlyMemory<byte>?>
+                {
+                    ["reference"] = new byte[] { 0, 1, 2, 3 },
+                    ["source-a"] = new byte[] { 0xAA, 0xBB },
+                });
+        Assert.Equal("source-a", authoringStatuses["source-a"].SlotId);
         Assert.NotNull(resolved.RuntimeReferenceProof);
 
         ResolvedCapabilityRoute CreateRoute(IReadOnlyList<string> bindings)

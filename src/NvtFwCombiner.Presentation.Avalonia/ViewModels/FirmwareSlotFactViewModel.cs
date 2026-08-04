@@ -80,7 +80,4 @@ public sealed record FirmwareSlotFactViewModel
         ? $"{Label}: {Value}"
         : string.Join(": ", Label, Value, StateLabel, StateDetail);
 
-    /// <summary>Preserves the former warning-style fallback for workflows outside the pilot.</summary>
-    public bool UsesLegacyWarningPresentation =>
-        State is not FirmwareSlotFactState.Ordinary and not FirmwareSlotFactState.NotApplicable;
 }

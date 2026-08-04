@@ -434,7 +434,7 @@ public sealed partial class AuthoringSessionStateTests
             ambiguous.Issue!.Code);
     }
 
-    /// <summary>Slot updates reject incoherent identities, no-op exact repeats, and clear atomically.</summary>
+    /// <summary>Slot updates retain pending paths, reject unknown identities, no-op exact repeats, and clear atomically.</summary>
     [Fact]
     public void SlotUpdatesValidateIdentityAndSupportNoOpAndClear()
     {
@@ -453,12 +453,14 @@ public sealed partial class AuthoringSessionStateTests
                     "reference",
                     "dp")));
 
-        ArgumentException incoherent = Assert.Throws<ArgumentException>(() =>
-            session.SetSlotFile(
-                "dp",
-                @"C:\firmware\dp.bin",
-                null));
-        Assert.Equal("selectedPath", incoherent.ParamName);
+        AuthoringSessionTransitionResult pending = session.SetSlotFile(
+            "dp",
+            @"C:\firmware\dp.bin",
+            null);
+        Assert.True(pending.Succeeded);
+        AuthoringSlotState pendingSlot = pending.Snapshot!.Slots.Single(static slot => slot.DefinitionId == "dp");
+        Assert.Equal(AuthoringSlotLifecycle.Selected, pendingSlot.Lifecycle);
+        Assert.Null(pendingSlot.FileStamp);
 
         AuthoringSessionTransitionResult unavailable = session.SetSlotFile(
             "ldc",

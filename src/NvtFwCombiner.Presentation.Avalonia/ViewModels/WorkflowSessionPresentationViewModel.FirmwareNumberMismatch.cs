@@ -87,7 +87,6 @@ public sealed partial class WorkflowSessionPresentationViewModel
         {
             IsApplyingFirmwareInspectionContext = false;
         }
-        RefreshCtrlRamDisplayFromInspection();
         _showToast(
             Text.ContextUpdatedToastTitle,
             Text.FormatVerifiedFirmwareContextToast(

@@ -16,10 +16,10 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-context-preservation");
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
         int reads = 0;
-        MainWindowViewModel viewModel = CreateInspectionViewModel((icId, path, tpPath, request) =>
+        MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
-            reads++;
-            return WorkbenchCompositionService.InspectFirmware(icId, path, tpPath, request);
+            reads += inputs.Count;
+            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
@@ -36,13 +36,14 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
 
-        Assert.Equal(1, reads);
+        Assert.Equal(2, reads);
         Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("1 IC", viewModel.WorkflowSession.FirmwareNumberMismatchCurrentNumber);
         Assert.Equal("Cascade", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
 
         viewModel.WorkflowSession.AcceptFirmwareNumberMismatchCommand.Execute(null);
+        await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
@@ -52,7 +53,12 @@ public sealed partial class ShellViewModelTests
             slot => slot.SlotId == replacement.SlotId && slot.FilePath == replacementPath);
         Assert.Equal("Context updated", viewModel.Reports.ShellToastTitle);
 
-        Assert.True(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
+        Assert.True(
+            viewModel.Replace.PreviewReplaceCommand.CanExecute(null),
+            $"{viewModel.Replace.ReplaceReadinessStatus}; " +
+            string.Join("; ", viewModel.Replace.ReplaceSlots.Append(viewModel.Replace.ReplaceBaseSlot)
+                .Where(static slot => slot.HasFile)
+                .Select(static slot => $"{slot.SlotId}={slot.InputInspectionSeverity}/{slot.InputInspectionStatus}")));
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);

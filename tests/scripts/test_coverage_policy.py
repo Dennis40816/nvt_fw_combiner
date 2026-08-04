@@ -651,6 +651,28 @@ class CoveragePolicyTests(unittest.TestCase):
 
         self.assertEqual(3, changed)
 
+    def test_changed_module_reads_utf8_diff_independent_of_windows_locale(self) -> None:
+        module = Path("src/NvtFwCombiner.Domain")
+        self.write(f"{module}/Thing.cs", "class Thing {}\n")
+        self.run_git("init", "--quiet")
+        self.run_git("add", ".")
+        self.run_git(
+            "-c",
+            "user.name=Coverage Test",
+            "-c",
+            "user.email=coverage@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "baseline",
+        )
+        baseline_revision = self.run_git("rev-parse", "HEAD").strip()
+        self.write(f"{module}/Thing.cs", "// → 中文\nclass Thing {}\n")
+
+        changed = changed_module_lines(self.root, baseline_revision, module)
+
+        self.assertEqual(1, changed)
+
     def test_rejects_overall_coverage_regression(self) -> None:
         current = CoverageInventory(
             summary(8, 10, 8, 10), {"Domain": summary(8, 10, 8, 10)}

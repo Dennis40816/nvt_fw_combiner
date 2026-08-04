@@ -5,16 +5,13 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
-    private static readonly GeneralAuthoringAdmissionUseCase
-        GeneralAdmissionUseCase = new(new GeneralFileResourceObservationAdapter());
-
     private static GeneralAuthoringAdmissionResult AdmitGeneralMappingDraft(
         GeneralMappingDraftState mappingDraft,
         long outputCapacity,
         GeneralTrustedParentResourcePolicy trustedParent,
         GeneralSavedRuleResourcePolicy? savedRule = null)
     {
-        return GeneralAdmissionUseCase.Resolve(
+        return GeneralAuthoringAdmissionUseCase.Resolve(
             new GeneralAuthoringAdmissionRequest(
                 mappingDraft,
                 new Dictionary<string, long>(StringComparer.Ordinal)
@@ -23,6 +20,56 @@ public static partial class WorkbenchCompositionService
                 },
                 trustedParent,
                 savedRule));
+    }
+
+    private static GeneralAuthoringAdmissionResult AdmitGeneralMappingCandidate(
+        GeneralMappingDraftState mappingDraft,
+        long outputCapacity,
+        GeneralTrustedParentResourcePolicy trustedParent,
+        IReadOnlyDictionary<string, long> observedFileLengths)
+    {
+        return GeneralAuthoringAdmissionUseCase.ResolveCandidate(
+            new GeneralAuthoringAdmissionRequest(
+                mappingDraft,
+                new Dictionary<string, long>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.OutputImage] = outputCapacity,
+                },
+                trustedParent),
+            observedFileLengths);
+    }
+
+    /// <summary>Resolves the same exact Parent admission used by General Replace execution.</summary>
+    public static GeneralAuthoringAdmissionResult? GetGeneralReplaceAuthoringAdmission(
+        string icId,
+        long referenceCapacity,
+        GeneralMappingDraftState mappingDraft)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(referenceCapacity);
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        GeneralReplaceV2Registration? registration =
+            ResolveGeneralReplaceValidationRegistration(
+                Profiles.IcSupportCatalog.NormalizeIcId(icId));
+        return registration is null
+            ? null
+            : AdmitGeneralMappingDraft(
+                mappingDraft,
+                referenceCapacity,
+                CreateCurrentGeneralTrustedParentPolicy(
+                    registration.ExactParent.Admission.ParentBinding.ProfileId,
+                    mappingDraft,
+                    registration.ExactParent.Admission.ParentBinding));
+    }
+
+    private static GeneralReplaceV2Registration?
+        ResolveGeneralReplaceValidationRegistration(string normalizedIcId)
+    {
+        return BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
+                normalizedIcId,
+                out GeneralReplaceV2Registration? registration)
+            ? registration
+            : null;
     }
 
     /// <summary>
@@ -57,25 +104,5 @@ public static partial class WorkbenchCompositionService
         return parentIdentity is null
             ? new GeneralTrustedParentResourcePolicy(parentId, limits)
             : new GeneralTrustedParentResourcePolicy(parentIdentity, limits);
-    }
-
-    private sealed class GeneralFileResourceObservationAdapter :
-        IGeneralInputResourceObservationPort
-    {
-        public bool TryObserveLength(
-            GeneralInputResourceObservationRequest request,
-            out long lengthBytes)
-        {
-            ArgumentNullException.ThrowIfNull(request);
-            string fullPath = Path.GetFullPath(request.ResourceReference);
-            if (!File.Exists(fullPath))
-            {
-                lengthBytes = 0;
-                return false;
-            }
-
-            lengthBytes = new FileInfo(fullPath).Length;
-            return true;
-        }
     }
 }

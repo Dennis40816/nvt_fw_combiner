@@ -64,7 +64,6 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel reference = Assert.Single(
             viewModel.Replace.ReplaceSlots,
             static slot => slot.SlotId == WorkbenchSlotIds.ReplaceBase);
-        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
         if (referenceLength > 0 && expectedLdcState != ResolvedChildReadiness.Blocked)
         {
             Assert.Equal(WorkbenchInputInspectionSeverity.Valid, reference.InputInspectionSeverity);
@@ -244,20 +243,22 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.Replace.CanBuildReplace);
     }
 
-    /// <summary>Standard Merge is the first #208 route while CtrlRAM retains the legacy card.</summary>
+    /// <summary>Standard Merge and CtrlRAM Replace use the same localized semantic card.</summary>
     [Fact]
-    public void StandardMergeAdoptsSharedSlotPresentationBeforeCtrlRamReplace()
+    public void StandardMergeAndCtrlRamReplaceUseSharedSlotPresentation()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
 
         OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
 
-        Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.True(slot.UsesLegacySlotPresentation));
+        Assert.All(viewModel.Replace.ReplaceSlots, slot =>
+            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
 
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
         viewModel.ShowMergeCommand.Execute(null);
 
-        Assert.All(viewModel.Merge.MergeSlots, static slot => Assert.True(slot.UsesSharedSlotPresentation));
+        Assert.All(viewModel.Merge.MergeSlots, slot =>
+            Assert.Equal(viewModel.Text.FirmwareSlotShowDetailsLabel, slot.FirmwareFactsDisclosureLabel));
     }
 
     /// <summary>Localizes the typed LDC state and its next action without changing its meaning.</summary>

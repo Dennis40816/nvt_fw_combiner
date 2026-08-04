@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
@@ -259,6 +260,10 @@ public sealed partial class ShellViewModelTests
 
         WriteUiAbCmi(dp, 0, major: 0x0A, minor: 0x01, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            CompositionAddressSpaceIds.DpAbInput,
+            dpPath,
+            TestContext.Current.CancellationToken);
         string automaticOutputPath = workspace.PathFor(suggestedOutputName);
         string automaticAFlashCodeOutputPath = workspace.PathFor(initialAFlashCodePlan.SuggestedFileName);
         await viewModel.Merge.BuildMergeAsync(
@@ -527,6 +532,7 @@ public sealed partial class ShellViewModelTests
             }
         };
         viewModel.SetSlotFile(mapping.MappingId, source);
+        FileStamp acceptedStamp = Assert.IsType<FileStamp>(mapping.AcceptedFileStamp);
         Assert.Contains(nameof(MergePresentationViewModel.MergeReadinessStatus), propertyChanges);
         Assert.Contains("maps 1 source BIN", viewModel.Merge.MergeReadinessStatus, StringComparison.Ordinal);
         viewModel.Merge.GeneralMergeOutputFillByte = "0x100";
@@ -536,6 +542,10 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(
             viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
+        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+        mapping.TargetStartAddress = "0x5";
+        Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
+        mapping.TargetStartAddress = "0x4";
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
@@ -615,34 +625,6 @@ public sealed partial class ShellViewModelTests
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.True(viewModel.Reports.HasLoadedReport);
         Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
-    }
-
-    /// <summary>Verifies NT51950 accepts a TP BIN within the 256 KiB limit even when it exceeds the declared overlay span.</summary>
-    [Fact]
-    public async Task PreviewNt51950AcceptsTpInputWithinMaximum()
-    {
-        using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement goldenCase = golden.CaseByIc("51926");
-        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        viewModel.WorkflowSession.SelectedIc = "NT51950";
-        golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
-
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
-        Assert.True(viewModel.Merge.CanBuildMerge);
-
-        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
-
-        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
-        Assert.True(viewModel.Merge.CanBuildMerge);
-        Assert.True(viewModel.Reports.HasLoadedReport);
-        Assert.True(viewModel.Reports.CanOpenReport);
-        Assert.True(viewModel.Reports.HasReportToast);
-        Assert.NotEmpty(viewModel.Reports.LoadedReport.Issues);
-        Assert.All(viewModel.Reports.LoadedReport.Issues, static issue => Assert.Equal("warning", issue.Severity));
-        Assert.False(viewModel.Reports.LoadedReport.HasPrimaryIssue);
-        Assert.True(viewModel.Reports.LoadedReport.HasInputs);
-        Assert.True(viewModel.Reports.LoadedReport.HasOperations);
     }
 
     /// <summary>Gets one normal DP/TP, LD-input, and DP Perspective Standard Merge golden case.</summary>

@@ -47,8 +47,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes.pendingInput=\"{Binding IsSemanticStatePendingInput}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsEnabled=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("DragDrop.AllowDrop=\"{Binding CanSelectFile}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesSharedSlotPresentation}\"", slotCard, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding UsesLegacySlotPresentation}\"", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesSharedSlotPresentation", slotCard, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsesLegacySlotPresentation", slotCard, StringComparison.Ordinal);
     }
 
     /// <summary>Firmware facts use the shared stacked card anatomy and disclose only facts beyond four.</summary>

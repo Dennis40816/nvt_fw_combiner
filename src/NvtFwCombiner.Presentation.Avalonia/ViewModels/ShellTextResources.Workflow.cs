@@ -121,6 +121,20 @@ public sealed partial class ShellTextResources
 
     public string GeneralReplaceMappingsDetail { get; private init; } = string.Empty;
 
+    public string GeneralSourceKindLabel { get; private init; } = string.Empty;
+
+    public string GeneralSourceValueLabel { get; private init; } = string.Empty;
+
+    public string GeneralFileSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralHexOverwriteSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralHexFillSourceLabel { get; private init; } = string.Empty;
+
+    public string GeneralInlineHexPlaceholder { get; private init; } = string.Empty;
+
+    public string GeneralInlineHexGuidance { get; private init; } = string.Empty;
+
     /// <summary>Label for choosing a new output path in the raw-BIN Hex Editor.</summary>
     public string HexEditorSaveAsLabel { get; private init; } = string.Empty;
 

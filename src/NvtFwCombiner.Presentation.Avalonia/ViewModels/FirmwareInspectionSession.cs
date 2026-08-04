@@ -27,8 +27,6 @@ internal sealed class FirmwareInspectionSession
 
     internal long CurrentGeneration => Volatile.Read(ref _generation);
 
-    internal AuthoringRevision CurrentAuthoringRevision { get; private set; } = new(1);
-
     internal long NextGeneration()
     {
         return Interlocked.Increment(ref _generation);
@@ -59,7 +57,11 @@ internal sealed class FirmwareInspectionSession
                 item.AbMergeTopologyToken,
                 item.DpReplaceAddressSpaceId,
                 request.AuthoringRevision.Value,
-                item.StandardMergeAddressSpaceId)),
+                item.StandardMergeAddressSpaceId,
+                item.CtrlRamReplaceAddressSpaceId,
+                item.ReplaceInspectionLease?.ExactCapability ??
+                    item.StandardMergeInspectionLease?.ExactCapability ??
+                    item.AbMergeInspectionLease?.ExactCapability)),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
@@ -156,7 +158,6 @@ internal sealed class FirmwareInspectionSession
     internal void Invalidate(bool clearBaseCache, bool clearFileProjections)
     {
         _ = NextGeneration();
-        CurrentAuthoringRevision = CurrentAuthoringRevision.Next();
         if (clearBaseCache)
         {
             ClearBase();
@@ -201,20 +202,9 @@ internal static class FirmwareInspectionRequestFactory
 
     internal static IReadOnlyList<FirmwareInspectionItemRequest> CreateSelectionItems(
         FirmwareSlotViewModel selectedSlot,
-        bool includeCtrlRamBase,
         FirmwareInspectionRequestContext context)
     {
         List<FirmwareInspectionItemRequest> items = [];
-        if (includeCtrlRamBase && !ReferenceEquals(selectedSlot, context.ReplaceBaseSlot))
-        {
-            items.Add(CreateItem(
-                context.ReplaceBaseSlot,
-                context,
-                publishFacts: true,
-                promptForMismatch: true,
-                applyVerifiedContext: true));
-        }
-
         items.Add(CreateItem(
             selectedSlot,
             context,
@@ -264,6 +254,13 @@ internal static class FirmwareInspectionRequestFactory
             context.StandardMergeSlotIds.Contains(slot.SlotId, StringComparer.Ordinal)
             ? slot.AddressSpaceId
             : null;
+        string? ctrlRamReplaceAddressSpaceId = context.IsCtrlRamReplace &&
+            (ReferenceEquals(slot, context.ReplaceBaseSlot) ||
+                slot.ReplaceInputRole == WorkbenchReplaceInputRole.CtrlRam)
+            ? ReferenceEquals(slot, context.ReplaceBaseSlot)
+                ? WorkbenchAddressSpaceIds.ReferenceBase
+                : slot.AddressSpaceId
+            : null;
         // Firmware metadata can request confirmation only when the current page exposes an
         // operator-selectable Number. A hidden control cannot be changed by a modal.
         bool applyWorkflowContext = applyVerifiedContext && context.IsNumberSelectorVisible;
@@ -279,7 +276,8 @@ internal static class FirmwareInspectionRequestFactory
             abMergeAddressSpaceId,
             context.AbMergeTopologyToken,
             dpReplaceAddressSpaceId,
-            standardMergeAddressSpaceId);
+            standardMergeAddressSpaceId,
+            CtrlRamReplaceAddressSpaceId: ctrlRamReplaceAddressSpaceId);
     }
 }
 
@@ -378,6 +376,7 @@ internal static class FirmwareInspectionProjection
         foreach (FirmwareInspectionItemRequest item in request.Items.Where(static item =>
                      item.AbMergeAddressSpaceId is not null ||
                      item.DpReplaceAddressSpaceId is not null ||
+                     item.CtrlRamReplaceAddressSpaceId is not null ||
                      item.StandardMergeAddressSpaceId is not null))
         {
             FirmwareSlotViewModel? slot = slots.FirstOrDefault(candidate =>
@@ -528,6 +527,8 @@ internal readonly record struct FirmwareInspectionItemRequest(
     string? AbMergeTopologyToken,
     string? DpReplaceAddressSpaceId,
     string? StandardMergeAddressSpaceId,
+    string? CtrlRamReplaceAddressSpaceId = null,
+    AuthoringSlotInspectionLease? ReplaceInspectionLease = null,
     AuthoringSlotInspectionLease? StandardMergeInspectionLease = null,
     AuthoringSlotInspectionLease? AbMergeInspectionLease = null);
 

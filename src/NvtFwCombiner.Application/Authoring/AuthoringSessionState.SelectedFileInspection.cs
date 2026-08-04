@@ -113,6 +113,7 @@ public sealed partial class AuthoringSessionState
                     snapshot.SelectedRouteId,
                     snapshot.CapabilityFingerprint,
                     snapshot.CompilationFingerprint,
+                    snapshot.ExactCapability,
                     discoveryTransition,
                     selection.Key,
                     selection.Value)),
@@ -214,7 +215,8 @@ public sealed partial class AuthoringSessionState
                 sameRouteAndCapability &&
                 StringComparer.Ordinal.Equals(
                     route.CompilationFingerprint,
-                    _current.CompilationFingerprint);
+                    _current.CompilationFingerprint) &&
+                ReferenceEquals(route.ExactCapability, currentRoute.ExactCapability);
             bool unresolvedDiscoveryMatches = _current.CompilationFingerprint is null &&
                 route.CompilationFingerprint is null &&
                 sameRouteAndCapability;
@@ -340,18 +342,8 @@ public sealed partial class AuthoringSessionState
         lock (_transitionLock)
         {
             if (_current is null ||
-                !ReferenceEquals(lease.SessionIdentity, _publicationIdentity) ||
-                lease.ResolutionToken != _current.ResolutionToken ||
-                lease.AuthoringRevision != _current.AuthoringRevision ||
-                !StringComparer.Ordinal.Equals(
-                    lease.SelectedRouteId,
-                    _current.SelectedRouteId) ||
-                !StringComparer.Ordinal.Equals(
-                    lease.CapabilityFingerprint,
-                    _current.CapabilityFingerprint) ||
-                !StringComparer.Ordinal.Equals(
-                    lease.CompilationFingerprint,
-                    _current.CompilationFingerprint) ||
+                !InspectionLeaseMatches(lease, _current) ||
+                _current.CompilationFingerprint is null ||
                 !StringComparer.Ordinal.Equals(
                     lease.DefinitionId,
                     inspection.DefinitionId) ||
@@ -366,22 +358,19 @@ public sealed partial class AuthoringSessionState
                     inspection.DefinitionId);
             }
 
-            int index = Array.FindIndex(
-                [.. _current.Slots],
-                slot =>
-                    StringComparer.Ordinal.Equals(
-                        slot.DefinitionId,
-                        lease.DefinitionId) &&
-                    StringComparer.Ordinal.Equals(
-                        slot.SelectedPath,
-                        lease.SelectedPath) &&
-                    slot.Lifecycle == AuthoringSlotLifecycle.Checking &&
-                    slot.FileStamp is null);
-            if (index < 0)
+            AuthoringSlotDefinitionReference definition = _catalog!.Routes
+                .Single(route => StringComparer.Ordinal.Equals(
+                    route.Identity.RouteId,
+                    _current.SelectedRouteId))
+                .SlotDefinitions.Single(slot => StringComparer.Ordinal.Equals(
+                    slot.DefinitionId,
+                    lease.DefinitionId));
+            if (definition.ExpectedLength is { } expectedLength &&
+                inspection.FileStamp.AcceptedLength != expectedLength)
             {
                 return Failure(
                     AuthoringSessionIssueCodes.StaleInspection,
-                    "The selected-file inspection no longer matches a checking slot.",
+                    "The selected-file length no longer matches its exact compiled input contract.",
                     inspection.DefinitionId);
             }
 
@@ -400,6 +389,8 @@ public sealed partial class AuthoringSessionState
             }
 
             AuthoringSlotState[] slots = [.. _current.Slots];
+            int index = Array.FindIndex(slots, slot =>
+                StringComparer.Ordinal.Equals(slot.DefinitionId, lease.DefinitionId));
             slots[index] = new AuthoringSlotState(
                 lease.DefinitionId,
                 lease.SelectedPath,
@@ -412,6 +403,60 @@ public sealed partial class AuthoringSessionState
                 acceptedDraft,
                 _current.DraftCapabilityFingerprint,
                 []);
+            _generalInspectionCache[inspection.DefinitionId] =
+                new CachedGeneralSelectedFileInspection(
+                    _current.ResolutionToken,
+                    _current.CapabilityFingerprint,
+                    inspection);
+            Volatile.Write(ref _current, snapshot);
+            return new AuthoringSessionTransitionResult(snapshot, null);
+        }
+    }
+
+    /// <summary>Publishes one typed inspection failure only for its current lease.</summary>
+    public AuthoringSessionTransitionResult TryRejectSlotFileInspection(
+        AuthoringSlotInspectionLease lease,
+        GeneralSelectedFileInspectionIssue issue)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(issue);
+        lock (_transitionLock)
+        {
+            if (_current is null ||
+                !InspectionLeaseMatches(lease, _current) ||
+                _current.CompilationFingerprint is null ||
+                !StringComparer.Ordinal.Equals(lease.DefinitionId, issue.DefinitionId))
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.StaleInspection,
+                    "The selected-file inspection failure belongs to older authoring state.",
+                    issue.DefinitionId);
+            }
+
+            AuthoringSlotState[] slots = [.. _current.Slots];
+            int index = Array.FindIndex(slots, slot =>
+                StringComparer.Ordinal.Equals(slot.DefinitionId, lease.DefinitionId));
+            string resultReference = FormattableString.Invariant(
+                $"selected-file:{lease.AuthoringRevision.Value}:{lease.DefinitionId}");
+            slots[index] = new AuthoringSlotState(
+                lease.DefinitionId,
+                lease.SelectedPath,
+                fileStamp: null,
+                AuthoringSlotLifecycle.Error,
+                new AuthoringSlotIssueReference(
+                    AuthoringDerivedResultKind.Inspection,
+                    resultReference,
+                    issue.Code));
+            ActiveSessionSnapshot snapshot = CopySnapshot(
+                _current,
+                _current.AuthoringRevision,
+                slots,
+                _current.DraftState,
+                _current.DraftCapabilityFingerprint,
+                [new AuthoringDerivedPublication(
+                    AuthoringDerivedResultKind.Inspection,
+                    resultReference,
+                    _current.CompilationFingerprint)]);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
         }

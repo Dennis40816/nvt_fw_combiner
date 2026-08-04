@@ -306,6 +306,10 @@ public static class AuthoringInputSlotInspectionService
             InputSelectionMemberReadiness member = members.GetValueOrDefault(binding.SlotId) ??
                 new InputSelectionMemberReadiness(
                     binding.SlotId, true, ResolvedChildReadiness.Ready, true, null, null);
+            if (binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding)
+            {
+                member = member with { SlotId = binding.AddressSpaceId };
+            }
             statuses.Add(
                 addressSpaceId,
                 member.IsSelected && member.Readiness == ResolvedChildReadiness.Ready
@@ -506,8 +510,10 @@ public static class AuthoringInputSlotInspectionService
         CompiledInputSpaceBinding? binding = capability.CompiledComposition.V2Details
             .InputContract.SpaceBindings.SingleOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId));
-        if (binding is null ||
-            !StringComparer.Ordinal.Equals(binding.SlotId, selectionReadiness.SlotId))
+        string? expectedSlotId = binding?.InstancePolicy == CompiledInputInstancePolicy.PerBinding
+            ? binding.AddressSpaceId
+            : binding?.SlotId;
+        if (!StringComparer.Ordinal.Equals(expectedSlotId, selectionReadiness.SlotId))
         {
             throw new ArgumentException(
                 "Selection readiness must identify the compiler-owned slot for the requested address space.",

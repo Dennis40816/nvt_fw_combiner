@@ -121,7 +121,7 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.Contains("Styles/MainWindowControlStyles.axaml", application, StringComparison.Ordinal);
         Assert.Contains("<Label", slotCard, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement\"", slotCard, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"compactBadge slotBadge firmwareSlotRequirement availableInput\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding IsGuidanceVisible}\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.Placement=\"BottomEdgeAlignedLeft\"", slotCard, StringComparison.Ordinal);
         Assert.Contains("ToolTip.VerticalOffset=\"8\"", slotCard, StringComparison.Ordinal);

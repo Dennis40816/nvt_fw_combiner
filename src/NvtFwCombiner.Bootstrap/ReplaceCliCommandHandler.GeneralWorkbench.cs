@@ -195,14 +195,14 @@ internal static partial class ReplaceCliCommandHandler
         if (!TryAppendWorkbenchGeneralPatches(
                 "--patch",
                 patchValues,
-                WorkbenchGeneralReplacePatchKind.Overwrite,
+                GeneralMappingSourceKind.HexOverwrite,
                 "general-patch",
                 error,
                 items) ||
             !TryAppendWorkbenchGeneralPatches(
                 "--fill",
                 fillValues,
-                WorkbenchGeneralReplacePatchKind.Fill,
+                GeneralMappingSourceKind.HexFill,
                 "general-fill",
                 error,
                 items))
@@ -230,7 +230,7 @@ internal static partial class ReplaceCliCommandHandler
     private static bool TryAppendWorkbenchGeneralPatches(
         string optionName,
         List<string> values,
-        WorkbenchGeneralReplacePatchKind kind,
+        GeneralMappingSourceKind kind,
         string idPrefix,
         TextWriter error,
         List<GeneralMappingDraftRow> rows)
@@ -252,10 +252,14 @@ internal static partial class ReplaceCliCommandHandler
                 $"{idPrefix}-{index + 1}");
             GeneralMappingSource source = kind switch
             {
-                WorkbenchGeneralReplacePatchKind.Overwrite =>
+                GeneralMappingSourceKind.HexOverwrite =>
                     GeneralMappingSource.HexOverwrite(payload, mappingId),
-                WorkbenchGeneralReplacePatchKind.Fill =>
+                GeneralMappingSourceKind.HexFill =>
                     GeneralMappingSource.HexFill(payload, mappingId),
+                GeneralMappingSourceKind.FileArtifact => throw new ArgumentOutOfRangeException(
+                    nameof(kind),
+                    kind,
+                    "A file source is not an inline General Replace patch."),
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(kind),
                     kind,
@@ -270,7 +274,7 @@ internal static partial class ReplaceCliCommandHandler
                 targetRange,
                 OverlapPolicy.Reject,
                 alignment: 1,
-                kind == WorkbenchGeneralReplacePatchKind.Fill
+                kind == GeneralMappingSourceKind.HexFill
                     ? "Fill hexadecimal General range."
                     : "Overwrite hexadecimal General range."));
         }

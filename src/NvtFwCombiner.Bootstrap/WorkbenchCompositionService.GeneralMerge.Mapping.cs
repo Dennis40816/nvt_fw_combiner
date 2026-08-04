@@ -11,7 +11,8 @@ public static partial class WorkbenchCompositionService
         out IReadOnlyList<ExplicitMapping> explicitMappings,
         out IReadOnlyList<AddressSpace> requestAddressSpaces,
         out IReadOnlyList<InputArtifactBinding> mappingBindings,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        bool allowUnbound = false)
     {
         GeneralMappingDraftState mappingDraft = admission.RequireAdmittedDraft();
         var resources =
@@ -36,7 +37,8 @@ public static partial class WorkbenchCompositionService
                     $"Admitted General Merge mapping '{input.MappingId}' has no observed input resource.");
             }
 
-            if (input.Source.AcceptedFileStamp is not { } acceptedStamp)
+            FileStamp? acceptedStamp = input.Source.AcceptedFileStamp;
+            if (acceptedStamp is null && !allowUnbound)
             {
                 issueList.Add(new CompositionIssue(
                     GeneralSelectedFileInspectionIssueCodes.SnapshotRequired,
@@ -45,7 +47,7 @@ public static partial class WorkbenchCompositionService
                 continue;
             }
 
-            long declaredLength = acceptedStamp.AcceptedLength;
+            long declaredLength = acceptedStamp?.AcceptedLength ?? resource.LengthBytes;
             if (resource.LengthBytes != declaredLength)
             {
                 issueList.Add(new CompositionIssue(
@@ -65,11 +67,14 @@ public static partial class WorkbenchCompositionService
             }
 
             spaces.Add(new AddressSpace(addressSpaceId, declaredLength, AddressSpaceMutability.Immutable));
-            bindings.Add(new InputArtifactBinding(
-                addressSpaceId,
-                input.MappingId,
-                fullPath,
-                acceptedContentStamp: acceptedStamp));
+            if (acceptedStamp is not null)
+            {
+                bindings.Add(new InputArtifactBinding(
+                    addressSpaceId,
+                    input.MappingId,
+                    fullPath,
+                    acceptedContentStamp: acceptedStamp));
+            }
             mappings.Add(new ExplicitMapping(
                 input.MappingId,
                 100 + (index * 10),
@@ -115,14 +120,3 @@ public static partial class WorkbenchCompositionService
             : Path.GetFileName(mapping.Source.Reference);
     }
 }
-
-/// <summary>One user-authored General Merge mapping row from the workbench surface.</summary>
-public sealed record WorkbenchGeneralMergeMappingInput(
-    string MappingId,
-    string FilePath,
-    string SourceStart,
-    string TargetStart,
-    string Length,
-    int Alignment = 1,
-    string? Reason = null,
-    OperationProvenance? Provenance = null);

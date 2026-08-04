@@ -7,12 +7,14 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Collapsible firmware slot group for repeated region families.</summary>
 public sealed partial class FirmwareSlotGroupViewModel : ObservableObject
 {
+    private readonly ShellTextResources _text;
     /// <summary>Creates a firmware slot group.</summary>
     public FirmwareSlotGroupViewModel(
         string title,
         string summary,
         IEnumerable<FirmwareSlotViewModel> slots,
-        bool isExpanded)
+        bool isExpanded,
+        ShellTextResources text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(summary);
@@ -22,6 +24,7 @@ public sealed partial class FirmwareSlotGroupViewModel : ObservableObject
         Summary = summary;
         Slots = [.. slots];
         IsExpanded = isExpanded;
+        _text = text ?? throw new ArgumentNullException(nameof(text));
         foreach (FirmwareSlotViewModel slot in Slots)
         {
             slot.PropertyChanged += SlotPropertyChanged;
@@ -47,9 +50,9 @@ public sealed partial class FirmwareSlotGroupViewModel : ObservableObject
     public string CountLabel => $"{SelectedCount}/{SlotCount}";
 
     /// <summary>Plain-language selection summary for this group.</summary>
-    public string SelectionSummary => SelectedCount == 0
-        ? $"{SlotCount} areas. None selected."
-        : $"{SelectedCount} selected / {SlotCount} areas.";
+    public string SelectionSummary => _text.FormatAreaSelectionSummary(
+        SelectedCount,
+        SlotCount);
 
     /// <summary>True when the group is expanded in the UI.</summary>
     [ObservableProperty]

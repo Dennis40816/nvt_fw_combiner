@@ -30,6 +30,13 @@ public static class GeneralAuthoringIssueCodes
     public const string SlotLengthRejected = "general.admission.slot-length-rejected";
     /// <summary>An inline source would exceed safe pre-execution materialization.</summary>
     public const string InlineMaterializationExceeded = "general.admission.inline-materialization-exceeded";
+    /// <summary>An inline source does not contain complete hexadecimal byte pairs.</summary>
+    public const string InlineHexInvalid = "general.admission.inline-hex-invalid";
+    /// <summary>An overwrite payload byte count differs from its target length.</summary>
+    public const string InlineOverwriteLengthMismatch =
+        "general.admission.inline-overwrite-length-mismatch";
+    /// <summary>A fill source does not contain exactly one byte.</summary>
+    public const string InlineFillByteInvalid = "general.admission.inline-fill-byte-invalid";
     /// <summary>A Saved Rule attempts to broaden its exact Trusted Parent.</summary>
     public const string SavedRuleBroadensParent = "general.admission.saved-rule-broadens-parent";
     /// <summary>A content-identified Saved Rule does not reference the exact resolved Parent.</summary>

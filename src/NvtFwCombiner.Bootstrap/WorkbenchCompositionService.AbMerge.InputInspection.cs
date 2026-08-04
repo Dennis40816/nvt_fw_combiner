@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -29,6 +30,11 @@ public static partial class WorkbenchCompositionService
             AbMergeWorkbenchCompositionService.ResolveTopologySelection(topologyToken);
         var resolver = new AbMergeAuthoringResolver(topology);
         var service = new CompiledAuthoringWorkflowService(resolver);
+        ResolvedCapability? exactCapability = selected[0].ExactCapability;
+        if (selected.Any(input => !ReferenceEquals(input.ExactCapability, exactCapability)))
+        {
+            throw new InvalidOperationException("AB Merge inspection leases disagree on the exact compilation.");
+        }
         CompiledAuthoringInspectionBatch batch = service.InspectBatch(
                 icId,
                 authoringRevision,
@@ -37,7 +43,8 @@ public static partial class WorkbenchCompositionService
                         input.AbMergeAddressSpaceId!,
                         input.Path,
                         readFirmwareImage(input.Path))),
-                ]);
+                ],
+                exactCapability);
         Dictionary<string, AuthoringInputSlotStatus> statuses = new(StringComparer.Ordinal);
         Dictionary<string, WorkbenchAbMergeInputFacts> facts = new(StringComparer.Ordinal);
         foreach (WorkbenchFirmwareInspectionInput input in selected)

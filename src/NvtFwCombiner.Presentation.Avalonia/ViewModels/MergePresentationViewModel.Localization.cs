@@ -26,10 +26,7 @@ public sealed partial class MergePresentationViewModel
             Text.NoBinSelectedLabel);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
-            if (slot.UsesSharedSlotPresentation)
-            {
-                slot.ApplyExperienceText(Text);
-            }
+            slot.ApplyExperienceText(Text);
         }
 
         if (IsNormalMergeModeSelected)

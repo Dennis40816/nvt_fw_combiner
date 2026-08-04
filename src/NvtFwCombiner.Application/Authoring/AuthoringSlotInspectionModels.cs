@@ -15,6 +15,7 @@ public sealed class AuthoringSlotInspectionLease
         string selectedRouteId,
         string capabilityFingerprint,
         string? compilationFingerprint,
+        ResolvedCapability? exactCapability,
         ReviewedDiscoveryTransition? discoveryTransition,
         string definitionId,
         string selectedPath)
@@ -25,6 +26,7 @@ public sealed class AuthoringSlotInspectionLease
         SelectedRouteId = selectedRouteId;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = compilationFingerprint;
+        ExactCapability = exactCapability;
         DiscoveryTransition = discoveryTransition;
         DefinitionId = definitionId;
         SelectedPath = selectedPath;
@@ -46,6 +48,9 @@ public sealed class AuthoringSlotInspectionLease
 
     /// <summary>Exact compilation active when the selected-file inspection began.</summary>
     public string? CompilationFingerprint { get; }
+
+    /// <summary>Exact compilation retained when inspection cannot change its prerequisite.</summary>
+    public ResolvedCapability? ExactCapability { get; }
 
     /// <summary>Reviewed discovery-to-exact transition captured before prerequisite resolution.</summary>
     public ReviewedDiscoveryTransition? DiscoveryTransition { get; }

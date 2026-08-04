@@ -220,21 +220,21 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
 
         string outputPath = workspace.PathFor("unsupported-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
-            "General",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [WorkbenchSlotIds.ReplaceBase] = basePath,
             },
-            [],
-            [new WorkbenchGeneralReplacePatchInput(
+            GeneralTestDraftFactory.CreateReplaceDraft([
+                GeneralTestDraftFactory.ReplacePatch(
                 "dp-patch",
                 "0x3E020",
-                "0x3E021",
-                WorkbenchGeneralReplacePatchKind.Overwrite,
-                "A5 5A")],
+                "0x2",
+                GeneralMappingSourceKind.HexOverwrite,
+                "A5 5A"),
+            ]),
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);

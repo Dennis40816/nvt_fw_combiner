@@ -180,9 +180,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(["single", "cascade"], observedTopologies);
     }
 
-    /// <summary>UI projections keep one selected snapshot until explicit reselection; Build remains authoritative.</summary>
+    /// <summary>Changing CtrlRAM Number reinspects selected files and replaces stale UI projections.</summary>
     [Fact]
-    public async Task CtrlRamCachedDisplayKeepsSelectedSnapshotUntilReselection()
+    public async Task CtrlRamNumberChangeReinspectsSelectedSnapshot()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-context-external-mutation");
         string basePath = workspace.Write("base.bin", [0x01]);
@@ -209,15 +209,15 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
-        Assert.Equal(1, reads);
-        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D01-01");
+        Assert.Equal(2, reads);
+        Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
             basePath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(2, reads);
+        Assert.Equal(3, reads);
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
     }
 

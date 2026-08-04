@@ -41,6 +41,43 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         Assert.Equal(dpDisplay.CoverageSegments, unchangedDpDisplay.CoverageSegments);
     }
 
+    /// <summary>Masked routes expose one DiffDLM segment with canonical active Diff NF details.</summary>
+    [Fact]
+    public void PreserveActiveDiffNfCoverageUsesOnePrimaryDiffDlmSegment()
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            "NT51932",
+            "4",
+            WorkbenchReplaceModes.CtrlRam);
+
+        WorkbenchMemoryCoverageSegment diffDlm = Assert.Single(
+            display.CoverageSegments,
+            static segment => segment.IsDiffDlm);
+        Assert.Equal("DiffDLM", diffDlm.SourceLabel);
+        Assert.Equal("0x2D100-0x30CFF (len 0x3C00)", diffDlm.RangeLabel);
+        IReadOnlyList<Application.MemoryLayout.MemoryLayoutPreservationDetail> details =
+            Assert.IsType<IReadOnlyList<Application.MemoryLayout.MemoryLayoutPreservationDetail>>(
+                diffDlm.PreservationDetails,
+                exactMatch: false);
+        Assert.Equal(3, details.Count);
+    }
+
+    /// <summary>Full-artifact routes expose one DiffDLM segment without a kept-range disclosure.</summary>
+    [Fact]
+    public void FullArtifactReplaceCoverageHasNoPreservationPanelData()
+    {
+        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            "NT51926",
+            "2",
+            WorkbenchReplaceModes.CtrlRam);
+
+        WorkbenchMemoryCoverageSegment diffDlm = Assert.Single(
+            display.CoverageSegments,
+            static segment => segment.IsDiffDlm);
+        Assert.Equal("DiffDLM", diffDlm.SourceLabel);
+        Assert.Empty(diffDlm.PreservationDetails ?? []);
+    }
+
     /// <summary>DP Replace identifies both retained/restored base bytes without classifying replacements as base.</summary>
     [Fact]
     public void DpReplaceDistinguishesBaseFirmwareFromReplacementInputs()
@@ -66,7 +103,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         WorkbenchMemoryDisplay standard = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(
             "NT51926",
             dpInputLength: null);
-        WorkbenchMemoryDisplay customized = WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+        WorkbenchMemoryDisplay customized = GeneralTestDraftFactory.GetMergeDisplay(
             "NT51950",
             "0x100",
             []);
@@ -91,10 +128,11 @@ public sealed class WorkbenchMemoryCoverageRoleTests
                 WorkbenchReplaceModes.CtrlRam),
             WorkbenchCompositionService.GetStandardMergeMemoryDisplay("NT51926", dpInputLength: null),
             WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51929"),
-            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            GeneralTestDraftFactory.GetMergeDisplay(
                 "NT51950",
                 "0x100",
-                [new WorkbenchGeneralMergeMappingInput("map-1", "input.bin", "0x0", "0x0", "0x10")]),
+                [WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+                    "map-1", "input.bin", "0x0", "0x0", "0x10")]),
         ];
 
         Assert.All(displays, display => Assert.InRange(

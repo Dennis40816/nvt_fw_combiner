@@ -158,7 +158,8 @@ public sealed partial class RepositoryBoundaryTests
         string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
         string ctrlRamRoutes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
         string ctrlRamVersionAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2FirmwareVersionAdapter.cs");
-        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs") +
+            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs");
         string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
@@ -252,10 +253,10 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("postbuildPolicy", ctrlRamV2, StringComparison.Ordinal);
         Assert.DoesNotContain("PatchScalar", ctrlRamV2, StringComparison.Ordinal);
-        Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
-        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamRuntime, StringComparison.Ordinal);
+        Assert.Contains("CtrlRamV2RouteRegistry.TryResolve", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.Selector.Token", ctrlRamV2, StringComparison.Ordinal);
+        Assert.Contains("context.CommandPlan.TopologyCount", ctrlRamV2, StringComparison.Ordinal);
+        Assert.DoesNotContain("context.CommandPlan.Selector.ResolveTopologyCount", ctrlRamV2, StringComparison.Ordinal);
         Assert.Contains(
             "context.Selection",
             ctrlRamRuntime,
@@ -387,7 +388,7 @@ public sealed partial class RepositoryBoundaryTests
             "nt51926-ctrlram-replace-candidate",
             generalV2,
             StringComparison.Ordinal);
-        Assert.Contains("context.Selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
+        Assert.Contains("selection.Mode != IcNumberInputMode.SingleSelector", generalV2, StringComparison.Ordinal);
         Assert.Contains(
             "row.Source.Kind != GeneralMappingSourceKind.FileArtifact",
             generalV2,

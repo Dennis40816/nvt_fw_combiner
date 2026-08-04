@@ -1,12 +1,12 @@
 # General Replace Binary Patch Proposal (Historical UI Scope)
 
-- Status: General Replace core/CLI contract retained; Home Hex Editor UI scope superseded by ADR 0014.
+- Status: Historical proposal; canonical General authoring is governed by ADR 0009, and Home Hex Editor UI scope is superseded by ADR 0014.
 - Date: 2026-07-10
 - Scope: General Replace authoring only; no new firmware range, header, CRC, or postbuild fact.
 
 ## Scope note
 
-This document remains the reference for the profile-governed `WorkbenchGeneralReplacePatchInput` contract used by General Replace core/CLI callers. The Home Hex Editor is now a raw BIN utility and follows [ADR 0014](../adr/0014-raw-binary-utility-editor.md); it does not use this proposal's profile, postbuild, or report behavior.
+This document remains the historical rationale for profile-governed General Replace patch sources. Current UI, CLI, Saved Rule, readiness, display, and execution use the canonical `AuthoringMappingState` / `GeneralMappingDraftState` contract; the retired `WorkbenchGeneralReplacePatchInput` DTO is not a compatibility surface. The Home Hex Editor is now a raw BIN utility and follows [ADR 0014](../adr/0014-raw-binary-utility-editor.md); it does not use this proposal's profile, postbuild, or report behavior.
 
 The superseded Bootstrap-only General Replace viewport, base-snapshot, and editable-range projection helpers were retired after ADR 0014 because no CLI or UI product path consumed them. General Replace patch execution, immutable input handling, output alias guards, profile compilation, and postbuild behavior remain on the ordinary composition path; compiler validation, not a display projection, is the range authority.
 
@@ -38,7 +38,7 @@ Allow an advanced user to inspect a selected reference BIN, edit a profile-autho
 ## First increment
 
 - Fixed-width hex viewport with address, hexadecimal and ASCII columns.
-- Profile-authorized range selection plus checked manual start/end entry.
+- Profile-authorized range selection plus checked Start + Length entry; any inclusive end shown by a surface is derived and read-only.
 - Equal-length overwrite and explicit-byte fill commands.
 - Virtual base-plus-patch byte view with changed-cell highlighting, undo/redo, and a changed-range list.
 - Build-first validation and full-BIN export through existing General Replace execution/reporting.
@@ -59,7 +59,7 @@ True insert/delete and file-length changes are deferred. They move absolute flas
 
 ## Promotion gates
 
-- The implementation must pass the canonical local verification command, focused virtual-patch/CLI/UI/process-cancellation tests, and a review that confirms UI/CLI still route through the Bootstrap General Replace facade.
+- The implementation must pass the canonical local verification command, focused virtual-patch/CLI/UI/process-cancellation tests, and a review that confirms UI/CLI use the same canonical Application admission, exact-route readiness, compiler, and runner.
 - A firmware owner must confirm that the existing profile-approved General Replace envelopes, TP postbuild categories, and write ranges are suitable for the intended IC/mode before any new production support claim is made. This feature does not authorize a new range or postbuild rule by itself.
 - A release candidate must be committed, reviewed through a pull request, and packaged from the reviewed `main` commit. The portable ZIP must pass the closed-allowlist smoke and clean-Windows checks before a stable tag is created.
 - No private BIN, source archive, generated output, or unapproved golden fixture may enter Git or the release ZIP as part of this feature.

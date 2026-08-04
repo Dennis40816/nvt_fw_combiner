@@ -438,8 +438,6 @@ public sealed class BuiltInV2DpReplaceRoutingTests
                 ["replace-base"] = basePath,
                 ["replace-dp"] = replacementPath,
             },
-            [],
-            [],
             build: false,
             progress,
             TestContext.Current.CancellationToken);

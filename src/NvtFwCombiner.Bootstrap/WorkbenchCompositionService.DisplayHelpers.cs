@@ -173,7 +173,10 @@ internal static class WorkbenchMemoryDisplayProjection
                 300d * segment.Range.Length / capacity,
                 segment.IsChanged,
                 segment.Role,
-                segment.RegionId)),
+                segment.RegionId,
+                segment.IsDiffDlm,
+                segment.PreservationDetails,
+                segment.RegionGroup)),
         ];
     }
 

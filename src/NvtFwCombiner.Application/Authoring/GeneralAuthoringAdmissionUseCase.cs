@@ -2,23 +2,6 @@ using System.Collections.ObjectModel;
 
 namespace NvtFwCombiner.Application.Authoring;
 
-/// <summary>One opaque file-resource observation requested by General admission.</summary>
-public sealed record GeneralInputResourceObservationRequest(
-    string SlotId,
-    string ResourceReference);
-
-/// <summary>
-/// Inward port used by Application to observe whole-file lengths without taking
-/// a filesystem dependency.
-/// </summary>
-public interface IGeneralInputResourceObservationPort
-{
-    /// <summary>Tries to observe one selected resource without interpreting its contents.</summary>
-    bool TryObserveLength(
-        GeneralInputResourceObservationRequest request,
-        out long lengthBytes);
-}
-
 /// <summary>
 /// Complete typed input for one General admission resolution. Parent and Saved
 /// Rule authority are distinct and cannot be replaced by observed file facts.
@@ -71,43 +54,53 @@ public sealed record GeneralAuthoringAdmissionRequest
 
 /// <summary>
 /// Sole production use case for General occupancy/resource admission. It owns
-/// technical ceilings and asks an inward port only for observed lengths.
+/// technical ceilings and consumes only content identities accepted by inspection.
 /// </summary>
-public sealed class GeneralAuthoringAdmissionUseCase
+public static class GeneralAuthoringAdmissionUseCase
 {
-    private readonly IGeneralInputResourceObservationPort _resourceObserver;
-
-    /// <summary>Creates the use case with one host resource observer.</summary>
-    public GeneralAuthoringAdmissionUseCase(
-        IGeneralInputResourceObservationPort resourceObserver)
-    {
-        ArgumentNullException.ThrowIfNull(resourceObserver);
-        _resourceObserver = resourceObserver;
-    }
-
     /// <summary>Resolves one immutable result used unchanged by every consumer.</summary>
-    public GeneralAuthoringAdmissionResult Resolve(
+    public static GeneralAuthoringAdmissionResult Resolve(
         GeneralAuthoringAdmissionRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        List<GeneralInputResource> resources = [];
-        foreach (GeneralMappingDraftRow row in request.Draft.Rows.Where(
-                     static row =>
-                         row.Source.Kind == GeneralMappingSourceKind.FileArtifact))
-        {
-            var observation = new GeneralInputResourceObservationRequest(
-                row.MappingId,
-                row.Source.Reference);
-            if (_resourceObserver.TryObserveLength(
-                    observation,
-                    out long lengthBytes))
-            {
-                resources.Add(new GeneralInputResource(
+        GeneralInputResource[] resources =
+        [
+            .. request.Draft.Rows
+                .Where(static row => row.Source.AcceptedFileStamp is not null)
+                .Select(static row => new GeneralInputResource(
                     row.MappingId,
-                    lengthBytes));
-            }
-        }
+                    row.Source.AcceptedFileStamp!.Value.AcceptedLength)),
+        ];
 
+        return GeneralAuthoringAdmission.Evaluate(
+            request.Draft,
+            request.TargetAddressSpaceCapacities,
+            resources,
+            GeneralAuthoringTechnicalLimits.Default,
+            request.TrustedParent,
+            request.SavedRule);
+    }
+
+    /// <summary>
+    /// Resolves the same admission from bounded pre-binding lengths. This may
+    /// compile an exact inspection contract but never admits execution without
+    /// accepted content stamps.
+    /// </summary>
+    public static GeneralAuthoringAdmissionResult ResolveCandidate(
+        GeneralAuthoringAdmissionRequest request,
+        IReadOnlyDictionary<string, long> observedFileLengths)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(observedFileLengths);
+        GeneralInputResource[] resources =
+        [
+            .. request.Draft.Rows
+                .Where(static row => row.Source.Kind == GeneralMappingSourceKind.FileArtifact)
+                .Select(row => new GeneralInputResource(
+                    row.MappingId,
+                    row.Source.AcceptedFileStamp?.AcceptedLength ??
+                        observedFileLengths.GetValueOrDefault(row.MappingId))),
+        ];
         return GeneralAuthoringAdmission.Evaluate(
             request.Draft,
             request.TargetAddressSpaceCapacities,

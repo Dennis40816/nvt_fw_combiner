@@ -5,12 +5,6 @@ namespace NvtFwCombiner.Application.Authoring;
 /// <summary>Coherent immutable state consumed by UI or CLI adapters.</summary>
 public sealed class ActiveSessionSnapshot
 {
-    private readonly string[] _icChoices;
-    private readonly string[] _icCountChoices;
-    private readonly AuthoringSlotState[] _slots;
-    private readonly AuthoringDerivedPublication[] _derivedPublications;
-    private readonly AuthoringInputSlotStatus[] _inputSlotStatuses;
-
     internal ActiveSessionSnapshot(
         string workflowId,
         ResolutionToken resolutionToken,
@@ -28,6 +22,7 @@ public sealed class ActiveSessionSnapshot
         string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> derivedPublications,
         string? compilationFingerprint = null,
+        ResolvedCapability? exactCapability = null,
         IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
     {
         WorkflowId = workflowId;
@@ -36,17 +31,18 @@ public sealed class ActiveSessionSnapshot
         SelectedRouteId = selectedRouteId;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = compilationFingerprint;
+        ExactCapability = exactCapability;
         ExecutionAdmitted = executionAdmitted;
         SelectedIc = selectedIc;
         SelectedIcCount = selectedIcCount;
         SelectedMapVariant = selectedMapVariant;
-        _icChoices = [.. icChoices];
-        _icCountChoices = [.. icCountChoices];
-        _slots = [.. slots];
-        _derivedPublications = [.. derivedPublications];
-        _inputSlotStatuses = [.. inputSlotStatuses ?? []];
-        if (_inputSlotStatuses.Select(static status => status.SlotId)
-                .Distinct(StringComparer.Ordinal).Count() != _inputSlotStatuses.Length)
+        IcChoices = Array.AsReadOnly([.. icChoices]);
+        IcCountChoices = Array.AsReadOnly([.. icCountChoices]);
+        Slots = Array.AsReadOnly([.. slots]);
+        DerivedPublications = Array.AsReadOnly([.. derivedPublications]);
+        InputSlotStatuses = Array.AsReadOnly([.. inputSlotStatuses ?? []]);
+        if (InputSlotStatuses.Select(static status => status.SlotId)
+                .Distinct(StringComparer.Ordinal).Count() != InputSlotStatuses.Count)
         {
             throw new ArgumentException(
                 "Session input-slot statuses must be uniquely identified.",
@@ -55,11 +51,6 @@ public sealed class ActiveSessionSnapshot
 
         DraftState = draftState;
         DraftCapabilityFingerprint = draftCapabilityFingerprint;
-        IcChoices = Array.AsReadOnly(_icChoices);
-        IcCountChoices = Array.AsReadOnly(_icCountChoices);
-        Slots = Array.AsReadOnly(_slots);
-        DerivedPublications = Array.AsReadOnly(_derivedPublications);
-        InputSlotStatuses = Array.AsReadOnly(_inputSlotStatuses);
     }
 
     /// <summary>Mode/workflow identity for this isolated session.</summary>
@@ -79,6 +70,9 @@ public sealed class ActiveSessionSnapshot
 
     /// <summary>Exact compiled-composition identity for the active slot definitions.</summary>
     public string? CompilationFingerprint { get; }
+
+    /// <summary>The one exact immutable capability owned by this compiled session.</summary>
+    public ResolvedCapability? ExactCapability { get; }
 
     /// <summary>Whether Build may proceed after remaining readiness checks.</summary>
     public bool ExecutionAdmitted { get; }
@@ -111,4 +105,29 @@ public sealed class ActiveSessionSnapshot
 
     /// <summary>Complete per-slot readiness and terminal health for the current inspection batch.</summary>
     public IReadOnlyList<AuthoringInputSlotStatus> InputSlotStatuses { get; }
+
+    /// <summary>True when every current slot has terminal accepted health under this exact compilation.</summary>
+    public bool HasCurrentInputInspection => CompilationFingerprint is { } fingerprint &&
+        DerivedPublications.Any(publication =>
+            publication.Kind == AuthoringDerivedResultKind.Inspection &&
+            StringComparer.Ordinal.Equals(publication.CompilationFingerprint, fingerprint)) &&
+        Slots.Count > 0 && Slots.All(static slot =>
+            slot.SelectedPath is not null && slot.FileStamp is not null &&
+            slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning) &&
+        InputSlotStatuses.Count == Slots.Count && InputSlotStatuses.All(status =>
+            status.IsTerminal &&
+            StringComparer.Ordinal.Equals(status.CompilationFingerprint, fingerprint));
+
+    /// <summary>Returns the exact capability only after the requested result is current.</summary>
+    public ResolvedCapability? GetAcceptedCapability(AuthoringDerivedResultKind kind)
+    {
+        return ExactCapability is { } capability &&
+            DerivedPublications.Any(publication =>
+                publication.Kind == kind &&
+                StringComparer.Ordinal.Equals(
+                    publication.CompilationFingerprint,
+                    capability.CompiledComposition.CompilationFingerprint))
+                ? capability
+                : null;
+    }
 }

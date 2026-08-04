@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -157,8 +158,19 @@ public readonly record struct WorkbenchCmiDpCodeMetadata(
     public string? JiraBadge => JiraNumber == 0 ? null : $"AUTO_PRJ-{JiraNumber}";
 }
 
-/// <summary>Build-only TP FW version override requested for a CtrlRAM Replace output.</summary>
+/// <summary>TP FW version values requested for one CtrlRAM authoring transition.</summary>
 public sealed record WorkbenchCtrlRamFirmwareVersionEdit(byte FirmwareVersion, byte FirmwareSubVersion);
+
+/// <summary>Result of compiling and re-inspecting one typed CtrlRAM authoring transition.</summary>
+public sealed record WorkbenchCtrlRamAuthoringTransitionResult(
+    ActiveSessionSnapshot? Session,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    /// <summary>True only when the new exact compilation owns current accepted input inspection.</summary>
+    public bool Succeeded =>
+        Session?.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection) is not null &&
+        Issues.Count == 0;
+}
 
 /// <summary>
 /// A verified NVT Backup FWConfig suggestion for the shared workbench IC-number selection.
@@ -227,7 +239,9 @@ public sealed record WorkbenchFirmwareInspectionInput(
     string? AbMergeTopologyToken = null,
     string? DpReplaceAddressSpaceId = null,
     long AuthoringRevision = 1,
-    string? StandardMergeAddressSpaceId = null);
+    string? StandardMergeAddressSpaceId = null,
+    string? CtrlRamReplaceAddressSpaceId = null,
+    ResolvedCapability? ExactCapability = null);
 
 /// <summary>Canonical AB Merge authoring projection consumed by desktop and headless adapters.</summary>
 public sealed record WorkbenchAbMergeAuthoringSnapshot(
@@ -241,13 +255,13 @@ public sealed record WorkbenchStandardMergeAuthoringSnapshot(
     IReadOnlyList<InputSelectionMemberReadiness> Slots,
     IReadOnlyList<CompositionIssue> Issues);
 
-/// <summary>One coherent Standard Merge inspection batch mapped to workbench inspection ids.</summary>
-internal sealed record WorkbenchStandardMergeInspectionBatch(
+/// <summary>One coherent compiled input-inspection batch mapped to workbench inspection ids.</summary>
+internal sealed record WorkbenchCompiledAuthoringInspectionBatch(
     AuthoringCapabilityCatalogSnapshot? Catalog,
     IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
     IReadOnlyList<CompositionIssue> Issues)
 {
-    internal static WorkbenchStandardMergeInspectionBatch Empty { get; } =
+    internal static WorkbenchCompiledAuthoringInspectionBatch Empty { get; } =
         new(null, new Dictionary<string, AuthoringInputSlotStatus>(StringComparer.Ordinal), []);
 }
 
@@ -327,6 +341,36 @@ public enum WorkbenchMemoryCoverageRole
     BaseFirmware,
 }
 
+/// <summary>Typed Replace presentation group derived before the UI boundary.</summary>
+public enum WorkbenchReplaceRegionGroup
+{
+    /// <summary>Cascade-only or DiffDLM content.</summary>
+    Cascade,
+    /// <summary>Shared or unpartitioned content.</summary>
+    Common,
+    /// <summary>Master-controller content.</summary>
+    Master,
+    /// <summary>Right-slave content.</summary>
+    SlaveRight,
+    /// <summary>Left-slave content.</summary>
+    SlaveLeft,
+    /// <summary>Retained base-firmware content.</summary>
+    Base,
+    /// <summary>Content outside the reviewed grouping vocabulary.</summary>
+    Other,
+}
+
+/// <summary>Typed workflow role used to admit a Replace input to canonical inspection.</summary>
+public enum WorkbenchReplaceInputRole
+{
+    /// <summary>No fixed Replace inspection workflow is declared.</summary>
+    None,
+    /// <summary>One DP Replace input selected by the exact compiled contract.</summary>
+    Dp,
+    /// <summary>One CtrlRAM Replace input selected by the exact compiled contract.</summary>
+    CtrlRam,
+}
+
 /// <summary>One visual memory coverage segment for shell display.</summary>
 public sealed record WorkbenchMemoryCoverageSegment(
     string RangeLabel,
@@ -336,7 +380,10 @@ public sealed record WorkbenchMemoryCoverageSegment(
     double BarWidth,
     bool IsChanged,
     WorkbenchMemoryCoverageRole Role,
-    string? RegionId = null);
+    string? RegionId = null,
+    bool IsDiffDlm = false,
+    IReadOnlyList<MemoryLayoutPreservationDetail>? PreservationDetails = null,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common);
 
 /// <summary>One coherent range, row, and coverage projection from a single compiled workflow state.</summary>
 public sealed record WorkbenchMemoryDisplay(
@@ -351,7 +398,9 @@ public sealed record WorkbenchReplaceInputSlot(
     string Description,
     bool IsOptional,
     string AddressSpaceId,
-    string? RegionId);
+    string? RegionId,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common,
+    WorkbenchReplaceInputRole InputRole = WorkbenchReplaceInputRole.None);
 
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record WorkbenchCtrlRamRegion(
@@ -386,6 +435,10 @@ public sealed record WorkbenchRunResult(
     /// <summary>Shared action state retained for CLI and later Presentation consumers.</summary>
     [JsonIgnore]
     public CapabilityActionReadinessSnapshot? ActionReadiness { get; internal init; }
+
+    /// <summary>Exact immutable capability consumed by this in-memory run.</summary>
+    [JsonIgnore]
+    public ResolvedCapability? ResolvedCapability { get; internal init; }
 
     /// <summary>Whether this result owns a serialized run report.</summary>
     [JsonIgnore]
@@ -457,4 +510,7 @@ internal sealed record CoverageSegment(
     string Fill,
     bool IsChanged,
     WorkbenchMemoryCoverageRole Role,
-    string? RegionId = null);
+    string? RegionId = null,
+    bool IsDiffDlm = false,
+    IReadOnlyList<MemoryLayoutPreservationDetail>? PreservationDetails = null,
+    WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common);

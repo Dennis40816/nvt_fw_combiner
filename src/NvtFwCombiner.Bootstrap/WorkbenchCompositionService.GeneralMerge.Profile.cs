@@ -72,14 +72,6 @@ public static partial class WorkbenchCompositionService
         return $"{icId.ToLowerInvariant()}-general-merge.bin";
     }
 
-    /// <summary>Gets the legacy profile-id alias retained for persisted General Merge saved-rule compatibility.</summary>
-    public static string GetGeneralMergeWorkbenchProfileId(string icId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-
-        return $"{icId.ToLowerInvariant()}-general-merge-workbench";
-    }
-
     private static bool TryResolveGeneralMergeInitializer(
         string? outputLength,
         string? outputFillByte,
@@ -90,7 +82,17 @@ public static partial class WorkbenchCompositionService
             outputLength,
             outputFillByte).TryResolve(
                 out initializer,
-                out issue);
+            out issue);
+    }
+
+    /// <summary>Combines a resolved initializer and typed mappings without exposing Domain construction to Presentation.</summary>
+    public static GeneralMergeDraftState CreateGeneralMergeDraft(
+        WorkbenchGeneralMergeInitializer initializer,
+        GeneralMappingDraftState mappings)
+    {
+        ArgumentNullException.ThrowIfNull(initializer);
+        ArgumentNullException.ThrowIfNull(mappings);
+        return new GeneralMergeDraftState(initializer.Value, mappings);
     }
 }
 

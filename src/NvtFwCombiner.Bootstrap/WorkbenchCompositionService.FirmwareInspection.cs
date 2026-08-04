@@ -71,10 +71,12 @@ public static partial class WorkbenchCompositionService
             return image;
         }
 
-        Dictionary<string, AuthoringInputSlotStatus> dpInputStatuses =
+        WorkbenchCompiledAuthoringInspectionBatch dpInputBatch =
             InspectDpReplaceInputSlots(icId, inputs, ReadOnce);
-        WorkbenchStandardMergeInspectionBatch standardMergeInputBatch =
+        WorkbenchCompiledAuthoringInspectionBatch standardMergeInputBatch =
             InspectStandardMergeInputSlots(icId, inputs, ReadOnce);
+        WorkbenchCompiledAuthoringInspectionBatch ctrlRamInputBatch =
+            InspectCtrlRamReplaceInputSlots(icId, inputs, ReadOnce);
         WorkbenchAbMergeInspectionBatch abMergeInputBatch =
             InspectAbMergeInputSlots(icId, inputs, ReadOnce);
         List<WorkbenchFirmwareInspectionResult> results = [];
@@ -96,11 +98,12 @@ public static partial class WorkbenchCompositionService
                 };
             }
 
-            if (dpInputStatuses.TryGetValue(input.InspectionId, out AuthoringInputSlotStatus? status))
+            if (dpInputBatch.Statuses.TryGetValue(input.InspectionId, out AuthoringInputSlotStatus? status))
             {
                 inspection = inspection with
                 {
                     InputSlotStatus = status,
+                    InputSlotCatalog = dpInputBatch.Catalog,
                 };
             }
 
@@ -112,6 +115,17 @@ public static partial class WorkbenchCompositionService
                 {
                     InputSlotStatus = standardMergeStatus,
                     InputSlotCatalog = standardMergeInputBatch.Catalog,
+                };
+            }
+
+            if (ctrlRamInputBatch.Statuses.TryGetValue(
+                    input.InspectionId,
+                    out AuthoringInputSlotStatus? ctrlRamStatus))
+            {
+                inspection = inspection with
+                {
+                    InputSlotStatus = ctrlRamStatus,
+                    InputSlotCatalog = ctrlRamInputBatch.Catalog,
                 };
             }
 

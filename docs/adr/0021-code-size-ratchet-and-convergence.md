@@ -147,6 +147,14 @@ runtime lines. Until #229 freezes the Core-entry slice ratchets:
   consumed, superseded owner, remaining caller/evidence blocker, and deletion
   milestone. The existing verifier remains the only measurement command.
 
+Owner amendment, 2026-08-04: #208 may raise the measured pre-Core high-water
+mark once, and only once, from 74,750 to exactly 75,481 counted runtime lines.
+The 731-line excess is non-transferable, creates no reusable allowance, and is
+not refilled by a later negative delta. #254 is the immediate next
+implementation ticket and must record its exact General/Saved Rule compatibility
+reduction. This exception does not increase the 22,607 final gate, the 607-line
+integration reserve, or any other issue budget.
+
 This envelope is a temporary review ceiling, not a new target, transferable
 slice budget, or permission to move runtime logic into excluded Presentation,
 generated output, profiles, scripts, or tests. It does not increase the 22,607

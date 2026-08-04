@@ -128,8 +128,8 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.SelectedNumber = "2";
         OpenReplace(viewModel, "General");
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
-        mapping.StartAddress = "0x10";
-        mapping.EndAddress = "0x11";
+        mapping.TargetStartAddress = "0x10";
+        mapping.Length = "0x2";
         viewModel.SetSlotFile("replace-base", inputPath);
         viewModel.SetSlotFile(mapping.MappingId, inputPath);
 
@@ -144,8 +144,8 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.Replace.ReplaceBaseSlot.HasFile);
         Assert.All(viewModel.Replace.ReplaceSlots, static slot => Assert.False(slot.HasFile));
         Assert.False(mapping.HasFile);
-        Assert.Equal("0x10", mapping.StartAddress);
-        Assert.Equal("0x11", mapping.EndAddress);
+        Assert.Equal("0x10", mapping.TargetStartAddress);
+        Assert.Equal("0x2", mapping.Length);
         Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal("2", viewModel.WorkflowSession.SelectedNumber);
         Assert.Equal("General", viewModel.Replace.SelectedReplaceMode);

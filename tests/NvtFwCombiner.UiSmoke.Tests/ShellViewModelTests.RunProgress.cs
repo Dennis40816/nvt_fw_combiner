@@ -1,6 +1,8 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -328,6 +330,41 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-progress-observer-fault");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
+        AuthoringMappingState mapping = WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+            "map-1",
+            sourcePath,
+            "0x0",
+            "0x4",
+            "0x4");
+        Assert.True(WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+            [mapping],
+            out GeneralMappingDraftState? mappingsDraft,
+            out _));
+        Assert.True(WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+            "0x10",
+            outputFillByte: null,
+            out WorkbenchGeneralMergeInitializer? initializer));
+        GeneralMergeDraftState draft = WorkbenchCompositionService.CreateGeneralMergeDraft(
+            initializer!,
+            mappingsDraft!);
+        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+            ExperienceIds.GeneralMerge);
+        AuthoringSlotInspectionStartResult started =
+            WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+                session, "NT51926", draft, "map-1", observedLength: 4);
+        GeneralSelectedFileInspectionResult inspection =
+            await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                "map-1",
+                sourcePath,
+                started.Snapshot!.AuthoringRevision,
+                expectedLength: 4,
+                TestContext.Current.CancellationToken);
+        Assert.True(session.TryAcceptSlotFileInspection(
+            started.Lease!, inspection.Inspection!).Succeeded);
+        draft = Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot!.DraftState);
+        Assert.NotNull(WorkbenchCompositionService.GetGeneralMergeActionReadiness(
+            session, "NT51926", draft));
+        ActiveSessionSnapshot acceptedSession = session.CurrentSnapshot!;
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
         {
@@ -343,10 +380,9 @@ public sealed partial class ShellViewModelTests
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 viewModel.RunSession.RunCompositionAsync(
                     build: false,
-                    (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeWithProgressAsync(
+                    (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
                         "NT51926",
-                        "0x10",
-                        [new WorkbenchGeneralMergeMappingInput("map-1", sourcePath, "0x0", "0x4", "0x4")],
+                        acceptedSession,
                         build: false,
                         progress,
                         cancellationToken),
@@ -385,6 +421,14 @@ public sealed partial class ShellViewModelTests
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
         Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
         Assert.False(viewModel.RunSession.IsRunInProgress);
+
+        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
+        Assert.Equal("NT51927", viewModel.Reports.LoadedReport.IcId);
+        using var currentReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
+        JsonElement currentOperation = Assert.Single(
+            currentReport.RootElement.GetProperty("Operations").EnumerateArray());
+        Assert.Equal(8, currentOperation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
     }
 
     /// <summary>The global progress surface names the active Preview or Build in the selected language.</summary>

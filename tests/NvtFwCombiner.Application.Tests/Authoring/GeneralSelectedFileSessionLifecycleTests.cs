@@ -613,7 +613,8 @@ public sealed class GeneralSelectedFileSessionLifecycleTests
             "general-fingerprint",
             executionAdmitted: true,
             definitions.Select(static definitionId =>
-                new AuthoringSlotDefinitionReference(definitionId)));
+                new AuthoringSlotDefinitionReference(definitionId)),
+            new string('1', 64));
         AuthoringSessionTransitionResult result = session.Activate(
             new AuthoringCapabilityCatalogSnapshot(
                 session.WorkflowId,

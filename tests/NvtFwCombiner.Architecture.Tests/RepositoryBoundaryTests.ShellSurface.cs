@@ -152,7 +152,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.RangeLabel}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("Text=\"{ReflectionBinding $parent[Window].DataContext.Text.ResultLabel}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("DataTemplate x:Key=\"FirmwareSlotFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("DataTemplate x:Key=\"FirmwareSlotInformationFactTemplate\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:FirmwareSlotCard", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("<views:FirmwareSlotCard", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("SlotDrop_OnDrop", shell, StringComparison.Ordinal);

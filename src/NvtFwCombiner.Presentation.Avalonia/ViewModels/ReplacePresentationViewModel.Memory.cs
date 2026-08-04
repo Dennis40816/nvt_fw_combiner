@@ -32,7 +32,8 @@ public sealed partial class ReplacePresentationViewModel
         }
 
         foreach (FirmwareSlotGroupViewModel group in ReplaceRegionGroupBuilder.CreateSlotGroups(
-            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))))
+            ReplaceSlots.Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot)),
+            Text))
         {
             ReplaceSlotGroups.Add(group);
         }
@@ -47,7 +48,8 @@ public sealed partial class ReplacePresentationViewModel
         }
 
         foreach (MemoryCoverageGroupViewModel group in ReplaceRegionGroupBuilder.CreateCoverageGroups(
-            ReplaceCoverageSegments))
+            ReplaceCoverageSegments,
+            Text))
         {
             ReplaceCoverageGroups.Add(group);
         }
@@ -79,7 +81,8 @@ public sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
             UiCompositionRunner.GetReplaceMemoryDisplay(
                 display.MemoryDisplay,
-                GetSelectedReplaceRegionIds());
+                GetSelectedReplaceRegionIds(),
+                Text);
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
     }
 
@@ -102,6 +105,43 @@ public sealed partial class ReplacePresentationViewModel
             return;
         }
 
+        if (IsGeneralReplaceModeSelected)
+        {
+            RefreshGeneralReplaceAuthoringState();
+            if (_generalReplaceAdmission is not null &&
+                _stateBindings.GetInspectedFileLength(ReplaceBaseSlot) is long capacity &&
+                capacity > 0)
+            {
+                (
+                    string rangeLabel,
+                    IReadOnlyList<MemoryMapRowViewModel> rows,
+                    IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
+                    UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
+                        capacity,
+                        _generalReplaceAdmission);
+                ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+                OnPropertyChanged(nameof(ReplaceOutputFileName));
+                return;
+            }
+
+            if (_generalReplaceDraft is null &&
+                _generalReplaceAuthoringStates.Count > 0 &&
+                _stateBindings.GetInspectedFileLength(ReplaceBaseSlot) is long invalidDraftCapacity &&
+                invalidDraftCapacity > 0)
+            {
+                (
+                    string rangeLabel,
+                    IReadOnlyList<MemoryMapRowViewModel> rows,
+                    IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
+                    UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
+                        invalidDraftCapacity,
+                        _generalReplaceAuthoringStates);
+                ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
+                OnPropertyChanged(nameof(ReplaceOutputFileName));
+                return;
+            }
+        }
+
         (
             string replaceRangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
@@ -110,7 +150,8 @@ public sealed partial class ReplacePresentationViewModel
             SelectedNumber,
             SelectedReplaceMode,
             GetSelectedReplaceBaseLength(),
-            GetSelectedReplaceRegionIds());
+            GetSelectedReplaceRegionIds(),
+            Text);
         ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
 
         OnPropertyChanged(nameof(ReplaceOutputFileName));
@@ -155,9 +196,6 @@ public sealed partial class ReplacePresentationViewModel
                 .Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath, StringComparer.Ordinal)
             : new Dictionary<string, string?>(StringComparer.Ordinal);
-        bool usesSharedSlotPresentation =
-            IsSelectedReplaceModeSupported && SelectedReplaceMode == DpReplaceMode;
-        ReplaceBaseSlot.UsesSharedSlotPresentation = usesSharedSlotPresentation;
         ReplaceSlots.Clear();
         if (IsSelectedReplaceModeSupported &&
             SelectedReplaceMode is DpReplaceMode or CtrlRamReplaceMode)
@@ -172,7 +210,6 @@ public sealed partial class ReplacePresentationViewModel
                         SelectedReplaceMode);
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
-                slot.UsesSharedSlotPresentation = usesSharedSlotPresentation;
                 RestorePreservedSlotFile(slot, preservedSlotFiles);
                 ReplaceSlots.Add(slot);
             }

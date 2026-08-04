@@ -27,6 +27,25 @@ public sealed class LegacyCombinerDiffDlmPolicyTests
         }
     }
 
+    /// <summary>Memory disclosure consumes the same active-record and mask geometry as execution.</summary>
+    [Fact]
+    public void ProjectsCanonicalActiveDiffNfPreservationDetails()
+    {
+        LegacyCombinerDiffDlmPolicy policy = CreatePolicy();
+
+        IReadOnlyList<Application.MemoryLayout.MemoryLayoutPreservationDetail> details =
+            policy.GetPreservationDetails(icCount: 4);
+
+        Assert.Equal(new ByteRange(0x2D100, 0x3C00), policy.GetActiveTargetRange(4));
+        Assert.Equal(3, details.Count);
+        Assert.Equal(0, details[0].BlockIndex);
+        Assert.Equal(new ByteRange(0x0B90, 0x0870), details[0].ArtifactRelativeRange);
+        Assert.Equal(new ByteRange(0x2DC90, 0x0870), details[0].ResolvedRange);
+        Assert.Equal(2, details[2].BlockIndex);
+        Assert.Equal(new ByteRange(0x3390, 0x0870), details[2].ArtifactRelativeRange);
+        Assert.Equal(new ByteRange(0x30490, 0x0870), details[2].ResolvedRange);
+    }
+
     /// <summary>One full-record contract cannot silently use different source and target strides.</summary>
     [Fact]
     public void RejectsDifferentSourceAndTargetRecordStrides()

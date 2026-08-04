@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -13,15 +14,16 @@ public static partial class WorkbenchCompositionService
         long Generation,
         Func<long, bool> GenerationIsCurrent);
 
-    private sealed record GeneralReplacePostbuildReadinessResult(
+    private static async ValueTask<(
         CapabilityActionReadinessSnapshot Readiness,
-        string? RequiredStageId);
-
-    private static async ValueTask<GeneralReplacePostbuildReadinessResult>
+        string? RequiredStageId)>
         ResolveGeneralReplacePostbuildReadinessAsync(
             GeneralAuthoringAdmissionResult admission,
             SavedRuleV2GeneralReplaceRuntimeAuthority authority,
             ResolvedCapability resolvedCapability,
+            AuthoringRevision authoringRevision,
+            bool requiresPostbuild,
+            CompositionIssue? planningIssue,
             GeneralReplacePostbuildReadinessOverride? runtimeOverride,
             CancellationToken cancellationToken)
     {
@@ -30,25 +32,26 @@ public static partial class WorkbenchCompositionService
         ArgumentNullException.ThrowIfNull(resolvedCapability);
 
         SavedRuleV2ParentBinding parent = authority.ParentBinding;
-        bool hasStageAuthority = authority.ProcessorStageIds.Count != 0;
-        CapabilityActionBlocker? executionBlocker = hasStageAuthority
+        bool hasStageAuthority = !requiresPostbuild || authority.ProcessorStageIds.Count != 0;
+        CapabilityActionBlocker? executionBlocker = planningIssue is null && hasStageAuthority
             ? null
             : new CapabilityActionBlocker(
                 CapabilityActionReadinessIssueCodes
                     .PostbuildStageAuthorityMissing,
                 CapabilityReadinessDimension.Execution,
-                parent.ProfileId,
-                "Selected General Replace targets require POSTBUILD, but the exact Parent does not declare the required stage.",
+                planningIssue?.OperationId ?? parent.ProfileId,
+                planningIssue?.Message ??
+                    "Selected General Replace targets require POSTBUILD, but the exact Parent does not declare the required stage.",
                 CapabilityReadinessNextAction.ReviewCompilation);
         var capability = new CapabilityAdmissionSnapshot(
             resolvedCapability.Identity.RouteId,
             resolvedCapability.CapabilityFingerprint,
             resolvedCapability.CompiledComposition.CompilationFingerprint,
             resolvedCapability.ResolutionToken,
-            new AuthoringRevision(1),
+            authoringRevision,
             resolvedCapability.Authoring.Value,
             executionAdmitted:
-                resolvedCapability.ExecutionAdmitted && hasStageAuthority,
+                resolvedCapability.ExecutionAdmitted && executionBlocker is null,
             resolvedCapability.Evidence.Value,
             resolvedCapability.Publication.Value,
             executionBlocker);
@@ -62,10 +65,10 @@ public static partial class WorkbenchCompositionService
                     input.SlotId,
                     ResolvedChildReadiness.Ready)),
         ];
-        string? requiredStageId = hasStageAuthority
+        string? requiredStageId = requiresPostbuild && executionBlocker is null
             ? string.Join(">", authority.ProcessorStageIds)
             : null;
-        if (!hasStageAuthority)
+        if (!requiresPostbuild || executionBlocker is not null)
         {
             var runtime = new RuntimeDependencyReadinessSnapshot(
                 capability.RouteId,
@@ -76,7 +79,7 @@ public static partial class WorkbenchCompositionService
                 generation: 1,
                 DateTimeOffset.UnixEpoch,
                 []);
-            return new GeneralReplacePostbuildReadinessResult(
+            return (
                 CapabilityActionReadinessResolver.Resolve(
                     capability,
                     inputs,
@@ -110,8 +113,6 @@ public static partial class WorkbenchCompositionService
                 generation,
                 generationIsCurrent,
                 cancellationToken).ConfigureAwait(false);
-        return new GeneralReplacePostbuildReadinessResult(
-            readiness,
-            requiredStageId);
+        return (readiness, requiredStageId);
     }
 }

@@ -13,7 +13,8 @@ public static partial class WorkbenchCompositionService
         string? topologyToken,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        AuthoringRevision authoringRevision)
+        AuthoringRevision authoringRevision,
+        ActiveSessionSnapshot? retainedSession = null)
     {
         CompiledAuthoringSelectionSnapshot snapshot = CreateAbMergeAuthoringService(
                 AbMergeWorkbenchCompositionService.ResolveTopologySelection(topologyToken))
@@ -21,7 +22,8 @@ public static partial class WorkbenchCompositionService
                 icId,
                 authoringRevision,
                 selectedSlotIds,
-                acceptedFileStamps);
+                acceptedFileStamps,
+                retainedSession);
         return new WorkbenchAbMergeAuthoringSnapshot(
             snapshot.Catalog,
             snapshot.Slots,

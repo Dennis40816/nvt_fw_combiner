@@ -23,11 +23,11 @@ public sealed class GeneralSelectedFileContentTests
     }
 
     /// <summary>
-    /// One accepted inspection is shared by the draft and its result; explicit
-    /// reload advances revision without reapplying materialized full-file length.
+    /// Explicit rebind accepts a fresh content identity without reapplying
+    /// materialized full-file length.
     /// </summary>
     [Fact]
-    public async Task InspectionAndReloadShareOneImmutableResultAndPreserveEditableLength()
+    public async Task InspectionAndRebindPreserveEditableLength()
     {
         var firstStamp = FileStamp.FromBytes([1, 2, 3, 4]);
         var secondStamp = FileStamp.FromBytes([5, 6, 7, 8, 9, 10]);
@@ -58,12 +58,8 @@ public sealed class GeneralSelectedFileContentTests
 
         Assert.True(accepted.Succeeded);
         Assert.Equal(1, inspector.CallCount);
-        GeneralSelectedFileInspection inspection = Assert.Single(accepted.Inspections);
         GeneralMappingDraftRow acceptedRow = Assert.Single(accepted.Draft!.Rows);
-        Assert.Equal(firstStamp, inspection.FileStamp);
         Assert.Equal(firstStamp, acceptedRow.Source.AcceptedFileStamp);
-        Assert.Equal(new AuthoringRevision(4), inspection.AuthoringRevision);
-        Assert.Equal("source.bin", inspection.DisplayNameHint);
 
         GeneralMappingDraftState materialized =
             accepted.Draft.MaterializeFullFileLength("mapping-1");
@@ -71,16 +67,16 @@ public sealed class GeneralSelectedFileContentTests
         Assert.Equal(4, materializedRow.SourceRange.Length);
         Assert.Equal(4, materializedRow.TargetRange.Length);
 
+        GeneralMappingDraftState rebound = new(materialized.Rows.Select(row =>
+            row.RebindSelectedFile(row.Source.Reference)));
         GeneralSelectedFileDraftInspectionResult reloaded =
-            await service.ReloadAsync(
-                materialized,
-                "mapping-1",
-                accepted.AuthoringRevision,
+            await service.AcceptDraftAsync(
+                rebound,
+                new AuthoringRevision(5),
                 CancellationToken.None);
 
         Assert.True(reloaded.Succeeded);
         Assert.Equal(2, inspector.CallCount);
-        Assert.Equal(new AuthoringRevision(5), reloaded.AuthoringRevision);
         GeneralMappingDraftRow reloadedRow = Assert.Single(reloaded.Draft!.Rows);
         Assert.Equal(secondStamp, reloadedRow.Source.AcceptedFileStamp);
         Assert.Equal(4, reloadedRow.SourceRange.Length);
@@ -111,7 +107,6 @@ public sealed class GeneralSelectedFileContentTests
 
         Assert.False(result.Succeeded);
         Assert.Null(result.Draft);
-        Assert.Empty(result.Inspections);
         GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(
             GeneralSelectedFileInspectionIssueCodes.InspectionFailed,
@@ -149,43 +144,9 @@ public sealed class GeneralSelectedFileContentTests
         Assert.Contains("maximum 4", issue.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>An explicit reload cannot silently bind a missing or non-file definition.</summary>
+    /// <summary>A failed explicit rebind cannot publish a replacement draft.</summary>
     [Fact]
-    public async Task ReloadUnavailableDefinitionAdvancesRevisionWithoutInspecting()
-    {
-        var inspector = new FakeSelectedFileContentInspector();
-        var service = new GeneralSelectedFileInspectionService(inspector);
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
-                "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 4),
-        ]);
-
-        GeneralSelectedFileDraftInspectionResult result =
-            await service.ReloadAsync(
-                draft,
-                "missing-mapping",
-                new AuthoringRevision(9),
-                CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(new AuthoringRevision(10), result.AuthoringRevision);
-        Assert.Null(result.Draft);
-        Assert.Empty(result.Inspections);
-        GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal(
-            GeneralSelectedFileInspectionIssueCodes.DefinitionUnavailable,
-            issue.Code);
-        Assert.Equal("missing-mapping", issue.DefinitionId);
-        Assert.Equal(0, inspector.CallCount);
-    }
-
-    /// <summary>A failed explicit reload advances revision but cannot publish a replacement draft.</summary>
-    [Fact]
-    public async Task ReloadInspectionFailureDoesNotPublishDraft()
+    public async Task RebindInspectionFailureDoesNotPublishDraft()
     {
         var service = new GeneralSelectedFileInspectionService(
             new ThrowingSelectedFileContentInspector(
@@ -199,17 +160,16 @@ public sealed class GeneralSelectedFileContentTests
                 length: 4),
         ]);
 
+        GeneralMappingDraftState rebound = new(draft.Rows.Select(row =>
+            row.RebindSelectedFile(row.Source.Reference)));
         GeneralSelectedFileDraftInspectionResult result =
-            await service.ReloadAsync(
-                draft,
-                "mapping-1",
-                new AuthoringRevision(11),
+            await service.AcceptDraftAsync(
+                rebound,
+                new AuthoringRevision(12),
                 CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Equal(new AuthoringRevision(12), result.AuthoringRevision);
         Assert.Null(result.Draft);
-        Assert.Empty(result.Inspections);
         GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
         Assert.Equal(
             GeneralSelectedFileInspectionIssueCodes.InspectionFailed,
@@ -323,6 +283,14 @@ public sealed class GeneralSelectedFileContentTests
 
         internal int CallCount { get; private set; }
 
+        public ValueTask<long> ObserveLengthAsync(
+            string selectedPath,
+            long maximumBytes,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromResult(_results.Peek().FileStamp.AcceptedLength);
+        }
+
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,
@@ -339,6 +307,14 @@ public sealed class GeneralSelectedFileContentTests
     private sealed class ThrowingSelectedFileContentInspector(Exception exception)
         : ISelectedFileContentInspector
     {
+        public ValueTask<long> ObserveLengthAsync(
+            string selectedPath,
+            long maximumBytes,
+            CancellationToken cancellationToken)
+        {
+            return ValueTask.FromException<long>(exception);
+        }
+
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,

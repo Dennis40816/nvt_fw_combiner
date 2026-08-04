@@ -98,6 +98,19 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
     }
 
+    private static string ReadBootstrapTestSources()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.Bootstrap.Tests");
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
     private static string ReadProfileSources()
     {
         string directory = Path.Combine(

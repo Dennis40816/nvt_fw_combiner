@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
@@ -21,6 +22,8 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             progress: null,
+            acceptedCapability: null,
+            acceptedSession: null,
             cancellationToken);
     }
 
@@ -40,6 +43,30 @@ public static partial class WorkbenchCompositionService
             build,
             outputPath,
             progress,
+            acceptedCapability: null,
+            acceptedSession: null,
+            cancellationToken);
+    }
+
+    /// <summary>Runs Standard Merge from one exact accepted desktop session.</summary>
+    public static ValueTask<WorkbenchRunResult> RunStandardMergeAcceptedSessionWithProgressAsync(
+        string icId,
+        IReadOnlyDictionary<string, string> slotPaths,
+        ActiveSessionSnapshot acceptedSession,
+        bool build,
+        CompositionRunProgressFeed progress,
+        CancellationToken cancellationToken,
+        string? outputPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        return RunStandardMergeCoreAsync(
+            icId, slotPaths, build, outputPath, progress,
+            RequireAcceptedCapability(
+                acceptedSession,
+                Profiles.IcWorkflowIds.StandardMerge,
+                icId,
+                AuthoringDerivedResultKind.Inspection),
+            acceptedSession,
             cancellationToken);
     }
 
@@ -49,6 +76,8 @@ public static partial class WorkbenchCompositionService
         bool build,
         string? outputPath,
         CompositionRunProgressFeed? progress,
+        ResolvedCapability? acceptedCapability,
+        ActiveSessionSnapshot? acceptedSession,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
@@ -59,36 +88,47 @@ public static partial class WorkbenchCompositionService
             throw new InvalidOperationException($"Standard Merge is not available for '{icId}'.");
         }
 
-        if (!TryGetStandardMergeDpInputLength(icId, slotPaths, out long? dpInputLength, out CompositionIssue? inputIssue))
+        ResolvedCapability? resolvedCapability = acceptedCapability;
+        CompiledComposition? compiledComposition = acceptedCapability?.CompiledComposition;
+        if (resolvedCapability is null)
         {
-            throw new InvalidOperationException(FormatIssues([inputIssue]));
-        }
-
-        if (!TryCompileStandardMerge(
-                icId,
-                dpInputLength,
+            if (!TryGetStandardMergeDpInputLength(
+                    icId, slotPaths, out long? dpInputLength, out CompositionIssue? inputIssue))
+            {
+                throw new InvalidOperationException(FormatIssues([inputIssue]));
+            }
+            if (!TryCompileStandardMerge(
+                    icId,
+                    dpInputLength,
                 [
                     .. slotPaths
                         .Where(static pair => !string.IsNullOrWhiteSpace(pair.Value))
                         .Select(static pair => pair.Key),
                 ],
-                out CompiledComposition? compiledComposition,
-                out ResolvedCapability? resolvedCapability,
+                out compiledComposition,
+                out resolvedCapability,
                 out IReadOnlyList<CompositionIssue> issues))
-        {
-            throw new InvalidOperationException(FormatIssues(issues));
+            {
+                throw new InvalidOperationException(FormatIssues(issues));
+            }
         }
 
-        CompositionPlan plan = compiledComposition.Plan;
+        CompositionPlan plan = compiledComposition!.Plan;
         InputArtifactBinding[] bindings = [
             .. plan.RequiredInputAddressSpaceIds
                 .Order(StringComparer.Ordinal)
                 .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
                     !string.IsNullOrWhiteSpace(path)
-                        ? CompiledCompositionInputBindingFactory.Create(
-                            compiledComposition,
-                            addressSpaceId,
-                            Path.GetFullPath(path))
+                        ? acceptedSession is null
+                            ? CompiledCompositionInputBindingFactory.Create(
+                                compiledComposition,
+                                addressSpaceId,
+                                Path.GetFullPath(path))
+                            : CreateAcceptedSessionBinding(
+                                compiledComposition,
+                                addressSpaceId,
+                                path,
+                                acceptedSession)
                         : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
         ];
 
