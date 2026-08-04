@@ -602,7 +602,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"input.artifact.", bootstrapWithoutIssueCodes, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies saved-rule validation codes stay centralized as a Bootstrap CLI contract.</summary>
+    /// <summary>Verifies v2 saved-rule validation codes stay centralized without restoring v1 codes.</summary>
     [Fact]
     public void BootstrapOwnsSavedRuleIssueCodes()
     {
@@ -610,15 +610,20 @@ public sealed partial class RepositoryBoundaryTests
         string issueCodes = ReadText("src/NvtFwCombiner.Bootstrap/SavedRuleIssueCodes.cs");
         string bootstrapWithoutIssueCodes = bootstrapSource.Replace(issueCodes, string.Empty, StringComparison.Ordinal);
 
-        Assert.Contains("public const string PropertyUnknown = \"saved-rule.property.unknown\"", issueCodes, StringComparison.Ordinal);
         Assert.Contains(
-            "public const string ProcessorDependencyUnsupported = \"saved-rule.processor-dependency.unsupported\"",
+            "public const string SchemaVersionUnsupported =",
             issueCodes,
             StringComparison.Ordinal);
         Assert.Contains(
-            "public const string OperationFragmentProcessorDependencyUnsupported = \"saved-rule.operation-fragment.processor-dependency.unsupported\"",
+            "public const string V2ContractInvalid = \"saved-rule.v2.contract-invalid\"",
             issueCodes,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "public const string ProcessorDependencyUnsupported =",
+            issueCodes,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PropertyUnknown", issueCodes, StringComparison.Ordinal);
+        Assert.DoesNotContain("OperationFragmentProcessorDependencyUnsupported", issueCodes, StringComparison.Ordinal);
         Assert.DoesNotContain("\"saved-rule.", bootstrapWithoutIssueCodes, StringComparison.Ordinal);
     }
 

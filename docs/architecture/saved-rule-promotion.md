@@ -196,30 +196,24 @@ The rule is available only when its compatibility envelope matches the current I
 The accepted target contract is
 [`saved-composition-rule-v2`](../contracts/saved-composition-rule-v2.md). General Merge normal
 `--rule` execution consumes the v2 initializer and mapping fragments as one closed draft. The
-standalone `saved-rule validate` and `saved-rule mappings` commands retain their v1 compatibility
-boundary until their complete v2 inspection replacement lands. V2 execution does not enable UI
-authoring or promote an existing rule.
+standalone `saved-rule validate` and `saved-rule mappings` commands now inspect
+only the complete v2 contract. V2 execution does not enable UI authoring or
+promote an existing rule.
 
-V1 is read-only compatibility/import authority. No new v1 feature, authoring
-flow, or emitted rule is added. Its execution/runtime path may be deleted only
-after v2 provides:
-
-1. General Merge output-initializer schema, loader/compiler round trip, and
-   deterministic execution;
-2. General Replace exact-Trusted-Parent authority, parent-owned conditional
-   POSTBUILD behavior, negative tests, and required golden/owner evidence;
-3. parity for typed draft, compiled operations, report provenance, and output
-   bytes across every production consumer; and
-4. an explicit migration outcome for retained v1 documents.
-
-Any temporary v1-to-canonical adapter has one declared purpose, an enumerated
-caller set, and executable deletion gates. It translates legacy range syntax
-only at the outer import boundary and cannot introduce another executor or
-firmware-semantic model.
+Issue #254 retires Saved Rule v1 from production after the v2 initializer,
+General Replace Trusted Parent route, typed draft/operation/report provenance,
+and explicit version disposition were completed. V1 remains historical schema
+evidence only. There is no runtime v1 parser, import/migration adapter, draft
+projection, execution path, or emission path. A v1 document is rejected with
+`saved-rule.schema-version.unsupported`; migration is an explicit
+owner-reviewed rewrite to v2 and cannot infer Parent identity, slot policy, or
+resource limits from observed bytes.
 
 Implemented:
 
-- `saved-rule validate <rule.json>` parses the strict saved-rule shape and rejects unknown fields, duplicate ids, invalid ranges, invalid compatibility, command/script hooks, and unsafe row shapes.
+- `saved-rule validate <rule.json>` parses the strict v2 saved-rule shape and
+  rejects v1/unknown schema versions, unknown fields, duplicate ids, invalid
+  ranges, invalid compatibility, command/script hooks, and unsafe row shapes.
 - Normal General Merge v2 execution first evaluates the complete canonical
   `saved-composition-rule-v2.schema.json` contract, including every governance
   field and closed nested object, then checks exact trusted-parent promotion,

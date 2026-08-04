@@ -155,6 +155,16 @@ implementation ticket and must record its exact General/Saved Rule compatibility
 reduction. This exception does not increase the 22,607 final gate, the 607-line
 integration reserve, or any other issue budget.
 
+Verifier evidence for #254 records a pre-existing measurement mismatch rather
+than silently changing that owner amendment. The exact reviewed #208 merge
+checkpoint `604199ab4a6bdb2f2da3f976851ce1c00b467bc8` (tree
+`35d83c477fff39f0fc11404f5dbcee7f007a3f4d`) measured 76,633 runtime nonblank
+lines with the canonical verifier, while the amendment expected 75,481. The
+#254 candidate measures 75,278, an exact reduction of 1,355 lines from that
+observed merge tree. The 1,152-line baseline discrepancy creates no allowance,
+does not alter the 75,481 authority, and must be reconciled before any later
+pre-Core positive growth is accepted.
+
 This envelope is a temporary review ceiling, not a new target, transferable
 slice budget, or permission to move runtime logic into excluded Presentation,
 generated output, profiles, scripts, or tests. It does not increase the 22,607

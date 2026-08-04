@@ -61,8 +61,8 @@ Parent whose scalar limits equal the Application technical ceilings and whose
 named file slots are the exact typed-draft slot ids with a profile-confirmed
 `1..Int32.MaxValue` interval. This bridge never derives authority from an
 observed file length. Saved Rule v1 likewise has no `accessEnvelope`; its
-closed reviewed rows provide an exact compatibility narrowing for mapping
-count and total authored bytes.
+closed reviewed rows provided an exact compatibility narrowing for mapping
+count and total authored bytes before the #254 retirement.
 
 ## Alternatives rejected
 
@@ -89,12 +89,17 @@ count and total authored bytes.
 
 ## Compatibility deletion
 
-- Delete `CreateCurrentGeneralTrustedParentPolicy` when the composition-profile
+- `CreateCurrentGeneralTrustedParentPolicy` remains until the composition-profile
   schema declares a resource envelope and trusted-bundle projection supplies
   its exact typed Parent policy to the Application use case.
-- Delete the Saved Rule v1 exact-row compatibility projection when Saved Rule
-  v2 `accessEnvelope` is the normal consumed policy. Migration must preserve
-  fail-closed Parent-slot matching and cannot infer limits from input bytes.
+- Issue #254 deletes the Saved Rule v1 parser, exact-row projection, draft
+  adapter, and standalone inspection path. Production accepts Saved Rule v2
+  only and rejects v1 with `saved-rule.schema-version.unsupported`; there is no
+  runtime migration or v1 emission path. The historical v1 schema remains
+  evidence and cannot authorize inferred limits or Parent-slot matching.
+- Issue #254 also deletes the zero-caller timestamp file-stamp compatibility
+  adapter and obsolete General Merge fill-byte issue alias. The immutable
+  content snapshot implementation remains the sole active file-stamp owner.
 - Delete the remaining General-specific translation from compiler
   operation-overlap diagnostics and any duplicate Bootstrap/CLI resource
   checks only after General Merge, General Replace, Saved Rule,

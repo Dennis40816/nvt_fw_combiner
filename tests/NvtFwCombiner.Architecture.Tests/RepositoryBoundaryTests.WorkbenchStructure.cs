@@ -103,6 +103,36 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("TargetEndInclusive", applicationDraft, StringComparison.Ordinal);
     }
 
+    /// <summary>Saved Rule v1 remains historical contract evidence and cannot regain a production parser or projection.</summary>
+    [Fact]
+    public void GeneralSavedRulesExposeOnlyTheV2RuntimeContract()
+    {
+        string bootstrap = ReadBootstrapSources();
+
+        Assert.DoesNotContain("SavedCompositionRuleLoader", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedRuleGeneralMappingDraftAdapter", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedCompositionRule(", bootstrap, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "SavedCompositionRule.cs")));
+        Assert.DoesNotContain("GeneralMergeFillByteInvalid", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Saved rule schemaVersion must be '1.0'",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Saved Rule v1 is retired; migrate the document to Saved Rule v2",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "LegacyTimestampFileStampCompatibilityAdapter",
+            ReadText(
+                "src/NvtFwCombiner.Infrastructure/Files/FileContentSnapshotInspector.cs"),
+            StringComparison.Ordinal);
+    }
+
     /// <summary>General authoring has one Application admission snapshot from observation through compilation and report.</summary>
     [Fact]
     public void GeneralAuthoringAdmissionStaysApplicationOwnedAndFailClosed()
@@ -185,15 +215,16 @@ public sealed partial class RepositoryBoundaryTests
         string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
         string authoring = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMappingDraft.cs");
         string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
-        string savedRuleRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
+        string savedRuleV2 = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
 
         Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
         Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", authoring, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleRows, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleV2, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", authoring, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", savedRuleV2, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the Workbench partials stay split into catalog, Standard Merge, and shared adapter helpers.</summary>

@@ -5,6 +5,17 @@ The executable schema is
 reviewed, constrained overlay on one trusted General Merge or General Replace profile. It is not an
 alternate executor or script format.
 
+## Runtime version policy
+
+Production validation, inspection, and execution accept only
+`schemaVersion = 2.0`. Saved Rule v1 remains historical contract evidence, but
+has no production parser, projection, import, migration, or emission path.
+`saved-rule validate` and `saved-rule mappings` reject a v1 document with
+`saved-rule.schema-version.unsupported` and direct the operator to migrate the
+document to v2 before validation or execution. Migration is an external,
+owner-reviewed document change; the runtime never guesses a v2 Parent binding
+or access envelope from v1 content.
+
 ## Exact parent binding
 
 Every rule binds the exact parent bundle, profile, and firmware-family ids, versions, and SHA-256
