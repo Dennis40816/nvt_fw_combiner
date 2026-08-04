@@ -6,31 +6,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class SavedRuleCliCommandHandler
 {
-    private static bool HasV2SchemaVersion(string path)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(
-                File.ReadAllText(Path.GetFullPath(path)));
-            return document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty(
-                    "schemaVersion",
-                    out JsonElement schemaVersion) &&
-                schemaVersion.ValueKind == JsonValueKind.String &&
-                StringComparer.Ordinal.Equals(
-                    schemaVersion.GetString(),
-                    "2.0");
-        }
-        catch (Exception exception) when (
-            exception is IOException or
-            UnauthorizedAccessException or
-            JsonException or
-            ArgumentException)
-        {
-            return false;
-        }
-    }
-
     private static async Task<int> RunV2Async(
         string action,
         string path,
@@ -40,9 +15,23 @@ internal static partial class SavedRuleCliCommandHandler
         SavedRuleV2Inspection? inspection;
         try
         {
-            using var document = JsonDocument.Parse(
-                File.ReadAllText(Path.GetFullPath(path)));
+            string fullPath = Path.GetFullPath(path);
+            if (!File.Exists(fullPath))
+            {
+                return await FailDocumentAsync(
+                    SavedRuleIssueCodes.FileNotFound,
+                    $"Saved Rule v2 JSON was not found: {fullPath}",
+                    error).ConfigureAwait(false);
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
             JsonElement root = document.RootElement;
+            if (SavedRuleSchemaVersionGate.Validate(root) is { } schemaIssue)
+            {
+                await PrintIssuesAsync([schemaIssue], error).ConfigureAwait(false);
+                return CompositionFailed;
+            }
+
             if (MatchesV2Workflow(
                     root,
                     SavedRuleSchemaTokens.CompositionKindMerge,
@@ -114,21 +103,28 @@ internal static partial class SavedRuleCliCommandHandler
                 return CompositionFailed;
             }
         }
-        catch (Exception exception) when (
-            exception is IOException or
-            UnauthorizedAccessException or
-            JsonException or
-            ArgumentException)
+        catch (JsonException exception)
         {
-            await PrintIssuesAsync(
-                [
-                    new SavedRuleValidationIssue(
-                        SavedRuleIssueCodes.JsonInvalid,
-                        exception.Message,
-                        "$"),
-                ],
+            return await FailDocumentAsync(
+                SavedRuleIssueCodes.JsonInvalid,
+                $"Saved Rule v2 JSON is invalid: {exception.Message}",
                 error).ConfigureAwait(false);
-            return CompositionFailed;
+        }
+        catch (Exception exception) when (
+            exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return await FailDocumentAsync(
+                SavedRuleIssueCodes.FileNotFound,
+                $"Saved Rule v2 JSON was not found: {exception.Message}",
+                error).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return await FailDocumentAsync(
+                SavedRuleIssueCodes.FileReadFailed,
+                $"Saved Rule v2 JSON could not be read: {exception.Message}",
+                error).ConfigureAwait(false);
         }
 
         SavedRuleExecutionIdentity identity = inspection.Identity;
@@ -152,6 +148,17 @@ internal static partial class SavedRuleCliCommandHandler
         }
 
         return Success;
+    }
+
+    private static async Task<int> FailDocumentAsync(
+        string code,
+        string message,
+        TextWriter error)
+    {
+        await PrintIssuesAsync(
+            [new SavedRuleValidationIssue(code, message, "$")],
+            error).ConfigureAwait(false);
+        return CompositionFailed;
     }
 
     private static bool TryResolveV2GeneralMergeParent(

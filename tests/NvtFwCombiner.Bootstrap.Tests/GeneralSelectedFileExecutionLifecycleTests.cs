@@ -185,12 +185,11 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             Assert.IsType<ResolvedCapability>(
                 acceptedSession.GetAcceptedCapability(AuthoringDerivedResultKind.Validation));
         WorkbenchRunResult preview =
-            await WorkbenchCompositionService.RunGeneralReplaceAcceptedSessionWithProgressAsync(
+            await WorkbenchCompositionService.PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
                 "NT51926",
                 "single",
                 slotPaths,
                 acceptedSession,
-                build: false,
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
@@ -210,15 +209,14 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         WorkbenchRunResult staleBuild =
             await WorkbenchCompositionService
-                .RunGeneralReplaceAcceptedSessionWithProgressAsync(
+                .BuildGeneralReplaceAcceptedSessionWithProgressAsync(
                     "NT51926",
                     "single",
                     slotPaths,
                     acceptedSession,
-                    build: true,
                     new CompositionRunProgressFeed(),
-                    TestContext.Current.CancellationToken,
-                    staleOutputPath);
+                    staleOutputPath,
+                    TestContext.Current.CancellationToken);
 
         Assert.False(staleBuild.Succeeded);
         Assert.False(File.Exists(staleOutputPath));
@@ -240,15 +238,14 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult build =
             await WorkbenchCompositionService
-                .RunGeneralReplaceAcceptedSessionWithProgressAsync(
+                .BuildGeneralReplaceAcceptedSessionWithProgressAsync(
                     "NT51926",
                     "single",
                     slotPaths,
                     reloadedSession,
-                    build: true,
                     new CompositionRunProgressFeed(),
-                    TestContext.Current.CancellationToken,
-                    outputPath);
+                    outputPath,
+                    TestContext.Current.CancellationToken);
 
         Assert.True(build.Succeeded, build.ReportJson);
         byte[] output = await File.ReadAllBytesAsync(

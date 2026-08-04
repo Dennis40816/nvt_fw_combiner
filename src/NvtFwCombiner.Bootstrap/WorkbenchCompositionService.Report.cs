@@ -64,6 +64,29 @@ public static partial class WorkbenchCompositionService
         GeneralAuthoringAdmissionResult? generalAdmission = null,
         GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
     {
+        return CreateReplaceReportRunResult(
+            icId,
+            replaceMode,
+            slotPaths,
+            FormatWorkbenchRunAction(build),
+            operations,
+            issues,
+            outputFileName,
+            generalAdmission,
+            diagnosticPreview);
+    }
+
+    private static WorkbenchRunResult CreateReplaceReportRunResult(
+        string icId,
+        string replaceMode,
+        IReadOnlyDictionary<string, string> slotPaths,
+        string runAction,
+        IReadOnlyList<OperationRunSummary> operations,
+        IReadOnlyList<CompositionIssue> issues,
+        string outputFileName,
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null)
+    {
         string profileId = $"{icId.ToLowerInvariant()}-{replaceMode.ToLowerInvariant()}-replace-workbench";
         return CreateBlockedReportRunResult(
             GetReplaceRunIdPrefix(replaceMode),
@@ -74,7 +97,7 @@ public static partial class WorkbenchCompositionService
             $"{replaceMode.ToLowerInvariant()}-replace",
             CompositionKind.Replace,
             slotPaths,
-            build,
+            runAction,
             operations,
             issues,
             outputFileName,
@@ -149,9 +172,46 @@ public static partial class WorkbenchCompositionService
         GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
         string status = "Blocked")
     {
+        return CreateBlockedReportRunResult(
+            runIdPrefix,
+            profileId,
+            profileVersion,
+            icId,
+            modeId,
+            experienceId,
+            compositionKind,
+            slotPaths,
+            FormatWorkbenchRunAction(build),
+            operations,
+            issues,
+            outputFileName,
+            generalAdmission,
+            imageInitialization,
+            diagnosticPreview,
+            status);
+    }
+
+    private static WorkbenchRunResult CreateBlockedReportRunResult(
+        string runIdPrefix,
+        string profileId,
+        string profileVersion,
+        string icId,
+        string modeId,
+        string experienceId,
+        CompositionKind compositionKind,
+        IReadOnlyDictionary<string, string> slotPaths,
+        string runAction,
+        IReadOnlyList<OperationRunSummary> operations,
+        IReadOnlyList<CompositionIssue> issues,
+        string outputFileName,
+        GeneralAuthoringAdmissionResult? generalAdmission = null,
+        ImageInitializationSummary? imageInitialization = null,
+        GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
+        string status = "Blocked")
+    {
         DateTimeOffset timestamp = DateTimeOffset.UtcNow;
         var report = new CompositionRunReport(
-            $"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}",
+            $"{runIdPrefix}-{runAction}-{FormatWorkbenchRunTimestamp(timestamp)}",
             profileId,
             profileVersion,
             icId,

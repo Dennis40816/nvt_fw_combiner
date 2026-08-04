@@ -248,7 +248,6 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
         string selection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
-
         Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "await RunCompositionAsync("));
         Assert.Contains("WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
@@ -258,7 +257,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("RunGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralReplaceEphemeralDraftWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("InspectGeneralSelectedFileAsync", selection, StringComparison.Ordinal);
         Assert.Contains("await Task.Yield();", lifecycle, StringComparison.Ordinal);

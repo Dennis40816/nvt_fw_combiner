@@ -93,14 +93,69 @@ public sealed partial class RepositoryBoundaryTests
     public void GeneralWorkflowsExposeOnlyCanonicalStartLengthDrafts()
     {
         string bootstrap = ReadBootstrapSources() + ReadBootstrapTestSources();
-        string applicationDraft = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/GeneralMappingDraftState.cs");
+        string production = ReadProductionSources();
 
         Assert.DoesNotContain("WorkbenchGeneralMergeMappingInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralReplaceMappingInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralReplacePatchInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("TryParseLegacyInclusiveRange", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("TargetEndInclusive", applicationDraft, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetEndInclusive", production, StringComparison.Ordinal);
+    }
+
+    /// <summary>Saved Rule v1 remains historical contract evidence and cannot regain a production parser or projection.</summary>
+    [Fact]
+    public void GeneralSavedRulesExposeOnlyTheV2RuntimeContract()
+    {
+        string bootstrap = ReadBootstrapSources();
+
+        Assert.DoesNotContain("SavedCompositionRuleLoader", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedRuleGeneralMappingDraftAdapter", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("SavedCompositionRule(", bootstrap, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "SavedCompositionRule.cs")));
+        Assert.DoesNotContain("GeneralMergeFillByteInvalid", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Saved rule schemaVersion must be '1.0'",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Saved Rule v1 is retired; migrate the document to Saved Rule v2",
+            bootstrap,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "LegacyTimestampFileStampCompatibilityAdapter",
+            ReadProductionSources(),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>General Replace callers select explicit Preview/Build entry points rather than a bool adapter.</summary>
+    [Fact]
+    public void GeneralReplacePreviewBuildBoundaryStaysTyped()
+    {
+        string run = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs");
+        string cli = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+        string presentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
+
+        Assert.Contains("GeneralReplaceRunActionStrategy strategy", run, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralReplaceAcceptedSessionRunner generalReplaceRun", presentation, StringComparison.Ordinal);
+        Assert.Contains("? await generalReplaceRun(", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool build", run, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool build", context, StringComparison.Ordinal);
+        Assert.DoesNotContain("(build, outputPath, token)", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("replaceMode == GeneralReplaceMode\n                        ? build", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CapabilityActionKind", run, StringComparison.Ordinal);
     }
 
     /// <summary>General authoring has one Application admission snapshot from observation through compilation and report.</summary>
@@ -164,7 +219,7 @@ public sealed partial class RepositoryBoundaryTests
             mergeRun,
             StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: admission",
+            "generalAdmission: prepared.Admission",
             replaceRun,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -185,15 +240,16 @@ public sealed partial class RepositoryBoundaryTests
         string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
         string authoring = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMappingDraft.cs");
         string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
-        string savedRuleRows = ReadText("src/NvtFwCombiner.Bootstrap/SavedCompositionRuleLoader.MappingRows.cs");
+        string savedRuleV2 = ReadText(
+            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
 
         Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
         Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", authoring, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleRows, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleV2, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", authoring, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"general-output\"", savedRuleRows, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"general-output\"", savedRuleV2, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies the Workbench partials stay split into catalog, Standard Merge, and shared adapter helpers.</summary>

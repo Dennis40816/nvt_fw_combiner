@@ -82,21 +82,33 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.GeneralReplace,
                 options,
                 protectedInputPaths,
-                (build, outputPath, token) => savedRulePolicy is null
-                    ? WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                (_, token) => savedRulePolicy is null
+                    ? WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
                         mappingDraft,
-                        build,
-                        token,
-                        outputPath)
-                    : WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+                        token)
+                    : WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
                         mappingDraft,
-                        build,
+                        savedRulePolicy,
+                        token),
+                (outputPath, token) => savedRulePolicy is null
+                    ? WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+                        icId,
+                        icNumber,
+                        slotPaths,
+                        mappingDraft,
+                        outputPath,
+                        token)
+                    : WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+                        icId,
+                        icNumber,
+                        slotPaths,
+                        mappingDraft,
                         outputPath,
                         savedRulePolicy,
                         token),

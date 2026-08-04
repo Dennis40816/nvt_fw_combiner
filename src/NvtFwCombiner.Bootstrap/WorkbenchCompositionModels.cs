@@ -402,6 +402,15 @@ public sealed record WorkbenchReplaceInputSlot(
     WorkbenchReplaceRegionGroup RegionGroup = WorkbenchReplaceRegionGroup.Common,
     WorkbenchReplaceInputRole InputRole = WorkbenchReplaceInputRole.None);
 
+/// <summary>One explicit General Replace action selected by a Presentation command boundary.</summary>
+public delegate ValueTask<WorkbenchRunResult> WorkbenchGeneralReplaceAcceptedSessionRunner(
+    string icId,
+    string number,
+    IReadOnlyDictionary<string, string> slotPaths,
+    ActiveSessionSnapshot acceptedSession,
+    CompositionRunProgressFeed progress,
+    CancellationToken cancellationToken);
+
 /// <summary>One CtrlRAM region row for shell display.</summary>
 public sealed record WorkbenchCtrlRamRegion(
     string DisplayName,

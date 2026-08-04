@@ -3,19 +3,30 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
 public static partial class WorkbenchCompositionService
 {
+    private static readonly GeneralReplaceRunActionStrategy PreviewGeneralReplaceStrategy = new(
+        RenderGeneralReplacePreviewFailure,
+        RenderGeneralReplacePreviewPostbuildUnavailable,
+        CompleteGeneralReplacePreviewAsync);
+
+    private static readonly GeneralReplaceRunActionStrategy BuildGeneralReplaceStrategy = new(
+        RenderGeneralReplaceBuildFailure,
+        RenderGeneralReplaceBuildPostbuildUnavailable,
+        CompleteGeneralReplaceBuildAsync);
+
     private static async ValueTask<WorkbenchRunResult> RunGeneralReplaceDraftCoreAsync(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         GeneralMappingDraftState mappingDraft,
         AuthoringRevision authoringRevision,
-        bool build,
+        GeneralReplaceRunActionStrategy strategy,
         string? outputPath,
         CompositionRunProgressFeed? progress,
         CancellationToken cancellationToken,
@@ -29,11 +40,18 @@ public static partial class WorkbenchCompositionService
                 number,
                 slotPaths,
                 mappingDraft,
-                build,
                 out GeneralReplaceRunContext? context,
-                out WorkbenchRunResult? failure))
+                out IReadOnlyDictionary<string, string> reportSlotPaths,
+                out CompositionIssue? contextIssue))
         {
-            return failure!;
+            return strategy.RenderFailure(new GeneralReplaceRunFailure(
+                icId,
+                reportSlotPaths,
+                AcceptedDraft: null,
+                [],
+                [contextIssue!],
+                GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
+                Admission: null));
         }
 
         GeneralAuthoringAdmissionResult? admission = null;
@@ -44,24 +62,18 @@ public static partial class WorkbenchCompositionService
             GeneralReplaceDiagnosticPreviewSummary? diagnosticPreview = null,
             CapabilityActionReadinessSnapshot? readiness = null)
         {
-            WorkbenchRunResult result = CreateReplaceReportRunResult(
+            return strategy.RenderFailure(new GeneralReplaceRunFailure(
                 icId,
-                WorkbenchReplaceModes.General,
                 context!.ReportSlotPaths,
-                build,
+                IsAcceptedGeneralMappingDraft(context.MappingDraft)
+                    ? context.MappingDraft
+                    : null,
                 operations ?? [],
                 issues,
                 outputFileName ?? GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
-                generalAdmission: admission,
-                diagnosticPreview: diagnosticPreview);
-            return result with
-            {
-                AcceptedGeneralMappingDraft =
-                    IsAcceptedGeneralMappingDraft(context!.MappingDraft)
-                        ? context.MappingDraft
-                        : null,
-                ActionReadiness = readiness,
-            };
+                admission,
+                diagnosticPreview,
+                readiness));
         }
 
         GeneralSelectedFileBindingResult acceptedFiles =
@@ -186,32 +198,14 @@ public static partial class WorkbenchCompositionService
                     cancellationToken).ConfigureAwait(false);
             if (!readiness.Build.IsAvailable)
             {
-                CapabilityActionBlocker blocker =
-                    readiness.Build.PrimaryBlocker!;
-                CompositionIssue issue = new(
-                    blocker.Code,
-                    blocker.Message,
-                    blocker.SubjectId);
-                GeneralReplaceDiagnosticPreviewSummary? diagnostic = build
-                    ? null
-                    : GeneralReplaceDiagnosticPreviewProjector.Project(
-                        context.Capacity,
+                return strategy.RenderPostbuildUnavailable(
+                    new GeneralReplacePostbuildUnavailable(
+                        icId,
+                        context,
                         admission,
                         readiness,
-                        requiredStageId);
-                return build
-                    ? CreateReplaceReadinessOnlyResult(
-                        icId,
-                        WorkbenchReplaceModes.General,
-                        readiness) with
-                    {
-                        AcceptedGeneralMappingDraft = context.MappingDraft,
-                    }
-                    : Blocked(
-                        [issue],
-                        planningOperations,
-                        diagnosticPreview: diagnostic,
-                        readiness: readiness);
+                        requiredStageId,
+                        planningOperations));
             }
         }
 
@@ -239,25 +233,177 @@ public static partial class WorkbenchCompositionService
                 acceptedContentStamp: binding.AcceptedContentStamp)),
         ];
 
-        WorkbenchRunResult result = await RunCompiledCompositionAsync(
-            GeneralReplaceRunIdPrefix,
-            compiledComposition,
-            bindings,
-            context.BasePath,
-            build,
+        return await strategy.CompleteAsync(
+            new GeneralReplacePreparedRun(
+                context,
+                compiledComposition,
+                bindings,
+                patchVirtualArtifacts,
+                commandPlan is null ? null : ExternalProcessorFactory.GetOrCreateOrNull(),
+                admission,
+                resolvedCapability),
             outputPath,
-            externalProcessor: commandPlan is null ? null : ExternalProcessorFactory.GetOrCreateOrNull(),
-            icNumberSelection: context.Selection,
-            cancellationToken,
-            patchVirtualArtifacts,
             progress,
-            generalAdmission: admission,
-            resolvedCapability: resolvedCapability).ConfigureAwait(false);
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static WorkbenchRunResult RenderGeneralReplacePreviewFailure(
+        GeneralReplaceRunFailure failure)
+    {
+        return RenderGeneralReplaceFailure(failure, "preview");
+    }
+
+    private static WorkbenchRunResult RenderGeneralReplaceBuildFailure(
+        GeneralReplaceRunFailure failure)
+    {
+        return RenderGeneralReplaceFailure(failure, "build");
+    }
+
+    private static WorkbenchRunResult RenderGeneralReplaceFailure(
+        GeneralReplaceRunFailure failure,
+        string runAction)
+    {
+        WorkbenchRunResult result = CreateReplaceReportRunResult(
+            failure.IcId,
+            WorkbenchReplaceModes.General,
+            failure.SlotPaths,
+            runAction,
+            failure.Operations,
+            failure.Issues,
+            failure.OutputFileName,
+            failure.Admission,
+            failure.DiagnosticPreview);
         return result with
         {
-            AcceptedGeneralMappingDraft = context.MappingDraft,
+            AcceptedGeneralMappingDraft = failure.AcceptedDraft,
+            ActionReadiness = failure.Readiness,
         };
     }
+
+    private static WorkbenchRunResult RenderGeneralReplacePreviewPostbuildUnavailable(
+        GeneralReplacePostbuildUnavailable unavailable)
+    {
+        CapabilityActionAvailability action = unavailable.Readiness.Preview.IsAvailable
+            ? unavailable.Readiness.Build
+            : unavailable.Readiness.Preview;
+        CapabilityActionBlocker blocker = action.PrimaryBlocker!;
+        GeneralReplaceDiagnosticPreviewSummary? diagnostic =
+            unavailable.Readiness.Preview.IsAvailable
+                ? GeneralReplaceDiagnosticPreviewProjector.Project(
+                    unavailable.Context.Capacity,
+                    unavailable.Admission,
+                    unavailable.Readiness,
+                    unavailable.RequiredStageId)
+                : null;
+        return RenderGeneralReplacePreviewFailure(new GeneralReplaceRunFailure(
+            unavailable.IcId,
+            unavailable.Context.ReportSlotPaths,
+            unavailable.Context.MappingDraft,
+            unavailable.PlanningOperations,
+            [new CompositionIssue(blocker.Code, blocker.Message, blocker.SubjectId)],
+            GetReplaceDefaultOutputFileName(
+                unavailable.IcId,
+                WorkbenchReplaceModes.General),
+            unavailable.Admission,
+            diagnostic,
+            unavailable.Readiness));
+    }
+
+    private static WorkbenchRunResult RenderGeneralReplaceBuildPostbuildUnavailable(
+        GeneralReplacePostbuildUnavailable unavailable)
+    {
+        return CreateReplaceReadinessOnlyResult(
+            unavailable.IcId,
+            WorkbenchReplaceModes.General,
+            unavailable.Readiness) with
+        {
+            AcceptedGeneralMappingDraft = unavailable.Context.MappingDraft,
+        };
+    }
+
+    private static async ValueTask<WorkbenchRunResult> CompleteGeneralReplacePreviewAsync(
+        GeneralReplacePreparedRun prepared,
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken)
+    {
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
+            GeneralReplaceRunIdPrefix,
+            prepared.CompiledComposition,
+            prepared.Bindings,
+            prepared.Context.BasePath,
+            build: false,
+            outputPath,
+            prepared.ExternalProcessor,
+            prepared.Context.Selection,
+            cancellationToken,
+            prepared.VirtualArtifacts,
+            progress,
+            generalAdmission: prepared.Admission,
+            resolvedCapability: prepared.ResolvedCapability).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = prepared.Context.MappingDraft };
+    }
+
+    private static async ValueTask<WorkbenchRunResult> CompleteGeneralReplaceBuildAsync(
+        GeneralReplacePreparedRun prepared,
+        string? outputPath,
+        CompositionRunProgressFeed? progress,
+        CancellationToken cancellationToken)
+    {
+        WorkbenchRunResult result = await RunCompiledCompositionAsync(
+            GeneralReplaceRunIdPrefix,
+            prepared.CompiledComposition,
+            prepared.Bindings,
+            prepared.Context.BasePath,
+            build: true,
+            outputPath,
+            prepared.ExternalProcessor,
+            prepared.Context.Selection,
+            cancellationToken,
+            prepared.VirtualArtifacts,
+            progress,
+            generalAdmission: prepared.Admission,
+            resolvedCapability: prepared.ResolvedCapability).ConfigureAwait(false);
+        return result with { AcceptedGeneralMappingDraft = prepared.Context.MappingDraft };
+    }
+
+    private sealed record GeneralReplaceRunActionStrategy(
+        Func<GeneralReplaceRunFailure, WorkbenchRunResult> RenderFailure,
+        Func<GeneralReplacePostbuildUnavailable, WorkbenchRunResult> RenderPostbuildUnavailable,
+        Func<
+            GeneralReplacePreparedRun,
+            string?,
+            CompositionRunProgressFeed?,
+            CancellationToken,
+            ValueTask<WorkbenchRunResult>> CompleteAsync);
+
+    private sealed record GeneralReplaceRunFailure(
+        string IcId,
+        IReadOnlyDictionary<string, string> SlotPaths,
+        GeneralMappingDraftState? AcceptedDraft,
+        IReadOnlyList<OperationRunSummary> Operations,
+        IReadOnlyList<CompositionIssue> Issues,
+        string OutputFileName,
+        GeneralAuthoringAdmissionResult? Admission,
+        GeneralReplaceDiagnosticPreviewSummary? DiagnosticPreview = null,
+        CapabilityActionReadinessSnapshot? Readiness = null);
+
+    private sealed record GeneralReplacePostbuildUnavailable(
+        string IcId,
+        GeneralReplaceRunContext Context,
+        GeneralAuthoringAdmissionResult Admission,
+        CapabilityActionReadinessSnapshot Readiness,
+        string? RequiredStageId,
+        IReadOnlyList<OperationRunSummary> PlanningOperations);
+
+    private sealed record GeneralReplacePreparedRun(
+        GeneralReplaceRunContext Context,
+        CompiledComposition CompiledComposition,
+        IReadOnlyList<InputArtifactBinding> Bindings,
+        IReadOnlyDictionary<string, byte[]> VirtualArtifacts,
+        IExternalProcessor? ExternalProcessor,
+        GeneralAuthoringAdmissionResult Admission,
+        ResolvedCapability ResolvedCapability);
 
     private static bool GeneralReplaceTouchesTpRegion(
         IReadOnlyList<TpFlashMapRegion> regions,

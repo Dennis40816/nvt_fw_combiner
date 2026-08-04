@@ -23,7 +23,35 @@ public sealed partial class ReplacePresentationViewModel
         WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
-        return RunReplaceAsync(build: true, outputPath, ctrlRamFirmwareVersionEdit);
+        return RunBuildReplaceAsync(outputPath, ctrlRamFirmwareVersionEdit);
+    }
+
+    private Task PreviewReplaceAsync()
+    {
+        return RunReplaceAsync(
+            build: false,
+            outputPath: null,
+            ctrlRamFirmwareVersionEdit: null,
+            WorkbenchCompositionService.PreviewGeneralReplaceAcceptedSessionWithProgressAsync);
+    }
+
+    private Task RunBuildReplaceAsync(
+        string? outputPath,
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
+    {
+        return RunReplaceAsync(
+            build: true,
+            outputPath,
+            ctrlRamFirmwareVersionEdit,
+            (icId, number, slotPaths, acceptedSession, progress, cancellationToken) =>
+                WorkbenchCompositionService.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
+                    icId,
+                    number,
+                    slotPaths,
+                    acceptedSession,
+                    progress,
+                    outputPath,
+                    cancellationToken));
     }
 
     private bool CanRunReplace()
@@ -87,7 +115,8 @@ public sealed partial class ReplacePresentationViewModel
     private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
+        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit,
+        WorkbenchGeneralReplaceAcceptedSessionRunner generalReplaceRun)
     {
         CloseSelectionForRun();
         string icId = SelectedIc;
@@ -126,16 +155,13 @@ public sealed partial class ReplacePresentationViewModel
             {
                 WorkbenchRunResult result =
                     replaceMode == GeneralReplaceMode
-                        ? await WorkbenchCompositionService
-                            .RunGeneralReplaceAcceptedSessionWithProgressAsync(
+                        ? await generalReplaceRun(
                                 icId,
                                 number,
                                 slotPaths,
                                 generalSession!,
-                                build,
                                 progress,
-                                cancellationToken,
-                                outputPath)
+                                cancellationToken)
                             .ConfigureAwait(false)
                         : compiledSession?.GetAcceptedCapability(
                             AuthoringDerivedResultKind.Inspection) is null
@@ -179,10 +205,11 @@ public sealed partial class ReplacePresentationViewModel
                 number,
                 errorMessage,
                 slotPaths,
-                compositionKind: "Replace",
-                modeId: $"{replaceMode.ToLowerInvariant()}-replace",
-                experienceId: $"{replaceMode.ToLowerInvariant()}-replace"));
+             compositionKind: "Replace",
+             modeId: $"{replaceMode.ToLowerInvariant()}-replace",
+             experienceId: $"{replaceMode.ToLowerInvariant()}-replace"));
     }
+
     private Dictionary<string, string> CreateReplaceSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);

@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
-/// <summary>Tests host-file hashing and the one-way legacy timestamp adapter.</summary>
+/// <summary>Tests content-authoritative host-file inspection and hashing.</summary>
 public sealed class FileContentSnapshotInspectorTests
 {
     /// <summary>Inspection computes accepted length and SHA-256 from one selected file.</summary>
@@ -58,32 +58,6 @@ public sealed class FileContentSnapshotInspectorTests
                 TestContext.Current.CancellationToken).AsTask());
 
         Assert.Equal(5, stream.Position);
-    }
-
-    /// <summary>Legacy timestamp hints cannot change the projected content identity.</summary>
-    [Fact]
-    public async Task LegacyTimestampAdapterProjectsOneWayToContentStamp()
-    {
-        using var workspace = TempWorkspace.Create();
-        string path = workspace.Write("input.bin", [1, 2, 3, 4]);
-        var adapter = new LegacyTimestampFileStampCompatibilityAdapter(
-            [workspace.Root]);
-        DateTime firstTime = new(2026, 7, 30, 1, 0, 0, DateTimeKind.Utc);
-        DateTime secondTime = firstTime.AddHours(1);
-        File.SetLastWriteTimeUtc(path, firstTime);
-        SelectedFileContentInspection first = await adapter.InspectAsync(
-            path,
-            maximumBytes: int.MaxValue,
-            CancellationToken.None);
-        File.SetLastWriteTimeUtc(path, secondTime);
-
-        SelectedFileContentInspection second = await adapter.InspectAsync(
-            path,
-            maximumBytes: int.MaxValue,
-            CancellationToken.None);
-
-        Assert.Equal(first.FileStamp, second.FileStamp);
-        Assert.NotEqual(first.LastWriteTimeUtcHint, second.LastWriteTimeUtcHint);
     }
 
     /// <summary>Same-size file mutation is visible even when host length does not change.</summary>

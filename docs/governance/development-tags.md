@@ -79,6 +79,14 @@ commit.
   deferred to a later owner discussion; no implementation ticket is implied by
   this reservation.
 
+### Recorded `v0.10.2` pre-deletion checkpoint
+
+The post-#208 integration point immediately before #254 compatibility deletion
+is commit `604199ab4a6bdb2f2da3f976851ce1c00b467bc8`, tree
+`35d83c477fff39f0fc11404f5dbcee7f007a3f4d`. It is retained as a reproducible
+comparison/rollback identity only. It is not a release tag and does not relax
+the `v0.10.2` completion or 22,607-line gates above.
+
 The original `0.9.17` certification and `0.9.18` family-model proposals were
 superseded before release. The owner subsequently reused those version numbers
 for the bounded DiffDLM and NT51928 compatibility hot-fixes above; neither
