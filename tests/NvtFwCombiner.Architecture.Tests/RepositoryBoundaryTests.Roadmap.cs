@@ -22,7 +22,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("`0.10.0` reconciles its original `v0.9.15` planning baseline", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("reviewed `v0.9.16` hot-fix", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("## `0.10.0`: planning and governance baseline", nfcRoadmap, StringComparison.Ordinal);
-        Assert.Contains("## `0.10.1` through `0.10.5`: owner-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("## `0.10.1` through `0.10.6`: owner-allocated implementation", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`v0.10.2` publishes the reviewed desktop adoption", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`v0.10.3` completes the remaining approved refactoring graph", nfcRoadmap, StringComparison.Ordinal);
+        Assert.Contains("`v0.10.6` reserves a configured-path update screen", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains("It does not allocate or implement a production Support Matrix", nfcRoadmap, StringComparison.Ordinal);
         Assert.Contains(
             "The approved GitHub issues named in the",

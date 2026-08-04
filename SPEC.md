@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.1 headless canonical foundation release; v0.10.0 is the stable predecessor on the canonical line`
-> 文件版本：`0.10.1`
-> 基準日期：`2026-08-01`
+> 文件狀態：`0.10.2 canonical desktop-adoption and compatibility-deletion release candidate; v0.10.1 is the stable predecessor`
+> 文件版本：`0.10.2`
+> 基準日期：`2026-08-04`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,18 +30,19 @@
 
 ## 0.1 Current owner priority
 
-`0.10.1` is the first implementation release from the approved `0.10.x`
-program. It completes the 78-route headless canonical foundation, separates
-reviewed capability identity from per-compilation identity, retains one exact
-compiled composition for Preview/Build/report, retires the four owner-rejected
-IC capabilities, and ships the reviewed firmware contracts allocated through
-#194. It does not complete the deferred desktop UI, compatibility deletion,
-legacy runtime deletion, or Core convergence waves, and it does not convert
-function availability or golden observations into support certification.
-`v0.10.0` remains the stable planning predecessor on this canonical line;
-independent `0.9.17`/`0.9.18` maintenance releases remain historical upgrade
-sources rather than alternate `0.10.x` architecture authority. The remaining
-sequence is maintained in [NFC Roadmap](docs/architecture/nfc_roadmap.md).
+`0.10.2` is the second implementation release from the approved `0.10.x`
+program. It carries the completed 78-route headless foundation into the
+desktop, adopts the canonical per-slot readiness/inspection and exact compiled
+composition across the six Merge/Replace workflows, extracts the shallow shell
+and shared read-only Hex viewport, and deletes the superseded General/Saved
+Rule v1 compatibility owners through #254. It does not complete the remaining
+deferred UI, Workbench deletion, Core convergence, or #197 integration waves,
+and it does not convert function availability or golden observations into
+support certification. `v0.10.1` is the stable predecessor on this canonical
+line; independent `0.9.17`/`0.9.18` maintenance releases remain historical
+upgrade sources rather than alternate `0.10.x` architecture authority. The
+remaining sequence is maintained in
+[NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
 omitted external gate must remain explicit rather than being described as
@@ -1158,12 +1159,14 @@ to each `0.10.x` version.
    slice has one behavioral goal, one compatibility seam, one deletion
    boundary, one narrow test set, and an explicit final verification gate.
 3. The initial planning approval fixed no exact post-`0.10.0` allocation.
-   Ticket planning first established dependencies; later owner decisions now
-   record `v0.10.1` as the headless foundation, `v0.10.2` as the complete
-   remaining refactoring graph through #197, `v0.10.3` as its simplification
-   audit, `v0.10.4` as unified preload performance control, and `v0.10.5` as a
-   reserved configured-path update experience whose detailed contract is still
-   deferred. Release grouping never bypasses dependency or evidence gates.
+   Ticket planning first established dependencies; the latest owner decision
+   records `v0.10.1` as the headless foundation, `v0.10.2` as the canonical
+   desktop-adoption and first compatibility-deletion checkpoint through #254,
+   `v0.10.3` as the complete remaining refactoring graph through #197,
+   `v0.10.4` as its simplification audit, `v0.10.5` as unified preload
+   performance control, and `v0.10.6` as a reserved configured-path update
+   experience whose detailed contract is still deferred. Release grouping
+   never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
    the callers that remain and the evidence required for deletion. A permanent
    parallel owner is not an acceptable endpoint.
@@ -2123,16 +2126,20 @@ approved specification and consistency grill
   -> pass the 22,607-line #197 integration gate
 ```
 
-The complete remaining approved refactoring graph through #197 is allocated to
-`v0.10.2`, which is tagged only after the full canonical refactor is complete.
-`v0.10.3` then performs a fresh simplification/ownership audit of that result;
-`v0.10.4` owns performance work that unifies every preload behind one
-observable, cancellable, bounded, and user-controllable lifecycle; and
-`v0.10.5` reserves a configured-path update experience. The `v0.10.5` trust,
-rollback, version-selection, network/share, and release-policy contract remains
-owner-deferred and requires a later specification review before implementation
-tickets exist. These allocations do not change current ticket dependencies or
-authorize guessed scope.
+Owner decision on 2026-08-04 allocates the reviewed state through #254 to
+`v0.10.2`: the canonical desktop routes, shallow shell, shared read-only Hex
+viewport, and first General/Saved Rule compatibility deletion form a stable,
+support-neutral checkpoint. The complete remaining approved refactoring graph
+through #197 moves to `v0.10.3`, which is tagged only after the full canonical
+refactor and hard 22,607-line gate are complete. `v0.10.4` then performs a
+fresh simplification/ownership audit of that result; `v0.10.5` owns performance
+work that unifies every preload behind one observable, cancellable, bounded,
+and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
+update experience. The `v0.10.6` trust, rollback, version-selection,
+network/share, and release-policy contract remains owner-deferred and requires
+a later specification review before implementation tickets exist. These
+allocations do not change current ticket dependencies or authorize guessed
+scope.
 
 Historical NT51920/NT51931 DPCMI locator evidence (`0x3E014` and `0x3E018`)
 remains traceability-only. #177 does not migrate either IC, and #221 removes
