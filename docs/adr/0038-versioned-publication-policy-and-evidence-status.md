@@ -85,13 +85,16 @@ The completed #170 baseline loads the policy only after its exact raw bytes
 match the reviewed SHA-256; line-ending, whitespace, and encoding
 normalization are not permitted. Application then validates semantic-version
 and ISO `yyyy-MM-dd` provenance-date syntax independently of the Infrastructure
-adapter, materializes the policy against the same current route snapshot, and
-exposes a fresh immutable query through
-`WorkbenchCompositionService.GetSupportMatrix()`. Infrastructure declares the
+adapter and materializes the policy against the same current route snapshot.
+The Bootstrap catalog host serializes reload and resolution, then atomically
+publishes a non-blocking immutable reporting snapshot; #207 exposes an
+Application-owned immutable `ICanonicalSupportMatrixQuery` over that exact
+shared publication. Infrastructure declares the
 policy as both build and publish content at the same relative path used by the
 loader. Tests prove the deployed file exists, the publish metadata remains
-closed, and the public query does not alter firmware execution or UI state.
-Settings disclosure remains deferred to #207.
+closed, and the query does not alter firmware execution or UI state. Settings
+renders the #207 read-only IC-by-workflow disclosure without reclassifying
+authoring, execution, publication, evidence, or blockers.
 
 The owner-approved NT51919 General Replace decision is retained as one exact
 publication-inventory row while its authoring binding remains `unknown` and

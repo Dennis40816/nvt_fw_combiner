@@ -61,6 +61,10 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle.IndexOf("main-window.opened", StringComparison.Ordinal) <
             lifecycle.IndexOf("PrimeDeferredCatalogs", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("WarmCanonicalCapabilities(cancellationToken)", warmup, StringComparison.Ordinal);
+        Assert.True(
+            lifecycle.IndexOf("await catalogWarmup", StringComparison.Ordinal) <
+            lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);

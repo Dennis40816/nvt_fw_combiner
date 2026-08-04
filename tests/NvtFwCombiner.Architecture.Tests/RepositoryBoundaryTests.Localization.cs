@@ -40,7 +40,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("\"Merge preview\"", factory, StringComparison.Ordinal);
         Assert.DoesNotContain("Saved rules", resources, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("demo", resources, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("synthetic", resources, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CapabilityEvidenceStatus.SyntheticOracle", resources, StringComparison.Ordinal);
+        Assert.Contains("合成 oracle", resources, StringComparison.Ordinal);
+        Assert.DoesNotContain("synthetic demo", resources, StringComparison.OrdinalIgnoreCase);
 
         foreach (string retiredName in new[]
                  {

@@ -34,10 +34,10 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
                 "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs",
-                "src/NvtFwCombiner.Bootstrap/CurrentSupportMatrixCatalog.CtrlRam.cs",
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
                 "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",
             ]);
+        AssertNoProductionText("CurrentSupportMatrixCatalog");
     }
 
     /// <summary>Prevents the unbound TP root/category projection from returning after report semantics moved to the header catalog.</summary>

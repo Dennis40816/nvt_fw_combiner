@@ -234,7 +234,8 @@ public static partial class WorkbenchCompositionService
             "not-applicable",
             "generic");
         CapabilityRouteResolutionResult resolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.ResolveDynamicRoute(identity.RouteId));
         return resolution.Succeeded &&
             session.Activate(AuthoringCapabilityCatalogSnapshot.FromDynamicRoute(
                 resolution.Route!,
@@ -360,7 +361,8 @@ public static partial class WorkbenchCompositionService
             "not-applicable",
             "generic");
         CapabilityRouteResolutionResult resolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.ResolveDynamicRoute(identity.RouteId));
         if (!resolution.Succeeded)
         {
             return new(null, admission, mappings, [new CompositionIssue(

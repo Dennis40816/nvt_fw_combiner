@@ -9,62 +9,64 @@ public static partial class WorkbenchCompositionService
 {
     private const string SelectorFreeIcCountVariant = "selector-free";
 
-    private static readonly CanonicalCapabilityCatalog
-        s_canonicalCapabilityCatalog = CreateCanonicalCapabilityCatalog();
-
     internal static CapabilityCatalogReloadResult
         ReloadCanonicalCapabilityCatalog(CancellationToken cancellationToken)
     {
-        return s_canonicalCapabilityCatalog.Reload(cancellationToken);
+        return WorkbenchHostServices.CanonicalCapabilities.Reload(cancellationToken);
     }
 
     internal static CapabilityResolutionResult
         ResolveCanonicalStandardMergeCapability(string icId)
     {
-        return s_canonicalCapabilityCatalog.ResolveUniqueRoute(
-            icId,
-            IcWorkflowIds.StandardMerge,
-            SelectorFreeIcCountVariant);
+        return WorkbenchHostServices.CanonicalCapabilities.Read(
+            catalog => catalog.ResolveUniqueRoute(
+                icId,
+                IcWorkflowIds.StandardMerge,
+                SelectorFreeIcCountVariant));
     }
 
     private static CapabilityResolutionResult
         ResolveCanonicalStandardMergeCapability(string icId, long? outputCapacity)
     {
-        return s_canonicalCapabilityCatalog.ResolveUniqueRoute(
-            icId,
-            IcWorkflowIds.StandardMerge,
-            SelectorFreeIcCountVariant,
-            outputCapacity);
+        return WorkbenchHostServices.CanonicalCapabilities.Read(
+            catalog => catalog.ResolveUniqueRoute(
+                icId,
+                IcWorkflowIds.StandardMerge,
+                SelectorFreeIcCountVariant,
+                outputCapacity));
     }
 
     internal static CapabilityResolutionResult
         ResolveCanonicalDpReplaceCapability(string icId)
     {
-        return s_canonicalCapabilityCatalog.ResolveUniqueRoute(
-            icId,
-            IcWorkflowIds.DpReplace,
-            "1-ic");
+        return WorkbenchHostServices.CanonicalCapabilities.Read(
+            catalog => catalog.ResolveUniqueRoute(
+                icId,
+                IcWorkflowIds.DpReplace,
+                "1-ic"));
     }
 
     private static CapabilityResolutionResult ResolveCanonicalDpReplaceCapability(
         string icId,
         long outputCapacity)
     {
-        return s_canonicalCapabilityCatalog.ResolveUniqueRoute(
-            icId,
-            IcWorkflowIds.DpReplace,
-            "1-ic",
-            outputCapacity);
+        return WorkbenchHostServices.CanonicalCapabilities.Read(
+            catalog => catalog.ResolveUniqueRoute(
+                icId,
+                IcWorkflowIds.DpReplace,
+                "1-ic",
+                outputCapacity));
     }
 
     internal static CapabilityResolutionResult ResolveCanonicalAbMergeCapability(
         string icId,
         TopologySelection? topology)
     {
-        return s_canonicalCapabilityCatalog.ResolveUniqueTopologyRoute(
-            icId,
-            IcWorkflowIds.AbMerge,
-            topology);
+        return WorkbenchHostServices.CanonicalCapabilities.Read(
+            catalog => catalog.ResolveUniqueTopologyRoute(
+                icId,
+                IcWorkflowIds.AbMerge,
+                topology));
     }
 
     internal static bool HasCanonicalCapability(
@@ -72,7 +74,8 @@ public static partial class WorkbenchCompositionService
         string workflowId)
     {
         return HasCanonicalCapability(
-            s_canonicalCapabilityCatalog.CurrentSnapshot,
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                static catalog => catalog.CurrentSnapshot),
             icId,
             workflowId);
     }
@@ -246,7 +249,8 @@ public static partial class WorkbenchCompositionService
         resolvedCapability = null;
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         ResolvedCapabilityRoute? publishedRoute =
-            s_canonicalCapabilityCatalog.CurrentSnapshot?.DynamicRoutes
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                static catalog => catalog.CurrentSnapshot)?.DynamicRoutes
                 .SingleOrDefault(route =>
                     StringComparer.Ordinal.Equals(
                         route.Identity.IcId,
@@ -265,8 +269,9 @@ public static partial class WorkbenchCompositionService
         }
 
         CapabilityRouteResolutionResult resolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(
-                publishedRoute.Identity.RouteId);
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.ResolveDynamicRoute(
+                    publishedRoute.Identity.RouteId));
         if (!resolution.Succeeded)
         {
             composition = null;
@@ -313,7 +318,8 @@ public static partial class WorkbenchCompositionService
     {
         string normalizedIcId = IcSupportCatalog.NormalizeIcId(icId);
         IReadOnlyList<ResolvedCapability> capabilities =
-            s_canonicalCapabilityCatalog.CurrentSnapshot?.Capabilities ?? [];
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                static catalog => catalog.CurrentSnapshot)?.Capabilities ?? [];
         return
         [
             .. capabilities
@@ -337,7 +343,8 @@ public static partial class WorkbenchCompositionService
     {
         ArgumentNullException.ThrowIfNull(composition);
         CanonicalCapabilityCatalogSnapshot? snapshot =
-            s_canonicalCapabilityCatalog.CurrentSnapshot;
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                static catalog => catalog.CurrentSnapshot);
         if (snapshot is null || composition.CapabilityFingerprint is null)
         {
             return null;
@@ -356,8 +363,9 @@ public static partial class WorkbenchCompositionService
             }
 
             CapabilityResolutionResult fixedResolution =
-                s_canonicalCapabilityCatalog.Resolve(
-                    acceptedCapability.Identity.RouteId);
+                WorkbenchHostServices.CanonicalCapabilities.Read(
+                    catalog => catalog.Resolve(
+                        acceptedCapability.Identity.RouteId));
             if (fixedResolution.Succeeded)
             {
                 return ReferenceEquals(
@@ -370,8 +378,9 @@ public static partial class WorkbenchCompositionService
             }
 
             CapabilityRouteResolutionResult dynamicResolution =
-                s_canonicalCapabilityCatalog.ResolveDynamicRoute(
-                    acceptedCapability.Identity.RouteId);
+                WorkbenchHostServices.CanonicalCapabilities.Read(
+                    catalog => catalog.ResolveDynamicRoute(
+                        acceptedCapability.Identity.RouteId));
             return dynamicResolution.Succeeded &&
                 dynamicResolution.Route!.ResolutionToken ==
                     acceptedCapability.ResolutionToken &&
@@ -391,19 +400,12 @@ public static partial class WorkbenchCompositionService
             return null;
         }
 
-        CapabilityResolutionResult current = s_canonicalCapabilityCatalog.Resolve(
-            fixedCapability.Identity.RouteId);
+        CapabilityResolutionResult current =
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.Resolve(fixedCapability.Identity.RouteId));
         return current.Succeeded &&
             ReferenceEquals(current.Capability!.CompiledComposition, composition)
                 ? current.Capability
                 : null;
-    }
-
-    private static CanonicalCapabilityCatalog CreateCanonicalCapabilityCatalog()
-    {
-        var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
-        _ = catalog.Reload();
-        return catalog;
     }
 }

@@ -1,17 +1,28 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Focused Settings catalog/status presentation.</summary>
-public sealed class SettingsViewModel
+public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly string _appVersion;
+    private readonly Func<ShellTextResources> _textProvider;
 
-    internal SettingsViewModel(string appVersion)
+    internal SettingsViewModel(
+        string appVersion,
+        ICanonicalSupportMatrixQuery supportMatrixQuery,
+        Func<ShellTextResources> textProvider)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(appVersion);
         _appVersion = appVersion;
+        _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
+        SupportMatrix = new SupportMatrixPresentationViewModel(supportMatrixQuery);
+        OpenSupportMatrixCommand = new RelayCommand(OpenSupportMatrix);
+        CloseSupportMatrixCommand = new RelayCommand(CloseSupportMatrix);
     }
 
     /// <summary>Version and supported-workflow facts shown on Settings.</summary>
@@ -26,11 +37,61 @@ public sealed class SettingsViewModel
     /// <summary>Language choices rendered by the global shell preference selector.</summary>
     public IReadOnlyList<string> LanguageChoices { get; } = ["English", "Traditional Chinese"];
 
+    /// <summary>Focused immutable Support Matrix disclosure.</summary>
+    public SupportMatrixPresentationViewModel SupportMatrix { get; }
+
+    /// <summary>Opens the focused Support Matrix child.</summary>
+    public IRelayCommand OpenSupportMatrixCommand { get; }
+
+    /// <summary>Returns to the Settings overview.</summary>
+    public IRelayCommand CloseSupportMatrixCommand { get; }
+
+    /// <summary>Whether the focused Support Matrix child is visible.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOverviewVisible))]
+    public partial bool IsSupportMatrixOpen { get; private set; }
+
+    /// <summary>Whether the Settings overview is visible.</summary>
+    public bool IsOverviewVisible => !IsSupportMatrixOpen;
+
     internal void Refresh(ShellTextResources text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        WorkbenchSettingsSnapshot snapshot = WorkbenchCompositionService.GetSettingsSnapshot();
+        SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
+        SupportMatrixRowViewModel[] authoringAvailableRows =
+        [
+            .. SupportMatrix.Rows.Where(static row => row.IsAuthoringAvailable),
+        ];
+        int catalogIcCount = authoringAvailableRows
+            .Select(static row => row.IcId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        bool hasPublication = SupportMatrix.CatalogState is
+            CanonicalSupportMatrixCatalogState.Current or
+            CanonicalSupportMatrixCatalogState.LastKnownGood;
+        string pendingValue = SupportMatrix.CatalogState ==
+            CanonicalSupportMatrixCatalogState.Loading
+                ? chinese ? "載入中…" : "Loading…"
+                : text.NotAvailableLabel;
+        string pendingStatus = SupportMatrix.CatalogState ==
+            CanonicalSupportMatrixCatalogState.Loading
+                ? chinese ? "載入中" : "Loading"
+                : chinese ? "無法使用" : "Unavailable";
+        string CatalogValue(int value, string unit = "")
+        {
+            return hasPublication ? $"{value}{unit}" : pendingValue;
+        }
+
+        string CatalogStatus(string availableStatus)
+        {
+            return hasPublication ? availableStatus : pendingStatus;
+        }
+
+        string CatalogIcValue(int value)
+        {
+            return CatalogValue(value, value == 1 ? " IC" : " ICs");
+        }
 
         ReplaceRows(
             OverviewRows,
@@ -42,25 +103,29 @@ public sealed class SettingsViewModel
                     chinese ? "目前版本" : "Current"),
                 new SettingSummaryViewModel(
                     chinese ? "IC 目錄" : "IC catalog",
-                    $"{snapshot.CatalogIcCount}",
+                    CatalogValue(catalogIcCount),
                     chinese
-                        ? "共用選擇器中的 IC 項目；各 workflow availability 仍分開判定。"
-                        : "IC entries in the shared selector; workflow availability is evaluated separately.",
-                    "Catalog"),
+                        ? "至少有一條 authoring-available 路徑的 IC；各 workflow 仍分開判定。"
+                        : "ICs with at least one authoring-available route; workflows remain independent.",
+                    CatalogStatus("Catalog")),
                 new SettingSummaryViewModel(
                     "Standard Merge",
-                    $"{snapshot.StandardMergeProfileCount} profiles",
+                    CatalogIcValue(CountAvailableIcs(
+                        authoringAvailableRows,
+                        WorkbenchWorkflowIds.StandardMerge)),
                     chinese
-                        ? "已編譯並可執行的 V2 Standard Merge profiles。"
-                        : "Compiled executable V2 Standard Merge profiles.",
-                    chinese ? "可執行" : "Executable"),
+                        ? "至少有一條 Standard Merge 路徑可出現在一般 authoring 選擇器的 IC。"
+                        : "ICs with at least one Standard Merge route available to ordinary authoring selectors.",
+                    CatalogStatus(chinese ? "可編輯" : "Authoring available")),
                 new SettingSummaryViewModel(
                     "DP Replace",
-                    $"{snapshot.DpReplaceProfileCount} profiles",
+                    CatalogIcValue(CountAvailableIcs(
+                        authoringAvailableRows,
+                        WorkbenchWorkflowIds.DpReplace)),
                     chinese
-                        ? "已編譯並可執行的 V2 DP Replace profiles。"
-                        : "Compiled executable V2 DP Replace profiles.",
-                    chinese ? "可執行" : "Executable"),
+                        ? "至少有一條 DP Replace 路徑可出現在一般 authoring 選擇器的 IC。"
+                        : "ICs with at least one DP Replace route available to ordinary authoring selectors.",
+                    CatalogStatus(chinese ? "可編輯" : "Authoring available")),
             ]);
 
         ReplaceRows(
@@ -68,12 +133,36 @@ public sealed class SettingsViewModel
             [
                 new SettingSummaryViewModel(
                     chinese ? "CtrlRAM Replace 可用 IC" : "CtrlRAM Replace available ICs",
-                    $"{snapshot.CtrlRamReplaceAvailableIcCount} ICs",
+                    CatalogIcValue(CountAvailableIcs(
+                        authoringAvailableRows,
+                        WorkbenchWorkflowIds.CtrlRamReplace)),
                     chinese
-                        ? "已有 executable/safety contract；golden 驗證狀態由各 workflow 分開顯示。"
-                        : "An executable/safety contract exists; golden verification remains a separate per-workflow status.",
-                    chinese ? "可用" : "Available"),
+                        ? "可出現在一般 authoring 選擇器；execution、publication 與 evidence 狀態請見支援矩陣。"
+                        : "Available to ordinary authoring selectors; see the matrix for execution, publication, and evidence.",
+                    CatalogStatus(chinese ? "可用" : "Available")),
             ]);
+    }
+
+    private static int CountAvailableIcs(
+        IEnumerable<SupportMatrixRowViewModel> rows,
+        string workflowId)
+    {
+        return rows
+            .Where(row => StringComparer.Ordinal.Equals(row.WorkflowId, workflowId))
+            .Select(static row => row.IcId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+    }
+
+    private void OpenSupportMatrix()
+    {
+        SupportMatrix.Refresh(_textProvider());
+        IsSupportMatrixOpen = true;
+    }
+
+    private void CloseSupportMatrix()
+    {
+        IsSupportMatrixOpen = false;
     }
 
     private static void ReplaceRows<T>(ObservableCollection<T> target, IEnumerable<T> rows)
