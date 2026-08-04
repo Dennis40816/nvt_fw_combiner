@@ -149,9 +149,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuildGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
         Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
         Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
+        Assert.Contains("WorkbenchGeneralReplaceAcceptedSessionRunner generalReplaceRun", presentation, StringComparison.Ordinal);
+        Assert.Contains("? await generalReplaceRun(", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("bool build", run, StringComparison.Ordinal);
         Assert.DoesNotContain("bool build", context, StringComparison.Ordinal);
         Assert.DoesNotContain("(build, outputPath, token)", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("replaceMode == GeneralReplaceMode\n                        ? build", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("CapabilityActionKind", run, StringComparison.Ordinal);
     }
 

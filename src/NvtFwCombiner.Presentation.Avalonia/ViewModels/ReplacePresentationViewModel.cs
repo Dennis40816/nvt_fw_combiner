@@ -20,10 +20,10 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
         CloseReplaceSelectionCommand = new RelayCommand(CloseReplaceSelection);
         AddGeneralReplaceMappingCommand = new RelayCommand(AddGeneralReplaceMapping);
         PreviewReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null),
+            PreviewReplaceAsync,
             CanRunReplace);
         BuildReplaceCommand = new AsyncRelayCommand(
-            () => RunReplaceAsync(build: true, outputPath: null, ctrlRamFirmwareVersionEdit: null),
+            () => RunBuildReplaceAsync(outputPath: null, ctrlRamFirmwareVersionEdit: null),
             () => CanBuildReplace);
         SelectCtrlRamFirmwareVersionPreserveCommand = new RelayCommand(SelectCtrlRamFirmwareVersionPreserve);
         SelectCtrlRamFirmwareVersionEditCommand = new RelayCommand(SelectCtrlRamFirmwareVersionEdit);
