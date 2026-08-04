@@ -107,7 +107,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 alignment: 1,
                 "General Replace V2 DP parity mapping."),
         ]);
-        WorkbenchRunResult routed = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult routed = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -115,9 +115,8 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 [WorkbenchSlotIds.ReplaceBase] = basePath,
             },
             mappingDraft,
-            build: true,
-            TestContext.Current.CancellationToken,
-            routedOutputPath);
+            routedOutputPath,
+            TestContext.Current.CancellationToken);
 
         Assert.True(routed.Succeeded, routed.ReportJson);
         Assert.Equal(execution.OutputBytes.ToArray(), await File.ReadAllBytesAsync(
@@ -176,7 +175,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 "forged-map"));
 
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+            await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -184,7 +183,6 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                     [WorkbenchSlotIds.ReplaceBase] = basePath,
                 },
                 draft,
-                build: true,
                 outputPath,
                 new GeneralSavedRuleResourcePolicy(
                     new SavedRuleLifecycleSnapshot(
@@ -220,7 +218,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
 
         string outputPath = workspace.PathFor("unsupported-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -235,9 +233,8 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 GeneralMappingSourceKind.HexOverwrite,
                 "A5 5A"),
             ]),
-            build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
+            outputPath,
+            TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded, result.ReportJson);
         using var report = JsonDocument.Parse(result.ReportJson);

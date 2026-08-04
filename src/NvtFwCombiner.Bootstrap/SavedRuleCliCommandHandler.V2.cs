@@ -26,20 +26,9 @@ internal static partial class SavedRuleCliCommandHandler
 
             using var document = JsonDocument.Parse(File.ReadAllText(fullPath));
             JsonElement root = document.RootElement;
-            string? schemaVersion = ReadSchemaVersion(root);
-            if (!StringComparer.Ordinal.Equals(schemaVersion, "2.0"))
+            if (SavedRuleSchemaVersionGate.Validate(root) is { } schemaIssue)
             {
-                string message = StringComparer.Ordinal.Equals(schemaVersion, "1.0")
-                    ? "Saved Rule v1 is retired; migrate the document to Saved Rule v2 before validation or execution."
-                    : "Saved Rule schemaVersion must be '2.0'.";
-                await PrintIssuesAsync(
-                    [
-                        new SavedRuleValidationIssue(
-                            SavedRuleIssueCodes.SchemaVersionUnsupported,
-                            message,
-                            "$.schemaVersion"),
-                    ],
-                    error).ConfigureAwait(false);
+                await PrintIssuesAsync([schemaIssue], error).ConfigureAwait(false);
                 return CompositionFailed;
             }
 
@@ -170,15 +159,6 @@ internal static partial class SavedRuleCliCommandHandler
             [new SavedRuleValidationIssue(code, message, "$")],
             error).ConfigureAwait(false);
         return CompositionFailed;
-    }
-
-    private static string? ReadSchemaVersion(JsonElement root)
-    {
-        return root.ValueKind == JsonValueKind.Object &&
-            root.TryGetProperty("schemaVersion", out JsonElement schemaVersion) &&
-            schemaVersion.ValueKind == JsonValueKind.String
-            ? schemaVersion.GetString()
-            : null;
     }
 
     private static bool TryResolveV2GeneralMergeParent(

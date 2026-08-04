@@ -93,14 +93,13 @@ public sealed partial class RepositoryBoundaryTests
     public void GeneralWorkflowsExposeOnlyCanonicalStartLengthDrafts()
     {
         string bootstrap = ReadBootstrapSources() + ReadBootstrapTestSources();
-        string applicationDraft = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/GeneralMappingDraftState.cs");
+        string production = ReadProductionSources();
 
         Assert.DoesNotContain("WorkbenchGeneralMergeMappingInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralReplaceMappingInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralReplacePatchInput", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("TryParseLegacyInclusiveRange", bootstrap, StringComparison.Ordinal);
-        Assert.DoesNotContain("TargetEndInclusive", applicationDraft, StringComparison.Ordinal);
+        Assert.DoesNotContain("TargetEndInclusive", production, StringComparison.Ordinal);
     }
 
     /// <summary>Saved Rule v1 remains historical contract evidence and cannot regain a production parser or projection.</summary>
@@ -128,9 +127,32 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.DoesNotContain(
             "LegacyTimestampFileStampCompatibilityAdapter",
-            ReadText(
-                "src/NvtFwCombiner.Infrastructure/Files/FileContentSnapshotInspector.cs"),
+            ReadProductionSources(),
             StringComparison.Ordinal);
+    }
+
+    /// <summary>General Replace callers select explicit Preview/Build entry points rather than a bool adapter.</summary>
+    [Fact]
+    public void GeneralReplacePreviewBuildBoundaryStaysTyped()
+    {
+        string run = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+        string context = ReadText(
+            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs");
+        string cli = ReadText(
+            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+        string presentation = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
+
+        Assert.Contains("GeneralReplaceRunActionStrategy strategy", run, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
+        Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
+        Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool build", run, StringComparison.Ordinal);
+        Assert.DoesNotContain("bool build", context, StringComparison.Ordinal);
+        Assert.DoesNotContain("(build, outputPath, token)", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("CapabilityActionKind", run, StringComparison.Ordinal);
     }
 
     /// <summary>General authoring has one Application admission snapshot from observation through compilation and report.</summary>
@@ -194,7 +216,7 @@ public sealed partial class RepositoryBoundaryTests
             mergeRun,
             StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: admission",
+            "generalAdmission: prepared.Admission",
             replaceRun,
             StringComparison.Ordinal);
         Assert.Contains(

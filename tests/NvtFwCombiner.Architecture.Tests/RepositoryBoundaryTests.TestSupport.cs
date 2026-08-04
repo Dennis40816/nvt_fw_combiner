@@ -111,6 +111,20 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
     }
 
+    private static string ReadProductionSources()
+    {
+        string directory = Path.Combine(Root.FullName, "src");
+        string binSegment = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
+        string objSegment = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
+        return string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
+                .Where(path => !path.Contains(binSegment, StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.Contains(objSegment, StringComparison.OrdinalIgnoreCase))
+                .Order(StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+    }
+
     private static string ReadProfileSources()
     {
         string directory = Path.Combine(

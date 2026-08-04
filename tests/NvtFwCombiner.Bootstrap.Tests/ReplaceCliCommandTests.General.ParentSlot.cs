@@ -25,7 +25,7 @@ public sealed partial class ReplaceCliCommandTests
         (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralReplaceRule(rule, reference, sourcePath: null);
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+            await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -33,7 +33,6 @@ public sealed partial class ReplaceCliCommandTests
                     [WorkbenchSlotIds.ReplaceBase] = reference,
                 },
                 draft,
-                build: true,
                 output,
                 policy,
                 TestContext.Current.CancellationToken);

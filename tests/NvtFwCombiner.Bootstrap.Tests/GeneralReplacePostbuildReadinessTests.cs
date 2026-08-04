@@ -193,19 +193,29 @@ public sealed class GeneralReplacePostbuildReadinessTests
             SavedRuleV2GeneralReplaceExactParentResolver.Resolve(
                 exactParentCatalog,
                 exactParentProfileId);
-        return WorkbenchCompositionService.RunGeneralReplaceWithInitialInspectionAsync(
-            icId,
-            number,
-            slotPaths,
-            mappingDraft,
-            new AuthoringRevision(1),
-            build,
-            outputPath,
-            progress,
-            cancellationToken,
-            savedRulePolicy: null,
-            runtime,
-            exactParent);
+        return build
+            ? WorkbenchCompositionService.BuildGeneralReplaceWithInitialInspectionAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                new AuthoringRevision(1),
+                outputPath,
+                progress,
+                cancellationToken,
+                savedRulePolicy: null,
+                runtime,
+                exactParent)
+            : WorkbenchCompositionService.PreviewGeneralReplaceWithInitialInspectionAsync(
+                icId,
+                number,
+                slotPaths,
+                mappingDraft,
+                new AuthoringRevision(1),
+                cancellationToken,
+                savedRulePolicy: null,
+                runtime,
+                exactParent);
     }
 
     private static byte[] CreatePostbuildReference(byte seed)

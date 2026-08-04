@@ -34,9 +34,34 @@ public sealed class WorkbenchCompositionServiceTests
                 static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
         AssertProgressAwareMethod(methods, "RunStandardMergeWithProgressAsync", expectedParameterCount: 6);
         AssertProgressAwareMethod(methods, "RunGeneralMergeAcceptedSessionWithProgressAsync", expectedParameterCount: 6);
-        AssertProgressAwareMethod(methods, "RunGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 8);
+        AssertProgressAwareMethod(methods, "PreviewGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 6);
+        AssertProgressAwareMethod(methods, "BuildGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 7);
         AssertProgressAwareMethod(methods, "RunReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 10);
         AssertProgressAwareMethod(methods, "RunReplaceWithProgressAsync", expectedParameterCount: 9);
+    }
+
+    /// <summary>General Replace Preview/Build crosses workflow boundaries as explicit entry points.</summary>
+    [Fact]
+    public void GeneralReplaceRunBoundaryDoesNotExposeBooleanActionAdapters()
+    {
+        MethodInfo[] methods = typeof(WorkbenchCompositionService).GetMethods(
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+        MethodInfo[] generalReplace =
+        [
+            .. methods.Where(static method =>
+                method.Name.Contains("GeneralReplace", StringComparison.Ordinal) &&
+                (method.Name.Contains("Run", StringComparison.Ordinal) ||
+                 method.Name.Contains("Preview", StringComparison.Ordinal) ||
+                 method.Name.Contains("Build", StringComparison.Ordinal) ||
+                 method.Name == "TryCreateGeneralReplaceRunContext")),
+        ];
+
+        Assert.NotEmpty(generalReplace);
+        Assert.All(
+            generalReplace,
+            static method => Assert.DoesNotContain(
+                method.GetParameters(),
+                static parameter => parameter.ParameterType == typeof(bool)));
     }
 
     private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -230,16 +255,15 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x00100", "0x2"),
             ]),
-            build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
+            outputPath,
+            TestContext.Current.CancellationToken);
 
         AssertWorkflowNotSupported(result, outputPath);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
@@ -259,14 +283,13 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x22C00", "0x2"),
             ]),
-            build: false,
             TestContext.Current.CancellationToken);
 
         AssertWorkflowNotSupported(result);
@@ -285,14 +308,13 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x36000", "0x1"),
             ]),
-            build: false,
             TestContext.Current.CancellationToken);
 
         AssertWorkflowNotSupported(result);
@@ -526,12 +548,11 @@ public sealed class WorkbenchCompositionServiceTests
             ["replace-base"] = missingBase,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
             "NT51927",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([]),
-            build: false,
             CancellationToken.None);
 
         Assert.False(result.Succeeded);

@@ -160,7 +160,8 @@ than silently changing that owner amendment. The exact reviewed #208 merge
 checkpoint `604199ab4a6bdb2f2da3f976851ce1c00b467bc8` (tree
 `35d83c477fff39f0fc11404f5dbcee7f007a3f4d`) measured 76,633 runtime nonblank
 lines with the canonical verifier, while the amendment expected 75,481. The
-#254 candidate measures 75,278, an exact reduction of 1,355 lines from that
+#254 candidate measures 75,630 after the explicit General Replace Preview/Build
+boundary and shared Saved Rule schema gate, an exact reduction of 1,003 lines from that
 observed merge tree. The 1,152-line baseline discrepancy creates no allowance,
 does not alter the 75,481 authority, and must be reconciled before any later
 pre-Core positive growth is accepted.

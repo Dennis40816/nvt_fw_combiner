@@ -6,9 +6,11 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class SavedRuleCliCommandTests
 {
-    /// <summary>Saved Rule v1 is retained only as historical schema evidence and cannot enter production validation.</summary>
-    [Fact]
-    public async Task SavedRuleValidateRejectsV1WithMigrationGuidance()
+    /// <summary>Saved Rule v1 is retained only as historical evidence and cannot enter inspection.</summary>
+    [Theory]
+    [InlineData("validate")]
+    [InlineData("mappings")]
+    public async Task SavedRuleInspectionRejectsV1WithMigrationGuidance(string action)
     {
         using var workspace = TempWorkspace.Create();
         string rule = workspace.PathFor("rule-v1.json");
@@ -17,7 +19,7 @@ public sealed partial class SavedRuleCliCommandTests
             ValidGeneralMergeRuleV1Json(),
             TestContext.Current.CancellationToken);
 
-        CliRunResult result = await RunCliAsync(["saved-rule", "validate", rule]);
+        CliRunResult result = await RunCliAsync(["saved-rule", action, rule]);
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains(SchemaVersionUnsupported, result.Error, StringComparison.Ordinal);

@@ -126,17 +126,26 @@ public sealed partial class ReplacePresentationViewModel
             {
                 WorkbenchRunResult result =
                     replaceMode == GeneralReplaceMode
-                        ? await WorkbenchCompositionService
-                            .RunGeneralReplaceAcceptedSessionWithProgressAsync(
-                                icId,
-                                number,
-                                slotPaths,
-                                generalSession!,
-                                build,
-                                progress,
-                                cancellationToken,
-                                outputPath)
-                            .ConfigureAwait(false)
+                        ? build
+                            ? await WorkbenchCompositionService
+                                .BuildGeneralReplaceAcceptedSessionWithProgressAsync(
+                                    icId,
+                                    number,
+                                    slotPaths,
+                                    generalSession!,
+                                    progress,
+                                    outputPath,
+                                    cancellationToken)
+                                .ConfigureAwait(false)
+                            : await WorkbenchCompositionService
+                                .PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
+                                    icId,
+                                    number,
+                                    slotPaths,
+                                    generalSession!,
+                                    progress,
+                                    cancellationToken)
+                                .ConfigureAwait(false)
                         : compiledSession?.GetAcceptedCapability(
                             AuthoringDerivedResultKind.Inspection) is null
                         ? WorkbenchCompositionService.CreateRejectedReplaceAttemptResult(

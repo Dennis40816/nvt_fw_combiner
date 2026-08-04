@@ -468,7 +468,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("GeneralReplaceRunIdPrefix", replaceGeneral, StringComparison.Ordinal);
         Assert.Contains("GetReplaceRunIdPrefix(replaceMode)", replaceReport, StringComparison.Ordinal);
         Assert.Contains(
-            "$\"{runIdPrefix}-{FormatWorkbenchRunAction(build)}-{FormatWorkbenchRunTimestamp(timestamp)}\"",
+            "$\"{runIdPrefix}-{runAction}-{FormatWorkbenchRunTimestamp(timestamp)}\"",
             replaceReport,
             StringComparison.Ordinal);
         foreach (string source in new[]

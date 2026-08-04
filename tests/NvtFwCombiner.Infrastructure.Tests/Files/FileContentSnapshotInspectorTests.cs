@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.Files;
 
-/// <summary>Tests host-file hashing and the one-way legacy timestamp adapter.</summary>
+/// <summary>Tests content-authoritative host-file inspection and hashing.</summary>
 public sealed class FileContentSnapshotInspectorTests
 {
     /// <summary>Inspection computes accepted length and SHA-256 from one selected file.</summary>
