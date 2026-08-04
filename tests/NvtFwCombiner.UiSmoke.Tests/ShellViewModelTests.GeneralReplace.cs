@@ -172,6 +172,43 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
+    /// <summary>General Replace rejects a Base changed after accepted readiness.</summary>
+    [Fact]
+    public async Task GeneralReplaceBuildRejectsBaseMutationAfterReadiness()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-base-stamp");
+        byte[] baseBytes = CreatePattern(0x40000, 0x26);
+        string basePath = workspace.Write("base.bin", baseBytes);
+        string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
+        string outputPath = workspace.PathFor("general-replace.bin");
+
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
+        OpenReplace(viewModel, "General");
+        viewModel.SetSlotFile("replace-base", basePath);
+        GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
+        mapping.TargetStartAddress = "0x3E020";
+        mapping.Length = "0x2";
+        viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+
+        await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+
+        baseBytes[0] ^= 0xFF;
+        await File.WriteAllBytesAsync(
+            basePath,
+            baseBytes,
+            TestContext.Current.CancellationToken);
+        await viewModel.Replace.BuildReplaceAsync(outputPath);
+
+        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
+        Assert.Contains(
+            "no longer matches",
+            viewModel.RunSession.LastRunResult.Detail,
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(outputPath));
+    }
+
     /// <summary>A queued General Replace run cannot swap or overwrite its immutable draft.</summary>
     [Fact]
     public async Task GeneralReplaceRunUsesCapturedDraftAndRejectsStalePublication()

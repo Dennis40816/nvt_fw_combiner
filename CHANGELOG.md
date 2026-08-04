@@ -35,6 +35,9 @@ Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
   Replace, and General Replace. Selected firmware is bound to normalized paths,
   terminal file stamps, authoring revision, capability/catalog identity, and
   `CompilationFingerprint`; changed or stale input fails closed.
+- General Replace now carries the inspected Base `FileStamp` through its exact
+  authoring session into the reference binding. Replacing the Base bytes after
+  readiness therefore fails before Preview/Build output can be committed.
 - Support status: unchanged/support-neutral. The desktop adoption does not
   promote an IC, workflow, topology, profile, golden, or publication state.
 - Compatibility: prerequisite slots remain visible but unavailable until their

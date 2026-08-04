@@ -121,7 +121,10 @@ public sealed partial class ReplacePresentationViewModel
         GeneralMappingDraftState draft,
         long capacity)
     {
-        return GeneralReplaceMappings
+        return TryGetAcceptedGeneralReplaceReference(
+                out string referencePath,
+                out FileStamp referenceStamp) &&
+            GeneralReplaceMappings
             .Where(static mapping => mapping.UsesFileSource)
             .OrderBy(mapping => mapping.IsInspectionVerified(_authoringSessions.GeneralReplace))
             .Any(mapping => mapping.TryAcceptCachedInspection(
@@ -132,6 +135,8 @@ public sealed partial class ReplacePresentationViewModel
                     SelectedNumber,
                     capacity,
                     draft,
+                    referencePath,
+                    referenceStamp,
                     mapping.MappingId,
                     cached.FileStamp.AcceptedLength)));
     }
@@ -140,6 +145,11 @@ public sealed partial class ReplacePresentationViewModel
         GeneralMappingDraftState draft,
         long capacity)
     {
+        if (!TryGetAcceptedGeneralReplaceReference(out string referencePath, out FileStamp referenceStamp))
+        {
+            return;
+        }
+
         CapabilityActionReadinessSnapshot? readiness =
             await WorkbenchCompositionService.GetGeneralReplaceActionReadinessAsync(
                 _authoringSessions.GeneralReplace,
@@ -147,6 +157,8 @@ public sealed partial class ReplacePresentationViewModel
                 SelectedNumber,
                 capacity,
                 draft,
+                referencePath,
+                referenceStamp,
                 _stateBindings.GetBaseInspection()?.FirmwareConfig,
                 CancellationToken.None);
         while (readiness is null &&
@@ -160,6 +172,8 @@ public sealed partial class ReplacePresentationViewModel
                 SelectedNumber,
                 capacity,
                 draft,
+                referencePath,
+                referenceStamp,
                 _stateBindings.GetBaseInspection()?.FirmwareConfig,
                 CancellationToken.None);
         }
@@ -177,7 +191,11 @@ public sealed partial class ReplacePresentationViewModel
         long observedLength)
     {
         long? capacity = _stateBindings.GetInspectedFileLength(ReplaceBaseSlot);
-        return capacity is null || _generalReplaceDraft is null
+        return capacity is null ||
+            _generalReplaceDraft is null ||
+            !TryGetAcceptedGeneralReplaceReference(
+                out string referencePath,
+                out FileStamp referenceStamp)
             ? new AuthoringSlotInspectionStartResult(
                 _authoringSessions.GeneralReplace.CurrentSnapshot,
                 Lease: null,
@@ -191,8 +209,26 @@ public sealed partial class ReplacePresentationViewModel
             SelectedNumber,
             capacity.Value,
             _generalReplaceDraft,
+            referencePath,
+            referenceStamp,
             mapping.MappingId,
             observedLength);
+    }
+
+    private bool TryGetAcceptedGeneralReplaceReference(
+        out string referencePath,
+        out FileStamp referenceStamp)
+    {
+        referencePath = ReplaceBaseSlot.FilePath ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(referencePath) &&
+            _stateBindings.GetBaseInspection()?.FileStamp is { } acceptedStamp)
+        {
+            referenceStamp = acceptedStamp;
+            return true;
+        }
+
+        referenceStamp = default;
+        return false;
     }
 
     internal bool TryPublishGeneralReplaceFileInspection(

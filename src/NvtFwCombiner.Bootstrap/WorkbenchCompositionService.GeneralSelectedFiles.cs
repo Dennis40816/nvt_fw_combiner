@@ -68,18 +68,24 @@ public static partial class WorkbenchCompositionService
     private static AuthoringCapabilityCatalogSnapshot CreateGeneralExactCatalog(
         ResolvedCapability capability,
         IReadOnlyList<GeneralInputResource> inputResources,
-        GeneralMappingDraftState draft)
+        GeneralMappingDraftState draft,
+        long? referenceCapacity = null)
     {
         var lengths = inputResources.ToDictionary(
             static resource => resource.SlotId,
             static resource => resource.LengthBytes,
             StringComparer.Ordinal);
+        var slotLengths = draft.Rows.ToDictionary(
+            static row => row.MappingId,
+            row => lengths.GetValueOrDefault(row.MappingId, row.SourceRange.EndExclusive),
+            StringComparer.Ordinal);
+        if (referenceCapacity is { } capacity)
+        {
+            slotLengths.Add(GeneralReplaceV2Registration.ReferenceAddressSpaceId, capacity);
+        }
         return AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
             capability,
-            draft.Rows.ToDictionary(
-                static row => row.MappingId,
-                row => lengths.GetValueOrDefault(row.MappingId, row.SourceRange.EndExclusive),
-                StringComparer.Ordinal));
+            slotLengths);
     }
 
     /// <summary>Inspects one desktop-selected General file before command readiness is published.</summary>

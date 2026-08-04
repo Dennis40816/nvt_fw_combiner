@@ -206,6 +206,9 @@ public sealed record WorkbenchFirmwareInspection(
     WorkbenchCtrlRamInspectionDisplay? CtrlRamDisplay,
     WorkbenchBaseFirmwareArtifactKind BaseFirmwareArtifactKind = WorkbenchBaseFirmwareArtifactKind.Unknown)
 {
+    /// <summary>Content identity captured from the same immutable bytes used by this inspection.</summary>
+    public FileStamp? FileStamp { get; init; }
+
     /// <summary>Application-owned profile-declared artifact classification and its typed evidence.</summary>
     public CompiledFirmwareArtifactClassification? ArtifactClassification { get; init; }
 

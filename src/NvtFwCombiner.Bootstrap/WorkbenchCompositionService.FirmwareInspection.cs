@@ -195,6 +195,7 @@ public static partial class WorkbenchCompositionService
             artifactKind)
         {
             ArtifactClassification = artifactClassification,
+            FileStamp = FileStamp.FromBytes(image),
         };
     }
 

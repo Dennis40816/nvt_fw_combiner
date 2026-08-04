@@ -316,7 +316,8 @@ public static partial class WorkbenchCompositionService
             : RunGeneralReplaceDraftCoreAsync(
                 icId, number, slotPaths, draft, acceptedSession.AuthoringRevision,
                 strategy, outputPath, progress, cancellationToken,
-                acceptedCapability: capability);
+                acceptedCapability: capability,
+                acceptedSession: acceptedSession);
     }
 
     private static WorkbenchRunResult CreateGeneralReplaceUnavailableResult(

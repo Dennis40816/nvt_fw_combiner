@@ -17,6 +17,8 @@ public static partial class WorkbenchCompositionService
             string number,
             long referenceCapacity,
             GeneralMappingDraftState mappingDraft,
+            string referencePath,
+            FileStamp acceptedReferenceStamp,
             WorkbenchFirmwareConfigMetadata? baseFirmware,
             CancellationToken cancellationToken)
     {
@@ -25,6 +27,7 @@ public static partial class WorkbenchCompositionService
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(referenceCapacity);
         ArgumentNullException.ThrowIfNull(mappingDraft);
+        ArgumentException.ThrowIfNullOrWhiteSpace(referencePath);
         if (!BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
                 Profiles.IcSupportCatalog.NormalizeIcId(icId),
                 out GeneralReplaceV2Registration? registration))
@@ -102,18 +105,22 @@ public static partial class WorkbenchCompositionService
         AuthoringSessionTransitionResult activated = session.Activate(CreateGeneralExactCatalog(
             capability!,
             admission.InputResources,
-            mappingDraft));
+            mappingDraft,
+            referenceCapacity));
         if (!activated.Succeeded)
         {
             return null;
         }
         AuthoringSessionTransitionResult drafted = session.SetDraft(mappingDraft);
         if (!drafted.Succeeded ||
-            !ReferenceEquals(drafted.Snapshot!.ExactCapability, capability))
+            !ReferenceEquals(drafted.Snapshot!.ExactCapability, capability) ||
+            !TryAcceptGeneralReplaceReference(
+                session,
+                referencePath,
+                acceptedReferenceStamp))
         {
             return null;
         }
-        ActiveSessionSnapshot current = drafted.Snapshot;
         AuthoringPublicationLease publication = session.CapturePublicationLease(
             AuthoringDerivedResultKind.Validation,
             capability!.CompiledComposition.CompilationFingerprint);
@@ -122,7 +129,7 @@ public static partial class WorkbenchCompositionService
                 admission,
                 registration.ExactParent.Runtime,
                 capability,
-                current.AuthoringRevision,
+                publication.AuthoringRevision,
                 touchesTp,
                 planningIssue,
                 runtimeOverride: null,
@@ -131,7 +138,7 @@ public static partial class WorkbenchCompositionService
             publication,
             new AuthoringDerivedPublication(
                 AuthoringDerivedResultKind.Validation,
-                $"general-replace-readiness:{current.AuthoringRevision.Value}",
+                $"general-replace-readiness:{publication.AuthoringRevision.Value}",
                 capability.CompiledComposition.CompilationFingerprint));
         return published.Succeeded ? readiness : null;
     }
@@ -168,14 +175,22 @@ public static partial class WorkbenchCompositionService
         string number,
         long referenceCapacity,
         GeneralMappingDraftState draft,
+        string referencePath,
+        FileStamp acceptedReferenceStamp,
         string mappingId,
         long observedLength)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(draft);
+        ArgumentException.ThrowIfNullOrWhiteSpace(referencePath);
         ResolvedCapability? retained = TryRetainGeneralMappingCompilation(
             session, draft, mappingId, observedLength);
-        if (retained is not null && session.SetDraft(draft).Succeeded)
+        if (retained is not null &&
+            session.SetDraft(draft).Succeeded &&
+            TryAcceptGeneralReplaceReference(
+                session,
+                referencePath,
+                acceptedReferenceStamp))
         {
             string retainedPath = draft.Rows.Single(row =>
                 StringComparer.Ordinal.Equals(row.MappingId, mappingId)).Source.Reference;
@@ -233,8 +248,13 @@ public static partial class WorkbenchCompositionService
             !session.Activate(CreateGeneralExactCatalog(
                 capability!,
                 admission.InputResources,
-                draft)).Succeeded ||
-            !session.SetDraft(draft).Succeeded)
+                draft,
+                referenceCapacity)).Succeeded ||
+            !session.SetDraft(draft).Succeeded ||
+            !TryAcceptGeneralReplaceReference(
+                session,
+                referencePath,
+                acceptedReferenceStamp))
         {
             return InspectionStartFailure(session, mappingId);
         }
@@ -242,6 +262,39 @@ public static partial class WorkbenchCompositionService
         string selectedPath = draft.Rows.Single(row =>
             StringComparer.Ordinal.Equals(row.MappingId, mappingId)).Source.Reference;
         return session.BeginSlotFileInspection(mappingId, selectedPath);
+    }
+
+    private static bool TryAcceptGeneralReplaceReference(
+        AuthoringSessionState session,
+        string referencePath,
+        FileStamp acceptedReferenceStamp)
+    {
+        string fullPath = Path.GetFullPath(referencePath);
+        AuthoringSlotState? accepted = session.CurrentSnapshot?.Slots.SingleOrDefault(slot =>
+            StringComparer.Ordinal.Equals(
+                slot.DefinitionId,
+                GeneralReplaceV2Registration.ReferenceAddressSpaceId));
+        StringComparison pathComparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (accepted?.SelectedPath is { } selectedPath &&
+            string.Equals(Path.GetFullPath(selectedPath), fullPath, pathComparison) &&
+            accepted.FileStamp == acceptedReferenceStamp &&
+            accepted.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning)
+        {
+            return true;
+        }
+
+        AuthoringSlotInspectionStartResult started = session.BeginSlotFileInspection(
+            GeneralReplaceV2Registration.ReferenceAddressSpaceId,
+            fullPath);
+        return started.Succeeded && session.TryAcceptSlotFileInspection(
+            started.Lease!,
+            new GeneralSelectedFileInspection(
+                GeneralReplaceV2Registration.ReferenceAddressSpaceId,
+                started.Snapshot!.AuthoringRevision,
+                fullPath,
+                acceptedReferenceStamp)).Succeeded;
     }
 
     private static AuthoringSlotInspectionStartResult InspectionStartFailure(

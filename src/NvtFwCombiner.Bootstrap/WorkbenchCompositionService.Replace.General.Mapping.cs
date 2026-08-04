@@ -381,11 +381,16 @@ public static partial class WorkbenchCompositionService
         HashSet<string> ids,
         List<CompositionIssue> issues)
     {
-        if (string.IsNullOrWhiteSpace(id) || id.IndexOfAny(['/', '\\', ':']) >= 0 || id is "." or "..")
+        if (string.IsNullOrWhiteSpace(id) ||
+            id.IndexOfAny(['/', '\\', ':']) >= 0 ||
+            id is "." or ".." ||
+            StringComparer.Ordinal.Equals(
+                id,
+                GeneralReplaceV2Registration.ReferenceAddressSpaceId))
         {
             issues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.GeneralReplacePatchIdInvalid,
-                "General Replace mapping and patch ids must be non-empty report-safe identifiers.",
+                "General Replace mapping and patch ids must be non-empty report-safe identifiers and cannot use the reserved Base slot id.",
                 id));
             return false;
         }

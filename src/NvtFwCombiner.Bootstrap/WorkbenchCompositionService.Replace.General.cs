@@ -33,7 +33,8 @@ public static partial class WorkbenchCompositionService
         GeneralSavedRuleResourcePolicy? savedRulePolicy = null,
         GeneralReplacePostbuildReadinessOverride? postbuildReadinessOverride = null,
         SavedRuleV2GeneralReplaceExactParent? exactParentOverride = null,
-        ResolvedCapability? acceptedCapability = null)
+        ResolvedCapability? acceptedCapability = null,
+        ActiveSessionSnapshot? acceptedSession = null)
     {
         if (!TryCreateGeneralReplaceRunContext(
                 icId,
@@ -222,10 +223,17 @@ public static partial class WorkbenchCompositionService
 
         InputArtifactBinding[] bindings =
         [
-            CompiledCompositionInputBindingFactory.Create(
-                compiledComposition,
-                GeneralReplaceV2Registration.ReferenceAddressSpaceId,
-                context.BasePath),
+            acceptedSession is null
+                ? CompiledCompositionInputBindingFactory.Create(
+                    compiledComposition,
+                    GeneralReplaceV2Registration.ReferenceAddressSpaceId,
+                    context.BasePath)
+                : CreateAcceptedSessionBinding(
+                    compiledComposition,
+                    GeneralReplaceV2Registration.ReferenceAddressSpaceId,
+                    context.BasePath,
+                    acceptedSession,
+                    GeneralReplaceV2Registration.ReferenceAddressSpaceId),
             .. mappingBindings.Select(binding => CompiledCompositionInputBindingFactory.Create(
                 compiledComposition,
                 binding.AddressSpaceId,

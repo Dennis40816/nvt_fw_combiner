@@ -202,6 +202,34 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>The canonical Base slot id cannot be reused as a General mapping id.</summary>
+    [Fact]
+    public async Task GeneralReplaceRejectsReservedReferenceSlotIdWithTypedIssue()
+    {
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-reference-id");
+        string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x76));
+        string sourcePath = workspace.Write("mapping.bin", [0xA5, 0x5A]);
+
+        WorkbenchRunResult result = await WorkbenchCompositionService
+            .PreviewGeneralReplaceEphemeralDraftAsync(
+                "NT51926",
+                "single",
+                CreateBaseSlots(basePath),
+                GeneralTestDraftFactory.CreateReplaceDraft([
+                    GeneralTestDraftFactory.ReplaceFile(
+                        "reference-image",
+                        sourcePath,
+                        "0x3E020",
+                        "0x2"),
+                ]),
+                TestContext.Current.CancellationToken);
+
+        Assert.False(result.Succeeded);
+        AssertReportHasIssue(
+            result.ReportJson,
+            WorkbenchIssueCodes.GeneralReplacePatchIdInvalid);
+    }
+
     /// <summary>Rejects counts outside an owner-declared range before evaluating DP-only route support.</summary>
     [Fact]
     public async Task GeneralReplaceDpOnlyPatchStillValidatesIcNumber()

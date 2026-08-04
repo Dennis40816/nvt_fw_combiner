@@ -179,7 +179,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         AuthoringSessionState session = ReplaceAuthoringSessionSet.CreateEphemeral(
             ExperienceIds.GeneralReplace);
         ActiveSessionSnapshot acceptedSession = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, pending,
+            session, "NT51926", "single", 0x40000, basePath, pending,
             "mapping-1", sourcePath, expectedLength: 2);
         ResolvedCapability capability =
             Assert.IsType<ResolvedCapability>(
@@ -227,7 +227,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         var rebound = new GeneralMappingDraftState(acceptedDraft.Rows.Select(static row =>
             row.RebindSelectedFile(row.Source.Reference)));
         ActiveSessionSnapshot reloadedSession = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, rebound,
+            session, "NT51926", "single", 0x40000, basePath, rebound,
             "mapping-1", sourcePath, expectedLength: 2);
         GeneralMappingDraftRow reloadedRow = Assert.Single(
             Assert.IsType<GeneralMappingDraftState>(reloadedSession.DraftState).Rows);
@@ -309,6 +309,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
     public async Task GeneralReplaceTwoFilesRetainExactCompilationAndReachReadiness()
     {
         using var workspace = TempWorkspace.Create("nfc-general-replace-two-files");
+        string basePath = workspace.Write("base.bin", new byte[0x40000]);
         string firstPath = workspace.Write("first.bin", [0x31, 0x32]);
         string secondPath = workspace.Write("second.bin", [0x41, 0x42]);
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
@@ -324,12 +325,12 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             ExperienceIds.GeneralReplace);
 
         _ = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, pending,
+            session, "NT51926", "single", 0x40000, basePath, pending,
             "mapping-1", firstPath, 2, expectReady: false);
         GeneralMappingDraftState afterFirst =
             Assert.IsType<GeneralMappingDraftState>(session.CurrentSnapshot!.DraftState);
         ActiveSessionSnapshot second = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, afterFirst,
+            session, "NT51926", "single", 0x40000, basePath, afterFirst,
             "mapping-2", secondPath, 2, expectReady: false);
         ResolvedCapability exact = Assert.IsType<ResolvedCapability>(second.ExactCapability);
         GeneralMappingDraftState afterSecond = Assert.IsType<GeneralMappingDraftState>(
@@ -339,6 +340,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             "NT51926",
             "single",
             0x40000,
+            basePath,
             afterSecond,
             "mapping-1",
             firstPath);
@@ -349,6 +351,8 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "single",
                 0x40000,
                 Assert.IsType<GeneralMappingDraftState>(session.CurrentSnapshot!.DraftState),
+                basePath,
+                FileStamp.FromBytes(File.ReadAllBytes(basePath)),
                 baseFirmware: null,
                 TestContext.Current.CancellationToken);
 
@@ -356,6 +360,62 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         Assert.All(session.CurrentSnapshot.Slots, static slot => Assert.True(
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning));
         Assert.NotNull(readiness);
+        Assert.NotNull(session.CurrentSnapshot.GetAcceptedCapability(
+            AuthoringDerivedResultKind.Validation));
+    }
+
+    /// <summary>General Replace readiness publishes the revision that rebound its Base.</summary>
+    [Fact]
+    public async Task GeneralReplaceReboundReferenceReadinessUsesAcceptedRevision()
+    {
+        using var workspace = TempWorkspace.Create(
+            "nfc-general-replace-reference-readiness-revision");
+        string originalBasePath = workspace.Write("base.bin", new byte[0x40000]);
+        byte[] reboundBase = new byte[0x40000];
+        reboundBase[0] = 0x7E;
+        string reboundBasePath = workspace.Write("rebound-base.bin", reboundBase);
+        string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
+        GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
+        [
+            WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+                "mapping-1",
+                GeneralMappingSourceKind.FileArtifact,
+                sourcePath,
+                "0x3E020",
+                "0x2",
+                FileStamp.FromBytes(File.ReadAllBytes(sourcePath))),
+        ]);
+        AuthoringSessionState session = ReplaceAuthoringSessionSet.CreateEphemeral(
+            ExperienceIds.GeneralReplace);
+        _ = await AcceptGeneralReplaceSessionAsync(
+            session,
+            "NT51926",
+            "single",
+            0x40000,
+            originalBasePath,
+            pending,
+            "mapping-1",
+            sourcePath,
+            expectedLength: 2);
+        GeneralMappingDraftState accepted = Assert.IsType<GeneralMappingDraftState>(
+            session.CurrentSnapshot!.DraftState);
+
+        CapabilityActionReadinessSnapshot? readiness = await WorkbenchCompositionService
+            .GetGeneralReplaceActionReadinessAsync(
+                session,
+                "NT51926",
+                "single",
+                0x40000,
+                accepted,
+                reboundBasePath,
+                FileStamp.FromBytes(reboundBase),
+                baseFirmware: null,
+                TestContext.Current.CancellationToken);
+
+        Assert.NotNull(readiness);
+        Assert.Equal(
+            session.CurrentSnapshot!.AuthoringRevision,
+            readiness.AuthoringRevision);
         Assert.NotNull(session.CurrentSnapshot.GetAcceptedCapability(
             AuthoringDerivedResultKind.Validation));
     }
@@ -418,6 +478,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string icId,
         string number,
         long capacity,
+        string referencePath,
         GeneralMappingDraftState draft,
         string mappingId,
         string sourcePath,
@@ -426,7 +487,15 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
     {
         AuthoringSlotInspectionStartResult started =
             WorkbenchCompositionService.BeginGeneralReplaceSelectedFileInspection(
-                session, icId, number, capacity, draft, mappingId, expectedLength);
+                session,
+                icId,
+                number,
+                capacity,
+                draft,
+                referencePath,
+                FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
+                mappingId,
+                expectedLength);
         if (!started.Succeeded && !expectReady)
         {
             Assert.True(WorkbenchCompositionService.PrepareGeneralReplaceSelectionSession(
@@ -469,6 +538,8 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             number,
             capacity,
             accepted,
+            referencePath,
+            FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
             baseFirmware: null,
             TestContext.Current.CancellationToken);
         Assert.Equal(expectReady, readiness is not null);
@@ -503,6 +574,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string icId,
         string number,
         long capacity,
+        string referencePath,
         GeneralMappingDraftState draft,
         string mappingId,
         string sourcePath)
@@ -516,6 +588,8 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 number,
                 capacity,
                 draft,
+                referencePath,
+                FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
                 mappingId,
                 cached.FileStamp.AcceptedLength);
         Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(

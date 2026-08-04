@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -379,14 +380,24 @@ public sealed partial class AuthoringSessionState
                 lease.DefinitionId,
                 lease.SelectedPath,
                 inspection.FileStamp);
-            if (GetGeneralMappings(_current.DraftState) is not null &&
-                acceptedDraft is null)
+            GeneralMappingDraftState? generalMappings = GetGeneralMappings(_current.DraftState);
+            bool isGeneralMappingSlot = generalMappings?.Rows.Any(row =>
+                StringComparer.Ordinal.Equals(row.MappingId, lease.DefinitionId)) == true;
+            bool isGeneralReferenceSlot = _current.ExactCapability?.CompiledComposition.Plan
+                    .OutputInitialization is { Kind: ImageInitializationKind.Reference } initialization &&
+                StringComparer.Ordinal.Equals(
+                    initialization.ReferenceSpaceId,
+                    lease.DefinitionId);
+            if (generalMappings is not null &&
+                acceptedDraft is null &&
+                (isGeneralMappingSlot || !isGeneralReferenceSlot))
             {
                 return Failure(
                     AuthoringSessionIssueCodes.StaleInspection,
                     "The selected-file inspection no longer matches the General mapping draft.",
                     inspection.DefinitionId);
             }
+            acceptedDraft ??= _current.DraftState;
 
             AuthoringSlotState[] slots = [.. _current.Slots];
             int index = Array.FindIndex(slots, slot =>
