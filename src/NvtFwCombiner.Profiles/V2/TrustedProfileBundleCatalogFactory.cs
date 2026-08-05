@@ -160,13 +160,13 @@ internal static class TrustedProfileBundleCatalogFactory
             TrustedCompositionProfileJsonSource source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
-            switch (profile.CompilationContext.Kind)
+            switch (profile.CompilationContext)
             {
-                case CompositionProfileCompilationContextKind.ResolvedMap:
-                case CompositionProfileCompilationContextKind.RuntimeReferenceReplace:
+                case ResolvedMapProfileCompilationContext:
+                case RuntimeReferenceReplaceProfileCompilationContext:
                     ValidateDeclaredMaps(profile, family, source.Identity);
                     break;
-                case CompositionProfileCompilationContextKind.LogicalOutput:
+                case LogicalOutputProfileCompilationContext:
                     ValidateLogicalMembers(profile, family, source.Identity);
                     break;
                 default:

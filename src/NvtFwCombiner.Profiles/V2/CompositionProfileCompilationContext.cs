@@ -1,28 +1,13 @@
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed compilation context declared by one trusted V2 profile.</summary>
-internal enum CompositionProfileCompilationContextKind
-{
-    ResolvedMap,
-    LogicalOutput,
-    RuntimeReferenceReplace,
-}
-
 /// <summary>Common exact trusted-family identity retained by every V2 profile context.</summary>
 internal abstract class CompositionProfileCompilationContext
 {
     protected CompositionProfileCompilationContext(
-        CompositionProfileCompilationContextKind kind,
         string familyId,
         string familyVersion,
         string familyContentHash)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown composition-profile compilation context kind.");
-        }
-
-        Kind = kind;
         FamilyId = CompositionProfileValueRules.RequireId(familyId, nameof(familyId));
         FamilyVersion = CompositionProfileValueRules.RequireSemanticVersion(familyVersion, nameof(familyVersion));
         if (!CompositionProfileValueRules.IsLowercaseSha256(familyContentHash))
@@ -34,8 +19,6 @@ internal abstract class CompositionProfileCompilationContext
 
         FamilyContentHash = familyContentHash;
     }
-
-    internal CompositionProfileCompilationContextKind Kind { get; }
 
     internal string FamilyId { get; }
 
@@ -49,7 +32,6 @@ internal sealed class ResolvedMapProfileCompilationContext : CompositionProfileC
 {
     internal ResolvedMapProfileCompilationContext(CompositionProfileMapBinding mapBinding)
         : base(
-            CompositionProfileCompilationContextKind.ResolvedMap,
             RequireBinding(mapBinding).FamilyId,
             mapBinding.FamilyVersion,
             mapBinding.FamilyContentHash)
@@ -77,7 +59,6 @@ internal sealed class LogicalOutputProfileCompilationContext : CompositionProfil
         string familyContentHash,
         IEnumerable<string> memberIds)
         : base(
-            CompositionProfileCompilationContextKind.LogicalOutput,
             familyId,
             familyVersion,
             familyContentHash)
@@ -99,7 +80,6 @@ internal sealed class RuntimeReferenceReplaceProfileCompilationContext : Composi
         string schemaVersion,
         CompositionProfileMapBinding mapBinding)
         : base(
-            CompositionProfileCompilationContextKind.RuntimeReferenceReplace,
             RequireBinding(mapBinding).FamilyId,
             mapBinding.FamilyVersion,
             mapBinding.FamilyContentHash)
