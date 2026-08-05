@@ -11,7 +11,7 @@ public sealed class CompositionProfileV2ValidationTests
     public void ValidationKindsKeepTypedLogicalReferences()
     {
         CompositionProfileMetadataFieldReference field = Field("cmd", "major");
-        var metadataValue = new MetadataValueProfileValidation(
+        CompositionProfileValidation validation = new MetadataValueProfileValidation(
             "version-valid",
             CompositionProfileValidationStage.InputLoad,
             CompositionProfileValidationSeverity.Error,
@@ -48,7 +48,8 @@ public sealed class CompositionProfileV2ValidationTests
             new CompositionProfileByteValue([0xA0]),
             new CompositionProfileByteValue([0xF0]));
 
-        Assert.Equal(CompositionProfileValidationKind.MetadataValue, metadataValue.Kind);
+        MetadataValueProfileValidation metadataValue =
+            Assert.IsType<MetadataValueProfileValidation>(validation);
         Assert.Equal(2, metadataValue.ExpectedValues.Count);
         Assert.Equal("pid", pid.Field.FieldId);
         Assert.Equal("legacy", equality.Right.BindingId);
@@ -66,13 +67,15 @@ public sealed class CompositionProfileV2ValidationTests
         var integer = BigInteger.Parse(
             "18446744073709551616",
             System.Globalization.CultureInfo.InvariantCulture);
-        var integerLiteral = new CompositionProfileIntegerLiteral(integer);
-        var textLiteral = new CompositionProfileTextLiteral("0010");
+        CompositionProfileScalarLiteral integerValue = new CompositionProfileIntegerLiteral(integer);
+        CompositionProfileScalarLiteral textValue = new CompositionProfileTextLiteral("0010");
+        CompositionProfileIntegerLiteral integerLiteral =
+            Assert.IsType<CompositionProfileIntegerLiteral>(integerValue);
+        CompositionProfileTextLiteral textLiteral =
+            Assert.IsType<CompositionProfileTextLiteral>(textValue);
 
         Assert.Equal(integer, integerLiteral.Value);
-        Assert.Equal(CompositionProfileScalarLiteralKind.Integer, integerLiteral.Kind);
         Assert.Equal("0010", textLiteral.Value);
-        Assert.Equal(CompositionProfileScalarLiteralKind.Text, textLiteral.Kind);
         _ = Assert.Throws<ArgumentException>(() => new CompositionProfileTextLiteral(string.Empty));
     }
 

@@ -42,6 +42,18 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionProfileInitializerKind",
             ReadProfileSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileViewSelectorKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarLiteralKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>

@@ -16,34 +16,13 @@ internal sealed record CompositionProfileMetadataFieldReference
     internal string FieldId { get; }
 }
 
-/// <summary>Map-independent scalar kind retained until family field binding.</summary>
-internal enum CompositionProfileScalarLiteralKind
-{
-    Integer,
-    Text,
-}
-
 /// <summary>Base value for one schema scalar before exact family-field conversion.</summary>
-internal abstract record CompositionProfileScalarLiteral
-{
-    protected CompositionProfileScalarLiteral(CompositionProfileScalarLiteralKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scalar literal kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileScalarLiteralKind Kind { get; }
-}
+internal abstract record CompositionProfileScalarLiteral;
 
 /// <summary>One arbitrary-precision JSON integer literal.</summary>
 internal sealed record CompositionProfileIntegerLiteral : CompositionProfileScalarLiteral
 {
     internal CompositionProfileIntegerLiteral(BigInteger value)
-        : base(CompositionProfileScalarLiteralKind.Integer)
     {
         Value = value;
     }
@@ -55,7 +34,6 @@ internal sealed record CompositionProfileIntegerLiteral : CompositionProfileScal
 internal sealed record CompositionProfileTextLiteral : CompositionProfileScalarLiteral
 {
     internal CompositionProfileTextLiteral(string value)
-        : base(CompositionProfileScalarLiteralKind.Text)
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
         Value = value;
@@ -82,17 +60,6 @@ internal enum CompositionProfileValidationSeverity
     Error,
 }
 
-/// <summary>Closed normalized profile validation kind.</summary>
-internal enum CompositionProfileValidationKind
-{
-    MetadataValue,
-    PidSanity,
-    MetadataEquality,
-    RejectMetadataBytePattern,
-    ViewByteAssertion,
-    NonUniformRegion,
-}
-
 /// <summary>Base value for one normalized profile validation.</summary>
 internal abstract record CompositionProfileValidation
 {
@@ -100,8 +67,7 @@ internal abstract record CompositionProfileValidation
         string ruleId,
         CompositionProfileValidationStage stage,
         CompositionProfileValidationSeverity severity,
-        string issueCode,
-        CompositionProfileValidationKind kind)
+        string issueCode)
     {
         RuleId = CompositionProfileValueRules.RequireId(ruleId, nameof(ruleId));
         if (!Enum.IsDefined(stage))
@@ -115,14 +81,8 @@ internal abstract record CompositionProfileValidation
         }
 
         IssueCode = CompositionProfileValueRules.RequireIssueCode(issueCode, nameof(issueCode));
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown validation kind.");
-        }
-
         Stage = stage;
         Severity = severity;
-        Kind = kind;
     }
 
     internal string RuleId { get; }
@@ -133,7 +93,6 @@ internal abstract record CompositionProfileValidation
 
     internal string IssueCode { get; }
 
-    internal CompositionProfileValidationKind Kind { get; }
 }
 
 /// <summary>Closed metadata comparison operator.</summary>
@@ -157,7 +116,7 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
         CompositionProfileMetadataFieldReference field,
         CompositionProfileMetadataComparison comparison,
         IEnumerable<CompositionProfileScalarLiteral> expectedValues)
-        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.MetadataValue)
+        : base(ruleId, stage, severity, issueCode)
     {
         ArgumentNullException.ThrowIfNull(field);
         if (!Enum.IsDefined(comparison))
@@ -201,7 +160,7 @@ internal sealed record PidSanityProfileValidation : CompositionProfileValidation
         CompositionProfileValidationSeverity severity,
         string issueCode,
         CompositionProfileMetadataFieldReference field)
-        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.PidSanity)
+        : base(ruleId, stage, severity, issueCode)
     {
         ArgumentNullException.ThrowIfNull(field);
         Field = field;
@@ -220,7 +179,7 @@ internal sealed record MetadataEqualityProfileValidation : CompositionProfileVal
         string issueCode,
         CompositionProfileMetadataFieldReference left,
         CompositionProfileMetadataFieldReference right)
-        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.MetadataEquality)
+        : base(ruleId, stage, severity, issueCode)
     {
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
@@ -252,12 +211,7 @@ internal sealed record RejectMetadataBytePatternProfileValidation : CompositionP
         string issueCode,
         CompositionProfileMetadataFieldReference field,
         IEnumerable<CompositionProfileRejectedBytePattern> rejectedPatterns)
-        : base(
-            ruleId,
-            stage,
-            severity,
-            issueCode,
-            CompositionProfileValidationKind.RejectMetadataBytePattern)
+        : base(ruleId, stage, severity, issueCode)
     {
         ArgumentNullException.ThrowIfNull(field);
         ArgumentNullException.ThrowIfNull(rejectedPatterns);
@@ -293,7 +247,7 @@ internal sealed record ViewByteAssertionProfileValidation : CompositionProfileVa
         string viewId,
         CompositionProfileByteValue expected,
         CompositionProfileByteValue? mask = null)
-        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.ViewByteAssertion)
+        : base(ruleId, stage, severity, issueCode)
     {
         ViewId = CompositionProfileValueRules.RequireId(viewId, nameof(viewId));
         ArgumentNullException.ThrowIfNull(expected);
@@ -350,7 +304,7 @@ internal sealed record NonUniformRegionProfileValidation : CompositionProfileVal
         CompositionProfileValidationSeverity severity,
         string issueCode,
         string viewId)
-        : base(ruleId, stage, severity, issueCode, CompositionProfileValidationKind.NonUniformRegion)
+        : base(ruleId, stage, severity, issueCode)
     {
         if (stage != CompositionProfileValidationStage.InputLoad ||
             severity != CompositionProfileValidationSeverity.Warning)

@@ -3,36 +3,13 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed logical-view selector kind.</summary>
-internal enum CompositionProfileViewSelectorKind
-{
-    MapRegion,
-    MapRegionSlice,
-    SpaceRange,
-    RegionTemplateRange,
-}
-
 /// <summary>Base value for one normalized logical-view selector.</summary>
-internal abstract record CompositionProfileViewSelector
-{
-    protected CompositionProfileViewSelector(CompositionProfileViewSelectorKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile view selector kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileViewSelectorKind Kind { get; }
-}
+internal abstract record CompositionProfileViewSelector;
 
 /// <summary>Selects one complete canonical map region.</summary>
 internal sealed record MapRegionViewSelector : CompositionProfileViewSelector
 {
     internal MapRegionViewSelector(string regionId)
-        : base(CompositionProfileViewSelectorKind.MapRegion)
     {
         RegionId = CompositionProfileValueRules.RequireId(regionId, nameof(regionId));
     }
@@ -44,7 +21,6 @@ internal sealed record MapRegionViewSelector : CompositionProfileViewSelector
 internal sealed record MapRegionSliceViewSelector : CompositionProfileViewSelector
 {
     internal MapRegionSliceViewSelector(string regionId, ByteRange relativeRange)
-        : base(CompositionProfileViewSelectorKind.MapRegionSlice)
     {
         RegionId = CompositionProfileValueRules.RequireId(regionId, nameof(regionId));
         RelativeRange = CompositionProfileValueRules.RequireRange(relativeRange, nameof(relativeRange));
@@ -59,7 +35,6 @@ internal sealed record MapRegionSliceViewSelector : CompositionProfileViewSelect
 internal sealed record SpaceRangeViewSelector : CompositionProfileViewSelector
 {
     internal SpaceRangeViewSelector(ByteRange range)
-        : base(CompositionProfileViewSelectorKind.SpaceRange)
     {
         Range = CompositionProfileValueRules.RequireRange(range, nameof(range));
     }
@@ -73,7 +48,6 @@ internal sealed record RegionTemplateRangeViewSelector : CompositionProfileViewS
     internal RegionTemplateRangeViewSelector(
         string regionInstanceId,
         string templateRegionId)
-        : base(CompositionProfileViewSelectorKind.RegionTemplateRange)
     {
         RegionInstanceId = CompositionProfileValueRules.RequireId(
             regionInstanceId,
