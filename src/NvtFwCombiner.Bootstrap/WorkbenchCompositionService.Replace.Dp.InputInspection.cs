@@ -88,7 +88,8 @@ public static partial class WorkbenchCompositionService
                     .Distinct(StringComparer.Ordinal),
             ];
             ReviewedDiscoveryTransition transition =
-                (s_canonicalCapabilityCatalog.CurrentSnapshot ??
+                (WorkbenchHostServices.CanonicalCapabilities.Read(
+                    static catalog => catalog.CurrentSnapshot) ??
                     throw new InvalidOperationException("Canonical capability publication is unavailable."))
                 .ResolveReviewedDiscoveryTransition(
                     discovery,

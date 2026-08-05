@@ -13,6 +13,7 @@ public sealed partial class MainWindow
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        WorkbenchHostServices.WarmCanonicalCapabilities(cancellationToken);
         _ = WorkbenchCompositionService.GetSettingsSnapshot();
         _ = WorkbenchCompositionService.GetNumberSelectionChoices(icId);
         _ = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId);

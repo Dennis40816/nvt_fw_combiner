@@ -55,7 +55,8 @@ public static partial class WorkbenchCompositionService
         CapabilityRouteIdentity identity = CanonicalDynamicRouteInventory.ResolveCtrlRamIdentity(
             route, context.CommandPlan, reference.LengthBytes);
         CapabilityRouteResolutionResult resolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.ResolveDynamicRoute(identity.RouteId));
         if (!resolution.Succeeded)
         {
             issues = [new CompositionIssue(resolution.Issue!.Code, resolution.Issue.Message)];

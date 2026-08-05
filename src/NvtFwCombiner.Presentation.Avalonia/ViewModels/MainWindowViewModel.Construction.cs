@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 
@@ -57,14 +58,18 @@ public sealed partial class MainWindowViewModel
             string,
             IReadOnlyList<WorkbenchFirmwareInspectionInput>,
             IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
-        IFileRevealService? fileRevealService = null)
+        IFileRevealService? fileRevealService = null,
+        ICanonicalSupportMatrixQuery? supportMatrixQuery = null)
     {
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        Settings = new SettingsViewModel(appVersion);
+        Settings = new SettingsViewModel(
+            appVersion,
+            supportMatrixQuery ?? WorkbenchHostServices.CreateCanonicalSupportMatrixQuery(),
+            () => Text);
         Merge = new MergePresentationViewModel(
             () => Text,
             new MergeStateBindings(

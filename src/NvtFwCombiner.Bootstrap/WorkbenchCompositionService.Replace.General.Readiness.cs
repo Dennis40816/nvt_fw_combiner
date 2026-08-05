@@ -450,7 +450,8 @@ public static partial class WorkbenchCompositionService
             "1-ic",
             map.MapId);
         CapabilityRouteResolutionResult resolution =
-            s_canonicalCapabilityCatalog.ResolveDynamicRoute(identity.RouteId);
+            WorkbenchHostServices.CanonicalCapabilities.Read(
+                catalog => catalog.ResolveDynamicRoute(identity.RouteId));
         route = resolution.Route;
         issues = resolution.Succeeded
             ? []

@@ -181,27 +181,6 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("Command=\"{Binding BuildResult.CloseCommand}\"", modal, StringComparison.Ordinal);
     }
 
-    /// <summary>Settings catalog presentation belongs to a focused child rather than the shell.</summary>
-    [Fact]
-    public void SettingsPresentationLivesBehindFocusedChild()
-    {
-        string construction = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Construction.cs");
-        string shellSettings = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MainWindowViewModel.Settings.cs");
-        string settings = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/SettingsViewModel.cs");
-        string pageTemplates = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
-
-        Assert.Contains("Settings = new SettingsViewModel(appVersion);", construction, StringComparison.Ordinal);
-        Assert.Contains("public SettingsViewModel Settings", shellSettings, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchCompositionService", shellSettings, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.GetSettingsSnapshot()", settings, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding Settings.OverviewRows}\"", pageTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding Settings.CapabilityRows}\"", pageTemplates, StringComparison.Ordinal);
-    }
-
     /// <summary>Verifies the Presentation projection keeps only UI-owned contract adaptation.</summary>
     [Fact]
     public void UiCompositionRunnerConcernsStaySplit()

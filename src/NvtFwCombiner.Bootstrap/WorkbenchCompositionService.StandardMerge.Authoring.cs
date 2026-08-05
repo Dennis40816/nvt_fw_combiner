@@ -75,7 +75,8 @@ public static partial class WorkbenchCompositionService
                 : null;
             ReviewedDiscoveryTransition? discoveryTransition = prerequisiteSlotId is null
                 ? null
-                : (s_canonicalCapabilityCatalog.CurrentSnapshot ??
+                : (WorkbenchHostServices.CanonicalCapabilities.Read(
+                    static catalog => catalog.CurrentSnapshot) ??
                         throw new InvalidOperationException(
                             "Canonical capability publication is unavailable."))
                     .ResolveReviewedDiscoveryTransition(

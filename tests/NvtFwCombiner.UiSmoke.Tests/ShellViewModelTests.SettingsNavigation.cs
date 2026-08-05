@@ -50,12 +50,15 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 profiles");
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace" && row.Value == "10 profiles");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 ICs");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace" && row.Value == "10 ICs");
         SettingSummaryViewModel capability = Assert.Single(viewModel.Settings.CapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("10 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
+        Assert.DoesNotContain(
+            viewModel.Settings.OverviewRows.Concat(viewModel.Settings.CapabilityRows),
+            static row => row.Description.Contains("executable", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(["System", "Light", "Dark"], viewModel.Settings.ThemeChoices);
 
         viewModel.SelectedTheme = "Dark";
@@ -72,7 +75,7 @@ public sealed partial class ShellViewModelTests
             row.Title == "CtrlRAM Replace 可用 IC" &&
             row.Value == "10 ICs" &&
             row.Status == "可用" &&
-            row.Description.Contains("golden 驗證狀態", StringComparison.Ordinal));
+            row.Description.Contains("支援矩陣", StringComparison.Ordinal));
 
         viewModel.ShowMergeCommand.Execute(null);
 

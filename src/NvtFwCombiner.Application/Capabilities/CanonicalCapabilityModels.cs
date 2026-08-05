@@ -291,17 +291,6 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
                 static capability => capability.Identity.RouteId,
                 StringComparer.Ordinal),
         ]);
-        CertificationIssues = Array.AsReadOnly(
-        [
-            .. Capabilities
-                .Where(static capability =>
-                    capability.Publication.Value == CapabilityPublicationStatus.Supported &&
-                    capability.Evidence.Value == CapabilityEvidenceStatus.Missing)
-                .Select(static capability => new CapabilityCatalogIssue(
-                    CapabilityCatalogIssueCodes.SupportedWithoutEvidence,
-                    "A supported route has no approved evidence declaration.",
-                    capability.Identity.RouteId)),
-        ]);
         DynamicRoutes = Array.AsReadOnly(
         [
             .. candidate.DynamicDefinitions
@@ -314,6 +303,25 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
             DynamicRoutes.ToDictionary(
                 static route => route.Identity.RouteId,
                 StringComparer.Ordinal));
+        CertificationIssues = Array.AsReadOnly(
+        [
+            .. Capabilities
+                .Select(static capability => (
+                    capability.Identity,
+                    capability.Publication,
+                    capability.Evidence))
+                .Concat(DynamicRoutes.Select(static route => (
+                    route.Identity,
+                    route.Publication,
+                    route.Evidence)))
+                .Where(static route =>
+                    route.Publication.Value == CapabilityPublicationStatus.Supported &&
+                    route.Evidence.Value == CapabilityEvidenceStatus.Missing)
+                .Select(static route => new CapabilityCatalogIssue(
+                    CapabilityCatalogIssueCodes.SupportedWithoutEvidence,
+                    "A supported route has no approved evidence declaration.",
+                    route.Identity.RouteId)),
+        ]);
     }
 
     /// <summary>Stable catalog id.</summary>

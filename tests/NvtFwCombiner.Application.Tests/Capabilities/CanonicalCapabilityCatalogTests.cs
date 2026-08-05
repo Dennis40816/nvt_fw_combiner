@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 /// <summary>Tests the Application-owned canonical capability snapshot and reload boundary.</summary>
-public sealed class CanonicalCapabilityCatalogTests
+public sealed partial class CanonicalCapabilityCatalogTests
 {
     private static readonly CapabilityRouteIdentity Route = new(
         "NT51929",

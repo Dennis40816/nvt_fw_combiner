@@ -195,6 +195,11 @@ public sealed partial class MainWindow : Window, IDisposable
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
             await catalogWarmup;
+            if (viewModel.IsSettingsVisible)
+            {
+                viewModel.Settings.Refresh(viewModel.Text);
+            }
+
             _startupTrace.Mark("startup-warmup.catalogs.ready");
             await WarmDeferredShellAsync(viewModel, startupCancellation);
             _ = _startupTrace.Complete("startup-warmup.completed");

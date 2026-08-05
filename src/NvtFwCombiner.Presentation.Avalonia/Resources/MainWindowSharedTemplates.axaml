@@ -10,6 +10,33 @@
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
 </ControlTheme>
 
+<DataTemplate x:Key="DisclosureStatusTemplate" DataType="vm:DisclosureStatusViewModel">
+  <Border
+      AutomationProperties.Name="{Binding AccessibleLabel}"
+      Classes="statusNotice"
+      Classes.error="{Binding IsError}"
+      Classes.info="{Binding IsInfo}"
+      Classes.warning="{Binding IsWarning}"
+      Padding="12,10">
+    <Grid ColumnDefinitions="4,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+      <Border
+          Background="{DynamicResource NfcAccentBrush}"
+          CornerRadius="2"
+          Classes.error="{Binding IsError}"
+          Classes.warning="{Binding IsWarning}" />
+      <StackPanel Grid.Column="1" Spacing="{DynamicResource NfcSpace2}">
+        <TextBlock Classes="strongText" Text="{Binding Title}" />
+        <TextBlock Classes="supportingText" Text="{Binding Detail}" TextWrapping="Wrap" />
+        <TextBlock
+            Classes="technicalDetail"
+            IsVisible="{Binding HasTechnicalDetail}"
+            Text="{Binding TechnicalDetail}"
+            TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</DataTemplate>
+
 <DrawingBrush
     x:Key="KeptDiagonalStripeBrush"
     DestinationRect="0,0,10,10"
