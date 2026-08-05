@@ -27,7 +27,7 @@ public sealed class CompositionProfileV2InputTests
             shortInputIssueCode: "INPUT_SHORT");
 
         Assert.Equal(16, exact.Bytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.ExactResolvedMapCapacity, map.Kind);
+        _ = Assert.IsType<ExactResolvedMapCapacityLengthRule>(map);
         Assert.Equal(4, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
         Assert.Equal("DP_SIZE_WARNING", sourceViewWithResolvedContainer.UnexpectedOuterLengthIssueCode);
@@ -36,7 +36,6 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(
             CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
             boundedSourceView.MaximumOuterLength);
-        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, boundedSourceView.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
@@ -93,7 +92,6 @@ public sealed class CompositionProfileV2InputTests
             "CTRLRAM_TRUNCATED",
             "truncation-evidence");
 
-        Assert.Equal(CompositionProfileInputNormalizationKind.None, none.Kind);
         Assert.Equal(0xFF, padding.FillByte);
         Assert.Equal("padding-evidence", padding.EvidenceRef);
         Assert.Equal("CTRLRAM_TRUNCATED", truncation.WarningIssueCode);
@@ -152,13 +150,13 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(
             CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
             Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, sourceView.LengthRule.Kind);
-        Assert.Equal(CompositionProfileInputNormalizationKind.PadShorter, paddedDp.Normalization.Kind);
+        _ = Assert.IsType<SourceViewCoverageLengthRule>(sourceView.LengthRule);
+        _ = Assert.IsType<PadShorterInputNormalization>(paddedDp.Normalization);
         Assert.Equal(CompositionProfileArtifactClass.ReferenceImage, reference.ArtifactClass);
-        Assert.Equal(CompositionProfileInputNormalizationKind.TruncateCtrlRam, ctrlRam.Normalization.Kind);
+        _ = Assert.IsType<TruncateCtrlRamInputNormalization>(ctrlRam.Normalization);
         Assert.False(auxiliary.Required);
         Assert.Equal(CompositionProfileSlotCardinality.OneOrMore, auxiliary.Cardinality);
-        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, declaredPrefix.LengthRule.Kind);
+        _ = Assert.IsType<SourceViewCoverageLengthRule>(declaredPrefix.LengthRule);
     }
 
     /// <summary>Verifies firmware-specific size and normalization policy fails closed.</summary>

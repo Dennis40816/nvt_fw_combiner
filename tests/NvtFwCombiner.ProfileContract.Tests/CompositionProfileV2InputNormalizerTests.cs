@@ -66,7 +66,6 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal("DP_SIZE_WARNING", dpWarning.UnexpectedOuterLengthIssueCode);
         Assert.Empty(dpWarning.ExpectedOuterLengths);
         Assert.Equal(262144, tpMaximum.MaximumOuterLength);
-        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, tpMaximum.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("AB_INPUT_SHORT", declaredPrefix.ShortInputIssueCode);

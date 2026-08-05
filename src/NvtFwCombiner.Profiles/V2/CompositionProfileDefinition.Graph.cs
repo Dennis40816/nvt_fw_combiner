@@ -259,7 +259,7 @@ internal sealed partial class CompositionProfileDefinition
         }
 
         bool padsInput = _inputSlots.Any(static slot =>
-            slot.Normalization.Kind == CompositionProfileInputNormalizationKind.PadShorter);
+            slot.Normalization is PadShorterInputNormalization);
         if (padsInput &&
             (CompositionKind != CompositionKind.Replace ||
              !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.DpReplace) ||
@@ -269,7 +269,7 @@ internal sealed partial class CompositionProfileDefinition
         }
 
         bool truncatesCtrlRam = _inputSlots.Any(static slot =>
-            slot.Normalization.Kind == CompositionProfileInputNormalizationKind.TruncateCtrlRam);
+            slot.Normalization is TruncateCtrlRamInputNormalization);
         if (truncatesCtrlRam &&
             (CompositionKind != CompositionKind.Replace ||
              !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.CtrlRamReplace)))
