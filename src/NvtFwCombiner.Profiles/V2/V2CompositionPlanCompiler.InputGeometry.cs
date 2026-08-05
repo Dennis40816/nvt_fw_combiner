@@ -15,13 +15,6 @@ internal static partial class V2CompositionPlanCompiler
     {
         return slot.LengthRule switch
         {
-            DeclaredPrefixWithWarningLengthRule declaredPrefix => new AddressSpace(
-                addressSpaceId,
-                declaredPrefix.RequiredEndExclusive,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
-                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
             SourceViewCoverageLengthRule sourceView => new AddressSpace(
                 addressSpaceId,
                 length,
@@ -60,7 +53,7 @@ internal static partial class V2CompositionPlanCompiler
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
         return slot.LengthRule is ExactResolvedMapCapacityLengthRule or
-            DeclaredPrefixWithWarningLengthRule or SourceViewCoverageLengthRule ||
+            SourceViewCoverageLengthRule ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
              slot.LengthRule is ExactBytesLengthRule { Bytes: <= 262144 }) ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.CtrlRamReplacement &&
@@ -85,6 +78,9 @@ internal static partial class V2CompositionPlanCompiler
             case ExactResolvedMapCapacityLengthRule:
                 length = resolvedMap.CapacityBytes;
                 return true;
+            case SourceViewCoverageLengthRule { RequiredEndExclusive: { } requiredEndExclusive }:
+                length = requiredEndExclusive;
+                return true;
             case SourceViewCoverageLengthRule sourceView:
                 return TryResolveSourceViewSpan(
                     profile,
@@ -94,9 +90,6 @@ internal static partial class V2CompositionPlanCompiler
                     resolvedMap,
                     issues,
                     out length);
-            case DeclaredPrefixWithWarningLengthRule declaredPrefix:
-                length = declaredPrefix.RequiredEndExclusive;
-                return true;
             default:
                 throw new InvalidOperationException("Validated V2 lowering encountered an unsupported input length rule.");
         }

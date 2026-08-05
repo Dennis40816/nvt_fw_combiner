@@ -22,13 +22,12 @@ internal enum CompositionProfileSlotCardinality
 }
 
 /// <summary>Closed input length rule kind.</summary>
-// Values mirror compiled fingerprint wire codes; retired values 3 and 4 stay reserved.
+// Values mirror compiled fingerprint wire codes; retired values 3, 4, and 5 stay reserved.
 internal enum CompositionProfileLengthRuleKind
 {
     ExactBytes = 0,
     ExactResolvedMapCapacity = 1,
     Bounded = 2,
-    DeclaredPrefixWithWarning = 5,
     SourceViewCoverage = 6,
 }
 
@@ -46,69 +45,6 @@ internal abstract record CompositionProfileLengthRule
     }
 
     internal CompositionProfileLengthRuleKind Kind { get; }
-}
-
-/// <summary>Accepts one immutable declared prefix and retains full-source diagnostic authority.</summary>
-internal sealed record DeclaredPrefixWithWarningLengthRule : CompositionProfileLengthRule
-{
-    private readonly long[] _expectedOuterLengths;
-
-    internal DeclaredPrefixWithWarningLengthRule(
-        long requiredEndExclusive,
-        IReadOnlyList<long> expectedOuterLengths,
-        string shortInputIssueCode,
-        string unexpectedOuterLengthIssueCode)
-        : base(CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning)
-    {
-        if (requiredEndExclusive is <= 0 or > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(requiredEndExclusive),
-                requiredEndExclusive,
-                "Required end must fit the in-memory execution snapshot limit.");
-        }
-
-        ArgumentNullException.ThrowIfNull(expectedOuterLengths);
-        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
-
-        _expectedOuterLengths = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            if (value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
-
-            _expectedOuterLengths[index] = value;
-            previous = value;
-        }
-
-        RequiredEndExclusive = requiredEndExclusive;
-        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
-        ShortInputIssueCode = CompositionProfileValueRules.RequireIssueCode(
-            shortInputIssueCode,
-            nameof(shortInputIssueCode));
-        UnexpectedOuterLengthIssueCode = CompositionProfileValueRules.RequireIssueCode(
-            unexpectedOuterLengthIssueCode,
-            nameof(unexpectedOuterLengthIssueCode));
-    }
-
-    internal long RequiredEndExclusive { get; }
-
-    internal IReadOnlyList<long> ExpectedOuterLengths { get; }
-
-    internal string ShortInputIssueCode { get; }
-
-    internal string UnexpectedOuterLengthIssueCode { get; }
 }
 
 /// <summary>Requires one exact positive input length.</summary>
@@ -154,8 +90,8 @@ internal sealed record BoundedLengthRule : CompositionProfileLengthRule
 }
 
 /// <summary>
-/// Accepts an immutable section source that covers every compiled read for its
-/// input space, with optional complete-container diagnostics.
+/// Accepts an immutable section source using compiled-read coverage or one
+/// required end, with optional complete-container diagnostics and outer bound.
 /// </summary>
 internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRule
 {
@@ -164,7 +100,9 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
     internal SourceViewCoverageLengthRule(
         IReadOnlyList<long>? expectedOuterLengths = null,
         string? unexpectedOuterLengthIssueCode = null,
-        long? maximumOuterLength = null)
+        long? maximumOuterLength = null,
+        long? requiredEndExclusive = null,
+        string? shortInputIssueCode = null)
         : base(CompositionProfileLengthRuleKind.SourceViewCoverage)
     {
         if (expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null)
@@ -174,6 +112,29 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
         }
 
         _expectedOuterLengths = NormalizeExpectedOuterLengths(expectedOuterLengths);
+        if ((requiredEndExclusive is null) != (shortInputIssueCode is null))
+        {
+            throw new ArgumentException(
+                "Required end and its short-input issue code must be declared together.");
+        }
+
+        if (requiredEndExclusive is <= 0 or > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(requiredEndExclusive),
+                requiredEndExclusive,
+                "Required end must fit the in-memory execution snapshot limit.");
+        }
+
+        if (requiredEndExclusive is { } requiredEnd &&
+            (_expectedOuterLengths.Length == 0 ||
+             _expectedOuterLengths.Any(length => length < requiredEnd || length > int.MaxValue)))
+        {
+            throw new ArgumentException(
+                "Expected outer lengths must fit the in-memory limit and cover the required end.",
+                nameof(expectedOuterLengths));
+        }
+
         if (maximumOuterLength is <= 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -182,13 +143,22 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
                 "Maximum outer length must be positive when declared.");
         }
 
+        if (maximumOuterLength is not null && requiredEndExclusive is not null)
+        {
+            throw new ArgumentException("Maximum outer length and required end cannot be combined.");
+        }
+
+        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+        MaximumOuterLength = maximumOuterLength;
+        RequiredEndExclusive = requiredEndExclusive;
+        ShortInputIssueCode = shortInputIssueCode is null
+            ? null
+            : CompositionProfileValueRules.RequireIssueCode(shortInputIssueCode, nameof(shortInputIssueCode));
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode is null
             ? null
             : CompositionProfileValueRules.RequireIssueCode(
                 unexpectedOuterLengthIssueCode,
                 nameof(unexpectedOuterLengthIssueCode));
-        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
-        MaximumOuterLength = maximumOuterLength;
     }
 
     internal IReadOnlyList<long> ExpectedOuterLengths { get; }
@@ -196,6 +166,10 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
     internal string? UnexpectedOuterLengthIssueCode { get; }
 
     internal long? MaximumOuterLength { get; }
+
+    internal long? RequiredEndExclusive { get; }
+
+    internal string? ShortInputIssueCode { get; }
 
     private static long[] NormalizeExpectedOuterLengths(IReadOnlyList<long>? expectedOuterLengths)
     {
@@ -372,7 +346,6 @@ internal sealed partial class CompositionProfileInputSlot
 
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
-                not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning and
                 not CompositionProfileLengthRuleKind.SourceViewCoverage)
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
@@ -397,7 +370,7 @@ internal sealed partial class CompositionProfileInputSlot
             throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
         }
 
-        if (lengthRule.Kind == CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning &&
+        if (lengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null } &&
             (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
                 CompositionProfileArtifactClass.CtrlRamReplacement ||
              normalization.Kind != CompositionProfileInputNormalizationKind.None))
@@ -420,10 +393,9 @@ internal sealed partial class CompositionProfileInputSlot
 
     private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
     {
-        return lengthRule is SourceViewCoverageLengthRule or
-            DeclaredPrefixWithWarningLengthRule
+        return lengthRule is SourceViewCoverageLengthRule
         {
-            RequiredEndExclusive: <= 262144,
+            RequiredEndExclusive: null or <= 262144,
         } or
             ExactBytesLengthRule { Bytes: <= 262144 };
     }

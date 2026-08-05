@@ -57,7 +57,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
         SourceViewCoverageLengthRule tpMaximum = Assert.IsType<SourceViewCoverageLengthRule>(
             Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
-        DeclaredPrefixWithWarningLengthRule declaredPrefix = Assert.IsType<DeclaredPrefixWithWarningLengthRule>(
+        SourceViewCoverageLengthRule declaredPrefix = Assert.IsType<SourceViewCoverageLengthRule>(
             Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRule);
 
         Assert.Equal(16, exact.Bytes);

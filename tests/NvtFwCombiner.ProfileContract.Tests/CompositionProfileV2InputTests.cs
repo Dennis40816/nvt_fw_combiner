@@ -6,7 +6,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests immutable map-independent v2 input slot policy.</summary>
 public sealed class CompositionProfileV2InputTests
 {
-    /// <summary>Verifies all six closed length rules retain checked typed values.</summary>
+    /// <summary>Verifies closed length rules retain checked typed values.</summary>
     [Fact]
     public void LengthRulesKeepClosedTypedValues()
     {
@@ -20,11 +20,11 @@ public sealed class CompositionProfileV2InputTests
             "DP_SIZE_WARNING");
         var boundedSourceView = new SourceViewCoverageLengthRule(
             maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
-        var declaredPrefix = new DeclaredPrefixWithWarningLengthRule(
-            0x80000,
+        var declaredPrefix = new SourceViewCoverageLengthRule(
             [0x80000],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH");
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 0x80000,
+            shortInputIssueCode: "INPUT_SHORT");
 
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(CompositionProfileLengthRuleKind.ExactResolvedMapCapacity, map.Kind);
@@ -61,16 +61,26 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
             [.. Enumerable.Range(1, InputLengthPolicyLimits.MaximumExpectedInputLengths + 1).Select(static value => (long)value)],
             "DP_SIZE_WARNING"));
-        _ = Assert.Throws<ArgumentException>(() => new DeclaredPrefixWithWarningLengthRule(
-            16,
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
             [15],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.Throws<ArgumentException>(() => new DeclaredPrefixWithWarningLengthRule(
-            16,
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 16,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
             [32, 16],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 16,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
+            [16],
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 16));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
+            [16],
+            "INPUT_OUTER_LENGTH",
+            maximumOuterLength: 16,
+            requiredEndExclusive: 16,
+            shortInputIssueCode: "INPUT_SHORT"));
     }
 
     /// <summary>Verifies evidenced normalization values retain exact byte and issue policy.</summary>
@@ -131,11 +141,11 @@ public sealed class CompositionProfileV2InputTests
             cardinality: CompositionProfileSlotCardinality.OneOrMore);
         CompositionProfileInputSlot declaredPrefix = Slot(
             CompositionProfileArtifactClass.Auxiliary,
-            new DeclaredPrefixWithWarningLengthRule(
-                16,
+            new SourceViewCoverageLengthRule(
                 [16],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: 16,
+                shortInputIssueCode: "INPUT_SHORT"),
             new NoInputNormalization());
 
         Assert.Equal(CompositionProfileArtifactClass.TpFirmware, tp.ArtifactClass);
@@ -148,7 +158,7 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(CompositionProfileInputNormalizationKind.TruncateCtrlRam, ctrlRam.Normalization.Kind);
         Assert.False(auxiliary.Required);
         Assert.Equal(CompositionProfileSlotCardinality.OneOrMore, auxiliary.Cardinality);
-        Assert.Equal(CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning, declaredPrefix.LengthRule.Kind);
+        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, declaredPrefix.LengthRule.Kind);
     }
 
     /// <summary>Verifies firmware-specific size and normalization policy fails closed.</summary>
@@ -165,11 +175,11 @@ public sealed class CompositionProfileV2InputTests
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.TpFirmware,
-            new DeclaredPrefixWithWarningLengthRule(
-                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
+            new SourceViewCoverageLengthRule(
                 [CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
+                shortInputIssueCode: "INPUT_SHORT"),
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,
@@ -193,19 +203,19 @@ public sealed class CompositionProfileV2InputTests
             new TruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence")));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.ReferenceImage,
-            new DeclaredPrefixWithWarningLengthRule(
-                16,
+            new SourceViewCoverageLengthRule(
                 [16],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: 16,
+                shortInputIssueCode: "INPUT_SHORT"),
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,
-            new DeclaredPrefixWithWarningLengthRule(
-                16,
+            new SourceViewCoverageLengthRule(
                 [16],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: 16,
+                shortInputIssueCode: "INPUT_SHORT"),
             new PadShorterInputNormalization(0xFF, "padding-evidence")));
     }
 
