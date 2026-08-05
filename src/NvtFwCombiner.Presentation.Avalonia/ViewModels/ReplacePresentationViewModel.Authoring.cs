@@ -15,6 +15,14 @@ public sealed partial class ReplacePresentationViewModel
     internal AuthoringRevision ReplaceInputAuthoringRevision =>
         CurrentReplaceInputSession?.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
 
+    internal void InvalidateCanonicalCatalogSessions()
+    {
+        _authoringSessions.DpReplace.InvalidateCanonicalPublication();
+        _authoringSessions.CtrlRamReplace.InvalidateCanonicalPublication();
+        _dpReplaceSelection = null;
+        ClearCtrlRamActionReadiness();
+    }
+
     private AuthoringSessionState? CurrentReplaceInputSession => SelectedReplaceMode switch
     {
         DpReplaceMode => _authoringSessions.DpReplace,

@@ -6,6 +6,36 @@ namespace NvtFwCombiner.Application.Tests.Authoring;
 /// <summary>Tests isolated, host-independent authoring-session transitions.</summary>
 public sealed partial class AuthoringSessionStateTests
 {
+    /// <summary>A catalog reload can fail closed without leaving any old publication lease usable.</summary>
+    [Fact]
+    public void CanonicalPublicationInvalidationDropsTheSnapshotAndCapturedLease()
+    {
+        var session = new AuthoringSessionState("dp-replace");
+        _ = Activate(
+            session,
+            Catalog(
+                "dp-replace",
+                "dp-token",
+                Route(
+                    "NT51929",
+                    "dp-replace",
+                    "selector-free",
+                    "nt51929-dp-replace",
+                    "dp-fingerprint",
+                    "reference",
+                    "dp")));
+        AuthoringPublicationLease lease = session.CapturePublicationLease(
+            AuthoringDerivedResultKind.Inspection);
+
+        session.InvalidateCanonicalPublication();
+
+        Assert.Null(session.CurrentSnapshot);
+        Assert.False(session.IsPublicationCurrent(lease));
+        Assert.Equal(
+            AuthoringSessionIssueCodes.CatalogUnavailable,
+            session.Select("NT51929", "selector-free").Issue?.Code);
+    }
+
     /// <summary>Entering DP Replace publishes its own catalog without inheriting AB-only state.</summary>
     [Fact]
     public void DpReplaceFirstActivationDoesNotInheritAbMergeSelection()

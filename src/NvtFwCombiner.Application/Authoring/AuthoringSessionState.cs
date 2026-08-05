@@ -30,6 +30,21 @@ public sealed partial class AuthoringSessionState
     public ActiveSessionSnapshot? CurrentSnapshot => Volatile.Read(ref _current);
 
     /// <summary>
+    /// Invalidates the retained canonical publication and every result derived
+    /// from it. Hosts use this fail-closed transition before rebinding visible
+    /// selections after a canonical catalog reload.
+    /// </summary>
+    public void InvalidateCanonicalPublication()
+    {
+        lock (_transitionLock)
+        {
+            _catalog = null;
+            _generalInspectionCache.Clear();
+            Volatile.Write(ref _current, null);
+        }
+    }
+
+    /// <summary>
     /// Activates one canonical publication, preserving only compatible selected
     /// paths and clearing all derived publications.
     /// </summary>

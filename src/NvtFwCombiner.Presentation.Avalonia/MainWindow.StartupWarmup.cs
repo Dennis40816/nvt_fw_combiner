@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using System.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -14,21 +15,31 @@ public sealed partial class MainWindow
     {
         cancellationToken.ThrowIfCancellationRequested();
         WorkbenchHostServices.WarmCanonicalCapabilities(cancellationToken);
-        _ = WorkbenchCompositionService.GetSettingsSnapshot();
-        _ = WorkbenchCompositionService.GetNumberSelectionChoices(icId);
-        _ = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId);
-        _ = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(icId);
-        _ = WorkbenchCompositionService.GetCtrlRamRegions(icId, number, basePath: null);
-        _ = WorkbenchCompositionService.GetReplaceInputSlots(
-            icId,
-            number,
-            WorkbenchReplaceModes.Dp,
-            basePath: null);
-        _ = WorkbenchCompositionService.GetReplaceInputSlots(
-            icId,
-            number,
-            WorkbenchReplaceModes.CtrlRam,
-            basePath: null);
+        try
+        {
+            _ = WorkbenchCompositionService.GetSettingsSnapshot();
+            _ = WorkbenchCompositionService.GetNumberSelectionChoices(icId);
+            _ = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId);
+            _ = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(icId);
+            _ = WorkbenchCompositionService.GetCtrlRamRegions(icId, number, basePath: null);
+            _ = WorkbenchCompositionService.GetReplaceInputSlots(
+                icId,
+                number,
+                WorkbenchReplaceModes.Dp,
+                basePath: null);
+            _ = WorkbenchCompositionService.GetReplaceInputSlots(
+                icId,
+                number,
+                WorkbenchReplaceModes.CtrlRam,
+                basePath: null);
+        }
+        catch (Exception exception) when (
+            exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            Trace.TraceWarning(
+                "Deferred legacy catalog warm-up did not complete: {0}",
+                exception.Message);
+        }
         cancellationToken.ThrowIfCancellationRequested();
     }
 

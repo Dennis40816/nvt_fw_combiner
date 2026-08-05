@@ -195,6 +195,7 @@ public sealed partial class MainWindow : Window, IDisposable
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
             await catalogWarmup;
+            await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
             if (viewModel.IsSettingsVisible)
             {
                 viewModel.Settings.Refresh(viewModel.Text);
@@ -296,6 +297,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
+        LoadContent(MessageCenterModalHost, viewModel.MessageCenter.IsOpen, viewModel.MessageCenter);
         LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);
         LoadContent(BuildCompletedModalHost, viewModel.BuildResult.IsOpen, viewModel);
     }

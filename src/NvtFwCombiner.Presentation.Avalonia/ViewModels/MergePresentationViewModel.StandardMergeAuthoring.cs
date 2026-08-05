@@ -9,6 +9,12 @@ public sealed partial class MergePresentationViewModel
     internal AuthoringRevision StandardMergeAuthoringRevision =>
         _authoringSessions.StandardMerge.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
 
+    internal void InvalidateCanonicalCatalogSessions()
+    {
+        _authoringSessions.StandardMerge.InvalidateCanonicalPublication();
+        _authoringSessions.AbMerge.InvalidateCanonicalPublication();
+    }
+
     internal IReadOnlyDictionary<string, AuthoringSlotInspectionLease>
         BeginStandardMergeSlotInspections(IEnumerable<FirmwareSlotViewModel> slots)
     {

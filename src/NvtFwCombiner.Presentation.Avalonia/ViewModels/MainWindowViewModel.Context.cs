@@ -127,6 +127,10 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsDeviceContextVisible));
         OnPropertyChanged(nameof(Merge.CanBuildMerge));
         OnPropertyChanged(nameof(Merge.MergeReadinessStatus));
+        OnPropertyChanged(nameof(HasMergeBuildBlocker));
+        OnPropertyChanged(nameof(MergeBuildBlockerText));
+        OnPropertyChanged(nameof(HasReplaceBuildBlocker));
+        OnPropertyChanged(nameof(ReplaceBuildBlockerText));
     }
 
 }

@@ -4,6 +4,7 @@ namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>Serializes one injected catalog's reload and resolution publication.</summary>
 internal sealed class CanonicalCapabilityCatalogHost
+    : ICanonicalCapabilityCatalogReloader
 {
     private readonly Lock _gate = new();
     private readonly CanonicalCapabilityCatalog _catalog;
@@ -27,6 +28,12 @@ internal sealed class CanonicalCapabilityCatalogHost
             Volatile.Write(ref _latestReload, result);
             return result;
         }
+    }
+
+    void ICanonicalCapabilityCatalogReloader.Reload(
+        CancellationToken cancellationToken)
+    {
+        _ = Reload(cancellationToken);
     }
 
     internal void Warm(CancellationToken cancellationToken)

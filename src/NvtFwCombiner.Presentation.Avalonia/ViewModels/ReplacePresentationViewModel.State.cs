@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -130,6 +131,22 @@ public sealed partial class ReplacePresentationViewModel
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
+    /// <summary>Highest-priority typed pre-run blocker for the active Replace workflow.</summary>
+    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedReplaceMode switch
+    {
+        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.CtrlRamReplace.CurrentSnapshot,
+            CtrlRamReplaceMode,
+            _ctrlRamActionReadiness),
+        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.GeneralReplace.CurrentSnapshot,
+            GeneralReplaceMode,
+            _generalReplaceActionReadiness),
+        _ => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.DpReplace.CurrentSnapshot,
+            DpReplaceMode),
+    };
+
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
 
@@ -233,6 +250,7 @@ public sealed partial class ReplacePresentationViewModel
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));
+        OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshSelectionState();
     }

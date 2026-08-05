@@ -47,6 +47,7 @@ public sealed partial class MainWindowViewModel
         WorkflowSession.IsFirmwareIcMismatchModalOpen ||
         WorkflowSession.IsFirmwareNumberMismatchModalOpen ||
         IsNavigationClearConfirmationOpen ||
+        MessageCenter.IsOpen ||
         Reports.IsReportModalOpen ||
         Merge.IsAbAFlashCodeDeliveryPromptOpen ||
         BuildResult.IsOpen ||

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -175,6 +176,21 @@ public sealed partial class MergePresentationViewModel
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
 
+    /// <summary>Highest-priority typed pre-run blocker for the active Merge workflow.</summary>
+    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedMergeMode switch
+    {
+        GeneralMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.GeneralMerge.CurrentSnapshot,
+            GeneralMergeMode,
+            _generalMergeActionReadiness),
+        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.AbMerge.CurrentSnapshot,
+            AbCodeMergeMode),
+        _ => ActiveSessionBuildBlockerResolver.Resolve(
+            _authoringSessions.StandardMerge.CurrentSnapshot,
+            NormalMergeMode),
+    };
+
     /// <summary>Command that adds a General Merge mapping row.</summary>
     public IRelayCommand AddGeneralMergeMappingCommand { get; }
 
@@ -266,6 +282,7 @@ public sealed partial class MergePresentationViewModel
     internal void NotifyCommandStateChanged()
     {
         OnPropertyChanged(nameof(CanBuildMerge));
+        OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(MergeReadinessStatus));
     }
 
