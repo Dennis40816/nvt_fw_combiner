@@ -307,14 +307,16 @@ internal static class FirmwareInspectionProjection
     }
 
     internal static WorkbenchCtrlRamInspectionDisplay ResolveCtrlRamDisplay(
+        IFirmwareInspection firmwareInspection,
         WorkbenchFirmwareInspection inspection,
         string icId,
         string number)
     {
+        ArgumentNullException.ThrowIfNull(firmwareInspection);
         return inspection.CtrlRamDisplay is { } inspectedDisplay &&
             string.Equals(inspectedDisplay.NumberToken, number, StringComparison.Ordinal)
                 ? inspectedDisplay
-                : WorkbenchCompositionService.ProjectCtrlRamInspectionDisplay(
+                : firmwareInspection.ProjectCtrlRamInspectionDisplay(
                     icId,
                     number,
                     inspection.FirmwareConfig);
@@ -436,29 +438,33 @@ internal static class FirmwareInspectionProjection
 internal static class FirmwareOutputNamingProjection
 {
     internal static string CreateFlashCodeOutputFileName(
+        ICompositionOutputNaming outputNaming,
         string icId,
         IEnumerable<FirmwareSlotViewModel> slots,
         FirmwareInspectionSession inspectionSession,
         WorkbenchCtrlRamFirmwareVersionEdit? edit)
     {
+        ArgumentNullException.ThrowIfNull(outputNaming);
         ArgumentNullException.ThrowIfNull(slots);
         WorkbenchOutputNameInspectionCandidate[] candidates =
             [.. slots.Select(slot => ToCandidate(slot, inspectionSession))];
         return edit is null
-            ? WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(icId, candidates).FileName
-            : WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(icId, candidates, edit).FileName;
+            ? outputNaming.CreateFlashCodeOutputFileNameFromInspections(icId, candidates).FileName
+            : outputNaming.CreateFlashCodeOutputFileNameFromInspections(icId, candidates, edit).FileName;
     }
 
     internal static string CreateCtrlRamReplaceOutputFileName(
+        ICompositionOutputNaming outputNaming,
         string icId,
         IEnumerable<FirmwareSlotViewModel> slots,
         FirmwareInspectionSession inspectionSession,
         WorkbenchCtrlRamFirmwareVersionEdit? edit)
     {
+        ArgumentNullException.ThrowIfNull(outputNaming);
         ArgumentNullException.ThrowIfNull(slots);
         WorkbenchOutputNameInspectionCandidate[] candidates =
             [.. slots.Select(slot => ToCandidate(slot, inspectionSession))];
-        return WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
+        return outputNaming.CreateCtrlRamReplaceOutputFileNameFromInspections(
             icId,
             candidates,
             edit).FileName;

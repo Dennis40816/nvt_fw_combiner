@@ -55,7 +55,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw141-single-v2");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51927",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -74,7 +74,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             icId,
             "single",
             WorkbenchReplaceModes.CtrlRam,
@@ -136,7 +136,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             "single",
             slots,

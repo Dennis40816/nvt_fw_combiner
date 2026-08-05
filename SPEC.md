@@ -1265,11 +1265,10 @@ to each `0.10.x` version.
 - Every canonical exact route also has one explicit versioned
   `PublicationStatus`, such as `Supported`, `Candidate`, `Internal`, or
   `TestOnly`. Missing publication policy is a fail-closed materialization error,
-  never an implicit `Internal` or `Unsupported`. A migration adapter may
-  temporarily project legacy `Unclassified` but cannot create a public support
-  claim. `Unclassified` is not a target publication value: every route must
-  receive one of the four explicit decisions before it becomes canonical, and
-  the legacy enum/value is deleted after route migration reaches zero.
+  never an implicit `Internal` or `Unsupported`. #195 completed the migration:
+  every canonical route now carries one of the four explicit decisions, the
+  conservative non-public baseline is `Internal`, and the legacy
+  `Unclassified` enum/value is rejected at policy intake.
   `EvidenceStatus.Missing` remains a valid explicit evidence result and is not
   treated as missing publication data.
 - Stable `RouteId` identifies only the logical exact route: IC, workflow,
@@ -1372,8 +1371,10 @@ to each `0.10.x` version.
 
 #### Application use-case boundary
 
-- `WorkbenchCompositionService` is a migration-only Bootstrap compatibility
-  facade and is deleted after every UI and CLI caller has moved.
+- Issue #195 retired `WorkbenchCompositionService` after proving zero UI, CLI,
+  production, and executable-test callers. Capability query, authoring-session,
+  inspection, memory projection, output naming, planning, and execution now
+  have focused owners; no replacement all-workflow facade is permitted.
 - NFC is not a supported .NET SDK at this stage. Bootstrap, Presentation,
   ViewModel, and other implementation C# types do not gain compatibility
   authority merely because they are declared `public`; they may change or be

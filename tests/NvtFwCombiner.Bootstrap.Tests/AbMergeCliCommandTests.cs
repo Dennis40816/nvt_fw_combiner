@@ -247,7 +247,7 @@ public sealed class AbMergeCliCommandTests
             [CompositionAddressSpaceIds.TpBInput] = tpBPath,
         };
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeForCliAsync(
             "NT51929",
             slots,
             build: true,
@@ -279,14 +279,14 @@ public sealed class AbMergeCliCommandTests
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write("tp-a.bin", CreateTp(0x80, 0x04)),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("tp-b.bin", CreateTp(0x81, 0x02)),
         };
-        string outputFileName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        string outputFileName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
             "NT51929",
             slots,
             TestContext.Current.CancellationToken);
         string reportPath = workspace.PathFor(outputFileName);
 
         _ = await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+            await CompositionExecutionAdapter.RunAbMergeForCliAsync(
                 "NT51929",
                 slots,
                 build: true,

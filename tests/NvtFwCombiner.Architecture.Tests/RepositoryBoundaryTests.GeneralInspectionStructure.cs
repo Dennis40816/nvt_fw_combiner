@@ -13,9 +13,9 @@ public sealed partial class RepositoryBoundaryTests
             ReadText(
                 "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/GeneralMappingRowViewModel.cs");
         string bootstrap = ReadText(
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs") +
+                "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.GeneralMerge.V2.cs") +
             ReadText(
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs");
+                "src/NvtFwCombiner.Bootstrap/CompositionAuthoringSessionAdapter.Replace.General.Readiness.cs");
         string inspection = ReadText(
             "src/NvtFwCombiner.Application/Authoring/GeneralSelectedFileInspection.cs");
 

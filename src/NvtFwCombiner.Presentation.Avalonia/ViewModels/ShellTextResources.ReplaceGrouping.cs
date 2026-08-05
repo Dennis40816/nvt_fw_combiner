@@ -1,7 +1,6 @@
 #pragma warning disable CS1591
 
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

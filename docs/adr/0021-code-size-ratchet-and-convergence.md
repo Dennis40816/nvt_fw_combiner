@@ -171,6 +171,24 @@ slice budget, or permission to move runtime logic into excluded Presentation,
 generated output, profiles, scripts, or tests. It does not increase the 22,607
 final gate or the 607-line unallocated integration reserve.
 
+Issue #195 candidate measurement, 2026-08-05: deleting the Workbench facade and
+parallel support-policy owners while introducing the required focused
+Application contracts changes the canonical runtime metric from 76,145
+nonblank lines at base commit
+`649a84d7ef096b779d9268c24ff2a1e36a9fbbe8` to 76,345, an exact increase of
+200 lines. The full production measurement changes from 749 files / 104,641
+nonblank lines to 763 files / 105,064 nonblank lines, an increase of 14 files /
+423 lines. The earlier 75,329, 76,141, and 76,314 intermediate measurements did not
+include the final focused-owner and compiler-slot-identity corrections and are
+not release evidence. The retired 6,905-line Workbench aggregate is not
+renamed: its largest focused successor is `CompositionExecutionAdapter` at
+2,601 nonblank lines, followed by `CompositionPlanningAdapter` at 1,719 and
+`CompositionMemoryProjection` at 1,116. A 3,000-line architecture and policy
+ceiling prevents the execution owner from regrowing. This candidate is not a
+reduction and therefore cannot consume an implicit allowance under the
+pre-Core policy; merge requires an explicit owner amendment for the 200-line
+counted-positive delta. The final 22,607-line gate is unchanged.
+
 Canonical Core Convergence is one umbrella outcome, not one repository-wide
 implementation PR. It is delivered through four independently reviewable,
 ownership-bounded slices:

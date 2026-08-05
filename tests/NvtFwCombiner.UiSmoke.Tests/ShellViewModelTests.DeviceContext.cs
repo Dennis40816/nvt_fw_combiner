@@ -48,7 +48,7 @@ public sealed partial class ShellViewModelTests
         viewModel.ShowReplaceCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(CanonicalCapabilityProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
         Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
         Assert.NotNull(viewModel.WorkflowSession.SelectedNumberChoice);
 
@@ -75,7 +75,7 @@ public sealed partial class ShellViewModelTests
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(CanonicalCapabilityProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>The consolidated IC detail exposes family, runtime, evidence, and support without badge-only meaning.</summary>
@@ -86,9 +86,9 @@ public sealed partial class ShellViewModelTests
 
         viewModel.WorkflowSession.SelectedIc = "NT51929";
 
-        Assert.Contains("IC Family source", viewModel.WorkflowSession.SelectedIcDetailFamily, StringComparison.Ordinal);
+        Assert.Contains("Perfect IC Family", viewModel.WorkflowSession.SelectedIcDetailFamily, StringComparison.Ordinal);
         Assert.Contains("AB", viewModel.WorkflowSession.SelectedIcDetailRuntime, StringComparison.Ordinal);
-        Assert.Equal("! Open: DP, CtrlRAM, Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
+        Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
         Assert.DoesNotContain("golden", viewModel.WorkflowSession.SelectedIcDetailEvidence, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NT51929", viewModel.WorkflowSession.SelectedIcDetailAutomationText, StringComparison.Ordinal);
         Assert.Contains(viewModel.WorkflowSession.SelectedIcDetailEvidence, viewModel.WorkflowSession.SelectedIcDetailAutomationText, StringComparison.Ordinal);
@@ -97,7 +97,7 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
 
         Assert.Contains("AB", viewModel.WorkflowSession.SelectedIcDetailRuntime, StringComparison.Ordinal);
-        Assert.Equal("✓ Verified: DP · ! Open: CtrlRAM, Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
+        Assert.Equal("! Open: DP, CtrlRAM · — Unavailable: Customized", viewModel.WorkflowSession.SelectedIcDetailEvidence);
         Assert.Contains("compiled profile contracts", viewModel.WorkflowSession.SelectedIcDetailSupport, StringComparison.Ordinal);
 
     }

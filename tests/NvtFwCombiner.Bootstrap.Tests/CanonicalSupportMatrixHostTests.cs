@@ -96,9 +96,9 @@ public sealed class CanonicalSupportMatrixHostTests
     public void FocusedQueryUsesTheSharedCanonicalCatalogPublication()
     {
         ICanonicalSupportMatrixQuery query =
-            WorkbenchHostServices.CreateCanonicalSupportMatrixQuery();
+            WorkbenchHostServices.CanonicalSupportMatrixQuery;
         CapabilityCatalogReloadResult reload =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
 
         CanonicalSupportMatrixQueryResult result = query.Query();

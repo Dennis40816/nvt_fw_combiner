@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
@@ -57,7 +58,8 @@ public sealed partial class ShellViewModelTests
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
+        foreach (CapabilityProfileSummary profile in
+            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries())
         {
             viewModel.WorkflowSession.SelectedIc = profile.IcId;
 
@@ -145,7 +147,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
 
-        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(CanonicalCapabilityProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>

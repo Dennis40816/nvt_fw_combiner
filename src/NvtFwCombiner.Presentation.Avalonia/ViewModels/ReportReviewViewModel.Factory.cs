@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Tests;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
@@ -249,7 +248,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51950",
             outputLength,
             selectedInputSlotIds: [],

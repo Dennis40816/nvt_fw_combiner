@@ -5,6 +5,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -92,7 +91,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             CompiledFirmwareArtifactKind.FlashCode,
             CompiledFirmwareArtifactClassifier.Classify(classificationComposition, ownerFlashCode).Kind);
 
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51928",
             golden.ExpectedOutput.LongLength,
             [replacementAddressSpaceId],

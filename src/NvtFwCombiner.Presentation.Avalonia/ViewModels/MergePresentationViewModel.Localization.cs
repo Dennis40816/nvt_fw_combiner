@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MergePresentationViewModel
@@ -8,7 +6,7 @@ public sealed partial class MergePresentationViewModel
     {
         MergeDpSlot.ApplyDisplayText(
             "DP BIN",
-            ApplySelectedIcDpSlotHint(WorkbenchSlotIds.MergeDp, Text.MergeDpSlotDescription),
+            Text.MergeDpSlotDescription,
             Text.RequiredLabel,
             Text.OptionalLabel,
             Text.NoBinSelectedLabel);
@@ -33,7 +31,7 @@ public sealed partial class MergePresentationViewModel
         {
             RefreshStandardMergeAuthoringState();
         }
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
+        foreach (WorkbenchAbMergeInputSlot input in _compositionServices.Authoring.GetAbMergeInputSlots(
                      SelectedIc,
                      GetSelectedAbMergeTopologyToken()))
         {
@@ -49,14 +47,4 @@ public sealed partial class MergePresentationViewModel
         }
     }
 
-    private string ApplySelectedIcDpSlotHint(string slotId, string description)
-    {
-        string? hint = WorkbenchCompositionService.GetFirmwareSlotHint(SelectedIc, slotId) ==
-            WorkbenchFirmwareSlotHint.InitialCodeAndLdc
-            ? Text.InitialCodeAndLdcSlotHint
-            : null;
-        return !string.IsNullOrWhiteSpace(hint) && !description.Contains(hint, StringComparison.Ordinal)
-            ? $"{description} {hint}"
-            : description;
-    }
 }

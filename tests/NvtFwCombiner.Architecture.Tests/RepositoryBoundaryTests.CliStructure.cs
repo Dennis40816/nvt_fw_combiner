@@ -56,14 +56,14 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
         }
 
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("CompositionExecutionAdapter.RunReplaceAsync", dp, StringComparison.Ordinal);
+        Assert.Contains("CompositionExecutionAdapter.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync",
+            "CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync",
             general,
             StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync",
+            "CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync",
             general,
             StringComparison.Ordinal);
     }
@@ -174,7 +174,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetDpReplaceProfileSummaries", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
@@ -203,13 +203,13 @@ public sealed partial class RepositoryBoundaryTests
     public void StandardMergeRuntimeConsumesSharedCompiledResolver()
     {
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
-        string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+        string run = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.StandardMerge.cs");
         string display = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
+            "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.StandardMerge.cs");
         string generalMergeProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.GeneralMerge.Profile.cs");
         string resolver = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityResolution.StandardMerge.Compilation.cs");
 
         string[] compileSources =
         [
@@ -223,12 +223,13 @@ public sealed partial class RepositoryBoundaryTests
         ];
         Assert.Equal(
             [
+                "CanonicalAuthoringAdapter.GeneralMerge.Profile.cs",
+                "CanonicalAuthoringAdapter.StandardMerge.cs",
+                "CanonicalCapabilityProjection.WorkflowDisclosure.cs",
+                "CanonicalCapabilityResolution.StandardMerge.Compilation.cs",
                 "CliApplication.StandardMerge.cs",
-                "WorkbenchCompositionService.GeneralMerge.Profile.cs",
-                "WorkbenchCompositionService.StandardMerge.Authoring.cs",
-                "WorkbenchCompositionService.StandardMerge.Compilation.cs",
-                "WorkbenchCompositionService.StandardMerge.Display.cs",
-                "WorkbenchCompositionService.StandardMerge.Run.cs",
+                "CompositionExecutionAdapter.StandardMerge.cs",
+                "CompositionMemoryProjection.StandardMerge.cs",
             ],
             compileSources);
 
@@ -266,9 +267,9 @@ public sealed partial class RepositoryBoundaryTests
         string application = ReadText(
             "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
         string authoringAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Authoring.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.StandardMerge.cs");
         string inspectionAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.InputInspection.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.StandardMerge.InputInspection.cs");
         string presentation = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.StandardMergeAuthoring.cs");
 

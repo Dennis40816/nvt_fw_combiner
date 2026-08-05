@@ -274,17 +274,17 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void ReloadDoesNotRebindOldCompilationToCurrentPublication()
     {
         CapabilityCatalogReloadResult first =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
-        ResolvedCapability old = WorkbenchCompositionService
+        ResolvedCapability old = CanonicalCapabilityResolution
             .ResolveCanonicalStandardMergeCapability("NT51929")
             .Capability!;
         CapabilityCatalogReloadResult second =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
 
         ResolvedCapability? rebound =
-            WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+            CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
                 old.CompiledComposition);
 
         Assert.True(first.Succeeded);
@@ -298,9 +298,9 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void ReloadRejectsOldDynamicCompilationAndAcceptedCapability()
     {
         CapabilityCatalogReloadResult first =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
-        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT51928",
             0x40000,
             [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
@@ -308,11 +308,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             out ResolvedCapability? acceptedCapability,
             out IReadOnlyList<CompositionIssue> issues);
         CapabilityCatalogReloadResult second =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
 
         ResolvedCapability? rebound =
-            WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+            CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
                 composition!,
                 acceptedCapability);
 
@@ -361,24 +361,24 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51929CompilationUsesPublishedCanonicalSnapshot()
     {
         CapabilityCatalogReloadResult reload =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
         CapabilityResolutionResult resolution =
-            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
+            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
                 "NT51929");
-        bool available = WorkbenchCompositionService.IsStandardMergeSupported(
+        bool available = CanonicalAuthoringAdapter.IsStandardMergeSupported(
             "NT51929");
         CapabilityResolutionResult afterAvailability =
-            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
+            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
                 "NT51929");
 
-        bool recognized = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool recognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT51929",
             dpInputLength: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         CapabilityResolutionResult afterCompile =
-            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
+            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
                 "NT51929");
 
         Assert.True(reload.Succeeded);
@@ -430,16 +430,16 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             TestContext.Current.CancellationToken);
 
         Assert.True(loaded.Succeeded);
-        Assert.True(WorkbenchCompositionService.HasCanonicalCapability(
+        Assert.True(CanonicalCapabilityResolution.HasCanonicalCapability(
             loaded.Snapshot,
             " 51928 ",
             IcWorkflowIds.StandardMerge));
-        Assert.False(WorkbenchCompositionService.HasCanonicalCapability(
+        Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
             snapshot: null,
             "NT51928",
             IcWorkflowIds.StandardMerge));
         Assert.True(unavailableReload.Succeeded);
-        Assert.False(WorkbenchCompositionService.HasCanonicalCapability(
+        Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
             unavailableReload.Snapshot,
             "nt51928",
             IcWorkflowIds.StandardMerge));
@@ -450,12 +450,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51929DpReplaceUsesPublishedCanonicalSnapshotAndDpcmiAuthority()
     {
         CapabilityCatalogReloadResult reload =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
         CapabilityResolutionResult resolution =
-            WorkbenchCompositionService.ResolveCanonicalDpReplaceCapability(
+            CanonicalCapabilityResolution.ResolveCanonicalDpReplaceCapability(
                 "NT51929");
-        bool recognized = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool recognized = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51929",
             0x40000,
             out CompiledComposition? composition,
@@ -473,15 +473,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         string dpPath = workspace.Write("replacement-dp.bin", dp);
 
         WorkbenchDpVersionMetadata? version =
-            WorkbenchCompositionService.TryReadDpVersionMetadata(
+            FirmwareInspectionAdapter.TryReadDpVersionMetadata(
                 "NT51929",
                 dpPath);
         WorkbenchCmiDpCodeMetadata? cmi =
-            WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+            FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
                 "NT51929",
                 dpPath);
         WorkbenchOutputFileNameSuggestion outputName =
-            WorkbenchCompositionService.CreateFlashCodeOutputFileName(
+            CompositionOutputNaming.CreateFlashCodeOutputFileName(
                 "NT51929",
                 [new WorkbenchOutputNameCandidate(
                     WorkbenchOutputNameCandidateKind.Dp,
@@ -516,10 +516,10 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "nvt-fw-combiner-canonical-dpcmi-truncated");
         string path = workspace.Write("truncated-dp.bin", truncated);
 
-        Assert.Null(WorkbenchCompositionService.TryReadDpVersionMetadata(
+        Assert.Null(FirmwareInspectionAdapter.TryReadDpVersionMetadata(
             "NT51929",
             path));
-        Assert.Null(WorkbenchCompositionService.TryReadCmiDpCodeMetadata(
+        Assert.Null(FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
             "NT51929",
             path));
     }
@@ -528,13 +528,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     [Fact]
     public void OtherStandardMergeRoutesUsePublishedCanonicalSnapshot()
     {
-        bool recognized = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool recognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT51923",
             dpInputLength: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         CapabilityResolutionResult canonical =
-            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(
+            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
                 "NT51923");
 
         Assert.True(recognized);
@@ -552,15 +552,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void RetiredIcRoutesFailClosed(string icId)
     {
         CapabilityResolutionResult standard =
-            WorkbenchCompositionService.ResolveCanonicalStandardMergeCapability(icId);
+            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(icId);
         CapabilityResolutionResult dp =
-            WorkbenchCompositionService.ResolveCanonicalDpReplaceCapability(icId);
-        bool standardRecognized = WorkbenchCompositionService.TryCompileStandardMerge(
+            CanonicalCapabilityResolution.ResolveCanonicalDpReplaceCapability(icId);
+        bool standardRecognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             dpInputLength: 0x40000,
             out CompiledComposition? standardComposition,
             out IReadOnlyList<CompositionIssue> standardIssues);
-        bool dpRecognized = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool dpRecognized = CanonicalCapabilityResolution.TryCompileDpReplace(
             icId,
             baseCapacity: 0x40000,
             out CompiledComposition? dpComposition,

@@ -12,7 +12,7 @@ internal static class GeneralTestDraftFactory
         string targetStart,
         string length)
     {
-        return WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+        return CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
             id,
             GeneralMappingSourceKind.FileArtifact,
             path,
@@ -27,7 +27,7 @@ internal static class GeneralTestDraftFactory
         GeneralMappingSourceKind kind,
         string value)
     {
-        return WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+        return CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
             id,
             kind,
             value,
@@ -40,7 +40,7 @@ internal static class GeneralTestDraftFactory
         IReadOnlyList<AuthoringMappingState> mappings,
         string? outputFillByte = null)
     {
-        if (!WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+        if (!CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
                 outputLength,
                 outputFillByte,
                 out WorkbenchGeneralMergeInitializer? initializer))
@@ -48,7 +48,7 @@ internal static class GeneralTestDraftFactory
             throw new InvalidOperationException("Test input must contain a valid General Merge initializer.");
         }
 
-        GeneralMappingDraftState mappingDraft = WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+        GeneralMappingDraftState mappingDraft = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
                 mappings,
                 out GeneralMappingDraftState? draft,
                 out IReadOnlyList<CompositionIssue> issues)
@@ -56,13 +56,13 @@ internal static class GeneralTestDraftFactory
             : throw new InvalidOperationException(
                 string.Join("; ", issues.Select(static issue => issue.Message)));
 
-        return WorkbenchCompositionService.CreateGeneralMergeDraft(initializer, mappingDraft);
+        return CanonicalAuthoringAdapter.CreateGeneralMergeDraft(initializer, mappingDraft);
     }
 
     internal static GeneralMappingDraftState CreateReplaceDraft(
         IReadOnlyList<AuthoringMappingState> mappings)
     {
-        return WorkbenchCompositionService.TryCreateGeneralReplaceAuthoringDraft(
+        return CanonicalAuthoringAdapter.TryCreateGeneralReplaceAuthoringDraft(
             mappings,
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues)
@@ -77,22 +77,22 @@ internal static class GeneralTestDraftFactory
         IReadOnlyList<AuthoringMappingState> mappings,
         string? outputFillByte = null)
     {
-        return !WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+        return !CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
                 outputLength,
                 outputFillByte,
                 out WorkbenchGeneralMergeInitializer? initializer)
-            ? WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            ? CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
                 icId,
                 outputLength,
                 outputFillByte)
-            : WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+            : CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
                 mappings,
                 out GeneralMappingDraftState? mappingDraft,
                 out _)
-                ? WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                ? CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
                     icId,
-                    WorkbenchCompositionService.CreateGeneralMergeDraft(initializer, mappingDraft))
-                : WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+                    CanonicalAuthoringAdapter.CreateGeneralMergeDraft(initializer, mappingDraft))
+                : CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
                     icId,
                     initializer,
                     mappings,

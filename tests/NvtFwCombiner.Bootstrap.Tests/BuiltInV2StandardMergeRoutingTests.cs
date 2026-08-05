@@ -36,7 +36,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             bundleDirectory,
             "profile-bundle.json");
         Assert.True(File.Exists(deployedManifestPath), $"Deployed bundle manifest is missing: {deployedManifestPath}");
-        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             dpInputLength: null,
             out CompiledComposition? composition,
@@ -64,7 +64,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [Fact]
     public void Nt51928StandardMergeLdcSelectionResolvesThe512KVariant()
     {
-        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT51928",
             dpInputLength: null,
             [
@@ -114,7 +114,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             slotPaths[CompositionAddressSpaceIds.LdcInput] = workspace.Write("ldc.bin", ldc);
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
             icId,
             slotPaths,
             build: true,
@@ -142,7 +142,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string profileId,
         long dpInputLength)
     {
-        bool compiled = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             dpInputLength,
             out CompiledComposition? composition,
@@ -251,8 +251,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string dpPath = workspace.Write("nt51929-dp.bin", dp);
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
-        var progress = new Application.Composition.CompositionRunProgressFeed();
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeWithProgressAsync(
+        var progress = new CompositionRunProgressFeed();
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeWithProgressAsync(
             "NT51929",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -262,8 +262,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             build: false,
             progress,
             TestContext.Current.CancellationToken);
-        List<Application.Composition.CompositionRunProgressSnapshot> snapshots = [];
-        await foreach (Application.Composition.CompositionRunProgressSnapshot snapshot in
+        List<CompositionRunProgressSnapshot> snapshots = [];
+        await foreach (CompositionRunProgressSnapshot snapshot in
             progress.ReadAllAsync(TestContext.Current.CancellationToken))
         {
             snapshots.Add(snapshot);
@@ -273,11 +273,11 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.True(progress.IsAttached);
         Assert.Equal(
             [
-                Application.Composition.CompositionRunPhase.Preparing,
-                Application.Composition.CompositionRunPhase.ReadingInputs,
-                Application.Composition.CompositionRunPhase.ExecutingComposition,
-                Application.Composition.CompositionRunPhase.ValidatingOutput,
-                Application.Composition.CompositionRunPhase.PreparingReport,
+                CompositionRunPhase.Preparing,
+                CompositionRunPhase.ReadingInputs,
+                CompositionRunPhase.ExecutingComposition,
+                CompositionRunPhase.ValidatingOutput,
+                CompositionRunPhase.PreparingReport,
             ],
             snapshots.Select(static snapshot => snapshot.CurrentPhase));
         Assert.Equal(0x40000, result.OutputSize);

@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

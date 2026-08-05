@@ -135,12 +135,12 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies CtrlRAM grouping reaches Presentation as typed Bootstrap data.</summary>
+    /// <summary>Verifies CtrlRAM grouping reaches Presentation as typed Application data.</summary>
     [Fact]
     public void ReplaceRegionGroupsDoNotDependOnLocalizedLabels()
     {
         string models = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
+            "src/NvtFwCombiner.Application/Composition/WorkbenchCompositionModels.cs");
         string builder = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs");
 

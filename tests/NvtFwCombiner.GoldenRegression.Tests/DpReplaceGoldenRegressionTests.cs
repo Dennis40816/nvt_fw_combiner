@@ -31,7 +31,7 @@ public sealed class DpReplaceGoldenRegressionTests
         string replacementDpPath = workspace.Write("replacement-dp.bin", replacementDpBytes);
         string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
                 $"NT{ic}",
                 "single",
                 "DP",
@@ -108,7 +108,7 @@ public sealed class DpReplaceGoldenRegressionTests
         }
 
         string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             $"NT{ic}",
             "single",
             "DP",
@@ -161,7 +161,7 @@ public sealed class DpReplaceGoldenRegressionTests
         using var workspace = TempWorkspace.Create(
             "nvt-fw-combiner-dp-replace-changed-51929");
         string outputPath = workspace.PathFor("nt51929-dp-replace-changed.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51929",
             "single",
             "DP",

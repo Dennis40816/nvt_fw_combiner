@@ -1,5 +1,4 @@
 using System.Globalization;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;

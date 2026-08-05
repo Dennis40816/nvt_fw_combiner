@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -11,10 +10,13 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetStandardMergeMemoryDisplay(
+        PresentationCompositionServices services,
         string icId,
         long? dpInputLength = null)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(icId, dpInputLength);
+        ArgumentNullException.ThrowIfNull(services);
+        WorkbenchMemoryDisplay display =
+            services.Memory.GetStandardMergeMemoryDisplay(icId, dpInputLength);
         return (
             display.RangeLabel,
             [.. display.MemoryMapRows.Select(ToMemoryMapRow)],
@@ -26,12 +28,14 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        PresentationCompositionServices services,
         string icId,
         string outputLength,
         string? outputFillByte)
     {
+        ArgumentNullException.ThrowIfNull(services);
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            services.Memory.GetGeneralMergeMemoryDisplay(
                 icId,
                 outputLength,
                 outputFillByte);
@@ -46,11 +50,13 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetAbMergeMemoryDisplay(
-            string icId,
+        PresentationCompositionServices services,
+        string icId,
             string? abMergeTopologyToken = null,
             long? dpInputLength = null)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetAbMergeMemoryDisplay(
+        ArgumentNullException.ThrowIfNull(services);
+        WorkbenchMemoryDisplay display = services.Memory.GetAbMergeMemoryDisplay(
             icId,
             abMergeTopologyToken,
             dpInputLength);
@@ -65,13 +71,15 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay(
+        PresentationCompositionServices services,
         string icId,
         WorkbenchGeneralMergeInitializer initializer,
         IReadOnlyList<AuthoringMappingState> states,
         GeneralAuthoringAdmissionResult? admission)
     {
+        ArgumentNullException.ThrowIfNull(services);
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay(
+            services.Memory.GetGeneralMergeMemoryDisplay(
                 icId,
                 initializer,
                 states,

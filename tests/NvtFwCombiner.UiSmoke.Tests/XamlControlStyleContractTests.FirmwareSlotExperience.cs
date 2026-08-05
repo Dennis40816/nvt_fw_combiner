@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

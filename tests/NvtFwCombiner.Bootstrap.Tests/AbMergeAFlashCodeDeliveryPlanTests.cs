@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -9,7 +8,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public async Task AFlashCodeDeliveryPlanRetainsCaseDistinctInputPathsAsync()
     {
-        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+        Assert.True(CanonicalCapabilityResolution.TryCompileAbMerge(
             "NT51929",
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues),

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -330,30 +329,30 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-progress-observer-fault");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
-        AuthoringMappingState mapping = WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+        AuthoringMappingState mapping = CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
             "map-1",
             sourcePath,
             "0x0",
             "0x4",
             "0x4");
-        Assert.True(WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+        Assert.True(CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
             [mapping],
             out GeneralMappingDraftState? mappingsDraft,
             out _));
-        Assert.True(WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+        Assert.True(CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
             "0x10",
             outputFillByte: null,
             out WorkbenchGeneralMergeInitializer? initializer));
-        GeneralMergeDraftState draft = WorkbenchCompositionService.CreateGeneralMergeDraft(
+        GeneralMergeDraftState draft = CanonicalAuthoringAdapter.CreateGeneralMergeDraft(
             initializer!,
             mappingsDraft!);
         AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
             ExperienceIds.GeneralMerge);
         AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+            CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
                 session, "NT51926", draft, "map-1", observedLength: 4);
         GeneralSelectedFileInspectionResult inspection =
-            await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+            await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
                 "map-1",
                 sourcePath,
                 started.Snapshot!.AuthoringRevision,
@@ -362,7 +361,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(session.TryAcceptSlotFileInspection(
             started.Lease!, inspection.Inspection!).Succeeded);
         draft = Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot!.DraftState);
-        Assert.NotNull(WorkbenchCompositionService.GetGeneralMergeActionReadiness(
+        Assert.NotNull(CompositionAuthoringSessionAdapter.GetGeneralMergeActionReadiness(
             session, "NT51926", draft));
         ActiveSessionSnapshot acceptedSession = session.CurrentSnapshot!;
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
@@ -380,7 +379,7 @@ public sealed partial class ShellViewModelTests
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 viewModel.RunSession.RunCompositionAsync(
                     build: false,
-                    (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
+                    (progress, cancellationToken) => CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
                         "NT51926",
                         acceptedSession,
                         build: false,

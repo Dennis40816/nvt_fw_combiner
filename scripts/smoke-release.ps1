@@ -31,32 +31,15 @@ $ApprovedRuntimeCatalogPackagePaths = @(
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
 $ApprovedPackageTrustIndexSha256 = 'ab70ce23bb3d8b8c5e12ea4d1662431c1ca4e9a429e7563ecf75e82015e80530'
-$ApprovedSupportPublicationPolicyPackageContracts = @(
-    [pscustomobject]@{
-        path = 'docs/contracts/support-publication-policy-v1.0.0.json'
-        role = 'publicationPolicy'
-        sha256 = '365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2'
-    }
-    [pscustomobject]@{
-        path = 'docs/contracts/support-publication-policy-v1.json'
-        role = 'publicationPolicy'
-        sha256 = 'b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff'
-    }
-)
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '0b901c0cdec2f4a90c3fca8c542293b9700c049956f7dba3480e16a5a8ceac23'
+    sha256 = '026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4'
 }
-if (@($ApprovedSupportPublicationPolicyPackageContracts).Count -eq 0) {
-    throw 'At least one support publication policy package contract is required.'
-}
-$ApprovedSupportPublicationPolicyPackagePaths = @(
-    $ApprovedSupportPublicationPolicyPackageContracts |
-        ForEach-Object { [string]$_.path } |
-        Sort-Object
+$RetiredSupportPublicationPolicyPackagePaths = @(
+    'docs/contracts/support-publication-policy-v1.0.0.json',
+    'docs/contracts/support-publication-policy-v1.json'
 )
-
 function Get-LowerSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -269,9 +252,7 @@ try {
             'README.txt',
             'LICENSE.txt',
             'THIRD-PARTY-NOTICES.txt'
-        ) +
-        $ApprovedSupportPublicationPolicyPackagePaths +
-        @([string]$ApprovedCanonicalCapabilityPolicyPackageContract.path)
+        ) + @([string]$ApprovedCanonicalCapabilityPolicyPackageContract.path)
     )
     foreach ($requiredPath in $RequiredPackagePaths) {
         if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $requiredPath) -PathType Leaf)) {
@@ -302,35 +283,12 @@ try {
         throw 'Release manifest has no file entries.'
     }
 
-    $DeclaredSupportPublicationPolicyEntries = @(
-        $manifest.files | Where-Object {
-            ([string]$_.path) -in $ApprovedSupportPublicationPolicyPackagePaths -or
-            $_.role -eq 'publicationPolicy'
-        }
-    )
-    if ($DeclaredSupportPublicationPolicyEntries.Count -ne
-            @($ApprovedSupportPublicationPolicyPackageContracts).Count) {
-        throw 'Release manifest support publication policy identity is inconsistent.'
-    }
-    foreach ($Contract in $ApprovedSupportPublicationPolicyPackageContracts) {
-        $Entries = @(
-            $DeclaredSupportPublicationPolicyEntries |
-                Where-Object { $_.path -eq $Contract.path }
-        )
-        if ($Entries.Count -ne 1 -or
-            $Entries[0].role -ne $Contract.role -or
-            $Entries[0].sha256 -ne $Contract.sha256) {
-            throw 'Release manifest support publication policy identity is inconsistent.'
-        }
-
-        $PolicyPath = Join-Path `
-            $packageRoot `
-            ([string]$Contract.path).Replace(
-                '/',
-                [IO.Path]::DirectorySeparatorChar)
-        if ((Get-LowerSha256 -Path $PolicyPath) -ne [string]$Contract.sha256) {
-            throw 'Release package support publication policy does not match the approved SHA-256.'
-        }
+    if (@($manifest.files |
+            Where-Object {
+                $_.path -in $RetiredSupportPublicationPolicyPackagePaths -or
+                $_.role -eq 'publicationPolicy'
+            }).Count -ne 0) {
+        throw 'Release manifest contains the retired support publication policy payload.'
     }
 
     $DeclaredCapabilityPolicyEntries = @(

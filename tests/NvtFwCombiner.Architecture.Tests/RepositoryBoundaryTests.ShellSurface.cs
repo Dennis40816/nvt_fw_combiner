@@ -345,7 +345,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsStructuredReplaceModeSelected", replaceState, StringComparison.Ordinal);
         Assert.Contains("PreviewMergeCommand", mergeState, StringComparison.Ordinal);
         Assert.Contains("BuildMergeCommand", mergeState, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionExecutionAdapter", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("OverviewRows", settingsViewModel, StringComparison.Ordinal);
         Assert.Contains("CapabilityRows", settingsViewModel, StringComparison.Ordinal);

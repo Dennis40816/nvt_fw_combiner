@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;

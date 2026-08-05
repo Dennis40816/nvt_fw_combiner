@@ -20,7 +20,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var processor = new PassThroughProcessor();
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: false);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51929",
             "single",
             CreateSlotPaths(evidence, evidence.Expected.Path),
@@ -53,13 +53,13 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: false);
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
 
-        WorkbenchRunResult blocked = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult blocked = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51929", "single", slots, true, outputPath, null, processor,
             readinessProvider, 20, static generation => generation == 20,
             TestContext.Current.CancellationToken);
 
         readinessProvider.IsReady = true;
-        WorkbenchRunResult recovered = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult recovered = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51929", "single", slots, true, outputPath, null, processor,
             readinessProvider, 21, static generation => generation == 21,
             TestContext.Current.CancellationToken);
@@ -81,7 +81,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var processor = new PassThroughProcessor();
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: true);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51929",
             "single",
             CreateSlotPaths(evidence, evidence.Expected.Path),

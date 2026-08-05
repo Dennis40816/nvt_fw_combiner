@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -17,7 +16,7 @@ public sealed partial class MergePresentationViewModel
             return EmptyInspectionLeases();
         }
 
-        WorkbenchAbMergeAuthoringSnapshot projection = ResolveAbMergeAuthoringSnapshot();
+        CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
             _authoringSessions.AbMerge.Activate(projection.Catalog);
         ApplyAbMergeReadiness(projection);
@@ -59,14 +58,14 @@ public sealed partial class MergePresentationViewModel
             return;
         }
 
-        WorkbenchAbMergeAuthoringSnapshot projection = ResolveAbMergeAuthoringSnapshot();
+        CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
             _authoringSessions.AbMerge.Activate(projection.Catalog);
         ApplyAbMergeReadiness(projection);
         SyncAbMergeMembership(activated.Snapshot);
     }
 
-    private WorkbenchAbMergeAuthoringSnapshot ResolveAbMergeAuthoringSnapshot()
+    private CompiledAuthoringSelectionSnapshot ResolveAbMergeAuthoringSnapshot()
     {
         string[] selectedSlotIds =
         [
@@ -78,7 +77,7 @@ public sealed partial class MergePresentationViewModel
             _authoringSessions.AbMerge,
             AbMergeSlots,
             static slot => slot.SlotId);
-        return WorkbenchCompositionService.GetAbMergeAuthoringSnapshot(
+        return _compositionServices.Authoring.GetAbMergeAuthoringSnapshot(
             SelectedIc,
             GetSelectedAbMergeTopologyToken(),
             selectedSlotIds,
@@ -87,7 +86,7 @@ public sealed partial class MergePresentationViewModel
             _authoringSessions.AbMerge.CurrentSnapshot);
     }
 
-    private void ApplyAbMergeReadiness(WorkbenchAbMergeAuthoringSnapshot projection)
+    private void ApplyAbMergeReadiness(CompiledAuthoringSelectionSnapshot projection)
     {
         ApplyInputReadiness(AbMergeSlots, projection.Slots, static slot => slot.SlotId);
     }

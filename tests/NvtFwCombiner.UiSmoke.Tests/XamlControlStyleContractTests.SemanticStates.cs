@@ -396,15 +396,18 @@ public sealed partial class XamlControlStyleContractTests
     [Fact]
     public void MemoryCoveragePatternUsesTypedWorkbenchRole()
     {
+        PresentationCompositionServices services = DesktopCompositionRoot.Create("test").Composition;
         (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverage) = UiCompositionRunner.GetReplaceMemoryDisplay(
+            services,
             "NT51951",
             "single",
             WorkbenchReplaceModes.Dp,
             dpBaseLength: 0x80000);
         (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> standardMergeCoverage) =
-            UiCompositionRunner.GetStandardMergeMemoryDisplay("NT51926");
+            UiCompositionRunner.GetStandardMergeMemoryDisplay(services, "NT51926");
         (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> customizedMergeCoverage) =
             UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                services,
                 "NT51950",
                 "0x100",
                 null);

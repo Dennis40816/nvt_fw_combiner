@@ -31,9 +31,9 @@ public sealed partial class RepositoryBoundaryTests
         string source = ReadText(
             "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityCatalogMigrationSource.cs");
         string routing = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityResolution.StandardMerge.cs");
         string canonicalRouting = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.CanonicalCapability.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityResolution.cs");
         string cli = ReadText(
             "src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string presentation = ReadPresentationSources();
@@ -51,8 +51,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51929", canonicalRouting, StringComparison.Ordinal);
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", routing, StringComparison.Ordinal);
         Assert.DoesNotContain("IsCanonicalStandardMergePilot", canonicalRouting, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.TryCompileStandardMerge(", cli, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.IsStandardMergeSupported", presentation, StringComparison.Ordinal);
+        Assert.Contains("CanonicalCapabilityResolution.TryCompileStandardMerge(", cli, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Authoring.IsStandardMergeSupported", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalAuthoringAdapter", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("new ByteRange(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionOperation.", source, StringComparison.Ordinal);
         Assert.DoesNotContain("0x", source, StringComparison.OrdinalIgnoreCase);

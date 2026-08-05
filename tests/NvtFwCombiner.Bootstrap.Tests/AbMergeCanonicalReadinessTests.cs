@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -25,7 +24,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         ];
 
         IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            WorkbenchCompositionService.InspectFirmwareBatch("NT51929", inputs);
+            FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs);
 
         Assert.Equal(3, results.Count);
         AuthoringCapabilityCatalogSnapshot catalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
@@ -62,7 +61,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         ];
 
         var results =
-            WorkbenchCompositionService.InspectFirmwareBatch("NT51929", inputs)
+            FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs)
                 .ToDictionary(static result => result.InspectionId, static result => result.Inspection);
 
         Assert.Equal(
@@ -94,10 +93,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         CompiledInputVersionObservation[] versions =
         [
-            .. WorkbenchCompositionService.InspectFirmwareBatch("NT51929", inputs)
+            .. FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs)
                 .SelectMany(static result => result.Inspection.InputSlotStatus!.Observation.Versions),
         ];
-        WorkbenchRunResult run = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult run = await CompositionExecutionAdapter.RunAbMergeAsync(
             "NT51929",
             paths,
             build: false,

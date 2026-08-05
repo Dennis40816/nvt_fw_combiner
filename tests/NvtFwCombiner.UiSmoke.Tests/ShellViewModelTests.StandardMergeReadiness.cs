@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -118,12 +119,13 @@ public sealed partial class ShellViewModelTests
             "test",
             "test",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("test"),
             static (_, _) => null,
             (icId, inputs) =>
             {
                 _ = readerEntered.TrySetResult();
                 releaseReader.Task.GetAwaiter().GetResult();
-                return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+                return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
             });
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";

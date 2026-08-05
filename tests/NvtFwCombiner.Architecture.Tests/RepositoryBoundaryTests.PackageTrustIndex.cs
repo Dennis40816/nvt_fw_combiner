@@ -436,7 +436,9 @@ public sealed partial class RepositoryBoundaryTests
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string ctrlRamRoutes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
         string generalMerge = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+            "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.GeneralMerge.V2.cs");
+        string generalMergePlanning = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.GeneralMerge.V2.cs");
         string project = ReadText("src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj");
         string packager = ReadText("scripts/package.ps1");
         string releaseSmoke = ReadText("scripts/smoke-release.ps1");
@@ -445,7 +447,7 @@ public sealed partial class RepositoryBoundaryTests
         string trustIndexLoader = ReadText(
             "src/NvtFwCombiner.Infrastructure/Bundles/ProfileBundlePackageTrustIndex.cs");
         string generalReplaceSource = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+            "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.General.cs");
         Assert.DoesNotContain("new (string Directory, string ContentHash)[]", registry, StringComparison.Ordinal);
         Assert.DoesNotContain("new BuiltInV2Registration(\"NT", registrations, StringComparison.Ordinal);
         Assert.DoesNotContain("new(\"NT", registrations, StringComparison.Ordinal);
@@ -455,7 +457,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NT51928", ReadText(
             "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs"), StringComparison.Ordinal);
         Assert.DoesNotContain("GeneralMergeV2CandidateProfileVersion", generalMerge, StringComparison.Ordinal);
-        Assert.Contains("registration.ProfileVersion", generalMerge, StringComparison.Ordinal);
+        Assert.Contains("registration.ProfileVersion", generalMergePlanning, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51927-standard-merge", metadataResolver, StringComparison.Ordinal);
         Assert.DoesNotContain("nt51929-dp-replace", metadataResolver, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2BundleRegistry.TrustIndex.Bundles", metadataResolver, StringComparison.Ordinal);

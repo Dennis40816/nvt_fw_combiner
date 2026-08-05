@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
@@ -302,7 +301,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
         string routedOutputPath = workspace.PathFor("routed-v2-output.bin");
-        WorkbenchRunResult routed = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult routed = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             "cascade",
             WorkbenchReplaceModes.CtrlRam,

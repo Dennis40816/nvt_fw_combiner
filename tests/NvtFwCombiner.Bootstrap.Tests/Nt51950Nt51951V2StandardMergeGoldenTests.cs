@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -37,7 +36,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         using var workspace = TempWorkspace.Create("nfc-nt51950-owner-standard-merge");
         string outputPath = workspace.PathFor("nt51950-standard-merge.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51950",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {

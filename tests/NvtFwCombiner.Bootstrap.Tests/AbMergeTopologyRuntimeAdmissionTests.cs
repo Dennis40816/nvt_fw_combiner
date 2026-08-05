@@ -21,7 +21,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 CreateTpImage(0x82, 0x01, chipCount: 2, length: 0x37000)),
         };
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeAsync(
             "NT51951",
             paths,
             build: false,
@@ -43,7 +43,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b.bin", new byte[0x37000]),
         };
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeAsync(
             "NT51951",
             paths,
             build: false,

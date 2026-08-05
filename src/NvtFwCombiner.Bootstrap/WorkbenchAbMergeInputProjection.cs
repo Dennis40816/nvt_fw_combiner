@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -13,13 +15,74 @@ internal static class WorkbenchAbMergeInputProjection
         TopologySelection? requestedTopology = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        return !AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+        return !CanonicalCapabilityResolution.TryCompileAbMerge(
                 icId,
                 requestedTopology,
                 out CompiledComposition? composition,
                 out _)
             ? []
             : CreateInputSlots(composition);
+    }
+
+    internal static CompiledComposition ResolveComposition(
+        string icId,
+        TopologySelection? topology,
+        ActiveSessionSnapshot? acceptedSession = null)
+    {
+        string normalizedIcId = Profiles.IcIdentifier.Normalize(icId);
+        if (acceptedSession is not null)
+        {
+            return AcceptedAuthoringSessionBinding.RequireCapability(
+                acceptedSession,
+                Profiles.IcWorkflowIds.AbMerge,
+                normalizedIcId,
+                AuthoringDerivedResultKind.Inspection).CompiledComposition;
+        }
+
+        if (!CanonicalCapabilityResolution.IsAbMergeSupported(normalizedIcId))
+        {
+            throw new InvalidOperationException($"AB Merge is not available for '{normalizedIcId}'.");
+        }
+
+        ValidateTopologySelection(
+            CanonicalCapabilityResolution.GetAbMergeTopologyChoices(normalizedIcId),
+            topology);
+        return !CanonicalCapabilityResolution.TryCompileAbMerge(
+                normalizedIcId,
+                topology,
+                out CompiledComposition? composition,
+                out IReadOnlyList<CompositionIssue> issues)
+            ? throw new InvalidOperationException(string.Join(
+                Environment.NewLine,
+                issues.Select(issue => $"{issue.Code}: {issue.Message}")))
+            : composition;
+    }
+
+    internal static InputArtifactBinding[] CreateInputBindings(
+        CompiledComposition composition,
+        IReadOnlyDictionary<string, string> slotPaths,
+        ActiveSessionSnapshot? acceptedSession = null)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        ArgumentNullException.ThrowIfNull(slotPaths);
+        return
+        [
+            .. composition.Plan.RequiredInputAddressSpaceIds
+                .Order(StringComparer.Ordinal)
+                .Select(addressSpaceId => slotPaths.TryGetValue(addressSpaceId, out string? path) &&
+                    !string.IsNullOrWhiteSpace(path)
+                        ? acceptedSession is null
+                            ? CompiledCompositionInputBindingFactory.Create(
+                                composition,
+                                addressSpaceId,
+                                Path.GetFullPath(path))
+                            : AcceptedAuthoringSessionBinding.Create(
+                                composition,
+                                addressSpaceId,
+                                path,
+                                acceptedSession)
+                        : throw new InvalidOperationException($"Input slot '{addressSpaceId}' is required.")),
+        ];
     }
 
     private static IReadOnlyList<WorkbenchAbMergeInputSlot> CreateInputSlots(
@@ -58,6 +121,21 @@ internal static class WorkbenchAbMergeInputProjection
             AbTpBRole => WorkbenchAbMergeInputRole.TpB,
             _ => throw new InvalidOperationException($"Supported AB profile declares unknown input role '{role}'."),
         };
+    }
+
+    private static void ValidateTopologySelection(
+        IReadOnlyList<CapabilityTopologyChoice> topologyChoices,
+        TopologySelection? topology)
+    {
+        if (topologyChoices.Count > 0 && topology is null)
+        {
+            throw new InvalidOperationException("AB Merge requires one explicit topology choice: 1 IC or Cascade.");
+        }
+
+        if (topologyChoices.Count == 0 && topology is not null)
+        {
+            throw new InvalidOperationException("The selected AB Merge profile does not expose an IC topology choice.");
+        }
     }
 
     private static (long RequiredEndExclusive, IReadOnlyList<long> ExpectedOuterLengths) ProjectLengthRequirement(

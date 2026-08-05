@@ -4,7 +4,8 @@ namespace NvtFwCombiner.Bootstrap;
 
 /// <summary>Serializes one injected catalog's reload and resolution publication.</summary>
 internal sealed class CanonicalCapabilityCatalogHost
-    : ICanonicalCapabilityCatalogReloader
+    : ICanonicalCapabilityCatalogReloader,
+      ICanonicalCapabilityQuery
 {
     private readonly Lock _gate = new();
     private readonly CanonicalCapabilityCatalog _catalog;
@@ -53,6 +54,48 @@ internal sealed class CanonicalCapabilityCatalogHost
             _ = EnsureLoaded(CancellationToken.None);
             return reader(_catalog);
         }
+    }
+
+    CanonicalCapabilityCatalogSnapshot ICanonicalCapabilityQuery.GetCurrentSnapshot()
+    {
+        return Read(static catalog => catalog.CurrentSnapshot) ??
+            throw new InvalidOperationException(
+                "Canonical capability publication is unavailable.");
+    }
+
+    CapabilityResolutionResult ICanonicalCapabilityQuery.Resolve(string routeId)
+    {
+        return Read(catalog => catalog.Resolve(routeId));
+    }
+
+    CapabilityRouteResolutionResult ICanonicalCapabilityQuery.ResolveDynamicRoute(
+        string routeId)
+    {
+        return Read(catalog => catalog.ResolveDynamicRoute(routeId));
+    }
+
+    CapabilityResolutionResult ICanonicalCapabilityQuery.ResolveUniqueRoute(
+        string icId,
+        string workflowId,
+        string icCountVariant,
+        long? outputCapacity)
+    {
+        return Read(catalog => catalog.ResolveUniqueRoute(
+            icId,
+            workflowId,
+            icCountVariant,
+            outputCapacity));
+    }
+
+    CapabilityResolutionResult ICanonicalCapabilityQuery.ResolveUniqueTopologyRoute(
+        string icId,
+        string workflowId,
+        Domain.Firmware.TopologySelection? topology)
+    {
+        return Read(catalog => catalog.ResolveUniqueTopologyRoute(
+            icId,
+            workflowId,
+            topology));
     }
 
     private CapabilityCatalogReloadResult EnsureLoaded(

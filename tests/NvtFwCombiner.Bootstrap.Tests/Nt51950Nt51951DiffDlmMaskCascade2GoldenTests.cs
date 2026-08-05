@@ -197,7 +197,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path);
         slots[WorkbenchSlotIds.CreateReplaceCtrlRam("nf")] = evidence.IndependentNf.Path;
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51951", "cascade", slots, true, workspace.PathFor("must-not-exist.bin"), null,
             processor, TestContext.Current.CancellationToken);
 
@@ -282,7 +282,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
         string outputPath = workspace.PathFor("output.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51951", "cascade", WorkbenchReplaceModes.CtrlRam,
             CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
             build: true,
@@ -313,7 +313,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string outputPath,
         IExternalProcessor processor)
     {
-        return await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        return await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51951", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
             true, outputPath, null, processor, TestContext.Current.CancellationToken);
     }

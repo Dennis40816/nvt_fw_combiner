@@ -39,7 +39,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-base");
         string outputPath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
             icId,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -60,7 +60,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.Equal(0x4703, metadata.ProjectId);
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            WorkbenchCompositionService.TryReadFirmwareContextSuggestion(icId, outputPath));
+            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion(icId, outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
@@ -95,7 +95,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-v2");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
         string v2Path = workspace.PathFor("v2.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             icId, "single", WorkbenchReplaceModes.CtrlRam, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
@@ -131,7 +131,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         string outputPath = workspace.PathFor("version-edited.bin");
         var processor = new PassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51929",
             "single",
             CreateSlotPaths(evidence, basePath),
@@ -172,7 +172,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         string basePath = workspace.Write("base.bin", evidence.Expected.Bytes);
         string outputPath = workspace.PathFor("version-edited.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51929",
             "single",
             WorkbenchReplaceModes.CtrlRam,
@@ -237,7 +237,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 
         File.WriteAllBytes(referencePath, reference);
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId, "single", CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
@@ -285,7 +285,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         slotPaths["replace-ctrlram-diff"] = diffPath;
         string outputPath = workspace.PathFor("cascade-output.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             slotPaths,
@@ -324,7 +324,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51929-fw200-alias");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId, "single", CreateSlotPaths(evidence, evidence.Expected.Path), true,
             workspace.PathFor("alias.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 

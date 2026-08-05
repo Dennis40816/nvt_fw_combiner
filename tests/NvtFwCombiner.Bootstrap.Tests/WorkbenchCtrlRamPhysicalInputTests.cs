@@ -45,7 +45,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string number,
         int expectedCount)
     {
-        IReadOnlyList<WorkbenchReplaceInputSlot> slots = WorkbenchCompositionService.GetReplaceInputSlots(
+        IReadOnlyList<WorkbenchReplaceInputSlot> slots = CompositionMemoryProjection.GetReplaceInputSlots(
             icId,
             number,
             WorkbenchReplaceModes.CtrlRam);
@@ -65,7 +65,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     public void DynamicDiffDlmCascadeHidesIndependentNfSelector(string icId)
     {
         IReadOnlyList<WorkbenchReplaceInputSlot> slots =
-            WorkbenchCompositionService.GetReplaceInputSlots(
+            CompositionMemoryProjection.GetReplaceInputSlots(
                 icId,
                 WorkbenchIcNumberTokens.CascadeTwoToEight,
                 WorkbenchReplaceModes.CtrlRam);
@@ -88,7 +88,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     public void Nt51950FamilyCascadeHidesIndependentNfSelector(string icId, string number)
     {
         IReadOnlyList<WorkbenchReplaceInputSlot> slots =
-            WorkbenchCompositionService.GetReplaceInputSlots(
+            CompositionMemoryProjection.GetReplaceInputSlots(
                 icId,
                 number,
                 WorkbenchReplaceModes.CtrlRam);
@@ -110,7 +110,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51950")]
     public void DiffNfFamiliesDoNotWarnForSingleChip(string icId)
     {
-        WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
+        WorkbenchReplaceInputSlot nf = CompositionMemoryProjection.GetReplaceInputSlots(
             icId,
             "single",
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
@@ -123,7 +123,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [Fact]
     public void CtrlRamSlotDescriptionsExposeSectionByteLimits()
     {
-        WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
+        WorkbenchReplaceInputSlot nf = CompositionMemoryProjection.GetReplaceInputSlots(
             "NT51950",
             "single",
             WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
@@ -155,7 +155,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51927",
             "3",
             slotPaths,
@@ -187,7 +187,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51927",
             "3",
             slotPaths,
@@ -229,7 +229,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51927",
             "single",
             slotPaths,
@@ -260,7 +260,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         var processor = new InspectingProcessor(request =>
             ExternalProcessorResult.Success(request.InputBytes, []));
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51927",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)

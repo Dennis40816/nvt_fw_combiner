@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -9,7 +10,7 @@ public sealed class StandardMergeCompilationTests
     [Fact]
     public void NormalProfileCompilesThroughSharedResolver()
     {
-        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool succeeded = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT51923",
             dpInputLength: null,
             out CompiledComposition? composition,
@@ -33,7 +34,7 @@ public sealed class StandardMergeCompilationTests
     [InlineData("NT51951", 0x100000)]
     public void DpPerspectiveProfileUsesSelectedInputLength(string icId, long dpInputLength)
     {
-        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool succeeded = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             dpInputLength,
             out CompiledComposition? composition,
@@ -45,7 +46,8 @@ public sealed class StandardMergeCompilationTests
         Assert.Equal(icId, composition.IcId);
         Assert.EndsWith("-standard-merge-dp-perspective", composition.ProfileId, StringComparison.Ordinal);
         Assert.Equal(dpInputLength, composition.Plan.OutputInitialization.Capacity);
-        WorkbenchProfileSummary baseline = WorkbenchCompositionService.GetStandardMergeProfileSummaries()
+        CapabilityProfileSummary baseline = CanonicalCapabilityProjection
+            .GetStandardMergeProfileSummaries()
             .Single(summary => string.Equals(summary.IcId, icId, StringComparison.Ordinal));
         Assert.Equal(baseline.ProfileId, composition.ProfileId);
         Assert.Equal(baseline.CompositionKind, composition.CompositionKind);
@@ -68,7 +70,7 @@ public sealed class StandardMergeCompilationTests
     [InlineData("NT51951")]
     public void DpPerspectiveProfileWithoutInputLengthRemainsPending(string icId)
     {
-        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool succeeded = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             dpInputLength: null,
             out CompiledComposition? composition,
@@ -85,7 +87,7 @@ public sealed class StandardMergeCompilationTests
     [InlineData("NT51951")]
     public void UnsupportedDpPerspectiveLengthDoesNotCompile(string icId)
     {
-        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool succeeded = CanonicalCapabilityResolution.TryCompileStandardMerge(
             icId,
             0x40001,
             out CompiledComposition? composition,
@@ -102,7 +104,7 @@ public sealed class StandardMergeCompilationTests
     [Fact]
     public void UnknownIcDoesNotCompile()
     {
-        bool succeeded = WorkbenchCompositionService.TryCompileStandardMerge(
+        bool succeeded = CanonicalCapabilityResolution.TryCompileStandardMerge(
             "NT00000",
             dpInputLength: null,
             out CompiledComposition? composition,
@@ -119,21 +121,21 @@ public sealed class StandardMergeCompilationTests
     [InlineData("NT51951", "0x100000")]
     public void GeneralMergeDefaultLengthUsesCompiledOutputCapacity(string icId, string expectedLength)
     {
-        Assert.Equal(expectedLength, WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId));
+        Assert.Equal(expectedLength, CanonicalAuthoringAdapter.GetGeneralMergeDefaultOutputLength(icId));
     }
 
     /// <summary>Every selectable General Merge IC has a compiled V2 capacity source.</summary>
     [Fact]
     public void EverySelectableGeneralMergeIcHasACompiledV2CapacitySource()
     {
-        foreach (string icId in WorkbenchCompositionService.GetSupportedIcIds())
+        foreach (string icId in CanonicalCapabilityProjection.GetIcIds())
         {
             Assert.True(
-                WorkbenchCompositionService.IsStandardMergeSupported(icId),
+                CanonicalAuthoringAdapter.IsStandardMergeSupported(icId),
                 $"Expected Standard Merge availability for selectable IC '{icId}'.");
             Assert.StartsWith(
                 "0x",
-                WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId),
+                CanonicalAuthoringAdapter.GetGeneralMergeDefaultOutputLength(icId),
                 StringComparison.Ordinal);
         }
     }
@@ -143,7 +145,7 @@ public sealed class StandardMergeCompilationTests
     public void UnknownGeneralMergeIcHasNoCompatibilityCapacityFallback()
     {
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
-            () => WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength("NT00000"));
+            () => CanonicalAuthoringAdapter.GetGeneralMergeDefaultOutputLength("NT00000"));
 
         Assert.Contains("No compiled V2 Standard Merge profile", exception.Message, StringComparison.Ordinal);
     }

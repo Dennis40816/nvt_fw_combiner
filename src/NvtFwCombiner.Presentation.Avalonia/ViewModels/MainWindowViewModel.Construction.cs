@@ -14,23 +14,25 @@ public sealed partial class MainWindowViewModel
     private const string NormalMergeMode = WorkbenchMergeModes.Standard;
     private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
+    private readonly PresentationCompositionServices _compositionServices;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
     private readonly ISystemInformationService _systemInformationService;
     private readonly bool _isInitializing = true;
 
     /// <summary>Initializes the main workbench view model.</summary>
-    public MainWindowViewModel(
+    internal MainWindowViewModel(
         string shellVersion,
         string appVersion,
-        ShellLanguage language = ShellLanguage.English)
+        ShellLanguage language,
+        PresentationHostServices hostServices)
         : this(
             shellVersion,
             appVersion,
             language,
-            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path),
-            WorkbenchCompositionService.InspectFirmwareBatch,
-            WorkbenchHostServices.CreateFileRevealService())
+            hostServices,
+            hostServices.Composition.FirmwareInspection.TryReadFirmwareConfigMetadata,
+            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
     {
     }
 
@@ -39,14 +41,15 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language,
+        PresentationHostServices hostServices,
         Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
         : this(
             shellVersion,
             appVersion,
             language,
+            hostServices,
             firmwareConfigMetadataReader,
-            WorkbenchCompositionService.InspectFirmwareBatch,
-            WorkbenchHostServices.CreateFileRevealService())
+            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
     {
     }
 
@@ -55,6 +58,7 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language,
+        PresentationHostServices hostServices,
         Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader,
         Func<
             string,
@@ -65,18 +69,20 @@ public sealed partial class MainWindowViewModel
         ISystemInformationService? systemInformationService = null,
         ISystemDiagnosticsExporter? systemDiagnosticsExporter = null)
     {
+        ArgumentNullException.ThrowIfNull(hostServices);
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
-        _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
-        _systemInformationService = systemInformationService ??
-            WorkbenchHostServices.CreateSystemInformationService(appVersion);
+        _compositionServices = hostServices.Composition;
+        _fileRevealService = fileRevealService ?? hostServices.FileReveal;
+        _systemInformationService = systemInformationService ?? hostServices.SystemInformation;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         Settings = new SettingsViewModel(
             appVersion,
-            supportMatrixQuery ?? WorkbenchHostServices.CreateCanonicalSupportMatrixQuery(),
+            supportMatrixQuery ?? hostServices.SupportMatrix,
             () => Text);
         Merge = new MergePresentationViewModel(
+            _compositionServices,
             () => Text,
             new MergeStateBindings(
                 GetWorkflowSelectedIc,
@@ -98,6 +104,7 @@ public sealed partial class MainWindowViewModel
                 RefreshCommandState));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(
+            _compositionServices,
             new ReplaceStateBindings(
                 () => Text,
                 GetWorkflowSelectedIc,
@@ -122,6 +129,7 @@ public sealed partial class MainWindowViewModel
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
         Reports.PropertyChanged += Reports_OnPropertyChanged;
         WorkflowSession = new WorkflowSessionPresentationViewModel(
+            _compositionServices,
             () => Text,
             Merge,
             Replace,
@@ -159,7 +167,7 @@ public sealed partial class MainWindowViewModel
         MessageCenter = new MessageCenterViewModel(
             () => Text,
             _systemInformationService,
-            systemDiagnosticsExporter ?? WorkbenchHostServices.CreateSystemDiagnosticsExporter(),
+            systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
             Reports,
             MessageCenterDiagnosticsChanged);
         MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;

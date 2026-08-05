@@ -86,7 +86,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw140-threechip-v2");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             icId,
             "3",
             WorkbenchReplaceModes.CtrlRam,
@@ -158,7 +158,7 @@ public sealed class Nt51927CtrlRamFw140ThreeChipEvidenceTests
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             "3",
             slots,

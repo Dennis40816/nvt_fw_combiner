@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles;
 
@@ -13,7 +12,7 @@ internal static partial class ReplaceCliCommandHandler
         [NotNullWhen(true)] out string? icId)
     {
         return (command == IcWorkflowIds.DpReplace &&
-                WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceSelector(selector, out icId)) ||
+                CanonicalCapabilityProjection.TryResolveBuiltInV2DpReplaceSelector(selector, out icId)) ||
             TryResolveWorkbenchIc(selector, out icId);
     }
 
@@ -22,7 +21,7 @@ internal static partial class ReplaceCliCommandHandler
         [NotNullWhen(true)] out string? icId)
     {
         string normalized = selector.Trim();
-        icId = WorkbenchCompositionService.GetSupportedIcIds().FirstOrDefault(candidate =>
+        icId = CanonicalCapabilityProjection.GetIcIds().FirstOrDefault(candidate =>
             string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(CliCompositionRunSupport.GetIcNumber(candidate), normalized, StringComparison.OrdinalIgnoreCase));
         return icId is not null;
@@ -56,7 +55,7 @@ internal static partial class ReplaceCliCommandHandler
         InputArtifactBinding[] bindings = CreateWorkbenchBindings(protectedInputPaths);
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetReplaceDefaultOutputFileName(icId, modeId));
+            CompositionExecutionAdapter.GetReplaceDefaultOutputFileName(icId, modeId));
         bool build = action == "build";
         if (build)
         {

@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -20,14 +19,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         WriteCmi(dp, bankStart: 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteCmi(dp, bankStart: TpLength, major: 0x07, minor: 0x08, jira: 0x456);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
-        string staleSuggestedName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        string staleSuggestedName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
             "NT51929",
             paths,
             TestContext.Current.CancellationToken);
 
         WriteCmi(dp, bankStart: 0, major: 0x0A, minor: 0x01, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
-        string renderedName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        string renderedName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
             "NT51929",
             paths,
             TestContext.Current.CancellationToken);
@@ -36,7 +35,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         var progress = new CompositionRunProgressFeed();
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync(
+            CompositionExecutionAdapter.RunAbMergeWithProgressAsync(
                 "NT51929",
                 paths,
                 build: true,

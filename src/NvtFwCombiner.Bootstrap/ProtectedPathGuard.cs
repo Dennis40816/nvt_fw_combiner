@@ -1,5 +1,3 @@
-using NvtFwCombiner.Application.Composition;
-
 namespace NvtFwCombiner.Bootstrap;
 
 internal static class ProtectedPathGuard

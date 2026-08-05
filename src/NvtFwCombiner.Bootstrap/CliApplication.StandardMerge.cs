@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.Infrastructure.Time;
@@ -57,7 +56,9 @@ public static partial class CliApplication
             return UsageError;
         }
 
-        if (!TryFindStandardMergeProfileSummary(profileSelector, out WorkbenchProfileSummary? selectedProfile))
+        if (!TryFindStandardMergeProfileSummary(
+                profileSelector,
+                out CapabilityProfileSummary? selectedProfile))
         {
             await error.WriteLineAsync($"error: unknown standard merge profile '{profileSelector}'").ConfigureAwait(false);
             return UsageError;
@@ -65,7 +66,7 @@ public static partial class CliApplication
 
         if (!selectedProfile.CompileSucceeded)
         {
-            _ = WorkbenchCompositionService.TryCompileStandardMerge(
+            _ = CanonicalCapabilityResolution.TryCompileStandardMerge(
                 selectedProfile.IcId,
                 dpInputLength: null,
                 out _,
@@ -75,7 +76,7 @@ public static partial class CliApplication
         }
 
         IReadOnlyList<string> availableInputAddressSpaces =
-            WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(selectedProfile.IcId);
+            CanonicalAuthoringAdapter.GetStandardMergeInputAddressSpaces(selectedProfile.IcId);
         foreach ((string addressSpaceId, string optionName) in InputOptionsByAddressSpace)
         {
             if (options.Values.ContainsKey(optionName) &&
@@ -90,7 +91,7 @@ public static partial class CliApplication
         string? dpPath = options.Values.TryGetValue("--dp", out string? selectedDpPath)
             ? Path.GetFullPath(selectedDpPath)
             : null;
-        if (!WorkbenchCompositionService.TryGetStandardMergeDpInputLength(
+        if (!CompositionExecutionAdapter.TryGetStandardMergeDpInputLength(
                 selectedProfile.IcId,
                 dpPath,
                 out long? dpInputLength,
@@ -100,7 +101,7 @@ public static partial class CliApplication
             return SoftwareError;
         }
 
-        if (!WorkbenchCompositionService.TryCompileStandardMerge(
+        if (!CanonicalCapabilityResolution.TryCompileStandardMerge(
                 selectedProfile.IcId,
                 dpInputLength,
                 [
@@ -159,7 +160,7 @@ public static partial class CliApplication
             compiledComposition,
             bindings,
             outputTarget.FileName,
-            resolvedCapability: WorkbenchCompositionService.ResolveCanonicalCapabilityForRun(
+            resolvedCapability: CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
                 compiledComposition,
                 resolvedCapability));
 
@@ -224,10 +225,11 @@ public static partial class CliApplication
     private static bool TryFindStandardMergeProfileSummary(
         string selector,
         [NotNullWhen(true)]
-        out WorkbenchProfileSummary? profile)
+        out CapabilityProfileSummary? profile)
     {
         string normalized = selector.Trim();
-        profile = WorkbenchCompositionService.GetStandardMergeProfileSummaries().FirstOrDefault(candidate =>
+        profile = CanonicalCapabilityProjection.GetStandardMergeProfileSummaries()
+            .FirstOrDefault(candidate =>
             string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(CliCompositionRunSupport.GetIcNumber(candidate.IcId), normalized, StringComparison.OrdinalIgnoreCase));

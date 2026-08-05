@@ -1,6 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -24,7 +23,7 @@ public sealed partial class MergePresentationViewModel
             return new Dictionary<string, AuthoringSlotInspectionLease>(StringComparer.Ordinal);
         }
 
-        WorkbenchStandardMergeAuthoringSnapshot projection =
+        CompiledAuthoringSelectionSnapshot projection =
             ResolveStandardMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
             _authoringSessions.StandardMerge.Activate(projection.Catalog);
@@ -81,7 +80,7 @@ public sealed partial class MergePresentationViewModel
             return;
         }
 
-        WorkbenchStandardMergeAuthoringSnapshot projection =
+        CompiledAuthoringSelectionSnapshot projection =
             ResolveStandardMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
             _authoringSessions.StandardMerge.Activate(projection.Catalog);
@@ -96,7 +95,7 @@ public sealed partial class MergePresentationViewModel
             slot.AddressSpaceId is not null);
     }
 
-    private WorkbenchStandardMergeAuthoringSnapshot ResolveStandardMergeAuthoringSnapshot()
+    private CompiledAuthoringSelectionSnapshot ResolveStandardMergeAuthoringSnapshot()
     {
         string[] selectedSlotIds =
         [
@@ -110,7 +109,7 @@ public sealed partial class MergePresentationViewModel
             _authoringSessions.StandardMerge,
             StandardMergeSlots,
             static slot => slot.AddressSpaceId);
-        return WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        return _compositionServices.Authoring.GetStandardMergeAuthoringSnapshot(
             SelectedIc,
             selectedSlotIds,
             accepted,
@@ -118,7 +117,7 @@ public sealed partial class MergePresentationViewModel
             _authoringSessions.StandardMerge.CurrentSnapshot);
     }
 
-    private void ApplyStandardMergeReadiness(WorkbenchStandardMergeAuthoringSnapshot projection)
+    private void ApplyStandardMergeReadiness(CompiledAuthoringSelectionSnapshot projection)
     {
         ApplyInputReadiness(StandardMergeSlots, projection.Slots, static slot => slot.AddressSpaceId);
     }

@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReplacePresentationViewModel
@@ -16,6 +14,7 @@ public sealed partial class ReplacePresentationViewModel
     {
         CtrlRamRegions.Clear();
         foreach (CtrlRamRegionViewModel region in UiCompositionRunner.GetCtrlRamRegions(
+            _compositionServices,
             SelectedIc,
             SelectedNumber))
         {
@@ -80,6 +79,7 @@ public sealed partial class ReplacePresentationViewModel
             IReadOnlyList<MemoryMapRowViewModel> rows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
             UiCompositionRunner.GetReplaceMemoryDisplay(
+                _compositionServices,
                 display.MemoryDisplay,
                 GetSelectedReplaceRegionIds(),
                 Text);
@@ -93,6 +93,7 @@ public sealed partial class ReplacePresentationViewModel
             if (_stateBindings.GetBaseInspection() is { } inspection)
             {
                 ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                    _compositionServices.FirmwareInspection,
                     inspection,
                     SelectedIc,
                     SelectedNumber));
@@ -117,6 +118,7 @@ public sealed partial class ReplacePresentationViewModel
                     IReadOnlyList<MemoryMapRowViewModel> rows,
                     IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
+                        _compositionServices,
                         capacity,
                         _generalReplaceAdmission);
                 ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
@@ -134,6 +136,7 @@ public sealed partial class ReplacePresentationViewModel
                     IReadOnlyList<MemoryMapRowViewModel> rows,
                     IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
                     UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
+                        _compositionServices,
                         invalidDraftCapacity,
                         _generalReplaceAuthoringStates);
                 ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
@@ -146,6 +149,7 @@ public sealed partial class ReplacePresentationViewModel
             string replaceRangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) = UiCompositionRunner.GetReplaceMemoryDisplay(
+            _compositionServices,
             SelectedIc,
             SelectedNumber,
             SelectedReplaceMode,
@@ -175,7 +179,7 @@ public sealed partial class ReplacePresentationViewModel
     private long? GetSelectedReplaceBaseLength()
     {
         return SelectedReplaceMode == DpReplaceMode &&
-            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc)
+            _compositionServices.Capabilities.HasBuiltInV2DpReplace(SelectedIc)
                 ? _stateBindings.GetInspectedFileLength(ReplaceBaseSlot)
                 : null;
     }
@@ -205,6 +209,7 @@ public sealed partial class ReplacePresentationViewModel
                 SelectedReplaceMode == CtrlRamReplaceMode && ctrlRamInputSlots is not null
                     ? ctrlRamInputSlots
                     : UiCompositionRunner.GetReplaceInputSlots(
+                        _compositionServices,
                         SelectedIc,
                         SelectedNumber,
                         SelectedReplaceMode);

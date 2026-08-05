@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -26,6 +27,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -74,6 +76,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.ChineseTraditional,
+            DesktopCompositionRoot.Create("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -138,7 +141,7 @@ public sealed partial class ShellViewModelTests
                 new CapabilityCatalogIssue("catalog.reload.failed", "private", null)));
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            WorkbenchCompositionService.InspectFirmwareBatch);
+            FirmwareInspectionAdapter.InspectFirmwareBatch);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -211,7 +214,7 @@ public sealed partial class ShellViewModelTests
         using var catalog = new BlockingReloadCatalog();
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            WorkbenchCompositionService.InspectFirmwareBatch);
+            FirmwareInspectionAdapter.InspectFirmwareBatch);
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
@@ -253,6 +256,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -310,6 +314,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("0.10.3-test"),
             static (_, _) => null,
             firmwareInspectionReader,
             systemInformationService: diagnostics,
@@ -402,7 +407,7 @@ public sealed partial class ShellViewModelTests
                 ReleaseInspection.Wait(TestContext.Current.CancellationToken);
             }
 
-            return WorkbenchCompositionService.InspectFirmwareBatch(selectedIc, inputs);
+            return FirmwareInspectionAdapter.InspectFirmwareBatch(selectedIc, inputs);
         }
 
         public void Dispose()

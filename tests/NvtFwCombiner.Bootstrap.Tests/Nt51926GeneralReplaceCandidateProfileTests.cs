@@ -107,7 +107,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 alignment: 1,
                 "General Replace V2 DP parity mapping."),
         ]);
-        WorkbenchRunResult routed = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult routed = await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -175,7 +175,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 "forged-map"));
 
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+            await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -218,7 +218,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
 
         string outputPath = workspace.PathFor("unsupported-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)

@@ -4,7 +4,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
-    /// <summary>Golden status reports verification without disabling an evidence-gated authoring flow.</summary>
+    /// <summary>Canonical evidence status does not disable an evidence-gated authoring flow.</summary>
     [Fact]
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()
     {
@@ -12,8 +12,8 @@ public sealed partial class ShellViewModelTests
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, "DP");
 
-        Assert.True(viewModel.Replace.IsSelectedReplaceModeGoldenVerified);
-        Assert.Equal("Golden verified", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
+        Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
+        Assert.Equal("Evidence open", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
         Assert.Equal("Base firmware (FlashCode)", viewModel.Replace.ReplaceBaseSlot.Title);
         Assert.Contains("Complete FlashCode", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
@@ -32,7 +32,7 @@ public sealed partial class ShellViewModelTests
     [Theory]
     [InlineData("NT51917", "Perfect IC Family")]
     [InlineData("NT51928", "Partial IC Family")]
-    [InlineData("NT51927", "IC Family source")]
+    [InlineData("NT51927", "Perfect IC Family")]
     public void IcFamilyBadgeExplainsOwnerDeclaredReuse(string icId, string expectedLabel)
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
@@ -40,7 +40,8 @@ public sealed partial class ShellViewModelTests
 
         Assert.True(viewModel.WorkflowSession.HasSelectedIcFamily);
         Assert.Equal(expectedLabel, viewModel.WorkflowSession.SelectedIcFamilyLabel);
-        Assert.Contains("Canonical IC: NT51927", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.Contains("Reusable scope:", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
+        Assert.DoesNotContain("Canonical IC:", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
         Assert.Contains("never expands executable ranges", viewModel.WorkflowSession.SelectedIcFamilyTooltip, StringComparison.Ordinal);
     }
 }

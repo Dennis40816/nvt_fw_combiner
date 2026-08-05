@@ -83,13 +83,13 @@ internal static partial class ReplaceCliCommandHandler
                 options,
                 protectedInputPaths,
                 (_, token) => savedRulePolicy is null
-                    ? WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+                    ? CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
                         mappingDraft,
                         token)
-                    : WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+                    : CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
@@ -97,14 +97,14 @@ internal static partial class ReplaceCliCommandHandler
                         savedRulePolicy,
                         token),
                 (outputPath, token) => savedRulePolicy is null
-                    ? WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+                    ? CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
                         mappingDraft,
                         outputPath,
                         token)
-                    : WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+                    : CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
                         icId,
                         icNumber,
                         slotPaths,
@@ -130,7 +130,7 @@ internal static partial class ReplaceCliCommandHandler
         mappingDraft = null;
         savedRulePolicy = null;
         if (!BuiltInV2RegistrationRegistry.GeneralReplaceByIc.TryGetValue(
-                IcSupportCatalog.NormalizeIcId(icId),
+                IcIdentifier.Normalize(icId),
                 out GeneralReplaceV2Registration? registration))
         {
             error.WriteLine(
@@ -223,7 +223,7 @@ internal static partial class ReplaceCliCommandHandler
             return false;
         }
 
-        if (!WorkbenchCompositionService.TryCreateGeneralReplaceDraft(
+        if (!CanonicalAuthoringAdapter.TryCreateGeneralReplaceDraft(
                 items,
                 out mappingDraft,
                 out IReadOnlyList<CompositionIssue> issues))

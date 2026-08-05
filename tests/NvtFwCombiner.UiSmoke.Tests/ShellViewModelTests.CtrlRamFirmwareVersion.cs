@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -79,7 +80,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
         WorkbenchFirmwareConfigMetadata? outputMetadata =
-            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", outputPath);
+            FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata("NT51926", outputPath);
         Assert.NotNull(outputMetadata);
         Assert.Equal(0x2A, outputMetadata.FirmwareVersion);
         Assert.Equal(0xD5, outputMetadata.FirmwareVersionBar);
@@ -142,7 +143,7 @@ public sealed partial class ShellViewModelTests
                 readerThread = Environment.CurrentManagedThreadId;
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+                return metadata ??= FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, path);
             });
 
         Task<bool> firstOpen = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
@@ -178,7 +179,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+                return metadata ??= FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, path);
             });
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
 
@@ -210,7 +211,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
-                return metadata ??= WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+                return metadata ??= FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, path);
             });
 
         Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken);
@@ -241,7 +242,7 @@ public sealed partial class ShellViewModelTests
             {
                 readerEntered.Set();
                 Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), testCancellationToken));
-                return WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+                return FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, path);
             });
 
         Task<bool> open = viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationSource.Token);
@@ -335,7 +336,7 @@ public sealed partial class ShellViewModelTests
                     Assert.True(releaseReader.Wait(TimeSpan.FromSeconds(10), cancellationToken));
                 }
 
-                return WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path);
+                return FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, path);
             });
 
         Assert.True(await viewModel.Replace.TryOpenCtrlRamFirmwareVersionModalAsync(cancellationToken));
@@ -374,6 +375,7 @@ public sealed partial class ShellViewModelTests
                 "test-shell",
                 "test-app",
                 ShellLanguage.English,
+                DesktopCompositionRoot.Create("test-app"),
                 firmwareConfigMetadataReader);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = "cascade";

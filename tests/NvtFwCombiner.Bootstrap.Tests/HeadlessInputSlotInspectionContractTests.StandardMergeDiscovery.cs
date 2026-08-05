@@ -18,8 +18,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ReloadCatalog();
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
-        WorkbenchStandardMergeAuthoringSnapshot discovery =
-            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot discovery =
+            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -35,7 +35,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.True(started.Succeeded, started.Issue?.Message);
 
         WorkbenchFirmwareInspection inspection = Assert.Single(
-            WorkbenchCompositionService.InspectFirmwareBatch(
+            FirmwareInspectionAdapter.InspectFirmwareBatch(
                 "NT51950",
                 [new WorkbenchFirmwareInspectionInput(
                     "dp",
@@ -73,8 +73,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ReloadCatalog();
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
-        WorkbenchStandardMergeAuthoringSnapshot discovery =
-            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot discovery =
+            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -137,8 +137,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ReloadCatalog();
         const string firstPath = "dp-256.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
-        WorkbenchStandardMergeAuthoringSnapshot discovery =
-            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot discovery =
+            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -190,8 +190,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ReloadCatalog();
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
-        WorkbenchStandardMergeAuthoringSnapshot discovery =
-            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot discovery =
+            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),

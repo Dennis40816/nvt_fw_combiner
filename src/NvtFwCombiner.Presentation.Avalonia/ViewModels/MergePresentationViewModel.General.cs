@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -31,7 +30,7 @@ public sealed partial class MergePresentationViewModel
         [
             .. GeneralMergeMappings
                 .Where(mapping => mapping.HasFile)
-                .Select(mapping => WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+                .Select(mapping => _compositionServices.Authoring.CreateGeneralMergeAuthoringState(
                     mapping.MappingId,
                     mapping.FilePath!,
                     mapping.SourceStartAddress,
@@ -55,7 +54,7 @@ public sealed partial class MergePresentationViewModel
         if (GeneralMergeMappings.Any(static mapping =>
                 mapping.HasFile && mapping.AcceptedFileStamp is null))
         {
-            _ = WorkbenchCompositionService.PrepareGeneralMergeSelectionSession(
+            _ = _compositionServices.AuthoringSession.PrepareGeneralMergeSelectionSession(
                 _authoringSessions.GeneralMerge,
                 SelectedIc,
                 selectedMappingIds);
@@ -63,18 +62,16 @@ public sealed partial class MergePresentationViewModel
         _generalMergeDraft =
             _generalMergeAuthoringStates.Count > 0 &&
             TryResolveGeneralMergeOutputInitializer(out WorkbenchGeneralMergeInitializer? initializer) &&
-            WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+            _compositionServices.Authoring.TryCreateGeneralMergeAuthoringDraft(
                 _generalMergeAuthoringStates,
                 out GeneralMappingDraftState? mappings,
                 out _)
-                ? WorkbenchCompositionService.CreateGeneralMergeDraft(initializer!, mappings!)
+                ? _compositionServices.Authoring.CreateGeneralMergeDraft(initializer!, mappings!)
                 : null;
         if (_generalMergeDraft is not null)
         {
-            _generalMergeAdmission = WorkbenchCompositionService
-                .GetGeneralMergeAuthoringAdmission(SelectedIc, _generalMergeDraft);
-            _generalMergeActionReadiness = WorkbenchCompositionService
-                .GetGeneralMergeActionReadiness(
+            _generalMergeAdmission = _compositionServices.Authoring.GetGeneralMergeAuthoringAdmission(SelectedIc, _generalMergeDraft);
+            _generalMergeActionReadiness = _compositionServices.AuthoringSession.GetGeneralMergeActionReadiness(
                     _authoringSessions.GeneralMerge,
                     SelectedIc,
                     _generalMergeDraft);
@@ -82,17 +79,15 @@ public sealed partial class MergePresentationViewModel
                 TryAcceptCachedGeneralMergeInspection(_generalMergeDraft) &&
                 _generalMergeDraft is { } acceptedDraft)
             {
-                _generalMergeAdmission = WorkbenchCompositionService
-                    .GetGeneralMergeAuthoringAdmission(SelectedIc, acceptedDraft);
-                _generalMergeActionReadiness = WorkbenchCompositionService
-                    .GetGeneralMergeActionReadiness(
+                _generalMergeAdmission = _compositionServices.Authoring.GetGeneralMergeAuthoringAdmission(SelectedIc, acceptedDraft);
+                _generalMergeActionReadiness = _compositionServices.AuthoringSession.GetGeneralMergeActionReadiness(
                         _authoringSessions.GeneralMerge,
                         SelectedIc,
                         acceptedDraft);
             }
             if (_generalMergeActionReadiness is null)
             {
-                _ = WorkbenchCompositionService.PrepareGeneralMergeSelectionSession(
+                _ = _compositionServices.AuthoringSession.PrepareGeneralMergeSelectionSession(
                         _authoringSessions.GeneralMerge,
                         SelectedIc,
                         _generalMergeDraft.Mappings.Rows.Select(static row => row.MappingId)) &&
@@ -122,7 +117,7 @@ public sealed partial class MergePresentationViewModel
             .OrderBy(mapping => mapping.IsInspectionVerified(_authoringSessions.GeneralMerge))
             .Any(mapping => mapping.TryAcceptCachedInspection(
                 _authoringSessions.GeneralMerge,
-                cached => WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+                cached => _compositionServices.AuthoringSession.BeginGeneralMergeSelectedFileInspection(
                     _authoringSessions.GeneralMerge,
                     SelectedIc,
                     draft,
@@ -142,7 +137,7 @@ public sealed partial class MergePresentationViewModel
                     AuthoringSessionIssueCodes.DraftUnavailable,
                     "General Merge requires one valid typed draft before file inspection.",
                     mapping.MappingId))
-            : WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+            : _compositionServices.AuthoringSession.BeginGeneralMergeSelectedFileInspection(
                 _authoringSessions.GeneralMerge,
                 SelectedIc,
                 _generalMergeDraft,

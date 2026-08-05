@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -122,7 +123,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
-            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
         });
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
@@ -282,7 +283,7 @@ public sealed partial class ShellViewModelTests
         string tpPath = workspace.Write("tp.bin", [0x01]);
         MainWindowViewModel viewModel = CreateInspectionViewModel((icId, path, dependentTpPath, request) =>
             string.Equals(path, basePath, StringComparison.Ordinal)
-                ? WorkbenchCompositionService.InspectFirmware(icId, path, dependentTpPath, request)
+                ? FirmwareInspectionAdapter.InspectFirmware(icId, path, dependentTpPath, request)
                 : new WorkbenchFirmwareInspection(
                     null,
                     null,
@@ -596,7 +597,7 @@ public sealed partial class ShellViewModelTests
                 releaseFirstBase.Wait(TestContext.Current.CancellationToken);
             }
 
-            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
@@ -640,6 +641,7 @@ public sealed partial class ShellViewModelTests
             "test-shell",
             "test-app",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("test-app"),
             static (_, _) => null,
             (icId, inputs) =>
             [
@@ -659,6 +661,7 @@ public sealed partial class ShellViewModelTests
             "test-shell",
             "test-app",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("test-app"),
             static (_, _) => null,
             reader);
     }

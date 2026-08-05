@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -33,17 +32,17 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
             ExperienceIds.GeneralMerge);
-        Assert.NotNull(WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+        Assert.NotNull(CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
             session,
             "NT51950",
-            WorkbenchCompositionService.CreateGeneralMergeDraft(
+            CanonicalAuthoringAdapter.CreateGeneralMergeDraft(
                 ResolveGeneralMergeInitializer("0x10"),
                 unboundDraft),
             "mapping-1",
             observedLength: 1).Lease);
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
                 "NT51950",
                 session.CurrentSnapshot!,
                 build: false,
@@ -63,7 +62,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         AuthoringMappingState[] inputs =
         [
-            WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+            CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
                 "mapping-1", sourcePath, "0x0", "0x0", "0x4"),
         ];
         GeneralMergeDraftState pending = GeneralTestDraftFactory.CreateMergeDraft("0x10", inputs);
@@ -77,7 +76,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             Assert.IsType<ResolvedCapability>(
                 acceptedSession.GetAcceptedCapability(AuthoringDerivedResultKind.Validation));
         WorkbenchRunResult preview =
-            await WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
                 "NT51950",
                 acceptedSession,
                 build: false,
@@ -99,7 +98,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string staleOutputPath = workspace.PathFor("stale-output.bin");
 
         WorkbenchRunResult staleBuild =
-            await WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
                 "NT51950",
                 acceptedSession,
                 build: true,
@@ -131,7 +130,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult build =
-            await WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
                 "NT51950",
                 reloadedSession,
                 build: true,
@@ -168,7 +167,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             };
         AuthoringMappingState[] inputs =
         [
-            WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
                 "mapping-1",
                 GeneralMappingSourceKind.FileArtifact,
                 sourcePath,
@@ -185,7 +184,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             Assert.IsType<ResolvedCapability>(
                 acceptedSession.GetAcceptedCapability(AuthoringDerivedResultKind.Validation));
         WorkbenchRunResult preview =
-            await WorkbenchCompositionService.PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
                 "NT51926",
                 "single",
                 slotPaths,
@@ -208,8 +207,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string staleOutputPath = workspace.PathFor("stale-output.bin");
 
         WorkbenchRunResult staleBuild =
-            await WorkbenchCompositionService
-                .BuildGeneralReplaceAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
                     "NT51926",
                     "single",
                     slotPaths,
@@ -237,8 +235,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         string outputPath = workspace.PathFor("output.bin");
         WorkbenchRunResult build =
-            await WorkbenchCompositionService
-                .BuildGeneralReplaceAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
                     "NT51926",
                     "single",
                     slotPaths,
@@ -269,9 +266,9 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         GeneralMergeDraftState pending = GeneralTestDraftFactory.CreateMergeDraft(
             "0x10",
             [
-                WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+                CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
                     "mapping-1", firstPath, "0x0", "0x0", "0x2"),
-                WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+                CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
                     "mapping-2", secondPath, "0x0", "0x2", "0x2"),
             ]);
         AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
@@ -291,7 +288,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         AcceptCachedGeneralMergeInspection(
             session, "NT51950", afterSecond, "mapping-1", firstPath);
         CapabilityActionReadinessSnapshot? readiness =
-            WorkbenchCompositionService.GetGeneralMergeActionReadiness(
+            CompositionAuthoringSessionAdapter.GetGeneralMergeActionReadiness(
                 session,
                 "NT51950",
                 Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot!.DraftState));
@@ -314,10 +311,10 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string secondPath = workspace.Write("second.bin", [0x41, 0x42]);
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
         [
-            WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
                 "mapping-1", GeneralMappingSourceKind.FileArtifact,
                 firstPath, "0x3E020", "0x2"),
-            WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
                 "mapping-2", GeneralMappingSourceKind.FileArtifact,
                 secondPath, "0x3E022", "0x2"),
         ]);
@@ -344,8 +341,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             afterSecond,
             "mapping-1",
             firstPath);
-        CapabilityActionReadinessSnapshot? readiness = await WorkbenchCompositionService
-            .GetGeneralReplaceActionReadinessAsync(
+        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
                 session,
                 "NT51926",
                 "single",
@@ -377,7 +373,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
         [
-            WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
                 "mapping-1",
                 GeneralMappingSourceKind.FileArtifact,
                 sourcePath,
@@ -400,8 +396,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         GeneralMappingDraftState accepted = Assert.IsType<GeneralMappingDraftState>(
             session.CurrentSnapshot!.DraftState);
 
-        CapabilityActionReadinessSnapshot? readiness = await WorkbenchCompositionService
-            .GetGeneralReplaceActionReadinessAsync(
+        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
                 session,
                 "NT51926",
                 "single",
@@ -430,11 +425,11 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         bool expectReady = true)
     {
         AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+            CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
                 session, icId, draft, mappingId, expectedLength);
         if (!started.Succeeded && !expectReady)
         {
-            Assert.True(WorkbenchCompositionService.PrepareGeneralMergeSelectionSession(
+            Assert.True(CompositionAuthoringSessionAdapter.PrepareGeneralMergeSelectionSession(
                 session,
                 icId,
                 draft.Mappings.Rows.Select(static row => row.MappingId)));
@@ -443,7 +438,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             AuthoringPublicationLease lease = session.CapturePublicationLease(
                 AuthoringDerivedResultKind.Inspection);
             GeneralSelectedFileInspectionResult cached =
-                await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
                     mappingId,
                     sourcePath,
                     lease.AuthoringRevision,
@@ -456,7 +451,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
             session, draft.Mappings, mappingId));
         GeneralSelectedFileInspectionResult inspection =
-            await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+            await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
                 mappingId,
                 sourcePath,
                 started.Snapshot!.AuthoringRevision,
@@ -467,7 +462,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         GeneralMergeDraftState accepted = Assert.IsType<GeneralMergeDraftState>(
             session.CurrentSnapshot!.DraftState);
         CapabilityActionReadinessSnapshot? readiness =
-            WorkbenchCompositionService.GetGeneralMergeActionReadiness(
+            CompositionAuthoringSessionAdapter.GetGeneralMergeActionReadiness(
                 session, icId, accepted);
         Assert.Equal(expectReady, readiness is not null);
         return session.CurrentSnapshot!;
@@ -486,7 +481,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         bool expectReady = true)
     {
         AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralReplaceSelectedFileInspection(
+            CompositionAuthoringSessionAdapter.BeginGeneralReplaceSelectedFileInspection(
                 session,
                 icId,
                 number,
@@ -498,7 +493,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 expectedLength);
         if (!started.Succeeded && !expectReady)
         {
-            Assert.True(WorkbenchCompositionService.PrepareGeneralReplaceSelectionSession(
+            Assert.True(CompositionAuthoringSessionAdapter.PrepareGeneralReplaceSelectionSession(
                 session,
                 icId,
                 capacity,
@@ -508,7 +503,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             AuthoringPublicationLease lease = session.CapturePublicationLease(
                 AuthoringDerivedResultKind.Inspection);
             GeneralSelectedFileInspectionResult cached =
-                await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
                     mappingId,
                     sourcePath,
                     lease.AuthoringRevision,
@@ -521,7 +516,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
             session, draft, mappingId));
         GeneralSelectedFileInspectionResult inspection =
-            await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+            await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
                 mappingId,
                 sourcePath,
                 started.Snapshot!.AuthoringRevision,
@@ -531,8 +526,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             started.Lease!, inspection.Inspection!).Succeeded);
         GeneralMappingDraftState accepted = Assert.IsType<GeneralMappingDraftState>(
             session.CurrentSnapshot!.DraftState);
-        CapabilityActionReadinessSnapshot? readiness = await WorkbenchCompositionService
-            .GetGeneralReplaceActionReadinessAsync(
+        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
             session,
             icId,
             number,
@@ -556,7 +550,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         Assert.True(session.TryGetCachedGeneralSelectedFileInspection(
             mappingId, sourcePath, out GeneralSelectedFileInspection? cached));
         AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
+            CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
                 session,
                 icId,
                 draft,
@@ -582,7 +576,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         Assert.True(session.TryGetCachedGeneralSelectedFileInspection(
             mappingId, sourcePath, out GeneralSelectedFileInspection? cached));
         AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralReplaceSelectedFileInspection(
+            CompositionAuthoringSessionAdapter.BeginGeneralReplaceSelectedFileInspection(
                 session,
                 icId,
                 number,
@@ -650,7 +644,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string outputLength)
     {
         Assert.True(
-            WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+            CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
                 outputLength,
                 outputFillByte: null,
                 out WorkbenchGeneralMergeInitializer? initializer));

@@ -55,7 +55,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
         using var workspace = TempWorkspace.Create($"nfc-nt51926-fw200-{topology}");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -89,7 +89,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         }
 
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             topology,
             WorkbenchReplaceModes.CtrlRam,
@@ -145,7 +145,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         OwnerCase evidence = ReadOwnerCase(CascadeCaseId);
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw200-negative-route");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -180,7 +180,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         }
 
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             number,
             WorkbenchReplaceModes.CtrlRam,
@@ -218,7 +218,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             icId,
             "cascade",
             slotPaths,

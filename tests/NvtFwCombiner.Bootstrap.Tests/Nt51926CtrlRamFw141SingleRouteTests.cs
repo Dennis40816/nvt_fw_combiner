@@ -39,7 +39,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw141-single-route");
         string referencePath = workspace.PathFor("reference.bin");
-        WorkbenchRunResult reference = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult reference = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -52,7 +52,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
         Assert.True(reference.Succeeded, reference.ReportJson);
 
         string outputPath = workspace.PathFor("single-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             "single",
             WorkbenchReplaceModes.CtrlRam,

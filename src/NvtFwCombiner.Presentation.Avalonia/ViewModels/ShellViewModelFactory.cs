@@ -8,9 +8,20 @@ public static class ShellViewModelFactory
     /// <returns>A populated main window view model.</returns>
     public static MainWindowViewModel Create(ShellLanguage language = ShellLanguage.English)
     {
+        PresentationHostServices hostServices = DesktopCompositionRoot.Create(
+            ApplicationVersionProvider.InformationalVersion);
+        return Create(hostServices, language);
+    }
+
+    internal static MainWindowViewModel Create(
+        PresentationHostServices hostServices,
+        ShellLanguage language)
+    {
+        ArgumentNullException.ThrowIfNull(hostServices);
         return new MainWindowViewModel(
             ApplicationVersionProvider.WorkbenchLabel,
             ApplicationVersionProvider.InformationalVersion,
-            language);
+            language,
+            hostServices);
     }
 }

@@ -141,9 +141,9 @@ public sealed partial class ShellViewModelTests
             viewModel.Replace.ReplaceMemoryRangeLabel);
     }
 
-    /// <summary>NT51951 DP inputs explain that the container includes Initial Code and LDC.</summary>
+    /// <summary>DP inputs do not display an undeclared IC-specific container hint.</summary>
     [Fact]
-    public void Nt51951DpSlotsExposeInitialCodeAndLdcHint()
+    public void DpSlotsDoNotInventInitialCodeAndLdcHint()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
         viewModel.WorkflowSession.SelectedIc = "NT51951";
@@ -152,13 +152,13 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel mergeDp = Assert.Single(
             viewModel.Merge.MergeSlots,
             slot => slot.SlotId == WorkbenchSlotIds.MergeDp);
-        Assert.EndsWith("(Initial Code + LDC)", mergeDp.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Initial Code + LDC", mergeDp.Description, StringComparison.Ordinal);
 
         OpenReplace(viewModel, "DP");
         FirmwareSlotViewModel replaceDp = Assert.Single(
             viewModel.Replace.ReplaceSlots,
             slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
-        Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Initial Code + LDC", replaceDp.Description, StringComparison.Ordinal);
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);

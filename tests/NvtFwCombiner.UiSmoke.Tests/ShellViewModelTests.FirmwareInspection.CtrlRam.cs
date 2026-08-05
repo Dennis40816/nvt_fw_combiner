@@ -27,7 +27,7 @@ public sealed partial class ShellViewModelTests
                     FileShare.Read);
                 stream.WriteByte(0x02);
             }
-            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;

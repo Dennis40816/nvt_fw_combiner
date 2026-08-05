@@ -111,7 +111,7 @@ public sealed class StandardMergeCliCommandTests
             outputPath,
         ]);
 
-        Assert.True(WorkbenchCompositionService.IsStandardMergeSupported("NT51929"));
+        Assert.True(CanonicalAuthoringAdapter.IsStandardMergeSupported("NT51929"));
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
@@ -297,7 +297,7 @@ public sealed class StandardMergeCliCommandTests
         string tpPath = workspace.Write("tp.bin", new byte[0x30000]);
 
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            WorkbenchCompositionService.RunStandardMergeAsync(
+            CompositionExecutionAdapter.RunStandardMergeAsync(
                 icId,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
@@ -435,7 +435,7 @@ public sealed class StandardMergeCliCommandTests
         string tpPath = workspace.Write("tp.bin", tp);
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            WorkbenchCompositionService
+            CompositionExecutionAdapter
                 .RunStandardMergeAsync(
                     "NT51923",
                     new Dictionary<string, string>(StringComparer.Ordinal)

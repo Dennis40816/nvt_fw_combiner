@@ -85,7 +85,7 @@ internal static partial class ReplaceCliCommandHandler
             IcWorkflowIds.CtrlRamReplace => WorkbenchReplaceModes.CtrlRam,
             _ => WorkbenchReplaceModes.General,
         };
-        if (!WorkbenchCompositionService.IsReplaceWorkflowSupported(icId, replaceMode))
+        if (!CanonicalCapabilityProjection.IsReplaceWorkflowAvailable(icId, replaceMode))
         {
             await error.WriteLineAsync(
                 $"error: {WorkbenchIssueCodes.ReplaceWorkflowNotSupported}: {icId} {replaceMode} Replace is Not available.")

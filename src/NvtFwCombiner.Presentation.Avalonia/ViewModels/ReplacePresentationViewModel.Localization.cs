@@ -11,7 +11,7 @@ public sealed partial class ReplacePresentationViewModel
             Text.GetReplaceBaseDescription(
                 SelectedReplaceMode,
                 _stateBindings.IsWorkflowLoaded()
-                    ? WorkbenchCompositionService.GetDpReplaceReferenceCapacityLabel(SelectedIc)
+                    ? _compositionServices.Memory.GetDpReplaceReferenceCapacityLabel(SelectedIc)
                     : null),
             Text.RequiredLabel,
             Text.OptionalLabel,
@@ -34,7 +34,7 @@ public sealed partial class ReplacePresentationViewModel
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,
-                ApplySelectedIcDpSlotHint(slot.SlotId, slot.Description),
+                slot.Description,
                 Text.RequiredLabel,
                 Text.OptionalLabel,
                 Text.NoBinSelectedLabel);
@@ -49,14 +49,4 @@ public sealed partial class ReplacePresentationViewModel
             Text.NoBinSelectedLabel);
     }
 
-    private string ApplySelectedIcDpSlotHint(string slotId, string description)
-    {
-        string? hint = WorkbenchCompositionService.GetFirmwareSlotHint(SelectedIc, slotId) ==
-            WorkbenchFirmwareSlotHint.InitialCodeAndLdc
-            ? Text.InitialCodeAndLdcSlotHint
-            : null;
-        return !string.IsNullOrWhiteSpace(hint) && !description.Contains(hint, StringComparison.Ordinal)
-            ? $"{description} {hint}"
-            : description;
-    }
 }

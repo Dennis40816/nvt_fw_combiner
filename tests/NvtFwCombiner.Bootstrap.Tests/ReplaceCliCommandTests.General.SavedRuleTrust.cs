@@ -9,7 +9,7 @@ public sealed partial class ReplaceCliCommandTests
     public void PublicGeneralReplaceRunnerDoesNotExposeSavedRulePolicy()
     {
         Assert.DoesNotContain(
-            typeof(WorkbenchCompositionService).GetMethods(
+            typeof(CompositionExecutionAdapter).GetMethods(
                 System.Reflection.BindingFlags.Public |
                 System.Reflection.BindingFlags.Static),
             method =>

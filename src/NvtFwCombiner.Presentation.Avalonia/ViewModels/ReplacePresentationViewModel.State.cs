@@ -102,12 +102,12 @@ public sealed partial class ReplacePresentationViewModel
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
     /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
-    public WorkbenchWorkflowReadiness SelectedReplaceWorkflowReadiness =>
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+    public CapabilityWorkflowReadiness SelectedReplaceWorkflowReadiness =>
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
-        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness.EvidenceStatus);
+        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness);
 
     /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceTooltip =>
@@ -115,15 +115,15 @@ public sealed partial class ReplacePresentationViewModel
 
     /// <summary>True when selected Replace has golden parity evidence.</summary>
     public bool IsSelectedReplaceModeGoldenVerified =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified;
+        SelectedReplaceWorkflowReadiness.HasReviewedEvidence;
 
     /// <summary>True when selected Replace is available with evidence still open.</summary>
     public bool IsSelectedReplaceModeEvidenceGated =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated;
+        SelectedReplaceWorkflowReadiness.IsEvidencePending;
 
     /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
     public bool IsSelectedReplaceModeUnavailable =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
+        !SelectedReplaceWorkflowReadiness.IsAvailable;
 
     /// <summary>True when Replace build can run for the active mode.</summary>
     public bool CanBuildReplace => CanRunReplace() &&
@@ -172,7 +172,7 @@ public sealed partial class ReplacePresentationViewModel
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
 
     private bool IsSelectedReplaceModeSupported =>
-        WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
+        _compositionServices.Capabilities.IsReplaceWorkflowAvailable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
         bool build,

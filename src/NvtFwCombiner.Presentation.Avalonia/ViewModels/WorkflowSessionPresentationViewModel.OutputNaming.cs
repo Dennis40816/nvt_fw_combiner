@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class WorkflowSessionPresentationViewModel
@@ -7,6 +5,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     internal string CreateFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
     {
         return FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName(
+            _compositionServices.OutputNaming,
             SelectedIc,
             candidateSlots,
             InspectionSession,
@@ -18,6 +17,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
         WorkbenchCtrlRamFirmwareVersionEdit? edit)
     {
         return FirmwareOutputNamingProjection.CreateCtrlRamReplaceOutputFileName(
+            _compositionServices.OutputNaming,
             SelectedIc,
             candidateSlots,
             InspectionSession,

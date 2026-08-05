@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "catalogId": "canonical-capability-policy",
-  "catalogVersion": "1.5.0",
-  "issuedOn": "2026-08-02",
+  "catalogVersion": "1.6.0",
+  "issuedOn": "2026-08-05",
   "routes": [
     {
       "icId": "NT51917",
@@ -19,11 +19,11 @@
         "sourceReference": "ic-support:NT51917:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-publication-v1",
+        "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51917-10-dp-replace-4-1-ic-27-nt51917-standard-merge-256k",
         "capabilityFingerprint": "8ea2b749f62c62155f91812410970e1f1aab07ac54871fd50160b0626dacf247",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-dp-replace-1-ic-nt51917-standard-merge-256k-evidence-v1",
@@ -48,11 +48,11 @@
         "sourceReference": "ic-support:NT51917:general-merge"
       },
       "publication": {
-        "decisionId": "nt51917-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51917-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51917-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "4b6ecb0f1de14866601caaa43049eb474b0ba927da6c0846e70f7e92f02fd802",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-general-merge-not-applicable-generic-evidence-v1",
@@ -77,11 +77,11 @@
         "sourceReference": "ic-support:NT51917:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51917-standard-merge-selector-free-nt51927-standard-merge-256k-publication-v1",
+        "decisionId": "nt51917-standard-merge-selector-free-nt51927-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
         "capabilityFingerprint": "a2ca89b4fcbcbbacde059b02450363141c9d5d03e0bbcb5fe584bf660dac4952",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-standard-merge-selector-free-nt51927-standard-merge-256k-evidence-v1",
@@ -106,11 +106,11 @@
         "sourceReference": "ic-support:NT51917:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51917-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-publication-v1",
+        "decisionId": "nt51917-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-publication-v3",
         "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
         "capabilityFingerprint": "7a512afab7a7f03e55ae54078a45af4d5f397b7fb2a083a1dece923a29713b32",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-evidence-v1",
@@ -135,11 +135,11 @@
         "sourceReference": "ic-support:NT51917:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51917-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-publication-v1",
+        "decisionId": "nt51917-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-publication-v3",
         "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
         "capabilityFingerprint": "ef2cae0cb4e03bf1021dbc5f3aca0777f0650a59b21d0d5935f173e490363799",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-evidence-v1",
@@ -164,11 +164,11 @@
         "sourceReference": "ic-support:NT51917:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51917-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-publication-v1",
+        "decisionId": "nt51917-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-publication-v3",
         "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
         "capabilityFingerprint": "745fa4b1a2797f47569fbad5834bf6b193cc61247fe04f409a36efda734c04bf",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51917-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-evidence-v1",
@@ -193,11 +193,11 @@
         "sourceReference": "ic-support:NT51919:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v1",
+        "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v3",
         "routeId": "route-7-nt51919-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
         "capabilityFingerprint": "bfe8b4eebbc51ff2d1bbf6852f96d5fa2dc71a0bd55f0008729b0d0b3e77be29",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51919-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-evidence-v1",
@@ -251,11 +251,11 @@
         "sourceReference": "ic-support:NT51919:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51919-standard-merge-selector-free-nt51919-standard-merge-256k-publication-v1",
+        "decisionId": "nt51919-standard-merge-selector-free-nt51919-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
         "capabilityFingerprint": "1a98af1edbb844647f8229d2ad3fc298943de667691334ea0126152c1ce89a21",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51919-standard-merge-selector-free-nt51919-standard-merge-256k-evidence-v1",
@@ -280,11 +280,11 @@
         "sourceReference": "ic-support:NT51919:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51919-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-publication-v1",
+        "decisionId": "nt51919-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-publication-v3",
         "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
         "capabilityFingerprint": "1c9b4d1e72ea2617ff030f8130eb92115ad03071fe2f34bbf090bddfd4a878c6",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51919-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v1",
@@ -309,11 +309,11 @@
         "sourceReference": "ic-support:NT51919:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51919-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-publication-v1",
+        "decisionId": "nt51919-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-publication-v3",
         "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
         "capabilityFingerprint": "95022a3d34b952f11447ebd28d07d1e5999f593dbe7e52ca2ebe893d914d4822",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51919-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-evidence-v1",
@@ -338,11 +338,11 @@
         "sourceReference": "ab-merge-profile-inventory:NT51919"
       },
       "publication": {
-        "decisionId": "nt51919-ab-merge-selector-free-nt51919-ab-merge-512k-publication-v1",
+        "decisionId": "nt51919-ab-merge-selector-free-nt51919-ab-merge-512k-publication-v3",
         "routeId": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
         "capabilityFingerprint": "7ee37ed62c7741de75d7b5dbddea6a69694cad9a3da07703d967e924a524a2bd",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51919-ab-merge-selector-free-nt51919-ab-merge-512k-evidence-v1",
@@ -367,11 +367,11 @@
         "sourceReference": "ic-support:NT51923:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-publication-v1",
+        "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51923-10-dp-replace-4-1-ic-27-nt51923-standard-merge-256k",
         "capabilityFingerprint": "915108fa86dd414dc275bce0e14bd70a99b37d84c826852c843715844de41cd9",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-dp-replace-1-ic-nt51923-standard-merge-256k-evidence-v1",
@@ -396,11 +396,11 @@
         "sourceReference": "ic-support:NT51923:general-merge"
       },
       "publication": {
-        "decisionId": "nt51923-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51923-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "ceb0f36a8ac602e400c17d05dc553365fe3e653a3b60ea61a995a9f8b1cb8162",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-general-merge-not-applicable-generic-evidence-v1",
@@ -425,11 +425,11 @@
         "sourceReference": "ic-support:NT51923:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-publication-v1",
+        "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
         "capabilityFingerprint": "a1833df9712bf68b2bab2e6bdc8ae4dd770a91ecf14b1fb8956d94e1aa611b2a",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-standard-merge-selector-free-nt51923-standard-merge-256k-evidence-v1",
@@ -454,11 +454,11 @@
         "sourceReference": "ic-support:NT51923:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-publication-v1",
+        "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-publication-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
         "capabilityFingerprint": "58d8ab61f3d3020f708a67b593eadd145ca356be82f66ba7c276f970862c0a82",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-1-ic-nt51923-ctrlram-fw141-single-full-flash-evidence-v1",
@@ -483,11 +483,11 @@
         "sourceReference": "ic-support:NT51923:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-publication-v1",
+        "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-publication-v3",
         "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
         "capabilityFingerprint": "8282e13e252ba046c70bbf609cf679ea0766e47776940841486f267d85e3c35a",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51923-ctrlram-replace-2-plus-ic-nt51923-ctrlram-fw141-cascade3-full-flash-evidence-v1",
@@ -512,11 +512,11 @@
         "sourceReference": "ic-support:NT51926:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-publication-v1",
+        "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51926-10-dp-replace-4-1-ic-27-nt51926-standard-merge-256k",
         "capabilityFingerprint": "4c7e63b217fb273d3a8cb29e76d6aa8e4084b3c6f8a5135e18ed6cd0200b4707",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-dp-replace-1-ic-nt51926-standard-merge-256k-evidence-v1",
@@ -541,11 +541,11 @@
         "sourceReference": "ic-support:NT51926:general-merge"
       },
       "publication": {
-        "decisionId": "nt51926-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51926-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "587ae786b35e9bd25cdaab9416ca1618f745a47c92271f0dcd3e6b02810dd0d4",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-general-merge-not-applicable-generic-evidence-v1",
@@ -570,11 +570,11 @@
         "sourceReference": "ic-support:NT51926:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-publication-v1",
+        "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
         "capabilityFingerprint": "81e3c562462af6a4d0a379cc1225db199b28a9787c67184c0e6ffc558479ec22",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-standard-merge-selector-free-nt51926-standard-merge-256k-evidence-v1",
@@ -599,11 +599,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
         "capabilityFingerprint": "95c06cddedeef5760dacc05f55c4e3a5394df3e57053f48e1f09155e3714360c",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-tp-work-240k-evidence-v1",
@@ -628,11 +628,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
         "capabilityFingerprint": "fd8c4140cf7dc46bf12b4852479ce008da97a1f24902cc6ad1077d524e596fb7",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-tp-work-240k-evidence-v1",
@@ -657,11 +657,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
         "capabilityFingerprint": "350dd1554e4ba7984699aac0408739724b92a05ac0de91210540cc5136e747f2",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw141-full-flash-256k-evidence-v1",
@@ -686,11 +686,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
         "capabilityFingerprint": "ea742a0e0287a8f51d5a87904512dba590988da78591bddbecfd64507e928963",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-1-ic-nt51926-ctrlram-fw200-full-flash-256k-evidence-v1",
@@ -715,11 +715,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
         "capabilityFingerprint": "87cbe07954cdf67186415ebd9fe4c62ac25d390e606886a34dc05cf5a9e51629",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-tp-work-240k-evidence-v1",
@@ -744,11 +744,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
         "capabilityFingerprint": "774bf2d475b1d3eabd66d0b6ec517f1e9579148ac4466408a521dc74f526e5e1",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-tp-work-240k-evidence-v1",
@@ -773,11 +773,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
         "capabilityFingerprint": "ad13f3551d8ced4802e03abe17382afe0f63905daa2504e5c63a9109b89888d0",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw141-full-flash-256k-evidence-v1",
@@ -802,11 +802,11 @@
         "sourceReference": "ic-support:NT51926:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v1",
+        "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
         "capabilityFingerprint": "1fccdf0c37f09300ab236feb98316ffa1bac6df89f6f704db790369cc845a2ab",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-ctrlram-replace-2-plus-ic-nt51926-ctrlram-fw200-full-flash-256k-evidence-v1",
@@ -831,11 +831,11 @@
         "sourceReference": "ic-support:NT51926:general-replace:unbound-exact-route"
       },
       "publication": {
-        "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-publication-v1",
+        "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-publication-v3",
         "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
         "capabilityFingerprint": "4068c3e1d8b58cc2843e19a20ba36a35b3a7f4fa48390c0031abd7bb81f8d4ad",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51926-general-replace-1-ic-nt51926-general-replace-full-flash-256k-evidence-v1",
@@ -860,11 +860,11 @@
         "sourceReference": "ic-support:NT51927:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-publication-v1",
+        "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51927-10-dp-replace-4-1-ic-27-nt51927-standard-merge-256k",
         "capabilityFingerprint": "76ff1421e367b6abad2e00edf750f4e9bcd318ce0743b1060ece359f96d0e630",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-dp-replace-1-ic-nt51927-standard-merge-256k-evidence-v1",
@@ -889,11 +889,11 @@
         "sourceReference": "ic-support:NT51927:general-merge"
       },
       "publication": {
-        "decisionId": "nt51927-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51927-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51927-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "f3162a07f561b3e02ce4bac726d7fd61bc8ccc2aed51bbeb06484cae6c72723d",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-general-merge-not-applicable-generic-evidence-v1",
@@ -918,11 +918,11 @@
         "sourceReference": "ic-support:NT51927:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51927-standard-merge-selector-free-nt51927-standard-merge-256k-publication-v1",
+        "decisionId": "nt51927-standard-merge-selector-free-nt51927-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
         "capabilityFingerprint": "1bc2644f4e0ed5091aa168cb9a4fd0ec1e267dcc239cc01ad8398ec955bdfddd",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-standard-merge-selector-free-nt51927-standard-merge-256k-evidence-v1",
@@ -947,11 +947,11 @@
         "sourceReference": "ic-support:NT51927:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51927-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-publication-v1",
+        "decisionId": "nt51927-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-publication-v3",
         "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
         "capabilityFingerprint": "d37a06ed2d6e3bbb631e7850bea63d6811940b82d82b1c0b555aa5ed7d0e4987",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-ctrlram-replace-1-ic-nt51927-ctrlram-fw141-single-full-flash-evidence-v1",
@@ -976,11 +976,11 @@
         "sourceReference": "ic-support:NT51927:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51927-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-publication-v1",
+        "decisionId": "nt51927-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-publication-v3",
         "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
         "capabilityFingerprint": "a7a917f42f5aa4b2b5f4742510a0704a0239a05eb18d1f18dc8c4b731c6829c6",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-ctrlram-replace-2-ic-nt51927-ctrlram-fw132-twochip-full-flash-evidence-v1",
@@ -1005,11 +1005,11 @@
         "sourceReference": "ic-support:NT51927:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51927-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-publication-v1",
+        "decisionId": "nt51927-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-publication-v3",
         "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
         "capabilityFingerprint": "68b2617c0526ac349ac931dd19b57c2a9bc291483b94668f72d1614ba4574d01",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51927-ctrlram-replace-3-ic-nt51927-ctrlram-fw140-threechip-full-flash-evidence-v1",
@@ -1034,11 +1034,11 @@
         "sourceReference": "ic-support:NT51928:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-publication-v1",
+        "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-publication-v3",
         "routeId": "route-7-nt51928-10-dp-replace-4-1-ic-31-nt51928-dual-capacity-256k-512k",
         "capabilityFingerprint": "eae5c050606a4328846354d39e4c80900dfea025deeb570644ebe1b91d607c2b",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-dp-replace-1-ic-nt51928-dual-capacity-256k-512k-evidence-v1",
@@ -1063,11 +1063,11 @@
         "sourceReference": "ic-support:NT51928:general-merge"
       },
       "publication": {
-        "decisionId": "nt51928-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51928-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51928-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "e6dca14526ba58e6ce3d9452dda5b39616563d005d80bd0584aba82e830e586c",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-general-merge-not-applicable-generic-evidence-v1",
@@ -1092,11 +1092,11 @@
         "sourceReference": "ic-support:NT51928:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51928-standard-merge-selector-free-nt51928-dual-capacity-256k-512k-publication-v1",
+        "decisionId": "nt51928-standard-merge-selector-free-nt51928-dual-capacity-256k-512k-publication-v3",
         "routeId": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
         "capabilityFingerprint": "99428b1063526adbade8dc8702ad32512d4a87bd9510421c46280631d2becd36",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-standard-merge-selector-free-nt51928-dual-capacity-256k-512k-evidence-v1",
@@ -1121,11 +1121,11 @@
         "sourceReference": "ic-support:NT51928:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51928-ctrlram-replace-1-ic-nt51928-ctrlram-fw141-single-full-flash-publication-v1",
+        "decisionId": "nt51928-ctrlram-replace-1-ic-nt51928-ctrlram-fw141-single-full-flash-publication-v3",
         "routeId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash",
         "capabilityFingerprint": "588c74d510fcfcf278caef44a4233acd8d3521c16ffe2db2757ab15fba262318",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-ctrlram-replace-1-ic-nt51928-ctrlram-fw141-single-full-flash-evidence-v1",
@@ -1150,11 +1150,11 @@
         "sourceReference": "ic-support:NT51928:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51928-ctrlram-replace-2-ic-nt51928-ctrlram-fw132-twochip-full-flash-publication-v1",
+        "decisionId": "nt51928-ctrlram-replace-2-ic-nt51928-ctrlram-fw132-twochip-full-flash-publication-v3",
         "routeId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash",
         "capabilityFingerprint": "312fdd5686ea368063a58c016218b1ee093c4caacc364985a82f99a644c0bbaf",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-ctrlram-replace-2-ic-nt51928-ctrlram-fw132-twochip-full-flash-evidence-v1",
@@ -1179,11 +1179,11 @@
         "sourceReference": "ic-support:NT51928:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51928-ctrlram-replace-3-ic-nt51928-ctrlram-fw140-threechip-full-flash-publication-v1",
+        "decisionId": "nt51928-ctrlram-replace-3-ic-nt51928-ctrlram-fw140-threechip-full-flash-publication-v3",
         "routeId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash",
         "capabilityFingerprint": "ad8cc6b8644ec96851a8e71f00036a74d05e78bb465d42bdc6bb6b1406fd96b2",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51928-ctrlram-replace-3-ic-nt51928-ctrlram-fw140-threechip-full-flash-evidence-v1",
@@ -1237,11 +1237,11 @@
         "sourceReference": "ic-support:NT51929:general-merge"
       },
       "publication": {
-        "decisionId": "nt51929-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51929-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51929-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "a3871ef417e17db668b59791caf15e74ab7009b4b296a55c15e5e70e7df65532",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51929-general-merge-not-applicable-generic-evidence-v1",
@@ -1295,11 +1295,11 @@
         "sourceReference": "ic-support:NT51929:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51929-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-publication-v1",
+        "decisionId": "nt51929-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-publication-v3",
         "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
         "capabilityFingerprint": "9435ad65ce5a5bf593a5f5ab9544c7e4442f85920bc65118f790be7b64954da6",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51929-ctrlram-replace-1-ic-nt51929-ctrlram-fw200-single-full-flash-evidence-v1",
@@ -1324,11 +1324,11 @@
         "sourceReference": "ic-support:NT51929:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51929-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-publication-v1",
+        "decisionId": "nt51929-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-publication-v3",
         "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
         "capabilityFingerprint": "f25bb88ce3cc8a90f3fa6995b08ca8547fb4cb494c0ebc279d3e09f537320059",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51929-ctrlram-replace-2-8-ic-nt51929-ctrlram-fw1x-cascade-full-flash-evidence-v1",
@@ -1353,11 +1353,11 @@
         "sourceReference": "ab-merge-profile-inventory:NT51929"
       },
       "publication": {
-        "decisionId": "nt51929-ab-merge-selector-free-nt51929-ab-merge-512k-publication-v1",
+        "decisionId": "nt51929-ab-merge-selector-free-nt51929-ab-merge-512k-publication-v3",
         "routeId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
         "capabilityFingerprint": "15e6a54363cefb70ad61cf93dd2e00d9ce6ae3422ad11761ec65a8be8897735b",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51929-ab-merge-selector-free-nt51929-ab-merge-512k-evidence-v1",
@@ -1382,11 +1382,11 @@
         "sourceReference": "ic-support:NT51932:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v1",
+        "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-publication-v3",
         "routeId": "route-7-nt51932-10-dp-replace-4-1-ic-40-nt51919-nt51929-nt51932-perfect-map-256k",
         "capabilityFingerprint": "29ffeaf93dd34a129b2780b92ec56b526caded1c2b9b88615149df5526723dc0",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-dp-replace-1-ic-nt51919-nt51929-nt51932-perfect-map-256k-evidence-v1",
@@ -1411,11 +1411,11 @@
         "sourceReference": "ic-support:NT51932:general-merge"
       },
       "publication": {
-        "decisionId": "nt51932-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51932-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51932-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "137960e9baa8c9cd20b7e21f1f9d807e2a3e4fe768f18bba669950d3d330006e",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-general-merge-not-applicable-generic-evidence-v1",
@@ -1440,11 +1440,11 @@
         "sourceReference": "ic-support:NT51932:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51932-standard-merge-selector-free-nt51932-standard-merge-256k-publication-v1",
+        "decisionId": "nt51932-standard-merge-selector-free-nt51932-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
         "capabilityFingerprint": "3122b396e0151b0283a971767c9fe55260affa099fa67c004af9b6b903911e51",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-standard-merge-selector-free-nt51932-standard-merge-256k-evidence-v1",
@@ -1469,11 +1469,11 @@
         "sourceReference": "ic-support:NT51932:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-publication-v1",
+        "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-publication-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
         "capabilityFingerprint": "3cd676625e84d67b69c1cb53927334d57bfb039510d7c58f5cadcc89a231b27b",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-ctrlram-replace-1-ic-nt51932-ctrlram-fw1x-single-full-flash-evidence-v1",
@@ -1498,11 +1498,11 @@
         "sourceReference": "ic-support:NT51932:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-publication-v1",
+        "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-publication-v3",
         "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
         "capabilityFingerprint": "c63ca465421b084ace1508e9a30fbd56772309cd3f6a2779463b8549e577912e",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-ctrlram-replace-2-8-ic-nt51932-ctrlram-fw200-cascade-full-flash-evidence-v1",
@@ -1527,11 +1527,11 @@
         "sourceReference": "ab-merge-profile-inventory:NT51932"
       },
       "publication": {
-        "decisionId": "nt51932-ab-merge-selector-free-nt51932-ab-merge-512k-publication-v1",
+        "decisionId": "nt51932-ab-merge-selector-free-nt51932-ab-merge-512k-publication-v3",
         "routeId": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
         "capabilityFingerprint": "3aec35c18a537742f3e47aca38b75c70114d39220e881ad0a88ee37acc29daee",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51932-ab-merge-selector-free-nt51932-ab-merge-512k-evidence-v1",
@@ -1556,11 +1556,11 @@
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-publication-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-256k",
         "capabilityFingerprint": "f94c179e4908a4c4214a08aedf8436714b0724cefb4dce91d29f19525de1ba6a",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-256k-evidence-v2",
@@ -1585,11 +1585,11 @@
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-publication-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-publication-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-27-nt51950-standard-merge-512k",
         "capabilityFingerprint": "98161a053e59e08ef521db349f27692046da04a490090b9c5f6ee4a3e2976cb8",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-512k-evidence-v2",
@@ -1614,11 +1614,11 @@
         "sourceReference": "ic-support:NT51950:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-publication-v2",
+        "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-publication-v3",
         "routeId": "route-7-nt51950-10-dp-replace-4-1-ic-28-nt51950-standard-merge-1024k",
         "capabilityFingerprint": "ac2d1dc3e9e2469aa48a10a276ed48796409c94dbecc24a5f25c14842dd8dda7",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-dp-replace-1-ic-nt51950-standard-merge-1024k-evidence-v2",
@@ -1643,11 +1643,11 @@
         "sourceReference": "ic-support:NT51950:general-merge"
       },
       "publication": {
-        "decisionId": "nt51950-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51950-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51950-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "05412598277cff42e02ee2c86ace65a396eee9a14495330053c29c1044678e83",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-general-merge-not-applicable-generic-evidence-v1",
@@ -1672,11 +1672,11 @@
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-publication-v2",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
         "capabilityFingerprint": "e0efe8e85205cc31461d11cae43e41a5297bc83273fd315116538aef493674e4",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-256k-evidence-v2",
@@ -1701,11 +1701,11 @@
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-publication-v2",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-publication-v3",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
         "capabilityFingerprint": "ec6ba56e2342e89efb42d20e74fc8386fd40b401ba697eb4d7d335dce5dbd2cf",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-512k-evidence-v2",
@@ -1730,11 +1730,11 @@
         "sourceReference": "ic-support:NT51950:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-publication-v2",
+        "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-publication-v3",
         "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
         "capabilityFingerprint": "4da6190786b8992722ff0a53df363dc5fb8f3fca6b0787b30166f7a21c4bff97",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-standard-merge-selector-free-nt51950-standard-merge-1024k-evidence-v2",
@@ -1759,11 +1759,11 @@
         "sourceReference": "ic-support:NT51950:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-publication-v1",
+        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-publication-v3",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
         "capabilityFingerprint": "1311da5a2ef57b2a0608d133303b5eb13a5cec0e769cfd1767e7379522751493",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-tp-work-evidence-v1",
@@ -1788,11 +1788,11 @@
         "sourceReference": "ic-support:NT51950:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-full-flash-publication-v1",
+        "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-full-flash-publication-v3",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-39-nt51950-ctrlram-fw200-single-full-flash",
         "capabilityFingerprint": "2abf23b76cffd586150c7979bf88416f06d0a69dd0898ef93985ab95fde6fac7",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-ctrlram-replace-1-ic-nt51950-ctrlram-fw200-single-full-flash-evidence-v1",
@@ -1817,11 +1817,11 @@
         "sourceReference": "ic-support:NT51950:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-tp-work-publication-v1",
+        "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-tp-work-publication-v3",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
         "capabilityFingerprint": "03c78785140c43131c708b21d17829e140b3570d1ac9d06463e547b3bde68250",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-tp-work-evidence-v1",
@@ -1846,11 +1846,11 @@
         "sourceReference": "ic-support:NT51950:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-full-flash-publication-v1",
+        "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-full-flash-publication-v3",
         "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash",
         "capabilityFingerprint": "b416dc1512a71a4828242ed8ef8683d5fabe899fd7981417e2b3657180a3d490",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51950-ctrlram-replace-2-ic-nt51950-ctrlram-fw1x-cascade-full-flash-evidence-v1",
@@ -1933,11 +1933,11 @@
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-publication-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-256k",
         "capabilityFingerprint": "4ba96d55f29fabccfd08b9d3b9fd30f6be3ef36093b878d7faa435e95d98819b",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-256k-evidence-v2",
@@ -1962,11 +1962,11 @@
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-publication-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-publication-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-27-nt51951-standard-merge-512k",
         "capabilityFingerprint": "4142d30478d82e68d68b32445d02840f7d0344361879533824418f85ae8f41a4",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-512k-evidence-v2",
@@ -1991,11 +1991,11 @@
         "sourceReference": "ic-support:NT51951:dp-replace"
       },
       "publication": {
-        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-publication-v2",
+        "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-publication-v3",
         "routeId": "route-7-nt51951-10-dp-replace-4-1-ic-28-nt51951-standard-merge-1024k",
         "capabilityFingerprint": "bc561dd8ac2bd59e3ef46695bb78e00319b09af1bfe5ad5e07c88d5b3bbe9694",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-dp-replace-1-ic-nt51951-standard-merge-1024k-evidence-v2",
@@ -2020,11 +2020,11 @@
         "sourceReference": "ic-support:NT51951:general-merge"
       },
       "publication": {
-        "decisionId": "nt51951-general-merge-not-applicable-generic-publication-v1",
+        "decisionId": "nt51951-general-merge-not-applicable-generic-publication-v3",
         "routeId": "route-7-nt51951-13-general-merge-14-not-applicable-7-generic",
         "capabilityFingerprint": "1d44bbcc820e2bd966c19911f2e481e94f5f95e99b620eb8c8541bbe24f1ec42",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-general-merge-not-applicable-generic-evidence-v1",
@@ -2049,11 +2049,11 @@
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-publication-v2",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-publication-v3",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
         "capabilityFingerprint": "bcc7a1d7b7b15dcba2b355f83f1f448af75bd76cd107e18402ee277e75de51e9",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-256k-evidence-v2",
@@ -2078,11 +2078,11 @@
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-publication-v2",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-publication-v3",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
         "capabilityFingerprint": "0b3dc38a75c2cd57fa9a5842e5e08929058cf2752dcdd893d279386b821b1b9a",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-512k-evidence-v2",
@@ -2107,11 +2107,11 @@
         "sourceReference": "ic-support:NT51951:standard-merge"
       },
       "publication": {
-        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-publication-v2",
+        "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-publication-v3",
         "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
         "capabilityFingerprint": "75ea5dae12fc68c13ba5a9fd188c269620347263e5a8b71a5e8b7379dbb59016",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-standard-merge-selector-free-nt51951-standard-merge-1024k-evidence-v2",
@@ -2136,11 +2136,11 @@
         "sourceReference": "ic-support:NT51951:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-publication-v1",
+        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-publication-v3",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
         "capabilityFingerprint": "94970794262fc51047d2d6c88d81fd38cdaebf73ed96c3400e557f6c3f23ebe2",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-tp-work-evidence-v1",
@@ -2165,11 +2165,11 @@
         "sourceReference": "ic-support:NT51951:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-full-flash-publication-v1",
+        "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-full-flash-publication-v3",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-39-nt51951-ctrlram-fw200-single-full-flash",
         "capabilityFingerprint": "f3d7b4ab3ad4114e659a990332ccf0516ed5840ee2efe066aed77530d146e933",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-ctrlram-replace-1-ic-nt51951-ctrlram-fw200-single-full-flash-evidence-v1",
@@ -2194,11 +2194,11 @@
         "sourceReference": "ic-support:NT51951:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-publication-v1",
+        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-publication-v3",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
         "capabilityFingerprint": "5b88c4ff65be8116cf8a14b8813f9a03fed78294e2fbb6ce8ab6457b257033ee",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-tp-work-evidence-v1",
@@ -2223,11 +2223,11 @@
         "sourceReference": "ic-support:NT51951:ctrlram-replace"
       },
       "publication": {
-        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-full-flash-publication-v1",
+        "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-full-flash-publication-v3",
         "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
         "capabilityFingerprint": "df18486a1dcf9f9098de06688876569ec1c03d9fcea1ff356d82b135f74326f6",
-        "value": "unclassified",
-        "sourceReference": "support-matrix:unclassified"
+        "value": "internal",
+        "sourceReference": "owner-approved:github-issue-195"
       },
       "evidence": {
         "decisionId": "nt51951-ctrlram-replace-2-ic-nt51951-ctrlram-fw1x-cascade-full-flash-evidence-v1",

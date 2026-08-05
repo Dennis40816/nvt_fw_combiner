@@ -10,7 +10,7 @@ public sealed class WorkbenchGeneralAuthoringTests
     [Fact]
     public void GeneralMergeInvalidAlignmentReturnsIssue()
     {
-        AuthoringMappingState state = WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+        AuthoringMappingState state = CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
             "mapping-1",
             "input.bin",
             "0",
@@ -18,7 +18,7 @@ public sealed class WorkbenchGeneralAuthoringTests
             "1",
             alignment: 0);
 
-        bool created = WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+        bool created = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
             [state],
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues);
@@ -45,7 +45,7 @@ public sealed class WorkbenchGeneralAuthoringTests
             "Replace explicit mapping.",
             fileRangePreset: GeneralMappingFileRangePreset.FromFileStart);
 
-        bool created = WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+        bool created = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
             [state],
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues);

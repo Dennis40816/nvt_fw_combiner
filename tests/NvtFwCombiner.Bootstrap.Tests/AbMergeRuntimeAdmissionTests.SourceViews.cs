@@ -17,7 +17,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         paths[CompositionAddressSpaceIds.DpAbInput] =
             workspace.Write("oversized/dp-ab-input.bin", oversized);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeAsync(
             "NT51929",
             paths,
             build: false,

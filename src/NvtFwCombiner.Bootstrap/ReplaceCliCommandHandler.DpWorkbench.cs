@@ -21,7 +21,7 @@ internal static partial class ReplaceCliCommandHandler
 
         if (!WorkbenchIcNumberTokens.IsSingle(icNumber))
         {
-            error.WriteLine($"error: {WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
+            error.WriteLine($"error: {CanonicalCapabilityProjection.FormatBuiltInV2DpReplaceIcIds()} DP Replace requires --ic-num {WorkbenchIcNumberTokens.SingleChip}");
             return UsageError;
         }
 
@@ -30,7 +30,7 @@ internal static partial class ReplaceCliCommandHandler
             [WorkbenchSlotIds.ReplaceBase] = Path.GetFullPath(basePath),
         };
         bool replacementSelectionGroup =
-            WorkbenchCompositionService.HasBuiltInV2DpReplaceSelectionGroup(icId);
+            CanonicalCapabilityProjection.HasBuiltInV2DpReplaceSelectionGroup(icId);
         if (options.Values.TryGetValue("--dp", out string? dpPath))
         {
             slotPaths[WorkbenchSlotIds.ReplaceDp] = Path.GetFullPath(dpPath);
@@ -41,8 +41,13 @@ internal static partial class ReplaceCliCommandHandler
             return UsageError;
         }
 
-        bool requiresLdc = DpReplaceAuthoringCatalog.GetAdditionalPayloads(icId)
-            .Any(static rule => rule.SlotId == WorkbenchSlotIds.ReplaceLdc);
+        IReadOnlyList<WorkbenchReplaceInputSlot> declaredSlots =
+            CompositionMemoryProjection.GetReplaceInputSlots(
+                icId,
+                WorkbenchIcNumberTokens.SingleChip,
+                WorkbenchReplaceModes.Dp);
+        bool requiresLdc = declaredSlots.Any(static slot =>
+            slot.SlotId == WorkbenchSlotIds.ReplaceLdc);
         if (requiresLdc)
         {
             if (options.Values.TryGetValue("--ldc", out string? ldcPath))
@@ -58,11 +63,6 @@ internal static partial class ReplaceCliCommandHandler
 
         if (replacementSelectionGroup)
         {
-            IReadOnlyList<WorkbenchReplaceInputSlot> declaredSlots =
-                WorkbenchCompositionService.GetReplaceInputSlots(
-                    icId,
-                    WorkbenchIcNumberTokens.SingleChip,
-                    WorkbenchReplaceModes.Dp);
             string[] selectedInputSlotIds =
             [
                 .. declaredSlots
@@ -73,7 +73,7 @@ internal static partial class ReplaceCliCommandHandler
                 ? new FileInfo(basePath).Length
                 : null;
             if ((baseCapacity is not null || selectedInputSlotIds.Length == 0) &&
-                WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceInputSelection(
+                CanonicalCapabilityProjection.TryResolveBuiltInV2DpReplaceInputSelection(
                     icId,
                     baseCapacity,
                     selectedInputSlotIds,
@@ -96,7 +96,7 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.DpReplace,
                 options,
                 slotPaths,
-                (_, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (_, token) => CompositionExecutionAdapter.RunReplaceAsync(
                     icId,
                     icNumber,
                     WorkbenchReplaceModes.Dp,
@@ -104,7 +104,7 @@ internal static partial class ReplaceCliCommandHandler
                     build: false,
                     token,
                     outputPath: null),
-                (outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (outputPath, token) => CompositionExecutionAdapter.RunReplaceAsync(
                     icId,
                     icNumber,
                     WorkbenchReplaceModes.Dp,
