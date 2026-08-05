@@ -13,10 +13,11 @@ public sealed class CompositionProfileV2InputTests
         var exact = new ExactBytesLengthRule(16);
         var map = new ExactResolvedMapCapacityLengthRule();
         var bounded = new BoundedLengthRule(4, 32);
-        var normalDp = new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING");
-        var normalDpWithContainers = new NormalDpExtractWithWarningLengthRule(
-            "DP_SIZE_WARNING",
-            [0x80000, 0x200000]);
+        var sourceViewWithResolvedContainer = new SourceViewCoverageLengthRule(
+            unexpectedOuterLengthIssueCode: "DP_SIZE_WARNING");
+        var sourceViewWithContainers = new SourceViewCoverageLengthRule(
+            [0x80000, 0x200000],
+            "DP_SIZE_WARNING");
         var tp = new TpMaximum256KLengthRule();
         var declaredPrefix = new DeclaredPrefixWithWarningLengthRule(
             0x80000,
@@ -28,9 +29,9 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(CompositionProfileLengthRuleKind.ExactResolvedMapCapacity, map.Kind);
         Assert.Equal(4, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
-        Assert.Equal("DP_SIZE_WARNING", normalDp.IssueCode);
-        Assert.Empty(normalDp.ExpectedInputLengths);
-        Assert.Equal([0x80000L, 0x200000L], normalDpWithContainers.ExpectedInputLengths);
+        Assert.Equal("DP_SIZE_WARNING", sourceViewWithResolvedContainer.UnexpectedOuterLengthIssueCode);
+        Assert.Empty(sourceViewWithResolvedContainer.ExpectedOuterLengths);
+        Assert.Equal([0x80000L, 0x200000L], sourceViewWithContainers.ExpectedOuterLengths);
         Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
         Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tp.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
@@ -46,14 +47,15 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ExactBytesLengthRule(0));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(0, 4));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(8, 4));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("dp-warning"));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", []));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [0]));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [8, 8]));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING", [9, 8]));
-        _ = Assert.Throws<ArgumentException>(() => new NormalDpExtractWithWarningLengthRule(
-            "DP_SIZE_WARNING",
-            [.. Enumerable.Range(1, InputLengthPolicyLimits.MaximumExpectedInputLengths + 1).Select(static value => (long)value)]));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
+            unexpectedOuterLengthIssueCode: "dp-warning"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule([], "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule([0], "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule([8, 8], "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule([9, 8], "DP_SIZE_WARNING"));
+        _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
+            [.. Enumerable.Range(1, InputLengthPolicyLimits.MaximumExpectedInputLengths + 1).Select(static value => (long)value)],
+            "DP_SIZE_WARNING"));
         _ = Assert.Throws<ArgumentException>(() => new DeclaredPrefixWithWarningLengthRule(
             16,
             [15],
@@ -99,9 +101,9 @@ public sealed class CompositionProfileV2InputTests
             CompositionProfileArtifactClass.TpFirmware,
             new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes),
             new NoInputNormalization());
-        CompositionProfileInputSlot normalDp = Slot(
+        CompositionProfileInputSlot sourceView = Slot(
             CompositionProfileArtifactClass.DpFirmware,
-            new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING"),
+            new SourceViewCoverageLengthRule(unexpectedOuterLengthIssueCode: "DP_SIZE_WARNING"),
             new NoInputNormalization());
         CompositionProfileInputSlot paddedDp = Slot(
             CompositionProfileArtifactClass.DpFirmware,
@@ -132,7 +134,7 @@ public sealed class CompositionProfileV2InputTests
 
         Assert.Equal(CompositionProfileArtifactClass.TpFirmware, tp.ArtifactClass);
         Assert.Equal(TpMaximum256KLengthRule.MaximumBytes, Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.NormalDpExtractWithWarning, normalDp.LengthRule.Kind);
+        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, sourceView.LengthRule.Kind);
         Assert.Equal(CompositionProfileInputNormalizationKind.PadShorter, paddedDp.Normalization.Kind);
         Assert.Equal(CompositionProfileArtifactClass.ReferenceImage, reference.ArtifactClass);
         Assert.Equal(CompositionProfileInputNormalizationKind.TruncateCtrlRam, ctrlRam.Normalization.Kind);
@@ -175,7 +177,7 @@ public sealed class CompositionProfileV2InputTests
             new PadShorterInputNormalization(0xFF, "padding-evidence")));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,
-            new NormalDpExtractWithWarningLengthRule("DP_SIZE_WARNING"),
+            new SourceViewCoverageLengthRule(unexpectedOuterLengthIssueCode: "DP_SIZE_WARNING"),
             new PadShorterInputNormalization(0xFF, "padding-evidence")));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.DpFirmware,

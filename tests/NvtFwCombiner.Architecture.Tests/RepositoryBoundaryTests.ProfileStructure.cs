@@ -6,6 +6,20 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
+    /// <summary>Workflow labels may remain wire tokens, but cannot survive as normalized or compiled semantic types.</summary>
+    [Fact]
+    public void NormalDpLengthPolicyUsesTheGenericSourceViewContract()
+    {
+        Assert.DoesNotContain(
+            "NormalDpExtractWithWarningLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "NormalDpExtractWithWarning",
+            ReadDomainSources(),
+            StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
     [Fact]
     public void SyntheticReplaceProfilesStayTestOnly()

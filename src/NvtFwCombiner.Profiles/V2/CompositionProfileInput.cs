@@ -22,15 +22,15 @@ internal enum CompositionProfileSlotCardinality
 }
 
 /// <summary>Closed input length rule kind.</summary>
+// Values mirror compiled fingerprint wire codes; retired value 3 stays reserved.
 internal enum CompositionProfileLengthRuleKind
 {
-    ExactBytes,
-    ExactResolvedMapCapacity,
-    Bounded,
-    NormalDpExtractWithWarning,
-    TpMaximum256K,
-    DeclaredPrefixWithWarning,
-    SourceViewCoverage,
+    ExactBytes = 0,
+    ExactResolvedMapCapacity = 1,
+    Bounded = 2,
+    TpMaximum256K = 4,
+    DeclaredPrefixWithWarning = 5,
+    SourceViewCoverage = 6,
 }
 
 /// <summary>Base value for one normalized input length rule.</summary>
@@ -154,61 +154,6 @@ internal sealed record BoundedLengthRule : CompositionProfileLengthRule
     internal long MaximumBytes { get; }
 }
 
-/// <summary>Extracts declared Normal DP views and warns when the outer file length differs.</summary>
-internal sealed record NormalDpExtractWithWarningLengthRule : CompositionProfileLengthRule
-{
-    private readonly long[] _expectedInputLengths;
-
-    internal NormalDpExtractWithWarningLengthRule(
-        string issueCode,
-        IReadOnlyList<long>? expectedInputLengths = null)
-        : base(CompositionProfileLengthRuleKind.NormalDpExtractWithWarning)
-    {
-        IssueCode = CompositionProfileValueRules.RequireIssueCode(issueCode, nameof(issueCode));
-        _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths);
-        ExpectedInputLengths = Array.AsReadOnly(_expectedInputLengths);
-    }
-
-    internal string IssueCode { get; }
-
-    /// <summary>Optional outer-container lengths that suppress the profile-owned extraction warning.</summary>
-    internal IReadOnlyList<long> ExpectedInputLengths { get; }
-
-    internal static long[] NormalizeExpectedInputLengths(IReadOnlyList<long>? expectedInputLengths)
-    {
-        if (expectedInputLengths is null)
-        {
-            return [];
-        }
-
-        if (expectedInputLengths.Count is 0 or
-            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected input lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedInputLengths));
-        }
-
-        long[] normalized = new long[expectedInputLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedInputLengths.Count; index++)
-        {
-            long value = expectedInputLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected input lengths must be positive and strictly ascending.",
-                    nameof(expectedInputLengths));
-            }
-
-            normalized[index] = value;
-            previous = value;
-        }
-
-        return normalized;
-    }
-}
-
 /// <summary>Rejects TP firmware larger than the fixed 256 KiB owner limit.</summary>
 internal sealed record TpMaximum256KLengthRule()
     : CompositionProfileLengthRule(CompositionProfileLengthRuleKind.TpMaximum256K)
@@ -229,14 +174,13 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
         string? unexpectedOuterLengthIssueCode = null)
         : base(CompositionProfileLengthRuleKind.SourceViewCoverage)
     {
-        if ((expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null))
+        if (expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null)
         {
             throw new ArgumentException(
                 "Expected outer lengths and their warning issue code must be declared together.");
         }
 
-        _expectedOuterLengths = NormalDpExtractWithWarningLengthRule.NormalizeExpectedInputLengths(
-            expectedOuterLengths);
+        _expectedOuterLengths = NormalizeExpectedOuterLengths(expectedOuterLengths);
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode is null
             ? null
             : CompositionProfileValueRules.RequireIssueCode(
@@ -248,6 +192,40 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
     internal IReadOnlyList<long> ExpectedOuterLengths { get; }
 
     internal string? UnexpectedOuterLengthIssueCode { get; }
+
+    private static long[] NormalizeExpectedOuterLengths(IReadOnlyList<long>? expectedOuterLengths)
+    {
+        if (expectedOuterLengths is null)
+        {
+            return [];
+        }
+
+        if (expectedOuterLengths.Count is 0 or
+            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
+        {
+            throw new ArgumentException(
+                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+                nameof(expectedOuterLengths));
+        }
+
+        long[] normalized = new long[expectedOuterLengths.Count];
+        long previous = 0;
+        for (int index = 0; index < expectedOuterLengths.Count; index++)
+        {
+            long value = expectedOuterLengths[index];
+            if (value <= 0 || (index > 0 && value <= previous))
+            {
+                throw new ArgumentException(
+                    "Expected outer lengths must be positive and strictly ascending.",
+                    nameof(expectedOuterLengths));
+            }
+
+            normalized[index] = value;
+            previous = value;
+        }
+
+        return normalized;
+    }
 }
 
 /// <summary>Closed transient input normalization kind.</summary>
@@ -396,7 +374,6 @@ internal sealed partial class CompositionProfileInputSlot
 
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
-                not CompositionProfileLengthRuleKind.NormalDpExtractWithWarning and
                 not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning and
                 not CompositionProfileLengthRuleKind.SourceViewCoverage)
         {
@@ -420,13 +397,6 @@ internal sealed partial class CompositionProfileInputSlot
             artifactClass != CompositionProfileArtifactClass.CtrlRamReplacement)
         {
             throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
-        }
-
-        if (lengthRule.Kind == CompositionProfileLengthRuleKind.NormalDpExtractWithWarning &&
-            (artifactClass != CompositionProfileArtifactClass.DpFirmware ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
 
         if (lengthRule.Kind == CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning &&

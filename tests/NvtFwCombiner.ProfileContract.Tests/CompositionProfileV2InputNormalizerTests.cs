@@ -53,7 +53,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("dp-firmware", ExactMapCapacity(), None()).LengthRule);
         BoundedLengthRule bounded = Assert.IsType<BoundedLengthRule>(
             Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRule);
-        NormalDpExtractWithWarningLengthRule dpWarning = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
+        SourceViewCoverageLengthRule dpWarning = Assert.IsType<SourceViewCoverageLengthRule>(
             Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
         TpMaximum256KLengthRule tpMaximum = Assert.IsType<TpMaximum256KLengthRule>(
             Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
@@ -63,7 +63,8 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(10, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
-        Assert.Equal("DP_SIZE_WARNING", dpWarning.IssueCode);
+        Assert.Equal("DP_SIZE_WARNING", dpWarning.UnexpectedOuterLengthIssueCode);
+        Assert.Empty(dpWarning.ExpectedOuterLengths);
         Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
         Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tpMaximum.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
@@ -186,9 +187,10 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 ExpectedInputLengths: [Number("524288"), Number("2097152")]),
             None());
 
-        NormalDpExtractWithWarningLengthRule rule = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
+        SourceViewCoverageLengthRule rule = Assert.IsType<SourceViewCoverageLengthRule>(
             slot.LengthRule);
-        Assert.Equal([0x80000L, 0x200000L], rule.ExpectedInputLengths);
+        Assert.Equal([0x80000L, 0x200000L], rule.ExpectedOuterLengths);
+        Assert.Equal("DP_SIZE_WARNING", rule.UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies an exact TP source is admitted only within the fixed 256 KiB owner limit.</summary>

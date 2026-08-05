@@ -28,35 +28,6 @@ public sealed partial class CompiledComposition
         }
     }
 
-    private static void ValidateNormalDpExtractionInputGeometry(
-        AddressSpace addressSpace,
-        CompiledNormalDpExtractWithWarningInputLengthRequirement requirement,
-        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
-    {
-        long maximumEndExclusive = 0;
-        bool hasSourceView = false;
-        foreach (CompiledResolvedPhysicalView view in resolvedViews.Where(view =>
-                     StringComparer.Ordinal.Equals(view.AddressSpaceId, addressSpace.AddressSpaceId)))
-        {
-            maximumEndExclusive = Math.Max(maximumEndExclusive, view.Range.EndExclusive);
-            hasSourceView = true;
-        }
-
-        if (!hasSourceView ||
-            addressSpace.Length != maximumEndExclusive ||
-            addressSpace.InputPaddingByte is not null ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            addressSpace.AllowedInputLengths.Count != 0 ||
-            !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedInputLengths) ||
-            requirement.ExpectedInputLengths.Any(length => length < maximumEndExclusive) ||
-            !StringComparer.Ordinal.Equals(addressSpace.UnexpectedInputLengthIssueCode, requirement.IssueCode))
-        {
-            throw new ArgumentException(
-                "Normal DP extraction requirements must bind the declared source span, expected container lengths, extraction policy, and warning code.",
-                nameof(addressSpace));
-        }
-    }
-
     private static void ValidateDeclaredPrefixInputGeometry(
         AddressSpace addressSpace,
         CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)

@@ -15,13 +15,6 @@ internal static partial class V2CompositionPlanCompiler
     {
         return slot.LengthRule switch
         {
-            NormalDpExtractWithWarningLengthRule normalDp => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity),
-                unexpectedInputLengthIssueCode: normalDp.IssueCode),
             DeclaredPrefixWithWarningLengthRule declaredPrefix => new AddressSpace(
                 addressSpaceId,
                 declaredPrefix.RequiredEndExclusive,
@@ -34,9 +27,7 @@ internal static partial class V2CompositionPlanCompiler
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: sourceView.ExpectedOuterLengths.Count == 0
-                    ? null
-                    : sourceView.ExpectedOuterLengths,
+                expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
             TpMaximum256KLengthRule => new AddressSpace(
                 addressSpaceId,
@@ -73,7 +64,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
     {
-        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or NormalDpExtractWithWarningLengthRule or
+        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or
             DeclaredPrefixWithWarningLengthRule or SourceViewCoverageLengthRule ||
             (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
              (slot.LengthRule is TpMaximum256KLengthRule ||
@@ -102,8 +93,6 @@ internal static partial class V2CompositionPlanCompiler
                 return true;
             case TpMaximum256KLengthRule:
                 return TryResolveTpSourceSpan(profile, family, input, resolvedMap, issues, out length);
-            case NormalDpExtractWithWarningLengthRule:
-                return TryResolveNormalDpSourceSpan(profile, family, input, resolvedMap, issues, out length);
             case SourceViewCoverageLengthRule:
                 return TryResolveInputSourceSpan(
                     profile,
@@ -156,32 +145,13 @@ internal static partial class V2CompositionPlanCompiler
         return true;
     }
 
-    private static bool TryResolveNormalDpSourceSpan(
-        CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition family,
-        InputArtifactProfileSpace input,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        List<CompositionIssue> issues,
-        out long length)
-    {
-        return TryResolveInputSourceSpan(
-            profile,
-            family,
-            input,
-            resolvedMap,
-            "Normal DP",
-            "declared extraction",
-            issues,
-            out length);
-    }
-
-    private static IReadOnlyList<long> ResolveNormalDpExpectedInputLengths(
-        NormalDpExtractWithWarningLengthRule rule,
+    private static IReadOnlyList<long>? ResolveSourceViewExpectedOuterLengths(
+        SourceViewCoverageLengthRule rule,
         long resolvedMapCapacity)
     {
-        return rule.ExpectedInputLengths.Count == 0
-            ? [resolvedMapCapacity]
-            : rule.ExpectedInputLengths;
+        return rule.ExpectedOuterLengths.Count == 0
+            ? rule.UnexpectedOuterLengthIssueCode is null ? null : [resolvedMapCapacity]
+            : rule.ExpectedOuterLengths;
     }
 
     private static bool TryResolveInputSourceSpan(

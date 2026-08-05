@@ -165,15 +165,9 @@ internal static partial class V2CompositionPlanCompiler
             BoundedLengthRule bounded => new CompiledBoundedInputLengthRequirement(
                 bounded.MinimumBytes,
                 bounded.MaximumBytes),
-            NormalDpExtractWithWarningLengthRule normalDp =>
-                new CompiledNormalDpExtractWithWarningInputLengthRequirement(
-                    normalDp.IssueCode,
-                    ResolveNormalDpExpectedInputLengths(normalDp, resolvedMapCapacity)),
             SourceViewCoverageLengthRule sourceView =>
                 new CompiledSourceViewCoverageInputLengthRequirement(
-                    sourceView.ExpectedOuterLengths.Count == 0
-                        ? null
-                        : sourceView.ExpectedOuterLengths,
+                    ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                     sourceView.UnexpectedOuterLengthIssueCode),
             DeclaredPrefixWithWarningLengthRule declaredPrefix =>
                 new CompiledDeclaredPrefixWithWarningInputLengthRequirement(

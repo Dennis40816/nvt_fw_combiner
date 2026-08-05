@@ -83,10 +83,11 @@ internal static partial class CompositionProfileNormalizer
                     long.MaxValue,
                     $"{path}.maximumBytes"))),
             "normal-dp-extract-with-warning" => Wrap(path, () =>
-                new NormalDpExtractWithWarningLengthRule(document.IssueCode ?? throw Error(
-                    $"{path}.issueCode",
-                    "Warning issue code is missing."),
-                    NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
+                new SourceViewCoverageLengthRule(
+                    NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"),
+                    document.IssueCode ?? throw Error(
+                        $"{path}.issueCode",
+                        "Warning issue code is missing."))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
             "source-view-coverage" when schemaVersion is "2.13" or "2.14" or "2.15" => Wrap(path, () =>
                 new SourceViewCoverageLengthRule(

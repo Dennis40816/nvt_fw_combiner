@@ -45,6 +45,9 @@ class CodeSizeLimits:
     partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
     runtime_production_baseline: int | None = None
     runtime_production_target: int | None = None
+    runtime_production_ratchet: int | None = None
+    domain_profiles_ratchet: int | None = None
+    domain_profiles_target: int | None = None
 
 
 @dataclass(frozen=True)
@@ -68,6 +71,8 @@ class CodeSizeSnapshot:
     partial_types: tuple[PartialTypeAggregate, ...]
     runtime_production_files: int
     runtime_production_nonblank: int
+    domain_profiles_files: int
+    domain_profiles_nonblank: int
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
@@ -82,6 +87,9 @@ DEFAULT_LIMITS = CodeSizeLimits(
     },
     runtime_production_baseline=45_214,
     runtime_production_target=22_607,
+    runtime_production_ratchet=76_190,
+    domain_profiles_ratchet=26_809,
+    domain_profiles_target=10_500,
 )
 
 
@@ -159,12 +167,22 @@ def _runtime_production_files(root: Path) -> list[Path]:
     return [*csharp_files, *worker_files]
 
 
+def _domain_profiles_files(root: Path) -> list[Path]:
+    """Return the fixed Canonical Core Domain + Profiles slice."""
+
+    return [
+        *_matching_files(root, "src/NvtFwCombiner.Domain", frozenset({".cs"})),
+        *_matching_files(root, "src/NvtFwCombiner.Profiles", frozenset({".cs"})),
+    ]
+
+
 def measure_code_size(root: Path) -> CodeSizeSnapshot:
     """Measure production source, exact JSON duplication, and partial aggregates."""
 
     source_files = _matching_files(root, "src", frozenset({".cs", ".axaml"}))
     source_line_counts = {path: _nonblank_line_count(path) for path in source_files}
     runtime_source_files = _runtime_production_files(root)
+    domain_profiles_files = _domain_profiles_files(root)
 
     duplicate_candidates = [
         *_matching_files(root, "profiles", frozenset({".json"})),
@@ -211,6 +229,10 @@ def measure_code_size(root: Path) -> CodeSizeSnapshot:
         runtime_production_files=len(runtime_source_files),
         runtime_production_nonblank=sum(
             _nonblank_line_count(path) for path in runtime_source_files
+        ),
+        domain_profiles_files=len(domain_profiles_files),
+        domain_profiles_nonblank=sum(
+            _nonblank_line_count(path) for path in domain_profiles_files
         ),
     )
 
@@ -269,6 +291,29 @@ def review_code_size_policy(
             f"{target_text})"
         )
 
+    if limits.runtime_production_ratchet is not None:
+        _review_exact_ratchet(
+            "runtime production",
+            snapshot.runtime_production_nonblank,
+            limits.runtime_production_ratchet,
+            findings,
+        )
+
+    if limits.domain_profiles_ratchet is not None:
+        target = limits.domain_profiles_target
+        target_text = f"; final target <= {target}" if target is not None else ""
+        findings.append(
+            "Domain + Profiles metric: "
+            f"{snapshot.domain_profiles_files} files / "
+            f"{snapshot.domain_profiles_nonblank} nonblank lines "
+            f"(ratchet {limits.domain_profiles_ratchet}{target_text})"
+        )
+        _review_exact_ratchet(
+            "Domain + Profiles slice",
+            snapshot.domain_profiles_nonblank,
+            limits.domain_profiles_ratchet,
+            findings,
+        )
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
     for name, expected in limits.partial_type_exact_ratchets.items():
         actual = aggregates.get(name)
@@ -296,3 +341,32 @@ def review_code_size_policy(
             )
 
     return findings
+
+
+def validate_code_size_policy(
+    root: Path,
+    limits: CodeSizeLimits = DEFAULT_LIMITS,
+) -> list[str]:
+    """Fail closed when a Canonical Core exact descending ratchet grows."""
+
+    snapshot = measure_code_size(root)
+    errors: list[str] = []
+    for label, actual, ratchet in (
+        (
+            "runtime production",
+            snapshot.runtime_production_nonblank,
+            limits.runtime_production_ratchet,
+        ),
+        (
+            "Domain + Profiles slice",
+            snapshot.domain_profiles_nonblank,
+            limits.domain_profiles_ratchet,
+        ),
+    ):
+        if ratchet is not None and actual > ratchet:
+            errors.append(f"code-size {label} grew: {actual} > ratchet {ratchet}")
+        elif ratchet is not None and actual < ratchet:
+            errors.append(
+                f"code-size {label} improved: lower ratchet {ratchet} to {actual}"
+            )
+    return errors

@@ -142,7 +142,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
         Assert.Equal(
             "DP_SIZE_WARNING",
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement).IssueCode);
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement)
+                .UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies a Normal-DP profile can declare known outer containers without changing its source span.</summary>
@@ -162,8 +163,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal([0x80000L, 0x200000L], input.ExpectedInputLengths);
         Assert.Equal(
             [0x80000L, 0x200000L],
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement)
-                .ExpectedInputLengths);
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement)
+                .ExpectedOuterLengths);
+    }
+
+    /// <summary>Legacy Normal-DP wire policy still fails closed when no generic source read can be derived.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsNormalDpInputWithoutSourceRead()
+    {
+        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithNoTpSourceView(ProfileWithNormalDpExtraction(
+                SupportedProfileJson(familyHash))),
+            FamilyJsonWithRootWriteConstraint("explicit-range")));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.invalid-input-geometry", Assert.Single(result.Issues).Code);
     }
 
     /// <summary>Verifies the pilot DP_AB, TPA, and TPB facts lower independently through one generic declared-prefix rule.</summary>
