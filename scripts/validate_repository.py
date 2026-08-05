@@ -20,7 +20,11 @@ from canonical_golden_validation import (
     validate_canonical_golden,
     validate_standard_merge_release_allowlist,
 )
-from code_size_policy import is_physical_source_file, review_code_size_policy
+from code_size_policy import (
+    is_physical_source_file,
+    review_code_size_policy,
+    validate_code_size_policy,
+)
 from coverage_configuration_policy import (
     is_approved_package_analyzer,
     is_approved_sdk_analyzer,
@@ -1471,6 +1475,7 @@ def validate_agent_files(errors: list[str]) -> None:
 
 def validate() -> list[str]:
     errors: list[str] = []
+    errors.extend(validate_code_size_policy(ROOT))
     files = repository_files()
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)

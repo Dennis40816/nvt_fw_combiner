@@ -258,7 +258,6 @@ public sealed partial class CompiledComposition
         ];
         var declaredAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
         var tpInputSpaces = new List<AddressSpace>();
-        var normalDpInputRequirements = new List<(AddressSpace AddressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement Requirement)>();
         var declaredPrefixInputRequirements = new List<(AddressSpace AddressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement Requirement)>();
         var sourceViewInputRequirements = new List<(AddressSpace AddressSpace, CompiledSourceViewCoverageInputLengthRequirement Requirement)>();
         var slots = details.InputContract.Slots.ToDictionary(
@@ -321,9 +320,6 @@ public sealed partial class CompiledComposition
 
                     tpInputSpaces.Add(addressSpace);
                     break;
-                case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
-                    normalDpInputRequirements.Add((addressSpace, normalDp));
-                    break;
                 case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
                     if (compositionKind != CompositionKind.Merge ||
                         requirement.Normalization is not CompiledNoInputNormalization)
@@ -347,7 +343,7 @@ public sealed partial class CompiledComposition
                     break;
                 default:
                     throw new ArgumentException(
-                        "Current V2 plan artifacts support only exact-map-capacity, source-view, declared-prefix, normal-DP extraction, TP-maximum, or exact TP input requirements.",
+                        "Current V2 plan artifacts support only exact-map-capacity, source-view, declared-prefix, TP-maximum, or exact TP input requirements.",
                         nameof(details));
             }
         }
@@ -373,14 +369,6 @@ public sealed partial class CompiledComposition
         foreach (AddressSpace tpInputSpace in tpInputSpaces)
         {
             ValidateTpMaximumInputGeometry(tpInputSpace, details.RegionAccessContract.ResolvedViews);
-        }
-
-        foreach ((AddressSpace addressSpace, CompiledNormalDpExtractWithWarningInputLengthRequirement requirement) in normalDpInputRequirements)
-        {
-            ValidateNormalDpExtractionInputGeometry(
-                addressSpace,
-                requirement,
-                details.RegionAccessContract.ResolvedViews);
         }
 
         foreach ((AddressSpace addressSpace, CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement) in declaredPrefixInputRequirements)

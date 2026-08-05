@@ -520,10 +520,6 @@ public sealed partial class CompiledComposition
                 AppendInteger(builder, $"{prefix}.minimum-bytes", bounded.MinimumBytes);
                 AppendInteger(builder, $"{prefix}.maximum-bytes", bounded.MaximumBytes);
                 break;
-            case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
-                AppendField(builder, $"{prefix}.issue-code", normalDp.IssueCode);
-                AppendIntegerList(builder, $"{prefix}.expected-input-length", normalDp.ExpectedInputLengths);
-                break;
             case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
                 AppendInteger(builder, $"{prefix}.required-end-exclusive", declaredPrefix.RequiredEndExclusive);
                 AppendIntegerList(builder, $"{prefix}.expected-outer-length", declaredPrefix.ExpectedOuterLengths);

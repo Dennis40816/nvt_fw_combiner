@@ -132,9 +132,9 @@ public sealed partial class CompiledCompositionTests
         CompiledInputSlotRequirement bounded = new(
             "aux-bounded", "aux", CompiledInputArtifactClass.Auxiliary, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledBoundedInputLengthRequirement(1, 12), new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement normalDp = new(
+        CompiledInputSlotRequirement sourceView = new(
             "dp", "dp", CompiledInputArtifactClass.DpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledNormalDpExtractWithWarningInputLengthRequirement("DP_SIZE", [12, 16]), new CompiledNoInputNormalization());
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement([12, 16], "DP_SIZE"), new CompiledNoInputNormalization());
         CompiledInputSlotRequirement tp = new(
             "tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization());
@@ -155,10 +155,10 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal((1L, 12L), (
             Assert.IsType<CompiledBoundedInputLengthRequirement>(bounded.LengthRequirement).MinimumBytes,
             Assert.IsType<CompiledBoundedInputLengthRequirement>(bounded.LengthRequirement).MaximumBytes));
-        CompiledNormalDpExtractWithWarningInputLengthRequirement normalDpLength =
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(normalDp.LengthRequirement);
-        Assert.Equal("DP_SIZE", normalDpLength.IssueCode);
-        Assert.Equal([12L, 16L], normalDpLength.ExpectedInputLengths);
+        CompiledSourceViewCoverageInputLengthRequirement sourceViewLength =
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(sourceView.LengthRequirement);
+        Assert.Equal("DP_SIZE", sourceViewLength.UnexpectedOuterLengthIssueCode);
+        Assert.Equal([12L, 16L], sourceViewLength.ExpectedOuterLengths);
         _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(tp.LengthRequirement);
         Assert.Equal(
             CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
@@ -188,7 +188,7 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-pad-length", "dp", CompiledInputArtifactClass.DpFirmware, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledNormalDpExtractWithWarningInputLengthRequirement("DP_SIZE", [16]),
+            new CompiledSourceViewCoverageInputLengthRequirement([16], "DP_SIZE"),
             new CompiledPadShorterInputNormalization(0xFF, "evidence")));
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
             "bad-aux-tp", "aux", CompiledInputArtifactClass.Auxiliary, true,

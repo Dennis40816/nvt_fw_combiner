@@ -81,13 +81,13 @@ public sealed partial class CompiledCompositionTests
             sourceRanges: [new ByteRange(0, oversize)]));
     }
 
-    /// <summary>Verifies Normal DP extraction retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
+    /// <summary>Verifies source-view coverage retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
     [Fact]
-    public void V2PlanArtifactBindsNormalDpExtractionGeometryAndWarningCode()
+    public void V2PlanArtifactBindsSourceViewGeometryAndWarningCode()
     {
-        CompiledComposition baseline = CreateNormalDpComposition("DP_SIZE_WARNING");
-        CompiledComposition changedWarning = CreateNormalDpComposition("DP_LENGTH_WARNING");
-        CompiledComposition changedContainers = CreateNormalDpComposition(
+        CompiledComposition baseline = CreateSourceViewComposition("DP_SIZE_WARNING");
+        CompiledComposition changedWarning = CreateSourceViewComposition("DP_LENGTH_WARNING");
+        CompiledComposition changedContainers = CreateSourceViewComposition(
             "DP_SIZE_WARNING",
             expectedInputLengths: [0x20, 0x40]);
 
@@ -101,21 +101,18 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, changedContainers.CompilationFingerprint);
     }
 
-    /// <summary>Verifies V2 artifacts reject Normal DP contracts that can bypass extraction or lack a declared source span.</summary>
+    /// <summary>Verifies V2 artifacts reject source-view contracts that can bypass extraction or mismatch diagnostics.</summary>
     [Fact]
-    public void V2PlanArtifactRejectsInvalidNormalDpExtractionGeometry()
+    public void V2PlanArtifactRejectsInvalidSourceViewGeometry()
     {
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
+        _ = Assert.Throws<ArgumentException>(() => CreateSourceViewComposition(
             "DP_SIZE_WARNING",
             inputOversizePolicy: InputOversizePolicy.Reject,
             includeWarningCodeInAddressSpace: false));
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
-            "DP_SIZE_WARNING",
-            sourceRanges: []));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateNormalDpComposition(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateSourceViewComposition(
             "DP_SIZE_WARNING",
             expectedInputLengths: [4]));
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
+        _ = Assert.Throws<ArgumentException>(() => CreateSourceViewComposition(
             "DP_SIZE_WARNING",
             expectedInputLengths: [16],
             addressSpaceExpectedInputLengths: [32]));
@@ -262,7 +259,7 @@ public sealed partial class CompiledCompositionTests
             plan: CreateTpPlan(sourceLength, outputCapacity, allowedInputLengths));
     }
 
-    private static CompiledComposition CreateNormalDpComposition(
+    private static CompiledComposition CreateSourceViewComposition(
         string warningCode,
         IReadOnlyList<ByteRange>? sourceRanges = null,
         InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
@@ -284,7 +281,7 @@ public sealed partial class CompiledCompositionTests
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledNormalDpExtractWithWarningInputLengthRequirement(warningCode, expected),
+                    new CompiledSourceViewCoverageInputLengthRequirement(expected, warningCode),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "dp-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),

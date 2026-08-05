@@ -36,22 +36,21 @@ public enum CompiledInputInstancePolicy
 }
 
 /// <summary>Closed input length-rule kind retained by a compiled artifact.</summary>
+/// <remarks>Values are fingerprint wire codes; retired value 3 must not be reused or renumbered.</remarks>
 public enum CompiledInputLengthRequirementKind
 {
     /// <inheritdoc/>
-    ExactBytes,
+    ExactBytes = 0,
     /// <inheritdoc/>
-    ExactResolvedMapCapacity,
+    ExactResolvedMapCapacity = 1,
     /// <inheritdoc/>
-    Bounded,
+    Bounded = 2,
     /// <inheritdoc/>
-    NormalDpExtractWithWarning,
+    TpMaximum256K = 4,
     /// <inheritdoc/>
-    TpMaximum256K,
+    DeclaredPrefixWithWarning = 5,
     /// <inheritdoc/>
-    DeclaredPrefixWithWarning,
-    /// <inheritdoc/>
-    SourceViewCoverage,
+    SourceViewCoverage = 6,
 }
 
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
@@ -194,60 +193,6 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
 
     /// <summary>Inclusive maximum accepted length.</summary>
     public long MaximumBytes { get; }
-}
-
-/// <summary>Extracts declared Normal DP content and records a warning for a nonmatching container length.</summary>
-public sealed record CompiledNormalDpExtractWithWarningInputLengthRequirement : CompiledInputLengthRequirement
-{
-    private readonly long[] _expectedInputLengths;
-
-    /// <summary>Creates one fixed Normal-DP extraction requirement.</summary>
-    public CompiledNormalDpExtractWithWarningInputLengthRequirement(
-        string issueCode,
-        IReadOnlyList<long> expectedInputLengths)
-        : base(CompiledInputLengthRequirementKind.NormalDpExtractWithWarning)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
-        ArgumentNullException.ThrowIfNull(expectedInputLengths);
-        IssueCode = issueCode;
-        _expectedInputLengths = SnapshotExpectedInputLengths(expectedInputLengths);
-        ExpectedInputLengths = Array.AsReadOnly(_expectedInputLengths);
-    }
-
-    /// <summary>Stable warning issue code emitted for an outer-container size mismatch.</summary>
-    public string IssueCode { get; }
-
-    /// <summary>Expected outer-container lengths that avoid the warning while preserving declared-range extraction.</summary>
-    public IReadOnlyList<long> ExpectedInputLengths { get; }
-
-    private static long[] SnapshotExpectedInputLengths(IReadOnlyList<long> expectedInputLengths)
-    {
-        if (expectedInputLengths.Count is 0 or
-            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected input lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedInputLengths));
-        }
-
-        long[] snapshot = new long[expectedInputLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedInputLengths.Count; index++)
-        {
-            long value = expectedInputLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected input lengths must be positive and strictly ascending.",
-                    nameof(expectedInputLengths));
-            }
-
-            snapshot[index] = value;
-            previous = value;
-        }
-
-        return snapshot;
-    }
 }
 
 /// <summary>Rejects TP firmware larger than the owner-approved 256 KiB limit.</summary>
@@ -508,7 +453,6 @@ public sealed class CompiledInputSlotRequirement
 
         if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
-                not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning and
                 not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning and
                 not CompiledInputLengthRequirementKind.SourceViewCoverage)
         {
@@ -538,13 +482,6 @@ public sealed class CompiledInputSlotRequirement
             artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
         {
             throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.NormalDpExtractWithWarning &&
-            (artifactClass != CompiledInputArtifactClass.DpFirmware ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
         }
 
         if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning &&

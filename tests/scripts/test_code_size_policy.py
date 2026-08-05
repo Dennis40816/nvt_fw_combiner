@@ -10,6 +10,7 @@ from scripts.code_size_policy import (
     CodeSizeLimits,
     measure_code_size,
     review_code_size_policy,
+    validate_code_size_policy,
 )
 
 
@@ -39,6 +40,9 @@ class CodeSizePolicyTests(unittest.TestCase):
         named_partial_maximums: dict[str, int] | None = None,
         runtime_baseline: int | None = None,
         runtime_target: int | None = None,
+        runtime_ratchet: int | None = None,
+        domain_profiles_ratchet: int | None = None,
+        domain_profiles_target: int | None = None,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
@@ -48,6 +52,9 @@ class CodeSizePolicyTests(unittest.TestCase):
             partial_type_named_maximums=named_partial_maximums or {},
             runtime_production_baseline=runtime_baseline,
             runtime_production_target=runtime_target,
+            runtime_production_ratchet=runtime_ratchet,
+            domain_profiles_ratchet=domain_profiles_ratchet,
+            domain_profiles_target=domain_profiles_target,
         )
 
     def review(self, limits: CodeSizeLimits) -> list[str]:
@@ -245,6 +252,50 @@ class CodeSizePolicyTests(unittest.TestCase):
 
         self.assertEqual(4, snapshot.runtime_production_files)
         self.assertEqual(4, snapshot.runtime_production_nonblank)
+
+    def test_core_ratchets_measure_exact_roots_and_fail_growth(self) -> None:
+        self.write("src/NvtFwCombiner.Domain/Domain.cs", "one\ntwo\n")
+        self.write("src/NvtFwCombiner.Profiles/Profile.cs", "one\ntwo\nthree\n")
+        self.write("src/Product/Program.cs", "outside-slice\n")
+
+        snapshot = measure_code_size(self.root)
+        limits = self.limits(
+            production=6,
+            runtime_ratchet=5,
+            domain_profiles_ratchet=4,
+            domain_profiles_target=2,
+        )
+
+        self.assertEqual(2, snapshot.domain_profiles_files)
+        self.assertEqual(5, snapshot.domain_profiles_nonblank)
+        self.assertEqual(
+            [
+                "code-size runtime production grew: 6 > ratchet 5",
+                "code-size Domain + Profiles slice grew: 5 > ratchet 4",
+            ],
+            validate_code_size_policy(self.root, limits),
+        )
+        self.assertEqual(
+            [
+                "code-size runtime production improved: lower ratchet 7 to 6",
+                "code-size Domain + Profiles slice improved: lower ratchet 6 to 5",
+            ],
+            validate_code_size_policy(
+                self.root,
+                self.limits(
+                    production=6,
+                    runtime_ratchet=7,
+                    domain_profiles_ratchet=6,
+                ),
+            ),
+        )
+        self.assertTrue(
+            any(
+                "Domain + Profiles metric: 2 files / 5 nonblank lines "
+                "(ratchet 4; final target <= 2)" in finding
+                for finding in review_code_size_policy(self.root, limits)
+            )
+        )
 
 
 if __name__ == "__main__":
