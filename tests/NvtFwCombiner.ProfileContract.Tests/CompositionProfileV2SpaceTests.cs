@@ -16,9 +16,9 @@ public sealed class CompositionProfileV2SpaceTests
         var blank = new BlankProfileInitializer(0xFF);
         var clone = new CloneProfileInitializer("reference-input");
 
-        Assert.Equal(CompositionProfileCapacityKind.ResolvedMap, resolved.Kind);
+        _ = Assert.IsType<ResolvedMapProfileCapacity>(resolved);
         Assert.Equal(4096, fixedCapacity.Bytes);
-        Assert.Equal(CompositionProfileCapacityKind.RuntimeRequest, runtimeRequest.Kind);
+        _ = Assert.IsType<RuntimeRequestProfileCapacity>(runtimeRequest);
         Assert.Equal(0xFF, blank.FillByte);
         Assert.Equal("reference-input", clone.SourceSlotId);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FixedProfileCapacity(0));
@@ -47,9 +47,9 @@ public sealed class CompositionProfileV2SpaceTests
         Assert.Equal(CompositionProfileSpaceKind.InputArtifact, input.Kind);
         Assert.Equal(CompositionProfileInstancePolicy.PerBinding, input.InstancePolicy);
         Assert.Equal(CompositionProfileSpaceKind.WorkBuffer, work.Kind);
-        Assert.Equal(CompositionProfileInitializerKind.Blank, work.Initializer.Kind);
+        _ = Assert.IsType<BlankProfileInitializer>(work.Initializer);
         Assert.Equal(CompositionProfileSpaceKind.OutputImage, output.Kind);
-        Assert.Equal(CompositionProfileCapacityKind.ResolvedMap, output.Capacity.Kind);
+        _ = Assert.IsType<ResolvedMapProfileCapacity>(output.Capacity);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new MutableCompositionProfileSpace(
             "invalid",
             CompositionProfileSpaceKind.InputArtifact,

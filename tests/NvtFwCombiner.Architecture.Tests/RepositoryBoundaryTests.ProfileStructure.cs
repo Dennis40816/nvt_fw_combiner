@@ -8,7 +8,7 @@ public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Workflow labels may remain wire tokens, but cannot survive as normalized or compiled semantic types.</summary>
     [Fact]
-    public void NormalizedInputPoliciesUseOneProfilesRepresentation()
+    public void NormalizedProfilePoliciesUseOneProfilesRepresentation()
     {
         Assert.DoesNotContain(
             "NormalDpExtractWithWarningLengthRule",
@@ -32,6 +32,14 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CompositionProfileInputNormalizationKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileCapacityKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInitializerKind",
             ReadProfileSources(),
             StringComparison.Ordinal);
     }

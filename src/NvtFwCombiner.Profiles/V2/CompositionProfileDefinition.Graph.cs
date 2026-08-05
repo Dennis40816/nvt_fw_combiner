@@ -240,10 +240,10 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException("Profiles require exactly one output-image space.");
         }
 
-        CompositionProfileInitializerKind requiredInitializer = CompositionKind == CompositionKind.Merge
-            ? CompositionProfileInitializerKind.Blank
-            : CompositionProfileInitializerKind.Clone;
-        if (outputs[0].Initializer.Kind != requiredInitializer)
+        bool initializerMatchesComposition = CompositionKind == CompositionKind.Merge
+            ? outputs[0].Initializer is BlankProfileInitializer
+            : outputs[0].Initializer is CloneProfileInitializer;
+        if (!initializerMatchesComposition)
         {
             throw new ArgumentException("The output initializer must match merge versus replace semantics.");
         }
