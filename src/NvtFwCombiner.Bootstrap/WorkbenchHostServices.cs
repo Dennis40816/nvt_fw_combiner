@@ -1,6 +1,9 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Infrastructure.Diagnostics;
 using NvtFwCombiner.Infrastructure.Shell;
+using NvtFwCombiner.Infrastructure.Time;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -21,6 +24,24 @@ public static class WorkbenchHostServices
     public static void WarmCanonicalCapabilities(CancellationToken cancellationToken)
     {
         CanonicalCapabilities.Warm(cancellationToken);
+    }
+
+    /// <summary>Creates a focused current-session System Information lifecycle.</summary>
+    public static ISystemInformationService CreateSystemInformationService(
+        string applicationVersion)
+    {
+        return new SystemInformationService(
+            applicationVersion,
+            CreateCanonicalSupportMatrixQuery(),
+            CanonicalCapabilities,
+            new SystemRuntimeProbe(),
+            new SystemClock());
+    }
+
+    /// <summary>Creates the privacy-filtered local diagnostic JSON exporter.</summary>
+    public static ISystemDiagnosticsExporter CreateSystemDiagnosticsExporter()
+    {
+        return new JsonSystemDiagnosticsExporter();
     }
 
     /// <summary>Creates the constrained Windows file-reveal adapter.</summary>

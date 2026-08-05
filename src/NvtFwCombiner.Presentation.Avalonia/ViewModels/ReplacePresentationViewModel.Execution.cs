@@ -56,7 +56,8 @@ public sealed partial class ReplacePresentationViewModel
 
     private bool CanRunReplace()
     {
-        return !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+        return !_stateBindings.IsGlobalBuildBlocked() &&
+            !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
             IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {

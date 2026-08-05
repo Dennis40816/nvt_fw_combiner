@@ -192,6 +192,33 @@ public sealed partial class WorkflowSessionPresentationViewModel
         }
     }
 
+    internal void RefreshCanonicalCatalogState()
+    {
+        if (!IsWorkflowLoaded)
+        {
+            return;
+        }
+
+        _merge.InvalidateCanonicalCatalogSessions();
+        _replace.InvalidateCanonicalCatalogSessions();
+        InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
+        _replace.InvalidateCtrlRamFirmwareVersionContextState();
+        RefreshContextState(preserveReplaceSlotFiles: true);
+
+        if (_stateBindings.SelectedPage() == ShellPage.Merge &&
+            (_merge.IsNormalMergeModeSelected || _merge.IsAbCodeMergeModeSelected) &&
+            _merge.MergeSlots.Any(static slot => slot.HasFile))
+        {
+            _ = RefreshSelectedMergeFirmwareInspectionsAsync();
+        }
+        else if (_stateBindings.SelectedPage() == ShellPage.Replace &&
+            _replace.IsStructuredReplaceModeSelected &&
+            _replace.ReplaceSlots.Concat([_replace.ReplaceBaseSlot]).Any(static slot => slot.HasFile))
+        {
+            _ = RefreshSelectedReplaceFirmwareInspectionsAsync();
+        }
+    }
+
     internal void NotifyContextTextChanged()
     {
         _merge.NotifyContextChanged();

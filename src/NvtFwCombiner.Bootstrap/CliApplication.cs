@@ -1,4 +1,5 @@
 using System.Reflection;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -28,14 +29,6 @@ public static partial class CliApplication
             return Success;
         }
 
-        if (args is ["doctor"])
-        {
-            await output.WriteLineAsync("NVT FW Combiner repository bootstrap is healthy.").ConfigureAwait(false);
-            await output.WriteLineAsync($"CLI assembly version: {Version}").ConfigureAwait(false);
-            await output.WriteLineAsync("Composition core command surface is available.").ConfigureAwait(false);
-            return Success;
-        }
-
         if (args.Length == 0 || args.Contains("--help", StringComparer.Ordinal))
         {
             await WriteUsageAsync(output).ConfigureAwait(false);
@@ -44,6 +37,13 @@ public static partial class CliApplication
 
         try
         {
+            if (args is ["doctor"])
+            {
+                ISystemInformationService diagnostics =
+                    WorkbenchHostServices.CreateSystemInformationService(Version);
+                return await RunDoctorAsync(diagnostics, output, cancellationToken).ConfigureAwait(false);
+            }
+
             return args[0] switch
             {
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
@@ -80,6 +80,28 @@ public static partial class CliApplication
             await error.WriteLineAsync($"error: {exception.Message}").ConfigureAwait(false);
             return SoftwareError;
         }
+    }
+
+    internal static async Task<int> RunDoctorAsync(
+        ISystemInformationService diagnostics,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentNullException.ThrowIfNull(output);
+        SystemInformationSnapshot snapshot = diagnostics.Refresh(
+            reloadCatalog: true,
+            cancellationToken);
+        await output.WriteLineAsync($"Catalog state: {snapshot.CatalogState}").ConfigureAwait(false);
+        await output.WriteLineAsync($"CLI assembly version: {Version}").ConfigureAwait(false);
+        foreach (ActionableSystemDiagnostic diagnostic in snapshot.ActiveDiagnostics)
+        {
+            await output.WriteLineAsync(
+                $"[{diagnostic.Category}] {diagnostic.Message} Action: {diagnostic.Action}")
+                .ConfigureAwait(false);
+        }
+
+        return snapshot.IsBuildBlocked ? CompositionFailed : Success;
     }
 
     private static string Version => (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly())

@@ -338,24 +338,13 @@ public static class CapabilityActionReadinessResolver
         ArgumentNullException.ThrowIfNull(inputChildren);
         ArgumentNullException.ThrowIfNull(runtimeDependencies);
         ArgumentOutOfRangeException.ThrowIfLessThan(currentRuntimeDependencyGeneration, 1);
-        CapabilityChildReadiness[] inputs = [.. inputChildren];
-        if (inputs.Any(static input => input is null) ||
-            inputs.Select(static input => input.ChildId)
-                .Distinct(StringComparer.Ordinal).Count() != inputs.Length)
-        {
-            throw new ArgumentException(
-                "Capability input readiness children must be non-null and unique.",
-                nameof(inputChildren));
-        }
+        CapabilityChildReadiness[] inputs = NormalizeInputs(inputChildren);
 
         List<RankedBlocker> preview = [];
         AddAuthoringBlocker(admission, preview);
         AddPendingInputBlockers(inputs, preview);
 
-        List<RankedBlocker> build = [];
-        AddAuthoringBlocker(admission, build);
-        AddExecutionBlocker(admission, build);
-        AddInputBlockers(inputs, build);
+        List<RankedBlocker> build = CreateBuildBlockers(admission, inputs);
         AddRuntimeBlockers(
             admission,
             runtimeDependencies,
@@ -371,6 +360,76 @@ public static class CapabilityActionReadinessResolver
             currentRuntimeDependencyGeneration,
             new CapabilityActionAvailability(preview),
             new CapabilityActionAvailability(build));
+    }
+
+    /// <summary>
+    /// Resolves the canonical primary Build blocker before a runtime refresh
+    /// exists. Compiled plans with no external dependencies need no environment
+    /// snapshot; dependency-bearing plans fail closed with the shared stale
+    /// runtime blocker after higher-priority authoring and input checks.
+    /// </summary>
+    public static CapabilityActionBlocker? ResolvePrimaryBuildBlockerBeforeRuntimeRefresh(
+        CapabilityAdmissionSnapshot admission,
+        IEnumerable<CapabilityChildReadiness> inputChildren,
+        RuntimeDependencyReadinessRequest runtimeDependencyRequest)
+    {
+        ArgumentNullException.ThrowIfNull(admission);
+        ArgumentNullException.ThrowIfNull(inputChildren);
+        ArgumentNullException.ThrowIfNull(runtimeDependencyRequest);
+        if (!StringComparer.Ordinal.Equals(runtimeDependencyRequest.RouteId, admission.RouteId) ||
+            !StringComparer.Ordinal.Equals(
+                runtimeDependencyRequest.CapabilityFingerprint,
+                admission.CapabilityFingerprint) ||
+            !StringComparer.Ordinal.Equals(
+                runtimeDependencyRequest.CompilationFingerprint,
+                admission.CompilationFingerprint) ||
+            runtimeDependencyRequest.ResolutionToken != admission.ResolutionToken ||
+            runtimeDependencyRequest.AuthoringRevision != admission.AuthoringRevision)
+        {
+            throw new ArgumentException(
+                "Runtime dependency request must match the exact capability admission.",
+                nameof(runtimeDependencyRequest));
+        }
+
+        CapabilityChildReadiness[] inputs = NormalizeInputs(inputChildren);
+        List<RankedBlocker> build = CreateBuildBlockers(admission, inputs);
+        if (runtimeDependencyRequest.Dependencies.Count > 0)
+        {
+            build.Add(new RankedBlocker(
+                4,
+                new CapabilityActionBlocker(
+                    CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+                    CapabilityReadinessDimension.RuntimeDependency,
+                    admission.RouteId,
+                    "Runtime dependency status has not been refreshed for the selected capability.",
+                    CapabilityReadinessNextAction.RefreshRuntimeDependencies)));
+        }
+
+        return new CapabilityActionAvailability(build).PrimaryBlocker;
+    }
+
+    private static CapabilityChildReadiness[] NormalizeInputs(
+        IEnumerable<CapabilityChildReadiness> inputChildren)
+    {
+        CapabilityChildReadiness[] inputs = [.. inputChildren];
+        return inputs.Any(static input => input is null) ||
+            inputs.Select(static input => input.ChildId)
+                .Distinct(StringComparer.Ordinal).Count() != inputs.Length
+            ? throw new ArgumentException(
+                "Capability input readiness children must be non-null and unique.",
+                nameof(inputChildren))
+            : inputs;
+    }
+
+    private static List<RankedBlocker> CreateBuildBlockers(
+        CapabilityAdmissionSnapshot admission,
+        IEnumerable<CapabilityChildReadiness> inputs)
+    {
+        List<RankedBlocker> build = [];
+        AddAuthoringBlocker(admission, build);
+        AddExecutionBlocker(admission, build);
+        AddInputBlockers(inputs, build);
+        return build;
     }
 
     private static void AddAuthoringBlocker(

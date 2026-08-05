@@ -9,6 +9,7 @@ public sealed partial class MainWindowViewModel
 
     private void Reports_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        MessageCenter.NotifyReportHistoryChanged();
         if (e.PropertyName is nameof(ReportPresentationViewModel.IsReportModalOpen) or
             nameof(ReportPresentationViewModel.HasReportToast))
         {

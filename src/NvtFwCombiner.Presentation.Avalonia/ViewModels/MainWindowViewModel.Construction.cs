@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
 
@@ -15,6 +16,7 @@ public sealed partial class MainWindowViewModel
     private const string GeneralMergeMode = WorkbenchMergeModes.General;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
+    private readonly ISystemInformationService _systemInformationService;
     private readonly bool _isInitializing = true;
 
     /// <summary>Initializes the main workbench view model.</summary>
@@ -59,11 +61,15 @@ public sealed partial class MainWindowViewModel
             IReadOnlyList<WorkbenchFirmwareInspectionInput>,
             IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
         IFileRevealService? fileRevealService = null,
-        ICanonicalSupportMatrixQuery? supportMatrixQuery = null)
+        ICanonicalSupportMatrixQuery? supportMatrixQuery = null,
+        ISystemInformationService? systemInformationService = null,
+        ISystemDiagnosticsExporter? systemDiagnosticsExporter = null)
     {
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
+        _systemInformationService = systemInformationService ??
+            WorkbenchHostServices.CreateSystemInformationService(appVersion);
         ShellVersion = shellVersion;
         AppVersion = appVersion;
         Settings = new SettingsViewModel(
@@ -77,6 +83,7 @@ public sealed partial class MainWindowViewModel
                 GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
+                IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 IsWorkflowLoading,
                 GetInspectedFileLength,
@@ -97,6 +104,7 @@ public sealed partial class MainWindowViewModel
                 GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
+                IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 GetInspectedFileLength,
                 GetSelectedReplaceBaseInspection,
@@ -148,6 +156,13 @@ public sealed partial class MainWindowViewModel
                 RefreshCommandState,
                 NotifyShellRunStateChanged));
         RunSession.PropertyChanged += RunSession_OnPropertyChanged;
+        MessageCenter = new MessageCenterViewModel(
+            () => Text,
+            _systemInformationService,
+            systemDiagnosticsExporter ?? WorkbenchHostServices.CreateSystemDiagnosticsExporter(),
+            Reports,
+            MessageCenterDiagnosticsChanged);
+        MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));

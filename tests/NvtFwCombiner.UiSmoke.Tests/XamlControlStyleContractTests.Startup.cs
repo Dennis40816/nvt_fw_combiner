@@ -26,6 +26,7 @@ public sealed partial class XamlControlStyleContractTests
             "WorkflowContextSetupModalHost",
             "FirmwareIcMismatchModalHost",
             "NavigationClearConfirmationModalHost",
+            "MessageCenterModalHost",
             "ReportModalHost",
             "BuildCompletedModalHost",
         ];
@@ -64,7 +65,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("WarmCanonicalCapabilities(cancellationToken)", warmup, StringComparison.Ordinal);
         Assert.True(
             lifecycle.IndexOf("await catalogWarmup", StringComparison.Ordinal) <
+            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal));
+        Assert.True(
+            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal) <
             lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
+        Assert.Contains("Deferred legacy catalog warm-up did not complete", warmup, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);
@@ -80,6 +85,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareIcMismatchModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("NavigationClearConfirmationModalHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("MessageCenterModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
     }
