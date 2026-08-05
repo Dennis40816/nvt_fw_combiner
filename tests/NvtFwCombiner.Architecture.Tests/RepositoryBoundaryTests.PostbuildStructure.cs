@@ -165,7 +165,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
         string ctrlRam = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+            "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.CtrlRam.cs");
 
         Assert.Contains("ProcessLifetime = new(CreateUncached)", factory, StringComparison.Ordinal);
         Assert.Contains("internal static ExternalProcessorGenerationLease AcquireCurrent()", factory, StringComparison.Ordinal);

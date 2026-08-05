@@ -468,14 +468,14 @@ public sealed partial class SavedRuleCliCommandTests
             LoadTrustedGeneralMergeRule(rule, source);
 
         WorkbenchRunResult preview =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 draft,
                 policy,
                 build: false,
                 TestContext.Current.CancellationToken);
         WorkbenchRunResult build =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 draft,
                 policy,
@@ -560,7 +560,7 @@ public sealed partial class SavedRuleCliCommandTests
             LoadTrustedGeneralMergeRule(rule, source);
 
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 draft,
                 policy,
@@ -623,14 +623,14 @@ public sealed partial class SavedRuleCliCommandTests
             LoadTrustedGeneralMergeRule(secondRule, source);
 
         WorkbenchRunResult first =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 firstDraft,
                 firstPolicy,
                 build: false,
                 TestContext.Current.CancellationToken);
         WorkbenchRunResult second =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 secondDraft,
                 secondPolicy,

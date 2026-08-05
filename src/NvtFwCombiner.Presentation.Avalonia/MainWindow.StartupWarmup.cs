@@ -8,26 +8,27 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
-    private static void PrimeDeferredCatalogs(
+    private void PrimeDeferredCatalogs(
         string icId,
         string number,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        WorkbenchHostServices.WarmCanonicalCapabilities(cancellationToken);
+        _hostServices.WarmCanonicalCapabilities(cancellationToken);
+        PresentationCompositionServices composition = _hostServices.Composition;
         try
         {
-            _ = WorkbenchCompositionService.GetSettingsSnapshot();
-            _ = WorkbenchCompositionService.GetNumberSelectionChoices(icId);
-            _ = WorkbenchCompositionService.GetGeneralMergeDefaultOutputLength(icId);
-            _ = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(icId);
-            _ = WorkbenchCompositionService.GetCtrlRamRegions(icId, number, basePath: null);
-            _ = WorkbenchCompositionService.GetReplaceInputSlots(
+            _ = composition.Capabilities.GetCatalogSummary();
+            _ = composition.Capabilities.GetNumberSelectionChoices(icId);
+            _ = composition.Authoring.GetGeneralMergeDefaultOutputLength(icId);
+            _ = composition.Authoring.GetStandardMergeRequiredAddressSpaces(icId);
+            _ = composition.Authoring.GetCtrlRamRegions(icId, number, basePath: null);
+            _ = composition.Memory.GetReplaceInputSlots(
                 icId,
                 number,
                 WorkbenchReplaceModes.Dp,
                 basePath: null);
-            _ = WorkbenchCompositionService.GetReplaceInputSlots(
+            _ = composition.Memory.GetReplaceInputSlots(
                 icId,
                 number,
                 WorkbenchReplaceModes.CtrlRam,

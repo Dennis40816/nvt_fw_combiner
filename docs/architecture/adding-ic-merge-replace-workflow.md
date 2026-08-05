@@ -99,7 +99,7 @@ Update only the rows that are relevant to the new IC/mode.
 
 | Area | File | What changes |
 | --- | --- | --- |
-| IC support / exposure policy | Current compatibility projection: `src/NvtFwCombiner.Profiles/IcSupportCatalog.cs` | Runtime onboarding through the package trust index does not itself expose or promote support. Change selectable/publication status only in its separately approved policy ticket; do not use this compatibility catalog as a second runtime registration list. |
+| IC support / exposure policy | `docs/contracts/canonical-capability-policy-v1.{json,md,schema.json}` | Runtime onboarding through the package trust index does not itself expose or promote support. Add or revise an exact route only in its separately approved policy ticket; every authoring/publication/evidence decision must pin the canonical route and capability fingerprint. |
 | V2 family/map/profile facts | `profiles/built-in/<bundle>/{families,maps,profiles}` plus its manifest | Put shared family facts, supported capacities, canonical named ranges, operations, and access rules in the manifest-pinned V2 bundle. Runtime and display projections must consume the resolved map and compiled plan; do not add a companion C# family-fact catalog or duplicate facts in UI/CLI code. |
 | Built-in bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus `profiles/built-in/package-trust-index.json` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schemas from `docs/contracts`; do not add source schema snapshots. After evidence review, add one hash-pinned bundle entry and its closed-vocabulary runtime registrations to the package trust index. Existing-vocabulary onboarding requires no IC-specific Domain, Application, Bootstrap, CLI, or Workbench route edit. Candidate-only staging must not enter the package index. |
 | Replace profile / V2 deployment | The same bundle and package trust-index entry | Add an evidence-backed V2 Replace profile and the exact `dp-replace`, `general-replace`, or `ctrlram-replace` data registration before routing an IC. Processor and branch fields are allowed only for CtrlRAM registrations. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
@@ -107,7 +107,7 @@ Update only the rows that are relevant to the new IC/mode.
 | TP/DP/CtrlRAM compatibility catalog | `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | Add reviewed TP/full-Flash shapes and TP Overview rows as hash-pinned config facts. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel C# or tag authority. |
 | TP Header metadata and behavior | Versioned family/profile contracts | Declare the common `tp-flash-header` definition once, then reference exact resolved spans, fields, series, or groups from read-only or execution behavior bindings. Do not add a parallel C# layout or report catalog. |
 | FWConfig metadata reader/catalog | `src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigLayout.cs`, `FirmwareConfigMetadataReader.cs`, and hash-pinned `flash-map.json` | Retain the IC's primary FWConfig flash address only for TP Overview/evidence. Every runtime FWConfig value must come from the unique NVT Backup at terminal `T - 0xFFF`; record it in `docs/references/nvt-fwconfig-copy-validation.md` and cross-check exposed primary/Backup fields in golden tests. Do not add a primary fallback. Change layout offsets only through the reviewed layout catalog. |
-| Output naming metadata | Versioned family/profile metadata bindings plus `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs` | Add DPCMI and FWConfig typed fields, target purposes, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
+| Output naming metadata | Versioned family/profile metadata bindings plus `src/NvtFwCombiner.Bootstrap/CompositionOutputNaming.cs` and `FirmwareInspectionAdapter.Metadata.cs` | Add DPCMI and FWConfig typed fields, target purposes, and FlashCode naming metadata only from owner-approved evidence. UI passes selected slot roles and paths; it must not decide DP/TP version offsets, CMI branches, metadata priority, or date/name format. |
 | CtrlRAM postbuild catalog | `profiles/built-in/ctrlram-postbuild-v2/catalog.json` plus `BuiltInPostbuildProfileCatalog` | Add structured command sequences, branch rules, staged-file names, firmware block ranges, evidence source, and Common FW rule metadata. Update the pinned SHA-256 and parity tests; never assemble one shell command string. |
 | External tool manifest | `external-tools/legacy-combiner/.../manifest.json` | Add or update only when a new exact `combiner.exe` binding/version is approved. |
 | Golden manifest | `testdata/golden/canonical/manifest.json` | Add owner-approved direct cases or explicit fact-scoped aliases only. Keep diagnostics outside canonical expected evidence. |
@@ -121,7 +121,7 @@ Do not add IC-specific byte behavior to:
 - `src/NvtFwCombiner.Presentation.Avalonia/**`
 - `src/NvtFwCombiner.Cli/**`
 - `src/NvtFwCombiner.Bootstrap/CliApplication*`
-- Workbench facade classes, unless the change is only adapting catalog/profile data into an existing request.
+- focused Bootstrap port adapters, unless the change is only adapting compiled profile data into an existing typed request.
 
 ## Standard Merge steps
 
@@ -138,7 +138,7 @@ Minimum tests:
 
 - the focused trusted-V2 bundle/routing tests matching the changed profile family
 - direct V2 plan contract tests plus `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`; no C# profile oracle remains after the retirement matrix closes the family
-- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure or alias facts change
+- canonical capability policy schema/loader tests and exact-route projection tests when support exposure or family facts change
 - direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
 - `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the deployed V2 workbench runtime against every approved Standard Merge fixture
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
@@ -157,7 +157,7 @@ Minimum tests:
 Minimum tests:
 
 - a direct V2 compilation/routing test for the changed Replace profile family
-- `tests/NvtFwCombiner.ProfileContract.Tests/IcSupportCatalogTests.cs` when support exposure changes
+- canonical capability policy schema/loader tests and exact-route projection tests when support exposure changes
 - direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
 - `tests/NvtFwCombiner.Bootstrap.Tests/ReplaceCliCommandTests.cs` when CLI can build the profile
 - UI smoke tests when the IC changes selector, slot, memory coverage, or report behavior

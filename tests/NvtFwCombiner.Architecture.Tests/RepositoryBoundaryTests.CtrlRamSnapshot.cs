@@ -6,11 +6,11 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void CtrlRamRuntimeReferenceRouteReusesItsCompilationBaseSnapshot()
     {
-        string context = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs");
-        string v2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
-        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+        string context = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Context.cs");
+        string v2 = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.V2.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.CtrlRam.cs");
 
-        Assert.Contains("baseBytes = TryReadFirmwareImage(basePath)", context, StringComparison.Ordinal);
+        Assert.Contains("baseBytes = FirmwareInspectionAdapter.TryReadFirmwareImage(basePath)", context, StringComparison.Ordinal);
         Assert.Contains("FirmwareArtifactPayload referencePayload", v2, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllBytes(context.BasePath!)", v2, StringComparison.Ordinal);
         Assert.Contains("byte[] referenceBytes = context.BaseBytes", runner, StringComparison.Ordinal);

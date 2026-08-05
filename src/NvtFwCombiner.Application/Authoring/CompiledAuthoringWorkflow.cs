@@ -44,10 +44,14 @@ public sealed record CompiledAuthoringSelectedInput(
     string SelectedPathHint,
     ReadOnlyMemory<byte>? Bytes);
 
+/// <summary>Compiler-owned slot identity paired with its immutable input address space.</summary>
+public sealed record CompiledAuthoringInputBinding(string SlotId, string AddressSpaceId);
+
 /// <summary>Application-owned picker projection for one authoring revision.</summary>
 public sealed record CompiledAuthoringSelectionSnapshot(
     AuthoringCapabilityCatalogSnapshot Catalog,
     IReadOnlyList<InputSelectionMemberReadiness> Slots,
+    IReadOnlyList<CompiledAuthoringInputBinding> InputBindings,
     IReadOnlyList<CompositionIssue> Issues);
 
 /// <summary>Application-owned coherent inspection result for one exact selected batch.</summary>
@@ -104,6 +108,7 @@ public sealed class CompiledAuthoringWorkflowService
                     discovery,
                     selectedSlotIds,
                     prerequisite),
+                ProjectInputBindings(discovery.DiscoveryCapability),
                 []);
         }
 
@@ -131,6 +136,7 @@ public sealed class CompiledAuthoringWorkflowService
                     : ProjectExactSelection(
                         discovery, nearestCapability, authoringRevision,
                         selectedSlotIds, prerequisiteLength),
+                ProjectInputBindings(nearestCapability ?? discovery.DiscoveryCapability),
                 exact.Issues);
         }
 
@@ -147,7 +153,20 @@ public sealed class CompiledAuthoringWorkflowService
                 authoringRevision,
                 selectedSlotIds,
                 prerequisiteLength),
+            ProjectInputBindings(capability),
             []);
+    }
+
+    private static ReadOnlyCollection<CompiledAuthoringInputBinding> ProjectInputBindings(
+        ResolvedCapability capability)
+    {
+        return Array.AsReadOnly(
+        [
+            .. capability.CompiledComposition.V2Details.InputContract.SpaceBindings
+                .Select(static binding => new CompiledAuthoringInputBinding(
+                    binding.SlotId,
+                    binding.AddressSpaceId)),
+        ]);
     }
 
     /// <summary>Resolves and inspects one immutable selected-input batch without fallback.</summary>

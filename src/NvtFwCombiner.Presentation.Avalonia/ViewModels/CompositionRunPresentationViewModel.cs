@@ -1,7 +1,5 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

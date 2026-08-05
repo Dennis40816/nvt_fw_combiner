@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -45,7 +44,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             return false;
         }
 
-        if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
+        if (_compositionServices.Capabilities.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
             SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
             return true;

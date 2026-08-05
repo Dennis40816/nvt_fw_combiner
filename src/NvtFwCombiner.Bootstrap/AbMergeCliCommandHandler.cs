@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -53,7 +53,7 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        if (!TryFindProfile(profileSelector, out WorkbenchProfileSummary? profile))
+        if (!TryFindProfile(profileSelector, out CapabilityProfileSummary? profile))
         {
             await error.WriteLineAsync($"error: unknown AB Merge profile '{profileSelector}'").ConfigureAwait(false);
             return UsageError;
@@ -61,7 +61,7 @@ internal static class AbMergeCliCommandHandler
 
         if (!profile.CompileSucceeded)
         {
-            _ = AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+            _ = CanonicalCapabilityResolution.TryCompileAbMerge(
                 profile.IcId,
                 out _,
                 out IReadOnlyList<CompositionIssue> issues);
@@ -74,8 +74,8 @@ internal static class AbMergeCliCommandHandler
             return UsageError;
         }
 
-        IReadOnlyList<WorkbenchAbMergeTopologyChoice> topologyChoices =
-            AbMergeWorkbenchCompositionService.GetTopologyChoices(profile.IcId);
+        IReadOnlyList<CapabilityTopologyChoice> topologyChoices =
+            CanonicalCapabilityResolution.GetAbMergeTopologyChoices(profile.IcId);
         if (!TryCreateTopologySelection(
                 topologyChoices,
                 options,
@@ -99,7 +99,7 @@ internal static class AbMergeCliCommandHandler
         {
             try
             {
-                string automaticOutputFileName = await AbMergeWorkbenchCompositionService
+                string automaticOutputFileName = await CompositionOutputNaming
                     .ResolveAutomaticOutputFileNameAsync(
                         profile.IcId,
                         slotPaths,
@@ -126,7 +126,7 @@ internal static class AbMergeCliCommandHandler
             outputTarget,
             build);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeForCliAsync(
                 profile.IcId,
                 slotPaths,
                 build,
@@ -198,7 +198,7 @@ internal static class AbMergeCliCommandHandler
     }
 
     private static bool TryCreateTopologySelection(
-        IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices,
+        IReadOnlyList<CapabilityTopologyChoice> choices,
         ParsedCliOptions options,
         TextWriter error,
         out Domain.Firmware.TopologySelection? selection)
@@ -222,21 +222,25 @@ internal static class AbMergeCliCommandHandler
             return false;
         }
 
-        if (!AbMergeWorkbenchCompositionService.TryCreateTopologySelection(token!, out selection))
+        CapabilityTopologyChoice? choice = choices.SingleOrDefault(candidate =>
+            StringComparer.OrdinalIgnoreCase.Equals(candidate.Token, token!.Trim()));
+        if (choice is null)
         {
             error.WriteLine("error: --ab-topology must be single or cascade");
             return false;
         }
 
+        selection = choice.Selection;
         return true;
     }
 
     private static bool TryFindProfile(
         string selector,
-        [NotNullWhen(true)] out WorkbenchProfileSummary? profile)
+        [NotNullWhen(true)] out CapabilityProfileSummary? profile)
     {
         string normalized = selector.Trim();
-        profile = WorkbenchCompositionService.GetAbMergeProfileSummaries().FirstOrDefault(candidate =>
+        profile = CanonicalCapabilityProjection.GetAbMergeProfileSummaries()
+            .FirstOrDefault(candidate =>
             string.Equals(candidate.ProfileId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.IcId, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(

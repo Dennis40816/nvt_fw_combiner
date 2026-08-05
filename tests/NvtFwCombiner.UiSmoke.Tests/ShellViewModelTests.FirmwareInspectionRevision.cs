@@ -18,7 +18,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             revisions.AddRange(inputs.Select(static input => input.AuthoringRevision));
-            return WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         OpenReplace(viewModel, WorkbenchReplaceModes.Dp);

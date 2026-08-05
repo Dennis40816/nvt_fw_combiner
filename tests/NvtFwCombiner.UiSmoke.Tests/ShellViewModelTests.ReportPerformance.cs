@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;

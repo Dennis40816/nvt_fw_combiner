@@ -92,12 +92,12 @@ public sealed partial class GeneralMergeCliCommandTests
             Mapping("general-merge-map-1", source, "0x0", "0x0", "0x1"),
         ];
 
-        WorkbenchRunResult zero = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult zero = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x4", mappings, "0x00"),
             build: false,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult ff = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult ff = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x4", mappings, "0xFF"),
             build: false,
@@ -128,7 +128,7 @@ public sealed partial class GeneralMergeCliCommandTests
             new GeneralMappingDraftState([]));
 
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetGeneralMergeMemoryDisplay("NT51950", draft);
+            CompositionMemoryProjection.GetGeneralMergeMemoryDisplay("NT51950", draft);
 
         Assert.Equal(
             "Blank output 0x5A",
@@ -238,7 +238,7 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
@@ -302,7 +302,7 @@ public sealed partial class GeneralMergeCliCommandTests
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12]);
         string output = workspace.Write("out.bin", [0xFE, 0xED]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x4",
@@ -395,7 +395,7 @@ public sealed partial class GeneralMergeCliCommandTests
         WorkbenchMemoryCoverageSegment overlap = Assert.Single(
             display.CoverageSegments,
             segment => segment.SourceLabel == "Overlap error");
-        Assert.Equal("0x00006-0x00007 (len 0x2)", overlap.RangeLabel);
+        Assert.Equal(new ByteRange(0x6, 0x2), overlap.Range);
         Assert.Contains(
             display.CoverageSegments,
             segment => segment.IsChanged && segment.SourceLabel == "Source BIN");
@@ -444,7 +444,7 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [
                 Mapping("general-merge-map-1", source, "0x0", "0x4", "0x3"),
@@ -485,12 +485,12 @@ public sealed partial class GeneralMergeCliCommandTests
         AuthoringMappingState first = Mapping("stable-a", source, "0x0", "0x4", "0x3");
         AuthoringMappingState second = Mapping("stable-b", source, "0x1", "0x5", "0x2");
 
-        WorkbenchRunResult forward = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult forward = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [first, second]),
             build: false,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult reverse = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult reverse = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [second, first]),
             build: false,
@@ -512,7 +512,7 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult rejected = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult rejected = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [
                 Mapping("general-merge-map-1", source, "0x0", "0x4", "0x3"),
@@ -525,7 +525,7 @@ public sealed partial class GeneralMergeCliCommandTests
 
         string dp = workspace.Write("standard-dp.bin", new byte[0x40000]);
         string tp = workspace.Write("standard-tp.bin", new byte[0x3C000]);
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -585,7 +585,7 @@ public sealed partial class GeneralMergeCliCommandTests
             Mapping("general-merge-map-3", firstSource, "0x0", "0x8", "0x1"),
         ];
         string output = workspace.PathFor("output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             icId,
             GeneralTestDraftFactory.CreateMergeDraft("0x10", mappings),
             build: true,
@@ -612,7 +612,7 @@ public sealed partial class GeneralMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10]);
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51926",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
@@ -631,7 +631,7 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
             "NT51999",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
@@ -659,7 +659,7 @@ public sealed partial class GeneralMergeCliCommandTests
         string targetStart,
         string length)
     {
-        return WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+        return CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
             id,
             path,
             sourceStart,

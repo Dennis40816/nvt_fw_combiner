@@ -70,7 +70,7 @@ internal static partial class ReplaceCliCommandHandler
         string basePath)
     {
         Dictionary<string, WorkbenchReplaceInputSlot> slotsByToken = new(StringComparer.OrdinalIgnoreCase);
-        foreach (WorkbenchReplaceInputSlot slot in WorkbenchCompositionService.GetReplaceInputSlots(
+        foreach (WorkbenchReplaceInputSlot slot in CompositionMemoryProjection.GetReplaceInputSlots(
                      icId,
                      icNumber,
                      WorkbenchReplaceModes.CtrlRam,

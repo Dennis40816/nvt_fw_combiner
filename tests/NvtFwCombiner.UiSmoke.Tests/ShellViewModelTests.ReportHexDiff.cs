@@ -376,7 +376,7 @@ public sealed partial class ShellViewModelTests
             ["replace-dp"] = replacementPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51950",
             "single",
             "DP",
@@ -384,7 +384,7 @@ public sealed partial class ShellViewModelTests
             build: false,
             TestContext.Current.CancellationToken);
         Assert.True(result.Succeeded, result.ReportJson);
-        _ = Assert.IsType<Application.Composition.CompositionRunInspectionSnapshot>(result.InspectionSnapshot);
+        _ = Assert.IsType<CompositionRunInspectionSnapshot>(result.InspectionSnapshot);
         return result;
     }
 }

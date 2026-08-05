@@ -8,12 +8,14 @@ public static partial class UiCompositionRunner
 {
     /// <summary>Gets visible CtrlRAM rows for a selected IC and IC-number context.</summary>
     public static IReadOnlyList<CtrlRamRegionViewModel> GetCtrlRamRegions(
+        PresentationCompositionServices services,
         string icId,
         string number)
     {
+        ArgumentNullException.ThrowIfNull(services);
         return
         [
-            .. WorkbenchCompositionService.GetCtrlRamRegions(icId, number, basePath: null)
+            .. services.Authoring.GetCtrlRamRegions(icId, number, basePath: null)
                 .Select(region => new CtrlRamRegionViewModel(
                     region.DisplayName,
                     ToRange(region.Start, region.Length),
@@ -39,10 +41,12 @@ public static partial class UiCompositionRunner
 
     /// <summary>Gets structured Replace input slots for the selected device context.</summary>
     public static IReadOnlyList<FirmwareSlotViewModel> GetReplaceInputSlots(
+        PresentationCompositionServices services,
         string icId,
         string number,
         string replaceMode)
     {
+        ArgumentNullException.ThrowIfNull(services);
         FirmwareSlotKind kind = replaceMode switch
         {
             WorkbenchReplaceModes.Dp => FirmwareSlotKind.Dp,
@@ -51,7 +55,7 @@ public static partial class UiCompositionRunner
         };
         return
         [
-            .. WorkbenchCompositionService.GetReplaceInputSlots(icId, number, replaceMode, basePath: null)
+            .. services.Memory.GetReplaceInputSlots(icId, number, replaceMode, basePath: null)
                 .Select(slot => new FirmwareSlotViewModel(
                     slot.SlotId,
                     slot.Title,
@@ -61,7 +65,8 @@ public static partial class UiCompositionRunner
                     slot.RegionId,
                     slot.AddressSpaceId,
                     slot.RegionGroup,
-                    slot.InputRole)),
+                    slot.InputRole,
+                    compiledSlotId: slot.CompiledSlotId)),
         ];
     }
 
@@ -81,7 +86,8 @@ public static partial class UiCompositionRunner
                 slot.RegionId,
                 slot.AddressSpaceId,
                 slot.RegionGroup,
-                slot.InputRole)),
+                slot.InputRole,
+                compiledSlotId: slot.CompiledSlotId)),
         ];
     }
 
@@ -90,6 +96,7 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
+        PresentationCompositionServices services,
         string icId,
         string number,
         string replaceMode,
@@ -97,7 +104,8 @@ public static partial class UiCompositionRunner
         IEnumerable<string>? selectedRegionIds = null,
         ShellTextResources? text = null)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        ArgumentNullException.ThrowIfNull(services);
+        WorkbenchMemoryDisplay display = services.Memory.GetReplaceMemoryDisplay(
             icId,
             number,
             replaceMode,
@@ -106,7 +114,7 @@ public static partial class UiCompositionRunner
         if (selectedRegionIds is not null &&
             string.Equals(replaceMode, WorkbenchReplaceModes.CtrlRam, StringComparison.Ordinal))
         {
-            display = WorkbenchCompositionService.ApplyReplaceCoverageSelection(display, selectedRegionIds);
+            display = services.Memory.ApplyReplaceCoverageSelection(display, selectedRegionIds);
         }
 
         return (
@@ -120,10 +128,12 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralReplaceMemoryDisplay(
+        PresentationCompositionServices services,
         long referenceCapacity,
         GeneralAuthoringAdmissionResult admission)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService
+        ArgumentNullException.ThrowIfNull(services);
+        WorkbenchMemoryDisplay display = services.Memory
             .GetGeneralReplaceMemoryDisplay(referenceCapacity, admission);
         return (
             display.RangeLabel,
@@ -136,10 +146,12 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralReplaceMemoryDisplay(
+        PresentationCompositionServices services,
         long referenceCapacity,
         IReadOnlyList<AuthoringMappingState> authoringStates)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService
+        ArgumentNullException.ThrowIfNull(services);
+        WorkbenchMemoryDisplay display = services.Memory
             .GetGeneralReplaceMemoryDisplay(referenceCapacity, authoringStates);
         return (
             display.RangeLabel,
@@ -152,14 +164,16 @@ public static partial class UiCompositionRunner
         string RangeLabel,
         IReadOnlyList<MemoryMapRowViewModel> Rows,
         IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetReplaceMemoryDisplay(
+        PresentationCompositionServices services,
         WorkbenchMemoryDisplay display,
         IEnumerable<string>? selectedRegionIds = null,
         ShellTextResources? text = null)
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(display);
         if (selectedRegionIds is not null)
         {
-            display = WorkbenchCompositionService.ApplyReplaceCoverageSelection(display, selectedRegionIds);
+            display = services.Memory.ApplyReplaceCoverageSelection(display, selectedRegionIds);
         }
 
         return (

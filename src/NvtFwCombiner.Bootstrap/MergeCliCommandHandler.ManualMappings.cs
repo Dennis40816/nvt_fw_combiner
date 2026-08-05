@@ -146,7 +146,7 @@ internal static partial class MergeCliCommandHandler
     private static bool TryResolveIc(string selector, [NotNullWhen(true)] out string? icId)
     {
         string normalized = selector.Trim();
-        icId = WorkbenchCompositionService.GetSupportedIcIds().FirstOrDefault(candidate =>
+        icId = CanonicalCapabilityProjection.GetIcIds().FirstOrDefault(candidate =>
             string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(candidate.Replace("NT", string.Empty, StringComparison.Ordinal), normalized, StringComparison.OrdinalIgnoreCase));
         return icId is not null;

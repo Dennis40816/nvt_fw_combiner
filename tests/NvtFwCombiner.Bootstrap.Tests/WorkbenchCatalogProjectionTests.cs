@@ -1,7 +1,7 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -12,14 +12,14 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void IcCatalogProjectionPreservesSelectableRowsAndChoices()
     {
-        IReadOnlyList<string> icIds = WorkbenchCompositionService.GetSupportedIcIds();
+        IReadOnlyList<string> icIds = CanonicalCapabilityProjection.GetIcIds();
 
         Assert.Equal(10, icIds.Count);
-        Assert.Equal(IcSupportCatalog.IcIds, icIds);
-        Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
+        Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
+        Assert.Equal("NT51950", CanonicalCapabilityProjection.DefaultIcId);
         Assert.Equal(
-            WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),
-            WorkbenchCompositionService.GetNumberSelectionChoices("51926"));
+            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51926"),
+            CanonicalCapabilityProjection.GetNumberSelectionChoices("51926"));
         foreach (string icId in icIds)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
@@ -27,7 +27,7 @@ public sealed class WorkbenchCatalogProjectionTests
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
-                WorkbenchCompositionService.GetNumberSelectionChoices(icId).Select(static choice => (
+                CanonicalCapabilityProjection.GetNumberSelectionChoices(icId).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)));
         }
@@ -37,22 +37,24 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void CatalogProjectionsRejectMutation()
     {
-        IReadOnlyList<string> supportedIcIds = WorkbenchCompositionService.GetSupportedIcIds();
-        IReadOnlyList<WorkbenchIcNumberChoice> numberChoices =
-            WorkbenchCompositionService.GetNumberSelectionChoices("NT51950");
+        IReadOnlyList<string> supportedIcIds = CanonicalCapabilityProjection.GetIcIds();
+        IReadOnlyList<CapabilityNumberChoice> numberChoices =
+            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51950");
         string originalIcId = supportedIcIds[0];
-        WorkbenchIcNumberChoice originalNumberChoice = numberChoices[0];
+        CapabilityNumberChoice originalNumberChoice = numberChoices[0];
 
         var mutableIcIds = (IList<string>)supportedIcIds;
-        var mutableNumberChoices = (IList<WorkbenchIcNumberChoice>)numberChoices;
+        var mutableNumberChoices = (IList<CapabilityNumberChoice>)numberChoices;
         Assert.True(mutableIcIds.IsReadOnly);
         Assert.True(mutableNumberChoices.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mutableIcIds[0] = "NT00000");
         _ = Assert.Throws<NotSupportedException>(() =>
-            mutableNumberChoices[0] = new WorkbenchIcNumberChoice("invalid", "Invalid"));
+            mutableNumberChoices[0] = new CapabilityNumberChoice("invalid", "Invalid"));
 
-        Assert.Equal(originalIcId, WorkbenchCompositionService.GetSupportedIcIds()[0]);
-        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberSelectionChoices("NT51950")[0]);
+        Assert.Equal(originalIcId, CanonicalCapabilityProjection.GetIcIds()[0]);
+        Assert.Equal(
+            originalNumberChoice,
+            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51950")[0]);
     }
 
     /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
@@ -63,12 +65,12 @@ public sealed class WorkbenchCatalogProjectionTests
     [InlineData("NT51931")]
     public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)
     {
-        Assert.DoesNotContain(icId, WorkbenchCompositionService.GetSupportedIcIds());
+        Assert.DoesNotContain(icId, CanonicalCapabilityProjection.GetIcIds());
         Assert.DoesNotContain(
-            WorkbenchCompositionService.GetStandardMergeProfileSummaries(),
+            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
         Assert.DoesNotContain(
-            WorkbenchCompositionService.GetReplaceProfileSummaries(),
+            CanonicalCapabilityProjection.GetDpReplaceProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
     }
 
@@ -76,20 +78,23 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void ProfileSummariesExcludeSyntheticCompilerFixtures()
     {
-        IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
-        IReadOnlyList<WorkbenchProfileSummary> replaceSummaries = WorkbenchCompositionService.GetReplaceProfileSummaries();
+        IReadOnlyList<CapabilityProfileSummary> standardSummaries =
+            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries();
+        IReadOnlyList<CapabilityProfileSummary> replaceSummaries =
+            CanonicalCapabilityProjection.GetDpReplaceProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
         AssertV2DpReplaceProfileSummaries(replaceSummaries);
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
-        WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
+        CapabilityCatalogSummary settings = CanonicalCapabilityProjection.GetCatalogSummary();
         Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(10, settings.DpReplaceProfileCount);
         Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
     }
 
-    private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    private static void AssertStandardMergeProfileSummaries(
+        IReadOnlyList<CapabilityProfileSummary> summaries)
     {
         Assert.Equal(
             [
@@ -98,11 +103,11 @@ public sealed class WorkbenchCatalogProjectionTests
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in summaries)
+        foreach (CapabilityProfileSummary summary in summaries)
         {
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
             Assert.True(
-                WorkbenchCompositionService.TryCompileStandardMerge(
+                CanonicalCapabilityResolution.TryCompileStandardMerge(
                     summary.IcId,
                     dpLength,
                     out CompiledComposition? composition,
@@ -119,7 +124,8 @@ public sealed class WorkbenchCatalogProjectionTests
         }
     }
 
-    private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    private static void AssertV2DpReplaceProfileSummaries(
+        IReadOnlyList<CapabilityProfileSummary> summaries)
     {
         Assert.Equal(
             [
@@ -128,11 +134,11 @@ public sealed class WorkbenchCatalogProjectionTests
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in summaries)
+        foreach (CapabilityProfileSummary summary in summaries)
         {
             long baseCapacity = summary.IcId == "NT51928" ? 0x80000 : 0x40000;
             Assert.True(
-                WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+                CanonicalCapabilityResolution.TryCompileDpReplace(
                     summary.IcId,
                     baseCapacity,
                     out CompiledComposition? composition,

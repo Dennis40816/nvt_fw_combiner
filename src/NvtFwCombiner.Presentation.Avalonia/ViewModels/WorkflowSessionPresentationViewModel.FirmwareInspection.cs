@@ -35,7 +35,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
             mapping.FilePath = path;
             GeneralSelectedFileLengthResult length =
-                await WorkbenchCompositionService.ObserveGeneralSelectedFileLengthAsync(
+                await _compositionServices.Authoring.ObserveGeneralSelectedFileLengthAsync(
                     mapping.MappingId,
                     path,
                     cancellationToken);
@@ -71,7 +71,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
                     return;
                 }
                 GeneralSelectedFileInspectionResult cached =
-                    await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                    await _compositionServices.Authoring.InspectGeneralSelectedFileAsync(
                         mapping.MappingId,
                         path,
                         lease.AuthoringRevision,
@@ -89,7 +89,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             }
 
             GeneralSelectedFileInspectionResult inspection =
-                await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
+                await _compositionServices.Authoring.InspectGeneralSelectedFileAsync(
                     mapping.MappingId,
                     path,
                     started.Snapshot!.AuthoringRevision,
@@ -382,6 +382,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     internal void ApplyCtrlRamDisplayFromInspection(WorkbenchFirmwareInspection inspection)
     {
         ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+            _compositionServices.FirmwareInspection,
             inspection,
             SelectedIc,
             SelectedNumber));

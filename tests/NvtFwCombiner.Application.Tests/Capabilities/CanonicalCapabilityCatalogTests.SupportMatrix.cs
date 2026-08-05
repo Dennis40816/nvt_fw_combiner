@@ -56,6 +56,43 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, dynamicRow.Evidence.Value);
         Assert.Equal("owner-approved:#207", dynamicRow.Authoring.SourceReference);
         Assert.Empty(dynamicRow.Blockers);
+
+        CapabilityWorkflowReadiness reviewed =
+            CapabilityWorkflowReadinessProjector.Project(
+                matrix,
+                "NT51929",
+                "standard-merge",
+                authoringExposed: true,
+                "Unsupported.",
+                "Review.");
+        Assert.True(reviewed.IsAvailable);
+        Assert.True(reviewed.HasExactRoute);
+        Assert.True(reviewed.HasReviewedEvidence);
+        Assert.Equal(CapabilityEvidenceStatus.DirectGolden, reviewed.EvidenceStatus);
+
+        CapabilityWorkflowReadiness authoringOnly =
+            CapabilityWorkflowReadinessProjector.Project(
+                matrix,
+                "NT51950",
+                "general-replace",
+                authoringExposed: true,
+                "Unsupported.",
+                "Review.");
+        Assert.True(authoringOnly.IsAvailable);
+        Assert.False(authoringOnly.HasExactRoute);
+        Assert.True(authoringOnly.IsEvidencePending);
+        Assert.Equal(CapabilityEvidenceStatus.Missing, authoringOnly.EvidenceStatus);
+
+        CapabilityWorkflowReadiness unavailable =
+            CapabilityWorkflowReadinessProjector.Project(
+                matrix: null,
+                "NT51950",
+                "general-replace",
+                authoringExposed: false,
+                "Unsupported.",
+                "Review.");
+        Assert.False(unavailable.IsAvailable);
+        Assert.False(unavailable.IsEvidencePending);
     }
 
     /// <summary>Certification inconsistency applies equally to dynamic exact routes.</summary>
@@ -182,6 +219,17 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Null(result.Matrix);
         Assert.False(result.IsStale);
         Assert.Equal(sourceIssue, Assert.Single(result.ReloadIssues));
+
+        CapabilityWorkflowReadiness readiness =
+            CapabilityWorkflowReadinessProjector.Project(
+                result.Matrix,
+                "NT51929",
+                "dp-replace",
+                authoringExposed: true,
+                "Publication unavailable.",
+                "Reload publication.");
+        Assert.False(readiness.IsAvailable);
+        Assert.False(readiness.HasExactRoute);
     }
 
     private static CanonicalDynamicCapabilityDefinition CreateDynamicDefinition(

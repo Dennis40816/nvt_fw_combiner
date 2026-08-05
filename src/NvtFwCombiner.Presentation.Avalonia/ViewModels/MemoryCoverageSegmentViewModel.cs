@@ -1,6 +1,5 @@
 using Avalonia.Media;
 using NvtFwCombiner.Application.MemoryLayout;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 

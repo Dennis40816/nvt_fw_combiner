@@ -37,7 +37,7 @@ internal static partial class ReplaceCliCommandHandler
                 IcWorkflowIds.CtrlRamReplace,
                 options,
                 slotPaths,
-                (_, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (_, token) => CompositionExecutionAdapter.RunReplaceAsync(
                     icId,
                     icNumber,
                     modeId,
@@ -45,7 +45,7 @@ internal static partial class ReplaceCliCommandHandler
                     build: false,
                     token,
                     outputPath: null),
-                (outputPath, token) => WorkbenchCompositionService.RunReplaceAsync(
+                (outputPath, token) => CompositionExecutionAdapter.RunReplaceAsync(
                     icId,
                     icNumber,
                     modeId,

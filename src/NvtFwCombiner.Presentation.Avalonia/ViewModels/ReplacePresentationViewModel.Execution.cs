@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -32,7 +31,7 @@ public sealed partial class ReplacePresentationViewModel
             build: false,
             outputPath: null,
             ctrlRamFirmwareVersionEdit: null,
-            WorkbenchCompositionService.PreviewGeneralReplaceAcceptedSessionWithProgressAsync);
+            _compositionServices.Execution.PreviewGeneralReplaceAcceptedSessionWithProgressAsync);
     }
 
     private Task RunBuildReplaceAsync(
@@ -44,7 +43,7 @@ public sealed partial class ReplacePresentationViewModel
             outputPath,
             ctrlRamFirmwareVersionEdit,
             (icId, number, slotPaths, acceptedSession, progress, cancellationToken) =>
-                WorkbenchCompositionService.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
+                _compositionServices.Execution.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
                     icId,
                     number,
                     slotPaths,
@@ -90,7 +89,7 @@ public sealed partial class ReplacePresentationViewModel
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
             InputSelectionMemberReadiness? member = projection?.Slots.FirstOrDefault(candidate =>
-                string.Equals(candidate.SlotId, slot.AddressSpaceId, StringComparison.Ordinal));
+                string.Equals(candidate.SlotId, slot.CompiledSlotId, StringComparison.Ordinal));
             if (member is null)
             {
                 slot.IsOptional = slot.DeclaredIsOptional;
@@ -126,7 +125,7 @@ public sealed partial class ReplacePresentationViewModel
         IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
         WorkbenchCtrlRamAuthoringTransitionResult? ctrlRamTransition =
             replaceMode == CtrlRamReplaceMode
-                ? WorkbenchCompositionService.TransitionCtrlRamFirmwareVersionCompilation(
+                ? _compositionServices.AuthoringSession.TransitionCtrlRamFirmwareVersionCompilation(
                     _authoringSessions.CtrlRamReplace,
                     icId,
                     number,
@@ -166,7 +165,7 @@ public sealed partial class ReplacePresentationViewModel
                             .ConfigureAwait(false)
                         : compiledSession?.GetAcceptedCapability(
                             AuthoringDerivedResultKind.Inspection) is null
-                        ? WorkbenchCompositionService.CreateRejectedReplaceAttemptResult(
+                        ? _compositionServices.Execution.CreateRejectedReplaceAttemptResult(
                             icId,
                             number,
                             replaceMode,
@@ -175,7 +174,7 @@ public sealed partial class ReplacePresentationViewModel
                                 ? _dpReplaceSelection?.Issues ?? []
                                 : ctrlRamTransition?.Issues ?? [],
                             build)
-                        : await WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync(
+                        : await _compositionServices.Execution.RunReplaceAcceptedSessionWithProgressAsync(
                             icId,
                             number,
                             replaceMode,

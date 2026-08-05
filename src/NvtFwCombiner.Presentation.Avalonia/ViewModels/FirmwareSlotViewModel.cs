@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
 using System.Collections.ObjectModel;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -22,7 +21,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         string? regionId = null,
         string? addressSpaceId = null,
         WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common,
-        WorkbenchReplaceInputRole replaceInputRole = WorkbenchReplaceInputRole.None)
+        WorkbenchReplaceInputRole replaceInputRole = WorkbenchReplaceInputRole.None,
+        string? compiledSlotId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -36,6 +36,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         IsOptional = isOptional;
         RegionId = string.IsNullOrWhiteSpace(regionId) ? null : regionId;
         AddressSpaceId = string.IsNullOrWhiteSpace(addressSpaceId) ? null : addressSpaceId;
+        CompiledSlotId = string.IsNullOrWhiteSpace(compiledSlotId) ? null : compiledSlotId;
         RegionGroup = regionGroup;
         ReplaceInputRole = replaceInputRole;
     }
@@ -63,6 +64,9 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Canonical composition address space used by Application selection readiness.</summary>
     public string? AddressSpaceId { get; }
+
+    /// <summary>Compiler-owned slot identity used by Application authoring sessions.</summary>
+    public string? CompiledSlotId { get; }
 
     /// <summary>Profile projection used when no compiled selection-group cardinality is available.</summary>
     public bool DeclaredIsOptional { get; }

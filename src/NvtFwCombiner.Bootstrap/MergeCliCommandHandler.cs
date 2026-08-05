@@ -79,7 +79,7 @@ internal static partial class MergeCliCommandHandler
 
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId));
+            CanonicalAuthoringAdapter.GetGeneralMergeDefaultOutputFileName(icId));
         string? outputPath = action == "build" ? outputTarget.FullPath : null;
         List<ProtectedPathGuard.ProtectedPath> protectedPaths =
         [
@@ -114,7 +114,7 @@ internal static partial class MergeCliCommandHandler
                 "--report");
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 icId,
                 draft!,
                 savedRulePolicy,

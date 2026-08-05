@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -444,8 +445,9 @@ public sealed partial class ShellViewModelTests
             "test-shell",
             "test-app",
             ShellLanguage.English,
+            DesktopCompositionRoot.Create("test-app"),
             static (_, _) => null,
-            WorkbenchCompositionService.InspectFirmwareBatch,
+            FirmwareInspectionAdapter.InspectFirmwareBatch,
             fileRevealService);
     }
 

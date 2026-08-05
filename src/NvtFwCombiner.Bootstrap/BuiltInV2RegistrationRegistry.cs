@@ -1,5 +1,6 @@
 
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -83,6 +84,9 @@ internal static class BuiltInV2RegistrationRegistry
 
 internal sealed class BuiltInV2Registration
 {
+    private const string StandardMergeFallbackOutputFileName =
+        "nvt-fw-combiner-output.bin";
+
     private readonly Lazy<V2CompositionPlanCompileResult> _summaryCompilation;
     private readonly BuiltInV2Bundle _bundle;
 
@@ -367,18 +371,18 @@ internal sealed class BuiltInV2Registration
         return true;
     }
 
-    internal WorkbenchProfileSummary CreateProfileSummary()
+    internal CapabilityProfileSummary CreateProfileSummary()
     {
         V2CompositionPlanCompileResult compilation = _summaryCompilation.Value;
         return compilation.CompiledComposition is { } composition
-            ? WorkbenchCompositionService.CreateProfileSummary(composition)
-            : new WorkbenchProfileSummary(
+            ? CanonicalCapabilityProjection.FromCompiled(composition)
+            : new CapabilityProfileSummary(
                 ProfileId,
                 IcId,
                 CompositionKind,
                 [],
                 IsStandardMerge
-                    ? WorkbenchCompositionService.StandardMergeFallbackOutputFileName
+                    ? StandardMergeFallbackOutputFileName
                     : IsDpReplace
                         ? $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin"
                         : $"nt{IcId[2..].ToLowerInvariant()}-ab-merge.bin",

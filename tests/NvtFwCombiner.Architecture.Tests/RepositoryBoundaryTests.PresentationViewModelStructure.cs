@@ -122,15 +122,21 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("FirmwareInspectionSession", session, StringComparison.Ordinal);
         Assert.Contains("InspectionSession.ReadBatch", inspection, StringComparison.Ordinal);
         Assert.Contains("SetSlotFileAsync", inspection, StringComparison.Ordinal);
-        Assert.Contains("public partial string SelectedIc", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("public string SelectedIc", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("if (SetProperty(ref _selectedIc, value))", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("OnSelectedIcChanged(value);", deviceContext, StringComparison.Ordinal);
+        Assert.Contains(
+            "_selectedIc = _compositionServices.Capabilities.DefaultIcId;",
+            session,
+            StringComparison.Ordinal);
         Assert.Contains("public partial string SelectedNumber", deviceContext, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.GetIcFamilySummary", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Capabilities.GetIcFamilySummary", deviceContext, StringComparison.Ordinal);
         Assert.Contains("private FirmwareSlotViewModel? SelectSlotFile", slots, StringComparison.Ordinal);
         Assert.Contains("public void RemoveGeneralMappingRow", slots, StringComparison.Ordinal);
         Assert.Contains("FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareInspectionSession", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("SetSlotFileAsync", shellPartials, StringComparison.Ordinal);
-        Assert.DoesNotContain("public partial string SelectedIc", shellPartials, StringComparison.Ordinal);
+        Assert.DoesNotContain("public string SelectedIc", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial string SelectedNumber", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("private FirmwareSlotViewModel? SelectSlotFile", shellPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("public void RemoveGeneralMappingRow", shellPartials, StringComparison.Ordinal);
@@ -210,9 +216,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RunGeneralMergeAsync", merge, StringComparison.Ordinal);
         Assert.Contains("GetReplaceMemoryDisplay", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("RunReplaceAsync", replace, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.GetSupportedIcIds", deviceContext, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Capabilities.GetIcIds", deviceContext, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.RunStandardMergeAcceptedSessionWithProgressAsync", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.RunReplaceAcceptedSessionWithProgressAsync", replaceViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalCapabilityProjection", deviceContext, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionExecutionAdapter", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionExecutionAdapter", replaceViewModel, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies all composition commands share one UI-owned run lifecycle.</summary>
@@ -229,12 +238,12 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.FirmwareInspection.cs");
         Assert.Equal(3, CountOccurrences(merge, "return RunCompositionAsync("));
         Assert.Equal(1, CountOccurrences(replace, "await RunCompositionAsync("));
-        Assert.Contains("WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.RunStandardMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", merge, StringComparison.Ordinal);
         Assert.Contains("RunGeneralMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeEphemeralDraftWithProgressAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.RunAbMergeAcceptedSessionWithProgressAsync", merge, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.RunReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.DoesNotContain("InspectGeneralSelectedFilesAsync", replace, StringComparison.Ordinal);
         Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);
         Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", replace, StringComparison.Ordinal);

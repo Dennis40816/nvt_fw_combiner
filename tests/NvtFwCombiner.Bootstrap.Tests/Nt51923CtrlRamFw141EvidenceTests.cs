@@ -62,7 +62,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create($"nfc-nt51923-fw141-{topology}-parity");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
             "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -81,7 +81,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51923",
             topology,
             WorkbenchReplaceModes.CtrlRam,
@@ -144,7 +144,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51923",
             number,
             WorkbenchReplaceModes.CtrlRam,

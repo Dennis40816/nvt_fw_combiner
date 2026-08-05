@@ -52,7 +52,7 @@ public sealed partial class GeneralMergeCliCommandTests
                 "map"));
 
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+            await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
                 "NT51950",
                 draft,
                 new GeneralSavedRuleResourcePolicy(

@@ -17,15 +17,15 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInTpFlashMapCatalog",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.FirmwareVersion.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
+                "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.CtrlRam.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Coverage.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Context.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.FirmwareVersion.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Planning.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionAuthoringSessionAdapter.Replace.General.Readiness.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.General.cs",
+                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.CtrlRamSlots.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
@@ -35,7 +35,7 @@ public sealed partial class RepositoryBoundaryTests
             [
                 "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs",
                 "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",
+                "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityProjection.cs",
             ]);
         AssertNoProductionText("CurrentSupportMatrixCatalog");
     }

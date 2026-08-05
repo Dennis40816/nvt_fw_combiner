@@ -13,9 +13,6 @@ public enum CapabilityAuthoringAvailability
 /// <summary>Owner-approved publication classification, independent from Build.</summary>
 public enum CapabilityPublicationStatus
 {
-    /// <summary>No owner-approved publication classification exists yet.</summary>
-    Unclassified,
-
     /// <summary>The route is publicly supported.</summary>
     Supported,
 

@@ -38,7 +38,7 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51929-andes-normal-cross");
         string outputPath = workspace.PathFor("nt51929-andes-normal-cross.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51929",
             "single",
             WorkbenchReplaceModes.CtrlRam,

@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
     private readonly CancellationTokenSource _startupLoadCancellation = new();
+    private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
     private bool _isReportHistoryClosePending;
@@ -43,6 +44,7 @@ public sealed partial class MainWindow : Window, IDisposable
         ArgumentNullException.ThrowIfNull(startupTrace);
         _launchOptions = launchOptions;
         _startupTrace = startupTrace;
+        _hostServices = DesktopCompositionRoot.Create(ApplicationVersionProvider.InformationalVersion);
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -53,6 +55,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ShellPreferenceFileStore.DefaultPreferencesPath);
         _startupTrace.Mark("shell-preferences.loaded");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(
+            _hostServices,
             ShellTextResources.LanguageFromPreference(preferences.Language));
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);

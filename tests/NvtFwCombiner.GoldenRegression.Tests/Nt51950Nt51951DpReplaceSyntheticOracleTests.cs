@@ -59,7 +59,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             string basePath = workspace.Write("base.bin", baseBytes);
             string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
             string outputPath = workspace.PathFor($"{icId.ToLowerInvariant()}-dp-replace.bin");
-            WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+            WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
                 icId,
                 "single",
                 "DP",

@@ -31,7 +31,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51932-diffdlm-mask-cascade4-real");
         string outputPath = workspace.PathFor("nt51932_fw_0723.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             WorkbenchReplaceModes.CtrlRam,
@@ -54,7 +54,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51932-diffdlm-mask-cascade4-contract");
         string outputPath = workspace.PathFor("pass-through.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence),
@@ -99,7 +99,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51932-diffdlm-mask-cascade4-andes-base");
         string outputPath = workspace.PathFor("pass-through-andes-base.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, basePath: evidence.Expected.Path),
@@ -126,7 +126,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, diffPath),
@@ -159,7 +159,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             evidence.DiffDlm.Bytes.AsSpan(0, sourceLength).ToArray());
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, diffPath),
@@ -193,7 +193,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             evidence.DiffDlm.Bytes.AsSpan(0, 3 * RecordStride).ToArray());
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, diffPath),
@@ -219,7 +219,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         string basePath = workspace.Write("zero-chip-count.bin", baseBytes);
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, basePath: basePath),
@@ -252,7 +252,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         string basePath = workspace.Write("five-chip-count.bin", baseBytes);
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             "4",
             CreateSlotPaths(evidence, basePath: basePath),
@@ -283,7 +283,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51932-diffdlm-stale-nf");
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             slotPaths,
@@ -378,7 +378,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51932-dynamic-fwconfig-inactive-mutation");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, basePath: evidence.Expected.Path),
@@ -414,7 +414,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             prePostbuild.AsSpan(DiffStart, 3 * RecordStride));
         string prePostbuildPath = workspace.Write("historical-unmasked-base.bin", prePostbuild);
 
-        WorkbenchRunResult historical = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult historical = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             WorkbenchReplaceModes.CtrlRam,
@@ -446,7 +446,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51932-dynamic-fwconfig-placement");
-        return await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        return await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51932",
             WorkbenchIcNumberTokens.CascadeTwoToEight,
             CreateSlotPaths(evidence, basePath: evidence.Expected.Path),

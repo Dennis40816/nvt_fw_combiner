@@ -142,7 +142,7 @@ public sealed partial class ReplaceCliCommandTests
         string tpOutputPath = workspace.PathFor("output-tp.bin");
         string fullFlashOutputPath = workspace.PathFor("output-flash.bin");
 
-        WorkbenchRunResult tpRun = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult tpRun = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             "cascade",
             WorkbenchReplaceModes.CtrlRam,
@@ -154,7 +154,7 @@ public sealed partial class ReplaceCliCommandTests
             build: true,
             TestContext.Current.CancellationToken,
             tpOutputPath);
-        WorkbenchRunResult fullFlashRun = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult fullFlashRun = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             "cascade",
             WorkbenchReplaceModes.CtrlRam,
@@ -219,7 +219,7 @@ public sealed partial class ReplaceCliCommandTests
             "standard-merge",
             "51926",
             "tp-input");
-        WorkbenchRunResult planning = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult planning = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51926",
             "cascade",
             "CtrlRAM",

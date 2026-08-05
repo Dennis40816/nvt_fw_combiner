@@ -10,7 +10,7 @@ public sealed partial class RepositoryBoundaryTests
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
         string abCliRouter = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.AbMerge.cs");
         string abCliHandler = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeCliCommandHandler.cs");
-        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.cs");
         int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");
         int runnerCalls = CountOccurrences(runner, ".PreviewOrBuildAsync(");
 
@@ -20,7 +20,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(2, runnerCalls);
         Assert.Contains("AbMergeCliCommandHandler.RunAsync", abCliRouter, StringComparison.Ordinal);
         Assert.DoesNotContain(".PreviewOrBuildAsync(", abCliRouter, StringComparison.Ordinal);
-        Assert.Contains("AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync", abCliHandler, StringComparison.Ordinal);
+        Assert.Contains("CompositionExecutionAdapter.RunAbMergeForCliAsync", abCliHandler, StringComparison.Ordinal);
         Assert.DoesNotContain(".PreviewOrBuildAsync(", abCliHandler, StringComparison.Ordinal);
         Assert.Contains("progress is null", runner, StringComparison.Ordinal);
         Assert.Equal(cliCalls + runnerCalls, CountOccurrences(bootstrapSource, ".PreviewOrBuildAsync("));
@@ -92,9 +92,9 @@ public sealed partial class RepositoryBoundaryTests
     {
         string bootstrapSource = string.Concat(
             ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
-            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs"));
+            ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.Dp.cs"));
 
-        Assert.Contains("WorkbenchCompositionService.FormatBuiltInV2DpReplaceIcIds()", bootstrapSource, StringComparison.Ordinal);
+        Assert.Contains("CanonicalCapabilityProjection.FormatBuiltInV2DpReplaceIcIds()", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950/NT51951", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NT51950", bootstrapSource, StringComparison.Ordinal);
         Assert.DoesNotContain("Nt51950", bootstrapSource, StringComparison.Ordinal);
@@ -105,11 +105,13 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BootstrapRoutesSupportedDpReplaceThroughTrustedV2Artifacts()
     {
-        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
-        string v2Resolution = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
-        string v2Display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
-        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
-        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
+        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.Dp.cs");
+        string capabilityResolution = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityResolution.DpReplace.cs");
+        string v2Resolution = ReadText("src/NvtFwCombiner.Bootstrap/CanonicalCapabilityProjection.DpReplace.cs");
+        string v2Display = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Dp.cs");
+        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.cs");
+        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Coverage.cs");
         string replaceCli = string.Concat(
             ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs"),
             ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs"));
@@ -117,7 +119,7 @@ public sealed partial class RepositoryBoundaryTests
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
 
-        Assert.Contains("TryCompileBuiltInV2DpReplace", replaceDp, StringComparison.Ordinal);
+        Assert.Contains("TryCompileDpReplace", capabilityResolution, StringComparison.Ordinal);
         Assert.Contains("CompiledCompositionInputBindingFactory.Create", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceDp, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", replaceDp, StringComparison.Ordinal);
@@ -154,13 +156,13 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void CtrlRamReplaceV2RuntimeRoutesStayPreciselyScoped()
     {
-        string ctrlRamRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
-        string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.V2.cs");
+        string ctrlRamRuntime = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.CtrlRam.cs");
+        string ctrlRamV2 = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.V2.cs");
         string ctrlRamRoutes = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs");
         string ctrlRamVersionAdapter = ReadText("src/NvtFwCombiner.Bootstrap/CtrlRamV2FirmwareVersionAdapter.cs");
-        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs") +
-            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs");
-        string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.V2.cs");
+        string generalRuntime = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.General.cs") +
+            ReadText("src/NvtFwCombiner.Bootstrap/CompositionAuthoringSessionAdapter.Replace.General.Readiness.cs");
+        string generalV2 = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.General.V2.cs");
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
         string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
         string packageTrustIndex = ReadText("profiles/built-in/package-trust-index.json");
@@ -444,20 +446,20 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BootstrapOwnsWorkbenchRunIdPrefixes()
     {
-        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
-        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
-        string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
-        string generalMergeV2 = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
-        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.cs");
-        string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
-        string replaceGeneral = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
-        string replaceReport = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Report.cs");
+        string runner = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.StandardMerge.cs");
+        string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.GeneralMerge.cs");
+        string generalMergeV2 = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.GeneralMerge.V2.cs");
+        string replaceDp = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.Dp.cs");
+        string replaceCtrlRam = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.CtrlRam.cs");
+        string replaceGeneral = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.General.cs");
+        string replaceReport = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Results.cs");
 
-        Assert.Contains("private const string StandardMergeRunIdPrefix = \"ui\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string GeneralMergeRunIdPrefix = \"ui-merge-general\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string DpReplaceRunIdPrefix = \"ui-replace-dp\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string CtrlRamReplaceRunIdPrefix = \"ui-replace-ctrlram\";", runner, StringComparison.Ordinal);
-        Assert.Contains("private const string GeneralReplaceRunIdPrefix = \"ui-replace-general\";", runner, StringComparison.Ordinal);
+        Assert.Contains("internal const string StandardMergeRunIdPrefix = \"ui\";", runner, StringComparison.Ordinal);
+        Assert.Contains("internal const string GeneralMergeRunIdPrefix = \"ui-merge-general\";", runner, StringComparison.Ordinal);
+        Assert.Contains("internal const string DpReplaceRunIdPrefix = \"ui-replace-dp\";", runner, StringComparison.Ordinal);
+        Assert.Contains("internal const string CtrlRamReplaceRunIdPrefix = \"ui-replace-ctrlram\";", runner, StringComparison.Ordinal);
+        Assert.Contains("internal const string GeneralReplaceRunIdPrefix = \"ui-replace-general\";", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("private static string CreateWorkbenchReportRunId", runner, StringComparison.Ordinal);
         Assert.Contains("private static string GetReplaceRunIdPrefix", runner, StringComparison.Ordinal);
         Assert.Contains("StandardMergeRunIdPrefix", standardMerge, StringComparison.Ordinal);

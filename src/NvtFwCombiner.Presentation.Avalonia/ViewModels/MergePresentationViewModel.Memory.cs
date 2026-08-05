@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -21,10 +20,12 @@ public sealed partial class MergePresentationViewModel
             {
                 GeneralMergeMode => GetGeneralMergeMemoryDisplay(),
                 AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
+                    _compositionServices,
                     SelectedIc,
                     GetSelectedAbMergeTopologyToken(),
                     selectedAbMergeDpInputLength),
                 _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
+                    _compositionServices,
                     SelectedIc,
                     selectedMergeDpInputLength),
             };
@@ -43,11 +44,13 @@ public sealed partial class MergePresentationViewModel
     {
         return TryResolveGeneralMergeOutputInitializer(out WorkbenchGeneralMergeInitializer? initializer)
             ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                _compositionServices,
                 SelectedIc,
                 initializer!,
                 _generalMergeAuthoringStates,
                 _generalMergeAdmission)
             : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
+                _compositionServices,
                 SelectedIc,
                 GeneralMergeOutputLength,
                 GeneralMergeOutputFillByte);
@@ -55,7 +58,7 @@ public sealed partial class MergePresentationViewModel
 
     private long? GetSelectedMergeDpInputLength()
     {
-        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
+        return _compositionServices.Capabilities.IsDpPerspectiveIc(SelectedIc) &&
             _stateBindings.GetInspectedFileLength(MergeDpSlot) is long length
                 ? length
                 : null;
@@ -63,7 +66,7 @@ public sealed partial class MergePresentationViewModel
 
     private long? GetSelectedAbMergeDpInputLength()
     {
-        WorkbenchAbMergeInputSlot? dpInput = WorkbenchCompositionService
+        WorkbenchAbMergeInputSlot? dpInput = _compositionServices.Authoring
             .GetAbMergeInputSlots(SelectedIc, GetSelectedAbMergeTopologyToken())
             .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
         return dpInput is not null &&

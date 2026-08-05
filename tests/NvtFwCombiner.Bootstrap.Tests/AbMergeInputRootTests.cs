@@ -19,7 +19,7 @@ public sealed class AbMergeInputRootTests
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("Foo/tp-b.bin", CreateTpImage(0x82, 0x03)),
         };
 
-        string fileName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        string fileName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
             "NT51929",
             slots,
             TestContext.Current.CancellationToken);

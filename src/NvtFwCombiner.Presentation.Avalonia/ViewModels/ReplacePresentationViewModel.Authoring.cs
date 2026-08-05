@@ -56,9 +56,12 @@ public sealed partial class ReplacePresentationViewModel
         {
             ClearCtrlRamActionReadiness();
         }
-        AuthoringCapabilityCatalogSnapshot? catalog = SelectedReplaceMode == DpReplaceMode
-            ? ResolveDpReplaceAuthoringSnapshot(selected).Catalog
-            : WorkbenchCompositionService.GetCtrlRamReplaceAuthoringCatalog(
+        CompiledAuthoringSelectionSnapshot? dpProjection = SelectedReplaceMode == DpReplaceMode
+            ? ResolveDpReplaceAuthoringSnapshot(selected)
+            : null;
+        AuthoringCapabilityCatalogSnapshot? catalog = dpProjection is not null
+            ? dpProjection.Catalog
+            : _compositionServices.AuthoringSession.GetCtrlRamReplaceAuthoringCatalog(
                 SelectedIc,
                 SelectedNumber,
                 selected.ToDictionary(
@@ -79,7 +82,10 @@ public sealed partial class ReplacePresentationViewModel
 
         AuthoringSlotInspectionBatchStartResult started =
             session.BeginSlotFileInspections(
-                selected.ToDictionary(ReplaceInputId, static slot => slot.FilePath!, StringComparer.Ordinal));
+                selected.ToDictionary(
+                    slot => ReplaceDefinitionId(slot, dpProjection),
+                    static slot => slot.FilePath!,
+                    StringComparer.Ordinal));
         if (!started.Succeeded)
         {
             return items;
@@ -88,11 +94,17 @@ public sealed partial class ReplacePresentationViewModel
         var leases = started.Leases.ToDictionary(
             static lease => lease.DefinitionId,
             StringComparer.Ordinal);
+        Dictionary<string, AuthoringSlotInspectionLease> leasesByInputId = selected.ToDictionary(
+            ReplaceInputId,
+            slot => leases[ReplaceDefinitionId(slot, dpProjection)],
+            StringComparer.Ordinal);
         return
         [
             .. items.Select(item => (item.DpReplaceAddressSpaceId is not null ||
                 item.CtrlRamReplaceAddressSpaceId is not null) &&
-                leases.TryGetValue(ReplaceInspectionInputId(item), out AuthoringSlotInspectionLease? lease)
+                leasesByInputId.TryGetValue(
+                    ReplaceInspectionInputId(item),
+                    out AuthoringSlotInspectionLease? lease)
                     ? item with { ReplaceInspectionLease = lease }
                     : item),
         ];
@@ -134,10 +146,21 @@ public sealed partial class ReplacePresentationViewModel
     private bool CanRunCompiledReplaceSession(AuthoringSessionState session)
     {
         ActiveSessionSnapshot? snapshot = session.CurrentSnapshot;
-        return snapshot?.HasCurrentInputInspection == true &&
-            StringComparer.Ordinal.Equals(snapshot.SelectedIc, SelectedIc) &&
+        if (snapshot?.HasCurrentInputInspection != true ||
+            !StringComparer.Ordinal.Equals(snapshot.SelectedIc, SelectedIc))
+        {
+            return false;
+        }
+
+        CompiledAuthoringSelectionSnapshot? dpProjection =
+            ReferenceEquals(session, _authoringSessions.DpReplace)
+                ? _dpReplaceSelection
+                : null;
+        return (!ReferenceEquals(session, _authoringSessions.DpReplace) || dpProjection is not null) &&
             snapshot.Slots.All(slot => CurrentReplaceInputSlots().Any(candidate =>
-                StringComparer.Ordinal.Equals(ReplaceInputId(candidate), slot.DefinitionId) &&
+                StringComparer.Ordinal.Equals(
+                    ReplaceDefinitionId(candidate, dpProjection),
+                    slot.DefinitionId) &&
                 StringComparer.Ordinal.Equals(candidate.FilePath, slot.SelectedPath)));
     }
 
@@ -169,7 +192,7 @@ public sealed partial class ReplacePresentationViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         CapabilityActionReadinessSnapshot? readiness =
-            await WorkbenchCompositionService.GetCtrlRamReplaceActionReadinessAsync(
+            await _compositionServices.AuthoringSession.GetCtrlRamReplaceActionReadinessAsync(
                 icId,
                 number,
                 CreateReplaceSlotPaths(),
@@ -207,11 +230,10 @@ public sealed partial class ReplacePresentationViewModel
         ActiveSessionSnapshot? current = _authoringSessions.DpReplace.CurrentSnapshot;
         Dictionary<string, FileStamp> accepted = current?.Slots.Where(slot =>
                 slot.FileStamp is not null && selected.Any(candidate =>
-                    StringComparer.Ordinal.Equals(ReplaceInputId(candidate), slot.DefinitionId) &&
                     StringComparer.Ordinal.Equals(candidate.FilePath, slot.SelectedPath)))
             .ToDictionary(static slot => slot.DefinitionId, static slot => slot.FileStamp!.Value,
                 StringComparer.Ordinal) ?? [];
-        return _dpReplaceSelection = WorkbenchCompositionService.GetDpReplaceAuthoringSnapshot(
+        return _dpReplaceSelection = _compositionServices.Authoring.GetDpReplaceAuthoringSnapshot(
             SelectedIc,
             [.. selected.Select(ReplaceInputId)],
             accepted,
@@ -231,6 +253,32 @@ public sealed partial class ReplacePresentationViewModel
         return item.DpReplaceAddressSpaceId ?? item.CtrlRamReplaceAddressSpaceId!;
     }
 
+    private string ReplaceDefinitionId(
+        FirmwareSlotViewModel slot,
+        CompiledAuthoringSelectionSnapshot? dpProjection)
+    {
+        if (SelectedReplaceMode != DpReplaceMode)
+        {
+            return ReferenceEquals(slot, ReplaceBaseSlot)
+                ? SelectedReplaceMode == CtrlRamReplaceMode
+                    ? WorkbenchAddressSpaceIds.ReferenceBase
+                    : WorkbenchSlotIds.ReplaceBase
+                : ReplaceInputId(slot);
+        }
+
+        if (slot.CompiledSlotId is { } compiledSlotId)
+        {
+            return compiledSlotId;
+        }
+
+        string addressSpaceId = ReplaceInputId(slot);
+        return dpProjection?.InputBindings.Single(binding => StringComparer.Ordinal.Equals(
+                binding.AddressSpaceId,
+                addressSpaceId)).SlotId ??
+            throw new InvalidOperationException(
+                $"DP Replace input '{addressSpaceId}' has no current compiled slot binding.");
+    }
+
     private bool IsCurrentDpReplaceSelection(
         CompiledAuthoringSelectionSnapshot snapshot,
         IReadOnlyCollection<FirmwareSlotViewModel> selected)
@@ -241,6 +289,7 @@ public sealed partial class ReplacePresentationViewModel
                 snapshot.Catalog.Routes.Single().CompilationFingerprint,
                 _authoringSessions.DpReplace.CurrentSnapshot?.CompilationFingerprint) &&
             snapshot.Slots.Where(static slot => slot.IsSelected).Select(static slot => slot.SlotId)
-                .ToHashSet(StringComparer.Ordinal).SetEquals(selected.Select(ReplaceInputId));
+                .ToHashSet(StringComparer.Ordinal).SetEquals(selected.Select(slot =>
+                    ReplaceDefinitionId(slot, snapshot)));
     }
 }

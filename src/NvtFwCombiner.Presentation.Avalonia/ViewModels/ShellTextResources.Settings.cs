@@ -137,8 +137,6 @@ public sealed partial class ShellTextResources
     {
         return value switch
         {
-            CapabilityPublicationStatus.Unclassified =>
-                Language == ShellLanguage.ChineseTraditional ? "未分類" : "Unclassified",
             CapabilityPublicationStatus.Supported =>
                 Language == ShellLanguage.ChineseTraditional ? "已支援" : "Supported",
             CapabilityPublicationStatus.Candidate =>

@@ -16,7 +16,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
 
         Assert.Contains("Settings = new SettingsViewModel(", construction, StringComparison.Ordinal);
-        Assert.Contains("CreateCanonicalSupportMatrixQuery", construction, StringComparison.Ordinal);
+        Assert.Contains("hostServices.SupportMatrix", construction, StringComparison.Ordinal);
         Assert.Contains("public SettingsViewModel Settings", shellSettings, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchCompositionService", shellSettings, StringComparison.Ordinal);
         Assert.Contains("ICanonicalSupportMatrixQuery", settings, StringComparison.Ordinal);

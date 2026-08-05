@@ -19,6 +19,7 @@ public sealed partial class MergePresentationViewModel
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
     private readonly MergeAuthoringSessionSet _authoringSessions = new();
+    private string? _abMergeTopologyChoicesIcId;
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
         WorkbenchSlotIds.MergeDp,
@@ -71,7 +72,7 @@ public sealed partial class MergePresentationViewModel
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
 
     /// <summary>Gets profile-owned symbolic AB topologies when the selected AB IC requires an operator choice.</summary>
-    public ObservableCollection<WorkbenchAbMergeTopologyChoice> AbMergeTopologyChoices { get; } = [];
+    public ObservableCollection<CapabilityTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
     /// <summary>Gets readable memory-map rows for the selected Merge workflow.</summary>
     public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
@@ -113,7 +114,8 @@ public sealed partial class MergePresentationViewModel
     public string GeneralMergeOutputFileName => _stateBindings.CreateOutputFileName(MergeSlots);
 
     /// <summary>Gets the compiled AB profile output file name.</summary>
-    public string AbMergeOutputFileName => WorkbenchCompositionService.GetAbMergeProfileSummaries()
+    public string AbMergeOutputFileName => _compositionServices.Capabilities
+        .GetAbMergeProfileSummaries()
         .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
         .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin";
 
@@ -150,10 +152,12 @@ public sealed partial class MergePresentationViewModel
     public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
 
     /// <summary>True when the selected IC has an admitted AB profile.</summary>
-    public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);
+    public bool IsAbMergeSupported =>
+        _compositionServices.Authoring.IsAbMergeAvailable(SelectedIc);
 
     /// <summary>True when selected IC has a built-in standard merge profile.</summary>
-    public bool IsStandardMergeSupported => WorkbenchCompositionService.IsStandardMergeSupported(SelectedIc);
+    public bool IsStandardMergeSupported =>
+        _compositionServices.Authoring.IsStandardMergeSupported(SelectedIc);
 
     /// <summary>Status shown in the Merge inspector.</summary>
     public string MergeReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()

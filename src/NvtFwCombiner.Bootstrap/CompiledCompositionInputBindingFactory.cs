@@ -1,5 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;

@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
 using System.Globalization;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;

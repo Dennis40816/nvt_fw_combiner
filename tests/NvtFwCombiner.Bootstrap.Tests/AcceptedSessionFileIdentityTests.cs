@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -27,7 +26,7 @@ public sealed class AcceptedSessionFileIdentityTests
         };
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunStandardMergeAcceptedSessionWithProgressAsync(
                 "NT51926",
                 swapped,
                 accepted,
@@ -46,7 +45,7 @@ public sealed class AcceptedSessionFileIdentityTests
         ActiveSessionSnapshot accepted = AcceptStandardSession(paths);
         MutateFirstByte(paths[CompositionAddressSpaceIds.TpInput]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
+        WorkbenchRunResult result = await CompositionExecutionAdapter
             .RunStandardMergeAcceptedSessionWithProgressAsync(
                 "NT51926",
                 paths,
@@ -74,7 +73,7 @@ public sealed class AcceptedSessionFileIdentityTests
         };
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunAbMergeAcceptedSessionWithProgressAsync(
                 "NT51929",
                 swapped,
                 accepted,
@@ -93,7 +92,7 @@ public sealed class AcceptedSessionFileIdentityTests
         ActiveSessionSnapshot accepted = AcceptAbSession(paths);
         MutateFirstByte(paths[CompositionAddressSpaceIds.TpBInput]);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService
+        WorkbenchRunResult result = await CompositionExecutionAdapter
             .RunAbMergeAcceptedSessionWithProgressAsync(
                 "NT51929",
                 paths,
@@ -121,7 +120,7 @@ public sealed class AcceptedSessionFileIdentityTests
         };
 
         _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync(
+            await CompositionExecutionAdapter.RunReplaceAcceptedSessionWithProgressAsync(
                 "NT51928",
                 WorkbenchIcNumberTokens.SingleChip,
                 WorkbenchReplaceModes.Dp,
@@ -142,8 +141,7 @@ public sealed class AcceptedSessionFileIdentityTests
         ActiveSessionSnapshot accepted = AcceptDpReplaceSession(paths);
         MutateFirstByte(paths[WorkbenchSlotIds.ReplaceDp]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .RunReplaceAcceptedSessionWithProgressAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAcceptedSessionWithProgressAsync(
                 "NT51928",
                 WorkbenchIcNumberTokens.SingleChip,
                 WorkbenchReplaceModes.Dp,
@@ -163,8 +161,8 @@ public sealed class AcceptedSessionFileIdentityTests
             static pair => pair.Key,
             static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)),
             StringComparer.Ordinal);
-        WorkbenchStandardMergeAuthoringSnapshot projection =
-            WorkbenchCompositionService.GetStandardMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot projection =
+            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
                 "NT51926",
                 [.. paths.Keys],
                 stamps,
@@ -180,8 +178,8 @@ public sealed class AcceptedSessionFileIdentityTests
     private static ActiveSessionSnapshot AcceptAbSession(
         Dictionary<string, string> paths)
     {
-        WorkbenchAbMergeAuthoringSnapshot projection =
-            WorkbenchCompositionService.GetAbMergeAuthoringSnapshot(
+        CompiledAuthoringSelectionSnapshot projection =
+            CanonicalAuthoringAdapter.GetAbMergeAuthoringSnapshot(
                 "NT51929",
                 topologyToken: null,
                 [.. paths.Keys],
@@ -207,7 +205,7 @@ public sealed class AcceptedSessionFileIdentityTests
             [CompositionAddressSpaceIds.InitialCodeReplacement] = paths[WorkbenchSlotIds.ReplaceDp],
         };
         CompiledAuthoringSelectionSnapshot projection =
-            WorkbenchCompositionService.GetDpReplaceAuthoringSnapshot(
+            CanonicalAuthoringAdapter.GetDpReplaceAuthoringSnapshot(
                 "NT51928",
                 [.. inspectionPaths.Keys],
                 inspectionPaths.ToDictionary(
@@ -263,7 +261,7 @@ public sealed class AcceptedSessionFileIdentityTests
             }),
         ];
         IReadOnlyList<WorkbenchFirmwareInspectionResult> inspected =
-            WorkbenchCompositionService.InspectFirmwareBatch(icId, inputs);
+            FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
         AuthoringCapabilityCatalogSnapshot exactCatalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
             inspected[0].Inspection.InputSlotCatalog);
         var statuses = inspected.ToDictionary(
@@ -346,7 +344,7 @@ public sealed class AcceptedSessionFileIdentityTests
     private static void ReloadCatalog()
     {
         CapabilityCatalogReloadResult reload =
-            WorkbenchCompositionService.ReloadCanonicalCapabilityCatalog(
+            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
                 TestContext.Current.CancellationToken);
         Assert.True(reload.Succeeded, string.Join(
             "; ", reload.Issues.Select(static issue => issue.Message)));

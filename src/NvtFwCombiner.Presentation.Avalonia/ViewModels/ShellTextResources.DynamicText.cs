@@ -110,18 +110,17 @@ public sealed partial class ShellTextResources
         };
     }
 
-    public string GetWorkflowEvidenceLabel(WorkbenchWorkflowEvidenceStatus status)
+    public string GetWorkflowEvidenceLabel(CapabilityWorkflowReadiness readiness)
     {
-        return status switch
-        {
-            WorkbenchWorkflowEvidenceStatus.GoldenVerified => SelectLanguage("Golden verified", "Golden 已驗證"),
-            WorkbenchWorkflowEvidenceStatus.EvidenceGated => SelectLanguage("Evidence open", "Evidence 待補"),
-            WorkbenchWorkflowEvidenceStatus.NotAvailable => SelectLanguage("Not available", "尚未開放"),
-            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
-        };
+        ArgumentNullException.ThrowIfNull(readiness);
+        return !readiness.IsAvailable
+            ? SelectLanguage("Not available", "尚未開放")
+            : readiness.HasReviewedEvidence
+            ? SelectLanguage("Golden verified", "Golden 已驗證")
+            : SelectLanguage("Evidence open", "Evidence 待補");
     }
 
-    public string GetWorkflowEvidenceTooltip(WorkbenchWorkflowReadiness readiness)
+    public string GetWorkflowEvidenceTooltip(CapabilityWorkflowReadiness readiness)
     {
         ArgumentNullException.ThrowIfNull(readiness);
         return SelectLanguage(
@@ -129,26 +128,25 @@ public sealed partial class ShellTextResources
             $"Evidence：{readiness.Reason}\n開放條件：{readiness.OpenCondition}\n此狀態只表示驗證程度，不代表產品支援承諾。");
     }
 
-    public string GetIcFamilyLabel(WorkbenchIcFamilyRelationship relationship)
+    public string GetIcFamilyLabel(CapabilityFamilyRelationship relationship)
     {
         return relationship switch
         {
-            WorkbenchIcFamilyRelationship.PerfectAlias => SelectLanguage("Perfect IC Family", "完整 IC Family"),
-            WorkbenchIcFamilyRelationship.PartialAlias => SelectLanguage("Partial IC Family", "部分 IC Family"),
-            WorkbenchIcFamilyRelationship.Canonical => SelectLanguage("IC Family source", "IC Family 基準"),
-            WorkbenchIcFamilyRelationship.Standalone => string.Empty,
+            CapabilityFamilyRelationship.PerfectAlias => SelectLanguage("Perfect IC Family", "完整 IC Family"),
+            CapabilityFamilyRelationship.PartialAlias => SelectLanguage("Partial IC Family", "部分 IC Family"),
+            CapabilityFamilyRelationship.Standalone => string.Empty,
             _ => throw new ArgumentOutOfRangeException(nameof(relationship), relationship, null),
         };
     }
 
-    public string GetIcFamilyTooltip(WorkbenchIcFamilySummary family)
+    public string GetIcFamilyTooltip(CapabilityFamilySummary family)
     {
         ArgumentNullException.ThrowIfNull(family);
         return family.FamilyId is null
             ? string.Empty
             : SelectLanguage(
-                $"Family: {family.FamilyId}\nCanonical IC: {family.CanonicalIcId}\nReusable scope: {family.Scope}\nFamily reuse never expands executable ranges by itself.",
-                $"Family：{family.FamilyId}\n基準 IC：{family.CanonicalIcId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
+                $"Family: {family.FamilyId}\nReusable scope: {family.Scope}\nFamily reuse never expands executable ranges by itself.",
+                $"Family：{family.FamilyId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
     }
 
     public static string GetAbSlotTitle(WorkbenchAbMergeInputRole role)
@@ -251,7 +249,7 @@ public sealed partial class ShellTextResources
                 "Ready：Build 會驗證目前 AB inputs 並產生一份 report。");
     }
 
-    public string GetIcDetailFamilyValue(WorkbenchIcFamilySummary family)
+    public string GetIcDetailFamilyValue(CapabilityFamilySummary family)
     {
         ArgumentNullException.ThrowIfNull(family);
         return family.FamilyId is null
@@ -259,7 +257,7 @@ public sealed partial class ShellTextResources
             : $"{family.FamilyId} · {GetIcFamilyLabel(family.Relationship)}";
     }
 
-    public string GetIcDetailReuseValue(WorkbenchIcFamilySummary family)
+    public string GetIcDetailReuseValue(CapabilityFamilySummary family)
     {
         ArgumentNullException.ThrowIfNull(family);
         return string.IsNullOrWhiteSpace(family.Scope)
@@ -294,9 +292,9 @@ public sealed partial class ShellTextResources
     }
 
     public string GetIcDetailEvidenceValue(
-        WorkbenchWorkflowReadiness dp,
-        WorkbenchWorkflowReadiness ctrlRam,
-        WorkbenchWorkflowReadiness general)
+        CapabilityWorkflowReadiness dp,
+        CapabilityWorkflowReadiness ctrlRam,
+        CapabilityWorkflowReadiness general)
     {
         ArgumentNullException.ThrowIfNull(dp);
         ArgumentNullException.ThrowIfNull(ctrlRam);
@@ -333,15 +331,13 @@ public sealed partial class ShellTextResources
 
         return string.Join(" · ", summaries);
 
-        void Add(string label, WorkbenchWorkflowReadiness readiness)
+        void Add(string label, CapabilityWorkflowReadiness readiness)
         {
-            List<string> destination = readiness.EvidenceStatus switch
-            {
-                WorkbenchWorkflowEvidenceStatus.GoldenVerified => verified,
-                WorkbenchWorkflowEvidenceStatus.EvidenceGated => open,
-                WorkbenchWorkflowEvidenceStatus.NotAvailable => unavailable,
-                _ => unavailable,
-            };
+            List<string> destination = !readiness.IsAvailable
+                ? unavailable
+                : readiness.HasReviewedEvidence
+                ? verified
+                : open;
             destination.Add(label);
         }
     }

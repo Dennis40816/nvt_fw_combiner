@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -23,7 +24,8 @@ public static partial class CliApplication
         }
 
         await output.WriteLineAsync("Built-in standard merge profiles:").ConfigureAwait(false);
-        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
+        foreach (CapabilityProfileSummary profile in
+            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries())
         {
             string inputs = profile.CompileSucceeded
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
@@ -37,7 +39,8 @@ public static partial class CliApplication
         }
 
         await output.WriteLineAsync("Built-in AB Merge profiles:").ConfigureAwait(false);
-        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetAbMergeProfileSummaries())
+        foreach (CapabilityProfileSummary profile in
+            CanonicalCapabilityProjection.GetAbMergeProfileSummaries())
         {
             string inputs = profile.CompileSucceeded
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
@@ -51,7 +54,8 @@ public static partial class CliApplication
         }
 
         await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
-        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetReplaceProfileSummaries())
+        foreach (CapabilityProfileSummary profile in
+            CanonicalCapabilityProjection.GetDpReplaceProfileSummaries())
         {
             string inputs = profile.CompileSucceeded
                 ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
@@ -68,7 +72,7 @@ public static partial class CliApplication
         return Success;
     }
 
-    private static string FormatIcNumberPolicy(WorkbenchProfileSummary profile)
+    private static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
     {
         return profile.IcNumberPolicy switch
         {
@@ -84,7 +88,7 @@ public static partial class CliApplication
         };
     }
 
-    private static string FormatProfileIssues(WorkbenchProfileSummary profile)
+    private static string FormatProfileIssues(CapabilityProfileSummary profile)
     {
         return profile.CompileSucceeded
             ? string.Empty

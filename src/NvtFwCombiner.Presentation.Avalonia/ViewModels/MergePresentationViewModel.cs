@@ -6,12 +6,16 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Owns Merge-page presentation state, commands, and workflow-specific lifetime.</summary>
 public sealed partial class MergePresentationViewModel : ObservableObject
 {
+    private readonly PresentationCompositionServices _compositionServices;
     private readonly Func<ShellTextResources> _textProvider;
 
     internal MergePresentationViewModel(
+        PresentationCompositionServices compositionServices,
         Func<ShellTextResources> textProvider,
         MergeStateBindings stateBindings)
     {
+        _compositionServices = compositionServices ??
+            throw new ArgumentNullException(nameof(compositionServices));
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         AcceptAbAFlashCodeDeliveryPromptCommand = new RelayCommand(AcceptAbAFlashCodeDeliveryPrompt);

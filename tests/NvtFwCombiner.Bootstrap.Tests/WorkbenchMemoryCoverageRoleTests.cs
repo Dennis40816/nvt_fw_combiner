@@ -7,7 +7,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [Fact]
     public void CtrlRamReplaceDistinguishesBaseFirmwareFromReplacements()
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             "NT51926",
             "single",
             WorkbenchReplaceModes.CtrlRam);
@@ -21,7 +21,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         string selectedRegionId = display.CoverageSegments
             .First(segment => segment.RegionId is not null)
             .RegionId!;
-        WorkbenchMemoryDisplay selected = WorkbenchCompositionService.ApplyReplaceCoverageSelection(
+        WorkbenchMemoryDisplay selected = CompositionMemoryProjection.ApplyReplaceCoverageSelection(
             display,
             [selectedRegionId]);
 
@@ -30,12 +30,12 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         Assert.DoesNotContain(selected.CoverageSegments, segment =>
             segment.RegionId != selectedRegionId && segment.IsChanged);
 
-        WorkbenchMemoryDisplay dpDisplay = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay dpDisplay = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             "NT51951",
             "single",
             WorkbenchReplaceModes.Dp,
             dpBaseLength: 0x80000);
-        WorkbenchMemoryDisplay unchangedDpDisplay = WorkbenchCompositionService.ApplyReplaceCoverageSelection(
+        WorkbenchMemoryDisplay unchangedDpDisplay = CompositionMemoryProjection.ApplyReplaceCoverageSelection(
             dpDisplay,
             []);
         Assert.Equal(dpDisplay.CoverageSegments, unchangedDpDisplay.CoverageSegments);
@@ -45,7 +45,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [Fact]
     public void PreserveActiveDiffNfCoverageUsesOnePrimaryDiffDlmSegment()
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             "NT51932",
             "4",
             WorkbenchReplaceModes.CtrlRam);
@@ -54,7 +54,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             display.CoverageSegments,
             static segment => segment.IsDiffDlm);
         Assert.Equal("DiffDLM", diffDlm.SourceLabel);
-        Assert.Equal("0x2D100-0x30CFF (len 0x3C00)", diffDlm.RangeLabel);
+        Assert.Equal(new Domain.Composition.ByteRange(0x2D100, 0x3C00), diffDlm.Range);
         IReadOnlyList<Application.MemoryLayout.MemoryLayoutPreservationDetail> details =
             Assert.IsType<IReadOnlyList<Application.MemoryLayout.MemoryLayoutPreservationDetail>>(
                 diffDlm.PreservationDetails,
@@ -66,7 +66,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [Fact]
     public void FullArtifactReplaceCoverageHasNoPreservationPanelData()
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             "NT51926",
             "2",
             WorkbenchReplaceModes.CtrlRam);
@@ -82,7 +82,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [Fact]
     public void DpReplaceDistinguishesBaseFirmwareFromReplacementInputs()
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             "NT51951",
             "single",
             WorkbenchReplaceModes.Dp,
@@ -100,7 +100,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [Fact]
     public void MergeCoverageDoesNotClaimBaseFirmwareProvenance()
     {
-        WorkbenchMemoryDisplay standard = WorkbenchCompositionService.GetStandardMergeMemoryDisplay(
+        WorkbenchMemoryDisplay standard = CompositionMemoryProjection.GetStandardMergeMemoryDisplay(
             "NT51926",
             dpInputLength: null);
         WorkbenchMemoryDisplay customized = GeneralTestDraftFactory.GetMergeDisplay(
@@ -122,23 +122,27 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     {
         WorkbenchMemoryDisplay[] displays =
         [
-            WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            CompositionMemoryProjection.GetReplaceMemoryDisplay(
                 "NT51926",
                 "single",
                 WorkbenchReplaceModes.CtrlRam),
-            WorkbenchCompositionService.GetStandardMergeMemoryDisplay("NT51926", dpInputLength: null),
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51929"),
+            CompositionMemoryProjection.GetStandardMergeMemoryDisplay("NT51926", dpInputLength: null),
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay("NT51929"),
             GeneralTestDraftFactory.GetMergeDisplay(
                 "NT51950",
                 "0x100",
-                [WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+                [CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
                     "map-1", "input.bin", "0x0", "0x0", "0x10")]),
         ];
 
-        Assert.All(displays, display => Assert.InRange(
-            display.CoverageSegments.Sum(static segment => segment.BarWidth),
-            299.999999,
-            300.000001));
+        Assert.All(displays, display =>
+        {
+            long capacity = Assert.Single(
+                display.CoverageSegments.Select(static segment => segment.DisplayCapacity).Distinct());
+            Assert.Equal(
+                capacity,
+                display.CoverageSegments.Sum(static segment => segment.Range!.Value.Length));
+        });
     }
 
     /// <summary>NT51950-family AB coverage follows the selected DP container and exposes only user inputs.</summary>
@@ -173,7 +177,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         string expectedTpBAction)
     {
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength);
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength);
 
         Assert.Equal(expectedFullRange, display.RangeLabel);
         Assert.Collection(
@@ -201,11 +205,11 @@ public sealed class WorkbenchMemoryCoverageRoleTests
             row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
             row.Detail.Contains("Allowed writes", StringComparison.OrdinalIgnoreCase) ||
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(display.CoverageSegments, segment => segment.Fill == "#CBD5E1");
-        Assert.InRange(
-            display.CoverageSegments.Sum(static segment => segment.BarWidth),
-            299.999999,
-            300.000001);
+        long capacity = Assert.Single(
+            display.CoverageSegments.Select(static segment => segment.DisplayCapacity).Distinct());
+        Assert.Equal(
+            capacity,
+            display.CoverageSegments.Sum(static segment => segment.Range!.Value.Length));
     }
 
     /// <summary>An unaccepted DP artifact length cannot invent an output layout the compiled profile cannot build.</summary>
@@ -213,7 +217,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     public void Nt51950SingleAbCoverageFallsBackToCompiledCapacityForMismatchedDpLength()
     {
         WorkbenchMemoryDisplay display =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: 0x90000);
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: 0x90000);
 
         Assert.Equal("0x00000-0x7FFFF (len 0x80000)", display.RangeLabel);
         Assert.Contains(
@@ -228,7 +232,7 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     [InlineData("NT51932")]
     public void TypeAbCoverageShowsTpBTransformWithoutProcessorInternals(string icId)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId);
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetAbMergeMemoryDisplay(icId);
 
         Assert.Equal(["DP AB", "TPA", "TPB"], display.MemoryMapRows.Select(static row => row.AfterSource));
         Assert.Equal("Transform + Overlay", display.MemoryMapRows[2].ActionLabel);
@@ -246,9 +250,9 @@ public sealed class WorkbenchMemoryCoverageRoleTests
         string? topologyToken)
     {
         WorkbenchMemoryDisplay omitted =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken);
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay(icId, topologyToken);
         WorkbenchMemoryDisplay empty =
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength: 0);
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay(icId, topologyToken, dpInputLength: 0);
 
         Assert.Equal(omitted.RangeLabel, empty.RangeLabel);
         Assert.Equal(omitted.MemoryMapRows, empty.MemoryMapRows);
@@ -260,6 +264,6 @@ public sealed class WorkbenchMemoryCoverageRoleTests
     public void Nt51950FamilyAbCoverageRejectsNegativeDpLength()
     {
         _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            WorkbenchCompositionService.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: -1));
+            CompositionMemoryProjection.GetAbMergeMemoryDisplay("NT51950", "single", dpInputLength: -1));
     }
 }

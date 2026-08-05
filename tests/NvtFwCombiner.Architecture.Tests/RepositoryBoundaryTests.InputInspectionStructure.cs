@@ -24,9 +24,9 @@ public sealed partial class RepositoryBoundaryTests
         string abProjection = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
         string abInspection = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.AbMerge.InputInspection.cs");
+            "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.AbMerge.InputInspection.cs");
         string workbenchModels = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
+            "src/NvtFwCombiner.Application/Composition/WorkbenchCompositionModels.cs");
         string workbenchIssueCodes = ReadText(
             "src/NvtFwCombiner.Bootstrap/WorkbenchIssueCodes.cs");
         string presentation = ReadPresentationSources();

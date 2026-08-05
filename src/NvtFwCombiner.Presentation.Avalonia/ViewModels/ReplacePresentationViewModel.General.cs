@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -33,7 +32,7 @@ public sealed partial class ReplacePresentationViewModel
         [
             .. GeneralReplaceMappings
                 .Where(mapping => mapping.HasSource)
-                .Select(mapping => WorkbenchCompositionService.CreateGeneralReplaceAuthoringState(
+                .Select(mapping => _compositionServices.Authoring.CreateGeneralReplaceAuthoringState(
                     mapping.MappingId,
                     mapping.SelectedSource.Kind,
                     mapping.UsesFileSource ? mapping.FilePath! : mapping.InlineValue,
@@ -57,7 +56,7 @@ public sealed partial class ReplacePresentationViewModel
         ];
         bool canSelectFile = inspectedCapacity is > 0 &&
             (fileMappingIds.Length == 0 ||
-                WorkbenchCompositionService.PrepareGeneralReplaceSelectionSession(
+                _compositionServices.AuthoringSession.PrepareGeneralReplaceSelectionSession(
                     _authoringSessions.GeneralReplace,
                     SelectedIc,
                     inspectedCapacity.Value,
@@ -70,7 +69,7 @@ public sealed partial class ReplacePresentationViewModel
         }
         _generalReplaceDraft =
             _generalReplaceAuthoringStates.Count > 0 &&
-            WorkbenchCompositionService.TryCreateGeneralReplaceAuthoringDraft(
+            _compositionServices.Authoring.TryCreateGeneralReplaceAuthoringDraft(
                 _generalReplaceAuthoringStates,
                 out GeneralMappingDraftState? draft,
                 out _)
@@ -80,7 +79,7 @@ public sealed partial class ReplacePresentationViewModel
             inspectedCapacity is long capacity &&
             capacity > 0)
         {
-            _generalReplaceAdmission = WorkbenchCompositionService
+            _generalReplaceAdmission = _compositionServices.Authoring
                 .GetGeneralReplaceAuthoringAdmission(
                     SelectedIc,
                     capacity,
@@ -89,7 +88,7 @@ public sealed partial class ReplacePresentationViewModel
                     row.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
                     row.Source.AcceptedFileStamp is null))
             {
-                _ = WorkbenchCompositionService.PrepareGeneralReplaceSelectionSession(
+                _ = _compositionServices.AuthoringSession.PrepareGeneralReplaceSelectionSession(
                         _authoringSessions.GeneralReplace,
                         SelectedIc,
                         capacity,
@@ -129,7 +128,7 @@ public sealed partial class ReplacePresentationViewModel
             .OrderBy(mapping => mapping.IsInspectionVerified(_authoringSessions.GeneralReplace))
             .Any(mapping => mapping.TryAcceptCachedInspection(
                 _authoringSessions.GeneralReplace,
-                cached => WorkbenchCompositionService.BeginGeneralReplaceSelectedFileInspection(
+                cached => _compositionServices.AuthoringSession.BeginGeneralReplaceSelectedFileInspection(
                     _authoringSessions.GeneralReplace,
                     SelectedIc,
                     SelectedNumber,
@@ -151,7 +150,7 @@ public sealed partial class ReplacePresentationViewModel
         }
 
         CapabilityActionReadinessSnapshot? readiness =
-            await WorkbenchCompositionService.GetGeneralReplaceActionReadinessAsync(
+            await _compositionServices.AuthoringSession.GetGeneralReplaceActionReadinessAsync(
                 _authoringSessions.GeneralReplace,
                 SelectedIc,
                 SelectedNumber,
@@ -166,7 +165,7 @@ public sealed partial class ReplacePresentationViewModel
             _generalReplaceDraft is { } acceptedDraft)
         {
             draft = acceptedDraft;
-            readiness = await WorkbenchCompositionService.GetGeneralReplaceActionReadinessAsync(
+            readiness = await _compositionServices.AuthoringSession.GetGeneralReplaceActionReadinessAsync(
                 _authoringSessions.GeneralReplace,
                 SelectedIc,
                 SelectedNumber,
@@ -203,7 +202,7 @@ public sealed partial class ReplacePresentationViewModel
                     AuthoringSessionIssueCodes.DraftUnavailable,
                     "General Replace requires an inspected Reference and valid typed draft before file inspection.",
                     mapping.MappingId))
-            : WorkbenchCompositionService.BeginGeneralReplaceSelectedFileInspection(
+            : _compositionServices.AuthoringSession.BeginGeneralReplaceSelectedFileInspection(
             _authoringSessions.GeneralReplace,
             SelectedIc,
             SelectedNumber,

@@ -29,7 +29,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                     "nt51929-standard-merge-256k"));
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
-        Assert.Equal("1.5.0", policy.CatalogVersion);
+        Assert.Equal("1.6.0", policy.CatalogVersion);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
             policy.SourceSha256);
@@ -52,6 +52,46 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             "owner-approved:github-issue-186",
             route.Publication.SourceReference);
         Assert.Equal("nt51929-standard-merge-evidence-v2", route.Evidence.DecisionId);
+    }
+
+    /// <summary>The retired unclassified state migrates only its 72 exact routes to explicit internal decisions.</summary>
+    [Fact]
+    public void UnclassifiedRetirementPreservesReviewedPublicationDecisions()
+    {
+        CanonicalCapabilityPolicySnapshot policy =
+            BuiltInCanonicalCapabilityPolicy.Load();
+        CanonicalCapabilityPolicyRoute[] internalRoutes =
+        [
+            .. policy.Routes.Where(static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Internal),
+        ];
+
+        Assert.Equal(78, policy.Routes.Count);
+        Assert.Equal(72, internalRoutes.Length);
+        Assert.All(
+            internalRoutes,
+            static route =>
+            {
+                Assert.EndsWith(
+                    "-publication-v3",
+                    route.Publication.DecisionId,
+                    StringComparison.Ordinal);
+                Assert.Equal(
+                    "owner-approved:github-issue-195",
+                    route.Publication.SourceReference);
+            });
+        Assert.Equal(
+            2,
+            policy.Routes.Count(static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Supported));
+        Assert.Equal(
+            3,
+            policy.Routes.Count(static route =>
+                route.Publication.Value == CapabilityPublicationStatus.Candidate));
+        _ = Assert.Single(
+            policy.Routes,
+            static route =>
+                route.Publication.Value == CapabilityPublicationStatus.TestOnly);
     }
 
     /// <summary>The reviewed policy is copied to both build and publish outputs.</summary>
@@ -186,6 +226,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
     [InlineData("duplicate-route")]
     [InlineData("authoring-value")]
     [InlineData("publication-value")]
+    [InlineData("retired-publication-value")]
     [InlineData("evidence-value")]
     [InlineData("evidence-pin")]
     public void RejectsInvalidPolicySemantics(string mutation)
@@ -220,6 +261,10 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             case "publication-value":
                 Assert.IsType<JsonObject>(route["publication"])["value"] =
                     "unknown";
+                break;
+            case "retired-publication-value":
+                Assert.IsType<JsonObject>(route["publication"])["value"] =
+                    "unclassified";
                 break;
             case "evidence-value":
                 Assert.IsType<JsonObject>(route["evidence"])["value"] =

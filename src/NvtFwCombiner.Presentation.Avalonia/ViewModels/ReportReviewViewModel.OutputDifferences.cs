@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 

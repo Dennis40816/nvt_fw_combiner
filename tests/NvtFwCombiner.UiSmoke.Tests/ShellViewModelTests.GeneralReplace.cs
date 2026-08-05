@@ -49,6 +49,7 @@ public sealed partial class ShellViewModelTests
     public void GeneralReplaceUsesIndependentBaseAndEditableMappings()
     {
         MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         OpenReplace(viewModel, "General");
 
@@ -124,7 +125,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("blocked", viewModel.Replace.ReplaceReadinessStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
         Assert.False(viewModel.Reports.HasLoadedReport);
     }
 
@@ -263,7 +264,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.False(viewModel.Replace.CanBuildReplace);
-        Assert.Contains("blocked", viewModel.Replace.ReplaceReadinessStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Not available", viewModel.Replace.ReplaceReadinessStatus, StringComparison.Ordinal);
         Assert.False(viewModel.Reports.HasLoadedReport);
     }
 

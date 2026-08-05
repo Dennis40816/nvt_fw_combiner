@@ -63,7 +63,7 @@ public sealed partial class ReplaceCliCommandTests
         (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralReplaceRule(rule, reference, source);
         WorkbenchRunResult result =
-            await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+            await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -307,7 +307,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
+        AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
     }
 
@@ -336,7 +336,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, outputPath: null);
+        AssertGeneralReplaceUnavailableBeforeRun(result, report, outputPath: null);
     }
 
     /// <summary>NT51926 TP mappings without an exact compilation fail before a diagnostic Preview.</summary>
@@ -403,7 +403,7 @@ public sealed partial class ReplaceCliCommandTests
         await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
     }
 
-    /// <summary>Verifies malformed real IC General Replace mapping paths are rejected before planning.</summary>
+    /// <summary>An unavailable General Replace route rejects before parsing mapping content.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRejectsEmptyWorkbenchMappingPath()
     {
@@ -423,8 +423,8 @@ public sealed partial class ReplaceCliCommandTests
             "0x100+0x2=  ",
         ]);
 
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--mapping path must not be empty", result.Error, StringComparison.Ordinal);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies valid CLI patches fail closed after legacy General Replace retirement.</summary>
@@ -456,11 +456,11 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
+        AssertGeneralReplaceUnavailableBeforeRun(result, report, output);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Verifies a real IC General Replace build cannot overwrite its immutable base BIN.</summary>
+    /// <summary>An unavailable General Replace route cannot reach output-path handling or mutate its base.</summary>
     [Fact]
     public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesBase()
     {
@@ -483,12 +483,12 @@ public sealed partial class ReplaceCliCommandTests
             reference,
         ]);
 
-        Assert.Equal(70, result.ExitCode);
-        Assert.Contains("Output path must not overwrite input artifact", result.Error, StringComparison.Ordinal);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Verifies malformed CLI patch bytes receive the shared workbench validation issue.</summary>
+    /// <summary>An unavailable General Replace route rejects before parsing virtual patch bytes.</summary>
     [Fact]
     public async Task GeneralReplacePreviewRejectsMalformedVirtualPatch()
     {
@@ -509,7 +509,7 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(GeneralAuthoringIssueCodes.InlineHexInvalid, result.Error, StringComparison.Ordinal);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
     }
 
     /// <summary>Rejects retired fixed-profile range options at the workflow allowlist.</summary>
@@ -578,6 +578,20 @@ public sealed partial class ReplaceCliCommandTests
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
         Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+    }
+
+    private static void AssertGeneralReplaceUnavailableBeforeRun(
+        CliRunResult result,
+        string reportPath,
+        string? outputPath)
+    {
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(reportPath));
+        if (outputPath is not null)
+        {
+            Assert.False(File.Exists(outputPath));
+        }
     }
 
     private static byte[] CreatePostbuildReference(byte seed)

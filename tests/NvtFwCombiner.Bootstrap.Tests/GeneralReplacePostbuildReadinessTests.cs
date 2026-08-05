@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
@@ -34,7 +33,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         TrustedProfileBundleCatalog exactParent =
             CreateStageBearingExactParent(workspace);
         var progress = new CompositionRunProgressFeed();
-        WorkbenchCompositionService.GeneralReplacePostbuildReadinessOverride
+        CompositionAuthoringSessionAdapter.GeneralReplacePostbuildReadinessOverride
             runtime = RuntimeOverride(provider);
 
         WorkbenchRunResult result = await RunWithPostbuildReadinessAsync(
@@ -164,12 +163,12 @@ public sealed class GeneralReplacePostbuildReadinessTests
         Assert.False(progress.IsAttached);
     }
 
-    private static WorkbenchCompositionService
+    private static CompositionAuthoringSessionAdapter
         .GeneralReplacePostbuildReadinessOverride RuntimeOverride(
             IRuntimeDependencyReadinessProvider provider,
             bool generationIsCurrent = true)
     {
-        return new WorkbenchCompositionService
+        return new CompositionAuthoringSessionAdapter
             .GeneralReplacePostbuildReadinessOverride(
                 provider,
                 Generation: 1,
@@ -184,7 +183,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
         bool build,
         TrustedProfileBundleCatalog exactParentCatalog,
         string exactParentProfileId,
-        WorkbenchCompositionService.GeneralReplacePostbuildReadinessOverride runtime,
+        CompositionAuthoringSessionAdapter.GeneralReplacePostbuildReadinessOverride runtime,
         CompositionRunProgressFeed progress,
         string? outputPath,
         CancellationToken cancellationToken)
@@ -194,7 +193,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 exactParentCatalog,
                 exactParentProfileId);
         return build
-            ? WorkbenchCompositionService.BuildGeneralReplaceWithInitialInspectionAsync(
+            ? CompositionExecutionAdapter.BuildGeneralReplaceWithInitialInspectionAsync(
                 icId,
                 number,
                 slotPaths,
@@ -206,7 +205,7 @@ public sealed class GeneralReplacePostbuildReadinessTests
                 savedRulePolicy: null,
                 runtime,
                 exactParent)
-            : WorkbenchCompositionService.PreviewGeneralReplaceWithInitialInspectionAsync(
+            : CompositionExecutionAdapter.PreviewGeneralReplaceWithInitialInspectionAsync(
                 icId,
                 number,
                 slotPaths,

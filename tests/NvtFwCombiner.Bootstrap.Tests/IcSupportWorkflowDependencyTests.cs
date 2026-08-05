@@ -1,22 +1,22 @@
-using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Cross-catalog guards that start from the IC onboarding support catalog.</summary>
-public sealed class IcSupportWorkflowDependencyTests
+/// <summary>Cross-owner guards that start from canonical authorable capability routes.</summary>
+public sealed class CanonicalCapabilityDependencyTests
 {
     /// <summary>Every selectable IC has the flash-map data needed by Merge/Replace workbench planning.</summary>
     [Fact]
-    public void IcSupportRowsHaveFlashMapProfiles()
+    public void CanonicalIcRowsHaveFlashMapProfiles()
     {
-        foreach (IcSupportEntry entry in IcSupportCatalog.All)
+        foreach (string icId in CanonicalCapabilityProjection.GetIcIds())
         {
             Assert.True(
-                BuiltInTpFlashMapCatalog.TryFind(entry.IcId, out TpFlashMapProfile? flashMapProfile),
-                $"Missing TP flash-map profile for support catalog IC {entry.IcId}.");
+                BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMapProfile),
+                $"Missing TP flash-map profile for canonical IC {icId}.");
             Assert.NotNull(flashMapProfile);
             Assert.NotEmpty(flashMapProfile.Regions);
         }
@@ -24,9 +24,9 @@ public sealed class IcSupportWorkflowDependencyTests
 
     /// <summary>Flash-map rows must be reachable through the IC support catalog instead of becoming hidden IC facts.</summary>
     [Fact]
-    public void FlashMapProfilesHaveIcSupportRows()
+    public void FlashMapProfilesHaveCanonicalRows()
     {
-        HashSet<string> supportedIcIds = [.. IcSupportCatalog.IcIds];
+        HashSet<string> supportedIcIds = [.. CanonicalCapabilityProjection.GetIcIds()];
 
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
@@ -38,13 +38,12 @@ public sealed class IcSupportWorkflowDependencyTests
     [Fact]
     public void CtrlRamReplaceSupportHasPostbuildAndNumberChoiceCoverage()
     {
-        foreach (IcSupportEntry entry in IcSupportCatalog.All.Where(entry =>
-            entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
+        foreach (string icId in GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace))
         {
-            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId);
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
 
             Assert.NotEmpty(profiles);
-            Assert.All(profiles, profile => Assert.Equal(entry.IcId, profile.IcId));
+            Assert.All(profiles, profile => Assert.Equal(icId, profile.IcId));
 
             foreach (LegacyCombinerPostbuildProfile profile in profiles)
             {
@@ -65,9 +64,7 @@ public sealed class IcSupportWorkflowDependencyTests
     {
         HashSet<string> ctrlRamReplaceIcIds =
         [
-            .. IcSupportCatalog.All
-                .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace))
-                .Select(entry => entry.IcId),
+            .. GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace),
         ];
 
         foreach (string icId in LegacyCombinerPostbuildCatalog.All
@@ -86,14 +83,12 @@ public sealed class IcSupportWorkflowDependencyTests
     {
         string[] supportedIcIds =
         [
-            .. IcSupportCatalog.All
-                .Where(entry => entry.SupportsWorkflow(IcWorkflowIds.DpReplace))
-                .Select(entry => entry.IcId)
+            .. GetAuthorableIcIds(IcWorkflowIds.DpReplace)
                 .Order(StringComparer.Ordinal),
         ];
         string[] registeredIcIds =
         [
-            .. WorkbenchCompositionService.GetReplaceProfileSummaries()
+            .. CanonicalCapabilityProjection.GetDpReplaceProfileSummaries()
                 .Select(summary => summary.IcId)
                 .Order(StringComparer.Ordinal),
         ];
@@ -101,7 +96,7 @@ public sealed class IcSupportWorkflowDependencyTests
         Assert.Equal(registeredIcIds, supportedIcIds);
         foreach (string icId in supportedIcIds)
         {
-            WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
                 icId,
                 "single",
                 WorkbenchReplaceModes.Dp);
@@ -113,11 +108,10 @@ public sealed class IcSupportWorkflowDependencyTests
             Assert.NotEmpty(display.CoverageSegments);
         }
 
-        foreach (string icId in IcSupportCatalog.All
-                     .Select(entry => entry.IcId)
+        foreach (string icId in CanonicalCapabilityProjection.GetIcIds()
                      .Except(supportedIcIds, StringComparer.Ordinal))
         {
-            WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+            WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
                 icId,
                 "single",
                 WorkbenchReplaceModes.Dp);
@@ -133,10 +127,9 @@ public sealed class IcSupportWorkflowDependencyTests
     [Fact]
     public void PostbuildBranchesMapToProfileAdjustedCtrlRamRows()
     {
-        foreach (IcSupportEntry entry in IcSupportCatalog.All.Where(entry =>
-                     entry.SupportsWorkflow(IcWorkflowIds.CtrlRamReplace)))
+        foreach (string icId in GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace))
         {
-            foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.GetProfiles(entry.IcId))
+            foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.GetProfiles(icId))
             {
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
@@ -157,6 +150,34 @@ public sealed class IcSupportWorkflowDependencyTests
                 }
             }
         }
+    }
+
+    private static string[] GetAuthorableIcIds(string workflowId)
+    {
+        CanonicalCapabilityCatalogSnapshot snapshot = WorkbenchHostServices
+            .CanonicalCapabilityQuery
+            .GetCurrentSnapshot();
+        return
+        [
+            .. snapshot.Capabilities
+                .Where(capability =>
+                    capability.Authoring.Value ==
+                        CapabilityAuthoringAvailability.Available &&
+                    StringComparer.Ordinal.Equals(
+                        capability.Identity.WorkflowId,
+                        workflowId))
+                .Select(static capability => capability.Identity.IcId)
+                .Concat(snapshot.DynamicRoutes
+                    .Where(route =>
+                        route.Authoring.Value ==
+                            CapabilityAuthoringAvailability.Available &&
+                        StringComparer.Ordinal.Equals(
+                            route.Identity.WorkflowId,
+                            workflowId))
+                    .Select(static route => route.Identity.IcId))
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+        ];
     }
 
 }

@@ -31,9 +31,9 @@ The UI shell is production-backed: it may introduce page structure and presentat
 Firmware-affecting UI data must come from production catalogs or application services, for example:
 
 ```text
-BuiltInTpFlashMapCatalog (hash-pinned flash-map.json query)
-WorkbenchCompositionService
-BuiltInPostbuildProfileCatalog
+ICanonicalCapabilityQuery / CanonicalCapabilityCatalog
+AuthoringSessionState and focused input-inspection use cases
+CompiledComposition projections and typed execution results
 ```
 
 Do not place firmware maps, IC choices, number choices, command sequences, or executable workflow state directly in XAML event handlers or Presentation-only hard-coded catalogs.

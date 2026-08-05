@@ -80,7 +80,8 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
         string inputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
         string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
-        string workbenchService = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeWorkbenchCompositionService.cs");
+        string executionAdapter = ReadText(
+            "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.AbMerge.cs");
 
         Assert.Contains("CompiledInputArtifactObservationService.DecodeDpRegion", outputNaming, StringComparison.Ordinal);
         Assert.Contains("Provenance.ResolvedMap.ImageMap.Regions", versionDecoder, StringComparison.Ordinal);
@@ -93,8 +94,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain(".Pid", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CommonFw", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51950", workbenchService, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51951", workbenchService, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950", executionAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51951", executionAdapter, StringComparison.Ordinal);
         Assert.Contains("ChipNumber", topologyValidation, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]
@@ -231,7 +232,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] retiredIds = ["51920", "51925", "51930", "51931"];
         string[] productionOwners =
         [
-            "src/NvtFwCombiner.Profiles/IcSupportCatalog.cs",
+            "src/NvtFwCombiner.Profiles/IcWorkflowIds.cs",
             "src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs",
             "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",
@@ -361,9 +362,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
     {
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
-        string display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
-        string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
+        string registration = ReadText("src/NvtFwCombiner.Bootstrap/CanonicalCapabilityProjection.DpReplace.cs");
+        string display = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Dp.cs");
+        string planning = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.Planning.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,

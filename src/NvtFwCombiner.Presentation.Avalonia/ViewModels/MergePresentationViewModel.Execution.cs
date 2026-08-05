@@ -60,7 +60,7 @@ public sealed partial class MergePresentationViewModel
                 slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
-        return await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        return await _compositionServices.OutputNaming.ResolveAutomaticOutputFileNameAsync(
                 SelectedIc,
                 slotPaths,
                 cancellationToken,
@@ -84,7 +84,7 @@ public sealed partial class MergePresentationViewModel
                 slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
                 slot => slot.FilePath!,
                 StringComparer.Ordinal);
-        return await AbMergeWorkbenchCompositionService.TryCreateAFlashCodeDeliveryPlanAsync(
+        return await _compositionServices.AbMergeDeliveryPlanning.TryCreateAFlashCodeDeliveryPlanAsync(
                 SelectedIc,
                 slotPaths,
                 cancellationToken,
@@ -125,10 +125,11 @@ public sealed partial class MergePresentationViewModel
         string number = SelectedNumber;
         IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
         string profileId =
-            WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
+            _compositionServices.Authoring.GetStandardMergeProfileId(icId) ??
+            WorkbenchWorkflowIds.StandardMerge;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync(
+            (progress, cancellationToken) => _compositionServices.Execution.RunStandardMergeAcceptedSessionWithProgressAsync(
                 icId,
                 slotPaths,
                 _authoringSessions.StandardMerge.CurrentSnapshot ?? throw new InvalidOperationException(
@@ -156,13 +157,12 @@ public sealed partial class MergePresentationViewModel
         GeneralMergeDraftState draft = acceptedSession.DraftState as GeneralMergeDraftState ??
             throw new InvalidOperationException("General Merge requires one admitted typed draft.");
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
-        string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
+        string outputFileName = _compositionServices.Authoring.GetGeneralMergeDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
             async (progress, cancellationToken) =>
             {
-                WorkbenchRunResult result = await WorkbenchCompositionService
-                    .RunGeneralMergeAcceptedSessionWithProgressAsync(
+                WorkbenchRunResult result = await _compositionServices.Execution.RunGeneralMergeAcceptedSessionWithProgressAsync(
                         icId,
                         acceptedSession,
                         build,
@@ -203,12 +203,12 @@ public sealed partial class MergePresentationViewModel
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync(
+            (progress, cancellationToken) => _compositionServices.Execution.RunAbMergeAcceptedSessionWithProgressAsync(
                 icId,
                 slotPaths,
                 _authoringSessions.AbMerge.CurrentSnapshot ?? throw new InvalidOperationException(
@@ -238,7 +238,7 @@ public sealed partial class MergePresentationViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
         Reports.LoadRunErrorReport(

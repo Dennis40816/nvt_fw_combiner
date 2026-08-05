@@ -37,7 +37,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(replacements, BasePath);
         using var workspace = TempWorkspace.Create("nfc-nt51928-fw132-twochip-v2");
         string v2Path = workspace.PathFor("v2.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928", "2", WorkbenchReplaceModes.CtrlRam, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
@@ -84,7 +84,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51928-fw132-twochip-negative");
         string referencePath = workspace.Write("reference.bin", reference);
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51928",
             "2",
             CreateSlotPaths(replacements, referencePath),
@@ -134,7 +134,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
         };
         string outputPath = workspace.PathFor("output.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51928",
             number,
             slots,

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -13,8 +14,10 @@ public sealed partial class MergePresentationViewModel
             return;
         }
 
-        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
-        IReadOnlyList<string> available = WorkbenchCompositionService.GetStandardMergeInputAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required =
+            _compositionServices.Authoring.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> available =
+            _compositionServices.Authoring.GetStandardMergeInputAddressSpaces(SelectedIc);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
             slot.ApplyExperienceText(Text);
@@ -51,7 +54,7 @@ public sealed partial class MergePresentationViewModel
     {
         MergeSlots.Clear();
         _abMergeAddressSpaceBySlotId.Clear();
-        foreach (WorkbenchAbMergeInputSlot input in WorkbenchCompositionService.GetAbMergeInputSlots(
+        foreach (WorkbenchAbMergeInputSlot input in _compositionServices.Authoring.GetAbMergeInputSlots(
                      SelectedIc,
                      GetSelectedAbMergeTopologyToken()))
         {
@@ -80,10 +83,11 @@ public sealed partial class MergePresentationViewModel
 
     private void RefreshAbMergeTopologyChoices()
     {
-        IReadOnlyList<WorkbenchAbMergeTopologyChoice> choices =
-            AbMergeWorkbenchCompositionService.GetTopologyChoices(SelectedIc);
+        IReadOnlyList<CapabilityTopologyChoice> choices =
+            _compositionServices.Authoring.GetAbMergeTopologyChoices(SelectedIc);
         AbMergeTopologyChoices.Clear();
-        foreach (WorkbenchAbMergeTopologyChoice choice in choices)
+        _abMergeTopologyChoicesIcId = SelectedIc;
+        foreach (CapabilityTopologyChoice choice in choices)
         {
             AbMergeTopologyChoices.Add(choice);
         }
@@ -93,7 +97,8 @@ public sealed partial class MergePresentationViewModel
 
     internal string? GetSelectedAbMergeTopologyToken()
     {
-        return AbMergeTopologyChoices.Any(choice =>
+        return StringComparer.Ordinal.Equals(_abMergeTopologyChoicesIcId, SelectedIc) &&
+            AbMergeTopologyChoices.Any(choice =>
             StringComparer.Ordinal.Equals(choice.Token, SelectedNumber))
             ? SelectedNumber
             : null;
@@ -101,7 +106,8 @@ public sealed partial class MergePresentationViewModel
 
     private string GetRequiredStandardMergeSlotLabels()
     {
-        IReadOnlyList<string> required = WorkbenchCompositionService.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+        IReadOnlyList<string> required =
+            _compositionServices.Authoring.GetStandardMergeRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
             ? "none"
             : string.Join(", ", required.Select(AddressSpaceLabel));
@@ -137,7 +143,7 @@ public sealed partial class MergePresentationViewModel
     internal bool TryResolveGeneralMergeOutputInitializer(
         out WorkbenchGeneralMergeInitializer? initializer)
     {
-        return WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+        return _compositionServices.Authoring.TryResolveGeneralMergeOutputInitializer(
             GeneralMergeOutputLength,
             GeneralMergeOutputFillByte,
             out initializer);

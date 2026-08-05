@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel

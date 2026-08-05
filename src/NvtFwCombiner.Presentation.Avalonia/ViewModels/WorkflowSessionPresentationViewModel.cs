@@ -7,6 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 /// <summary>Owns shared workflow-context and selected-firmware prompt presentation.</summary>
 public sealed partial class WorkflowSessionPresentationViewModel : ObservableObject
 {
+    private readonly PresentationCompositionServices _compositionServices;
     private readonly Action<WorkflowContextSelection> _applyWorkflowContext;
     private readonly MergePresentationViewModel _merge;
     private readonly ReplacePresentationViewModel _replace;
@@ -15,6 +16,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
     private readonly Func<ShellTextResources> _textProvider;
 
     internal WorkflowSessionPresentationViewModel(
+        PresentationCompositionServices compositionServices,
         Func<ShellTextResources> textProvider,
         MergePresentationViewModel merge,
         ReplacePresentationViewModel replace,
@@ -26,6 +28,13 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
             IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
         WorkflowSessionStateBindings stateBindings)
     {
+        _compositionServices = compositionServices ??
+            throw new ArgumentNullException(nameof(compositionServices));
+        AbMergeIcChoices = Array.AsReadOnly(
+        [
+            .. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
+                .Select(static profile => profile.IcId),
+        ]);
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _merge = merge ?? throw new ArgumentNullException(nameof(merge));
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
@@ -34,12 +43,15 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         InspectionSession = new FirmwareInspectionSession(firmwareInspectionReader);
+        WorkflowContextSetup = new WorkflowContextSetupViewModel(_compositionServices);
         ConfirmWorkflowContextCommand = new RelayCommand(ConfirmWorkflowContext);
         CancelWorkflowContextCommand = new RelayCommand(CancelWorkflowContext);
         AcceptFirmwareIcMismatchCommand = new RelayCommand(AcceptFirmwareIcMismatch);
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
+        _selectedIc = _compositionServices.Capabilities.DefaultIcId;
+        _replaceWorkflowContextIc = SelectedIc;
     }
 
     /// <summary>Gets current localized shell text used by workflow-session prompts.</summary>

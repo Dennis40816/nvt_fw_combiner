@@ -1,6 +1,5 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -27,7 +26,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         long dpStart,
         long dpLength)
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             icId,
             baseCapacity,
             out CompiledComposition? composition,
@@ -61,7 +60,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     {
         ArgumentNullException.ThrowIfNull(selectedInputIds);
         ArgumentNullException.ThrowIfNull(expectedOperationIds);
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51928",
             referenceCapacity,
             selectedInputIds.Split(','),
@@ -109,7 +108,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [Fact]
     public void Nt51928DpReplaceRejectsLdcWhenReferenceHasNoLdcRegion()
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51928",
             0x40000,
             [CompositionAddressSpaceIds.LdcReplacement],
@@ -127,7 +126,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [Fact]
     public void Nt51928DpReplaceRequiresAtLeastOneReplacement()
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51928",
             0x80000,
             [],
@@ -151,7 +150,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string inspectedSlotId,
         string expectedReadiness)
     {
-        bool resolved = WorkbenchCompositionService.TryResolveBuiltInV2DpReplaceInputSelection(
+        bool resolved = CanonicalCapabilityProjection.TryResolveBuiltInV2DpReplaceInputSelection(
             "NT51928",
             referenceCapacity,
             [selectedSlotId],
@@ -176,7 +175,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     public async Task Nt51928WorkbenchRejectsSelectedLdcForNoLdcReferenceAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51928-stale-ldc-selection");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928",
             WorkbenchIcNumberTokens.SingleChip,
             WorkbenchReplaceModes.Dp,
@@ -232,7 +231,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             slotPaths[WorkbenchSlotIds.ReplaceLdc] = workspace.Write("ldc.bin", ldc);
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928",
             WorkbenchIcNumberTokens.SingleChip,
             WorkbenchReplaceModes.Dp,
@@ -264,7 +263,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string outputPath = workspace.PathFor("output.bin");
         byte[] uniformLdc = new byte[0x80000];
         Array.Fill(uniformLdc, (byte)0xFF);
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928",
             WorkbenchIcNumberTokens.SingleChip,
             WorkbenchReplaceModes.Dp,
@@ -296,7 +295,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string outputPath = workspace.PathFor("output.bin");
         byte[] uniformInitialCode = new byte[0x80000];
         Array.Fill(uniformInitialCode, (byte)0xFF);
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928",
             WorkbenchIcNumberTokens.SingleChip,
             WorkbenchReplaceModes.Dp,
@@ -325,7 +324,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     public async Task Nt51928NonUniformReplacementInputsDoNotEmitPlausibilityWarningsAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51928-nonuniform-inputs");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
             "NT51928",
             WorkbenchIcNumberTokens.SingleChip,
             WorkbenchReplaceModes.Dp,
@@ -356,7 +355,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51950")]
     public void DpPerspectiveClassificationNormalizesRegisteredV2IcIds(string icId)
     {
-        Assert.True(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
+        Assert.True(CanonicalCapabilityProjection.IsDpPerspectiveIc(icId));
     }
 
     /// <summary>Verifies empty ids and registered non-DP-Perspective ICs remain outside the DP Perspective family.</summary>
@@ -365,7 +364,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51929")]
     public void DpPerspectiveClassificationReturnsFalseOutsidePerspectiveFamily(string icId)
     {
-        Assert.False(WorkbenchCompositionService.IsDpPerspectiveIc(icId));
+        Assert.False(CanonicalCapabilityProjection.IsDpPerspectiveIc(icId));
     }
 
     /// <summary>Verifies each supported IC/capacity resolves an executable trusted V2 artifact without legacy fallback.</summary>
@@ -378,7 +377,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951", 0x100000)]
     public void SupportedDpReplaceUsesCapacitySelectedTrustedV2Artifact(string icId, long baseCapacity)
     {
-        bool compiled = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool compiled = CanonicalCapabilityResolution.TryCompileDpReplace(
             icId,
             baseCapacity,
             out CompiledComposition? composition,
@@ -392,7 +391,8 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
         Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
-        WorkbenchProfileSummary summary = WorkbenchCompositionService.GetReplaceProfileSummaries()
+        CapabilityProfileSummary summary = CanonicalCapabilityProjection
+            .GetDpReplaceProfileSummaries()
             .Single(profile => string.Equals(profile.IcId, icId, StringComparison.Ordinal));
         Assert.Equal(summary.ProfileId, artifact.ProfileId);
         Assert.Equal(summary.CompositionKind, artifact.CompositionKind);
@@ -405,7 +405,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [Fact]
     public void UnsupportedDpReplaceBaseCapacityFailsClosed()
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
             "NT51950",
             0x40001,
             out CompiledComposition? composition,
@@ -429,7 +429,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(baseCapacity, 0xA7));
         var progress = new CompositionRunProgressFeed();
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceWithProgressAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceWithProgressAsync(
             icId,
             "single",
             "DP",
@@ -475,7 +475,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951", 0x40000)]
     public void DpReplaceDisplayProjectsSelectedV2Plan(string icId, int baseCapacity)
     {
-        _ = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        _ = CanonicalCapabilityResolution.TryCompileDpReplace(
             icId,
             baseCapacity,
             out CompiledComposition? composition,
@@ -490,7 +490,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             artifact.Plan.OrderedOperations,
             operation => string.Equals(operation.SourceSpaceId, CompositionAddressSpaceIds.ReferenceBase, StringComparison.Ordinal));
 
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             icId,
             "single",
             WorkbenchReplaceModes.Dp,
@@ -508,7 +508,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             FormatRange(new ByteRange(0, artifact.Plan.OutputInitialization.Capacity)),
             display.RangeLabel);
         Assert.Contains(display.CoverageSegments, segment =>
-            segment.SourceLabel == "Base flash" && segment.RangeLabel == FormatRange(restore.TargetRange));
+            segment.SourceLabel == "Base flash" && segment.Range == restore.TargetRange);
         Assert.Contains(display.CoverageSegments, segment => segment.SourceLabel == "Changed DP BIN");
     }
 
@@ -518,7 +518,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     [InlineData("NT51951")]
     public void DpReplaceDisplayPendingBaseUsesV2MapCapacities(string icId)
     {
-        WorkbenchMemoryDisplay display = WorkbenchCompositionService.GetReplaceMemoryDisplay(
+        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
             icId,
             "single",
             WorkbenchReplaceModes.Dp);
@@ -527,7 +527,8 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", row.RangeLabel);
         Assert.Equal("Select", row.ActionLabel);
         WorkbenchMemoryCoverageSegment segment = Assert.Single(display.CoverageSegments);
-        Assert.Equal("Reference length pending", segment.RangeLabel);
+        Assert.Null(segment.Range);
+        Assert.Equal("Reference length pending", segment.UnresolvedRangeLabel);
         Assert.Contains("0x40000 / 0x80000 / 0x100000", segment.Detail, StringComparison.Ordinal);
         Assert.Equal(
             "Reference FlashCode length: 0x40000 / 0x80000 / 0x100000",

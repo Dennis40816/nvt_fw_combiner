@@ -15,7 +15,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        var admittedIcIds = WorkbenchCompositionService.GetSupportedIcIds()
+        var admittedIcIds = CanonicalCapabilityProjection.GetIcIds()
             .ToHashSet(StringComparer.Ordinal);
         JsonElement[] goldenCases =
         [
@@ -54,7 +54,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
             slotPaths[input.Name] = copiedPath;
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
                 $"NT{aliasIc}",
                 slotPaths,
                 build: true,
@@ -98,7 +98,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
             slotPaths[input.Name] = copiedPath;
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
                 $"NT{ic}",
                 slotPaths,
                 build: true,
