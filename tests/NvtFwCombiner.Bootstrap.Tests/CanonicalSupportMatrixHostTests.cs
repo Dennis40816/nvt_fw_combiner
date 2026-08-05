@@ -3,8 +3,22 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Protects the focused Support Matrix host wiring during Workbench retirement.</summary>
+[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class CanonicalSupportMatrixHostTests
 {
+    /// <summary>Shared publication reload coverage cannot run beside capability-bound executions.</summary>
+    [Fact]
+    public void HostTestsUseCanonicalPublicationSerializationCollection()
+    {
+        object attribute = Assert.Single(
+            typeof(CanonicalSupportMatrixHostTests).GetCustomAttributes(
+                typeof(CollectionAttribute),
+                inherit: false));
+        CollectionAttribute collection = Assert.IsType<CollectionAttribute>(attribute);
+
+        Assert.Equal(CanonicalCapabilityCatalogPublicationGroup.Name, collection.Name);
+    }
+
     /// <summary>An in-flight worker load cannot block the UI reporting query.</summary>
     [Fact]
     public async Task QueryReturnsLoadingWhileBackgroundWarmIsInFlight()

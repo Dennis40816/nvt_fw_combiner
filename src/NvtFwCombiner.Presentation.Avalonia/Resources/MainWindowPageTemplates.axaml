@@ -250,8 +250,8 @@
       ToolTip.ShowDelay="220"
       Width="288">
     <ToolTip.Tip>
-      <ToolTip IsHitTestVisible="False">
-      <StackPanel Margin="6" Spacing="{DynamicResource NfcSpace8}" Width="560">
+      <ToolTip IsHitTestVisible="False" Width="560">
+      <StackPanel Margin="6" Spacing="{DynamicResource NfcSpace8}">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace12}">
           <TextBlock Classes="sectionTitle" Text="{Binding IcId}" />
           <Label Grid.Column="1" Classes="compactBadge neutralBadge reportBadge" Content="{Binding StatusLabel}" />
