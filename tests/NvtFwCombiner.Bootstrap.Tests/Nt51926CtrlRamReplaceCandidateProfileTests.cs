@@ -333,7 +333,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             candidateInputs,
             "nt51926-ctrlram-v2-parity");
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
+        Assert.True(
+            v2.Status == CompositionExecutionStatus.Succeeded,
+            FormatIssues(v2.Issues));
         Assert.Equal(2, v2.Issues.Count);
         Assert.All(v2.Issues, static issue => Assert.Equal(
             CompositionIssueCodes.InputAddressSpaceTruncated,

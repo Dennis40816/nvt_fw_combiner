@@ -94,6 +94,7 @@ internal static partial class V2CompositionPlanCompiler
                 declaredPrefix.UnexpectedOuterLengthIssueCode);
         bool usesSourceViewSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
             sourceSlot.LengthRule is SourceViewCoverageLengthRule sourceView &&
+            sourceView.MaximumOuterLength is null &&
             sourceAddressSpace.InputPaddingByte is null &&
             sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
             sourceAddressSpace.AllowedInputLengths.Count == 0 &&

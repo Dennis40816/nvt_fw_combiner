@@ -22,13 +22,12 @@ internal enum CompositionProfileSlotCardinality
 }
 
 /// <summary>Closed input length rule kind.</summary>
-// Values mirror compiled fingerprint wire codes; retired value 3 stays reserved.
+// Values mirror compiled fingerprint wire codes; retired values 3 and 4 stay reserved.
 internal enum CompositionProfileLengthRuleKind
 {
     ExactBytes = 0,
     ExactResolvedMapCapacity = 1,
     Bounded = 2,
-    TpMaximum256K = 4,
     DeclaredPrefixWithWarning = 5,
     SourceViewCoverage = 6,
 }
@@ -154,13 +153,6 @@ internal sealed record BoundedLengthRule : CompositionProfileLengthRule
     internal long MaximumBytes { get; }
 }
 
-/// <summary>Rejects TP firmware larger than the fixed 256 KiB owner limit.</summary>
-internal sealed record TpMaximum256KLengthRule()
-    : CompositionProfileLengthRule(CompositionProfileLengthRuleKind.TpMaximum256K)
-{
-    internal const long MaximumBytes = 262144;
-}
-
 /// <summary>
 /// Accepts an immutable section source that covers every compiled read for its
 /// input space, with optional complete-container diagnostics.
@@ -171,7 +163,8 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
 
     internal SourceViewCoverageLengthRule(
         IReadOnlyList<long>? expectedOuterLengths = null,
-        string? unexpectedOuterLengthIssueCode = null)
+        string? unexpectedOuterLengthIssueCode = null,
+        long? maximumOuterLength = null)
         : base(CompositionProfileLengthRuleKind.SourceViewCoverage)
     {
         if (expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null)
@@ -181,17 +174,28 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
         }
 
         _expectedOuterLengths = NormalizeExpectedOuterLengths(expectedOuterLengths);
+        if (maximumOuterLength is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maximumOuterLength),
+                maximumOuterLength,
+                "Maximum outer length must be positive when declared.");
+        }
+
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode is null
             ? null
             : CompositionProfileValueRules.RequireIssueCode(
                 unexpectedOuterLengthIssueCode,
                 nameof(unexpectedOuterLengthIssueCode));
         ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
+        MaximumOuterLength = maximumOuterLength;
     }
 
     internal IReadOnlyList<long> ExpectedOuterLengths { get; }
 
     internal string? UnexpectedOuterLengthIssueCode { get; }
+
+    internal long? MaximumOuterLength { get; }
 
     private static long[] NormalizeExpectedOuterLengths(IReadOnlyList<long>? expectedOuterLengths)
     {
@@ -366,12 +370,6 @@ internal sealed partial class CompositionProfileInputSlot
                 "TP firmware requires one approved unnormalized section or exact length rule.");
         }
 
-        if (lengthRule.Kind == CompositionProfileLengthRuleKind.TpMaximum256K &&
-            artifactClass != CompositionProfileArtifactClass.TpFirmware)
-        {
-            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
-        }
-
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
             lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
                 not CompositionProfileLengthRuleKind.DeclaredPrefixWithWarning and
@@ -408,10 +406,12 @@ internal sealed partial class CompositionProfileInputSlot
                 "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
         }
 
-        if (lengthRule.Kind == CompositionProfileLengthRuleKind.SourceViewCoverage &&
+        if (lengthRule is SourceViewCoverageLengthRule sourceView &&
             (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
                 CompositionProfileArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+             normalization.Kind != CompositionProfileInputNormalizationKind.None ||
+             (sourceView.MaximumOuterLength is not null &&
+              artifactClass != CompositionProfileArtifactClass.TpFirmware)))
         {
             throw new ArgumentException(
                 "Source-view coverage is restricted to unnormalized immutable section sources.");
@@ -420,12 +420,12 @@ internal sealed partial class CompositionProfileInputSlot
 
     private static bool IsApprovedTpLengthRule(CompositionProfileLengthRule lengthRule)
     {
-        return lengthRule is TpMaximum256KLengthRule or SourceViewCoverageLengthRule or
+        return lengthRule is SourceViewCoverageLengthRule or
             DeclaredPrefixWithWarningLengthRule
         {
-            RequiredEndExclusive: <= TpMaximum256KLengthRule.MaximumBytes,
+            RequiredEndExclusive: <= 262144,
         } or
-            ExactBytesLengthRule { Bytes: <= TpMaximum256KLengthRule.MaximumBytes };
+            ExactBytesLengthRule { Bytes: <= 262144 };
     }
 
     private static string[] SnapshotExtensions(IEnumerable<string> acceptedExtensions)

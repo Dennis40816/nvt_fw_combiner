@@ -55,7 +55,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRule);
         SourceViewCoverageLengthRule dpWarning = Assert.IsType<SourceViewCoverageLengthRule>(
             Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
-        TpMaximum256KLengthRule tpMaximum = Assert.IsType<TpMaximum256KLengthRule>(
+        SourceViewCoverageLengthRule tpMaximum = Assert.IsType<SourceViewCoverageLengthRule>(
             Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
         DeclaredPrefixWithWarningLengthRule declaredPrefix = Assert.IsType<DeclaredPrefixWithWarningLengthRule>(
             Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRule);
@@ -65,8 +65,8 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal(32, bounded.MaximumBytes);
         Assert.Equal("DP_SIZE_WARNING", dpWarning.UnexpectedOuterLengthIssueCode);
         Assert.Empty(dpWarning.ExpectedOuterLengths);
-        Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tpMaximum.Kind);
+        Assert.Equal(262144, tpMaximum.MaximumOuterLength);
+        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, tpMaximum.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("AB_INPUT_SHORT", declaredPrefix.ShortInputIssueCode);

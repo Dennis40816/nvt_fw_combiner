@@ -18,7 +18,8 @@ public sealed class CompositionProfileV2InputTests
         var sourceViewWithContainers = new SourceViewCoverageLengthRule(
             [0x80000, 0x200000],
             "DP_SIZE_WARNING");
-        var tp = new TpMaximum256KLengthRule();
+        var boundedSourceView = new SourceViewCoverageLengthRule(
+            maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
         var declaredPrefix = new DeclaredPrefixWithWarningLengthRule(
             0x80000,
             [0x80000],
@@ -32,8 +33,10 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal("DP_SIZE_WARNING", sourceViewWithResolvedContainer.UnexpectedOuterLengthIssueCode);
         Assert.Empty(sourceViewWithResolvedContainer.ExpectedOuterLengths);
         Assert.Equal([0x80000L, 0x200000L], sourceViewWithContainers.ExpectedOuterLengths);
-        Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tp.Kind);
+        Assert.Equal(
+            CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            boundedSourceView.MaximumOuterLength);
+        Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, boundedSourceView.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
@@ -47,6 +50,8 @@ public sealed class CompositionProfileV2InputTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new ExactBytesLengthRule(0));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(0, 4));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new BoundedLengthRule(8, 4));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new SourceViewCoverageLengthRule(
+            maximumOuterLength: 0));
         _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule(
             unexpectedOuterLengthIssueCode: "dp-warning"));
         _ = Assert.Throws<ArgumentException>(() => new SourceViewCoverageLengthRule([], "DP_SIZE_WARNING"));
@@ -95,11 +100,12 @@ public sealed class CompositionProfileV2InputTests
     {
         CompositionProfileInputSlot tp = Slot(
             CompositionProfileArtifactClass.TpFirmware,
-            new TpMaximum256KLengthRule(),
+            new SourceViewCoverageLengthRule(
+                maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
             new NoInputNormalization());
         CompositionProfileInputSlot exactTp = Slot(
             CompositionProfileArtifactClass.TpFirmware,
-            new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes),
+            new ExactBytesLengthRule(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
             new NoInputNormalization());
         CompositionProfileInputSlot sourceView = Slot(
             CompositionProfileArtifactClass.DpFirmware,
@@ -133,7 +139,9 @@ public sealed class CompositionProfileV2InputTests
             new NoInputNormalization());
 
         Assert.Equal(CompositionProfileArtifactClass.TpFirmware, tp.ArtifactClass);
-        Assert.Equal(TpMaximum256KLengthRule.MaximumBytes, Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
+        Assert.Equal(
+            CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            Assert.IsType<ExactBytesLengthRule>(exactTp.LengthRule).Bytes);
         Assert.Equal(CompositionProfileLengthRuleKind.SourceViewCoverage, sourceView.LengthRule.Kind);
         Assert.Equal(CompositionProfileInputNormalizationKind.PadShorter, paddedDp.Normalization.Kind);
         Assert.Equal(CompositionProfileArtifactClass.ReferenceImage, reference.ArtifactClass);
@@ -153,13 +161,13 @@ public sealed class CompositionProfileV2InputTests
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.TpFirmware,
-            new ExactBytesLengthRule(TpMaximum256KLengthRule.MaximumBytes + 1),
+            new ExactBytesLengthRule(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1),
             new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.TpFirmware,
             new DeclaredPrefixWithWarningLengthRule(
-                TpMaximum256KLengthRule.MaximumBytes + 1,
-                [TpMaximum256KLengthRule.MaximumBytes + 1],
+                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
+                [CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1],
                 "INPUT_SHORT",
                 "INPUT_OUTER_LENGTH"),
             new NoInputNormalization()));
@@ -183,14 +191,6 @@ public sealed class CompositionProfileV2InputTests
             CompositionProfileArtifactClass.DpFirmware,
             new ExactResolvedMapCapacityLengthRule(),
             new TruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence")));
-        _ = Assert.Throws<ArgumentException>(() => Slot(
-            CompositionProfileArtifactClass.Auxiliary,
-            new TpMaximum256KLengthRule(),
-            new NoInputNormalization()));
-        _ = Assert.Throws<ArgumentException>(() => Slot(
-            CompositionProfileArtifactClass.CtrlRamReplacement,
-            new TpMaximum256KLengthRule(),
-            new NoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => Slot(
             CompositionProfileArtifactClass.ReferenceImage,
             new DeclaredPrefixWithWarningLengthRule(
