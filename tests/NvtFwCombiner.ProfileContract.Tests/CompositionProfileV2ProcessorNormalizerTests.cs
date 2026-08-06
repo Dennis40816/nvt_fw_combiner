@@ -18,8 +18,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
         Assert.Equal(["view-a", "view-z"], stage.AllowedReadViewIds);
         Assert.Empty(stage.AllowedWriteViewIds);
-        Assert.Equal("1.0.0", stage.ContractVersion);
-        Assert.Equal("display-crc", stage.CalculationSetId);
     }
 
     /// <summary>Verifies legacy stages preserve all approved ids, views, evidence, and staged bindings.</summary>
@@ -48,7 +46,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
         Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
-        Assert.Equal("combiner-evidence", stage.EvidenceRef);
     }
 
     /// <summary>Verifies direct 2.0 normalization does not gain the schema-2.2 tool binding grammar.</summary>

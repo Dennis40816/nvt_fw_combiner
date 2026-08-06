@@ -137,10 +137,8 @@ internal static class CompositionProfileV2DefinitionTestData
     {
         return new CompositionProfileExperience(
             experienceId,
-            AudienceKind.System,
             LayoutPolicy.Fixed,
             InputPolicy.Fixed,
-            CompositionProfileTopologyAuthoring.Hidden,
             $"experience.{experienceId}");
     }
 

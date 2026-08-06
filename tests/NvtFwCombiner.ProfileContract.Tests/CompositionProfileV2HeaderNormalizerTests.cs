@@ -60,7 +60,7 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
             promotion.Blockers.Select(static blocker => blocker.Kind).Order());
     }
 
-    /// <summary>Verifies experience tokens map to existing Domain policy dimensions.</summary>
+    /// <summary>Verifies experience tokens validate while compiler-consumed policy dimensions remain typed.</summary>
     [Fact]
     public void ExperienceMapsClosedPolicyTokens()
     {
@@ -74,10 +74,8 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
 
         CompositionProfileExperience experience = CompositionProfileNormalizer.NormalizeExperience(document);
 
-        Assert.Equal(AudienceKind.Advanced, experience.Audience);
         Assert.Equal(LayoutPolicy.UserDefined, experience.LayoutPolicy);
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);
-        Assert.Equal(CompositionProfileTopologyAuthoring.ExactCount, experience.TopologyAuthoring);
     }
 
     /// <summary>Verifies trusted family/map references normalize into immutable canonical sets.</summary>
@@ -118,6 +116,14 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
             CompositionProfileNormalizer.NormalizeExperience(
                 new CompositionProfileExperienceDocument(
                     "Experience", "system", "fixed", "fixed", "hidden", "name")));
+        CompositionProfileNormalizationException audience = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeExperience(
+                new CompositionProfileExperienceDocument(
+                    "experience", "future", "fixed", "fixed", "hidden", "name")));
+        CompositionProfileNormalizationException topology = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeExperience(
+                new CompositionProfileExperienceDocument(
+                    "experience", "system", "fixed", "fixed", "future", "name")));
         CompositionProfileNormalizationException map = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeMapBinding(
                 new CompositionProfileMapBindingDocument(
@@ -126,6 +132,8 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
         Assert.Equal("promotion.stage", stage.Path);
         Assert.Equal("promotion.blockers[0].kind", blocker.Path);
         Assert.Equal("experience", experience.Path);
+        Assert.Equal("experience.audience", audience.Path);
+        Assert.Equal("experience.topologyAuthoring", topology.Path);
         Assert.Equal("mapBinding", map.Path);
     }
 
