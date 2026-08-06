@@ -41,7 +41,7 @@ public static partial class CompositionAuthoringSessionAdapter
             accepted is null ||
             !StringComparer.Ordinal.Equals(
                 current.WorkflowId,
-                Profiles.IcWorkflowIds.CtrlRamReplace) ||
+                ExperienceIds.CtrlRamReplace) ||
             !StringComparer.Ordinal.Equals(
                 accepted.Identity.IcId,
                 Profiles.IcIdentifier.Normalize(icId)) ||

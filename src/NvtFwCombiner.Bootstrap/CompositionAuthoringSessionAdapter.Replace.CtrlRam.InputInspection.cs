@@ -29,7 +29,7 @@ public static partial class CompositionAuthoringSessionAdapter
         if (capability is null ||
             !StringComparer.Ordinal.Equals(
                 acceptedSession.WorkflowId,
-                Profiles.IcWorkflowIds.CtrlRamReplace) ||
+                ExperienceIds.CtrlRamReplace) ||
             !IsAcceptedCtrlRamSession(context, slotPaths, acceptedSession, capability))
         {
             return null;
@@ -69,7 +69,7 @@ public static partial class CompositionAuthoringSessionAdapter
         return retainedSession is not null && retained is not null &&
             StringComparer.Ordinal.Equals(
                 retainedSession.WorkflowId,
-                Profiles.IcWorkflowIds.CtrlRamReplace) &&
+                ExperienceIds.CtrlRamReplace) &&
             IsAcceptedCtrlRamSession(context, slotPaths, retainedSession, retained)
             ? AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(retained)
             : CompositionPlanningAdapter.TryResolveCtrlRamCapability(context, out ResolvedCapability? capability, out _)

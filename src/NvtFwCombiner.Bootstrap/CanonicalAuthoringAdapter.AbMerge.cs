@@ -73,7 +73,7 @@ public static partial class CanonicalAuthoringAdapter
         private string? _icId;
         private ResolvedCapability? _capability;
 
-        public string WorkflowId => Profiles.IcWorkflowIds.AbMerge;
+        public string WorkflowId => ExperienceIds.AbMerge;
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {

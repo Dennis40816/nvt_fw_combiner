@@ -129,9 +129,9 @@ public static partial class CanonicalCapabilityProjection
     {
         return replaceMode switch
         {
-            WorkbenchReplaceModes.Dp => IcWorkflowIds.DpReplace,
-            WorkbenchReplaceModes.CtrlRam => IcWorkflowIds.CtrlRamReplace,
-            WorkbenchReplaceModes.General => IcWorkflowIds.GeneralReplace,
+            WorkbenchReplaceModes.Dp => ExperienceIds.DpReplace,
+            WorkbenchReplaceModes.CtrlRam => ExperienceIds.CtrlRamReplace,
+            WorkbenchReplaceModes.General => ExperienceIds.GeneralReplace,
             _ => null,
         };
     }
@@ -172,7 +172,7 @@ public static partial class CanonicalCapabilityProjection
                     CapabilityAuthoringAvailability.Available &&
                 StringComparer.Ordinal.Equals(capability.Identity.IcId, icId))
             .Select(static capability => capability.CompiledComposition));
-        if (HasAuthorableRoute(snapshot, icId, IcWorkflowIds.StandardMerge) &&
+        if (HasAuthorableRoute(snapshot, icId, ExperienceIds.StandardMerge) &&
             BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(
                 icId,
                 out BuiltInV2Registration? registration))

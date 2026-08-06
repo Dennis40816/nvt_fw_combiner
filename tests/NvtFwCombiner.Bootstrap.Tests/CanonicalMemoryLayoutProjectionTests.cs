@@ -1,8 +1,8 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.MemoryLayout;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -13,7 +13,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
     [Fact]
     public void Nt51929StandardMergeProjectsThePublishedCanonicalCapability()
     {
-        PilotFixture fixture = CreatePilot(IcWorkflowIds.StandardMerge);
+        PilotFixture fixture = CreatePilot(ExperienceIds.StandardMerge);
 
         MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
             fixture.Capability,
@@ -36,7 +36,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
     [Fact]
     public void Nt51929DpReplaceProjectsThePublishedCanonicalCapability()
     {
-        PilotFixture fixture = CreatePilot(IcWorkflowIds.DpReplace);
+        PilotFixture fixture = CreatePilot(ExperienceIds.DpReplace);
 
         MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
             fixture.Capability,

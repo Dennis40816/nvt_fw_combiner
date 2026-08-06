@@ -2,6 +2,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -104,7 +105,7 @@ public static partial class CompositionAuthoringSessionAdapter
         string[] definitions = [.. mappingIds];
         var identity = new CapabilityRouteIdentity(
             icId,
-            Profiles.IcWorkflowIds.GeneralMerge,
+            ExperienceIds.GeneralMerge,
             "not-applicable",
             "generic");
         CapabilityRouteResolutionResult resolution =

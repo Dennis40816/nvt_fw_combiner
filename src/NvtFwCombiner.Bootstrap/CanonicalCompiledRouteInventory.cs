@@ -2,7 +2,6 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -43,7 +42,7 @@ internal static class CanonicalCompiledRouteInventory
                 $"Declared IC Count variant '{identity.IcCountVariant}' does not match map '{selectedMap.MapId}'.");
         }
 
-        TopologySelection? topology = identity.WorkflowId == IcWorkflowIds.AbMerge
+        TopologySelection? topology = identity.WorkflowId == ExperienceIds.AbMerge
             ? HeadlessRouteSelection.CreateTopologySelection(
                 selectedMap.Applicability.TopologyRequirement,
                 selectedMap.MapId)
@@ -83,13 +82,13 @@ internal static class CanonicalCompiledRouteInventory
     {
         BuiltInV2Registration? registration = identity.WorkflowId switch
         {
-            IcWorkflowIds.StandardMerge =>
+            ExperienceIds.StandardMerge =>
                 BuiltInV2RegistrationRegistry.StandardMergeByIc
                     .GetValueOrDefault(identity.IcId),
-            IcWorkflowIds.AbMerge =>
+            ExperienceIds.AbMerge =>
                 BuiltInV2RegistrationRegistry.AbMergeByIc
                     .GetValueOrDefault(identity.IcId),
-            IcWorkflowIds.DpReplace =>
+            ExperienceIds.DpReplace =>
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value
                     .GetValueOrDefault(identity.IcId),
             _ => null,

@@ -18,7 +18,7 @@ public static partial class CanonicalAuthoringAdapter
     {
         return CanonicalCapabilityResolution.HasCanonicalCapability(
             icId,
-            Profiles.IcWorkflowIds.StandardMerge);
+            ExperienceIds.StandardMerge);
     }
 
     /// <summary>Gets the canonical Standard Merge profile id for the selected IC, if any.</summary>
@@ -71,7 +71,7 @@ public static partial class CanonicalAuthoringAdapter
     private sealed class StandardMergeAuthoringResolver
         : ICompiledAuthoringWorkflowResolver
     {
-        public string WorkflowId => Profiles.IcWorkflowIds.StandardMerge;
+        public string WorkflowId => ExperienceIds.StandardMerge;
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {

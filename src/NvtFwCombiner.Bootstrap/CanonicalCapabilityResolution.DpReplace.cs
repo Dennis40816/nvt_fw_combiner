@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -48,7 +47,7 @@ internal static partial class CanonicalCapabilityResolution
     {
         return TryCompilePublishedDynamicCapability(
                 icId,
-                IcWorkflowIds.DpReplace,
+                ExperienceIds.DpReplace,
                 "1-ic",
                 baseCapacity,
                 selectedInputSlotIds,

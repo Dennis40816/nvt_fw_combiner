@@ -1,4 +1,4 @@
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -34,7 +34,7 @@ internal static partial class ReplaceCliCommandHandler
                 action,
                 icId,
                 modeId,
-                IcWorkflowIds.CtrlRamReplace,
+                ExperienceIds.CtrlRamReplace,
                 options,
                 slotPaths,
                 (_, token) => CompositionExecutionAdapter.RunReplaceAsync(

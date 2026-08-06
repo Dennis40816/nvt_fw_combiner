@@ -73,7 +73,7 @@ public static partial class CanonicalAuthoringAdapter
 
     private sealed class DpReplaceAuthoringResolver : ICompiledAuthoringWorkflowResolver
     {
-        public string WorkflowId => IcWorkflowIds.DpReplace;
+        public string WorkflowId => ExperienceIds.DpReplace;
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {

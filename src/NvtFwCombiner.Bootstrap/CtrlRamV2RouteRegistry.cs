@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.ExternalTools;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -15,7 +15,7 @@ internal static class CtrlRamV2RouteRegistry
                 static (bundle, registration) => (Bundle: bundle, Registration: registration))
             .Where(static item => StringComparer.Ordinal.Equals(
                 item.Registration.WorkflowId,
-                IcWorkflowIds.CtrlRamReplace))
+                ExperienceIds.CtrlRamReplace))
             .Select(static item => new CtrlRamV2Route(
                 new CtrlRamV2RouteKey(
                     item.Registration.IcId,

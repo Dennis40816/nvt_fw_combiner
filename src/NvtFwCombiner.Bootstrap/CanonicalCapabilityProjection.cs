@@ -46,19 +46,19 @@ public static partial class CanonicalCapabilityProjection
     public static IReadOnlyList<CapabilityProfileSummary>
         GetStandardMergeProfileSummaries()
     {
-        return GetProfileSummaries(IcWorkflowIds.StandardMerge);
+        return GetProfileSummaries(ExperienceIds.StandardMerge);
     }
 
     /// <summary>Gets canonical AB Merge profile summaries.</summary>
     public static IReadOnlyList<CapabilityProfileSummary> GetAbMergeProfileSummaries()
     {
-        return GetProfileSummaries(IcWorkflowIds.AbMerge);
+        return GetProfileSummaries(ExperienceIds.AbMerge);
     }
 
     /// <summary>Gets canonical DP Replace profile summaries.</summary>
     public static IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries()
     {
-        return GetProfileSummaries(IcWorkflowIds.DpReplace);
+        return GetProfileSummaries(ExperienceIds.DpReplace);
     }
 
     /// <summary>Gets stable authorable profile summaries for one workflow.</summary>
@@ -153,13 +153,13 @@ public static partial class CanonicalCapabilityProjection
             .Where(capability => IsAuthorable(capability.Authoring) &&
                 StringComparer.Ordinal.Equals(
                     capability.Identity.WorkflowId,
-                    IcWorkflowIds.CtrlRamReplace))
+                    ExperienceIds.CtrlRamReplace))
             .Select(static capability => capability.Identity.IcId)
             .Concat(snapshot.DynamicRoutes
                 .Where(route => IsAuthorable(route.Authoring) &&
                     StringComparer.Ordinal.Equals(
                         route.Identity.WorkflowId,
-                        IcWorkflowIds.CtrlRamReplace))
+                        ExperienceIds.CtrlRamReplace))
                 .Select(static route => route.Identity.IcId))
             .Distinct(StringComparer.Ordinal)
             .Count();
@@ -240,10 +240,10 @@ public static partial class CanonicalCapabilityProjection
     {
         BuiltInV2Registration registration = workflowId switch
         {
-            IcWorkflowIds.StandardMerge =>
+            ExperienceIds.StandardMerge =>
                 BuiltInV2RegistrationRegistry.StandardMergeByIc[icId],
-            IcWorkflowIds.AbMerge => BuiltInV2RegistrationRegistry.AbMergeByIc[icId],
-            IcWorkflowIds.DpReplace =>
+            ExperienceIds.AbMerge => BuiltInV2RegistrationRegistry.AbMergeByIc[icId],
+            ExperienceIds.DpReplace =>
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[icId],
             _ => throw new InvalidOperationException(
                 $"Workflow '{workflowId}' has no registered dynamic summary adapter."),

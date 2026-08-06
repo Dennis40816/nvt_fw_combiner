@@ -13,7 +13,7 @@ internal static partial class CanonicalCapabilityResolution
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         return HasCanonicalCapability(
             IcIdentifier.Normalize(icId),
-            IcWorkflowIds.AbMerge);
+            ExperienceIds.AbMerge);
     }
 
     internal static bool TryCompileAbMerge(
@@ -73,7 +73,7 @@ internal static partial class CanonicalCapabilityResolution
                         normalizedIcId) &&
                     StringComparer.Ordinal.Equals(
                         capability.Identity.WorkflowId,
-                        IcWorkflowIds.AbMerge))
+                        ExperienceIds.AbMerge))
                 .Select(static capability =>
                     capability.CompiledComposition.V2Details.Provenance.Context)
                 .OfType<MapBoundV2CompilationContext>()

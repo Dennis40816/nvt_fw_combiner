@@ -1,4 +1,4 @@
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -6,20 +6,20 @@ namespace NvtFwCombiner.Bootstrap;
 public static class WorkbenchWorkflowIds
 {
     /// <summary>Standard Merge workflow id.</summary>
-    public const string StandardMerge = IcWorkflowIds.StandardMerge;
+    public const string StandardMerge = ExperienceIds.StandardMerge;
 
     /// <summary>AB Code Merge workflow id.</summary>
-    public const string AbMerge = IcWorkflowIds.AbMerge;
+    public const string AbMerge = ExperienceIds.AbMerge;
 
     /// <summary>General Merge workflow id.</summary>
-    public const string GeneralMerge = IcWorkflowIds.GeneralMerge;
+    public const string GeneralMerge = ExperienceIds.GeneralMerge;
 
     /// <summary>DP Replace workflow id.</summary>
-    public const string DpReplace = IcWorkflowIds.DpReplace;
+    public const string DpReplace = ExperienceIds.DpReplace;
 
     /// <summary>CtrlRAM Replace workflow id.</summary>
-    public const string CtrlRamReplace = IcWorkflowIds.CtrlRamReplace;
+    public const string CtrlRamReplace = ExperienceIds.CtrlRamReplace;
 
     /// <summary>General Replace workflow id.</summary>
-    public const string GeneralReplace = IcWorkflowIds.GeneralReplace;
+    public const string GeneralReplace = ExperienceIds.GeneralReplace;
 }

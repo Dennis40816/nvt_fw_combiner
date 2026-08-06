@@ -1,7 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -43,8 +42,8 @@ public static partial class CompositionExecutionAdapter
                 reportProfileId,
                 reportProfileVersion,
                 icId,
-                IcWorkflowIds.GeneralMerge,
-                IcWorkflowIds.GeneralMerge,
+                ExperienceIds.GeneralMerge,
+                ExperienceIds.GeneralMerge,
                 CompositionKind.Merge,
                 reportSlotPaths,
                 build,
@@ -85,7 +84,7 @@ public static partial class CompositionExecutionAdapter
                 [new CompositionIssue(
                     WorkbenchIssueCodes.GeneralMergeMappingRequired,
                     "General Merge requires at least one explicit source-to-target mapping.",
-                    IcWorkflowIds.GeneralMerge)]);
+                    ExperienceIds.GeneralMerge)]);
         }
 
         CompositionPlanningAdapter.GeneralMergePlanningResult planning =

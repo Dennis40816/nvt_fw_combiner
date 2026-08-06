@@ -190,11 +190,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("EvidenceRef { get; }", processor, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
+    /// <summary>Verifies the legacy typed profile model and its synthetic fixture cannot return.</summary>
     [Fact]
-    public void SyntheticReplaceProfilesStayTestOnly()
+    public void LegacyTypedProfileModelsStayDeleted()
     {
-        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
         string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
 
         Assert.False(File.Exists(Path.Combine(
@@ -210,9 +209,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("synthetic-dp-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
-        Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
-        Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "CompositionProfileDefinition.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.TestSupport",
+            "SyntheticReplaceProfiles.cs")));
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -416,7 +422,7 @@ public sealed partial class RepositoryBoundaryTests
         string[] retiredIds = ["51920", "51925", "51930", "51931"];
         string[] productionOwners =
         [
-            "src/NvtFwCombiner.Profiles/IcWorkflowIds.cs",
+            "src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs",
             "src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs",
             "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",

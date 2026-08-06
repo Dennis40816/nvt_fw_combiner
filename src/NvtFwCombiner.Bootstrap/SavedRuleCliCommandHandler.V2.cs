@@ -1,6 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -35,7 +35,7 @@ internal static partial class SavedRuleCliCommandHandler
             if (MatchesV2Workflow(
                     root,
                     SavedRuleSchemaTokens.CompositionKindMerge,
-                    IcWorkflowIds.GeneralMerge))
+                    ExperienceIds.GeneralMerge))
             {
                 if (!TryResolveV2GeneralMergeParent(
                         root,
@@ -64,7 +64,7 @@ internal static partial class SavedRuleCliCommandHandler
             else if (MatchesV2Workflow(
                          root,
                          SavedRuleSchemaTokens.CompositionKindReplace,
-                         IcWorkflowIds.GeneralReplace))
+                         ExperienceIds.GeneralReplace))
             {
                 if (!TryResolveV2GeneralReplaceParent(
                         root,

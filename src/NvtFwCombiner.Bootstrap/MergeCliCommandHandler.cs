@@ -1,5 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -15,7 +15,7 @@ internal static partial class MergeCliCommandHandler
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (command != IcWorkflowIds.GeneralMerge)
+        if (command != ExperienceIds.GeneralMerge)
         {
             await error.WriteLineAsync($"error: unknown merge command '{command}'").ConfigureAwait(false);
             return UsageError;

@@ -64,7 +64,7 @@ public static partial class CompositionExecutionAdapter
     {
         ResolvedCapability capability = AcceptedAuthoringSessionBinding.RequireCapability(
             acceptedSession,
-            Profiles.IcWorkflowIds.GeneralMerge,
+            ExperienceIds.GeneralMerge,
             icId,
             AuthoringDerivedResultKind.Validation);
         GeneralMergeDraftState draft = acceptedSession.DraftState as GeneralMergeDraftState ??
