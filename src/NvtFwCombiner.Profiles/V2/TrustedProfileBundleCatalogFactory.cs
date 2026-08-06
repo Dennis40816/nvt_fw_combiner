@@ -2,6 +2,7 @@ using System.Text.Json;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -46,6 +47,9 @@ internal static class TrustedProfileBundleCatalogFactory
     private const string ProfileFamilyMissing = "profile-bundle.catalog.profile-family-missing";
     private const string ProfileFamilyAmbiguous = "profile-bundle.catalog.profile-family-ambiguous";
     private const string ProfileMapMissing = "profile-bundle.catalog.profile-map-missing";
+    private const string ProfileRequiredRegionMissing = "profile-bundle.catalog.profile-required-region-missing";
+    private const string ProfileRequiredMetadataMissing = "profile-bundle.catalog.profile-required-metadata-missing";
+    private const string ProfileMetadataTargetMissing = "profile-bundle.catalog.profile-metadata-target-missing";
     private const string LogicalProfileMemberMissing = "profile-bundle.catalog.logical-member-missing";
 
     /// <summary>Normalizes one complete trusted source atomically without map resolution or plan compilation.</summary>
@@ -276,12 +280,51 @@ internal static class TrustedProfileBundleCatalogFactory
     {
         foreach (string mapId in profile.MapBinding.MapIds)
         {
-            if (!family.Family.ImageMaps.Any(candidate =>
-                    StringComparer.Ordinal.Equals(candidate.MapId, mapId)))
-            {
-                throw Error(
+            FirmwareImageMap map = family.Family.ImageMaps.SingleOrDefault(candidate =>
+                StringComparer.Ordinal.Equals(candidate.MapId, mapId)) ?? throw Error(
                     ProfileMapMissing,
                     $"Profile '{profile.ProfileId}' names unknown map '{mapId}' in its exact trusted family.",
+                    profileIdentity);
+            ValidateStaticMapContract(profile, family.Family, map, profileIdentity);
+        }
+    }
+
+    internal static void ValidateStaticMapContract(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition family,
+        FirmwareImageMap map,
+        TrustedProfileBundleCatalogEntryIdentity profileIdentity)
+    {
+        var regionIds = map.Regions.Select(static region => region.RegionId).ToHashSet(StringComparer.Ordinal);
+        string? missingRegion = profile.MapBinding.RequiredRegionIds.FirstOrDefault(id => !regionIds.Contains(id));
+        if (missingRegion is not null)
+        {
+            throw Error(
+                ProfileRequiredRegionMissing,
+                $"Profile '{profile.ProfileId}' requires region '{missingRegion}' missing from map '{map.MapId}'.",
+                profileIdentity);
+        }
+
+        string? missingStructure = profile.MapBinding.RequiredMetadataStructureIds.FirstOrDefault(id =>
+            !family.TryResolveStructure(map.MapId, id, out _));
+        if (missingStructure is not null)
+        {
+            throw Error(
+                ProfileRequiredMetadataMissing,
+                $"Profile '{profile.ProfileId}' requires metadata structure '{missingStructure}' missing from map '{map.MapId}'.",
+                profileIdentity);
+        }
+
+        foreach (CompositionProfileMetadataBinding binding in profile.MetadataBindings)
+        {
+            _ = family.TryResolveStructure(map.MapId, binding.StructureId, out FirmwareMetadataStructure? structure);
+            FirmwareMetadataReferenceTarget? missingTarget = binding.TargetReferences.FirstOrDefault(target =>
+                !structure!.Definition.ContainsReferenceTarget(target));
+            if (missingTarget is not null)
+            {
+                throw Error(
+                    ProfileMetadataTargetMissing,
+                    $"Profile metadata binding '{binding.BindingId}' references unknown {missingTarget.Kind} target '{missingTarget.TargetId}' in map '{map.MapId}'.",
                     profileIdentity);
             }
         }

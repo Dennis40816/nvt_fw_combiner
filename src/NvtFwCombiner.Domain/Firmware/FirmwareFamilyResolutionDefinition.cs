@@ -54,13 +54,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
-        if (!IsLowercaseSha256(familyContentHash))
-        {
-            throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
-        }
+        _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
         _imageMaps = SnapshotMaps(imageMaps);
         _metadataSets = SnapshotMetadataSets(metadataSets);
@@ -525,9 +519,4 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         _ = checked(lastResult + structureLength);
     }
 
-    private static bool IsLowercaseSha256(string value)
-    {
-        return value.Length == 64 && value.All(static character =>
-            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-    }
 }

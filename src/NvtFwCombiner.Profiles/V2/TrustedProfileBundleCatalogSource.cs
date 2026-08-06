@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -15,11 +16,10 @@ internal sealed class TrustedProfileBundleCatalogEntryIdentity
         ArgumentException.ThrowIfNullOrWhiteSpace(entryId);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentException.ThrowIfNullOrWhiteSpace(schemaId);
-        ProfileBundleIdentity.ValidateSha256(contentHash, nameof(contentHash));
         EntryId = entryId;
         Path = path;
         SchemaId = schemaId;
-        ContentHash = contentHash;
+        ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
     }
 
     internal string EntryId { get; }
@@ -80,10 +80,10 @@ internal sealed class TrustedProfileBundleCatalogSource
         IEnumerable<TrustedFirmwareFamilyJsonSource> families,
         IEnumerable<TrustedCompositionProfileJsonSource> profiles)
     {
-        ProfileBundleIdentity.ValidateSha256(manifestSha256, nameof(manifestSha256));
+        _ = CanonicalSha256.Require(manifestSha256, nameof(manifestSha256));
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
-        ProfileBundleIdentity.ValidateSha256(bundleContentHash, nameof(bundleContentHash));
+        _ = CanonicalSha256.Require(bundleContentHash, nameof(bundleContentHash));
         ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
         _families = ImmutableReferenceSnapshot.Create(
             families,

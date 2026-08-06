@@ -145,7 +145,7 @@ internal static partial class CompositionProfileNormalizer
         string? metadataBindingId = source.MetadataBindingId;
         if (isMetadataSource)
         {
-            metadataBindingId = CompositionProfileValueRules.RequireId(
+            metadataBindingId = CanonicalPolicyValueRules.RequireCanonicalId(
                 metadataBindingId!,
                 $"{path}.source.metadataBindingId");
         }
@@ -178,7 +178,7 @@ internal static partial class CompositionProfileNormalizer
         }
 
         return new OutputTokenBuilder(
-            CompositionProfileValueRules.RequireId(
+            CanonicalPolicyValueRules.RequireCanonicalId(
                 document.TokenId,
                 $"{path}.tokenId"),
             sourceKind,

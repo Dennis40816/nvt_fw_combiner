@@ -1,5 +1,17 @@
 namespace NvtFwCombiner.Domain;
 
+internal static class CanonicalSha256
+{
+    internal static string Require(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        return value.Length == 64 && value.All(static character =>
+            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'))
+            ? value
+            : throw new ArgumentException("Expected a lowercase 64-character SHA-256 hash.", parameterName);
+    }
+}
+
 internal static class ImmutableStringSnapshot
 {
     internal static string[] Create(

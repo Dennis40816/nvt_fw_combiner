@@ -32,15 +32,15 @@ internal abstract class CompositionProfileProcessorStage
         IEnumerable<string> allowedReadViewIds,
         IEnumerable<string> allowedWriteViewIds)
     {
-        ProcessorStageId = CompositionProfileValueRules.RequireId(
+        ProcessorStageId = CanonicalPolicyValueRules.RequireCanonicalId(
             processorStageId,
             nameof(processorStageId));
-        TargetSpaceId = CompositionProfileValueRules.RequireId(targetSpaceId, nameof(targetSpaceId));
-        _allowedReadViewIds = CompositionProfileValueRules.SnapshotIds(
+        TargetSpaceId = CanonicalPolicyValueRules.RequireCanonicalId(targetSpaceId, nameof(targetSpaceId));
+        _allowedReadViewIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedReadViewIds,
             nameof(allowedReadViewIds),
             requireValue: true);
-        _allowedWriteViewIds = CompositionProfileValueRules.SnapshotIds(
+        _allowedWriteViewIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedWriteViewIds,
             nameof(allowedWriteViewIds),
             requireValue: false);
@@ -77,7 +77,7 @@ internal sealed class CrcWorkerProfileProcessorStage : CompositionProfileProcess
         _ = CompositionProfileValueRules.RequireSemanticVersion(
             contractVersion,
             nameof(contractVersion));
-        _ = CompositionProfileValueRules.RequireId(
+        _ = CanonicalPolicyValueRules.RequireCanonicalId(
             calculationSetId,
             nameof(calculationSetId));
     }
@@ -89,8 +89,8 @@ internal sealed record CompositionProfileStagedSourceBinding
 {
     internal CompositionProfileStagedSourceBinding(string sourceViewId, string targetViewId)
     {
-        SourceViewId = CompositionProfileValueRules.RequireId(sourceViewId, nameof(sourceViewId));
-        TargetViewId = CompositionProfileValueRules.RequireId(targetViewId, nameof(targetViewId));
+        SourceViewId = CanonicalPolicyValueRules.RequireCanonicalId(sourceViewId, nameof(sourceViewId));
+        TargetViewId = CanonicalPolicyValueRules.RequireCanonicalId(targetViewId, nameof(targetViewId));
     }
 
     internal string SourceViewId { get; }
@@ -103,8 +103,8 @@ internal sealed record CompositionProfileStagedArtifactBinding
 {
     internal CompositionProfileStagedArtifactBinding(string artifactId, string sourceViewId)
     {
-        ArtifactId = CompositionProfileValueRules.RequireId(artifactId, nameof(artifactId));
-        SourceViewId = CompositionProfileValueRules.RequireId(sourceViewId, nameof(sourceViewId));
+        ArtifactId = CanonicalPolicyValueRules.RequireCanonicalId(artifactId, nameof(artifactId));
+        SourceViewId = CanonicalPolicyValueRules.RequireCanonicalId(sourceViewId, nameof(sourceViewId));
     }
 
     internal string ArtifactId { get; }
@@ -182,7 +182,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedArtifactBindings, CompareArtifactBindings);
-        _ = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
+        _ = CanonicalPolicyValueRules.RequireCanonicalId(evidenceRef, nameof(evidenceRef));
         Purpose = purpose;
         IntegrityDisposition = integrityDisposition;
         TargetViewId = targetViewId;

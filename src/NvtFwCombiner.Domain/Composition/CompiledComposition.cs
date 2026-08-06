@@ -147,14 +147,9 @@ public sealed partial class CompiledComposition
     public CompiledComposition BindCapabilityFingerprint(
         string capabilityFingerprint)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFingerprint);
-        string acceptedFingerprint = capabilityFingerprint.Length == 64 &&
-            !capabilityFingerprint.Any(static character =>
-                character is not ((>= '0' and <= '9') or (>= 'a' and <= 'f')))
-            ? capabilityFingerprint
-            : throw new ArgumentException(
-                "Capability fingerprints must be lowercase SHA-256 values.",
-                nameof(capabilityFingerprint));
+        string acceptedFingerprint = CanonicalSha256.Require(
+            capabilityFingerprint,
+            nameof(capabilityFingerprint));
 
         return CapabilityFingerprint is not null
             ? StringComparer.Ordinal.Equals(

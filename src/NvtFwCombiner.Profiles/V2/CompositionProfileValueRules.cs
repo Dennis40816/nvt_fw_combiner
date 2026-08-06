@@ -5,14 +5,6 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileValueRules
 {
-    internal static string RequireId(string value, string parameterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return !CanonicalIdPattern().IsMatch(value)
-            ? throw new ArgumentException("Identifier is not in canonical lowercase form.", parameterName)
-            : value;
-    }
-
     internal static string RequireExternalToolBindingId(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
@@ -28,7 +20,7 @@ internal static partial class CompositionProfileValueRules
     {
         return schemaVersion switch
         {
-            "2.0" or "2.1" => RequireId(value, parameterName),
+            "2.0" or "2.1" => CanonicalPolicyValueRules.RequireCanonicalId(value, parameterName),
             "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => RequireExternalToolBindingId(value, parameterName),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
         };
@@ -41,11 +33,11 @@ internal static partial class CompositionProfileValueRules
     {
         if (schemaVersion is not "2.7" and not "2.8" and not "2.9" and not "2.10" and not "2.11" and not "2.12" and not "2.13" and not "2.14" and not "2.15")
         {
-            return RequireId(value, parameterName);
+            return CanonicalPolicyValueRules.RequireCanonicalId(value, parameterName);
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return CanonicalIdPattern().IsMatch(value) || LegacyCombinerInvocationProfileIdPattern().IsMatch(value)
+        return CanonicalPolicyValueRules.IsCanonicalId(value) || LegacyCombinerInvocationProfileIdPattern().IsMatch(value)
             ? value
             : throw new ArgumentException(
                 "Invocation profile identifier is not canonical or a published legacy Combiner catalog identifier.",
@@ -58,22 +50,6 @@ internal static partial class CompositionProfileValueRules
         return !SemanticVersionPattern().IsMatch(value)
             ? throw new ArgumentException("Value is not a canonical semantic version.", parameterName)
             : value;
-    }
-
-    internal static string RequireIssueCode(string value, string parameterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return !IssueCodePattern().IsMatch(value)
-            ? throw new ArgumentException("Value is not a canonical issue code.", parameterName)
-            : value;
-    }
-
-    internal static string[] SnapshotIds(
-        IEnumerable<string> values,
-        string parameterName,
-        bool requireValue)
-    {
-        return SnapshotIds(values, parameterName, requireValue, RequireId);
     }
 
     private static string[] SnapshotIds(
@@ -110,7 +86,7 @@ internal static partial class CompositionProfileValueRules
     {
         return schemaVersion switch
         {
-            "2.4" => SnapshotIds(values, parameterName, requireValue: true),
+            "2.4" => CanonicalPolicyValueRules.SnapshotCanonicalIds(values, parameterName, requireValue: true),
             "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => SnapshotIds(values, parameterName, requireValue: true, RequireIcId),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported logical-output schema version."),
         };
@@ -122,12 +98,6 @@ internal static partial class CompositionProfileValueRules
         return !IcIdPattern().IsMatch(value)
             ? throw new ArgumentException("Identifier is not a canonical IC ID.", parameterName)
             : value;
-    }
-
-    internal static bool IsLowercaseSha256(string value)
-    {
-        return value.Length == 64 && value.All(static character =>
-            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
     }
 
     internal static ByteRange RequireRange(ByteRange value, string parameterName)
@@ -145,9 +115,6 @@ internal static partial class CompositionProfileValueRules
             throw new ArgumentOutOfRangeException(parameterName, value, exception.Message);
         }
     }
-
-    [GeneratedRegex("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex CanonicalIdPattern();
 
     [GeneratedRegex("^NT[0-9A-Z-]+$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex IcIdPattern();
@@ -167,6 +134,4 @@ internal static partial class CompositionProfileValueRules
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex SemanticVersionPattern();
 
-    [GeneratedRegex("^[A-Z][A-Z0-9_]+$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex IssueCodePattern();
 }

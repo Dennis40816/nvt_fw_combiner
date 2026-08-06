@@ -2,16 +2,41 @@ namespace NvtFwCombiner.Domain.Composition;
 
 internal static class CanonicalPolicyValueRules
 {
+    internal static bool IsCanonicalId(string? value)
+    {
+        return !string.IsNullOrWhiteSpace(value) &&
+            value[0] is >= 'a' and <= 'z' &&
+            value[^1] != '-' &&
+            value.Where(static character => character != '-')
+                .All(static character => character is (>= 'a' and <= 'z') or (>= '0' and <= '9')) &&
+            !value.Contains("--", StringComparison.Ordinal);
+    }
+
     internal static string RequireCanonicalId(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return value[0] is < 'a' or > 'z' ||
-            value[^1] == '-' ||
-            value.Where(static character => character != '-')
-                .Any(static character => character is not (>= 'a' and <= 'z') and not (>= '0' and <= '9')) ||
-            value.Contains("--", StringComparison.Ordinal)
+        return !IsCanonicalId(value)
             ? throw new ArgumentException("Identifier is not in canonical lowercase form.", parameterName)
             : value;
+    }
+
+    internal static string[] SnapshotCanonicalIds(
+        IEnumerable<string> values,
+        string parameterName,
+        bool requireValue)
+    {
+        string[] snapshot = ImmutableStringSnapshot.Create(
+            values,
+            parameterName,
+            requireValue ? "At least one identifier is required." : null,
+            "Identifiers must be non-empty values.",
+            "Identifiers must be ordinally unique.");
+        foreach (string value in snapshot)
+        {
+            _ = RequireCanonicalId(value, parameterName);
+        }
+
+        return snapshot;
     }
 
     internal static string RequireIssueCode(string value, string parameterName)
@@ -54,7 +79,9 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
-            : SnapshotExpectedOuterLengths(expectedOuterLengths);
+            : InputLengthPolicyLimits.SnapshotExpectedOuterLengths(
+                expectedOuterLengths,
+                nameof(expectedOuterLengths));
         if (unexpectedOuterLengthIssueCode is not null)
         {
             _ = CanonicalPolicyValueRules.RequireIssueCode(
@@ -70,33 +97,6 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
 
     internal string? UnexpectedOuterLengthIssueCode { get; }
 
-    private static long[] SnapshotExpectedOuterLengths(IReadOnlyList<long> expectedOuterLengths)
-    {
-        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
-
-        long[] snapshot = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must be positive and strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
-
-            snapshot[index] = value;
-            previous = value;
-        }
-
-        return snapshot;
-    }
 }
 
 /// <summary>Domain-owned canonical input-slot definition before map-dependent lowering.</summary>

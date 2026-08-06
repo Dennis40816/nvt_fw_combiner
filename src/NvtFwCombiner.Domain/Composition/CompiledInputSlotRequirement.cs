@@ -226,7 +226,9 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
-            : SnapshotExpectedOuterLengths(expectedOuterLengths);
+            : InputLengthPolicyLimits.SnapshotExpectedOuterLengths(
+                expectedOuterLengths,
+                nameof(expectedOuterLengths));
         if (unexpectedOuterLengthIssueCode is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
@@ -242,34 +244,6 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     /// <summary>Optional stable warning code for an unexpected complete-container length.</summary>
     public string? UnexpectedOuterLengthIssueCode { get; }
 
-    private static long[] SnapshotExpectedOuterLengths(IReadOnlyList<long> expectedOuterLengths)
-    {
-        if (expectedOuterLengths.Count is 0 or
-            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
-
-        long[] snapshot = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must be positive and strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
-
-            snapshot[index] = value;
-            previous = value;
-        }
-
-        return snapshot;
-    }
 }
 
 /// <summary>Closed transient input-normalization kind retained by a compiled artifact.</summary>

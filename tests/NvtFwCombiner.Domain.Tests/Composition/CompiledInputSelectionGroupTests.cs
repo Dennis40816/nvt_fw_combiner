@@ -59,6 +59,16 @@ public sealed class CompiledInputSelectionGroupTests
                 maximumSelected: 1));
     }
 
+    /// <summary>Null and noncanonical identities retain their exact failure contracts.</summary>
+    [Fact]
+    public void RejectsInvalidGroupIdsWithExactExceptionTypes()
+    {
+        _ = Assert.Throws<ArgumentNullException>(() =>
+            new CompiledInputSelectionGroup(null!, ["slot"], ["slot"], ["slot"], 1, 1));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new CompiledInputSelectionGroup("Group", ["slot"], ["slot"], ["slot"], 1, 1));
+    }
+
     /// <summary>Canonical members must exist and remain ordinally unique.</summary>
     [Fact]
     public void RejectsMissingEmptyOrDuplicateMemberIds()

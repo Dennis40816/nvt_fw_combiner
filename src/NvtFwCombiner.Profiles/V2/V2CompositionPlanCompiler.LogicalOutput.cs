@@ -22,7 +22,7 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
-        if (!IsLogicalOutputProfile(profile))
+        if (profile.CompilationContextKind != V2CompilationContextKind.LogicalOutput)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -82,7 +82,7 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             spaces,
             operations);
-        CompositionInputSlotDefinition inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = profile.InputSlots[0];
         return Succeed(
             profile,
             bundleIdentity,
@@ -102,42 +102,6 @@ internal static partial class V2CompositionPlanCompiler
             CompiledIcNumberPolicy.NotApplicable);
     }
 
-    private static bool IsLogicalOutputProfile(CompositionProfileDefinition profile)
-    {
-        return profile.CompilationContextKind == V2CompilationContextKind.LogicalOutput &&
-            profile.CompositionKind == CompositionKind.Merge &&
-            StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.GeneralMerge) &&
-            profile.LayoutPolicy == LayoutPolicy.UserDefined &&
-            profile.InputPolicy == InputPolicy.Extensible &&
-            profile.Spaces.Count == 2 &&
-            profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault() is { InstancePolicy: CompiledInputInstancePolicy.PerBinding } &&
-            AssertOutputSpace(profile) is
-            {
-                Capacity: RuntimeRequestProfileCapacity,
-                Initializer: BlankProfileInitializer { FillByte: 0 },
-            } &&
-            profile.Views.Count == 0 &&
-            profile.MetadataBindings.Count == 0 &&
-            profile.RegionAccessRules.Count == 0 &&
-            profile.Operations.Count == 0 &&
-            profile.Validations.Count == 0 &&
-            profile.ProcessorStages.Count == 0;
-    }
-
-    private static CompositionInputSlotDefinition AssertLogicalInputSlot(CompositionProfileDefinition profile)
-    {
-        return profile.InputSlots.Count == 1 && profile.InputSlots[0] is
-        {
-            Required: true,
-            Cardinality: CompiledInputSlotCardinality.OneOrMore,
-            ArtifactClass: CompiledInputArtifactClass.Auxiliary,
-            LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            Normalization: CompiledNoInputNormalization,
-        } slot
-            ? slot
-            : throw new InvalidOperationException("Validated logical-output profile has an invalid input slot.");
-    }
-
     private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionInputSlotDefinition slot)
     {
         return new CompiledInputSlotRequirement(
@@ -150,7 +114,7 @@ internal static partial class V2CompositionPlanCompiler
         V2LogicalOutputCompileRequest request,
         List<CompositionIssue> issues)
     {
-        CompositionInputSlotDefinition inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = profile.InputSlots[0];
         string outputSpaceId = AssertOutputSpace(profile).SpaceId;
         var bindings = new Dictionary<string, V2LogicalOutputInputBinding>(StringComparer.Ordinal);
         foreach (V2LogicalOutputInputBinding? binding in request.Bindings)

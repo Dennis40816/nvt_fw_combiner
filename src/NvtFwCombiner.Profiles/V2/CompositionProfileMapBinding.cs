@@ -1,3 +1,6 @@
+using NvtFwCombiner.Domain;
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Profiles.V2;
 
 /// <summary>Immutable trusted-family identity and canonical fact requirements.</summary>
@@ -19,24 +22,18 @@ internal sealed class CompositionProfileMapBinding
         IEnumerable<string> requiredCapabilityIds,
         IEnumerable<string>? optionalRegionIds = null)
     {
-        FamilyId = CompositionProfileValueRules.RequireId(familyId, nameof(familyId));
+        FamilyId = CanonicalPolicyValueRules.RequireCanonicalId(familyId, nameof(familyId));
         FamilyVersion = CompositionProfileValueRules.RequireSemanticVersion(
             familyVersion,
             nameof(familyVersion));
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
-        if (!CompositionProfileValueRules.IsLowercaseSha256(familyContentHash))
-        {
-            throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
-        }
+        _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
-        _mapIds = CompositionProfileValueRules.SnapshotIds(mapIds, nameof(mapIds), requireValue: true);
-        _requiredRegionIds = CompositionProfileValueRules.SnapshotIds(
+        _mapIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(mapIds, nameof(mapIds), requireValue: true);
+        _requiredRegionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredRegionIds,
             nameof(requiredRegionIds),
             requireValue: true);
-        _optionalRegionIds = CompositionProfileValueRules.SnapshotIds(
+        _optionalRegionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             optionalRegionIds ?? [],
             nameof(optionalRegionIds),
             requireValue: false);
@@ -46,11 +43,11 @@ internal sealed class CompositionProfileMapBinding
                 "Required and optional map regions must be disjoint.",
                 nameof(optionalRegionIds));
         }
-        _requiredMetadataStructureIds = CompositionProfileValueRules.SnapshotIds(
+        _requiredMetadataStructureIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredMetadataStructureIds,
             nameof(requiredMetadataStructureIds),
             requireValue: false);
-        _requiredCapabilityIds = CompositionProfileValueRules.SnapshotIds(
+        _requiredCapabilityIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredCapabilityIds,
             nameof(requiredCapabilityIds),
             requireValue: false);

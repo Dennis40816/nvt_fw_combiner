@@ -32,7 +32,6 @@ internal static class BuiltInV2BundleRegistry
 internal sealed class BuiltInV2Bundle
 {
     internal const string CompilationFailed = "profile.v2.builtin-compilation-failed";
-    private const string BundleLoadFailed = "profile.v2.builtin-bundle-load-failed";
     private readonly Lazy<TrustedProfileBundleCatalog> _catalog;
     private readonly string _bundleVersion;
     private readonly string _trustAnchorBindingId;
@@ -103,13 +102,6 @@ internal sealed class BuiltInV2Bundle
                 .. profile.ProcessorStages.Select(
                     static processor => processor.ProcessorStageId),
             ]);
-    }
-
-    /// <summary>Projects the exact executable Parent and writable map ranges for General Replace.</summary>
-    internal SavedRuleV2GeneralReplaceAdmissionContext
-        GetGeneralReplaceSavedRuleAdmissionContext(string profileId)
-    {
-        return GetGeneralReplaceExactParent(profileId).Admission;
     }
 
     /// <summary>Projects Saved Rule and runtime facts from one exact profile entry.</summary>
@@ -617,9 +609,13 @@ internal sealed class BuiltInV2Bundle
 
     private CompositionIssue CreateBundleLoadIssue(Exception exception)
     {
-        return new CompositionIssue(
-            BundleLoadFailed,
-            $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
+        return exception is TrustedProfileBundleCatalogException catalog
+            ? new CompositionIssue(
+                catalog.Code,
+                $"The built-in V2 bundle '{RelativeRoot}' rejected catalog entry '{catalog.EntryId}' at '{catalog.EntryPath}' ({catalog.SemanticPath ?? "$"}): {catalog.Message}")
+            : new CompositionIssue(
+                "profile.v2.builtin-bundle-load-failed",
+                $"The built-in V2 bundle '{RelativeRoot}' could not be loaded: {exception.Message}");
     }
 
     private TrustedProfileBundleCatalog LoadCatalog()
