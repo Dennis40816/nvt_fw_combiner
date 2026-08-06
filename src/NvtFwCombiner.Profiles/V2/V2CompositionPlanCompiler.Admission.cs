@@ -80,28 +80,26 @@ internal static partial class V2CompositionPlanCompiler
                 : null
             : null;
 
-        foreach (CompositionProfileOperation operation in profile.Operations)
+        foreach (CompositionOperationDefinition operation in profile.Operations)
         {
-            bool isCopyRange = operation is CopyOrReplaceProfileOperation
-            {
-                Kind: CompositionOperationKind.CopyRange,
-            };
+            bool isCopyRange = operation.Kind == CompositionOperationKind.CopyRange;
             bool isDpReplaceRange = isDpReplace &&
-                operation is CopyOrReplaceProfileOperation replace &&
-                replace.Kind == CompositionOperationKind.ReplaceRange &&
-                IsDpReplacePayloadInputSource(profile, replace);
-            bool isProcessorRun = operation is RunProcessorProfileOperation;
+                operation.Kind == CompositionOperationKind.ReplaceRange &&
+                IsDpReplacePayloadInputSource(profile, operation);
+            bool isProcessorRun = operation.Kind == CompositionOperationKind.RunExternalProcessor;
             bool isCtrlRamProcessorRun = isCtrlRamReplace && isProcessorRun;
-            bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&
-                copy.Kind == CompositionOperationKind.CopyRange &&
-                copy.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
+            bool isReferenceRestore = operation.Kind == CompositionOperationKind.CopyRange &&
+                operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
                 StringComparer.Ordinal.Equals(
                     replaceReferenceSourceSpaceId,
                     profile.Views.Single(view => StringComparer.Ordinal.Equals(view.ViewId,
-                        copy.SourceViewId)).SpaceId);
+                        operation.SourceViewId)).SpaceId);
             bool isSupportedOperation = profile.CompositionKind == CompositionKind.Merge
-                ? isCopyRange || operation is FillRangeProfileOperation or PatchScalarProfileOperation or TransformScalarProfileOperation ||
-                  isProcessorRun
+                ? operation.Kind is CompositionOperationKind.CopyRange or
+                    CompositionOperationKind.FillRange or
+                    CompositionOperationKind.PatchScalar or
+                    CompositionOperationKind.TransformScalar or
+                    CompositionOperationKind.RunExternalProcessor
                 : isDpReplaceRange || isReferenceRestore || isCtrlRamProcessorRun;
             bool hasSupportedOverlapPolicy = profile.CompositionKind == CompositionKind.Merge
                 ? operation.OverlapPolicy == OverlapPolicy.Reject ||

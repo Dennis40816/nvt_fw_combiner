@@ -121,7 +121,7 @@ internal static partial class V2CompositionPlanCompiler
             .Select(static operation => operation.OperationId)
             .ToHashSet(StringComparer.Ordinal);
         var activeViewIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CompositionProfileOperation operation in profile.Operations.Where(operation =>
+        foreach (CompositionOperationDefinition operation in profile.Operations.Where(operation =>
                      activeOperationIds.Contains(operation.OperationId)))
         {
             AddReferencedViews(operation, activeViewIds);
@@ -187,49 +187,44 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool ReferencesInactiveInput(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         Dictionary<string, CompositionProfileView> views,
         HashSet<string> inactiveInputSpaces)
     {
-        return operation switch
+        return operation.Kind switch
         {
-            CopyOrReplaceProfileOperation copy =>
-                inactiveInputSpaces.Contains(views[copy.SourceViewId].SpaceId) ||
-                inactiveInputSpaces.Contains(views[copy.TargetViewId].SpaceId),
-            FillRangeProfileOperation fill => inactiveInputSpaces.Contains(views[fill.TargetViewId].SpaceId),
-            PatchScalarProfileOperation patch => inactiveInputSpaces.Contains(views[patch.TargetViewId].SpaceId),
-            TransformScalarProfileOperation transform =>
-                inactiveInputSpaces.Contains(views[transform.SourceViewId].SpaceId) ||
-                inactiveInputSpaces.Contains(views[transform.TargetViewId].SpaceId),
-            RunProcessorProfileOperation => false,
-            _ => throw new InvalidOperationException("Unknown profile operation shape."),
+            CompositionOperationKind.CopyRange or
+            CompositionOperationKind.ReplaceRange or
+            CompositionOperationKind.TransformScalar =>
+                inactiveInputSpaces.Contains(views[operation.SourceViewId].SpaceId) ||
+                inactiveInputSpaces.Contains(views[operation.TargetViewId].SpaceId),
+            CompositionOperationKind.FillRange or
+            CompositionOperationKind.PatchScalar => inactiveInputSpaces.Contains(views[operation.TargetViewId].SpaceId),
+            CompositionOperationKind.RunExternalProcessor => false,
+            _ => throw new InvalidOperationException("Unknown canonical operation kind."),
         };
     }
 
     private static void AddReferencedViews(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         HashSet<string> viewIds)
     {
-        switch (operation)
+        switch (operation.Kind)
         {
-            case CopyOrReplaceProfileOperation copy:
-                _ = viewIds.Add(copy.SourceViewId);
-                _ = viewIds.Add(copy.TargetViewId);
+            case CompositionOperationKind.CopyRange:
+            case CompositionOperationKind.ReplaceRange:
+            case CompositionOperationKind.TransformScalar:
+                _ = viewIds.Add(operation.SourceViewId);
+                _ = viewIds.Add(operation.TargetViewId);
                 break;
-            case FillRangeProfileOperation fill:
-                _ = viewIds.Add(fill.TargetViewId);
+            case CompositionOperationKind.FillRange:
+            case CompositionOperationKind.PatchScalar:
+                _ = viewIds.Add(operation.TargetViewId);
                 break;
-            case PatchScalarProfileOperation patch:
-                _ = viewIds.Add(patch.TargetViewId);
-                break;
-            case TransformScalarProfileOperation transform:
-                _ = viewIds.Add(transform.SourceViewId);
-                _ = viewIds.Add(transform.TargetViewId);
-                break;
-            case RunProcessorProfileOperation:
+            case CompositionOperationKind.RunExternalProcessor:
                 break;
             default:
-                throw new InvalidOperationException("Unknown profile operation shape.");
+                throw new InvalidOperationException("Unknown canonical operation kind.");
         }
     }
 

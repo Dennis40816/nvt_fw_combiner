@@ -188,7 +188,8 @@ internal sealed partial class CompositionProfileDefinition
 
     private bool HasValidRuntimeReferenceProcessorShape(MutableCompositionProfileSpace output)
     {
-        if (_operations is not [RunProcessorProfileOperation operation] ||
+        if (_operations is not [var operation] ||
+            operation.Kind != CompositionOperationKind.RunExternalProcessor ||
             _processorStages is not [LegacyCombinerProfileProcessorStage processor] ||
             operation.Sequence != int.MaxValue ||
             operation.OverlapPolicy != OverlapPolicy.ReplaceExisting ||
@@ -397,39 +398,39 @@ internal sealed partial class CompositionProfileDefinition
         IReadOnlyDictionary<string, CompositionProfileSpace> spaces,
         IReadOnlyDictionary<string, CompositionProfileProcessorStage> processors)
     {
-        foreach (CompositionProfileOperation operation in _operations)
+        foreach (CompositionOperationDefinition operation in _operations)
         {
-            switch (operation)
+            switch (operation.Kind)
             {
-                case CopyOrReplaceProfileOperation copy:
-                    _ = RequireReference(views, copy.SourceViewId, "Operation references an unknown source view.");
-                    RequireMutableTarget(copy.TargetViewId, views, spaces);
+                case CompositionOperationKind.CopyRange:
+                case CompositionOperationKind.ReplaceRange:
+                    _ = RequireReference(views, operation.SourceViewId, "Operation references an unknown source view.");
+                    RequireMutableTarget(operation.TargetViewId, views, spaces);
                     break;
-                case FillRangeProfileOperation fill:
-                    RequireMutableTarget(fill.TargetViewId, views, spaces);
+                case CompositionOperationKind.FillRange:
+                case CompositionOperationKind.PatchScalar:
+                    RequireMutableTarget(operation.TargetViewId, views, spaces);
                     break;
-                case PatchScalarProfileOperation patch:
-                    RequireMutableTarget(patch.TargetViewId, views, spaces);
-                    break;
-                case TransformScalarProfileOperation transform:
+                case CompositionOperationKind.TransformScalar:
                     _ = RequireReference(
                         views,
-                        transform.SourceViewId,
+                        operation.SourceViewId,
                         "Transform references an unknown source view.");
-                    RequireMutableTarget(transform.TargetViewId, views, spaces);
+                    RequireMutableTarget(operation.TargetViewId, views, spaces);
                     break;
-                case RunProcessorProfileOperation processor:
+                case CompositionOperationKind.RunExternalProcessor:
                     _ = RequireReference(
                         processors,
-                        processor.ProcessorStageId,
+                        operation.ProcessorStageId,
                         "Operation references an unknown processor stage.");
                     break;
                 default:
-                    throw new InvalidOperationException("Unknown composition profile operation shape.");
+                    throw new InvalidOperationException("Unknown canonical operation kind.");
             }
         }
 
-        if (_processorStages.Any(stage => !_operations.OfType<RunProcessorProfileOperation>().Any(operation =>
+        if (_processorStages.Any(stage => !_operations.Any(operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor &&
                 StringComparer.Ordinal.Equals(operation.ProcessorStageId, stage.ProcessorStageId))))
         {
             throw new ArgumentException("Every processor stage must be invoked by an operation.");

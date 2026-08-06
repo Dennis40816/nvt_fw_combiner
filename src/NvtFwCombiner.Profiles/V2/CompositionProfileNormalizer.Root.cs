@@ -67,7 +67,7 @@ internal static partial class CompositionProfileNormalizer
             document.RegionAccessRules,
             "regionAccessRules",
             NormalizeRegionAccessRule);
-        CompositionProfileOperation[] operations = NormalizeList(
+        CompositionOperationDefinition[] operations = NormalizeList(
             document.Operations,
             "operations",
             (operation, path) => NormalizeOperation(operation, path, document.SchemaVersion));

@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileNormalizer
 {
-    internal static CompositionProfileOperation NormalizeOperation(
+    internal static CompositionOperationDefinition NormalizeOperation(
         CompositionProfileOperationDocument document,
         string path = "operations[0]",
         string schemaVersion = "2.0")
@@ -25,25 +25,17 @@ internal static partial class CompositionProfileNormalizer
         return document.Kind switch
         {
             "copy-range" => NormalizeCopyOrReplace(
-                document,
-                sequence,
-                overlapPolicy,
-                CompositionOperationKind.CopyRange,
-                path),
+                document, sequence, overlapPolicy, CompositionOperationKind.CopyRange, path),
             "replace-range" => NormalizeCopyOrReplace(
-                document,
-                sequence,
-                overlapPolicy,
-                CompositionOperationKind.ReplaceRange,
-                path),
-            "fill-range" => Wrap(path, () => new FillRangeProfileOperation(
+                document, sequence, overlapPolicy, CompositionOperationKind.ReplaceRange, path),
+            "fill-range" => Wrap(path, () => CompositionOperationDefinition.FillRange(
                 document.OperationId,
                 sequence,
                 overlapPolicy,
                 document.Reason,
                 RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing."),
                 ReadByte(Require(document.FillByte, $"{path}.fillByte"), $"{path}.fillByte"))),
-            "patch-scalar" => Wrap(path, () => new PatchScalarProfileOperation(
+            "patch-scalar" => Wrap(path, () => CompositionOperationDefinition.PatchScalar(
                 document.OperationId,
                 sequence,
                 overlapPolicy,
@@ -58,7 +50,7 @@ internal static partial class CompositionProfileNormalizer
                 overlapPolicy,
                 schemaVersion,
                 path),
-            "run-processor" => Wrap(path, () => new RunProcessorProfileOperation(
+            "run-processor" => Wrap(path, () => CompositionOperationDefinition.RunProcessor(
                 document.OperationId,
                 sequence,
                 overlapPolicy,
@@ -71,24 +63,26 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static CopyOrReplaceProfileOperation NormalizeCopyOrReplace(
+    private static CompositionOperationDefinition NormalizeCopyOrReplace(
         CompositionProfileOperationDocument document,
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
         CompositionOperationKind kind,
         string path)
     {
-        return Wrap(path, () => new CopyOrReplaceProfileOperation(
+        string sourceViewId = RequireText(document.SourceViewId, $"{path}.sourceViewId", "Source view is missing.");
+        string targetViewId = RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing.");
+        return Wrap(path, () => CompositionOperationDefinition.CopyOrReplace(
             document.OperationId,
             sequence,
             overlapPolicy,
             document.Reason,
             kind,
-            RequireText(document.SourceViewId, $"{path}.sourceViewId", "Source view is missing."),
-            RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing.")));
+            sourceViewId,
+            targetViewId));
     }
 
-    private static TransformScalarProfileOperation NormalizeTransform(
+    private static CompositionOperationDefinition NormalizeTransform(
         CompositionProfileOperationDocument document,
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
@@ -112,7 +106,7 @@ internal static partial class CompositionProfileNormalizer
             Require(document.Addend, $"{path}.addend"),
             schemaVersion,
             $"{path}.addend");
-        return Wrap(path, () => new TransformScalarProfileOperation(
+        return Wrap(path, () => CompositionOperationDefinition.TransformScalar(
             document.OperationId,
             sequence,
             overlapPolicy,

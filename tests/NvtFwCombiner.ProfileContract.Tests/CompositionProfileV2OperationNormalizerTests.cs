@@ -13,43 +13,43 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [Fact]
     public void OperationMapsEveryKind()
     {
-        CopyOrReplaceProfileOperation copy = Assert.IsType<CopyOrReplaceProfileOperation>(Normalize(Operation(
+        CompositionOperationDefinition copy = Normalize(Operation(
             "copy-range",
             sourceViewId: "source",
-            targetViewId: "target")));
-        CopyOrReplaceProfileOperation replace = Assert.IsType<CopyOrReplaceProfileOperation>(Normalize(Operation(
+            targetViewId: "target"));
+        CompositionOperationDefinition replace = Normalize(Operation(
             "replace-range",
             sourceViewId: "replacement",
-            targetViewId: "target")));
-        FillRangeProfileOperation fill = Assert.IsType<FillRangeProfileOperation>(Normalize(Operation(
+            targetViewId: "target"));
+        CompositionOperationDefinition fill = Normalize(Operation(
             "fill-range",
             targetViewId: "target",
-            fillByte: Number("255"))));
-        PatchScalarProfileOperation patch = Assert.IsType<PatchScalarProfileOperation>(Normalize(Operation(
+            fillByte: Number("255")));
+        CompositionOperationDefinition patch = Normalize(Operation(
             "patch-scalar",
             targetViewId: "target",
-            valueHex: "aa01")));
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+            valueHex: "aa01"));
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("18446744073709551616"),
             Number("4"),
             "little",
             Number("-18446744073709551617"),
-            Number("32"))));
-        RunProcessorProfileOperation processor = Assert.IsType<RunProcessorProfileOperation>(Normalize(Operation(
+            Number("32")));
+        CompositionOperationDefinition processor = Normalize(Operation(
             "run-processor",
-            processorStageId: "legacy-postbuild")));
+            processorStageId: "legacy-postbuild"));
 
         Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
         Assert.Equal(CompositionOperationKind.ReplaceRange, replace.Kind);
         Assert.Equal(0xFF, fill.FillByte);
-        Assert.Equal("aa01", patch.Value.Hex);
+        Assert.Equal("aa01", patch.PatchBytes.Hex);
         Assert.Equal(
             BigInteger.Parse("18446744073709551616", System.Globalization.CultureInfo.InvariantCulture),
             transform.Sequence);
         Assert.Equal(
             BigInteger.Parse("-18446744073709551617", System.Globalization.CultureInfo.InvariantCulture),
             transform.Addend);
-        Assert.Equal(ScalarTransformByteOrder.LittleEndian, transform.ByteOrder);
+        Assert.Equal(ScalarTransformByteOrder.LittleEndian, transform.TransformByteOrder);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
     }
 
@@ -66,7 +66,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
 
         foreach ((string token, OverlapPolicy expected) in cases)
         {
-            CompositionProfileOperation operation = Normalize(Operation(
+            CompositionOperationDefinition operation = Normalize(Operation(
                 "fill-range",
                 overlapPolicy: token,
                 targetViewId: "target",
@@ -83,15 +83,15 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [InlineData("8", "18446744073709551615")]
     public void TransformMapsEveryWidthBoundary(string width, string expectedBefore)
     {
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("0"),
             Number(width),
             "big",
             Number("0"),
-            Number(expectedBefore))));
+            Number(expectedBefore)));
 
-        Assert.Equal(int.Parse(width, System.Globalization.CultureInfo.InvariantCulture), (int)transform.Width);
-        Assert.Equal(ScalarTransformByteOrder.BigEndian, transform.ByteOrder);
+        Assert.Equal(int.Parse(width, System.Globalization.CultureInfo.InvariantCulture), (int)transform.TransformWidth);
+        Assert.Equal(ScalarTransformByteOrder.BigEndian, transform.TransformByteOrder);
         Assert.Equal(ulong.Parse(expectedBefore, System.Globalization.CultureInfo.InvariantCulture), transform.ExpectedBefore);
     }
 
@@ -99,7 +99,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [Fact]
     public void TransformMapsRegionInstanceDeltaAddend()
     {
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("0"),
             Number("4"),
             "little",
@@ -107,7 +107,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 "region-instance-delta",
                 sourceRegionInstanceId: "a-bank",
                 targetRegionInstanceId: "b-bank")),
-            "2.14"));
+            "2.14");
 
         ScalarTransformAddendSource addend = transform.AddendSource;
         Assert.Equal(ScalarTransformAddendSourceKind.RegionInstanceDelta, addend.Kind);
@@ -293,7 +293,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         _ = Assert.IsType<ArgumentOutOfRangeException>(exception.InnerException, exactMatch: false);
     }
 
-    private static CompositionProfileOperation Normalize(
+    private static CompositionOperationDefinition Normalize(
         CompositionProfileOperationDocument document,
         string schemaVersion = "2.0")
     {

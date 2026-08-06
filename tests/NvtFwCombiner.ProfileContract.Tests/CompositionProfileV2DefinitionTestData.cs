@@ -16,7 +16,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     IReadOnlyList<CompositionProfileView> Views,
     IReadOnlyList<CompositionProfileMetadataBinding> MetadataBindings,
     IReadOnlyList<CompositionProfileRegionAccess> RegionAccessRules,
-    IReadOnlyList<CompositionProfileOperation> Operations,
+    IReadOnlyList<CompositionOperationDefinition> Operations,
     IReadOnlyList<ValidationRequirementDefinition> Validations,
     IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages,
     CompiledOutputNamingRequirement Output,
@@ -57,7 +57,7 @@ internal static class CompositionProfileV2DefinitionTestData
                 [CompositionProfileMetadataPurpose.Validation])],
             [new CompositionProfileRegionAccess(
                 "dp-code", RegionAccessKind.ReadOnly, "Source region is immutable.")],
-            [new CopyOrReplaceProfileOperation(
+            [CompositionOperationDefinition.CopyOrReplace(
                 "copy-code", 0, OverlapPolicy.Reject, "Copy source code.",
                 CompositionOperationKind.CopyRange, "source-view", "target-view")],
             [new CompiledPidSanityValidation(
@@ -105,7 +105,7 @@ internal static class CompositionProfileV2DefinitionTestData
                     new ResolvedMapProfileCapacity(),
                     new CloneProfileInitializer("reference-input")),
             ],
-            Operations = [new CopyOrReplaceProfileOperation(
+            Operations = [CompositionOperationDefinition.CopyOrReplace(
                 "replace-code", 0, OverlapPolicy.ReplaceExisting, "Replace source code.",
                 CompositionOperationKind.ReplaceRange, "source-view", "target-view")],
         };

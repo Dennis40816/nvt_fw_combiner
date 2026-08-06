@@ -433,7 +433,8 @@ internal static partial class V2CompositionPlanCompiler
                 reference,
                 source,
                 output,
-                profile.Operations.OfType<RunProcessorProfileOperation>().SingleOrDefault());
+                profile.Operations.SingleOrDefault(static operation =>
+                    operation.Kind == CompositionOperationKind.RunExternalProcessor));
     }
 
     private static Dictionary<string, V2RuntimeReferenceReplaceInputBinding> ValidateRuntimeReferenceReplaceBindings(
@@ -617,7 +618,7 @@ internal static partial class V2CompositionPlanCompiler
         CompositionInputSlotDefinition ReferenceSlot,
         CompositionInputSlotDefinition SourceSlot,
         MutableCompositionProfileSpace Output,
-        RunProcessorProfileOperation? ProcessorOperation);
+        CompositionOperationDefinition? ProcessorOperation);
 
     private sealed record RuntimeFirmwareVersionEditLowering(
         CompositionOperation[] Operations,

@@ -17,7 +17,7 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlySet<string>? activeOperationIds = null)
     {
         var operations = new List<CompositionOperation>();
-        foreach (CompositionProfileOperation operation in profile.Operations)
+        foreach (CompositionOperationDefinition operation in profile.Operations)
         {
             if (activeOperationIds is not null && !activeOperationIds.Contains(operation.OperationId))
             {
@@ -29,20 +29,21 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            switch (operation)
+            switch (operation.Kind)
             {
-                case CopyOrReplaceProfileOperation copy:
-                    LowerCopyOrReplaceOperation(profile, copy, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.CopyRange:
+                case CompositionOperationKind.ReplaceRange:
+                    LowerCopyOrReplaceOperation(profile, operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case FillRangeProfileOperation fill:
-                    LowerFillOperation(fill, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.FillRange:
+                    LowerFillOperation(operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case PatchScalarProfileOperation patch:
-                    LowerPatchOperation(patch, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.PatchScalar:
+                    LowerPatchOperation(operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case TransformScalarProfileOperation transform:
+                case CompositionOperationKind.TransformScalar:
                     LowerTransformOperation(
-                        transform,
+                        operation,
                         sequence,
                         resolvedMap,
                         views,
@@ -50,10 +51,10 @@ internal static partial class V2CompositionPlanCompiler
                         operations,
                         issues);
                     break;
-                case RunProcessorProfileOperation processor:
+                case CompositionOperationKind.RunExternalProcessor:
                     LowerProcessorOperation(
                         profile,
-                        processor,
+                        operation,
                         sequence,
                         spaces,
                         views,
@@ -126,7 +127,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static void LowerCopyOrReplaceOperation(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
@@ -211,7 +212,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static void LowerFillOperation(
-        FillRangeProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
@@ -235,7 +236,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static void LowerPatchOperation(
-        PatchScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
@@ -247,7 +248,7 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
-        if (operation.Value.Length != target.Range.Length)
+        if (operation.PatchBytes.Length != target.Range.Length)
         {
             AddOperationLengthMismatch(operation.OperationId, "patch bytes and target view have different lengths", issues);
             return;
@@ -263,13 +264,13 @@ internal static partial class V2CompositionPlanCompiler
             sequence,
             target.SpaceId,
             target.Range,
-            operation.Value.Bytes.ToArray(),
+            operation.PatchBytes.Bytes.ToArray(),
             OverlapPolicy.Reject,
             operation.Reason));
     }
 
     private static void LowerTransformOperation(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyDictionary<string, ResolvedView> views,
@@ -337,7 +338,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static void LowerProcessorOperation(
         CompositionProfileDefinition profile,
-        RunProcessorProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, AddressSpace> spaces,
         IReadOnlyDictionary<string, ResolvedView> views,
@@ -523,7 +524,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool TryResolveSequence(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         List<CompositionIssue> issues,
         out int sequence)
     {
@@ -539,7 +540,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool TryCreateScalarTransform(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         out ScalarTransform? transform,
         out string? error)
@@ -559,8 +560,8 @@ internal static partial class V2CompositionPlanCompiler
         try
         {
             transform = new ScalarTransform(
-                operation.Width,
-                operation.ByteOrder,
+                operation.TransformWidth,
+                operation.TransformByteOrder,
                 addend,
                 operation.ExpectedBefore,
                 ScalarTransformOverflowPolicy.Reject,
@@ -577,7 +578,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool TryResolveTransformAddend(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         out BigInteger addend,
         out ScalarTransformAddendSource? addendSource,
