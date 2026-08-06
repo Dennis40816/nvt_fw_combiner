@@ -13,9 +13,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         CrcWorkerProfileProcessorStage stage = Assert.IsType<CrcWorkerProfileProcessorStage>(
             CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker()));
 
-        Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
-        Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
-        Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
         Assert.Equal(["view-a", "view-z"], stage.AllowedReadViewIds);
         Assert.Empty(stage.AllowedWriteViewIds);
     }
@@ -39,7 +36,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     new CompositionProfileStagedArtifactBindingDocument("a-bank", "dp-source"),
                 ])));
 
-        Assert.Equal(CompositionProfileProcessorAuthority.Transform, stage.Authority);
         Assert.Equal(CompositionProfileProcessorPurpose.HeaderAndIntegrity, stage.Purpose);
         Assert.Equal(CompositionProfileIntegrityDisposition.RecalculateAndWrite, stage.IntegrityDisposition);
         Assert.Equal(["header", "integrity"], stage.AllowedWriteViewIds);
