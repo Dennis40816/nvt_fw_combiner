@@ -246,6 +246,16 @@ owner-approved architecture review that proves why the responsibility must
 remain in that layer; it cannot raise the 44,000 final gate or weaken a
 deletion, dependency, test, firmware, evidence, or release invariant.
 
+The same amendment freezes exact descending ratchets at the five measured
+values above: total 74,325, Domain + Profiles 24,953, Application 23,671,
+Bootstrap + CLI 18,670, and Infrastructure + Contracts + CRC worker 7,031.
+Every Core PR must lower each affected ratchet in the same commit; therefore an
+equivalent cross-slice relocation fails on the receiving slice. Final-target
+enforcement remains explicitly inactive during convergence because the current
+tree is above every final cap. Ticket #197 is the only planned activation point:
+it enables final-target enforcement in the same canonical verifier, which then
+fails when either the 44,000 total or any of the four slice caps is exceeded.
+
 Every Canonical Core Convergence PR must reduce both its slice measurement and
 the total counted production metric. It cannot create temporary deletion debt.
 Before that phase, a firmware/route migration may temporarily add counted code

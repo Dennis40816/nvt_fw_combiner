@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from scripts.code_size_policy import (
@@ -33,12 +34,11 @@ class CodeSizePolicyTests(unittest.TestCase):
     def test_default_targets_match_the_owner_approved_convergence_gate(self) -> None:
         findings = review_code_size_policy(self.root)
 
-        self.assertTrue(
-            any("final target <= 44000" in finding for finding in findings)
-        )
-        self.assertTrue(
-            any("final target <= 18000" in finding for finding in findings)
-        )
+        self.assertTrue(any("final target <= 44000" in finding for finding in findings))
+        self.assertTrue(any("final target <= 18000" in finding for finding in findings))
+        self.assertTrue(any("final target <= 12000" in finding for finding in findings))
+        self.assertTrue(any("final target <= 7500" in finding for finding in findings))
+        self.assertTrue(any("final target <= 5500" in finding for finding in findings))
 
     def limits(
         self,
@@ -53,6 +53,13 @@ class CodeSizePolicyTests(unittest.TestCase):
         runtime_ratchet: int | None = None,
         domain_profiles_ratchet: int | None = None,
         domain_profiles_target: int | None = None,
+        application_ratchet: int | None = None,
+        application_target: int | None = None,
+        bootstrap_cli_ratchet: int | None = None,
+        bootstrap_cli_target: int | None = None,
+        infrastructure_contracts_worker_ratchet: int | None = None,
+        infrastructure_contracts_worker_target: int | None = None,
+        enforce_final_targets: bool = False,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
@@ -65,6 +72,17 @@ class CodeSizePolicyTests(unittest.TestCase):
             runtime_production_ratchet=runtime_ratchet,
             domain_profiles_ratchet=domain_profiles_ratchet,
             domain_profiles_target=domain_profiles_target,
+            application_ratchet=application_ratchet,
+            application_target=application_target,
+            bootstrap_cli_ratchet=bootstrap_cli_ratchet,
+            bootstrap_cli_target=bootstrap_cli_target,
+            infrastructure_contracts_worker_ratchet=(
+                infrastructure_contracts_worker_ratchet
+            ),
+            infrastructure_contracts_worker_target=(
+                infrastructure_contracts_worker_target
+            ),
+            enforce_final_targets=enforce_final_targets,
         )
 
     def review(self, limits: CodeSizeLimits) -> list[str]:
@@ -305,6 +323,69 @@ class CodeSizePolicyTests(unittest.TestCase):
                 "(ratchet 4; final target <= 2)" in finding
                 for finding in review_code_size_policy(self.root, limits)
             )
+        )
+
+    def test_all_slice_ratchets_reject_cross_slice_relocation(self) -> None:
+        self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
+        self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
+        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
+        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "infrastructure\n")
+        limits = self.limits(
+            production=4,
+            runtime_ratchet=4,
+            domain_profiles_ratchet=1,
+            application_ratchet=1,
+            bootstrap_cli_ratchet=1,
+            infrastructure_contracts_worker_ratchet=1,
+        )
+        self.assertEqual([], validate_code_size_policy(self.root, limits))
+
+        self.write(
+            "src/NvtFwCombiner.Application/App.cs",
+            "application\nrelocated-bootstrap-line\n",
+        )
+        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "")
+
+        self.assertEqual(
+            [
+                "code-size Application slice grew: 2 > ratchet 1",
+                "code-size Bootstrap + CLI slice improved: lower ratchet 1 to 0",
+            ],
+            validate_code_size_policy(self.root, limits),
+        )
+
+    def test_final_gate_activation_enforces_total_and_all_slice_caps(self) -> None:
+        self.write("src/NvtFwCombiner.Domain/Domain.cs", "one\ntwo\n")
+        self.write("src/NvtFwCombiner.Application/App.cs", "one\ntwo\n")
+        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "one\ntwo\n")
+        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "one\ntwo\n")
+        limits = self.limits(
+            production=8,
+            runtime_target=7,
+            runtime_ratchet=8,
+            domain_profiles_ratchet=2,
+            domain_profiles_target=1,
+            application_ratchet=2,
+            application_target=1,
+            bootstrap_cli_ratchet=2,
+            bootstrap_cli_target=1,
+            infrastructure_contracts_worker_ratchet=2,
+            infrastructure_contracts_worker_target=1,
+        )
+
+        self.assertEqual([], validate_code_size_policy(self.root, limits))
+        self.assertEqual(
+            [
+                "code-size runtime production exceeded final target: 8 > 7",
+                "code-size Domain + Profiles slice exceeded final target: 2 > 1",
+                "code-size Application slice exceeded final target: 2 > 1",
+                "code-size Bootstrap + CLI slice exceeded final target: 2 > 1",
+                "code-size Infrastructure + Contracts + CRC worker slice exceeded final target: 2 > 1",
+            ],
+            validate_code_size_policy(
+                self.root,
+                replace(limits, enforce_final_targets=True),
+            ),
         )
 
 

@@ -1941,6 +1941,12 @@ after the grill closes so issues do not become a competing draft specification.
     Infrastructure + Contracts + CRC worker 7,031 -> 5,500 (1,531).
     The allocated total is 74,325 -> 43,000 (31,325); reaching the
     44,000-line hard gate requires at least 30,325 lines of total reduction.
+    The canonical verifier freezes exact descending ratchets at total 74,325
+    and the four measured slice values above. A Core PR must lower every
+    affected ratchet in the same commit, so cross-slice relocation cannot pass.
+    Final-cap enforcement remains explicitly inactive while convergence is
+    incomplete; #197 activates it in the same verifier and then fails either a
+    total above 44,000 or any slice above its approved cap.
     Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
     is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
     Core-entry ratchets, cumulative positive counted growth is capped at 2,000
