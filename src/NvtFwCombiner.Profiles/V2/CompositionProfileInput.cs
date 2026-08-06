@@ -13,14 +13,6 @@ internal enum CompositionProfileArtifactClass
     Auxiliary,
 }
 
-/// <summary>Closed input binding cardinality.</summary>
-internal enum CompositionProfileSlotCardinality
-{
-    ExactlyOne,
-    ZeroOrOne,
-    OneOrMore,
-}
-
 /// <summary>Base value for one normalized input length rule.</summary>
 internal abstract record CompositionProfileLengthRule;
 
@@ -227,7 +219,7 @@ internal sealed partial class CompositionProfileInputSlot
         string role,
         CompositionProfileArtifactClass artifactClass,
         bool required,
-        CompositionProfileSlotCardinality cardinality,
+        CompiledInputSlotCardinality cardinality,
         IEnumerable<string> acceptedExtensions,
         CompositionProfileLengthRule lengthRule,
         CompositionProfileInputNormalization normalization,
@@ -272,7 +264,7 @@ internal sealed partial class CompositionProfileInputSlot
 
     internal bool Required { get; }
 
-    internal CompositionProfileSlotCardinality Cardinality { get; }
+    internal CompiledInputSlotCardinality Cardinality { get; }
 
     internal IReadOnlyList<string> AcceptedExtensions { get; }
 

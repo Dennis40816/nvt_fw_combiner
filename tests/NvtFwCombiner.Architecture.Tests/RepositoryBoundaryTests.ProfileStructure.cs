@@ -106,6 +106,36 @@ public sealed partial class RepositoryBoundaryTests
             "TransformAddendSourceKind",
             ReadProfileSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfilePromotionStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileBlockerKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileSlotCardinality",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapPromotionStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapPromotionBlocker",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "CompositionProfilePromotion.cs")));
+
+        string bootstrap = ReadBootstrapSources();
+        Assert.DoesNotContain("CompositionProfilePromotionStage", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileSlotCardinality", bootstrap, StringComparison.Ordinal);
     }
 
     /// <summary>Validation-only profile fields cannot survive as a fourth stored semantic form.</summary>

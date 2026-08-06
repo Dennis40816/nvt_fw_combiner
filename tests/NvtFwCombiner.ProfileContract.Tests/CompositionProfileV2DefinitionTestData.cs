@@ -6,7 +6,7 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 internal sealed record CompositionProfileV2DefinitionParts(
     string ProfileId,
     string ProfileVersion,
-    CompositionProfilePromotion Promotion,
+    CompiledProfilePromotion Promotion,
     CompositionKind CompositionKind,
     IcNumberInputMode? IcNumberInputMode,
     CompositionProfileExperience Experience,
@@ -31,7 +31,7 @@ internal static class CompositionProfileV2DefinitionTestData
         return new CompositionProfileV2DefinitionParts(
             "synthetic-merge",
             "1.0.0",
-            new CompositionProfilePromotion(CompositionProfilePromotionStage.Known, []),
+            new CompiledProfilePromotion(CompiledProfilePromotionStage.Known, []),
             CompositionKind.Merge,
             null,
             Experience(ExperienceIds.StandardMerge),
@@ -81,7 +81,7 @@ internal static class CompositionProfileV2DefinitionTestData
             "reference",
             CompositionProfileArtifactClass.ReferenceImage,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new ExactResolvedMapCapacityLengthRule(),
             new NoInputNormalization());
@@ -163,7 +163,7 @@ internal static class CompositionProfileV2DefinitionTestData
             "tp",
             CompositionProfileArtifactClass.TpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new SourceViewCoverageLengthRule(
                 maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),

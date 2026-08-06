@@ -43,7 +43,7 @@ internal static class SavedRuleV2GeneralReplaceExactParentResolver
                     profileId));
         CompositionProfileDefinition profile = entry.Profile;
         if (profile.Promotion.Stage !=
-                CompositionProfilePromotionStage.ExecutableCandidate ||
+                CompiledProfilePromotionStage.ExecutableCandidate ||
             profile.CompositionKind != CompositionKind.Replace ||
             !StringComparer.Ordinal.Equals(
                 profile.Experience.ExperienceId,

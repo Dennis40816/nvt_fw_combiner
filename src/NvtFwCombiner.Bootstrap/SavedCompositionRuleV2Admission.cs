@@ -1,7 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Contracts;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -9,7 +8,7 @@ namespace NvtFwCombiner.Bootstrap;
 internal sealed record SavedRuleV2ParentInputPolicy(
     string SlotId,
     string Role,
-    CompositionProfileSlotCardinality Cardinality,
+    CompiledInputSlotCardinality Cardinality,
     IReadOnlyList<string> AcceptedExtensions);
 
 /// <summary>
@@ -227,7 +226,7 @@ internal static partial class SavedCompositionRuleV2Admission
                     cardinality,
                     SavedRuleSchemaTokens.InputSlotCardinalityOne) ||
                 parent.Cardinality !=
-                CompositionProfileSlotCardinality.OneOrMore)
+                CompiledInputSlotCardinality.OneOrMore)
             {
                 issues.Add(Issue(
                     SavedRuleIssueCodes.V2ParentNarrowingInvalid,

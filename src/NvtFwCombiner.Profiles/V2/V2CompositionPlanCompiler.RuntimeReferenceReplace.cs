@@ -391,14 +391,14 @@ internal static partial class V2CompositionPlanCompiler
         {
             Required: true,
             ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
-            Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
+            Cardinality: CompiledInputSlotCardinality.ExactlyOne,
             LengthRule: ExactResolvedMapCapacityLengthRule,
             Normalization: NoInputNormalization,
         } ||
             source is not
             {
                 Required: true,
-                Cardinality: CompositionProfileSlotCardinality.OneOrMore,
+                Cardinality: CompiledInputSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             } ||
             source.ArtifactClass != expectedSourceClass ||

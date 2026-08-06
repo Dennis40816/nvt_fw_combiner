@@ -23,7 +23,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             "auxiliary",
             CompositionProfileArtifactClass.Auxiliary,
             required: false,
-            CompositionProfileSlotCardinality.ZeroOrOne,
+            CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
             new ExactBytesLengthRule(16),
             new NoInputNormalization());

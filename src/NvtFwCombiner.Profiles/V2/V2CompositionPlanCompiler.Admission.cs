@@ -18,12 +18,12 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "Replace runtime lowering currently supports only dp-replace or ctrlram-replace experiences");
         }
 
-        if (profile.Promotion.Stage < CompositionProfilePromotionStage.Compilable)
+        if (profile.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
         {
             AddUnsupported(issues, "promotion stage must be Compilable or later");
         }
 
-        if (profile.Promotion.Stage == CompositionProfilePromotionStage.Supported &&
+        if (profile.Promotion.Stage == CompiledProfilePromotionStage.Supported &&
             !HasRuntimeExecutableOutputContract(profile))
         {
             AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared experience");
@@ -45,12 +45,12 @@ internal static partial class V2CompositionPlanCompiler
             bool requiredSingleton = slot is
             {
                 Required: true,
-                Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
+                Cardinality: CompiledInputSlotCardinality.ExactlyOne,
             };
             bool groupedOptionalSingleton = slot is
             {
                 Required: false,
-                Cardinality: CompositionProfileSlotCardinality.ZeroOrOne,
+                Cardinality: CompiledInputSlotCardinality.ZeroOrOne,
             } && profile.InputSelectionGroups.Any(group =>
                 group.MemberSlotIds.Contains(slot.SlotId, StringComparer.Ordinal));
             if (inputSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||

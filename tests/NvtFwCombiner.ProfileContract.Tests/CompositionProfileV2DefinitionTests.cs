@@ -112,7 +112,7 @@ public sealed class CompositionProfileV2DefinitionTests
             "reference",
             CompositionProfileArtifactClass.ReferenceImage,
             required: false,
-            CompositionProfileSlotCardinality.ZeroOrOne,
+            CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
             new ExactResolvedMapCapacityLengthRule(),
             new NoInputNormalization());
@@ -139,7 +139,7 @@ public sealed class CompositionProfileV2DefinitionTests
             "dp",
             CompositionProfileArtifactClass.DpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new ExactResolvedMapCapacityLengthRule(),
             new PadShorterInputNormalization(0xFF, "padding-evidence"));
@@ -152,7 +152,7 @@ public sealed class CompositionProfileV2DefinitionTests
             "ctrlram",
             CompositionProfileArtifactClass.CtrlRamReplacement,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new BoundedLengthRule(1, 16),
             new TruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence"));
@@ -164,7 +164,7 @@ public sealed class CompositionProfileV2DefinitionTests
             "tp",
             CompositionProfileArtifactClass.TpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new SourceViewCoverageLengthRule(
                 [16],

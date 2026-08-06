@@ -19,7 +19,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal("synthetic-merge", definition.ProfileId);
         Assert.Equal(CompositionKind.Merge, definition.CompositionKind);
         Assert.Null(definition.IcNumberInputMode);
-        Assert.Equal(CompositionProfilePromotionStage.Known, definition.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.Known, definition.Promotion.Stage);
         Assert.Equal(ExperienceIds.StandardMerge, definition.Experience.ExperienceId);
         Assert.Equal("standard-map", Assert.Single(definition.MapBinding.MapIds));
         SourceViewCoverageLengthRule sourceView = Assert.IsType<SourceViewCoverageLengthRule>(

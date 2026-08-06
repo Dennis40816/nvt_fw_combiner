@@ -80,9 +80,7 @@ internal static partial class V2CompositionPlanCompiler
             selection.BundleIdentity,
             selection.ProfileEntryIdentity,
             context,
-            new CompiledProfilePromotion(
-                MapPromotionStage(profile.Promotion.Stage),
-                profile.Promotion.Blockers.Select(MapPromotionBlocker)),
+            profile.Promotion,
             profile.EvidenceRefs,
             additionalValidationRequirements ?? [],
             admission?.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
@@ -111,16 +109,7 @@ internal static partial class V2CompositionPlanCompiler
     {
         CompiledInputSlotCardinality cardinality = forceRequired
             ? CompiledInputSlotCardinality.ExactlyOne
-            : slot.Cardinality switch
-            {
-                CompositionProfileSlotCardinality.ExactlyOne => CompiledInputSlotCardinality.ExactlyOne,
-                CompositionProfileSlotCardinality.ZeroOrOne => CompiledInputSlotCardinality.ZeroOrOne,
-                CompositionProfileSlotCardinality.OneOrMore => CompiledInputSlotCardinality.OneOrMore,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(slot),
-                    slot.Cardinality,
-                    "Unknown profile input slot cardinality."),
-            };
+            : slot.Cardinality;
         return new CompiledInputSlotRequirement(
             slot.SlotId,
             slot.Role,
@@ -201,42 +190,6 @@ internal static partial class V2CompositionPlanCompiler
                 truncated.EvidenceRef),
             _ => throw new ArgumentOutOfRangeException(nameof(normalization), "Unknown profile input normalization."),
         };
-    }
-
-    private static CompiledProfilePromotionStage MapPromotionStage(CompositionProfilePromotionStage stage)
-    {
-        return stage switch
-        {
-            CompositionProfilePromotionStage.Known => CompiledProfilePromotionStage.Known,
-            CompositionProfilePromotionStage.MapResolvable => CompiledProfilePromotionStage.MapResolvable,
-            CompositionProfilePromotionStage.Inspectable => CompiledProfilePromotionStage.Inspectable,
-            CompositionProfilePromotionStage.Authorable => CompiledProfilePromotionStage.Authorable,
-            CompositionProfilePromotionStage.Compilable => CompiledProfilePromotionStage.Compilable,
-            CompositionProfilePromotionStage.ExecutableCandidate => CompiledProfilePromotionStage.ExecutableCandidate,
-            CompositionProfilePromotionStage.Supported => CompiledProfilePromotionStage.Supported,
-            _ => throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown profile promotion stage."),
-        };
-    }
-
-    private static CompiledProfilePromotionBlocker MapPromotionBlocker(CompositionProfilePromotionBlocker blocker)
-    {
-        return new CompiledProfilePromotionBlocker(
-            blocker.BlockerId,
-            blocker.Kind switch
-            {
-                CompositionProfileBlockerKind.Map => CompiledProfilePromotionBlockerKind.Map,
-                CompositionProfileBlockerKind.Metadata => CompiledProfilePromotionBlockerKind.Metadata,
-                CompositionProfileBlockerKind.Operation => CompiledProfilePromotionBlockerKind.Operation,
-                CompositionProfileBlockerKind.Processor => CompiledProfilePromotionBlockerKind.Processor,
-                CompositionProfileBlockerKind.Integrity => CompiledProfilePromotionBlockerKind.Integrity,
-                CompositionProfileBlockerKind.Golden => CompiledProfilePromotionBlockerKind.Golden,
-                CompositionProfileBlockerKind.HumanReview => CompiledProfilePromotionBlockerKind.HumanReview,
-                CompositionProfileBlockerKind.Ui => CompiledProfilePromotionBlockerKind.Ui,
-                CompositionProfileBlockerKind.Release => CompiledProfilePromotionBlockerKind.Release,
-                _ => throw new ArgumentOutOfRangeException(nameof(blocker), blocker.Kind, "Unknown profile blocker kind."),
-            },
-            blocker.Reason,
-            blocker.EvidenceRefs);
     }
 
     private static CompiledOutputNamingRequirement LowerOutputNaming(

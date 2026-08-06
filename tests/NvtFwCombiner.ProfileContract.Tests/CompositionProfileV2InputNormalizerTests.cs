@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -28,14 +29,14 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryCardinality()
     {
-        (string Token, CompositionProfileSlotCardinality Expected)[] cases =
+        (string Token, CompiledInputSlotCardinality Expected)[] cases =
         [
-            ("exactly-one", CompositionProfileSlotCardinality.ExactlyOne),
-            ("zero-or-one", CompositionProfileSlotCardinality.ZeroOrOne),
-            ("one-or-more", CompositionProfileSlotCardinality.OneOrMore),
+            ("exactly-one", CompiledInputSlotCardinality.ExactlyOne),
+            ("zero-or-one", CompiledInputSlotCardinality.ZeroOrOne),
+            ("one-or-more", CompiledInputSlotCardinality.OneOrMore),
         ];
 
-        foreach ((string token, CompositionProfileSlotCardinality expected) in cases)
+        foreach ((string token, CompiledInputSlotCardinality expected) in cases)
         {
             CompositionProfileInputSlot slot = CompositionProfileNormalizer.NormalizeInputSlot(
                 Slot("auxiliary", ExactBytes("1"), None(), cardinality: token));
