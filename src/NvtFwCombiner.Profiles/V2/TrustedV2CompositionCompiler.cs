@@ -92,7 +92,7 @@ internal static class TrustedV2CompositionCompiler
             request);
     }
 
-    /// <summary>Compiles one trusted CtrlRAM request with an optional immutable reference snapshot for map metadata resolution.</summary>
+    /// <summary>Compiles one trusted runtime reference-replace request with optional immutable map-resolution evidence.</summary>
     internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
         TrustedProfileBundleCatalog catalog,
         string profileId,
@@ -105,17 +105,6 @@ internal static class TrustedV2CompositionCompiler
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         ArgumentNullException.ThrowIfNull(request);
-        bool allowsTopologyDisambiguation = StringComparer.Ordinal.Equals(
-            experienceId,
-            ExperienceIds.CtrlRamReplace);
-        if (requestedTopology is not null && !allowsTopologyDisambiguation)
-        {
-            return Failed(
-                [],
-                "profile.v2.runtime-reference-replace.topology-not-admitted",
-                "Only CtrlRAM runtime reference-replace compilation can use an explicit topology selection.");
-        }
-
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
@@ -129,14 +118,23 @@ internal static class TrustedV2CompositionCompiler
             return V2CompositionPlanCompileResult.Failed(resolutionIssues);
         }
 
-        if (!V2CompositionPlanCompiler.TryGetRuntimeReferenceReplaceReferenceSlotId(
+        if (!V2CompositionPlanCompiler.TryGetRuntimeReferenceReplaceSelectionShape(
                 profileEntry.Profile,
-                out string referenceSlotId))
+                out string referenceSlotId,
+                out bool allowsTopologyDisambiguation))
         {
             return Failed(
                 [],
                 "profile.v2.runtime-reference-replace.profile-shape-invalid",
                 "Runtime reference-replace compilation requires the closed reference-image profile shape.");
+        }
+
+        if (requestedTopology is not null && !allowsTopologyDisambiguation)
+        {
+            return Failed(
+                [],
+                "profile.v2.runtime-reference-replace.topology-not-admitted",
+                "Only a topology-disambiguating runtime reference-replace profile can use an explicit topology selection.");
         }
 
         V2RuntimeReferenceReplaceInputBinding[] referenceBindings =
@@ -167,7 +165,7 @@ internal static class TrustedV2CompositionCompiler
             return Failed(
                 [],
                 RuntimeReferenceResolutionArtifactInvalid,
-                "Only CtrlRAM runtime reference-replace may supply one immutable map-resolution artifact matching the reference binding identity and length.");
+                "Only a topology-disambiguating runtime reference-replace profile may supply one immutable map-resolution artifact matching the reference binding identity and length.");
         }
 
         mapCandidates =
@@ -245,7 +243,7 @@ internal static class TrustedV2CompositionCompiler
             selectedInputSlotIds);
     }
 
-    /// <summary>Compiles one trusted map-bound AB profile with an explicit topology selection.</summary>
+    /// <summary>Compiles one trusted map-bound profile with an optional typed topology selection.</summary>
     internal static V2CompositionPlanCompileResult Compile(
         TrustedProfileBundleCatalog catalog,
         string profileId,
@@ -258,15 +256,6 @@ internal static class TrustedV2CompositionCompiler
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
-        if (requestedTopology is not null &&
-            !StringComparer.Ordinal.Equals(modeId, ExperienceIds.AbMerge))
-        {
-            return Failed(
-                [],
-                "profile.v2.compile.topology-not-admitted",
-                "Only AB Merge compilation can use an explicit topology selection.");
-        }
-
         if (!TryResolveMapCandidates(
                 catalog,
                 profileId,
@@ -303,7 +292,7 @@ internal static class TrustedV2CompositionCompiler
                 return Failed(
                     [],
                     TopologyNotDeclared,
-                    "The selected trusted V2 AB Merge map does not declare a topology selection.");
+                    "The selected trusted V2 map does not declare a topology selection.");
             }
 
             mapCandidates =

@@ -301,6 +301,18 @@ public sealed class CompiledOutputNamingRequirement
     /// <summary>Typed rendering behavior admitted by the compiled output contract.</summary>
     public CompiledOutputNameRendererKind RendererKind { get; }
 
+    /// <summary>Returns whether this closed renderer can name a runtime-executable composition kind.</summary>
+    internal bool AllowsRuntimeExecution(CompositionKind compositionKind)
+    {
+        return InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
+            (RendererKind is
+                 CompiledOutputNameRendererKind.Static or
+                 CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                 CompiledOutputNameRendererKind.TpFirmwareV1 ||
+             (compositionKind == CompositionKind.Merge &&
+              RendererKind == CompiledOutputNameRendererKind.AbCodeV1));
+    }
+
     /// <summary>Token references and explicit missing-value behavior in canonical token-id order.</summary>
     public IReadOnlyList<CompiledOutputTokenRequirement> TokenRequirements { get; }
 

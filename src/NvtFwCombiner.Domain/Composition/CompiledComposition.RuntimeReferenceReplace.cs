@@ -10,16 +10,8 @@ public sealed partial class CompiledComposition
         string experienceId,
         V2CompiledCompositionDetails details)
     {
-        var runtimeContext = details.Provenance.Context as RuntimeReferenceReplaceV2CompilationContext;
-        bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            runtimeContext?.ModeId,
-            ExperienceIds.GeneralReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            runtimeContext?.ModeId,
-            ExperienceIds.CtrlRamReplace);
         if (compositionKind != CompositionKind.Replace ||
-            runtimeContext is null ||
-            (!isGeneralReplace && !isCtrlRamReplace) ||
+            details.Provenance.Context is not RuntimeReferenceReplaceV2CompilationContext runtimeContext ||
             !StringComparer.Ordinal.Equals(experienceId, runtimeContext.ModeId) ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             plan.OutputInitialization.ReferenceSpaceId is null ||
@@ -28,13 +20,9 @@ public sealed partial class CompiledComposition
              details.RegionAccessContract.ResolvedViews.Count != 0))
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require a matching General or CtrlRAM Replace experience, a reference-cloned output, declared physical access, and only contract-authorized processor views.",
+                "Map-bound runtime reference-replace artifacts require a reference-cloned output, declared physical access, and only contract-authorized processor views.",
                 nameof(details));
         }
-
-        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompiledInputArtifactClass.CtrlRamReplacement
-            : CompiledInputArtifactClass.Auxiliary;
 
         CompiledInputSlotRequirement[] referenceSlots =
         [
@@ -44,11 +32,20 @@ public sealed partial class CompiledComposition
         CompiledInputSlotRequirement[] sourceSlots =
         [
             .. details.InputContract.Slots.Where(slot =>
-                slot.ArtifactClass == expectedSourceClass),
+                slot.ArtifactClass is
+                    CompiledInputArtifactClass.Auxiliary or
+                    CompiledInputArtifactClass.CtrlRamReplacement),
         ];
-        bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? sourceSlots.FirstOrDefault()?.Normalization is CompiledTruncateCtrlRamInputNormalization
-            : sourceSlots.FirstOrDefault()?.Normalization is CompiledNoInputNormalization;
+        bool usesCtrlRamSource = sourceSlots.FirstOrDefault() is
+        {
+            ArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+            Normalization: CompiledTruncateCtrlRamInputNormalization,
+        };
+        bool sourcePolicyIsValid = usesCtrlRamSource || sourceSlots.FirstOrDefault() is
+        {
+            ArtifactClass: CompiledInputArtifactClass.Auxiliary,
+            Normalization: CompiledNoInputNormalization,
+        };
         if (details.InputContract.Slots.Count != 2 || referenceSlots.Length != 1 || sourceSlots.Length != 1 ||
             referenceSlots[0] is not
             {
@@ -67,10 +64,10 @@ public sealed partial class CompiledComposition
                     MaximumBytes: int.MaxValue,
                 },
             } ||
-            !sourceNormalizationIsValid)
+            !sourcePolicyIsValid)
         {
             throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require one exact reference slot and one per-binding source with the experience-owned normalization policy.",
+                "Map-bound runtime reference-replace artifacts require one exact reference slot and one typed per-binding source with its closed normalization policy.",
                 nameof(details));
         }
 
@@ -133,7 +130,7 @@ public sealed partial class CompiledComposition
         }
 
         var sourceAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
-        InputOversizePolicy expectedSourceOversizePolicy = isCtrlRamReplace
+        InputOversizePolicy expectedSourceOversizePolicy = usesCtrlRamSource
             ? InputOversizePolicy.TruncateWithWarning
             : InputOversizePolicy.Reject;
         foreach (CompiledInputSpaceBinding sourceBinding in sourceBindings)
@@ -148,7 +145,7 @@ public sealed partial class CompiledComposition
                 !sourceAddressSpaceIds.Add(sourceBinding.AddressSpaceId))
             {
                 throw new ArgumentException(
-                    "Runtime reference-replace source bindings must be unique immutable inputs with the experience-owned oversize policy.",
+                    "Runtime reference-replace source bindings must be unique immutable inputs with their typed normalization policy.",
                     nameof(details));
             }
         }
@@ -178,7 +175,7 @@ public sealed partial class CompiledComposition
             .Count(static requirement => requirement is CompiledFirmwareConfigBackupVersionValidation);
         bool versionEditValid = firmwareVersionOperations.Length == 0
             ? versionValidationCount == 0
-            : isCtrlRamReplace && firmwareVersionOperations.Length == 2 &&
+            : usesCtrlRamSource && firmwareVersionOperations.Length == 2 &&
               versionValidationCount == 1 && details.Provenance.ValidationRequirements.Count == 1 &&
               firmwareVersionOperations.Count(static operation => operation.PatchBytes.Length == 2) == 1 &&
               firmwareVersionOperations.Count(static operation => operation.PatchBytes.Length == 1) == 1 &&
@@ -193,7 +190,7 @@ public sealed partial class CompiledComposition
                 nameof(plan));
         }
 
-        if (isCtrlRamReplace && mappingOperations.Any(mapping =>
+        if (usesCtrlRamSource && mappingOperations.Any(mapping =>
                 runtimeContext.ResolvedMap.ImageMap.Regions
                     .Where(region => region.Range.Contains(mapping.TargetRange))
                     .OrderBy(static region => region.Range.Length)
@@ -225,7 +222,8 @@ public sealed partial class CompiledComposition
             mappingOperations,
             firmwareVersionOperations,
             processorOperations,
-            details.RegionAccessContract.ResolvedViews);
+            details.RegionAccessContract.ResolvedViews,
+            usesCtrlRamSource);
     }
 
     private static void ValidateRuntimeReferenceReplaceViews(
@@ -258,11 +256,9 @@ public sealed partial class CompiledComposition
         CompositionOperation[] mappingOperations,
         CompositionOperation[] firmwareVersionOperations,
         CompositionOperation[] processorOperations,
-        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews)
+        IReadOnlyList<CompiledResolvedPhysicalView> resolvedViews,
+        bool usesCtrlRamSource)
     {
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            runtimeContext.ModeId,
-            ExperienceIds.CtrlRamReplace);
         bool touchesTp = mappingOperations.Any(mapping =>
             runtimeContext.ResolvedMap.ImageMap.Regions.Any(region =>
                 region.Owner == FirmwareRegionOwner.Tp &&
@@ -319,10 +315,10 @@ public sealed partial class CompiledComposition
             .. invocation.AllowedWriteRanges,
         ];
         bool everyProcessorRangeHasProvenance = processorRanges.All(range =>
-            resolvedViews.Any(view => isCtrlRamReplace
+            resolvedViews.Any(view => usesCtrlRamSource
                 ? view.Range.Contains(range)
                 : view.Range == range) || firmwareVersionBackupWrites.Contains(range));
-        bool ctrlRamWritesMatchMappings = !isCtrlRamReplace ||
+        bool ctrlRamWritesMatchMappings = !usesCtrlRamSource ||
             (mappingOperations.All(mapping => invocation.AllowedWriteRanges.Any(range =>
                  range.Contains(mapping.TargetRange))) &&
              invocation.AllowedWriteRanges
@@ -331,7 +327,7 @@ public sealed partial class CompiledComposition
         if (resolvedViews.Count == 0 ||
             !everyProcessorRangeHasProvenance ||
             !ctrlRamWritesMatchMappings ||
-            (!isCtrlRamReplace && resolvedViews.Any(view => !processorRanges.Contains(view.Range))))
+            (!usesCtrlRamSource && resolvedViews.Any(view => !processorRanges.Contains(view.Range))))
         {
             throw new ArgumentException(
                 "Every runtime reference Replace processor target, read, and write range must retain profile-owned physical-view provenance.",

@@ -213,9 +213,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             execution.OutputBytes.ToArray());
     }
 
-    /// <summary>Verifies no other Replace experience can enter the DP runtime lowering subset.</summary>
+    /// <summary>Verifies the closed DP operation shape lowers independently of its trusted workflow identity.</summary>
     [Fact]
-    public void DpReplaceLoweringRejectsNonDpReplaceExperience()
+    public void DpReplaceLoweringDoesNotBranchOnWorkflowIdentity()
     {
         V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
@@ -223,16 +223,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] = new JsonObject { ["kind"] = "none" };
         }, modeId: "general-replace"));
 
-        Assert.Null(compilation.CompiledComposition);
-        Assert.Equal(2, compilation.Issues.Count);
-        Assert.All(
-            compilation.Issues,
-            issue => Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code));
+        Assert.Empty(compilation.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal("general-replace", composition.ExperienceId);
+        Assert.Equal(
+            [CompositionOperationKind.ReplaceRange],
+            composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
     }
 
-    /// <summary>Verifies CtrlRAM Replace cannot admit a DP Replace range without its processor contract.</summary>
+    /// <summary>Verifies a workflow name cannot replace the closed operation and input vocabulary.</summary>
     [Fact]
-    public void CtrlRamReplaceLoweringRejectsDpReplaceRange()
+    public void ReplaceRangeAdmissionDoesNotBranchOnCtrlRamWorkflowName()
     {
         V2CompositionPlanCompileResult compilation = Compile(
             PrepareSupportedDpReplace(profile =>
@@ -241,6 +242,28 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] =
                     new JsonObject { ["kind"] = "none" };
             }, modeId: "ctrlram-replace"));
+
+        Assert.Empty(compilation.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal("ctrlram-replace", composition.ExperienceId);
+        Assert.Equal(
+            [CompositionOperationKind.ReplaceRange],
+            composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
+    }
+
+    /// <summary>Verifies the AB Code renderer cannot grant runtime eligibility to reference-clone Replace.</summary>
+    [Fact]
+    public void ReplaceLoweringRejectsAbCodeOutputRenderer()
+    {
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
+        {
+            JsonObject promotion = Assert.IsType<JsonObject>(profile["promotion"]);
+            promotion["stage"] = "supported";
+            promotion["blockers"] = new JsonArray();
+            JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
+            output["fileNameTemplate"] = CompiledOutputNamingRequirement.AbCodeV1Template;
+            output["requiredTokenIds"] = new JsonArray("date", "dp-a", "dp-b", "ic", "tp-a", "tp-b");
+        }));
 
         Assert.Null(compilation.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);

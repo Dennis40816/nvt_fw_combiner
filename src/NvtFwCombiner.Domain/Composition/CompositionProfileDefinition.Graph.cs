@@ -50,7 +50,6 @@ internal sealed partial class CompositionProfileDefinition
     private void ValidateLogicalOutputShape()
     {
         if (CompositionKind != CompositionKind.Merge ||
-            !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.GeneralMerge) ||
             LayoutPolicy != LayoutPolicy.UserDefined ||
             InputPolicy != InputPolicy.Extensible ||
             _metadataBindings.Length != 0 ||
@@ -102,36 +101,25 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateRuntimeReferenceReplaceShape()
     {
-        bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            ExperienceId,
-            ExperienceIds.GeneralReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            ExperienceId,
-            ExperienceIds.CtrlRamReplace);
-        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompiledInputArtifactClass.CtrlRamReplacement
-            : CompiledInputArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
         bool conditionalProcessor = AllowsConditionalProcessor &&
             HasValidRuntimeReferenceProcessorShape(output);
+        bool userDefinedAuthoring = LayoutPolicy == LayoutPolicy.UserDefined &&
+            InputPolicy == InputPolicy.Extensible;
+        bool fixedProcessorAuthoring = LayoutPolicy == LayoutPolicy.Fixed &&
+            InputPolicy == InputPolicy.Fixed &&
+            conditionalProcessor;
         if (CompositionKind != CompositionKind.Replace ||
-            (!isGeneralReplace && !isCtrlRamReplace) ||
-            (isGeneralReplace &&
-             (LayoutPolicy != LayoutPolicy.UserDefined ||
-              InputPolicy != InputPolicy.Extensible)) ||
-            (isCtrlRamReplace &&
-             (LayoutPolicy != LayoutPolicy.Fixed ||
-              InputPolicy != InputPolicy.Fixed ||
-              !conditionalProcessor)) ||
+            (!userDefinedAuthoring && !fixedProcessorAuthoring) ||
             _metadataBindings.Length != 0 ||
             _validations.Length != 0 ||
             _regionAccessRules.Length == 0 ||
             (!processorFree && !conditionalProcessor))
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require the closed General Replace or CtrlRAM Replace mapping shape; CtrlRAM Replace requires one final Legacy Combiner stage.");
+                "Runtime reference-replace profiles require a closed user-defined source or fixed processor mapping shape.");
         }
 
         InputArtifactProfileSpace[] inputs = [.. _spaces.OfType<InputArtifactProfileSpace>()];
@@ -151,9 +139,17 @@ internal sealed partial class CompositionProfileDefinition
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
         InputArtifactProfileSpace? sourceSpace = inputs.SingleOrDefault(space =>
             !StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? source?.Normalization is CompiledTruncateCtrlRamInputNormalization
-            : source?.Normalization is CompiledNoInputNormalization;
+        bool sourcePolicyIsValid =
+            (userDefinedAuthoring && source is
+            {
+                ArtifactClass: CompiledInputArtifactClass.Auxiliary,
+                Normalization: CompiledNoInputNormalization,
+            }) ||
+            (fixedProcessorAuthoring && source is
+            {
+                ArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
+                Normalization: CompiledTruncateCtrlRamInputNormalization,
+            });
         if (reference is not
             {
                 Required: true,
@@ -168,13 +164,12 @@ internal sealed partial class CompositionProfileDefinition
                 Cardinality: CompiledInputSlotCardinality.OneOrMore,
                 LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             } ||
-            source.ArtifactClass != expectedSourceClass ||
-            !sourceNormalizationIsValid ||
+            !sourcePolicyIsValid ||
             referenceSpace is not { InstancePolicy: CompiledInputInstancePolicy.Singleton } ||
             sourceSpace is not { InstancePolicy: CompiledInputInstancePolicy.PerBinding })
         {
             throw new ArgumentException(
-                "Runtime reference-replace profiles require one exact singleton reference and one experience-owned per-binding source with its closed normalization policy.");
+                "Runtime reference-replace profiles require one exact singleton reference and one typed per-binding source with its closed normalization policy.");
         }
 
         if (Promotion.Stage >= CompiledProfilePromotionStage.Supported)
@@ -256,19 +251,20 @@ internal sealed partial class CompositionProfileDefinition
             slot.Normalization is CompiledPadShorterInputNormalization);
         if (padsInput &&
             (CompositionKind != CompositionKind.Replace ||
-             !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.DpReplace) ||
              _processorStages.Length != 0))
         {
-            throw new ArgumentException("Short-input padding requires DP Replace without processor stages.");
+            throw new ArgumentException("Short-input padding requires Replace composition without processor stages.");
         }
 
         bool truncatesCtrlRam = _inputSlots.Any(static slot =>
             slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
         if (truncatesCtrlRam &&
             (CompositionKind != CompositionKind.Replace ||
-             !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.CtrlRamReplace)))
+             _inputSlots.Any(static slot =>
+                 slot.Normalization is CompiledTruncateCtrlRamInputNormalization &&
+                 slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement)))
         {
-            throw new ArgumentException("CtrlRAM truncation requires the CtrlRAM Replace experience.");
+            throw new ArgumentException("CtrlRAM truncation requires a typed CtrlRAM replacement source.");
         }
     }
 

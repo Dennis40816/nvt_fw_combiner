@@ -199,7 +199,7 @@ internal static partial class V2CompositionPlanCompiler
                 "Validated Replace lowering requires its clone source to be one exact unnormalized reference-image input.");
     }
 
-    private static bool IsDpReplacePayloadInputSource(
+    private static bool IsReplacePayloadInputSource(
         CompositionProfileDefinition profile,
         CompositionOperationDefinition operation)
     {
@@ -214,7 +214,7 @@ internal static partial class V2CompositionPlanCompiler
         return artifactClass is CompiledInputArtifactClass.DpFirmware or CompiledInputArtifactClass.Auxiliary;
     }
 
-    private static bool TryAuthorizeDpReplacePayloadTarget(
+    private static bool TryAuthorizeReplacePayloadTarget(
         CompositionProfileDefinition profile,
         CompositionOperationDefinition operation,
         ResolvedView target,
@@ -237,7 +237,7 @@ internal static partial class V2CompositionPlanCompiler
             CompiledInputArtifactClass.ReferenceImage or
             CompiledInputArtifactClass.CtrlRamReplacement => false,
             _ => throw new InvalidOperationException(
-                $"Validated DP Replace lowering encountered unknown input artifact class '{artifactClass}'."),
+                $"Validated Replace lowering encountered unknown input artifact class '{artifactClass}'."),
         };
         if (isAuthorized)
         {
@@ -247,7 +247,7 @@ internal static partial class V2CompositionPlanCompiler
         AddAccessDenied(
             issues,
             operation.OperationId,
-            $"DP Replace payload class '{artifactClass}' cannot target physical owner '{targetOwner?.ToString() ?? "none"}'");
+            $"Replace payload class '{artifactClass}' cannot target physical owner '{targetOwner?.ToString() ?? "none"}'");
         return false;
     }
 

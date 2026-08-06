@@ -77,7 +77,6 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         bool truncateCtrlRamSources =
-            StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace) &&
             shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
             static binding => binding.BindingId,
@@ -124,7 +123,12 @@ internal static partial class V2CompositionPlanCompiler
                 mapping.Provenance)),
         ];
         RuntimeFirmwareVersionEditLowering firmwareVersionEdit = LowerRuntimeFirmwareVersionEdit(
-            profile, shape, resolvedMap, request.FirmwareVersionEdit, regionAccess, issues);
+            shape,
+            resolvedMap,
+            truncateCtrlRamSources,
+            request.FirmwareVersionEdit,
+            regionAccess,
+            issues);
         ValidateOperationOverlaps([.. firmwareVersionEdit.Operations, .. mappingOperations], issues);
         if (issues.Count != 0)
         {
@@ -146,6 +150,7 @@ internal static partial class V2CompositionPlanCompiler
 
         ValidatePostbuildPolicy(
             resolvedMap,
+            truncateCtrlRamSources,
             request.PostbuildPolicy,
             bindings,
             mappingOperations,
@@ -159,6 +164,7 @@ internal static partial class V2CompositionPlanCompiler
         CompositionOperation[] processorOperations = touchesTp
             ? NarrowRuntimeReferenceProcessorAuthority(
                 resolvedMap,
+                truncateCtrlRamSources,
                 mappingOperations,
                 firmwareVersionEdit.PostbuildWriteRanges,
                 request.PostbuildPolicy,
@@ -251,9 +257,9 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static RuntimeFirmwareVersionEditLowering LowerRuntimeFirmwareVersionEdit(
-        CompositionProfileDefinition profile,
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool truncatesCtrlRamSources,
         V2RuntimeReferenceReplaceFirmwareVersionEdit? edit,
         LoweredRegionAccess regionAccess, List<CompositionIssue> issues)
     {
@@ -262,7 +268,7 @@ internal static partial class V2CompositionPlanCompiler
             return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
-        if (!StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace) ||
+        if (!truncatesCtrlRamSources ||
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
@@ -340,18 +346,23 @@ internal static partial class V2CompositionPlanCompiler
     }
 
 
-    internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
+    internal static bool TryGetRuntimeReferenceReplaceSelectionShape(
         CompositionProfileDefinition profile,
-        out string referenceSlotId)
+        out string referenceSlotId,
+        out bool allowsTopologyDisambiguation)
     {
         ArgumentNullException.ThrowIfNull(profile);
         referenceSlotId = string.Empty;
+        allowsTopologyDisambiguation = false;
         if (profile.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return false;
         }
 
-        referenceSlotId = AssertRuntimeReferenceReplaceProfileShape(profile).ReferenceSlot.SlotId;
+        RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
+        referenceSlotId = shape.ReferenceSlot.SlotId;
+        allowsTopologyDisambiguation =
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         return true;
     }
 
@@ -410,7 +421,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceBindingInvalid,
-                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more experience-owned source bindings."));
+                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more typed per-binding sources."));
         }
 
         return bindings;
@@ -425,9 +436,8 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionIssue> issues)
     {
         bool touchesTp = false;
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            resolvedMap.ModeId,
-            ExperienceIds.CtrlRamReplace);
+        bool restrictsTargetsToTpCtrlRam =
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
 
         var mappingIds = new HashSet<string>(StringComparer.Ordinal);
         var sequences = new HashSet<int>();
@@ -493,7 +503,7 @@ internal static partial class V2CompositionPlanCompiler
             }
 
             FirmwareRegion governingRegion = governingRegionChain[^1];
-            if (isCtrlRamReplace &&
+            if (restrictsTargetsToTpCtrlRam &&
                 (governingRegion.Owner != FirmwareRegionOwner.Tp ||
                  governingRegion.Kind != FirmwareRegionKind.CtrlRam))
             {

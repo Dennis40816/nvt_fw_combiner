@@ -146,7 +146,7 @@ public sealed class CompositionProfileV2DefinitionTests
             merge with { InputSlots = [paddedDp] }));
 
         CompositionProfileV2DefinitionParts replace = CompositionProfileV2DefinitionTestData.ValidReplaceParts();
-        var truncated = new CompositionInputSlotDefinition(
+        var truncatedCtrlRam = new CompositionInputSlotDefinition(
             "tp-input",
             "ctrlram",
             CompiledInputArtifactClass.CtrlRamReplacement,
@@ -155,8 +155,8 @@ public sealed class CompositionProfileV2DefinitionTests
             [".bin"],
             new CompiledBoundedInputLengthRequirement(1, 16),
             new CompiledTruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence"));
-        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
-            replace with { InputSlots = [truncated, replace.InputSlots[1]] }));
+        _ = CompositionProfileV2DefinitionTestData.Create(
+            replace with { InputSlots = [truncatedCtrlRam, replace.InputSlots[1]] });
 
         var declaredPrefix = new CompositionInputSlotDefinition(
             "tp-input",

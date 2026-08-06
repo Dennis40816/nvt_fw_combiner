@@ -6,27 +6,15 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static void ValidateSupportedProfile(CompositionProfileDefinition profile, List<CompositionIssue> issues)
     {
-        if (profile.CompositionKind is not (CompositionKind.Merge or CompositionKind.Replace))
-        {
-            AddUnsupported(issues, "composition kind must be Merge or Replace");
-        }
-
-        bool isDpReplace = StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.DpReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace);
-        if (profile.CompositionKind == CompositionKind.Replace && !isDpReplace && !isCtrlRamReplace)
-        {
-            AddUnsupported(issues, "Replace runtime lowering currently supports only dp-replace or ctrlram-replace experiences");
-        }
-
         if (profile.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
         {
             AddUnsupported(issues, "promotion stage must be Compilable or later");
         }
 
         if (profile.Promotion.Stage == CompiledProfilePromotionStage.Supported &&
-            !HasRuntimeExecutableOutputContract(profile))
+            !profile.Output.AllowsRuntimeExecution(profile.CompositionKind))
         {
-            AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared experience");
+            AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared composition kind");
         }
 
         if (profile.Validations.Any(static validation =>
@@ -83,11 +71,9 @@ internal static partial class V2CompositionPlanCompiler
         foreach (CompositionOperationDefinition operation in profile.Operations)
         {
             bool isCopyRange = operation.Kind == CompositionOperationKind.CopyRange;
-            bool isDpReplaceRange = isDpReplace &&
-                operation.Kind == CompositionOperationKind.ReplaceRange &&
-                IsDpReplacePayloadInputSource(profile, operation);
+            bool isReplaceRange = operation.Kind == CompositionOperationKind.ReplaceRange &&
+                IsReplacePayloadInputSource(profile, operation);
             bool isProcessorRun = operation.Kind == CompositionOperationKind.RunExternalProcessor;
-            bool isCtrlRamProcessorRun = isCtrlRamReplace && isProcessorRun;
             bool isReferenceRestore = operation.Kind == CompositionOperationKind.CopyRange &&
                 operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
                 StringComparer.Ordinal.Equals(
@@ -100,38 +86,21 @@ internal static partial class V2CompositionPlanCompiler
                     CompositionOperationKind.PatchScalar or
                     CompositionOperationKind.TransformScalar or
                     CompositionOperationKind.RunExternalProcessor
-                : isDpReplaceRange || isReferenceRestore || isCtrlRamProcessorRun;
+                : isReplaceRange || isReferenceRestore || isProcessorRun;
             bool hasSupportedOverlapPolicy = profile.CompositionKind == CompositionKind.Merge
                 ? operation.OverlapPolicy == OverlapPolicy.Reject ||
                   ((isCopyRange || isProcessorRun) && operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
-                : ((isDpReplaceRange || isCtrlRamProcessorRun) &&
+                : ((isReplaceRange || isProcessorRun) &&
                    operation.OverlapPolicy == OverlapPolicy.Reject) ||
                   isReferenceRestore;
             if (!isSupportedOperation || !hasSupportedOverlapPolicy)
             {
                 AddUnsupported(
                     issues,
-                    $"operation '{operation.OperationId}' is outside the Merge copy/fill/patch/transform, DP Replace replace-range plus reference-restoring copy-range, or CtrlRAM Replace processor subset",
+                    $"operation '{operation.OperationId}' is outside the closed Merge or reference-clone Replace operation subset",
                     operation.OperationId);
             }
         }
     }
 
-    private static bool HasRuntimeExecutableOutputContract(CompositionProfileDefinition profile)
-    {
-        return profile.Output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
-            (profile.Output.RequiredTokenIds.Count == 0 ||
-             StringComparer.Ordinal.Equals(
-                 profile.Output.RuleId,
-                 CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId) ||
-             StringComparer.Ordinal.Equals(
-                 profile.Output.RuleId,
-                 CompiledOutputNamingRequirement.TpFirmwareV1RuleId) ||
-             (profile.CompositionKind == CompositionKind.Merge &&
-              StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.AbMerge) &&
-              StringComparer.Ordinal.Equals(profile.Output.FileNameTemplate, CompiledOutputNamingRequirement.AbCodeV1Template) &&
-              profile.Output.RequiredTokenIds.SequenceEqual(
-                  ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"],
-                  StringComparer.Ordinal)));
-    }
 }

@@ -316,6 +316,58 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.compile.profile-experience-mismatch", Assert.Single(rejected.Issues).Code);
     }
 
+    /// <summary>Typed topology selection lowers the same map and plan across trusted workflow identities.</summary>
+    [Fact]
+    public void TrustedCompilerTopologySelectionIsInvariantAcrossWorkflowIdentity()
+    {
+        var topology = new TopologySelection(
+            3,
+            "cascade",
+            TopologySelectionSource.Requested,
+            "ic-number");
+        V2CompositionPlanCompileResult abMerge = CompileTopologyVariant(ExperienceIds.AbMerge, topology);
+        V2CompositionPlanCompileResult standard = CompileTopologyVariant("standard", topology);
+
+        Assert.Empty(abMerge.Issues);
+        Assert.Empty(standard.Issues);
+        CompiledComposition expected = Assert.IsType<CompiledComposition>(abMerge.CompiledComposition);
+        CompiledComposition actual = Assert.IsType<CompiledComposition>(standard.CompiledComposition);
+        Assert.Equal("map-cascade", expected.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("map-cascade", actual.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
+        Assert.Equal(ExperienceIds.AbMerge, expected.ExperienceId);
+        Assert.Equal("standard", actual.ExperienceId);
+        Assert.Equal(expected.Plan.OutputInitialization.Kind, actual.Plan.OutputInitialization.Kind);
+        Assert.Equal(expected.Plan.OutputInitialization.Capacity, actual.Plan.OutputInitialization.Capacity);
+        Assert.Equal(expected.Plan.OutputInitialization.FillByte, actual.Plan.OutputInitialization.FillByte);
+        Assert.Equal(
+            expected.Plan.OrderedOperations.Select(static operation =>
+                (operation.Kind, operation.SourceSpaceId, operation.SourceRange, operation.TargetSpaceId, operation.TargetRange)),
+            actual.Plan.OrderedOperations.Select(static operation =>
+                (operation.Kind, operation.SourceSpaceId, operation.SourceRange, operation.TargetSpaceId, operation.TargetRange)));
+    }
+
+    /// <summary>An explicit topology remains invalid when canonical map applicability declares no topology.</summary>
+    [Fact]
+    public void TrustedCompilerRejectsTopologyWhenMapDoesNotDeclareIt()
+    {
+        string familyJson = FamilyJsonWithRootWriteConstraint("whole-region");
+        string profileJson = RuntimeProfileForTopologyVariants(Hash(familyJson), "standard", includeCascadeMap: false);
+        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
+
+        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard",
+            16,
+            new TopologySelection(1, "single", TopologySelectionSource.Requested, "ic-number"),
+            []);
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.compile.topology-not-declared", Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies a profile with capacity variants never selects a default map and lowers only the explicitly requested map.</summary>
     [Fact]
     public void TrustedCompilerRequiresExactCapacityForMultipleCanonicalMaps()
@@ -515,6 +567,59 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         secondMap["regionSetIds"] = new JsonArray("physical-32");
         maps.Add(secondMap);
         return family.ToJsonString();
+    }
+
+    private static V2CompositionPlanCompileResult CompileTopologyVariant(
+        string experienceId,
+        TopologySelection topology)
+    {
+        string familyJson = FamilyJsonWithTopologyVariants(experienceId);
+        string profileJson = RuntimeProfileForTopologyVariants(Hash(familyJson), experienceId);
+        return TrustedV2CompositionCompiler.Compile(
+            CreateCatalog(familyJson, profileJson),
+            "profile",
+            "1.0.0",
+            "NT00001",
+            experienceId,
+            16,
+            topology,
+            []);
+    }
+
+    private static string FamilyJsonWithTopologyVariants(string experienceId)
+    {
+        JsonObject family = Assert.IsType<JsonObject>(JsonNode.Parse(
+            FamilyJsonWithRootWriteConstraint("whole-region")));
+        JsonArray maps = Assert.IsType<JsonArray>(family["imageMaps"]);
+        JsonObject single = Assert.IsType<JsonObject>(maps[0]);
+        JsonObject singleApplicability = Assert.IsType<JsonObject>(single["applicability"]);
+        singleApplicability["modeIds"] = new JsonArray(experienceId);
+        singleApplicability["topologyRequirement"] = new JsonObject { ["kind"] = "single" };
+        JsonObject cascade = Assert.IsType<JsonObject>(single.DeepClone());
+        cascade["mapId"] = "map-cascade";
+        Assert.IsType<JsonObject>(cascade["applicability"])["topologyRequirement"] = new JsonObject
+        {
+            ["kind"] = "cascade",
+            ["minimumChipCount"] = 2,
+        };
+        maps.Add(cascade);
+        return family.ToJsonString();
+    }
+
+    private static string RuntimeProfileForTopologyVariants(
+        string familyHash,
+        string experienceId,
+        bool includeCascadeMap = true)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(RuntimeSupportedProfileJson(familyHash)));
+        Assert.IsType<JsonObject>(profile["experience"])["experienceId"] = experienceId;
+        if (includeCascadeMap)
+        {
+            Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["mapIds"])
+                .Add("map-cascade");
+        }
+
+        return profile.ToJsonString();
     }
 
     private static string RuntimeProfileForCapacityVariants(string familyHash)
