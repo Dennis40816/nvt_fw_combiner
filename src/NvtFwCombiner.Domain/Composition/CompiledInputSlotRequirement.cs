@@ -54,7 +54,7 @@ public enum CompiledInputLengthRequirementKind
 }
 
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
-public abstract record CompiledInputLengthRequirement
+public abstract record CompiledInputLengthRequirement : InputLengthRequirementDefinition
 {
     /// <summary>Creates a checked closed length requirement kind.</summary>
     protected CompiledInputLengthRequirement(CompiledInputLengthRequirementKind kind)
@@ -344,10 +344,10 @@ public sealed record CompiledTruncateCtrlRamInputNormalization : CompiledInputNo
     public string EvidenceRef { get; }
 }
 
-/// <summary>One immutable input-slot acceptance, normalization, and address-space binding requirement.</summary>
+/// <summary>One immutable compiled input-slot requirement referencing its canonical definition.</summary>
 public sealed class CompiledInputSlotRequirement
 {
-    private readonly string[] _acceptedExtensions;
+    private readonly CompositionInputSlotDefinition _definition;
 
     internal CompiledInputSlotRequirement(
         string slotId,
@@ -358,165 +358,74 @@ public sealed class CompiledInputSlotRequirement
         IEnumerable<string> acceptedExtensions,
         CompiledInputLengthRequirement lengthRequirement,
         CompiledInputNormalization normalization)
+        : this(
+            new CompositionInputSlotDefinition(
+                slotId,
+                role,
+                artifactClass,
+                required,
+                cardinality,
+                acceptedExtensions,
+                lengthRequirement,
+                normalization,
+                validateCanonicalPolicy: false),
+            lengthRequirement)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(role);
-        if (!Enum.IsDefined(artifactClass))
-        {
-            throw new ArgumentOutOfRangeException(nameof(artifactClass), artifactClass, "Unknown compiled input artifact class.");
-        }
+    }
 
-        if (!Enum.IsDefined(cardinality))
-        {
-            throw new ArgumentOutOfRangeException(nameof(cardinality), cardinality, "Unknown compiled input slot cardinality.");
-        }
-
+    internal CompiledInputSlotRequirement(
+        CompositionInputSlotDefinition definition,
+        CompiledInputLengthRequirement lengthRequirement,
+        bool forceRequired = false)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(lengthRequirement);
-        ArgumentNullException.ThrowIfNull(normalization);
-        ValidateArtifactPolicy(artifactClass, lengthRequirement, normalization);
-        _acceptedExtensions = SnapshotExtensions(acceptedExtensions);
+        bool matchesDefinition = definition.LengthRequirement switch
+        {
+            ResolvedMapCapacityInputLengthDefinition =>
+                lengthRequirement is CompiledExactResolvedMapCapacityInputLengthRequirement,
+            SourceViewCoverageInputLengthDefinition =>
+                lengthRequirement is CompiledSourceViewCoverageInputLengthRequirement,
+            CompiledInputLengthRequirement fixedRequirement =>
+                ReferenceEquals(fixedRequirement, lengthRequirement),
+            _ => false,
+        };
+        if (!matchesDefinition)
+        {
+            throw new ArgumentException(
+                "Compiled input length must resolve the canonical slot definition.",
+                nameof(lengthRequirement));
+        }
 
-        SlotId = slotId;
-        Role = role;
-        ArtifactClass = artifactClass;
-        Required = required;
-        Cardinality = cardinality;
-        AcceptedExtensions = Array.AsReadOnly(_acceptedExtensions);
+        _definition = definition;
+        Required = definition.Required || forceRequired;
+        Cardinality = forceRequired ? CompiledInputSlotCardinality.ExactlyOne : definition.Cardinality;
         LengthRequirement = lengthRequirement;
-        Normalization = normalization;
     }
 
     /// <summary>Profile-owned input slot identifier.</summary>
-    public string SlotId { get; }
+    public string SlotId => _definition.SlotId;
 
     /// <summary>Stable role identifier used for presentation and reports.</summary>
-    public string Role { get; }
+    public string Role => _definition.Role;
 
     /// <summary>Closed source-artifact class.</summary>
-    public CompiledInputArtifactClass ArtifactClass { get; }
+    public CompiledInputArtifactClass ArtifactClass => _definition.ArtifactClass;
 
-    /// <summary>Whether the profile requires this slot.</summary>
+    /// <summary>Whether the compiled plan requires this slot.</summary>
     public bool Required { get; }
 
     /// <summary>Closed source-binding cardinality.</summary>
     public CompiledInputSlotCardinality Cardinality { get; }
 
     /// <summary>Canonical accepted filename extensions.</summary>
-    public IReadOnlyList<string> AcceptedExtensions { get; }
+    public IReadOnlyList<string> AcceptedExtensions => _definition.AcceptedExtensions;
 
-    /// <summary>Typed source length acceptance policy.</summary>
+    /// <summary>Typed resolved source length acceptance policy.</summary>
     public CompiledInputLengthRequirement LengthRequirement { get; }
 
     /// <summary>Typed transient source normalization policy.</summary>
-    public CompiledInputNormalization Normalization { get; }
-
-    private static string[] SnapshotExtensions(IEnumerable<string> acceptedExtensions)
-    {
-        ArgumentNullException.ThrowIfNull(acceptedExtensions);
-        string[] snapshot = [.. acceptedExtensions];
-        if (snapshot.Length == 0 || snapshot.Any(static extension =>
-                extension.Length < 2 || extension[0] != '.' ||
-                extension.Skip(1).Any(static character => !char.IsAsciiLetterOrDigit(character))))
-        {
-            throw new ArgumentException(
-                "Accepted extensions must use canonical dot-prefixed alphanumeric form.",
-                nameof(acceptedExtensions));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Accepted extensions must be ordinally unique.", nameof(acceptedExtensions));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
-
-    private static void ValidateArtifactPolicy(
-        CompiledInputArtifactClass artifactClass,
-        CompiledInputLengthRequirement lengthRequirement,
-        CompiledInputNormalization normalization)
-    {
-        if (artifactClass == CompiledInputArtifactClass.TpFirmware &&
-            (!IsApprovedTpLengthRequirement(lengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "TP firmware requires one approved unnormalized section or exact length rule.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.TpMaximum256K &&
-            artifactClass != CompiledInputArtifactClass.TpFirmware)
-        {
-            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
-        }
-
-        if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
-            lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
-                not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning and
-                not CompiledInputLengthRequirementKind.SourceViewCoverage)
-        {
-            throw new ArgumentException("DP firmware requires an approved DP length rule.");
-        }
-
-        if (artifactClass == CompiledInputArtifactClass.ReferenceImage &&
-            (lengthRequirement.Kind != CompiledInputLengthRequirementKind.ExactResolvedMapCapacity ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Reference images require exact map capacity without normalization.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
-            artifactClass != CompiledInputArtifactClass.DpFirmware)
-        {
-            throw new ArgumentException("Short-input padding is restricted to DP firmware.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
-            lengthRequirement.Kind != CompiledInputLengthRequirementKind.ExactResolvedMapCapacity)
-        {
-            throw new ArgumentException("Short-input padding requires exact resolved-map capacity.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
-            artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
-        {
-            throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning &&
-            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
-                CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.SourceViewCoverage &&
-            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
-                CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Source-view coverage is restricted to unnormalized immutable section sources.");
-        }
-    }
-
-    private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
-    {
-        return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
-            CompiledSourceViewCoverageInputLengthRequirement or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement
-        {
-            RequiredEndExclusive: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-        } or
-            CompiledExactBytesInputLengthRequirement
-        {
-            Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-        };
-    }
-
+    public CompiledInputNormalization Normalization => _definition.Normalization;
 }
 
 /// <summary>One immutable plan address-space binding supplied for one compiled input slot.</summary>

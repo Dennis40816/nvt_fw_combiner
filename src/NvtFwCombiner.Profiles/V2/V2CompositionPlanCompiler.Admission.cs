@@ -40,7 +40,7 @@ internal static partial class V2CompositionPlanCompiler
 
         foreach (InputArtifactProfileSpace inputSpace in profile.Spaces.OfType<InputArtifactProfileSpace>())
         {
-            CompositionProfileInputSlot? slot = profile.InputSlots.SingleOrDefault(candidate =>
+            CompositionInputSlotDefinition? slot = profile.InputSlots.SingleOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.SlotId, inputSpace.SlotId));
             bool requiredSingleton = slot is
             {
@@ -57,9 +57,9 @@ internal static partial class V2CompositionPlanCompiler
                 slot is null ||
                 (!requiredSingleton && !groupedOptionalSingleton) ||
                 slot.Normalization is not (CompiledNoInputNormalization or CompiledPadShorterInputNormalization or CompiledTruncateCtrlRamInputNormalization) ||
-                (slot.LengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null } &&
+                (slot.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
                  profile.CompositionKind != CompositionKind.Merge) ||
-                !IsCurrentInputLengthRuleSupported(slot))
+                !IsCurrentInputLengthRequirementSupported(slot))
             {
                 AddUnsupported(
                     issues,

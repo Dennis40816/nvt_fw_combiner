@@ -8,7 +8,7 @@ internal static partial class CompositionProfileNormalizer
 {
     private const long LegacyTpMaximumBytes = 262144;
 
-    internal static CompositionProfileInputSlot NormalizeInputSlot(
+    internal static CompositionInputSlotDefinition NormalizeInputSlot(
         CompositionProfileInputSlotDocument document,
         string schemaVersion = "2.10",
         string path = "inputSlots[0]")
@@ -24,7 +24,7 @@ internal static partial class CompositionProfileNormalizer
             $"{path}.acceptance.normalization",
             "Input normalization is missing.");
 
-        return Wrap(path, () => new CompositionProfileInputSlot(
+        return Wrap(path, () => new CompositionInputSlotDefinition(
             document.SlotId,
             document.Role,
             NormalizeArtifactClass(document.ArtifactClass, $"{path}.artifactClass"),
@@ -61,20 +61,20 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static CompositionProfileLengthRule NormalizeLengthRule(
+    private static InputLengthRequirementDefinition NormalizeLengthRule(
         CompositionProfileLengthRuleDocument document,
         string schemaVersion,
         string path)
     {
         return document.Kind switch
         {
-            "exact-bytes" => Wrap(path, () => new ExactBytesLengthRule(ReadInt64(
+            "exact-bytes" => Wrap(path, () => new CompiledExactBytesInputLengthRequirement(ReadInt64(
                 Require(document.Bytes, $"{path}.bytes"),
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
-            "exact-resolved-map-capacity" => new ExactResolvedMapCapacityLengthRule(),
-            "bounded" => Wrap(path, () => new BoundedLengthRule(
+            "exact-resolved-map-capacity" => new ResolvedMapCapacityInputLengthDefinition(),
+            "bounded" => Wrap(path, () => new CompiledBoundedInputLengthRequirement(
                 ReadInt64(
                     Require(document.MinimumBytes, $"{path}.minimumBytes"),
                     1,
@@ -86,39 +86,47 @@ internal static partial class CompositionProfileNormalizer
                     long.MaxValue,
                     $"{path}.maximumBytes"))),
             "normal-dp-extract-with-warning" => Wrap(path, () =>
-                new SourceViewCoverageLengthRule(
+                new SourceViewCoverageInputLengthDefinition(
                     NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"),
-                    document.IssueCode ?? throw Error(
-                        $"{path}.issueCode",
-                        "Warning issue code is missing."))),
+                    InputPolicyValueRules.RequireIssueCode(
+                        document.IssueCode ?? throw Error(
+                            $"{path}.issueCode",
+                            "Warning issue code is missing."),
+                        nameof(document.IssueCode)))),
             "tp-maximum-256k" => NormalizeTpMaximum(document, path),
             "source-view-coverage" when schemaVersion is "2.13" or "2.14" or "2.15" => Wrap(path, () =>
-                new SourceViewCoverageLengthRule(
+                new SourceViewCoverageInputLengthDefinition(
                     NormalizeExpectedInputLengths(
                         document.ExpectedOuterLengths,
                         $"{path}.expectedOuterLengths"),
-                    document.UnexpectedOuterLengthIssueCode)),
+                    document.UnexpectedOuterLengthIssueCode is { } issueCode
+                        ? InputPolicyValueRules.RequireIssueCode(issueCode, nameof(document.UnexpectedOuterLengthIssueCode))
+                        : null)),
             "source-view-coverage" => throw Error(
                 $"{path}.kind",
                 "Source-view coverage requires composition-profile schema version '2.13' or later."),
             "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => Wrap(path, () =>
-                new SourceViewCoverageLengthRule(
-                    requiredEndExclusive: ReadInt64(
+                new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                    ReadInt64(
                         Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
                         1,
                         int.MaxValue,
                         $"{path}.requiredEndExclusive"),
-                    expectedOuterLengths: NormalizeExpectedInputLengths(
+                    NormalizeExpectedInputLengths(
                         document.ExpectedOuterLengths,
                         $"{path}.expectedOuterLengths") ?? throw Error(
                             $"{path}.expectedOuterLengths",
                             "Expected outer lengths are missing."),
-                    shortInputIssueCode: document.ShortInputIssueCode ?? throw Error(
-                        $"{path}.shortInputIssueCode",
-                        "Short-input issue code is missing."),
-                    unexpectedOuterLengthIssueCode: document.UnexpectedOuterLengthIssueCode ?? throw Error(
-                        $"{path}.unexpectedOuterLengthIssueCode",
-                        "Unexpected outer-length issue code is missing."))),
+                    InputPolicyValueRules.RequireIssueCode(
+                        document.ShortInputIssueCode ?? throw Error(
+                            $"{path}.shortInputIssueCode",
+                            "Short-input issue code is missing."),
+                        nameof(document.ShortInputIssueCode)),
+                    InputPolicyValueRules.RequireIssueCode(
+                        document.UnexpectedOuterLengthIssueCode ?? throw Error(
+                            $"{path}.unexpectedOuterLengthIssueCode",
+                            "Unexpected outer-length issue code is missing."),
+                        nameof(document.UnexpectedOuterLengthIssueCode)))),
             "declared-prefix-with-warning" => throw Error(
                 $"{path}.kind",
                 "Declared-prefix input authority requires composition-profile schema version '2.10' through '2.15'."),
@@ -126,7 +134,7 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static SourceViewCoverageLengthRule NormalizeTpMaximum(
+    private static CompiledTpMaximum256KInputLengthRequirement NormalizeTpMaximum(
         CompositionProfileLengthRuleDocument document,
         string path)
     {
@@ -136,7 +144,7 @@ internal static partial class CompositionProfileNormalizer
             long.MaxValue,
             $"{path}.maximumBytes");
         return maximum == LegacyTpMaximumBytes
-            ? new SourceViewCoverageLengthRule(maximumOuterLength: maximum)
+            ? new CompiledTpMaximum256KInputLengthRequirement()
             : throw Error(
                 $"{path}.maximumBytes",
                 $"TP maximum must be {LegacyTpMaximumBytes} bytes.");
@@ -171,18 +179,18 @@ internal static partial class CompositionProfileNormalizer
                 ReadByte(
                     Require(document.FillByte, $"{path}.fillByte"),
                     $"{path}.fillByte"),
-                CompositionProfileValueRules.RequireId(
+                InputPolicyValueRules.RequireCanonicalId(
                     document.EvidenceRef ?? throw Error(
                         $"{path}.evidenceRef",
                         "Evidence reference is missing."),
                     nameof(document.EvidenceRef)))),
             "truncate-ctrlram" => Wrap(path, () => new CompiledTruncateCtrlRamInputNormalization(
-                CompositionProfileValueRules.RequireIssueCode(
+                InputPolicyValueRules.RequireIssueCode(
                     document.WarningIssueCode ?? throw Error(
                         $"{path}.warningIssueCode",
                         "Warning issue code is missing."),
                     nameof(document.WarningIssueCode)),
-                CompositionProfileValueRules.RequireId(
+                InputPolicyValueRules.RequireCanonicalId(
                     document.EvidenceRef ?? throw Error(
                         $"{path}.evidenceRef",
                         "Evidence reference is missing."),

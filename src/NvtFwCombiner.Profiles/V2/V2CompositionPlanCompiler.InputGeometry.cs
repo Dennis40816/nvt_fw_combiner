@@ -8,35 +8,47 @@ internal static partial class V2CompositionPlanCompiler
     private static AddressSpace CreateInputAddressSpace(
         string addressSpaceId,
         long length,
-        CompositionProfileInputSlot slot,
+        CompositionInputSlotDefinition slot,
         long resolvedMapCapacity,
         CompositionKind compositionKind,
         bool isCloneSource)
     {
-        return slot.LengthRule switch
+        return slot.LengthRequirement switch
         {
-            SourceViewCoverageLengthRule sourceView => new AddressSpace(
+            SourceViewCoverageInputLengthDefinition sourceView => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
                 expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
-            ExactBytesLengthRule when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
+                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
+            CompiledTpMaximum256KInputLengthRequirement => new AddressSpace(
+                addressSpaceId,
+                length,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+            CompiledExactBytesInputLengthRequirement when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
                 inputOversizePolicy: InputOversizePolicy.TruncateWithWarning),
-            ExactBytesLengthRule => new AddressSpace(
+            CompiledExactBytesInputLengthRequirement => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable),
-            ExactResolvedMapCapacityLengthRule when slot.Normalization is CompiledPadShorterInputNormalization padded => new AddressSpace(
+            ResolvedMapCapacityInputLengthDefinition when slot.Normalization is CompiledPadShorterInputNormalization padded => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
                 inputPaddingByte: padded.FillByte),
-            ExactResolvedMapCapacityLengthRule when isCloneSource ||
+            ResolvedMapCapacityInputLengthDefinition when isCloneSource ||
                                                    (compositionKind == CompositionKind.Replace &&
                                                     slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) => new AddressSpace(
                 addressSpaceId,
@@ -50,14 +62,16 @@ internal static partial class V2CompositionPlanCompiler
         };
     }
 
-    private static bool IsCurrentInputLengthRuleSupported(CompositionProfileInputSlot slot)
+    private static bool IsCurrentInputLengthRequirementSupported(CompositionInputSlotDefinition slot)
     {
-        return slot.LengthRule is ExactResolvedMapCapacityLengthRule or
-            SourceViewCoverageLengthRule ||
+        return slot.LengthRequirement is ResolvedMapCapacityInputLengthDefinition or
+            SourceViewCoverageInputLengthDefinition or
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement or
+            CompiledTpMaximum256KInputLengthRequirement ||
             (slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
-             slot.LengthRule is ExactBytesLengthRule { Bytes: <= 262144 }) ||
+             slot.LengthRequirement is CompiledExactBytesInputLengthRequirement { Bytes: <= 262144 }) ||
             (slot.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement &&
-             slot.LengthRule is ExactBytesLengthRule &&
+             slot.LengthRequirement is CompiledExactBytesInputLengthRequirement &&
              slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
     }
 
@@ -65,29 +79,38 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
-        CompositionProfileInputSlot slot,
+        CompositionInputSlotDefinition slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues,
         out long length)
     {
-        switch (slot.LengthRule)
+        switch (slot.LengthRequirement)
         {
-            case ExactBytesLengthRule exact:
+            case CompiledExactBytesInputLengthRequirement exact:
                 length = exact.Bytes;
                 return true;
-            case ExactResolvedMapCapacityLengthRule:
+            case ResolvedMapCapacityInputLengthDefinition:
                 length = resolvedMap.CapacityBytes;
                 return true;
-            case SourceViewCoverageLengthRule { RequiredEndExclusive: { } requiredEndExclusive }:
-                length = requiredEndExclusive;
+            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
+                length = declaredPrefix.RequiredEndExclusive;
                 return true;
-            case SourceViewCoverageLengthRule sourceView:
+            case SourceViewCoverageInputLengthDefinition:
                 return TryResolveSourceViewSpan(
                     profile,
                     family,
                     input,
-                    sourceView,
                     resolvedMap,
+                    enforceTpMaximum: false,
+                    issues,
+                    out length);
+            case CompiledTpMaximum256KInputLengthRequirement:
+                return TryResolveSourceViewSpan(
+                    profile,
+                    family,
+                    input,
+                    resolvedMap,
+                    enforceTpMaximum: true,
                     issues,
                     out length);
             default:
@@ -99,8 +122,8 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
-        SourceViewCoverageLengthRule sourceView,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool enforceTpMaximum,
         List<CompositionIssue> issues,
         out long length)
     {
@@ -109,20 +132,20 @@ internal static partial class V2CompositionPlanCompiler
                 family,
                 input,
                 resolvedMap,
-                sourceView.MaximumOuterLength is null ? "Section" : "TP",
-                sourceView.MaximumOuterLength is null ? "source-view coverage" : "exact plan",
+                enforceTpMaximum ? "TP" : "Section",
+                enforceTpMaximum ? "exact plan" : "source-view coverage",
                 issues,
                 out length))
         {
             return false;
         }
 
-        if (sourceView.MaximumOuterLength is { } maximumOuterLength &&
-            length > maximumOuterLength)
+        if (enforceTpMaximum &&
+            length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)
         {
             issues.Add(new CompositionIssue(
                 InvalidInputGeometry,
-                maximumOuterLength == 262144 ? $"TP input space '{input.SpaceId}' requires source bytes through 0x{length:X}, exceeding the 256 KiB policy limit." : $"Input space '{input.SpaceId}' requires source bytes through 0x{length:X}, exceeding its declared maximum outer length 0x{maximumOuterLength:X}.",
+                $"TP input space '{input.SpaceId}' requires source bytes through 0x{length:X}, exceeding the 256 KiB policy limit.",
                 input.SpaceId));
             length = 0;
             return false;
@@ -132,7 +155,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static IReadOnlyList<long>? ResolveSourceViewExpectedOuterLengths(
-        SourceViewCoverageLengthRule rule,
+        SourceViewCoverageInputLengthDefinition rule,
         long resolvedMapCapacity)
     {
         return rule.ExpectedOuterLengths.Count == 0

@@ -107,14 +107,14 @@ public sealed class CompositionProfileV2DefinitionTests
     public void DefinitionRejectsInvalidCloneSourceSlots()
     {
         CompositionProfileV2DefinitionParts replace = CompositionProfileV2DefinitionTestData.ValidReplaceParts();
-        var optionalReference = new CompositionProfileInputSlot(
+        var optionalReference = new CompositionInputSlotDefinition(
             "reference-input",
             "reference",
             CompiledInputArtifactClass.ReferenceImage,
             required: false,
             CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
+            new ResolvedMapCapacityInputLengthDefinition(),
             new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [replace.InputSlots[0], optionalReference] }));
@@ -134,43 +134,43 @@ public sealed class CompositionProfileV2DefinitionTests
     public void DefinitionEnforcesProfileLevelInputNormalizationPolicy()
     {
         CompositionProfileV2DefinitionParts merge = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var paddedDp = new CompositionProfileInputSlot(
+        var paddedDp = new CompositionInputSlotDefinition(
             "tp-input",
             "dp",
             CompiledInputArtifactClass.DpFirmware,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
+            new ResolvedMapCapacityInputLengthDefinition(),
             new CompiledPadShorterInputNormalization(0xFF, "padding-evidence"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             merge with { InputSlots = [paddedDp] }));
 
         CompositionProfileV2DefinitionParts replace = CompositionProfileV2DefinitionTestData.ValidReplaceParts();
-        var truncated = new CompositionProfileInputSlot(
+        var truncated = new CompositionInputSlotDefinition(
             "tp-input",
             "ctrlram",
             CompiledInputArtifactClass.CtrlRamReplacement,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new BoundedLengthRule(1, 16),
+            new CompiledBoundedInputLengthRequirement(1, 16),
             new CompiledTruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [truncated, replace.InputSlots[1]] }));
 
-        var declaredPrefix = new CompositionProfileInputSlot(
+        var declaredPrefix = new CompositionInputSlotDefinition(
             "tp-input",
             "tp",
             CompiledInputArtifactClass.TpFirmware,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new SourceViewCoverageLengthRule(
+            new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                16,
                 [16],
-                "INPUT_OUTER_LENGTH",
-                requiredEndExclusive: 16,
-                shortInputIssueCode: "INPUT_SHORT"),
+                "INPUT_SHORT",
+                "INPUT_OUTER_LENGTH"),
             new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [declaredPrefix, replace.InputSlots[1]] }));

@@ -20,7 +20,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+            CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate =>
                 StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
             if (!TryResolveInputSpaceLength(
                     profile,
@@ -103,22 +103,14 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static CompiledInputSlotRequirement MapInputSlot(
-        CompositionProfileInputSlot slot,
+        CompositionInputSlotDefinition slot,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool forceRequired = false)
     {
-        CompiledInputSlotCardinality cardinality = forceRequired
-            ? CompiledInputSlotCardinality.ExactlyOne
-            : slot.Cardinality;
         return new CompiledInputSlotRequirement(
-            slot.SlotId,
-            slot.Role,
-            slot.ArtifactClass,
-            slot.Required || forceRequired,
-            cardinality,
-            slot.AcceptedExtensions,
-            MapInputLengthRequirement(slot.LengthRule, resolvedMap.CapacityBytes),
-            slot.Normalization);
+            slot,
+            ResolveInputLengthRequirement(slot.LengthRequirement, resolvedMap.CapacityBytes),
+            forceRequired);
     }
 
     private static CompiledInputSpaceBinding MapInputSpaceBinding(InputArtifactProfileSpace space)
@@ -129,37 +121,22 @@ internal static partial class V2CompositionPlanCompiler
             space.InstancePolicy);
     }
 
-    private static CompiledInputLengthRequirement MapInputLengthRequirement(
-        CompositionProfileLengthRule lengthRule,
+    private static CompiledInputLengthRequirement ResolveInputLengthRequirement(
+        InputLengthRequirementDefinition lengthRequirement,
         long resolvedMapCapacity)
     {
-        return lengthRule switch
+        return lengthRequirement switch
         {
-            ExactBytesLengthRule exact => new CompiledExactBytesInputLengthRequirement(exact.Bytes),
-            ExactResolvedMapCapacityLengthRule => new CompiledExactResolvedMapCapacityInputLengthRequirement(
+            ResolvedMapCapacityInputLengthDefinition => new CompiledExactResolvedMapCapacityInputLengthRequirement(
                 resolvedMapCapacity),
-            BoundedLengthRule bounded => new CompiledBoundedInputLengthRequirement(
-                bounded.MinimumBytes,
-                bounded.MaximumBytes),
-            SourceViewCoverageLengthRule
-            {
-                RequiredEndExclusive: { } requiredEndExclusive,
-                ShortInputIssueCode: { } shortInputIssueCode,
-                UnexpectedOuterLengthIssueCode: { } unexpectedOuterLengthIssueCode,
-            } sourceView => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                requiredEndExclusive,
-                sourceView.ExpectedOuterLengths,
-                shortInputIssueCode,
-                unexpectedOuterLengthIssueCode),
-            SourceViewCoverageLengthRule { MaximumOuterLength: null } sourceView =>
+            SourceViewCoverageInputLengthDefinition sourceView =>
                 new CompiledSourceViewCoverageInputLengthRequirement(
                     ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                     sourceView.UnexpectedOuterLengthIssueCode),
-            SourceViewCoverageLengthRule
-            {
-                MaximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-            } => new CompiledTpMaximum256KInputLengthRequirement(),
-            _ => throw new ArgumentOutOfRangeException(nameof(lengthRule), "Unknown profile input length rule."),
+            CompiledInputLengthRequirement compiled => compiled,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(lengthRequirement),
+                "Unknown canonical input length definition."),
         };
     }
 

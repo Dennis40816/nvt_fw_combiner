@@ -11,7 +11,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     IcNumberInputMode? IcNumberInputMode,
     CompositionProfileExperience Experience,
     CompositionProfileMapBinding MapBinding,
-    IReadOnlyList<CompositionProfileInputSlot> InputSlots,
+    IReadOnlyList<CompositionInputSlotDefinition> InputSlots,
     IReadOnlyList<CompositionProfileSpace> Spaces,
     IReadOnlyList<CompositionProfileView> Views,
     IReadOnlyList<CompositionProfileMetadataBinding> MetadataBindings,
@@ -76,14 +76,14 @@ internal static class CompositionProfileV2DefinitionTestData
     internal static CompositionProfileV2DefinitionParts ValidReplaceParts()
     {
         CompositionProfileV2DefinitionParts merge = ValidMergeParts();
-        var reference = new CompositionProfileInputSlot(
+        var reference = new CompositionInputSlotDefinition(
             "reference-input",
             "reference",
             CompiledInputArtifactClass.ReferenceImage,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
+            new ResolvedMapCapacityInputLengthDefinition(),
             new CompiledNoInputNormalization());
         return merge with
         {
@@ -156,17 +156,16 @@ internal static class CompositionProfileV2DefinitionTestData
             []);
     }
 
-    internal static CompositionProfileInputSlot TpSlot()
+    internal static CompositionInputSlotDefinition TpSlot()
     {
-        return new CompositionProfileInputSlot(
+        return new CompositionInputSlotDefinition(
             "tp-input",
             "tp",
             CompiledInputArtifactClass.TpFirmware,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new SourceViewCoverageLengthRule(
-                maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
+            new CompiledTpMaximum256KInputLengthRequirement(),
             new CompiledNoInputNormalization());
     }
 }

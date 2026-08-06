@@ -67,12 +67,12 @@ internal static partial class CompositionProfileNormalizer
             document.OptionalRegionIds ?? []));
     }
 
-    internal static CompositionProfileInputSelectionGroup NormalizeInputSelectionGroup(
+    internal static InputSelectionGroupDefinition NormalizeInputSelectionGroup(
         CompositionProfileInputSelectionGroupDocument document,
         string path = "inputSelectionGroups[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
-        return Wrap(path, () => new CompositionProfileInputSelectionGroup(
+        return Wrap(path, () => new InputSelectionGroupDefinition(
             document.GroupId,
             RequireList(document.MemberSlotIds, $"{path}.memberSlotIds"),
             document.MinimumSelected,

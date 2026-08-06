@@ -26,11 +26,11 @@ internal static partial class CompositionProfileNormalizer
             RequireObject(document.Experience, "experience"),
             "experience");
         CompositionProfileCompilationContext compilationContext = NormalizeCompilationContext(document);
-        CompositionProfileInputSlot[] inputSlots = NormalizeList(
+        CompositionInputSlotDefinition[] inputSlots = NormalizeList(
             document.InputSlots,
             "inputSlots",
             (slot, path) => NormalizeInputSlot(slot, document.SchemaVersion, path));
-        CompositionProfileInputSelectionGroup[] inputSelectionGroups =
+        InputSelectionGroupDefinition[] inputSelectionGroups =
             document.InputSelectionGroups is null
                 ? []
                 : NormalizeList(

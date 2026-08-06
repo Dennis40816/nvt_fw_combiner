@@ -52,7 +52,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         var compiledGroups = new List<CompiledInputSelectionGroup>();
-        foreach (CompositionProfileInputSelectionGroup group in profile.InputSelectionGroups)
+        foreach (InputSelectionGroupDefinition group in profile.InputSelectionGroups)
         {
             string[] applicable =
             [
@@ -93,11 +93,9 @@ internal static partial class V2CompositionPlanCompiler
 
             activeSlotIds.UnionWith(selected);
             compiledGroups.Add(new CompiledInputSelectionGroup(
-                group.GroupId,
-                group.MemberSlotIds,
+                group,
                 applicable,
                 selected,
-                group.MinimumSelected,
                 maximumSelected,
                 notApplicableReasons));
         }
