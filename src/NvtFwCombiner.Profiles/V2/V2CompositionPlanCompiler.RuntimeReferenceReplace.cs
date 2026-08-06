@@ -23,7 +23,9 @@ internal static partial class V2CompositionPlanCompiler
     {
         ArgumentNullException.ThrowIfNull(preparation);
         ArgumentNullException.ThrowIfNull(request);
-        if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
+        if (!preparation.IsAdmitted || preparation.Selection is null ||
+            preparation.ProfileEntry is null ||
+            preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -31,8 +33,7 @@ internal static partial class V2CompositionPlanCompiler
                     "Runtime reference-replace plan lowering requires an admitted trusted preparation.")]);
         }
 
-        CompositionProfileDefinition profile = preparation.Admission.Profile;
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.Admission.ResolvedMap;
+        CompositionProfileDefinition profile = preparation.ProfileEntry.Profile;
         var issues = new List<CompositionIssue>();
         if (!IsRuntimeReferenceReplaceProfile(profile))
         {
@@ -215,7 +216,7 @@ internal static partial class V2CompositionPlanCompiler
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.Admission,
+            preparation.CapabilityAdmissions,
             additionalValidationRequirements:
             [
                 .. inputValidations,

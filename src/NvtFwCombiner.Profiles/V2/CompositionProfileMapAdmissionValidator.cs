@@ -27,10 +27,11 @@ internal static class CompositionProfileMapAdmissionValidator
     /// Validates map identity, effective physical facts, and canonical metadata declarations.
     /// This result neither executes inspection metadata nor grants execution authority.
     /// </summary>
-    internal static CompositionProfileMapAdmissionResult Validate(
+    internal static IReadOnlyList<CompositionIssue> Validate(
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition family,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(family);
@@ -71,16 +72,21 @@ internal static class CompositionProfileMapAdmissionValidator
             issues);
         AddMetadataTargetIssues(profile, family, resolvedMap, issues);
 
-        if (familyAssociationIsValid)
+        CompiledCapabilityAdmission[] capabilities = familyAssociationIsValid
+            ? ResolveRequiredCapabilities(binding, family, resolvedMap, issues)
+            : [];
+        issues.Sort(static (left, right) =>
         {
-            AdmittedCapabilityEvidence[] capabilities = ResolveRequiredCapabilities(binding, family, resolvedMap, issues);
-            return issues.Count == 0
-                ? CompositionProfileMapAdmissionResult.Succeeded(
-                    new CompositionProfileMapAdmission(profile, family, resolvedMap, capabilities))
-                : CompositionProfileMapAdmissionResult.Failed(issues);
-        }
+            int code = StringComparer.Ordinal.Compare(left.Code, right.Code);
+            return code != 0
+                ? code
+                : StringComparer.Ordinal.Compare(left.Message, right.Message);
+        });
 
-        return CompositionProfileMapAdmissionResult.Failed(issues);
+        capabilityAdmissions = issues.Count == 0
+            ? Array.AsReadOnly(capabilities)
+            : [];
+        return issues.AsReadOnly();
     }
 
     private static bool AddFamilyAssociationIssues(
@@ -189,13 +195,13 @@ internal static class CompositionProfileMapAdmissionValidator
         }
     }
 
-    private static AdmittedCapabilityEvidence[] ResolveRequiredCapabilities(
+    private static CompiledCapabilityAdmission[] ResolveRequiredCapabilities(
         CompositionProfileMapBinding binding,
         FirmwareFamilyResolutionDefinition family,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         List<CompositionIssue> issues)
     {
-        var admitted = new List<AdmittedCapabilityEvidence>();
+        var admitted = new List<CompiledCapabilityAdmission>();
         foreach (string requiredCapabilityId in binding.RequiredCapabilityIds)
         {
             FirmwareMapFactBinding<FirmwareCapabilityFact>[] candidates =
@@ -224,7 +230,7 @@ internal static class CompositionProfileMapAdmissionValidator
                 switch (capability.Value.State)
                 {
                     case FirmwareCapabilityState.ConfirmedPresent:
-                        admitted.Add(new AdmittedCapabilityEvidence(requiredCapabilityId, capability));
+                        admitted.Add(new CompiledCapabilityAdmission(requiredCapabilityId, capability));
                         break;
                     case FirmwareCapabilityState.ConfirmedAbsent:
                         issues.Add(new CompositionIssue(
@@ -270,187 +276,4 @@ internal static class CompositionProfileMapAdmissionValidator
             structureId,
             out _);
     }
-}
-
-/// <summary>Immutable, non-executable outcome of admitting a v2 profile to one resolved map.</summary>
-internal sealed class CompositionProfileMapAdmissionResult
-{
-    private readonly CompositionIssue[] _issues;
-
-    private CompositionProfileMapAdmissionResult(
-        CompositionProfileMapAdmission? admission,
-        IEnumerable<CompositionIssue> issues)
-    {
-        _issues = ImmutableReferenceSnapshot.Create(issues, "Map-admission issues cannot contain null.");
-
-        Array.Sort(_issues, static (left, right) =>
-        {
-            int code = StringComparer.Ordinal.Compare(left.Code, right.Code);
-            return code != 0
-            ? code
-            : StringComparer.Ordinal.Compare(left.Message, right.Message);
-        });
-        if ((admission is null) != (_issues.Length != 0))
-        {
-            throw new ArgumentException("Map admission must contain either one admission or one or more issues.");
-        }
-
-        Admission = admission;
-        Issues = Array.AsReadOnly(_issues);
-    }
-
-    /// <summary>Atomic non-executable context when every admission check passed.</summary>
-    internal CompositionProfileMapAdmission? Admission { get; }
-
-    /// <summary>True only when the profile's map requirements all match the selected resolved map.</summary>
-    internal bool IsAdmitted => Admission is not null;
-
-    /// <summary>Deterministically ordered admission blockers.</summary>
-    internal IReadOnlyList<CompositionIssue> Issues { get; }
-
-    internal static CompositionProfileMapAdmissionResult Succeeded(CompositionProfileMapAdmission admission)
-    {
-        ArgumentNullException.ThrowIfNull(admission);
-        return new CompositionProfileMapAdmissionResult(admission, []);
-    }
-
-    internal static CompositionProfileMapAdmissionResult Failed(IEnumerable<CompositionIssue> issues)
-    {
-        return new CompositionProfileMapAdmissionResult(admission: null, issues);
-    }
-}
-
-/// <summary>Atomic, non-executable future compiler input admitted against one normalized family and resolved map.</summary>
-internal sealed class CompositionProfileMapAdmission
-{
-    private readonly AdmittedCapabilityEvidence[] _requiredCapabilities;
-
-    internal CompositionProfileMapAdmission(
-        CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition family,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IEnumerable<AdmittedCapabilityEvidence> requiredCapabilities)
-    {
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(family);
-        ArgumentNullException.ThrowIfNull(resolvedMap);
-        _requiredCapabilities = ImmutableReferenceSnapshot.Create(
-            requiredCapabilities,
-            "Admitted capability evidence must be non-null and unique by required capability id.");
-        if (_requiredCapabilities.Select(static capability => capability.RequiredCapabilityId)
-                .Distinct(StringComparer.Ordinal).Count() != _requiredCapabilities.Length)
-        {
-            throw new ArgumentException(
-                "Admitted capability evidence must be non-null and unique by required capability id.",
-                nameof(requiredCapabilities));
-        }
-
-        Array.Sort(_requiredCapabilities, static (left, right) =>
-            StringComparer.Ordinal.Compare(left.RequiredCapabilityId, right.RequiredCapabilityId));
-        ValidateFamilyAndMap(profile, family, resolvedMap);
-        ValidateCapabilityEvidence(profile, family, resolvedMap, _requiredCapabilities);
-        Profile = profile;
-        Family = family;
-        ResolvedMap = resolvedMap;
-        RequiredCapabilities = Array.AsReadOnly(_requiredCapabilities);
-    }
-
-    /// <summary>Normalized profile whose map requirements were admitted.</summary>
-    internal CompositionProfileDefinition Profile { get; }
-
-    /// <summary>Exact normalized family that admitted the selected map.</summary>
-    internal FirmwareFamilyResolutionDefinition Family { get; }
-
-    /// <summary>Exact resolver-produced physical map accepted for the profile.</summary>
-    internal FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }
-
-    /// <summary>Exact confirmed-present capability bindings required by the profile, in canonical requirement order.</summary>
-    internal IReadOnlyList<AdmittedCapabilityEvidence> RequiredCapabilities { get; }
-
-    private static void ValidateFamilyAndMap(
-        CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition family,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
-    {
-        CompositionProfileMapBinding binding = profile.MapBinding;
-        if (!StringComparer.Ordinal.Equals(binding.FamilyId, family.FamilyId) ||
-            !StringComparer.Ordinal.Equals(binding.FamilyVersion, family.FamilyVersion) ||
-            !StringComparer.Ordinal.Equals(binding.FamilyContentHash, family.FamilyContentHash) ||
-            !StringComparer.Ordinal.Equals(resolvedMap.FamilyId, family.FamilyId) ||
-            !StringComparer.Ordinal.Equals(resolvedMap.FamilyVersion, family.FamilyVersion) ||
-            !StringComparer.Ordinal.Equals(resolvedMap.FamilyContentHash, family.FamilyContentHash) ||
-            !family.ImageMaps.Any(map => ReferenceEquals(map, resolvedMap.ImageMap)) ||
-            !binding.MapIds.Contains(resolvedMap.ImageMap.MapId, StringComparer.Ordinal))
-        {
-            throw new ArgumentException("Admission profile, family, and resolved-map identities must be exact.");
-        }
-
-        var regionIds = resolvedMap.ImageMap.Regions
-            .Select(static region => region.RegionId)
-            .ToHashSet(StringComparer.Ordinal);
-        if (binding.RequiredRegionIds.Any(requiredId => !regionIds.Contains(requiredId)) ||
-            binding.RequiredMetadataStructureIds.Any(requiredId =>
-                !CompositionProfileMapAdmissionValidator.IsMetadataStructureDeclared(
-                    family,
-                    resolvedMap,
-                    requiredId)))
-        {
-            throw new ArgumentException("Admission map does not satisfy every required physical or metadata fact.");
-        }
-    }
-
-    private static void ValidateCapabilityEvidence(
-        CompositionProfileDefinition profile,
-        FirmwareFamilyResolutionDefinition family,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IReadOnlyList<AdmittedCapabilityEvidence> requiredCapabilities)
-    {
-        string[] expectedCapabilityIds = [.. profile.MapBinding.RequiredCapabilityIds];
-        string[] actualCapabilityIds = [.. requiredCapabilities.Select(static evidence => evidence.RequiredCapabilityId)];
-        if (!expectedCapabilityIds.SequenceEqual(actualCapabilityIds, StringComparer.Ordinal))
-        {
-            throw new ArgumentException("Admission capability evidence must exactly match profile requirements.");
-        }
-
-        foreach (AdmittedCapabilityEvidence evidence in requiredCapabilities)
-        {
-            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = evidence.Binding;
-            if (!family.CapabilityBindings.Any(candidate => ReferenceEquals(candidate, binding)) ||
-                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, resolvedMap.MemberId) ||
-                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, resolvedMap.ImageMap.MapId) ||
-                binding.Applicability.Evaluate(resolvedMap) != FirmwareApplicabilityResult.Match)
-            {
-                throw new ArgumentException(
-                    "Admission capability evidence must be family-owned and applicable to the resolved effective member and map.");
-            }
-        }
-    }
-}
-
-/// <summary>One required technical capability and its effective-to-direct evidence binding.</summary>
-internal sealed class AdmittedCapabilityEvidence
-{
-    internal AdmittedCapabilityEvidence(
-        string requiredCapabilityId,
-        FirmwareMapFactBinding<FirmwareCapabilityFact> binding)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(requiredCapabilityId);
-        ArgumentNullException.ThrowIfNull(binding);
-        if (!StringComparer.Ordinal.Equals(requiredCapabilityId, binding.Value.CapabilityId) ||
-            binding.Value.State != FirmwareCapabilityState.ConfirmedPresent)
-        {
-            throw new ArgumentException(
-                "Admitted capability evidence must prove its required confirmed-present technical capability.",
-                nameof(binding));
-        }
-
-        RequiredCapabilityId = requiredCapabilityId;
-        Binding = binding;
-    }
-
-    /// <summary>Technical capability id required by the normalized profile.</summary>
-    internal string RequiredCapabilityId { get; }
-
-    /// <summary>Exact effective/direct alias provenance and evidence selected for the requirement.</summary>
-    internal FirmwareMapFactBinding<FirmwareCapabilityFact> Binding { get; }
 }

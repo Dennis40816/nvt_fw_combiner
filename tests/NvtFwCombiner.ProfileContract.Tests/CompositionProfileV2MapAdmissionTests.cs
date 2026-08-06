@@ -15,12 +15,11 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateAdmitsExactMapIdentityEffectiveRegionAndResolvedMetadata()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile());
+        AdmissionResult result = Admit(Profile());
 
         Assert.True(result.IsAdmitted);
         Assert.Empty(result.Issues);
-        Assert.NotNull(result.Admission);
-        Assert.Empty(result.Admission.RequiredCapabilities);
+        Assert.Empty(result.CapabilityAdmissions);
     }
 
     /// <summary>Verifies every family identity component is compared exactly and independently.</summary>
@@ -34,7 +33,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
         string familyContentHash,
         string expectedIssueCode)
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(familyId, familyVersion, familyContentHash));
+        AdmissionResult result = Admit(Profile(familyId, familyVersion, familyContentHash));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal([expectedIssueCode], result.Issues.Select(static issue => issue.Code));
@@ -48,7 +47,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
         ResolutionContext foreignContext = ResolveContext(
             familyContentHash: "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
 
-        CompositionProfileMapAdmissionResult result = Admit(
+        AdmissionResult result = Admit(
             Profile(),
             new ResolutionContext(foreignContext.Family, resolvedContext.ResolvedMap));
 
@@ -66,7 +65,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateRejectsResolvedMapOutsideDeclaredMapIds()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(mapIds: ["other-map"]));
+        AdmissionResult result = Admit(Profile(mapIds: ["other-map"]));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal(["profile.v2.map.map-not-allowed"], result.Issues.Select(static issue => issue.Code));
@@ -76,7 +75,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateRejectsMissingRequiredRegion()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(regionIds: ["dp-code", "missing-region"]));
+        AdmissionResult result = Admit(Profile(regionIds: ["dp-code", "missing-region"]));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal(["profile.v2.map.required-region-missing"], result.Issues.Select(static issue => issue.Code));
@@ -87,7 +86,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateRejectsMissingRequiredMetadataStructure()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(structureIds: ["firmware-config", "missing-structure"]));
+        AdmissionResult result = Admit(Profile(structureIds: ["firmware-config", "missing-structure"]));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal(
@@ -100,7 +99,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateRejectsMissingRequiredCapabilities()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(capabilityIds: ["ab-code", "crc32"]));
+        AdmissionResult result = Admit(Profile(capabilityIds: ["ab-code", "crc32"]));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal(
@@ -117,12 +116,12 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateOrdersAdmissionIssuesIndependentlyOfRequirementDeclarationOrder()
     {
-        CompositionProfileMapAdmissionResult first = Admit(
+        AdmissionResult first = Admit(
             Profile(
                 regionIds: ["z-region", "dp-code", "a-region"],
                 structureIds: ["z-structure", "firmware-config", "a-structure"],
                 capabilityIds: ["z-capability", "a-capability"]));
-        CompositionProfileMapAdmissionResult second = Admit(
+        AdmissionResult second = Admit(
             Profile(
                 regionIds: ["a-region", "z-region", "dp-code"],
                 structureIds: ["a-structure", "z-structure", "firmware-config"],
@@ -152,7 +151,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
     {
         ResolutionContext context = ResolveContext(useAliasedFacts: true);
 
-        CompositionProfileMapAdmissionResult result = Admit(Profile(), context);
+        AdmissionResult result = Admit(Profile(), context);
 
         Assert.True(result.IsAdmitted);
         Assert.Contains(context.ResolvedMap.FactProvenance, static provenance => provenance.AliasChain.Count != 0);
@@ -175,7 +174,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
                     new(FirmwareMetadataReferenceTargetKind.Group, "pid-group")),
             ]);
 
-        CompositionProfileMapAdmissionResult result = Admit(
+        AdmissionResult result = Admit(
             profile,
             ResolveContext(useTypedMetadata: true));
 
@@ -203,7 +202,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
                     new FirmwareMetadataReferenceTarget(kind, "missing-target")),
             ]);
 
-        CompositionProfileMapAdmissionResult result = Admit(
+        AdmissionResult result = Admit(
             profile,
             ResolveContext(useTypedMetadata: true));
 
@@ -213,16 +212,21 @@ public sealed class CompositionProfileV2MapAdmissionTests
         Assert.Contains("missing-target", issue.Message, StringComparison.Ordinal);
     }
 
-    private static CompositionProfileMapAdmissionResult Admit(CompositionProfileDefinition profile)
+    private static AdmissionResult Admit(CompositionProfileDefinition profile)
     {
         return Admit(profile, ResolveContext());
     }
 
-    private static CompositionProfileMapAdmissionResult Admit(
+    private static AdmissionResult Admit(
         CompositionProfileDefinition profile,
         ResolutionContext context)
     {
-        return CompositionProfileMapAdmissionValidator.Validate(profile, context.Family, context.ResolvedMap);
+        IReadOnlyList<CompositionIssue> issues = CompositionProfileMapAdmissionValidator.Validate(
+            profile,
+            context.Family,
+            context.ResolvedMap,
+            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
+        return new AdmissionResult(issues, capabilityAdmissions);
     }
 
     private static CompositionProfileDefinition Profile(
@@ -436,4 +440,11 @@ public sealed class CompositionProfileV2MapAdmissionTests
     private sealed record ResolutionContext(
         FirmwareFamilyResolutionDefinition Family,
         ResolvedFirmwareImageMap ResolvedMap);
+
+    private sealed record AdmissionResult(
+        IReadOnlyList<CompositionIssue> Issues,
+        IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions)
+    {
+        internal bool IsAdmitted => Issues.Count == 0;
+    }
 }

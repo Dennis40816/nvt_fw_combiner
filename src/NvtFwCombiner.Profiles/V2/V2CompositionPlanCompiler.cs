@@ -77,14 +77,15 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(preparation);
-        if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
+        if (!preparation.IsAdmitted || preparation.Selection is null ||
+            preparation.ProfileEntry is null ||
+            preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(PreparationNotAdmitted, "V2 plan lowering requires an admitted trusted preparation.")]);
         }
 
-        CompositionProfileDefinition profile = preparation.Admission.Profile;
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.Admission.ResolvedMap;
+        CompositionProfileDefinition profile = preparation.ProfileEntry.Profile;
         var issues = new List<CompositionIssue>();
         ValidateSupportedProfile(profile, issues);
         if (issues.Count != 0)
@@ -104,7 +105,7 @@ internal static partial class V2CompositionPlanCompiler
 
         Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
             profile,
-            preparation.Admission.Family,
+            preparation.ProfileEntry.Family.Family,
             resolvedMap,
             issues,
             inputSelection.ActiveSlotIds);
@@ -178,7 +179,7 @@ internal static partial class V2CompositionPlanCompiler
                 .Select(MapInputSpaceBinding),
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.Admission,
+            preparation.CapabilityAdmissions,
             runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements: LowerInputValidations(profile, views),
             inputSelectionGroups: inputSelection.Groups);
