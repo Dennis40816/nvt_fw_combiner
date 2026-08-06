@@ -114,7 +114,9 @@ A fact not referenced is not shared.
 For `region`, every applicable map must bind the exact same immutable region
 instance through one canonical region set; separately declared value-equal
 regions are rejected. Metadata definitions follow the same reference-identity
-rule.
+rule. Profiles resolves the typed identifier once; the Domain relationship
+constructor is the sole owner of cross-map coverage, uniqueness, and exact
+reference-identity validation.
 
 The old `initial-code-shared-family` and `tp-shared-family` discriminators,
 `sharedRegionIds`, `metadataDefinitionIds`, and every other undeclared

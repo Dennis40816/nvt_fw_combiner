@@ -539,20 +539,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
             ReadInt64(document.Length, 1, long.MaxValue, $"{path}.length"));
     }
 
-    private static void ValidateGlobalStructureIds(IEnumerable<FirmwareMetadataSet> metadataSets)
-    {
-        HashSet<string> structureIds = new(StringComparer.Ordinal);
-        foreach (FirmwareMetadataStructure structure in metadataSets.SelectMany(static set => set.Structures))
-        {
-            if (!structureIds.Add(structure.StructureId))
-            {
-                throw Error(
-                    "metadataSets",
-                    $"Metadata structure id '{structure.StructureId}' must be unique across the family.");
-            }
-        }
-    }
-
     private static T Require<T>(T? value, string path)
         where T : class
     {

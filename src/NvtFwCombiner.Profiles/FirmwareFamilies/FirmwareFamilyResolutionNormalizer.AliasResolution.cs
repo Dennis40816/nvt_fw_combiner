@@ -22,8 +22,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = NormalizeMetadataSets(
             RequireList(document.MetadataSets, "metadataSets"),
             metadataDefinitionResolver);
-        ValidateGlobalStructureIds(metadataSetsById.Values);
-
         MapInput[] maps = CreateMaps(
             RequireList(document.ImageMaps, "imageMaps"),
             membersById);
