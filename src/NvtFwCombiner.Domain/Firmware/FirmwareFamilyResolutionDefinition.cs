@@ -10,7 +10,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     private readonly FirmwareMetadataSet[] _metadataSets;
     private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _capabilityBindings;
     private readonly FirmwareFamilyRelationship[] _familyRelationships;
-    private readonly string[] _requiredArtifactBindingIds;
     private readonly Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>> _structuresByMap;
 
     /// <summary>Creates one atomic family, map, and metadata resolution definition.</summary>
@@ -82,7 +81,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             static set => set.MetadataSetId,
             StringComparer.Ordinal);
         HashSet<string> referencedMetadataSetIds = new(StringComparer.Ordinal);
-        HashSet<string> artifactBindingIds = new(StringComparer.Ordinal);
         _structuresByMap = new Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>>(
             StringComparer.Ordinal);
 
@@ -93,11 +91,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 metadataSetsById,
                 referencedMetadataSetIds);
             ValidateCandidate(map, structures);
-            foreach (FirmwareMetadataStructure structure in structures)
-            {
-                _ = artifactBindingIds.Add(structure.ArtifactBindingId);
-            }
-
             _structuresByMap.Add(map.MapId, Array.AsReadOnly(structures));
         }
 
@@ -108,9 +101,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 nameof(metadataSets));
         }
 
-        _requiredArtifactBindingIds = [.. artifactBindingIds];
-        Array.Sort(_requiredArtifactBindingIds, StringComparer.Ordinal);
-
         FamilyId = familyId;
         FamilyVersion = familyVersion;
         FamilyContentHash = familyContentHash;
@@ -118,7 +108,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         MetadataSets = Array.AsReadOnly(_metadataSets);
         CapabilityBindings = Array.AsReadOnly(_capabilityBindings);
         FamilyRelationships = Array.AsReadOnly(_familyRelationships);
-        RequiredArtifactBindingIds = Array.AsReadOnly(_requiredArtifactBindingIds);
     }
 
     /// <summary>Stable source-family identifier.</summary>
@@ -142,9 +131,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Owner-declared perfect-like and shared-part firmware relationships.</summary>
     public IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
 
-    /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
-    public IReadOnlyList<string> RequiredArtifactBindingIds { get; }
-
     /// <summary>Returns metadata structures selected by one exact candidate map.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> GetStructuresForMap(string mapId)
     {
@@ -152,24 +138,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         return _structuresByMap.TryGetValue(mapId, out IReadOnlyList<FirmwareMetadataStructure>? structures)
             ? structures
             : throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
-    }
-
-    /// <summary>Returns only metadata structures that participate in candidate map selection.</summary>
-    internal IReadOnlyList<FirmwareMetadataStructure> GetMapResolutionStructuresForMap(string mapId)
-    {
-        FirmwareImageMap map = _imageMaps.FirstOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.MapId, mapId)) ??
-            throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
-        IReadOnlyList<FirmwareMetadataStructure> structures = GetStructuresForMap(mapId);
-        var predicateStructureIds = new HashSet<string>(
-            map.Applicability.MetadataPredicates.Select(
-                static predicate => predicate.MetadataStructureId),
-            StringComparer.Ordinal);
-        return Array.AsReadOnly(
-        [
-            .. structures.Where(structure =>
-                predicateStructureIds.Contains(structure.StructureId)),
-        ]);
     }
 
     /// <summary>Resolves a structure only through metadata sets selected by the candidate map.</summary>

@@ -187,21 +187,6 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         _ = Assert.Single(valid.ProcessorStages);
     }
 
-    /// <summary>Verifies output required-token declarations are present in the template.</summary>
-    [Fact]
-    public void DefinitionRejectsMissingOutputTemplateTokens()
-    {
-        CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var output = new CompositionProfileOutput(
-            "merged.bin",
-            false,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["original-name"]);
-
-        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
-            parts with { Output = output }));
-    }
-
     private static LegacyCombinerProfileProcessorStage LegacyStage()
     {
         return new LegacyCombinerProfileProcessorStage(

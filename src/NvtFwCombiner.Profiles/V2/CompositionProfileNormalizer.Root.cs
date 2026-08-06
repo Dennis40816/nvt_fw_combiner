@@ -65,10 +65,11 @@ internal static partial class CompositionProfileNormalizer
             document.ProcessorStages,
             "processorStages",
             (stage, path) => NormalizeProcessorStage(stage, document.SchemaVersion, path));
-        CompositionProfileOutput output = NormalizeOutput(
+        CompiledOutputNamingRequirement output = NormalizeOutput(
             RequireObject(document.Output, "output"),
             document.SchemaVersion,
-            "output");
+            "output",
+            metadataBindings);
         IReadOnlyList<string> evidenceRefs = RequireList(document.EvidenceRefs, "evidenceRefs");
 
         return Wrap("$", () => new CompositionProfileDefinition(

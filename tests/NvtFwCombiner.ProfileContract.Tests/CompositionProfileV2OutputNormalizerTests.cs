@@ -11,10 +11,10 @@ public sealed class CompositionProfileV2OutputNormalizerTests
     [Fact]
     public void OutputMapsEveryInvalidCharacterPolicy()
     {
-        CompositionProfileOutput reject = CompositionProfileNormalizer.NormalizeOutput(
+        CompiledOutputNamingRequirement reject = CompositionProfileNormalizer.NormalizeOutput(
             Output("reject"),
             "2.0");
-        CompositionProfileOutput replace = CompositionProfileNormalizer.NormalizeOutput(
+        CompiledOutputNamingRequirement replace = CompositionProfileNormalizer.NormalizeOutput(
             Output("replace-underscore", allowOverride: true),
             "2.0");
 
@@ -71,7 +71,7 @@ public sealed class CompositionProfileV2OutputNormalizerTests
     [Fact]
     public void OutputMapsV215CanonicalNamingRule()
     {
-        CompositionProfileOutput output = CompositionProfileNormalizer.NormalizeOutput(
+        CompiledOutputNamingRequirement output = CompositionProfileNormalizer.NormalizeOutput(
             new CompositionProfileOutputDocument(
                 "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
                 AllowOverride: true,
@@ -96,7 +96,9 @@ public sealed class CompositionProfileV2OutputNormalizerTests
                         "tp-inspection",
                         "xxxx"),
                 ]),
-            "2.15");
+            "2.15",
+            "output",
+            OutputBindings());
 
         Assert.Equal("normal-flashcode-v1", output.RuleId);
         Assert.Equal(
@@ -126,7 +128,7 @@ public sealed class CompositionProfileV2OutputNormalizerTests
 
         static (string TokenId, CompiledOutputTokenSourceKind SourceKind,
             string? MetadataBindingId, CompiledOutputTokenMissingPolicy MissingPolicy,
-            string? Placeholder) Values(CompositionProfileOutputTokenRequirement token)
+            string? Placeholder) Values(CompiledOutputTokenRequirement token)
         {
             return (
                 token.TokenId,
@@ -135,6 +137,52 @@ public sealed class CompositionProfileV2OutputNormalizerTests
                 token.MissingPolicy,
                 token.Placeholder);
         }
+    }
+
+    /// <summary>Typed metadata tokens require the exact canonical binding purpose and structure.</summary>
+    [Theory]
+    [InlineData("validation", "dpcmi")]
+    [InlineData("output-naming", "firmware-config-general-parameters")]
+    public void OutputRejectsNonCanonicalMetadataBinding(
+        string purpose,
+        string structureId)
+    {
+        CompositionProfileOutputDocument document = new(
+            CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
+            AllowOverride: false,
+            InvalidCharacterPolicy: "reject",
+            RequiredTokenIds: ["date", "dp-version", "ic", "tp-version"],
+            RuleId: CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId,
+            OutputArtifactType: "flash-code",
+            TokenRequirements:
+            [
+                Token("date", "run-date-utc", "block"),
+                Token("dp-version", "dpcmi-version", "use-placeholder", "dp-inspection", "xxxx"),
+                Token("ic", "compiled-ic", "block"),
+                Token("tp-version", "firmware-config-tp-version", "use-placeholder", "tp-inspection", "xxxx"),
+            ]);
+        CompositionProfileMetadataPurpose bindingPurpose = purpose == "output-naming"
+            ? CompositionProfileMetadataPurpose.OutputNaming
+            : CompositionProfileMetadataPurpose.Validation;
+        CompositionProfileMetadataBinding[] bindings = OutputBindings();
+        bindings[0] = new CompositionProfileMetadataBinding(
+            "dp-inspection",
+            "tp-source",
+            structureId,
+            ["version"],
+            [bindingPurpose]);
+
+        CompositionProfileNormalizationException exception =
+            Assert.Throws<CompositionProfileNormalizationException>(() =>
+                CompositionProfileNormalizer.NormalizeOutput(
+                    document,
+                    "2.15",
+                    "output",
+                    bindings));
+
+        Assert.Equal(
+            "output.tokenRequirements[1].source.metadataBindingId",
+            exception.Path);
     }
 
     /// <summary>Typed naming authority is versioned and cannot leak into an older profile schema.</summary>
@@ -208,5 +256,24 @@ public sealed class CompositionProfileV2OutputNormalizerTests
                 metadataBindingId),
             missingPolicy,
             placeholder);
+    }
+
+    private static CompositionProfileMetadataBinding[] OutputBindings()
+    {
+        return
+        [
+            new CompositionProfileMetadataBinding(
+                "dp-inspection",
+                "tp-source",
+                "dpcmi",
+                ["version"],
+                [CompositionProfileMetadataPurpose.OutputNaming]),
+            new CompositionProfileMetadataBinding(
+                "tp-inspection",
+                "tp-source",
+                "firmware-config-general-parameters",
+                ["tp-version"],
+                [CompositionProfileMetadataPurpose.OutputNaming]),
+        ];
     }
 }

@@ -38,15 +38,20 @@ public sealed class FirmwareMapResolutionTests
         FirmwareFamilyResolutionDefinition definition = Definition([map], [metadata]);
 
         _ = Assert.Throws<ArgumentNullException>(() =>
-            definition.ResolveMapWithinForSelection(Inputs([]), null!));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            definition.ResolveMapWithinForSelection(
+            definition.ResolveMapWithinForProfile(
                 Inputs([]),
+                null!,
+                new HashSet<string>(StringComparer.Ordinal)));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            definition.ResolveMapWithinForProfile(
+                Inputs([]),
+                new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<string>(StringComparer.Ordinal)));
 
-        FirmwareMapResolutionResult result = definition.ResolveMapWithinForSelection(
+        FirmwareMapResolutionResult result = definition.ResolveMapWithinForProfile(
             Inputs([]),
-            new HashSet<string>(["map"], StringComparer.Ordinal));
+            new HashSet<string>(["map"], StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal));
 
         Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
         ResolvedFirmwareImageMap resolved = Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap);
@@ -418,9 +423,10 @@ public sealed class FirmwareMapResolutionTests
         FirmwareFamilyResolutionDefinition definition = Definition([first, second], []);
 
         FirmwareMapResolutionResult unscoped = definition.ResolveMap(Inputs([]));
-        FirmwareMapResolutionResult scoped = definition.ResolveMapWithin(
+        FirmwareMapResolutionResult scoped = definition.ResolveMapWithinForProfile(
             Inputs([]),
-            new HashSet<string>(["second"], StringComparer.Ordinal));
+            new HashSet<string>(["second"], StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal));
 
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, unscoped.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, unscoped.RejectionKind);

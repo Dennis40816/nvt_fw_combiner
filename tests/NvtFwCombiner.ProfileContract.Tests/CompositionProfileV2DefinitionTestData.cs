@@ -19,7 +19,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     IReadOnlyList<CompositionProfileOperation> Operations,
     IReadOnlyList<CompositionProfileValidation> Validations,
     IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages,
-    CompositionProfileOutput Output,
+    CompiledOutputNamingRequirement Output,
     IReadOnlyList<string> EvidenceRefs);
 
 internal static class CompositionProfileV2DefinitionTestData
@@ -65,7 +65,7 @@ internal static class CompositionProfileV2DefinitionTestData
                 CompiledValidationSeverity.Error, "PID_INVALID",
                 new CompositionProfileMetadataFieldReference("fwconfig", "pid"))],
             [],
-            new CompositionProfileOutput(
+            new CompiledOutputNamingRequirement(
                 "{original-name}_merged.bin",
                 false,
                 CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
