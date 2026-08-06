@@ -49,7 +49,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         Assert.Equal(
             BigInteger.Parse("-18446744073709551617", System.Globalization.CultureInfo.InvariantCulture),
             transform.Addend);
-        Assert.Equal(CompositionProfileScalarByteOrder.LittleEndian, transform.ByteOrder);
+        Assert.Equal(ScalarTransformByteOrder.LittleEndian, transform.ByteOrder);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
     }
 
@@ -91,7 +91,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
             Number(expectedBefore))));
 
         Assert.Equal(int.Parse(width, System.Globalization.CultureInfo.InvariantCulture), (int)transform.Width);
-        Assert.Equal(CompositionProfileScalarByteOrder.BigEndian, transform.ByteOrder);
+        Assert.Equal(ScalarTransformByteOrder.BigEndian, transform.ByteOrder);
         Assert.Equal(ulong.Parse(expectedBefore, System.Globalization.CultureInfo.InvariantCulture), transform.ExpectedBefore);
     }
 

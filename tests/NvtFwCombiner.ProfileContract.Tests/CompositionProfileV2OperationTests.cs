@@ -24,11 +24,11 @@ public sealed class CompositionProfileV2OperationTests
             new CompositionProfileByteValue([0x01, 0x02]));
         var transform = new TransformScalarProfileOperation(
             "relocate", 4, OverlapPolicy.ReplaceExisting, "relocate", "source-scalar", "target-scalar",
-            CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
+            ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
             -16, 32);
         var instanceDelta = new TransformScalarProfileOperation(
             "relocate-instance", 5, OverlapPolicy.Reject, "relocate", "source-scalar", "target-scalar",
-            CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
+            ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
             new RegionInstanceDeltaTransformAddendSource("a-bank", "b-bank"), null);
         var processor = new RunProcessorProfileOperation(
             "postbuild", 6, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
@@ -37,7 +37,7 @@ public sealed class CompositionProfileV2OperationTests
         Assert.Equal("target", replace.TargetViewId);
         Assert.Equal(0xFF, fill.FillByte);
         Assert.Equal("0102", patch.Value.Hex);
-        Assert.Equal(CompositionProfileScalarWidth.FourBytes, transform.Width);
+        Assert.Equal(ScalarTransformWidth.FourBytes, transform.Width);
         Assert.Equal(-16, transform.Addend);
         RegionInstanceDeltaTransformAddendSource delta =
             Assert.IsType<RegionInstanceDeltaTransformAddendSource>(instanceDelta.AddendSource);
@@ -72,7 +72,7 @@ public sealed class CompositionProfileV2OperationTests
         var addend = BigInteger.Parse("-18446744073709551617", System.Globalization.CultureInfo.InvariantCulture);
         var transform = new TransformScalarProfileOperation(
             "relocate", sequence, OverlapPolicy.Reject, "relocate", "source", "target",
-            CompositionProfileScalarWidth.EightBytes, CompositionProfileScalarByteOrder.BigEndian,
+            ScalarTransformWidth.EightBytes, ScalarTransformByteOrder.BigEndian,
             addend, ulong.MaxValue);
 
         Assert.Equal(sequence, transform.Sequence);
@@ -90,7 +90,7 @@ public sealed class CompositionProfileV2OperationTests
         int widthBytes,
         ulong expectedBefore)
     {
-        var width = (CompositionProfileScalarWidth)widthBytes;
+        var width = (ScalarTransformWidth)widthBytes;
         TransformScalarProfileOperation operation = Transform(width, expectedBefore);
         Assert.Equal(expectedBefore, operation.ExpectedBefore);
     }
@@ -100,14 +100,14 @@ public sealed class CompositionProfileV2OperationTests
     public void TransformRejectsInvalidWidthOrderAndExpectedValue()
     {
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Transform(
-            CompositionProfileScalarWidth.OneByte,
+            ScalarTransformWidth.OneByte,
             256));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Transform(
-            (CompositionProfileScalarWidth)3,
+            (ScalarTransformWidth)3,
             null));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new TransformScalarProfileOperation(
             "relocate", 0, OverlapPolicy.Reject, "relocate", "source", "target",
-            CompositionProfileScalarWidth.OneByte, (CompositionProfileScalarByteOrder)99, 0, null));
+            ScalarTransformWidth.OneByte, (ScalarTransformByteOrder)99, 0, null));
     }
 
     /// <summary>Verifies common operation identity, sequence, and copy-kind invariants.</summary>
@@ -130,7 +130,7 @@ public sealed class CompositionProfileV2OperationTests
     }
 
     private static TransformScalarProfileOperation Transform(
-        CompositionProfileScalarWidth width,
+        ScalarTransformWidth width,
         ulong? expectedBefore)
     {
         return new TransformScalarProfileOperation(
@@ -141,7 +141,7 @@ public sealed class CompositionProfileV2OperationTests
             "source",
             "target",
             width,
-            CompositionProfileScalarByteOrder.LittleEndian,
+            ScalarTransformByteOrder.LittleEndian,
             0,
             expectedBefore);
     }

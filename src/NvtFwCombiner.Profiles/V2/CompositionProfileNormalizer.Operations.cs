@@ -192,24 +192,24 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static CompositionProfileScalarWidth NormalizeScalarWidth(JsonElement value, string path)
+    private static ScalarTransformWidth NormalizeScalarWidth(JsonElement value, string path)
     {
         return ReadInt64(value, 1, 8, path) switch
         {
-            1 => CompositionProfileScalarWidth.OneByte,
-            2 => CompositionProfileScalarWidth.TwoBytes,
-            4 => CompositionProfileScalarWidth.FourBytes,
-            8 => CompositionProfileScalarWidth.EightBytes,
+            1 => ScalarTransformWidth.OneByte,
+            2 => ScalarTransformWidth.TwoBytes,
+            4 => ScalarTransformWidth.FourBytes,
+            8 => ScalarTransformWidth.EightBytes,
             _ => throw Error(path, "Scalar width must be 1, 2, 4, or 8 bytes."),
         };
     }
 
-    private static CompositionProfileScalarByteOrder NormalizeScalarByteOrder(string value, string path)
+    private static ScalarTransformByteOrder NormalizeScalarByteOrder(string value, string path)
     {
         return value switch
         {
-            "little" => CompositionProfileScalarByteOrder.LittleEndian,
-            "big" => CompositionProfileScalarByteOrder.BigEndian,
+            "little" => ScalarTransformByteOrder.LittleEndian,
+            "big" => ScalarTransformByteOrder.BigEndian,
             _ => throw Error(path, "Unknown scalar byte order."),
         };
     }
