@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -15,8 +16,8 @@ internal static partial class CompositionProfileNormalizer
             schemaVersion,
             "2.15");
         string? ruleId = null;
-        CompositionProfileOutputArtifactType outputArtifactType =
-            CompositionProfileOutputArtifactType.Unspecified;
+        CompiledOutputArtifactType outputArtifactType =
+            CompiledOutputArtifactType.Unspecified;
         CompositionProfileOutputTokenRequirement[]? tokenRequirements = null;
         if (!supportsTypedNaming)
         {
@@ -48,14 +49,14 @@ internal static partial class CompositionProfileNormalizer
                 $"{path}.tokenRequirements");
         }
 
-        CompositionProfileInvalidCharacterPolicy invalidCharacterPolicy =
+        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy =
             NormalizeInvalidCharacterPolicy(
                 document.InvalidCharacterPolicy,
                 $"{path}.invalidCharacterPolicy");
         invalidCharacterPolicy =
             supportsTypedNaming &&
             invalidCharacterPolicy !=
-            CompositionProfileInvalidCharacterPolicy.Reject
+            CompiledOutputInvalidCharacterPolicy.Reject
             ? throw Error(
                 $"{path}.invalidCharacterPolicy",
                 "Profile schema version '2.15' requires the reject invalid-character policy.")
@@ -71,26 +72,26 @@ internal static partial class CompositionProfileNormalizer
             tokenRequirements));
     }
 
-    private static CompositionProfileInvalidCharacterPolicy NormalizeInvalidCharacterPolicy(
+    private static CompiledOutputInvalidCharacterPolicy NormalizeInvalidCharacterPolicy(
         string value,
         string path)
     {
         return value switch
         {
-            "reject" => CompositionProfileInvalidCharacterPolicy.Reject,
-            "replace-underscore" => CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore,
+            "reject" => CompiledOutputInvalidCharacterPolicy.Reject,
+            "replace-underscore" => CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
             _ => throw Error(path, "Unknown output invalid-character policy."),
         };
     }
 
-    private static CompositionProfileOutputArtifactType NormalizeOutputArtifactType(
+    private static CompiledOutputArtifactType NormalizeOutputArtifactType(
         string value,
         string path)
     {
         return value switch
         {
-            "flash-code" => CompositionProfileOutputArtifactType.FlashCode,
-            "tp-firmware" => CompositionProfileOutputArtifactType.TpFirmware,
+            "flash-code" => CompiledOutputArtifactType.FlashCode,
+            "tp-firmware" => CompiledOutputArtifactType.TpFirmware,
             _ => throw Error(path, "Unknown output artifact type."),
         };
     }
@@ -112,18 +113,18 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileOutputTokenSourceDocument source = RequireObject(
             document.Source,
             $"{path}.source");
-        CompositionProfileOutputTokenSourceKind sourceKind = source.Kind switch
+        CompiledOutputTokenSourceKind sourceKind = source.Kind switch
         {
-            "compiled-ic" => CompositionProfileOutputTokenSourceKind.CompiledIc,
-            "run-date-utc" => CompositionProfileOutputTokenSourceKind.RunDateUtc,
-            "dpcmi-version" => CompositionProfileOutputTokenSourceKind.DpcmiVersion,
+            "compiled-ic" => CompiledOutputTokenSourceKind.CompiledIc,
+            "run-date-utc" => CompiledOutputTokenSourceKind.RunDateUtc,
+            "dpcmi-version" => CompiledOutputTokenSourceKind.DpcmiVersion,
             "firmware-config-tp-version" =>
-                CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion,
+                CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
             _ => throw Error($"{path}.source.kind", "Unknown output token source kind."),
         };
         bool isMetadataSource = sourceKind is
-            CompositionProfileOutputTokenSourceKind.DpcmiVersion or
-            CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion;
+            CompiledOutputTokenSourceKind.DpcmiVersion or
+            CompiledOutputTokenSourceKind.FirmwareConfigTpVersion;
         string? metadataBindingId = source.MetadataBindingId;
         if (isMetadataSource)
         {
@@ -138,17 +139,17 @@ internal static partial class CompositionProfileNormalizer
                 "Only metadata-backed output token sources can declare a binding.");
         }
 
-        CompositionProfileOutputTokenMissingPolicy missingPolicy =
+        CompiledOutputTokenMissingPolicy missingPolicy =
             document.MissingPolicy switch
             {
-                "block" => CompositionProfileOutputTokenMissingPolicy.Block,
+                "block" => CompiledOutputTokenMissingPolicy.Block,
                 "use-placeholder" =>
-                    CompositionProfileOutputTokenMissingPolicy.UsePlaceholder,
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
                 _ => throw Error(
                     $"{path}.missingPolicy",
                     "Unknown output token missing policy."),
             };
-        if (missingPolicy == CompositionProfileOutputTokenMissingPolicy.UsePlaceholder)
+        if (missingPolicy == CompiledOutputTokenMissingPolicy.UsePlaceholder)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(document.Placeholder);
         }

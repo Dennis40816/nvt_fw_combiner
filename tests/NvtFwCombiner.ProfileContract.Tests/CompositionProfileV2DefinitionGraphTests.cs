@@ -196,7 +196,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         var output = new CompositionProfileOutput(
             "merged.bin",
             false,
-            CompositionProfileInvalidCharacterPolicy.Reject,
+            CompiledOutputInvalidCharacterPolicy.Reject,
             ["original-name"]);
 
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(

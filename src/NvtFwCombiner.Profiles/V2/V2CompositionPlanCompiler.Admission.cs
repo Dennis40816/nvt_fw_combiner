@@ -121,7 +121,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool HasRuntimeExecutableOutputContract(CompositionProfileDefinition profile)
     {
-        return profile.Output.InvalidCharacterPolicy == CompositionProfileInvalidCharacterPolicy.Reject &&
+        return profile.Output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
             (profile.Output.RequiredTokenIds.Count == 0 ||
              StringComparer.Ordinal.Equals(
                  profile.Output.RuleId,

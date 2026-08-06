@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Profiles.V2;
 
 /// <summary>Closed processor purpose.</summary>
@@ -190,7 +192,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         ValidatePurposeIntegrity(purpose, integrityDisposition);
-        _stagedSourceBindings = Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _stagedSourceBindings = ImmutableReferenceSnapshot.Create(
             stagedSourceBindings,
             "Staged source bindings cannot contain null.");
 
@@ -200,7 +202,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedSourceBindings, CompareBindings);
-        _stagedArtifactBindings = Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _stagedArtifactBindings = ImmutableReferenceSnapshot.Create(
             stagedArtifactBindings,
             "Staged artifact bindings must be non-null with unique artifact ids.");
         if (_stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
@@ -294,43 +296,12 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
     }
 }
 
-/// <summary>Closed invalid-character policy for rendered output names.</summary>
-internal enum CompositionProfileInvalidCharacterPolicy
-{
-    Reject,
-    ReplaceUnderscore,
-}
-
-/// <summary>Closed output artifact owned by one typed naming rule.</summary>
-internal enum CompositionProfileOutputArtifactType
-{
-    Unspecified,
-    FlashCode,
-    TpFirmware,
-}
-
-/// <summary>Closed profile declaration for an output-name token source.</summary>
-internal enum CompositionProfileOutputTokenSourceKind
-{
-    CompiledIc,
-    RunDateUtc,
-    DpcmiVersion,
-    FirmwareConfigTpVersion,
-}
-
-/// <summary>Closed profile behavior when an output-name token is unavailable.</summary>
-internal enum CompositionProfileOutputTokenMissingPolicy
-{
-    Block,
-    UsePlaceholder,
-}
-
 /// <summary>One immutable typed output-name token declaration.</summary>
 internal sealed record CompositionProfileOutputTokenRequirement(
     string TokenId,
-    CompositionProfileOutputTokenSourceKind SourceKind,
+    CompiledOutputTokenSourceKind SourceKind,
     string? MetadataBindingId,
-    CompositionProfileOutputTokenMissingPolicy MissingPolicy,
+    CompiledOutputTokenMissingPolicy MissingPolicy,
     string? Placeholder);
 
 /// <summary>Immutable profile-controlled output naming policy.</summary>
@@ -342,11 +313,11 @@ internal sealed class CompositionProfileOutput
     internal CompositionProfileOutput(
         string fileNameTemplate,
         bool allowOverride,
-        CompositionProfileInvalidCharacterPolicy invalidCharacterPolicy,
+        CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy,
         IEnumerable<string> requiredTokenIds,
         string? ruleId = null,
-        CompositionProfileOutputArtifactType outputArtifactType =
-            CompositionProfileOutputArtifactType.Unspecified,
+        CompiledOutputArtifactType outputArtifactType =
+            CompiledOutputArtifactType.Unspecified,
         IEnumerable<CompositionProfileOutputTokenRequirement>? tokenRequirements = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileNameTemplate);
@@ -366,7 +337,7 @@ internal sealed class CompositionProfileOutput
         if (hasTypedRule)
         {
             RuleId = CompositionProfileValueRules.RequireId(ruleId!, nameof(ruleId));
-            if (outputArtifactType == CompositionProfileOutputArtifactType.Unspecified ||
+            if (outputArtifactType == CompiledOutputArtifactType.Unspecified ||
                 tokenRequirements is null)
             {
                 throw new ArgumentException(
@@ -374,7 +345,7 @@ internal sealed class CompositionProfileOutput
                     nameof(ruleId));
             }
         }
-        else if (outputArtifactType != CompositionProfileOutputArtifactType.Unspecified ||
+        else if (outputArtifactType != CompiledOutputArtifactType.Unspecified ||
                  tokenRequirements is not null)
         {
             throw new ArgumentException(
@@ -414,13 +385,13 @@ internal sealed class CompositionProfileOutput
 
     internal bool AllowOverride { get; }
 
-    internal CompositionProfileInvalidCharacterPolicy InvalidCharacterPolicy { get; }
+    internal CompiledOutputInvalidCharacterPolicy InvalidCharacterPolicy { get; }
 
     internal IReadOnlyList<string> RequiredTokenIds { get; }
 
     internal string? RuleId { get; }
 
-    internal CompositionProfileOutputArtifactType OutputArtifactType { get; }
+    internal CompiledOutputArtifactType OutputArtifactType { get; }
 
     internal IReadOnlyList<CompositionProfileOutputTokenRequirement> TokenRequirements { get; }
 }

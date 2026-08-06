@@ -239,16 +239,6 @@ internal static partial class V2CompositionPlanCompiler
             blocker.EvidenceRefs);
     }
 
-    private static CompiledOutputInvalidCharacterPolicy MapOutputPolicy(CompositionProfileInvalidCharacterPolicy policy)
-    {
-        return policy switch
-        {
-            CompositionProfileInvalidCharacterPolicy.Reject => CompiledOutputInvalidCharacterPolicy.Reject,
-            CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore => CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
-            _ => throw new ArgumentOutOfRangeException(nameof(policy), policy, "Unknown output invalid-character policy."),
-        };
-    }
-
     private static CompiledOutputNamingRequirement LowerOutputNaming(
         CompositionProfileDefinition profile)
     {
@@ -257,28 +247,15 @@ internal static partial class V2CompositionPlanCompiler
             ? new CompiledOutputNamingRequirement(
                 output.FileNameTemplate,
                 output.AllowOverride,
-                MapOutputPolicy(output.InvalidCharacterPolicy),
+                output.InvalidCharacterPolicy,
                 output.RequiredTokenIds)
             : new CompiledOutputNamingRequirement(
                 output.FileNameTemplate,
                 output.AllowOverride,
-                MapOutputPolicy(output.InvalidCharacterPolicy),
+                output.InvalidCharacterPolicy,
                 output.RequiredTokenIds,
                 output.RuleId,
-                output.OutputArtifactType switch
-                {
-                    CompositionProfileOutputArtifactType.FlashCode =>
-                        CompiledOutputArtifactType.FlashCode,
-                    CompositionProfileOutputArtifactType.TpFirmware =>
-                        CompiledOutputArtifactType.TpFirmware,
-                    CompositionProfileOutputArtifactType.Unspecified =>
-                        throw new InvalidOperationException(
-                            "Typed profile output cannot have an unspecified artifact type."),
-                    _ => throw new ArgumentOutOfRangeException(
-                        nameof(profile),
-                        output.OutputArtifactType,
-                        "Unknown profile output artifact type."),
-                },
+                output.OutputArtifactType,
                 output.TokenRequirements.Select(requirement =>
                     MapOutputTokenRequirement(
                         requirement,
@@ -298,33 +275,9 @@ internal static partial class V2CompositionPlanCompiler
                         requirement.MetadataBindingId));
         return new CompiledOutputTokenRequirement(
             requirement.TokenId,
-            requirement.SourceKind switch
-            {
-                CompositionProfileOutputTokenSourceKind.CompiledIc =>
-                    CompiledOutputTokenSourceKind.CompiledIc,
-                CompositionProfileOutputTokenSourceKind.RunDateUtc =>
-                    CompiledOutputTokenSourceKind.RunDateUtc,
-                CompositionProfileOutputTokenSourceKind.DpcmiVersion =>
-                    CompiledOutputTokenSourceKind.DpcmiVersion,
-                CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion =>
-                    CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(requirement),
-                    requirement.SourceKind,
-                    "Unknown profile output token source kind."),
-            },
+            requirement.SourceKind,
             requirement.MetadataBindingId,
-            requirement.MissingPolicy switch
-            {
-                CompositionProfileOutputTokenMissingPolicy.Block =>
-                    CompiledOutputTokenMissingPolicy.Block,
-                CompositionProfileOutputTokenMissingPolicy.UsePlaceholder =>
-                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(requirement),
-                    requirement.MissingPolicy,
-                    "Unknown profile output token missing policy."),
-            },
+            requirement.MissingPolicy,
             requirement.Placeholder,
             metadataBinding?.SpaceId);
     }

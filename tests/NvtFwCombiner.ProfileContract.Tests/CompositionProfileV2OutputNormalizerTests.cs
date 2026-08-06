@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -17,8 +18,8 @@ public sealed class CompositionProfileV2OutputNormalizerTests
             Output("replace-underscore", allowOverride: true),
             "2.0");
 
-        Assert.Equal(CompositionProfileInvalidCharacterPolicy.Reject, reject.InvalidCharacterPolicy);
-        Assert.Equal(CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore, replace.InvalidCharacterPolicy);
+        Assert.Equal(CompiledOutputInvalidCharacterPolicy.Reject, reject.InvalidCharacterPolicy);
+        Assert.Equal(CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore, replace.InvalidCharacterPolicy);
         Assert.False(reject.AllowOverride);
         Assert.True(replace.AllowOverride);
         Assert.Equal("{original-name}_{version}.bin", replace.FileNameTemplate);
@@ -99,32 +100,32 @@ public sealed class CompositionProfileV2OutputNormalizerTests
 
         Assert.Equal("normal-flashcode-v1", output.RuleId);
         Assert.Equal(
-            CompositionProfileOutputArtifactType.FlashCode,
+            CompiledOutputArtifactType.FlashCode,
             output.OutputArtifactType);
         Assert.Collection(
             output.TokenRequirements,
             token => Assert.Equal(
-                ("date", CompositionProfileOutputTokenSourceKind.RunDateUtc, null,
-                    CompositionProfileOutputTokenMissingPolicy.Block, null),
+                ("date", CompiledOutputTokenSourceKind.RunDateUtc, null,
+                    CompiledOutputTokenMissingPolicy.Block, null),
                 Values(token)),
             token => Assert.Equal(
-                ("dp-version", CompositionProfileOutputTokenSourceKind.DpcmiVersion,
-                    "dp-inspection", CompositionProfileOutputTokenMissingPolicy.UsePlaceholder,
+                ("dp-version", CompiledOutputTokenSourceKind.DpcmiVersion,
+                    "dp-inspection", CompiledOutputTokenMissingPolicy.UsePlaceholder,
                     "xxxx"),
                 Values(token)),
             token => Assert.Equal(
-                ("ic", CompositionProfileOutputTokenSourceKind.CompiledIc, null,
-                    CompositionProfileOutputTokenMissingPolicy.Block, null),
+                ("ic", CompiledOutputTokenSourceKind.CompiledIc, null,
+                    CompiledOutputTokenMissingPolicy.Block, null),
                 Values(token)),
             token => Assert.Equal(
                 ("tp-version",
-                    CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion,
-                    "tp-inspection", CompositionProfileOutputTokenMissingPolicy.UsePlaceholder,
+                    CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
+                    "tp-inspection", CompiledOutputTokenMissingPolicy.UsePlaceholder,
                     "xxxx"),
                 Values(token)));
 
-        static (string TokenId, CompositionProfileOutputTokenSourceKind SourceKind,
-            string? MetadataBindingId, CompositionProfileOutputTokenMissingPolicy MissingPolicy,
+        static (string TokenId, CompiledOutputTokenSourceKind SourceKind,
+            string? MetadataBindingId, CompiledOutputTokenMissingPolicy MissingPolicy,
             string? Placeholder) Values(CompositionProfileOutputTokenRequirement token)
         {
             return (
