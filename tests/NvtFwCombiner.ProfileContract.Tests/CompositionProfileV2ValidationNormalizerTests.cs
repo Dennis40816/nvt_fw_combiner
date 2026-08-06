@@ -122,31 +122,6 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
         Assert.Equal("validations[0].rejectedPatterns[0]", pattern.Path);
     }
 
-    /// <summary>Verifies required union members fail at exact source paths.</summary>
-    [Fact]
-    public void ValidationRejectsMissingUnionMembersWithPaths()
-    {
-        CompositionProfileNormalizationException field = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("pid-sanity")));
-        CompositionProfileNormalizationException values = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("metadata-value", field: Field(), comparison: "equals")));
-        CompositionProfileNormalizationException left = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("metadata-equality", right: Field())));
-        CompositionProfileNormalizationException patterns = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("reject-metadata-byte-pattern", field: Field())));
-        CompositionProfileNormalizationException view = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("view-byte-assertion", expectedHex: "aa")));
-        CompositionProfileNormalizationException expected = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Validation("view-byte-assertion", viewId: "header")));
-
-        Assert.Equal("validations[0].field", field.Path);
-        Assert.Equal("validations[0].expectedValues", values.Path);
-        Assert.Equal("validations[0].left", left.Path);
-        Assert.Equal("validations[0].rejectedPatterns", patterns.Path);
-        Assert.Equal("validations[0].viewId", view.Path);
-        Assert.Equal("validations[0].expectedHex", expected.Path);
-    }
-
     /// <summary>Verifies noncanonical metadata references fail at their exact source members.</summary>
     [Fact]
     public void ValidationRejectsNonCanonicalFieldReferencesWithPaths()

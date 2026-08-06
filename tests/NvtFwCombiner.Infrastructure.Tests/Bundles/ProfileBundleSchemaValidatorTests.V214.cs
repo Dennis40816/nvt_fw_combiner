@@ -14,6 +14,8 @@ public sealed partial class ProfileBundleSchemaValidatorTests
     [InlineData("missing-delta-source", false)]
     [InlineData("missing-delta-target", false)]
     [InlineData("unknown-delta-kind", false)]
+    [InlineData("signed-value", false)]
+    [InlineData("wrapping-overflow", false)]
     [InlineData("v213", false)]
     public void ValidateEntriesEnforcesRegionTemplateCompositionAuthorityForV214(
         string mutation,
@@ -62,6 +64,12 @@ public sealed partial class ProfileBundleSchemaValidatorTests
                 break;
             case "unknown-delta-kind":
                 Assert.IsType<JsonObject>(operation["addend"])["kind"] = "future";
+                break;
+            case "signed-value":
+                operation["valueInterpretation"] = "signed";
+                break;
+            case "wrapping-overflow":
+                operation["overflowPolicy"] = "wrap";
                 break;
             case "v213":
                 profile["schemaVersion"] = "2.13";

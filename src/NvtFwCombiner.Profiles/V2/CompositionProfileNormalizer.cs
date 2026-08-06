@@ -11,21 +11,17 @@ internal static partial class CompositionProfileNormalizer
         string path = "promotion")
     {
         ArgumentNullException.ThrowIfNull(document);
-        IReadOnlyList<CompositionProfilePromotionBlockerDocument> blockerDocuments = RequireList(
-            document.Blockers,
-            $"{path}.blockers");
+        IReadOnlyList<CompositionProfilePromotionBlockerDocument> blockerDocuments = document.Blockers;
         var blockers = new CompiledProfilePromotionBlocker[blockerDocuments.Count];
         for (int index = 0; index < blockerDocuments.Count; index++)
         {
-            CompositionProfilePromotionBlockerDocument blocker = blockerDocuments[index] ?? throw Error(
-                $"{path}.blockers[{index}]",
-                "Promotion blocker cannot be null.");
+            CompositionProfilePromotionBlockerDocument blocker = blockerDocuments[index];
             string blockerPath = $"{path}.blockers[{index}]";
             blockers[index] = Wrap(blockerPath, () => new CompiledProfilePromotionBlocker(
                 blocker.BlockerId,
                 NormalizeBlockerKind(blocker.Kind, $"{blockerPath}.kind"),
                 blocker.Reason,
-                RequireList(blocker.EvidenceRefs, $"{blockerPath}.evidenceRefs")));
+                blocker.EvidenceRefs));
         }
 
         return Wrap(path, () => new CompiledProfilePromotion(
@@ -61,12 +57,10 @@ internal static partial class CompositionProfileNormalizer
             document.FamilyId,
             document.FamilyVersion,
             document.FamilyContentHash,
-            RequireList(document.MapIds, $"{path}.mapIds"),
-            RequireList(document.RequiredRegionIds, $"{path}.requiredRegionIds"),
-            RequireList(
-                document.RequiredMetadataStructureIds,
-                $"{path}.requiredMetadataStructureIds"),
-            RequireList(document.RequiredCapabilityIds, $"{path}.requiredCapabilityIds"),
+            document.MapIds,
+            document.RequiredRegionIds,
+            document.RequiredMetadataStructureIds,
+            document.RequiredCapabilityIds,
             document.OptionalRegionIds ?? []));
     }
 
@@ -77,7 +71,7 @@ internal static partial class CompositionProfileNormalizer
         ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new InputSelectionGroupDefinition(
             document.GroupId,
-            RequireList(document.MemberSlotIds, $"{path}.memberSlotIds"),
+            document.MemberSlotIds,
             document.MinimumSelected,
             document.MaximumSelected));
     }
@@ -149,11 +143,6 @@ internal static partial class CompositionProfileNormalizer
         {
             throw Error(path, "Unknown topology authoring policy.");
         }
-    }
-
-    private static IReadOnlyList<T> RequireList<T>(IReadOnlyList<T>? values, string path)
-    {
-        return values ?? throw Error(path, "Required array is missing.");
     }
 
     private static T Wrap<T>(string path, Func<T> factory)

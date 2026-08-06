@@ -76,9 +76,4 @@ internal static partial class CompositionProfileNormalizer
             throw Error(path, exception.Message, exception);
         }
     }
-
-    private static JsonElement Require(JsonElement? value, string path)
-    {
-        return value ?? throw Error(path, "Required integer is missing.");
-    }
 }

@@ -117,6 +117,18 @@ operations, processors, or integrity declarations. Accidental public
 implementation types are not compatibility authority and receive no
 replacement shim after repository callers migrate.
 
+The 2026-08-07 #230 convergence amendment makes the trusted bundle's strict,
+hash-pinned schema gateway the sole production owner of serialized required/null
+shape, fixed constants, and schema-version compatibility. The production route
+must pass `ProfileBundleLoader` validation and the immutable trusted projection
+before `CompositionProfileNormalizer` can run. Profiles lowers admitted closed
+tokens, resolves cross-references, and constructs the canonical Domain model; it
+does not repeat schema constants or version-presence rules. Domain constructors
+continue to own canonical firmware invariants, and compiler-semantic decisions
+that affect the compiled plan remain in Profiles. Direct normalizer test access
+is test-only and cannot authorize an unvalidated production DTO or recreate
+schema-owned diagnostics.
+
 The canonical compiler branches only on the closed, versioned semantic
 vocabulary: operation, locator, initialization, validation, integrity, and
 processor-stage kinds. Production compiler, Domain, Application, Bootstrap, and
@@ -179,8 +191,10 @@ artifacts that have no capability admission identity.
 
 Every runtime invariant has one validating owner:
 
-1. schema/Contracts intake validates serialized shape, required fields,
-   primitive types, closed discriminators, and local bounds;
+1. the Infrastructure-owned trusted schema gateway validates serialized shape,
+   required/null fields, primitive types, closed discriminators, fixed
+   constants, schema-version compatibility, and local bounds before the
+   Contracts DTO enters Profiles;
 2. Domain canonical construction validates firmware-semantic ranges, overlap,
    reference kinds, cycles, applicability, family/topology rules, and
    definition completeness;

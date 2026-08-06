@@ -9,16 +9,10 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompositionOperationDefinition NormalizeOperation(
         CompositionProfileOperationDocument document,
-        string path = "operations[0]",
-        string schemaVersion = "2.0")
+        string path = "operations[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
         BigInteger sequence = ReadInteger(document.Sequence, $"{path}.sequence");
-        if (sequence.Sign < 0)
-        {
-            throw Error($"{path}.sequence", "Operation sequence cannot be negative.");
-        }
-
         OverlapPolicy overlapPolicy = NormalizeOverlapPolicy(
             document.OverlapPolicy,
             $"{path}.overlapPolicy");
@@ -33,32 +27,26 @@ internal static partial class CompositionProfileNormalizer
                 sequence,
                 overlapPolicy,
                 document.Reason,
-                RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing."),
-                ReadByte(Require(document.FillByte, $"{path}.fillByte"), $"{path}.fillByte"))),
+                document.TargetViewId!,
+                ReadByte(document.FillByte!.Value, $"{path}.fillByte"))),
             "patch-scalar" => Wrap(path, () => CompositionOperationDefinition.PatchScalar(
                 document.OperationId,
                 sequence,
                 overlapPolicy,
                 document.Reason,
-                RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing."),
-                ReadBytes(
-                    RequireText(document.ValueHex, $"{path}.valueHex", "Patch value is missing."),
-                    $"{path}.valueHex"))),
+                document.TargetViewId!,
+                ReadBytes(document.ValueHex!, $"{path}.valueHex"))),
             "transform-scalar" => NormalizeTransform(
                 document,
                 sequence,
                 overlapPolicy,
-                schemaVersion,
                 path),
             "run-processor" => Wrap(path, () => CompositionOperationDefinition.RunProcessor(
                 document.OperationId,
                 sequence,
                 overlapPolicy,
                 document.Reason,
-                RequireText(
-                    document.ProcessorStageId,
-                    $"{path}.processorStageId",
-                    "Processor stage is missing."))),
+                document.ProcessorStageId!)),
             _ => throw Error($"{path}.kind", "Unknown profile operation kind."),
         };
     }
@@ -70,54 +58,40 @@ internal static partial class CompositionProfileNormalizer
         CompositionOperationKind kind,
         string path)
     {
-        string sourceViewId = RequireText(document.SourceViewId, $"{path}.sourceViewId", "Source view is missing.");
-        string targetViewId = RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing.");
         return Wrap(path, () => CompositionOperationDefinition.CopyOrReplace(
             document.OperationId,
             sequence,
             overlapPolicy,
             document.Reason,
             kind,
-            sourceViewId,
-            targetViewId));
+            document.SourceViewId!,
+            document.TargetViewId!));
     }
 
     private static CompositionOperationDefinition NormalizeTransform(
         CompositionProfileOperationDocument document,
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
-        string schemaVersion,
         string path)
     {
-        RequireConstant(
-            document.ValueInterpretation,
-            "unsigned",
-            $"{path}.valueInterpretation",
-            "Scalar value interpretation must be unsigned.");
-        RequireConstant(
-            document.OverflowPolicy,
-            "reject",
-            $"{path}.overflowPolicy",
-            "Scalar overflow policy must reject overflow.");
         ulong? expectedBefore = document.ExpectedBefore is { } expected
             ? ReadUInt64(expected, $"{path}.expectedBefore")
             : null;
         (ScalarTransformAddendSource addendSource, BigInteger? fixedAddend) = NormalizeTransformAddend(
-            Require(document.Addend, $"{path}.addend"),
-            schemaVersion,
+            document.Addend!.Value,
             $"{path}.addend");
         return Wrap(path, () => CompositionOperationDefinition.TransformScalar(
             document.OperationId,
             sequence,
             overlapPolicy,
             document.Reason,
-            RequireText(document.SourceViewId, $"{path}.sourceViewId", "Source view is missing."),
-            RequireText(document.TargetViewId, $"{path}.targetViewId", "Target view is missing."),
+            document.SourceViewId!,
+            document.TargetViewId!,
             NormalizeScalarWidth(
-                Require(document.WidthBytes, $"{path}.widthBytes"),
+                document.WidthBytes!.Value,
                 $"{path}.widthBytes"),
             NormalizeScalarByteOrder(
-                RequireText(document.ByteOrder, $"{path}.byteOrder", "Scalar byte order is missing."),
+                document.ByteOrder!,
                 $"{path}.byteOrder"),
             fixedAddend,
             addendSource,
@@ -126,7 +100,6 @@ internal static partial class CompositionProfileNormalizer
 
     private static (ScalarTransformAddendSource Source, BigInteger? FixedAddend) NormalizeTransformAddend(
         JsonElement document,
-        string schemaVersion,
         string path)
     {
         if (document.ValueKind == JsonValueKind.Number)
@@ -139,47 +112,23 @@ internal static partial class CompositionProfileNormalizer
             throw Error(path, "Scalar addend must be an integer or a declared addend object.");
         }
 
-        if (schemaVersion is not "2.14" and not "2.15")
-        {
-            throw Error(
-                path,
-                "Region-instance delta addends require composition-profile schema version '2.14' or later.");
-        }
-
         CompositionProfileRegionInstanceDeltaAddendDocument addend;
         try
         {
             addend = JsonSerializer.Deserialize(
                 document,
                 ProfileBundleSemanticJsonContext.Default
-                    .CompositionProfileRegionInstanceDeltaAddendDocument) ?? throw Error(
-                        path,
-                        "Region-instance delta addend is missing.");
+                    .CompositionProfileRegionInstanceDeltaAddendDocument)!;
         }
         catch (JsonException exception)
         {
             throw Error(path, exception.Message);
         }
 
-        RequireConstant(
-            addend.Kind,
-            "region-instance-delta",
-            $"{path}.kind",
-            "Unknown scalar addend object kind.");
         return (
             Wrap(path, () => ScalarTransformAddendSource.RegionInstanceDelta(
-                CanonicalPolicyValueRules.RequireCanonicalId(
-                    RequireText(
-                        addend.SourceRegionInstanceId,
-                        $"{path}.sourceRegionInstanceId",
-                        "Source region instance is missing."),
-                    nameof(addend.SourceRegionInstanceId)),
-                CanonicalPolicyValueRules.RequireCanonicalId(
-                    RequireText(
-                        addend.TargetRegionInstanceId,
-                        $"{path}.targetRegionInstanceId",
-                        "Target region instance is missing."),
-                    nameof(addend.TargetRegionInstanceId)))),
+                addend.SourceRegionInstanceId,
+                addend.TargetRegionInstanceId)),
             null);
     }
 
@@ -216,20 +165,4 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static string RequireText(string? value, string path, string message)
-    {
-        return value ?? throw Error(path, message);
-    }
-
-    private static void RequireConstant(
-        string? value,
-        string expected,
-        string path,
-        string message)
-    {
-        if (!StringComparer.Ordinal.Equals(value, expected))
-        {
-            throw Error(path, message);
-        }
-    }
 }

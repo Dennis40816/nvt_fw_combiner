@@ -121,58 +121,14 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
             binding.FieldIds);
     }
 
-    /// <summary>Typed and legacy target authorities cannot coexist or omit evidence.</summary>
+    /// <summary>Verifies an unknown purpose token retains its source path.</summary>
     [Fact]
-    public void MetadataBindingRejectsMixedOrUnevidencedTypedTargets()
-    {
-        CompositionProfileMetadataTargetReferenceDocument[] targets =
-        [
-            new("span", "complete-header"),
-        ];
-        CompositionProfileNormalizationException mixed =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                CompositionProfileNormalizer.NormalizeMetadataBinding(
-                    new CompositionProfileMetadataBindingDocument(
-                        "tp-header",
-                        "tp-input",
-                        "type-ab-tp-flash-header",
-                        ["header-crc"],
-                        ["inspection"],
-                        targets,
-                        ["owner-table"])));
-        CompositionProfileNormalizationException unevidenced =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                CompositionProfileNormalizer.NormalizeMetadataBinding(
-                    new CompositionProfileMetadataBindingDocument(
-                        "tp-header",
-                        "tp-input",
-                        "type-ab-tp-flash-header",
-                        FieldIds: null,
-                        Purposes: ["inspection"],
-                        TargetReferences: targets,
-                        EvidenceRefs: [])));
-
-        Assert.Equal("metadataBindings[0]", mixed.Path);
-        Assert.Equal("metadataBindings[0].evidenceRefs", unevidenced.Path);
-    }
-
-    /// <summary>Verifies unknown purpose tokens and missing arrays retain their source paths.</summary>
-    [Fact]
-    public void MetadataBindingRejectsInvalidMembersWithPaths()
+    public void MetadataBindingRejectsUnknownPurposeWithPath()
     {
         CompositionProfileNormalizationException purpose = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeMetadataBinding(
                 MetadataBinding(["future"], ["pid"])));
-        CompositionProfileNormalizationException purposes = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeMetadataBinding(
-                MetadataBinding(null!, ["pid"])));
-        CompositionProfileNormalizationException fields = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeMetadataBinding(
-                MetadataBinding(["validation"], null!)));
-
         Assert.Equal("metadataBindings[0].purposes[0]", purpose.Path);
-        Assert.Equal("metadataBindings[0].purposes", purposes.Path);
-        Assert.Equal("metadataBindings[0].fieldIds", fields.Path);
     }
 
     /// <summary>Verifies every authoring access token maps without becoming execution policy.</summary>

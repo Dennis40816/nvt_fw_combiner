@@ -45,28 +45,9 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
     }
 
-    /// <summary>Verifies direct 2.0 normalization does not gain the schema-2.2 tool binding grammar.</summary>
+    /// <summary>Verifies published external-tool and invocation identities lower after schema admission.</summary>
     [Fact]
-    public void ProcessorRejectsVersionedToolBindingOutsideLegacySchemaGrammar()
-    {
-        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(Legacy(
-                "relocation",
-                "none",
-                toolBindingId: "legacy-combiner-1.13.0")));
-
-        Assert.Equal("processorStages[0]", exception.Path);
-        _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
-    }
-
-    /// <summary>Verifies schema 2.3 retains the dot-versioned external-tool binding grammar from 2.2.</summary>
-    [Theory]
-    [InlineData("2.2")]
-    [InlineData("2.3")]
-    [InlineData("2.7")]
-    [InlineData("2.8")]
-    [InlineData("2.9")]
-    public void ProcessorMapsPublishedCombinerToolBindingInVersionedSchemas(string schemaVersion)
+    public void ProcessorMapsPublishedCombinerIdentities()
     {
         LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
             CompositionProfileNormalizer.NormalizeProcessorStage(
@@ -74,90 +55,18 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     "relocation",
                     "none",
                     toolBindingId: "legacy-combiner-1.13.0",
-                    targetView: schemaVersion is "2.8" or "2.9"),
-                schemaVersion,
+                    invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
+                    targetView: true),
                 "processorStages[0]"));
 
         Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
-    }
-
-    /// <summary>Verifies schemas 2.7+ accept the published dotted legacy Combiner catalog identity.</summary>
-    [Theory]
-    [InlineData("2.6", false)]
-    [InlineData("2.7", true)]
-    [InlineData("2.8", true)]
-    [InlineData("2.9", true)]
-    public void ProcessorMapsPublishedLegacyCombinerCatalogIdentityInV27AndLater(
-        string schemaVersion,
-        bool expectedSuccess)
-    {
-        if (expectedSuccess)
-        {
-            LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
-                CompositionProfileNormalizer.NormalizeProcessorStage(
-                    Legacy(
-                        "header-and-integrity",
-                        "recalculate-and-write",
-                        invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
-                        targetView: schemaVersion is "2.8" or "2.9"),
-                    schemaVersion,
-                    "processorStages[0]"));
-            Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
-            return;
-        }
-
-        _ = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(
-                Legacy(
-                    "header-and-integrity",
-                    "recalculate-and-write",
-                    invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1"),
-                schemaVersion,
-                "processorStages[0]"));
-    }
-
-    /// <summary>Verifies schemas 2.8+ normalize the processor image prefix view.</summary>
-    [Theory]
-    [InlineData("2.8")]
-    [InlineData("2.9")]
-    public void ProcessorMapsLegacyCombinerTargetViewInV28AndLater(string schemaVersion)
-    {
-        LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
-            CompositionProfileNormalizer.NormalizeProcessorStage(
-                Legacy(
-                    "header-and-integrity",
-                    "recalculate-and-write",
-                    targetView: true),
-                schemaVersion,
-                "processorStages[0]"));
-
+        Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
         Assert.Equal("output-image", stage.TargetViewId);
     }
 
-    /// <summary>Verifies processor target-view presence is an exact schema-version contract.</summary>
-    [Theory]
-    [InlineData("2.7", true)]
-    [InlineData("2.8", false)]
-    [InlineData("2.9", false)]
-    public void ProcessorRejectsTargetViewPresenceDrift(string schemaVersion, bool includeTargetView)
-    {
-        CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(
-                Legacy(
-                    "header-and-integrity",
-                    "recalculate-and-write",
-                    targetView: includeTargetView),
-                schemaVersion,
-                "processorStages[0]"));
-
-        Assert.Equal("processorStages[0].targetViewId", exception.Path);
-    }
-
     /// <summary>Verifies every byte entering a typed processor staging image is covered by read authority.</summary>
-    [Theory]
-    [InlineData("2.8")]
-    [InlineData("2.9")]
-    public void ProcessorRejectsTypedTargetViewOutsideReadAuthority(string schemaVersion)
+    [Fact]
+    public void ProcessorRejectsTypedTargetViewOutsideReadAuthority()
     {
         CompositionProfileProcessorStageDocument document = Legacy(
             "header-and-integrity",
@@ -168,7 +77,7 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         };
 
         CompositionProfileNormalizationException exception = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(document, schemaVersion, "processorStages[0]"));
+            CompositionProfileNormalizer.NormalizeProcessorStage(document, "processorStages[0]"));
 
         Assert.Equal("processorStages[0]", exception.Path);
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
@@ -204,63 +113,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         Assert.Equal("processorStages[0].integrityDisposition", integrity.Path);
     }
 
-    /// <summary>Verifies fixed authority, integrity, and failure policies cannot be silently ignored.</summary>
-    [Fact]
-    public void ProcessorRejectsInvalidFixedPoliciesWithPaths()
-    {
-        CompositionProfileNormalizationException crcAuthority = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(authority: "transform")));
-        CompositionProfileNormalizationException crcPurpose = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(purpose: "header")));
-        CompositionProfileNormalizationException crcIntegrity = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(integrity: "none")));
-        CompositionProfileNormalizationException crcWrites = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(writes: ["header"])));
-        CompositionProfileNormalizationException legacyAuthority = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(Legacy(
-                "relocation",
-                "none",
-                authority: "calculate")));
-        CompositionProfileNormalizationException failure = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(failurePolicy: "continue")));
-
-        Assert.Equal("processorStages[0].authority", crcAuthority.Path);
-        Assert.Equal("processorStages[0].purpose", crcPurpose.Path);
-        Assert.Equal("processorStages[0].integrityDisposition", crcIntegrity.Path);
-        Assert.Equal("processorStages[0].allowedWriteViewIds", crcWrites.Path);
-        Assert.Equal("processorStages[0].authority", legacyAuthority.Path);
-        Assert.Equal("processorStages[0].failurePolicy", failure.Path);
-    }
-
-    /// <summary>Verifies required union members and lists fail at exact source paths.</summary>
-    [Fact]
-    public void ProcessorRejectsMissingMembersWithPaths()
-    {
-        CompositionProfileNormalizationException contract = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker(contractVersion: null)));
-        CompositionProfileNormalizationException reads = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker() with { AllowedReadViewIds = null! }));
-        CompositionProfileNormalizationException tool = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(Legacy(
-                "relocation",
-                "none",
-                toolBindingId: null)));
-        CompositionProfileNormalizationException bindings = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(
-                Legacy("relocation", "none") with { StagedSourceBindings = null! }));
-        CompositionProfileNormalizationException evidence = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeProcessorStage(Legacy(
-                "relocation",
-                "none",
-                evidenceRef: null)));
-
-        Assert.Equal("processorStages[0].contractVersion", contract.Path);
-        Assert.Equal("processorStages[0].allowedReadViewIds", reads.Path);
-        Assert.Equal("processorStages[0].toolBindingId", tool.Path);
-        Assert.Equal("processorStages[0].stagedSourceBindings", bindings.Path);
-        Assert.Equal("processorStages[0].evidenceRef", evidence.Path);
-    }
-
     /// <summary>Verifies legacy purpose/integrity combinations remain constructor-owned invariants.</summary>
     [Fact]
     public void ProcessorRejectsInvalidLegacyPurposeIntegrityAtStagePath()
@@ -274,24 +126,20 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
 
     private static CompositionProfileProcessorStageDocument CrcWorker(
         string kind = "crc-worker-v1",
-        string authority = "calculate",
         string purpose = "checksum",
-        string integrity = "verify-existing",
-        IReadOnlyList<string>? writes = null,
-        string failurePolicy = "fail-closed",
-        string? contractVersion = "1.0.0")
+        string integrity = "verify-existing")
     {
         return new CompositionProfileProcessorStageDocument(
             "crc-check",
             kind,
             "output",
-            authority,
+            "calculate",
             purpose,
             integrity,
             ["view-z", "view-a"],
-            writes ?? [],
-            failurePolicy,
-            ContractVersion: contractVersion,
+            [],
+            "fail-closed",
+            ContractVersion: "1.0.0",
             CalculationSetId: "display-crc");
     }
 
