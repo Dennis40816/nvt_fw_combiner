@@ -79,7 +79,7 @@ internal static partial class ReplaceCliCommandHandler
                 action,
                 icId,
                 WorkbenchReplaceModes.General,
-                IcWorkflowIds.GeneralReplace,
+                ExperienceIds.GeneralReplace,
                 options,
                 protectedInputPaths,
                 (_, token) => savedRulePolicy is null

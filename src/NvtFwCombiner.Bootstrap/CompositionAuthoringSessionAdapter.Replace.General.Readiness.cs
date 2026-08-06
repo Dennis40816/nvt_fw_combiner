@@ -446,7 +446,7 @@ public static partial class CompositionAuthoringSessionAdapter
 
         var identity = new CapabilityRouteIdentity(
             registration.IcId,
-            Profiles.IcWorkflowIds.GeneralReplace,
+            ExperienceIds.GeneralReplace,
             "1-ic",
             map.MapId);
         CapabilityRouteResolutionResult resolution =

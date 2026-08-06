@@ -1,5 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -93,7 +93,7 @@ internal static partial class ReplaceCliCommandHandler
                 action,
                 icId,
                 WorkbenchReplaceModes.Dp,
-                IcWorkflowIds.DpReplace,
+                ExperienceIds.DpReplace,
                 options,
                 slotPaths,
                 (_, token) => CompositionExecutionAdapter.RunReplaceAsync(

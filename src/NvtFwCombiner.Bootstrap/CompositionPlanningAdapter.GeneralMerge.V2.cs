@@ -77,7 +77,7 @@ internal static partial class CompositionPlanningAdapter
 
         var identity = new CapabilityRouteIdentity(
             icId,
-            Profiles.IcWorkflowIds.GeneralMerge,
+            ExperienceIds.GeneralMerge,
             "not-applicable",
             "generic");
         CapabilityRouteResolutionResult resolution =

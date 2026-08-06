@@ -62,7 +62,7 @@ public static partial class CompositionExecutionAdapter
             icId, slotPaths, build, outputPath, progress,
             AcceptedAuthoringSessionBinding.RequireCapability(
                 acceptedSession,
-                Profiles.IcWorkflowIds.StandardMerge,
+                ExperienceIds.StandardMerge,
                 icId,
                 AuthoringDerivedResultKind.Inspection),
             acceptedSession,

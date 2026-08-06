@@ -34,7 +34,7 @@ internal static class WorkbenchAbMergeInputProjection
         {
             return AcceptedAuthoringSessionBinding.RequireCapability(
                 acceptedSession,
-                Profiles.IcWorkflowIds.AbMerge,
+                ExperienceIds.AbMerge,
                 normalizedIcId,
                 AuthoringDerivedResultKind.Inspection).CompiledComposition;
         }

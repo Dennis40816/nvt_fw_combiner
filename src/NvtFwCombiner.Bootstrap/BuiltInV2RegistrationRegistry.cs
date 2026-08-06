@@ -5,7 +5,6 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.Bootstrap;
@@ -13,24 +12,24 @@ namespace NvtFwCombiner.Bootstrap;
 internal static class BuiltInV2RegistrationRegistry
 {
     internal static ReadOnlyCollection<BuiltInV2Registration> StandardMerge { get; } =
-        CreateRegistrations(IcWorkflowIds.StandardMerge);
+        CreateRegistrations(ExperienceIds.StandardMerge);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> StandardMergeByIc { get; } =
         new(StandardMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
     internal static ReadOnlyCollection<BuiltInV2Registration> AbMerge { get; } =
-        CreateRegistrations(IcWorkflowIds.AbMerge);
+        CreateRegistrations(ExperienceIds.AbMerge);
 
     internal static ReadOnlyDictionary<string, BuiltInV2Registration> AbMergeByIc { get; } =
         new(AbMerge.ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
     internal static Lazy<ReadOnlyDictionary<string, BuiltInV2Registration>> DpReplaceByIc { get; } =
         new(() => new ReadOnlyDictionary<string, BuiltInV2Registration>(
-            CreateRegistrations(IcWorkflowIds.DpReplace)
+            CreateRegistrations(ExperienceIds.DpReplace)
                 .ToDictionary(static registration => registration.IcId, StringComparer.Ordinal)));
 
     internal static ReadOnlyDictionary<string, GeneralMergeV2CandidateRegistration> GeneralMergeByIc { get; } =
-        new(SelectRegistrations(IcWorkflowIds.GeneralMerge)
+        new(SelectRegistrations(ExperienceIds.GeneralMerge)
             .Select(static item => new GeneralMergeV2CandidateRegistration(
                 item.Registration.IcId,
                 item.Registration.FamilyId!,
@@ -40,7 +39,7 @@ internal static class BuiltInV2RegistrationRegistry
             .ToDictionary(static registration => registration.IcId, StringComparer.Ordinal));
 
     internal static ReadOnlyDictionary<string, GeneralReplaceV2Registration> GeneralReplaceByIc { get; } =
-        new(SelectRegistrations(IcWorkflowIds.GeneralReplace)
+        new(SelectRegistrations(ExperienceIds.GeneralReplace)
             .Select(static item => new GeneralReplaceV2Registration(
                 item.Registration.IcId,
                 item.Registration.ProfileId,
@@ -50,7 +49,7 @@ internal static class BuiltInV2RegistrationRegistry
 
     private static ReadOnlyCollection<BuiltInV2Registration> CreateRegistrations(string workflowId)
     {
-        CompositionKind compositionKind = workflowId == IcWorkflowIds.DpReplace
+        CompositionKind compositionKind = workflowId == ExperienceIds.DpReplace
             ? CompositionKind.Replace
             : CompositionKind.Merge;
         return Array.AsReadOnly(
@@ -111,10 +110,10 @@ internal sealed class BuiltInV2Registration
         _bundle = bundle;
         CompositionKind = compositionKind;
         WorkflowId = workflowId ?? (compositionKind == CompositionKind.Merge
-            ? IcWorkflowIds.StandardMerge
-            : IcWorkflowIds.DpReplace);
-        bool isKnownWorkflow = WorkflowId is IcWorkflowIds.StandardMerge or IcWorkflowIds.AbMerge or IcWorkflowIds.DpReplace;
-        bool kindMatchesWorkflow = WorkflowId == IcWorkflowIds.DpReplace
+            ? ExperienceIds.StandardMerge
+            : ExperienceIds.DpReplace);
+        bool isKnownWorkflow = WorkflowId is ExperienceIds.StandardMerge or ExperienceIds.AbMerge or ExperienceIds.DpReplace;
+        bool kindMatchesWorkflow = WorkflowId == ExperienceIds.DpReplace
             ? compositionKind == CompositionKind.Replace
             : compositionKind == CompositionKind.Merge;
         if (!isKnownWorkflow || !kindMatchesWorkflow)
@@ -145,17 +144,17 @@ internal sealed class BuiltInV2Registration
             ProfileVersion,
             CompositionProfileMetadataPurpose.ReportClassification);
 
-    private bool IsStandardMerge => WorkflowId == IcWorkflowIds.StandardMerge;
+    private bool IsStandardMerge => WorkflowId == ExperienceIds.StandardMerge;
 
-    private bool IsAbMerge => WorkflowId == IcWorkflowIds.AbMerge;
+    private bool IsAbMerge => WorkflowId == ExperienceIds.AbMerge;
 
-    private bool IsDpReplace => WorkflowId == IcWorkflowIds.DpReplace;
+    private bool IsDpReplace => WorkflowId == ExperienceIds.DpReplace;
 
     private string ProfileLabel => WorkflowId switch
     {
-        IcWorkflowIds.StandardMerge => "Standard Merge profile",
-        IcWorkflowIds.AbMerge => "AB Merge profile",
-        IcWorkflowIds.DpReplace => "DP Replace profile",
+        ExperienceIds.StandardMerge => "Standard Merge profile",
+        ExperienceIds.AbMerge => "AB Merge profile",
+        ExperienceIds.DpReplace => "DP Replace profile",
         _ => throw new InvalidOperationException("Unknown built-in workflow."),
     };
 

@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Capabilities;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -406,7 +405,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         ResolvedCapabilityRoute route = loaded.Snapshot!.DynamicRoutes.Single(
             candidate =>
                 candidate.Identity.IcId == "NT51928" &&
-                candidate.Identity.WorkflowId == IcWorkflowIds.StandardMerge);
+                candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         var unavailable = new CanonicalDynamicCapabilityDefinition(
             route.Identity,
             route.CapabilityFingerprint,
@@ -433,16 +432,16 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.True(CanonicalCapabilityResolution.HasCanonicalCapability(
             loaded.Snapshot,
             " 51928 ",
-            IcWorkflowIds.StandardMerge));
+            ExperienceIds.StandardMerge));
         Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
             snapshot: null,
             "NT51928",
-            IcWorkflowIds.StandardMerge));
+            ExperienceIds.StandardMerge));
         Assert.True(unavailableReload.Succeeded);
         Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
             unavailableReload.Snapshot,
             "nt51928",
-            IcWorkflowIds.StandardMerge));
+            ExperienceIds.StandardMerge));
     }
 
     /// <summary>NT51929 DP Replace compilation and metadata inspection share one published capability snapshot.</summary>

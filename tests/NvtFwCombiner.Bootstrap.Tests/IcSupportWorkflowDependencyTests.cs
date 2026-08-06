@@ -1,7 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -38,7 +38,7 @@ public sealed class CanonicalCapabilityDependencyTests
     [Fact]
     public void CtrlRamReplaceSupportHasPostbuildAndNumberChoiceCoverage()
     {
-        foreach (string icId in GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace))
+        foreach (string icId in GetAuthorableIcIds(ExperienceIds.CtrlRamReplace))
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
 
@@ -64,7 +64,7 @@ public sealed class CanonicalCapabilityDependencyTests
     {
         HashSet<string> ctrlRamReplaceIcIds =
         [
-            .. GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace),
+            .. GetAuthorableIcIds(ExperienceIds.CtrlRamReplace),
         ];
 
         foreach (string icId in LegacyCombinerPostbuildCatalog.All
@@ -83,7 +83,7 @@ public sealed class CanonicalCapabilityDependencyTests
     {
         string[] supportedIcIds =
         [
-            .. GetAuthorableIcIds(IcWorkflowIds.DpReplace)
+            .. GetAuthorableIcIds(ExperienceIds.DpReplace)
                 .Order(StringComparer.Ordinal),
         ];
         string[] registeredIcIds =
@@ -127,7 +127,7 @@ public sealed class CanonicalCapabilityDependencyTests
     [Fact]
     public void PostbuildBranchesMapToProfileAdjustedCtrlRamRows()
     {
-        foreach (string icId in GetAuthorableIcIds(IcWorkflowIds.CtrlRamReplace))
+        foreach (string icId in GetAuthorableIcIds(ExperienceIds.CtrlRamReplace))
         {
             foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.GetProfiles(icId))
             {

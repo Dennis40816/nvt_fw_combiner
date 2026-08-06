@@ -1,4 +1,4 @@
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -39,15 +39,15 @@ internal static partial class ReplaceCliCommandHandler
         List<string> repeatableValueOptions = [];
         switch (command)
         {
-            case IcWorkflowIds.DpReplace:
+            case ExperienceIds.DpReplace:
                 valueOptions.Add("--dp");
                 valueOptions.Add("--ldc");
                 break;
-            case IcWorkflowIds.CtrlRamReplace:
+            case ExperienceIds.CtrlRamReplace:
                 valueOptions.Add("--ctrlram");
                 repeatableValueOptions.Add("--ctrlram");
                 break;
-            case IcWorkflowIds.GeneralReplace:
+            case ExperienceIds.GeneralReplace:
                 valueOptions.AddRange(
                     ["--mapping", "--patch", "--fill", "--rule", "--slot"]);
                 repeatableValueOptions.AddRange(
@@ -81,8 +81,8 @@ internal static partial class ReplaceCliCommandHandler
 
         string replaceMode = command switch
         {
-            IcWorkflowIds.DpReplace => WorkbenchReplaceModes.Dp,
-            IcWorkflowIds.CtrlRamReplace => WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.DpReplace => WorkbenchReplaceModes.Dp,
+            ExperienceIds.CtrlRamReplace => WorkbenchReplaceModes.CtrlRam,
             _ => WorkbenchReplaceModes.General,
         };
         if (!CanonicalCapabilityProjection.IsReplaceWorkflowAvailable(icId, replaceMode))
@@ -93,7 +93,7 @@ internal static partial class ReplaceCliCommandHandler
             return CompositionFailed;
         }
 
-        return command == IcWorkflowIds.DpReplace
+        return command == ExperienceIds.DpReplace
             ? await RunWorkbenchDpReplaceAsync(
                     action,
                     icId,
@@ -102,7 +102,7 @@ internal static partial class ReplaceCliCommandHandler
                     error,
                     cancellationToken)
                 .ConfigureAwait(false)
-            : command == IcWorkflowIds.CtrlRamReplace
+            : command == ExperienceIds.CtrlRamReplace
             ? await RunWorkbenchCtrlRamReplaceAsync(
                     action,
                     icId,

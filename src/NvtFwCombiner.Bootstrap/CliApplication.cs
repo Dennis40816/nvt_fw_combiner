@@ -1,6 +1,6 @@
 using System.Reflection;
 using NvtFwCombiner.Application.Diagnostics;
-using NvtFwCombiner.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -47,11 +47,11 @@ public static partial class CliApplication
             return args[0] switch
             {
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
-                IcWorkflowIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
+                ExperienceIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
-                IcWorkflowIds.AbMerge => await RunAbMergeAsync(args[1..], output, error, cancellationToken)
+                ExperienceIds.AbMerge => await RunAbMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
-                IcWorkflowIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
+                ExperienceIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
                         args[0],
                         args[1..],
                         output,
@@ -64,7 +64,7 @@ public static partial class CliApplication
                         error,
                         cancellationToken)
                     .ConfigureAwait(false),
-                IcWorkflowIds.DpReplace or IcWorkflowIds.CtrlRamReplace or IcWorkflowIds.GeneralReplace =>
+                ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace or ExperienceIds.GeneralReplace =>
                     await ReplaceCliCommandHandler.RunAsync(args[0], args[1..], output, error, cancellationToken)
                         .ConfigureAwait(false),
                 _ => await UnknownCommandAsync(args[0], error).ConfigureAwait(false),

@@ -2,7 +2,6 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -154,7 +153,7 @@ internal static partial class CompositionPlanningAdapter
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamNoMappedRegion,
                 $"No postbuild-mapped CtrlRAM region is available for {icId} / {number}.",
-                IcWorkflowIds.CtrlRamReplace));
+                ExperienceIds.CtrlRamReplace));
         }
 
         HashSet<string> availableSourceSlots =
@@ -185,7 +184,7 @@ internal static partial class CompositionPlanningAdapter
             validationIssues.Add(new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput,
                 "Select at least one CtrlRAM replacement BIN.",
-                IcWorkflowIds.CtrlRamReplace));
+                ExperienceIds.CtrlRamReplace));
         }
 
         Dictionary<string, long> selectedSourceLengths = new(StringComparer.Ordinal);

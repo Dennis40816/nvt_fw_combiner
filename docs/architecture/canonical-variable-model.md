@@ -44,17 +44,13 @@ CloneMutableSpaceInitialization
 ## Experience
 
 ```text
-ExperienceDescriptor
+CompositionProfileExperience
   experienceId
-  audience: system | dp | ctrlram | advanced
   layoutPolicy: fixed | constrained | user-defined
   inputPolicy: fixed | extensible
-  topologyAuthoring: hidden | single-or-cascade | exact-count
-  displayNameKey
-  regionAccessRules[]
 ```
 
-Baseline experiences:
+Baseline experience identifiers are Domain-owned constants and are selected only by trusted profiles:
 
 ```text
 standard-merge

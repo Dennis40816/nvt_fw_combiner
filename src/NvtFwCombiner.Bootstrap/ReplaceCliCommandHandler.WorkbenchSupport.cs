@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -11,7 +10,7 @@ internal static partial class ReplaceCliCommandHandler
         string selector,
         [NotNullWhen(true)] out string? icId)
     {
-        return (command == IcWorkflowIds.DpReplace &&
+        return (command == ExperienceIds.DpReplace &&
                 CanonicalCapabilityProjection.TryResolveBuiltInV2DpReplaceSelector(selector, out icId)) ||
             TryResolveWorkbenchIc(selector, out icId);
     }

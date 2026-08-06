@@ -28,7 +28,7 @@ internal static partial class CanonicalCapabilityResolution
     {
         return TryCompilePublishedDynamicCapability(
                 icId,
-                Profiles.IcWorkflowIds.StandardMerge,
+                ExperienceIds.StandardMerge,
                 "selector-free",
                 dpInputLength,
                 selectedInputSlotIds: null,
@@ -53,7 +53,7 @@ internal static partial class CanonicalCapabilityResolution
     {
         return TryCompilePublishedDynamicCapability(
                 icId,
-                Profiles.IcWorkflowIds.StandardMerge,
+                ExperienceIds.StandardMerge,
                 "selector-free",
                 dpInputLength,
                 selectedInputSlotIds,

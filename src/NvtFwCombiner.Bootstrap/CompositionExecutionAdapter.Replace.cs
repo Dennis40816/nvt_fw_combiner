@@ -195,7 +195,7 @@ public static partial class CompositionExecutionAdapter
     {
         ResolvedCapability capability = AcceptedAuthoringSessionBinding.RequireCapability(
             acceptedSession,
-            IcWorkflowIds.GeneralReplace,
+            ExperienceIds.GeneralReplace,
             icId,
             AuthoringDerivedResultKind.Validation);
         GeneralMappingDraftState draft = acceptedSession.DraftState as GeneralMappingDraftState ??
@@ -227,7 +227,7 @@ public static partial class CompositionExecutionAdapter
             [new CompositionIssue(
                 WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
                 $"{IcIdentifier.Normalize(icId)} General Replace is Not available under the current IC workflow policy.",
-                IcWorkflowIds.GeneralReplace)],
+                ExperienceIds.GeneralReplace)],
             GetReplaceDefaultOutputFileName(icId, WorkbenchReplaceModes.General),
             Admission: null));
     }

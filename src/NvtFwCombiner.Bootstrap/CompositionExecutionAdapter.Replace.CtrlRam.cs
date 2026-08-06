@@ -150,7 +150,7 @@ public static partial class CompositionExecutionAdapter
             ? null
             : AcceptedAuthoringSessionBinding.RequireCapability(
                 acceptedSession,
-                Profiles.IcWorkflowIds.CtrlRamReplace,
+                ExperienceIds.CtrlRamReplace,
                 icId,
                 AuthoringDerivedResultKind.Inspection);
         if (acceptedCapability is not null &&

@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
 using V2CompositionProfileDefinition = NvtFwCombiner.Profiles.V2.CompositionProfileDefinition;
@@ -249,7 +248,7 @@ internal sealed class BuiltInV2Bundle
             profileId,
             profileVersion,
             icId,
-            IcWorkflowIds.AbMerge,
+            ExperienceIds.AbMerge,
             requestedMapCapacity,
             requestedTopology,
             []);

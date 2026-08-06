@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.ExternalTools;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -16,9 +15,9 @@ internal static class CanonicalDynamicRouteInventory
         return (TryGetMapBoundRegistration(identity, out BuiltInV2Registration? registration) &&
                 registration.SelectionGroupMapVariantSetId is not null) ||
                identity.WorkflowId is
-                   IcWorkflowIds.GeneralMerge or
-                   IcWorkflowIds.GeneralReplace or
-                   IcWorkflowIds.CtrlRamReplace;
+                   ExperienceIds.GeneralMerge or
+                   ExperienceIds.GeneralReplace or
+                   ExperienceIds.CtrlRamReplace;
     }
 
     internal static CanonicalDynamicRoute Resolve(
@@ -32,9 +31,9 @@ internal static class CanonicalDynamicRouteInventory
             ? ResolveSelectionGroup(identity, registration)
             : identity.WorkflowId switch
             {
-                IcWorkflowIds.GeneralMerge => ResolveGeneralMerge(identity),
-                IcWorkflowIds.GeneralReplace => ResolveGeneralReplace(identity),
-                IcWorkflowIds.CtrlRamReplace => ResolveCtrlRam(identity),
+                ExperienceIds.GeneralMerge => ResolveGeneralMerge(identity),
+                ExperienceIds.GeneralReplace => ResolveGeneralReplace(identity),
+                ExperienceIds.CtrlRamReplace => ResolveCtrlRam(identity),
                 _ => throw new InvalidDataException(
                     $"No dynamic capability definition matches route '{identity.RouteId}'."),
             };
@@ -52,7 +51,7 @@ internal static class CanonicalDynamicRouteInventory
                 route.ProfileId,
                 route.ProfileVersion,
                 route.Key.IcId,
-                IcWorkflowIds.CtrlRamReplace,
+                ExperienceIds.CtrlRamReplace,
                 out IReadOnlyList<CompositionIssue> issues);
         FirmwareImageMap map = issues.Count == 0
             ? maps.SingleOrDefault(candidate =>
@@ -62,13 +61,13 @@ internal static class CanonicalDynamicRouteInventory
             : throw InvalidDefinition(
                 new CapabilityRouteIdentity(
                     route.Key.IcId,
-                    IcWorkflowIds.CtrlRamReplace,
+                    ExperienceIds.CtrlRamReplace,
                     "unresolved",
                     "unresolved"),
                 issues);
         return new CapabilityRouteIdentity(
             route.Key.IcId,
-            IcWorkflowIds.CtrlRamReplace,
+            ExperienceIds.CtrlRamReplace,
             FormatCtrlRamCountVariant(
                 plan.Selector,
                 plan.Branch == LegacyCombinerPostbuildBranch.Cascade
@@ -125,8 +124,8 @@ internal static class CanonicalDynamicRouteInventory
         IReadOnlyDictionary<string, BuiltInV2Registration>? registrations =
             identity.WorkflowId switch
             {
-                IcWorkflowIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
-                IcWorkflowIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
+                ExperienceIds.StandardMerge => BuiltInV2RegistrationRegistry.StandardMergeByIc,
+                ExperienceIds.DpReplace => BuiltInV2RegistrationRegistry.DpReplaceByIc.Value,
                 _ => null,
             };
         registration = registrations?.GetValueOrDefault(identity.IcId);
@@ -264,14 +263,14 @@ internal static class CanonicalDynamicRouteInventory
                 route.ProfileId,
                 route.ProfileVersion,
                 route.Key.IcId,
-                IcWorkflowIds.CtrlRamReplace,
+                ExperienceIds.CtrlRamReplace,
                 out IReadOnlyList<CompositionIssue> issues);
         if (issues.Count != 0)
         {
             throw InvalidDefinition(
                 new CapabilityRouteIdentity(
                     route.Key.IcId,
-                    IcWorkflowIds.CtrlRamReplace,
+                    ExperienceIds.CtrlRamReplace,
                     FormatCtrlRamCountVariant(selector, postbuild.DiffDlmPolicy),
                     "unresolved"),
                 issues);
@@ -285,7 +284,7 @@ internal static class CanonicalDynamicRouteInventory
             yield return new CanonicalCtrlRamDefinition(
                 new CapabilityRouteIdentity(
                     route.Key.IcId,
-                    IcWorkflowIds.CtrlRamReplace,
+                    ExperienceIds.CtrlRamReplace,
                     countVariant,
                     map.MapId),
                 route,

@@ -25,7 +25,7 @@ internal static partial class CanonicalCapabilityResolution
         return WorkbenchHostServices.CanonicalCapabilities.Read(
             catalog => catalog.ResolveUniqueRoute(
                 icId,
-                IcWorkflowIds.StandardMerge,
+                ExperienceIds.StandardMerge,
                 SelectorFreeIcCountVariant));
     }
 
@@ -35,7 +35,7 @@ internal static partial class CanonicalCapabilityResolution
         return WorkbenchHostServices.CanonicalCapabilities.Read(
             catalog => catalog.ResolveUniqueRoute(
                 icId,
-                IcWorkflowIds.StandardMerge,
+                ExperienceIds.StandardMerge,
                 SelectorFreeIcCountVariant,
                 outputCapacity));
     }
@@ -46,7 +46,7 @@ internal static partial class CanonicalCapabilityResolution
         return WorkbenchHostServices.CanonicalCapabilities.Read(
             catalog => catalog.ResolveUniqueRoute(
                 icId,
-                IcWorkflowIds.DpReplace,
+                ExperienceIds.DpReplace,
                 "1-ic"));
     }
 
@@ -57,7 +57,7 @@ internal static partial class CanonicalCapabilityResolution
         return WorkbenchHostServices.CanonicalCapabilities.Read(
             catalog => catalog.ResolveUniqueRoute(
                 icId,
-                IcWorkflowIds.DpReplace,
+                ExperienceIds.DpReplace,
                 "1-ic",
                 outputCapacity));
     }
@@ -69,7 +69,7 @@ internal static partial class CanonicalCapabilityResolution
         return WorkbenchHostServices.CanonicalCapabilities.Read(
             catalog => catalog.ResolveUniqueTopologyRoute(
                 icId,
-                IcWorkflowIds.AbMerge,
+                ExperienceIds.AbMerge,
                 topology));
     }
 
@@ -135,7 +135,7 @@ internal static partial class CanonicalCapabilityResolution
                 CapabilityCatalogIssueCodes.RouteAmbiguous) &&
             GetCanonicalOutputCapacities(
                 icId,
-                IcWorkflowIds.StandardMerge).Length > 1)
+                ExperienceIds.StandardMerge).Length > 1)
         {
             composition = null;
             issues = [];
@@ -148,7 +148,7 @@ internal static partial class CanonicalCapabilityResolution
         {
             long[] capacities = GetCanonicalOutputCapacities(
                 icId,
-                IcWorkflowIds.StandardMerge);
+                ExperienceIds.StandardMerge);
             if (outputCapacity is not null && capacities.Length != 0)
             {
                 composition = null;
@@ -195,7 +195,7 @@ internal static partial class CanonicalCapabilityResolution
         {
             long[] capacities = GetCanonicalOutputCapacities(
                 icId,
-                IcWorkflowIds.DpReplace);
+                ExperienceIds.DpReplace);
             if (capacities.Length != 0)
             {
                 composition = null;
@@ -290,9 +290,9 @@ internal static partial class CanonicalCapabilityResolution
 
         BuiltInV2Registration registration = workflowId switch
         {
-            IcWorkflowIds.StandardMerge =>
+            ExperienceIds.StandardMerge =>
                 BuiltInV2RegistrationRegistry.StandardMergeByIc[normalizedIcId],
-            IcWorkflowIds.DpReplace =>
+            ExperienceIds.DpReplace =>
                 BuiltInV2RegistrationRegistry.DpReplaceByIc.Value[normalizedIcId],
             _ => throw new InvalidOperationException(
                 "Only registered map-bound dynamic routes use this compiler adapter."),

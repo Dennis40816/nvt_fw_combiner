@@ -126,7 +126,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("TryResolveBuiltInV2DpReplaceSelector", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", replaceCli, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", replaceCli, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.DpReplace", registrations, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.DpReplace", registrations, StringComparison.Ordinal);
         Assert.Contains(
             "nt51950-nt51951-standard-merge",
             packageTrustIndex,
@@ -542,11 +542,11 @@ public sealed partial class RepositoryBoundaryTests
     {
         string workflowIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchWorkflowIds.cs");
 
-        Assert.Contains("public const string StandardMerge = IcWorkflowIds.StandardMerge;", workflowIds, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralMerge = IcWorkflowIds.GeneralMerge;", workflowIds, StringComparison.Ordinal);
-        Assert.Contains("public const string DpReplace = IcWorkflowIds.DpReplace;", workflowIds, StringComparison.Ordinal);
-        Assert.Contains("public const string CtrlRamReplace = IcWorkflowIds.CtrlRamReplace;", workflowIds, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralReplace = IcWorkflowIds.GeneralReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string StandardMerge = ExperienceIds.StandardMerge;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralMerge = ExperienceIds.GeneralMerge;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string DpReplace = ExperienceIds.DpReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string CtrlRamReplace = ExperienceIds.CtrlRamReplace;", workflowIds, StringComparison.Ordinal);
+        Assert.Contains("public const string GeneralReplace = ExperienceIds.GeneralReplace;", workflowIds, StringComparison.Ordinal);
         Assert.DoesNotContain("\"standard-merge\"", workflowIds, StringComparison.Ordinal);
         Assert.DoesNotContain("\"dp-replace\"", workflowIds, StringComparison.Ordinal);
         Assert.DoesNotContain("\"ctrlram-replace\"", workflowIds, StringComparison.Ordinal);

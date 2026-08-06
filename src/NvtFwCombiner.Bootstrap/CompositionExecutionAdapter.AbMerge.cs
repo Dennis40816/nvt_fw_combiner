@@ -118,7 +118,7 @@ public static partial class CompositionExecutionAdapter
         ArgumentNullException.ThrowIfNull(progress);
         ResolvedCapability capability = AcceptedAuthoringSessionBinding.RequireCapability(
             acceptedSession,
-            IcWorkflowIds.AbMerge,
+            ExperienceIds.AbMerge,
             icId,
             AuthoringDerivedResultKind.Inspection);
         return RunAbMergeCoreAsync(
