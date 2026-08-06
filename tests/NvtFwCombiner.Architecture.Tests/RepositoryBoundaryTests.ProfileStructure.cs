@@ -103,7 +103,7 @@ public sealed partial class RepositoryBoundaryTests
             ReadProfileSources(),
             StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "TransformAddendSourceKind",
+            "enum TransformAddendSourceKind",
             ReadProfileSources(),
             StringComparison.Ordinal);
         Assert.DoesNotContain(

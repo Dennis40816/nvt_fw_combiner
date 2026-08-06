@@ -28,13 +28,13 @@ internal static partial class CompositionProfileNormalizer
                 document,
                 sequence,
                 overlapPolicy,
-                CompositionProfileOperationKind.CopyRange,
+                CompositionOperationKind.CopyRange,
                 path),
             "replace-range" => NormalizeCopyOrReplace(
                 document,
                 sequence,
                 overlapPolicy,
-                CompositionProfileOperationKind.ReplaceRange,
+                CompositionOperationKind.ReplaceRange,
                 path),
             "fill-range" => Wrap(path, () => new FillRangeProfileOperation(
                 document.OperationId,
@@ -75,7 +75,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileOperationDocument document,
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
-        CompositionProfileOperationKind kind,
+        CompositionOperationKind kind,
         string path)
     {
         return Wrap(path, () => new CopyOrReplaceProfileOperation(
@@ -108,6 +108,10 @@ internal static partial class CompositionProfileNormalizer
         ulong? expectedBefore = document.ExpectedBefore is { } expected
             ? ReadUInt64(expected, $"{path}.expectedBefore")
             : null;
+        (ScalarTransformAddendSource addendSource, BigInteger? fixedAddend) = NormalizeTransformAddend(
+            Require(document.Addend, $"{path}.addend"),
+            schemaVersion,
+            $"{path}.addend");
         return Wrap(path, () => new TransformScalarProfileOperation(
             document.OperationId,
             sequence,
@@ -121,21 +125,19 @@ internal static partial class CompositionProfileNormalizer
             NormalizeScalarByteOrder(
                 RequireText(document.ByteOrder, $"{path}.byteOrder", "Scalar byte order is missing."),
                 $"{path}.byteOrder"),
-            NormalizeTransformAddend(
-                Require(document.Addend, $"{path}.addend"),
-                schemaVersion,
-                $"{path}.addend"),
+            fixedAddend,
+            addendSource,
             expectedBefore));
     }
 
-    private static TransformAddendSource NormalizeTransformAddend(
+    private static (ScalarTransformAddendSource Source, BigInteger? FixedAddend) NormalizeTransformAddend(
         JsonElement document,
         string schemaVersion,
         string path)
     {
         if (document.ValueKind == JsonValueKind.Number)
         {
-            return new FixedTransformAddendSource(ReadInteger(document, path));
+            return (ScalarTransformAddendSource.Fixed, ReadInteger(document, path));
         }
 
         if (document.ValueKind != JsonValueKind.Object)
@@ -170,15 +172,21 @@ internal static partial class CompositionProfileNormalizer
             "region-instance-delta",
             $"{path}.kind",
             "Unknown scalar addend object kind.");
-        return Wrap(path, () => new RegionInstanceDeltaTransformAddendSource(
-            RequireText(
-                addend.SourceRegionInstanceId,
-                $"{path}.sourceRegionInstanceId",
-                "Source region instance is missing."),
-            RequireText(
-                addend.TargetRegionInstanceId,
-                $"{path}.targetRegionInstanceId",
-                "Target region instance is missing.")));
+        return (
+            Wrap(path, () => ScalarTransformAddendSource.RegionInstanceDelta(
+                CanonicalPolicyValueRules.RequireCanonicalId(
+                    RequireText(
+                        addend.SourceRegionInstanceId,
+                        $"{path}.sourceRegionInstanceId",
+                        "Source region instance is missing."),
+                    nameof(addend.SourceRegionInstanceId)),
+                CanonicalPolicyValueRules.RequireCanonicalId(
+                    RequireText(
+                        addend.TargetRegionInstanceId,
+                        $"{path}.targetRegionInstanceId",
+                        "Target region instance is missing."),
+                    nameof(addend.TargetRegionInstanceId)))),
+            null);
     }
 
     private static OverlapPolicy NormalizeOverlapPolicy(string value, string path)

@@ -156,14 +156,14 @@ internal static partial class V2CompositionPlanCompiler
 
         if (profile.CompositionKind == CompositionKind.Replace &&
             StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace) &&
-            operation.Kind == CompositionProfileOperationKind.ReplaceRange &&
+            operation.Kind == CompositionOperationKind.ReplaceRange &&
             !TryAuthorizeDpReplacePayloadTarget(profile, operation, target, issues))
         {
             return;
         }
 
         if (profile.CompositionKind == CompositionKind.Replace &&
-            operation.Kind == CompositionProfileOperationKind.CopyRange &&
+            operation.Kind == CompositionOperationKind.CopyRange &&
             operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
             source.Range != target.Range)
         {
@@ -181,7 +181,7 @@ internal static partial class V2CompositionPlanCompiler
 
         operations.Add(operation.Kind switch
         {
-            CompositionProfileOperationKind.CopyRange => CompositionOperation.CopyRange(
+            CompositionOperationKind.CopyRange => CompositionOperation.CopyRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -190,7 +190,7 @@ internal static partial class V2CompositionPlanCompiler
                 target.Range,
                 operation.OverlapPolicy,
                 operation.Reason),
-            CompositionProfileOperationKind.ReplaceRange => CompositionOperation.ReplaceRange(
+            CompositionOperationKind.ReplaceRange => CompositionOperation.ReplaceRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -199,10 +199,10 @@ internal static partial class V2CompositionPlanCompiler
                 target.Range,
                 operation.OverlapPolicy,
                 operation.Reason),
-            CompositionProfileOperationKind.FillRange or
-            CompositionProfileOperationKind.PatchScalar or
-            CompositionProfileOperationKind.TransformScalar or
-            CompositionProfileOperationKind.RunProcessor => throw new ArgumentOutOfRangeException(
+            CompositionOperationKind.FillRange or
+            CompositionOperationKind.PatchScalar or
+            CompositionOperationKind.TransformScalar or
+            CompositionOperationKind.RunExternalProcessor => throw new ArgumentOutOfRangeException(
                 nameof(operation),
                 operation.Kind,
                 "Copy-like lowering requires a copy-range or replace-range operation."),
@@ -583,17 +583,17 @@ internal static partial class V2CompositionPlanCompiler
         out ScalarTransformAddendSource? addendSource,
         out string? error)
     {
-        switch (operation.AddendSource)
+        switch (operation.AddendSource.Kind)
         {
-            case FixedTransformAddendSource fixedAddend:
-                addend = fixedAddend.Value;
-                addendSource = ScalarTransformAddendSource.Fixed;
+            case ScalarTransformAddendSourceKind.Fixed:
+                addend = operation.Addend;
+                addendSource = operation.AddendSource;
                 error = null;
                 return true;
-            case RegionInstanceDeltaTransformAddendSource delta:
+            case ScalarTransformAddendSourceKind.RegionInstanceDelta:
                 if (!TryResolveRegionInstance(
                         resolvedMap,
-                        delta.SourceRegionInstanceId,
+                        operation.AddendSource.SourceRegionInstanceId!,
                         out FirmwareRegionSet? sourceSet,
                         out FirmwareRegionInstance? source,
                         out error) ||
@@ -607,7 +607,7 @@ internal static partial class V2CompositionPlanCompiler
 
                 if (!TryResolveRegionInstance(
                         resolvedMap,
-                        delta.TargetRegionInstanceId,
+                        operation.AddendSource.TargetRegionInstanceId!,
                         out FirmwareRegionSet? targetSet,
                         out FirmwareRegionInstance? target,
                         out error) ||
@@ -623,8 +623,8 @@ internal static partial class V2CompositionPlanCompiler
                 {
                     addend = default;
                     addendSource = null;
-                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
-                        $"'{delta.TargetRegionInstanceId}' do not reference the same canonical template";
+                    error = $"region instances '{operation.AddendSource.SourceRegionInstanceId}' and " +
+                        $"'{operation.AddendSource.TargetRegionInstanceId}' do not reference the same canonical template";
                     return false;
                 }
 
@@ -632,15 +632,13 @@ internal static partial class V2CompositionPlanCompiler
                 {
                     addend = default;
                     addendSource = null;
-                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
-                        $"'{delta.TargetRegionInstanceId}' use incompatible address spaces";
+                    error = $"region instances '{operation.AddendSource.SourceRegionInstanceId}' and " +
+                        $"'{operation.AddendSource.TargetRegionInstanceId}' use incompatible address spaces";
                     return false;
                 }
 
                 addend = new BigInteger(target.BaseOffset) - new BigInteger(source.BaseOffset);
-                addendSource = ScalarTransformAddendSource.RegionInstanceDelta(
-                    delta.SourceRegionInstanceId,
-                    delta.TargetRegionInstanceId);
+                addendSource = operation.AddendSource;
                 error = null;
                 return true;
             default:

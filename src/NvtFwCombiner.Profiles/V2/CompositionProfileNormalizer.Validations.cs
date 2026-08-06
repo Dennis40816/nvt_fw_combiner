@@ -111,11 +111,11 @@ internal static partial class CompositionProfileNormalizer
         CompiledValidationSeverity severity,
         string path)
     {
-        CompiledValidationBytes expected = new(ReadBytes(
+        CompiledValidationBytes expected = ReadBytes(
             RequireText(document.ExpectedHex, $"{path}.expectedHex", "Expected bytes are missing."),
-            $"{path}.expectedHex").Bytes);
+            $"{path}.expectedHex");
         CompiledValidationBytes? mask = document.MaskHex is { } maskHex
-            ? new CompiledValidationBytes(ReadBytes(maskHex, $"{path}.maskHex").Bytes)
+            ? ReadBytes(maskHex, $"{path}.maskHex")
             : null;
         return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
             new CompiledViewByteAssertionValidation(

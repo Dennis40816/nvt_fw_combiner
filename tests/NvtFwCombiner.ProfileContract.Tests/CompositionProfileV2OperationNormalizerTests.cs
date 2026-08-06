@@ -39,8 +39,8 @@ public sealed class CompositionProfileV2OperationNormalizerTests
             "run-processor",
             processorStageId: "legacy-postbuild")));
 
-        Assert.Equal(CompositionProfileOperationKind.CopyRange, copy.Kind);
-        Assert.Equal(CompositionProfileOperationKind.ReplaceRange, replace.Kind);
+        Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
+        Assert.Equal(CompositionOperationKind.ReplaceRange, replace.Kind);
         Assert.Equal(0xFF, fill.FillByte);
         Assert.Equal("aa01", patch.Value.Hex);
         Assert.Equal(
@@ -109,8 +109,8 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 targetRegionInstanceId: "b-bank")),
             "2.14"));
 
-        RegionInstanceDeltaTransformAddendSource addend =
-            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(transform.AddendSource);
+        ScalarTransformAddendSource addend = transform.AddendSource;
+        Assert.Equal(ScalarTransformAddendSourceKind.RegionInstanceDelta, addend.Kind);
         Assert.Equal("a-bank", addend.SourceRegionInstanceId);
         Assert.Equal("b-bank", addend.TargetRegionInstanceId);
     }
@@ -245,10 +245,21 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                     "region-instance-delta",
                     sourceRegionInstanceId: "a-bank")),
                 "2.14"));
+        CompositionProfileNormalizationException nonCanonical = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Transform(
+                Number("0"),
+                Number("4"),
+                "little",
+                RegionInstanceDeltaAddend(
+                    "region-instance-delta",
+                    sourceRegionInstanceId: "A-bank",
+                    targetRegionInstanceId: "b-bank")),
+                "2.14"));
 
         Assert.Equal("operations[0].addend.kind", kind.Path);
         Assert.Equal("operations[0].addend.sourceRegionInstanceId", source.Path);
         Assert.Equal("operations[0].addend.targetRegionInstanceId", target.Path);
+        Assert.Equal("operations[0].addend", nonCanonical.Path);
     }
 
     /// <summary>Verifies older profile schemas cannot gain geometry-derived addend authority.</summary>
