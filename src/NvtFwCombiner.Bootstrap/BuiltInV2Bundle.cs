@@ -210,12 +210,11 @@ internal sealed class BuiltInV2Bundle
     {
         try
         {
-            TrustedProfileBundleCatalog.ProfileSelectionResult result =
-                _catalog.Value.SelectProfile(profileId, profileVersion);
-            return result.Selection is { } selection &&
-                   _catalog.Value.TryResolveSelection(
-                       selection,
-                       out TrustedCompositionProfileCatalogEntry? entry)
+            TrustedCompositionProfileCatalogEntry? entry = _catalog.Value.SelectProfile(
+                profileId,
+                profileVersion,
+                out _);
+            return entry is not null
                 ? Array.AsReadOnly(
                 [
                     .. entry.Profile.InputSelectionGroups

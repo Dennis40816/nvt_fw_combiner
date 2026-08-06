@@ -82,13 +82,13 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.Same(familyEntry, profileEntry.Family);
         Assert.Equal("map", Assert.Single(profileEntry.Profile.MapBinding.MapIds));
 
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Assert.IsType<TrustedCompositionProfileCatalogEntry>(
+            catalog.SelectProfile("profile", "1.0.0", out IReadOnlyList<CompositionIssue> selectionIssues));
+        Assert.Empty(selectionIssues);
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            new V2CompositionPreparationRequest(
-                selection,
-                new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, [])));
+            selection,
+            new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, []));
 
         Assert.True(preparation.IsAdmitted);
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);

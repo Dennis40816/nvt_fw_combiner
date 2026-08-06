@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -36,22 +37,20 @@ internal static class TrustedV2CompositionCompiler
                 "Logical-output compilation requires profile identity and member selections.");
         }
 
-        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(profileId, profileVersion);
-        return selectionResult.Selection is not { } selection
+        TrustedCompositionProfileCatalogEntry? profileEntry = catalog.SelectProfile(
+            profileId,
+            profileVersion,
+            out IReadOnlyList<CompositionIssue> selectionIssues);
+        return profileEntry is null
             ? Failed(
-                selectionResult.Issues,
+                selectionIssues,
                 "profile.v2.logical.selection-unresolved",
                 "The selected trusted logical-output profile could not be resolved from its catalog.")
-            : catalog.TryResolveSelection(selection, out TrustedCompositionProfileCatalogEntry? profileEntry)
-            ? V2CompositionPlanCompiler.CompileLogicalOutput(
-                selection,
+            : V2CompositionPlanCompiler.CompileLogicalOutput(
+                catalog.BundleIdentity,
                 profileEntry,
                 memberId,
-                request)
-            : Failed(
-                [],
-                "profile.v2.logical.preparation-not-admitted",
-                "The selected trusted V2 profile was not admitted for logical-output lowering.");
+                request);
     }
 
     /// <summary>Compiles one trusted map-bound General Replace request through the shared resolved-map preparation path.</summary>
@@ -123,15 +122,14 @@ internal static class TrustedV2CompositionCompiler
                 profileVersion,
                 memberId,
                 experienceId,
-                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out TrustedCompositionProfileCatalogEntry? profileEntry,
                 out FirmwareImageMap[] mapCandidates,
                 out IReadOnlyList<CompositionIssue> resolutionIssues))
         {
             return V2CompositionPlanCompileResult.Failed(resolutionIssues);
         }
 
-        if (!catalog.TryResolveSelection(selection!, out TrustedCompositionProfileCatalogEntry? profileEntry) ||
-            !V2CompositionPlanCompiler.TryGetRuntimeReferenceReplaceReferenceSlotId(
+        if (!V2CompositionPlanCompiler.TryGetRuntimeReferenceReplaceReferenceSlotId(
                 profileEntry.Profile,
                 out string referenceSlotId))
         {
@@ -187,14 +185,13 @@ internal static class TrustedV2CompositionCompiler
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            new V2CompositionPreparationRequest(
-                selection!,
-                new FirmwareMapResolutionInputs(
-                    memberId,
-                    experienceId,
-                    referenceBindings[0].ExactLengthBytes,
-                    requestedTopology,
-                    artifactSnapshots)));
+            profileEntry,
+            new FirmwareMapResolutionInputs(
+                memberId,
+                experienceId,
+                referenceBindings[0].ExactLengthBytes,
+                requestedTopology,
+                artifactSnapshots));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplace(preparation, request)
             : Failed(
@@ -273,7 +270,7 @@ internal static class TrustedV2CompositionCompiler
                 profileVersion,
                 memberId,
                 modeId,
-                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out TrustedCompositionProfileCatalogEntry? selectedProfile,
                 out FirmwareImageMap[] mapCandidates,
                 out IReadOnlyList<CompositionIssue> resolutionIssues))
         {
@@ -316,8 +313,6 @@ internal static class TrustedV2CompositionCompiler
 
         if (mapCandidates.Length > 1 &&
             requestedMapCapacity is null &&
-            selection is not null &&
-            catalog.TryResolveSelection(selection, out TrustedCompositionProfileCatalogEntry? selectedProfile) &&
             selectedProfile.Profile.InputSelectionGroups.Count != 0)
         {
             mapCandidates =
@@ -345,14 +340,13 @@ internal static class TrustedV2CompositionCompiler
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            new V2CompositionPreparationRequest(
-                selection!,
-                new FirmwareMapResolutionInputs(
-                    memberId,
-                    modeId,
-                    mapCandidates[0].CapacityBytes,
-                    requestedTopology,
-                    resolutionArtifacts)));
+            selectedProfile,
+            new FirmwareMapResolutionInputs(
+                memberId,
+                modeId,
+                mapCandidates[0].CapacityBytes,
+                requestedTopology,
+                resolutionArtifacts));
         return preparation.IsAdmitted
             ? V2CompositionPlanCompiler.Compile(preparation, selectedInputSlotIds)
             : Failed(
@@ -470,25 +464,11 @@ internal static class TrustedV2CompositionCompiler
                 profileVersion,
                 memberId,
                 modeId,
-                out TrustedProfileBundleCatalog.ProfileSelection? selection,
+                out TrustedCompositionProfileCatalogEntry? profileEntry,
                 out FirmwareImageMap[] mapCandidates,
                 out issues))
         {
             icNumberInputMode = null;
-            return [];
-        }
-
-        if (!catalog.TryResolveSelection(
-                selection!,
-                out TrustedCompositionProfileCatalogEntry? profileEntry))
-        {
-            icNumberInputMode = null;
-            issues =
-            [
-                new CompositionIssue(
-                    SelectionUnresolved,
-                    "The selected trusted V2 profile could not be resolved from its catalog."),
-            ];
             return [];
         }
 
@@ -506,7 +486,7 @@ internal static class TrustedV2CompositionCompiler
         string profileVersion,
         string memberId,
         string modeId,
-        out TrustedProfileBundleCatalog.ProfileSelection? selection,
+        [NotNullWhen(true)] out TrustedCompositionProfileCatalogEntry? profileEntry,
         out FirmwareImageMap[] mapCandidates,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -516,24 +496,24 @@ internal static class TrustedV2CompositionCompiler
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
 
-        selection = null;
+        profileEntry = null;
         mapCandidates = [];
         issues = [];
-        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile(
+        TrustedCompositionProfileCatalogEntry? selected = catalog.SelectProfile(
             profileId,
-            profileVersion);
-        if (selectionResult.Selection is not { } selected ||
-            !catalog.TryResolveSelection(selected, out TrustedCompositionProfileCatalogEntry? profileEntry))
+            profileVersion,
+            out IReadOnlyList<CompositionIssue> selectionIssues);
+        if (selected is null)
         {
-            issues = selectionResult.Issues.Count == 0
+            issues = selectionIssues.Count == 0
                 ? [new CompositionIssue(
                     SelectionUnresolved,
                     "The selected trusted V2 profile could not be resolved from its catalog.")]
-                : [.. selectionResult.Issues];
+                : [.. selectionIssues];
             return false;
         }
 
-        if (!StringComparer.Ordinal.Equals(profileEntry.Profile.Experience.ExperienceId, modeId))
+        if (!StringComparer.Ordinal.Equals(selected.Profile.Experience.ExperienceId, modeId))
         {
             issues =
             [
@@ -546,8 +526,8 @@ internal static class TrustedV2CompositionCompiler
 
         mapCandidates =
         [
-            .. profileEntry.Family.Family.ImageMaps.Where(map =>
-                profileEntry.Profile.MapBinding.MapIds.Contains(map.MapId, StringComparer.Ordinal) &&
+            .. selected.Family.Family.ImageMaps.Where(map =>
+                selected.Profile.MapBinding.MapIds.Contains(map.MapId, StringComparer.Ordinal) &&
                 map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal) &&
                 map.Applicability.ModeIds.Contains(modeId, StringComparer.Ordinal)),
         ];
@@ -562,7 +542,7 @@ internal static class TrustedV2CompositionCompiler
             return false;
         }
 
-        selection = selected;
+        profileEntry = selected;
         return true;
     }
 

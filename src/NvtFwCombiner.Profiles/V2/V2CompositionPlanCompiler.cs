@@ -77,7 +77,7 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(preparation);
-        if (!preparation.IsAdmitted || preparation.Selection is null ||
+        if (!preparation.IsAdmitted || preparation.BundleIdentity is null ||
             preparation.ProfileEntry is null ||
             preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
         {
@@ -164,7 +164,8 @@ internal static partial class V2CompositionPlanCompiler
             operations);
         return Succeed(
             profile,
-            preparation.Selection,
+            preparation.BundleIdentity,
+            preparation.ProfileEntry.EntryIdentity,
             new ResolvedMapV2CompilationContext(resolvedMap),
             plan,
             profile.InputSlots

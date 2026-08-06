@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
@@ -14,22 +15,19 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         TrustedProfileBundleCatalog catalog = CreateCatalog();
 
-        TrustedProfileBundleCatalog.ProfileSelectionResult selectionResult = catalog.SelectProfile("profile", "1.0.0");
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            selectionResult.Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
-        Assert.True(selectionResult.IsSelected);
-        Assert.Empty(selectionResult.Issues);
-        Assert.Equal(BundleHash, selection.BundleIdentity.ContentHash);
-        Assert.Equal("profile-entry", selection.ProfileEntryIdentity.EntryId);
-        Assert.Equal("profile", selection.ProfileId);
-        Assert.Equal("1.0.0", selection.ProfileVersion);
+        Assert.Equal("profile-entry", selection.EntryIdentity.EntryId);
+        Assert.Equal("profile", selection.Profile.ProfileId);
+        Assert.Equal("1.0.0", selection.Profile.ProfileVersion);
         Assert.True(preparation.IsAdmitted);
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.Same(selection, preparation.Selection);
+        Assert.Same(catalog.BundleIdentity, preparation.BundleIdentity);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
         Assert.Equal("map", preparation.MapResolution?.ResolvedMap?.ImageMap.MapId);
         Assert.NotNull(preparation.ProfileEntry);
@@ -41,40 +39,46 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void SelectionRejectsUnknownProfileVersionWithoutFallback()
     {
-        TrustedProfileBundleCatalog.ProfileSelectionResult selection = CreateCatalog().SelectProfile("profile", "2.0.0");
+        TrustedCompositionProfileCatalogEntry? selection = CreateCatalog().SelectProfile(
+            "profile",
+            "2.0.0",
+            out IReadOnlyList<CompositionIssue> issues);
 
-        Assert.False(selection.IsSelected);
-        Assert.Null(selection.Selection);
-        Assert.Equal("profile.v2.selection.not-found", Assert.Single(selection.Issues).Code);
+        Assert.Null(selection);
+        Assert.Equal("profile.v2.selection.not-found", Assert.Single(issues).Code);
     }
 
-    /// <summary>Verifies friend assemblies cannot forge a catalog selection without its private minting token.</summary>
+    /// <summary>Verifies an equivalent entry constructed by a friend assembly is not owned by the catalog.</summary>
     [Fact]
-    public void SelectionRejectsAnUntrustedMintingToken()
+    public void SelectionRejectsAnUnownedEntryReference()
     {
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            CreateCatalog().SelectProfile("profile", "1.0.0").Selection);
+        TrustedProfileBundleCatalog catalog = CreateCatalog();
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
+        var unowned = new TrustedCompositionProfileCatalogEntry(
+            selection.Identity,
+            selection.Profile,
+            selection.Family);
 
-        _ = Assert.Throws<ArgumentException>(() => new TrustedProfileBundleCatalog.ProfileSelection(
-            new object(),
-            selection.BundleIdentity,
-            selection.ProfileEntryIdentity,
-            selection.ProfileId,
-            selection.ProfileVersion));
+        V2CompositionPreparationResult result = V2CompositionPreparationService.Prepare(
+            catalog,
+            unowned,
+            Inputs());
+
+        Assert.Equal(V2CompositionPreparationStatus.SelectionRejected, result.Status);
     }
 
-    /// <summary>Verifies a catalog-minted token cannot be reused against a different trusted bundle identity.</summary>
+    /// <summary>Verifies an entry from one trusted catalog cannot be reused against another catalog.</summary>
     [Fact]
     public void PreparationRejectsAStaleBundleSelectionBeforeMapResolution()
     {
         TrustedProfileBundleCatalog source = CreateCatalog();
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            source.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(source);
         TrustedProfileBundleCatalog current = CreateCatalog(bundleContentHash: new('c', 64));
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             current,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.SelectionRejected, preparation.Status);
         Assert.Null(preparation.Selection);
@@ -93,12 +97,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "\"topologyRequirement\": { \"kind\": \"single\" }",
             StringComparison.Ordinal);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson: familyJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.MapPending, preparation.Status);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution);
@@ -130,12 +134,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["purposes"] = new JsonArray("display"),
         });
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
@@ -154,12 +158,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "\"requiredMetadataStructureIds\": [\"firmware-config\"]",
             StringComparison.Ordinal);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.MapPending, preparation.Status);
         FirmwareMapResolutionPendingRequirement requirement = Assert.Single(
@@ -175,12 +179,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void PreparationPreservesNoMatchingMapRejection()
     {
         TrustedProfileBundleCatalog catalog = CreateCatalog();
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection, capacityBytes: 17));
+            selection,
+            Inputs(capacityBytes: 17));
 
         Assert.Equal(V2CompositionPreparationStatus.MapRejected, preparation.Status);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution);
@@ -200,12 +204,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             TrustedV2BundleTestDocuments.ProfileJson(Hash(familyJson))));
         Assert.IsType<JsonArray>(Assert.IsType<JsonObject>(profile["mapBinding"])["mapIds"]).Add("alternate-map");
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.MapRejected, preparation.Status);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution);
@@ -226,12 +230,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "\"requiredMetadataStructureIds\": [\"missing-b\", \"missing-a\"]",
             StringComparison.Ordinal);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection));
+            selection,
+            Inputs());
 
         Assert.Equal(V2CompositionPreparationStatus.AdmissionRejected, preparation.Status);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
@@ -332,19 +336,26 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             bundleContentHash));
     }
 
-    private static V2CompositionPreparationRequest Request(
-        TrustedProfileBundleCatalog.ProfileSelection selection,
+    private static TrustedCompositionProfileCatalogEntry Select(TrustedProfileBundleCatalog catalog)
+    {
+        TrustedCompositionProfileCatalogEntry? selection = catalog.SelectProfile(
+            "profile",
+            "1.0.0",
+            out IReadOnlyList<CompositionIssue> issues);
+        Assert.Empty(issues);
+        return Assert.IsType<TrustedCompositionProfileCatalogEntry>(selection);
+    }
+
+    private static FirmwareMapResolutionInputs Inputs(
         long capacityBytes = 16,
         string modeId = "standard")
     {
-        return new V2CompositionPreparationRequest(
-            selection,
-            new FirmwareMapResolutionInputs(
-                "NT00001",
-                modeId,
-                capacityBytes,
-                requestedTopology: null,
-                []));
+        return new FirmwareMapResolutionInputs(
+            "NT00001",
+            modeId,
+            capacityBytes,
+            requestedTopology: null,
+            []);
     }
 
     private static JsonElement Parse(string json)

@@ -47,11 +47,14 @@ internal sealed class TrustedCompositionProfileCatalogEntry
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(family);
         Identity = identity;
+        EntryIdentity = new ProfileBundleEntryIdentity(identity.EntryId, identity.ContentHash);
         Profile = profile;
         Family = family;
     }
 
     internal TrustedProfileBundleCatalogEntryIdentity Identity { get; }
+
+    internal ProfileBundleEntryIdentity EntryIdentity { get; }
 
     internal CompositionProfileDefinition Profile { get; }
 
