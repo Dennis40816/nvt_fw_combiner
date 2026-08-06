@@ -16,9 +16,9 @@ public sealed class CompositionProfileV2DefinitionTests
             CompositionProfileV2DefinitionTestData.ValidReplaceParts());
 
         Assert.Equal(CompositionKind.Merge, merge.CompositionKind);
-        Assert.Equal(CompositionProfileInitializerKind.Blank, Output(merge).Initializer.Kind);
+        _ = Assert.IsType<BlankProfileInitializer>(Output(merge).Initializer);
         Assert.Equal(CompositionKind.Replace, replace.CompositionKind);
-        Assert.Equal(CompositionProfileInitializerKind.Clone, Output(replace).Initializer.Kind);
+        _ = Assert.IsType<CloneProfileInitializer>(Output(replace).Initializer);
         Assert.Equal("synthetic-family", merge.MapBinding.FamilyId);
         Assert.Equal("{original-name}_merged.bin", merge.Output.FileNameTemplate);
     }

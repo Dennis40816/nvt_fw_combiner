@@ -15,39 +15,17 @@ internal enum CompositionProfileInstancePolicy
     PerBinding,
 }
 
-/// <summary>Closed mutable-space capacity kind.</summary>
-internal enum CompositionProfileCapacityKind
-{
-    ResolvedMap,
-    Fixed,
-    RuntimeRequest,
-}
-
 /// <summary>Base value for one normalized mutable-space capacity.</summary>
-internal abstract record CompositionProfileCapacity
-{
-    protected CompositionProfileCapacity(CompositionProfileCapacityKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile capacity kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileCapacityKind Kind { get; }
-}
+internal abstract record CompositionProfileCapacity;
 
 /// <summary>Uses the uniquely resolved firmware map capacity.</summary>
 internal sealed record ResolvedMapProfileCapacity()
-    : CompositionProfileCapacity(CompositionProfileCapacityKind.ResolvedMap);
+    : CompositionProfileCapacity;
 
 /// <summary>Uses one explicit positive profile-owned capacity.</summary>
 internal sealed record FixedProfileCapacity : CompositionProfileCapacity
 {
     internal FixedProfileCapacity(long bytes)
-        : base(CompositionProfileCapacityKind.Fixed)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -58,36 +36,15 @@ internal sealed record FixedProfileCapacity : CompositionProfileCapacity
 
 /// <summary>Requires one positive capacity supplied by a typed logical-output request at compilation time.</summary>
 internal sealed record RuntimeRequestProfileCapacity()
-    : CompositionProfileCapacity(CompositionProfileCapacityKind.RuntimeRequest);
-
-/// <summary>Closed engine-owned mutable-space initialization kind.</summary>
-internal enum CompositionProfileInitializerKind
-{
-    Blank,
-    Clone,
-}
+    : CompositionProfileCapacity;
 
 /// <summary>Base value for one normalized mutable-space initializer.</summary>
-internal abstract record CompositionProfileInitializer
-{
-    protected CompositionProfileInitializer(CompositionProfileInitializerKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile initializer kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileInitializerKind Kind { get; }
-}
+internal abstract record CompositionProfileInitializer;
 
 /// <summary>Initializes an engine-owned mutable space with one byte value.</summary>
 internal sealed record BlankProfileInitializer : CompositionProfileInitializer
 {
     internal BlankProfileInitializer(byte fillByte)
-        : base(CompositionProfileInitializerKind.Blank)
     {
         FillByte = fillByte;
     }
@@ -99,7 +56,6 @@ internal sealed record BlankProfileInitializer : CompositionProfileInitializer
 internal sealed record CloneProfileInitializer : CompositionProfileInitializer
 {
     internal CloneProfileInitializer(string sourceSlotId)
-        : base(CompositionProfileInitializerKind.Clone)
     {
         SourceSlotId = CompositionProfileValueRules.RequireId(sourceSlotId, nameof(sourceSlotId));
     }
