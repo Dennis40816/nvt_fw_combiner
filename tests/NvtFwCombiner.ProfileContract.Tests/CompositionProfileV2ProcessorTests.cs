@@ -1,4 +1,4 @@
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 

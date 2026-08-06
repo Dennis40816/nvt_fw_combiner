@@ -5,7 +5,7 @@ using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
-using V2CompositionProfileDefinition = NvtFwCombiner.Profiles.V2.CompositionProfileDefinition;
+using V2CompositionProfileDefinition = NvtFwCombiner.Domain.Composition.CompositionProfileDefinition;
 
 namespace NvtFwCombiner.Bootstrap;
 

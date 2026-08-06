@@ -1,7 +1,6 @@
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Base value for one normalized logical-view selector.</summary>
 internal abstract record CompositionProfileViewSelector;
@@ -23,7 +22,7 @@ internal sealed record MapRegionSliceViewSelector : CompositionProfileViewSelect
     internal MapRegionSliceViewSelector(string regionId, ByteRange relativeRange)
     {
         RegionId = CanonicalPolicyValueRules.RequireCanonicalId(regionId, nameof(regionId));
-        RelativeRange = CompositionProfileValueRules.RequireRange(relativeRange, nameof(relativeRange));
+        RelativeRange = CanonicalProfileValueRules.RequireRange(relativeRange, nameof(relativeRange));
     }
 
     internal string RegionId { get; }
@@ -36,7 +35,7 @@ internal sealed record SpaceRangeViewSelector : CompositionProfileViewSelector
 {
     internal SpaceRangeViewSelector(ByteRange range)
     {
-        Range = CompositionProfileValueRules.RequireRange(range, nameof(range));
+        Range = CanonicalProfileValueRules.RequireRange(range, nameof(range));
     }
 
     internal ByteRange Range { get; }

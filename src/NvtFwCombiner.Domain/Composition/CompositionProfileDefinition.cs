@@ -1,6 +1,4 @@
-using NvtFwCombiner.Domain.Composition;
-
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Complete immutable map-independent composition-profile-v2 definition.</summary>
 internal sealed partial class CompositionProfileDefinition
@@ -36,7 +34,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<InputSelectionGroupDefinition>? inputSelectionGroups = null)
     {
         ProfileId = CanonicalPolicyValueRules.RequireCanonicalId(profileId, nameof(profileId));
-        ProfileVersion = CompositionProfileValueRules.RequireSemanticVersion(
+        ProfileVersion = CanonicalProfileValueRules.RequireSemanticVersion(
             profileVersion,
             nameof(profileVersion));
         ArgumentNullException.ThrowIfNull(promotion);

@@ -171,9 +171,9 @@ public sealed partial class RepositoryBoundaryTests
     public void NormalizedProfilesDiscardValidationOnlyPolicyState()
     {
         string header = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileHeader.cs");
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileHeader.cs");
         string processor = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileProcessor.cs");
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileProcessor.cs");
 
         Assert.DoesNotContain("CompositionProfileTopologyAuthoring", header, StringComparison.Ordinal);
         Assert.DoesNotContain("Audience { get; }", header, StringComparison.Ordinal);
@@ -195,9 +195,9 @@ public sealed partial class RepositoryBoundaryTests
     public void NormalizedOutputNamingUsesDomainCanonicalDefinition()
     {
         string definition = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileDefinition.cs");
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileDefinition.cs");
         string processor = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileProcessor.cs");
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileProcessor.cs");
         string lowering = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
 

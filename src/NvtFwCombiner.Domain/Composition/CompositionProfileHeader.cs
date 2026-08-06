@@ -1,6 +1,4 @@
-using NvtFwCombiner.Domain.Composition;
-
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Canonical normalized header facts retained by one profile definition.</summary>
 internal sealed record CompositionProfileHeader(

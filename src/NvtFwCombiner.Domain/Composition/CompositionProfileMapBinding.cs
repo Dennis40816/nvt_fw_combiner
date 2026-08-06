@@ -1,7 +1,4 @@
-using NvtFwCombiner.Domain;
-using NvtFwCombiner.Domain.Composition;
-
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Immutable trusted-family identity and canonical fact requirements.</summary>
 internal sealed class CompositionProfileMapBinding
@@ -23,7 +20,7 @@ internal sealed class CompositionProfileMapBinding
         IEnumerable<string>? optionalRegionIds = null)
     {
         FamilyId = CanonicalPolicyValueRules.RequireCanonicalId(familyId, nameof(familyId));
-        FamilyVersion = CompositionProfileValueRules.RequireSemanticVersion(
+        FamilyVersion = CanonicalProfileValueRules.RequireSemanticVersion(
             familyVersion,
             nameof(familyVersion));
         _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));

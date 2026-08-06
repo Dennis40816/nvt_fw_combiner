@@ -68,7 +68,7 @@ internal static partial class CompositionProfileNormalizer
         return Wrap("logicalOutputBinding", () =>
         {
             string familyId = CanonicalPolicyValueRules.RequireCanonicalId(document.FamilyId, "familyId");
-            string familyVersion = CompositionProfileValueRules.RequireSemanticVersion(
+            string familyVersion = CanonicalProfileValueRules.RequireSemanticVersion(
                 document.FamilyVersion,
                 "familyVersion");
             string familyContentHash = RequireFamilyContentHash(document.FamilyContentHash);

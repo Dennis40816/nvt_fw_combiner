@@ -7,6 +7,7 @@ public sealed partial class RepositoryBoundaryTests
     public void ProfileHeadersUseCanonicalDomainVocabulary()
     {
         string profiles = ReadProfileSources();
+        string domain = ReadDomainSources();
         string bootstrap = ReadBootstrapSources();
 
         Assert.DoesNotContain("class CompositionProfileCompilationContext", profiles, StringComparison.Ordinal);
@@ -14,14 +15,14 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("class LogicalOutputProfileCompilationContext", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("class RuntimeReferenceReplaceProfileCompilationContext", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("record CompositionProfileExperience", profiles, StringComparison.Ordinal);
-        Assert.Contains("internal sealed record CompositionProfileHeader(", profiles, StringComparison.Ordinal);
+        Assert.Contains("internal sealed record CompositionProfileHeader(", domain, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(profiles, "new CompositionProfileHeader("));
         Assert.Contains(
             "Array.AsReadOnly([.. compilationContext.LogicalOutputMemberIds])",
             profiles,
             StringComparison.Ordinal);
-        Assert.Contains("internal V2CompilationContextKind CompilationContextKind => Header.CompilationContextKind;", profiles, StringComparison.Ordinal);
-        Assert.Contains("internal string ExperienceId => Header.ExperienceId;", profiles, StringComparison.Ordinal);
+        Assert.Contains("internal V2CompilationContextKind CompilationContextKind => Header.CompilationContextKind;", domain, StringComparison.Ordinal);
+        Assert.Contains("internal string ExperienceId => Header.ExperienceId;", domain, StringComparison.Ordinal);
         Assert.DoesNotContain(".Experience.ExperienceId", bootstrap, StringComparison.Ordinal);
     }
 }

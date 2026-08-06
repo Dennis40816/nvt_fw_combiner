@@ -1,6 +1,4 @@
-using NvtFwCombiner.Domain.Composition;
-
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Closed profile address-space kind.</summary>
 internal enum CompositionProfileSpaceKind
