@@ -192,9 +192,9 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
         CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.SlotId, clone.SourceSlotId));
-        return slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage &&
+        return slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage &&
             slot.LengthRule is ExactResolvedMapCapacityLengthRule &&
-            slot.Normalization is NoInputNormalization
+            slot.Normalization is CompiledNoInputNormalization
             ? inputSpace.SpaceId
             : throw new InvalidOperationException(
                 "Validated Replace lowering requires its clone source to be one exact unnormalized reference-image input.");
@@ -208,11 +208,11 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
         InputArtifactProfileSpace? sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
             StringComparer.Ordinal.Equals(space.SpaceId, sourceSpaceId));
-        CompositionProfileArtifactClass? artifactClass = sourceSpace is null
+        CompiledInputArtifactClass? artifactClass = sourceSpace is null
             ? null
             : profile.InputSlots.Single(slot =>
                 StringComparer.Ordinal.Equals(slot.SlotId, sourceSpace.SlotId)).ArtifactClass;
-        return artifactClass is CompositionProfileArtifactClass.DpFirmware or CompositionProfileArtifactClass.Auxiliary;
+        return artifactClass is CompiledInputArtifactClass.DpFirmware or CompiledInputArtifactClass.Auxiliary;
     }
 
     private static bool TryAuthorizeDpReplacePayloadTarget(
@@ -225,18 +225,18 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
         InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SpaceId, sourceSpaceId));
-        CompositionProfileArtifactClass artifactClass = profile.InputSlots.Single(slot =>
+        CompiledInputArtifactClass artifactClass = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, sourceSpace.SlotId)).ArtifactClass;
         FirmwareRegionOwner? targetOwner = target.GoverningRegionChain.Count == 0
             ? null
             : target.GoverningRegionChain[^1].Owner;
         bool isAuthorized = artifactClass switch
         {
-            CompositionProfileArtifactClass.DpFirmware => targetOwner == FirmwareRegionOwner.Dp,
-            CompositionProfileArtifactClass.Auxiliary => targetOwner == FirmwareRegionOwner.Ldc,
-            CompositionProfileArtifactClass.TpFirmware or
-            CompositionProfileArtifactClass.ReferenceImage or
-            CompositionProfileArtifactClass.CtrlRamReplacement => false,
+            CompiledInputArtifactClass.DpFirmware => targetOwner == FirmwareRegionOwner.Dp,
+            CompiledInputArtifactClass.Auxiliary => targetOwner == FirmwareRegionOwner.Ldc,
+            CompiledInputArtifactClass.TpFirmware or
+            CompiledInputArtifactClass.ReferenceImage or
+            CompiledInputArtifactClass.CtrlRamReplacement => false,
             _ => throw new InvalidOperationException(
                 $"Validated DP Replace lowering encountered unknown input artifact class '{artifactClass}'."),
         };

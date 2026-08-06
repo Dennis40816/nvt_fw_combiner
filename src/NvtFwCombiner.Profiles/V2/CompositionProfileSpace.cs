@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Profiles.V2;
 
 /// <summary>Closed profile address-space kind.</summary>
@@ -6,13 +8,6 @@ internal enum CompositionProfileSpaceKind
     InputArtifact,
     WorkBuffer,
     OutputImage,
-}
-
-/// <summary>Closed input-space instance policy.</summary>
-internal enum CompositionProfileInstancePolicy
-{
-    Singleton,
-    PerBinding,
 }
 
 /// <summary>Base value for one normalized mutable-space capacity.</summary>
@@ -88,7 +83,7 @@ internal sealed record InputArtifactProfileSpace : CompositionProfileSpace
     internal InputArtifactProfileSpace(
         string spaceId,
         string slotId,
-        CompositionProfileInstancePolicy instancePolicy)
+        CompiledInputInstancePolicy instancePolicy)
         : base(spaceId, CompositionProfileSpaceKind.InputArtifact)
     {
         SlotId = CompositionProfileValueRules.RequireId(slotId, nameof(slotId));
@@ -105,7 +100,7 @@ internal sealed record InputArtifactProfileSpace : CompositionProfileSpace
 
     internal string SlotId { get; }
 
-    internal CompositionProfileInstancePolicy InstancePolicy { get; }
+    internal CompiledInputInstancePolicy InstancePolicy { get; }
 }
 
 /// <summary>One engine-owned work buffer or final output image.</summary>

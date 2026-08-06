@@ -3,16 +3,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed artifact classes accepted by composition profile slots.</summary>
-internal enum CompositionProfileArtifactClass
-{
-    TpFirmware,
-    DpFirmware,
-    ReferenceImage,
-    CtrlRamReplacement,
-    Auxiliary,
-}
-
 /// <summary>Base value for one normalized input length rule.</summary>
 internal abstract record CompositionProfileLengthRule;
 
@@ -172,43 +162,6 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
     }
 }
 
-/// <summary>Base value for one normalized transient input policy.</summary>
-internal abstract record CompositionProfileInputNormalization;
-
-/// <summary>Preserves immutable input bytes without transient normalization.</summary>
-internal sealed record NoInputNormalization()
-    : CompositionProfileInputNormalization;
-
-/// <summary>Pads a shorter transient DP replacement buffer with an evidenced byte.</summary>
-internal sealed record PadShorterInputNormalization : CompositionProfileInputNormalization
-{
-    internal PadShorterInputNormalization(byte fillByte, string evidenceRef)
-    {
-        EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
-        FillByte = fillByte;
-    }
-
-    internal byte FillByte { get; }
-
-    internal string EvidenceRef { get; }
-}
-
-/// <summary>Truncates only a transient CtrlRAM replacement buffer and emits a warning.</summary>
-internal sealed record TruncateCtrlRamInputNormalization : CompositionProfileInputNormalization
-{
-    internal TruncateCtrlRamInputNormalization(string warningIssueCode, string evidenceRef)
-    {
-        WarningIssueCode = CompositionProfileValueRules.RequireIssueCode(
-            warningIssueCode,
-            nameof(warningIssueCode));
-        EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
-    }
-
-    internal string WarningIssueCode { get; }
-
-    internal string EvidenceRef { get; }
-}
-
 /// <summary>Immutable map-independent profile input slot and acceptance policy.</summary>
 internal sealed partial class CompositionProfileInputSlot
 {
@@ -217,12 +170,12 @@ internal sealed partial class CompositionProfileInputSlot
     internal CompositionProfileInputSlot(
         string slotId,
         string role,
-        CompositionProfileArtifactClass artifactClass,
+        CompiledInputArtifactClass artifactClass,
         bool required,
         CompiledInputSlotCardinality cardinality,
         IEnumerable<string> acceptedExtensions,
         CompositionProfileLengthRule lengthRule,
-        CompositionProfileInputNormalization normalization,
+        CompiledInputNormalization normalization,
         string? notApplicableReason = null)
     {
         SlotId = CompositionProfileValueRules.RequireId(slotId, nameof(slotId));
@@ -260,7 +213,7 @@ internal sealed partial class CompositionProfileInputSlot
 
     internal string Role { get; }
 
-    internal CompositionProfileArtifactClass ArtifactClass { get; }
+    internal CompiledInputArtifactClass ArtifactClass { get; }
 
     internal bool Required { get; }
 
@@ -270,63 +223,76 @@ internal sealed partial class CompositionProfileInputSlot
 
     internal CompositionProfileLengthRule LengthRule { get; }
 
-    internal CompositionProfileInputNormalization Normalization { get; }
+    internal CompiledInputNormalization Normalization { get; }
 
     internal string? NotApplicableReason { get; }
 
     private static void ValidateFirmwarePolicy(
-        CompositionProfileArtifactClass artifactClass,
+        CompiledInputArtifactClass artifactClass,
         CompositionProfileLengthRule lengthRule,
-        CompositionProfileInputNormalization normalization)
+        CompiledInputNormalization normalization)
     {
-        if (artifactClass == CompositionProfileArtifactClass.TpFirmware &&
+        if (normalization is CompiledPadShorterInputNormalization padded)
+        {
+            _ = CompositionProfileValueRules.RequireId(padded.EvidenceRef, nameof(padded.EvidenceRef));
+        }
+
+        if (normalization is CompiledTruncateCtrlRamInputNormalization truncated)
+        {
+            _ = CompositionProfileValueRules.RequireIssueCode(
+                truncated.WarningIssueCode,
+                nameof(truncated.WarningIssueCode));
+            _ = CompositionProfileValueRules.RequireId(truncated.EvidenceRef, nameof(truncated.EvidenceRef));
+        }
+
+        if (artifactClass == CompiledInputArtifactClass.TpFirmware &&
             (!IsApprovedTpLengthRule(lengthRule) ||
-             normalization is not NoInputNormalization))
+             normalization is not CompiledNoInputNormalization))
         {
             throw new ArgumentException(
                 "TP firmware requires one approved unnormalized section or exact length rule.");
         }
 
-        if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
+        if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRule is not (ExactResolvedMapCapacityLengthRule or SourceViewCoverageLengthRule))
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
 
-        if (artifactClass == CompositionProfileArtifactClass.ReferenceImage &&
+        if (artifactClass == CompiledInputArtifactClass.ReferenceImage &&
             (lengthRule is not ExactResolvedMapCapacityLengthRule ||
-             normalization is not NoInputNormalization))
+             normalization is not CompiledNoInputNormalization))
         {
             throw new ArgumentException("Reference images require exact map capacity without normalization.");
         }
 
-        if (normalization is PadShorterInputNormalization &&
-            artifactClass != CompositionProfileArtifactClass.DpFirmware)
+        if (normalization is CompiledPadShorterInputNormalization &&
+            artifactClass != CompiledInputArtifactClass.DpFirmware)
         {
             throw new ArgumentException("Short-input padding is restricted to DP firmware.");
         }
 
-        if (normalization is TruncateCtrlRamInputNormalization &&
-            artifactClass != CompositionProfileArtifactClass.CtrlRamReplacement)
+        if (normalization is CompiledTruncateCtrlRamInputNormalization &&
+            artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
         {
             throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
         }
 
         if (lengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null } &&
-            (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
-                CompositionProfileArtifactClass.CtrlRamReplacement ||
-             normalization is not NoInputNormalization))
+            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
+                CompiledInputArtifactClass.CtrlRamReplacement ||
+             normalization is not CompiledNoInputNormalization))
         {
             throw new ArgumentException(
                 "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
         }
 
         if (lengthRule is SourceViewCoverageLengthRule sourceView &&
-            (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
-                CompositionProfileArtifactClass.CtrlRamReplacement ||
-             normalization is not NoInputNormalization ||
+            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
+                CompiledInputArtifactClass.CtrlRamReplacement ||
+             normalization is not CompiledNoInputNormalization ||
              (sourceView.MaximumOuterLength is not null &&
-              artifactClass != CompositionProfileArtifactClass.TpFirmware)))
+              artifactClass != CompiledInputArtifactClass.TpFirmware)))
         {
             throw new ArgumentException(
                 "Source-view coverage is restricted to unnormalized immutable section sources.");

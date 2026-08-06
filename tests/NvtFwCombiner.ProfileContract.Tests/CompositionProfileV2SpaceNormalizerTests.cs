@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -16,8 +17,8 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
         InputArtifactProfileSpace perBinding = Assert.IsType<InputArtifactProfileSpace>(CompositionProfileNormalizer.NormalizeSpace(
             InputSpace("per-binding")));
 
-        Assert.Equal(CompositionProfileInstancePolicy.Singleton, singleton.InstancePolicy);
-        Assert.Equal(CompositionProfileInstancePolicy.PerBinding, perBinding.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.Singleton, singleton.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.PerBinding, perBinding.InstancePolicy);
         Assert.Equal("tp-input", singleton.SlotId);
     }
 

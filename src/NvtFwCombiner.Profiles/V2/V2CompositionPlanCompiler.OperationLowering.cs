@@ -468,7 +468,7 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(space.SpaceId, addressSpaceId));
         return input is not null &&
             profile.InputSlots.Single(slot => StringComparer.Ordinal.Equals(slot.SlotId, input.SlotId)).Normalization
-                is TruncateCtrlRamInputNormalization;
+                is CompiledTruncateCtrlRamInputNormalization;
     }
 
     private static bool IsTpCtrlRamTarget(ResolvedView target)

@@ -14,19 +14,19 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         var unknown = new InputArtifactProfileSpace(
             "source",
             "unknown-slot",
-            CompositionProfileInstancePolicy.Singleton);
+            CompiledInputInstancePolicy.Singleton);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Spaces = [unknown, parts.Spaces[1]] }));
 
         var orphan = new CompositionProfileInputSlot(
             "orphan-input",
             "auxiliary",
-            CompositionProfileArtifactClass.Auxiliary,
+            CompiledInputArtifactClass.Auxiliary,
             required: false,
             CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
             new ExactBytesLengthRule(16),
-            new NoInputNormalization());
+            new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { InputSlots = [parts.InputSlots[0], orphan] }));
     }

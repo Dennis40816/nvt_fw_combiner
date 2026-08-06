@@ -32,7 +32,7 @@ public sealed class CompositionProfileV2SpaceTests
         var input = new InputArtifactProfileSpace(
             "source",
             "source-input",
-            CompositionProfileInstancePolicy.PerBinding);
+            CompiledInputInstancePolicy.PerBinding);
         var work = new MutableCompositionProfileSpace(
             "work",
             CompositionProfileSpaceKind.WorkBuffer,
@@ -45,7 +45,7 @@ public sealed class CompositionProfileV2SpaceTests
             new CloneProfileInitializer("reference-input"));
 
         Assert.Equal(CompositionProfileSpaceKind.InputArtifact, input.Kind);
-        Assert.Equal(CompositionProfileInstancePolicy.PerBinding, input.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.PerBinding, input.InstancePolicy);
         Assert.Equal(CompositionProfileSpaceKind.WorkBuffer, work.Kind);
         _ = Assert.IsType<BlankProfileInitializer>(work.Initializer);
         Assert.Equal(CompositionProfileSpaceKind.OutputImage, output.Kind);
@@ -165,7 +165,7 @@ public sealed class CompositionProfileV2SpaceTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new InputArtifactProfileSpace(
             "source",
             "source-input",
-            (CompositionProfileInstancePolicy)99));
+            (CompiledInputInstancePolicy)99));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new MutableCompositionProfileSpace(
             "output",
             (CompositionProfileSpaceKind)99,

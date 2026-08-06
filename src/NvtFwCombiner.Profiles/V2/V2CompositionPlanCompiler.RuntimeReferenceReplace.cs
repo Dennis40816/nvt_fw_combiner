@@ -52,7 +52,7 @@ internal static partial class V2CompositionPlanCompiler
 
         bool truncateCtrlRamSources =
             StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) &&
-            shape.SourceSlot.Normalization is TruncateCtrlRamInputNormalization;
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
             static binding => binding.BindingId,
             binding => new AddressSpace(
@@ -368,9 +368,9 @@ internal static partial class V2CompositionPlanCompiler
         bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
             profile.Experience.ExperienceId,
             ExperienceIds.CtrlRamReplace);
-        CompositionProfileArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompositionProfileArtifactClass.CtrlRamReplacement
-            : CompositionProfileArtifactClass.Auxiliary;
+        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
+            ? CompiledInputArtifactClass.CtrlRamReplacement
+            : CompiledInputArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
         CloneProfileInitializer clone = output.Capacity is RuntimeRequestProfileCapacity &&
             output.Initializer is CloneProfileInitializer initializer
@@ -385,15 +385,15 @@ internal static partial class V2CompositionPlanCompiler
         InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, source.SlotId));
         bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? source.Normalization is TruncateCtrlRamInputNormalization
-            : source.Normalization is NoInputNormalization;
+            ? source.Normalization is CompiledTruncateCtrlRamInputNormalization
+            : source.Normalization is CompiledNoInputNormalization;
         return reference is not
         {
             Required: true,
-            ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
+            ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
             Cardinality: CompiledInputSlotCardinality.ExactlyOne,
             LengthRule: ExactResolvedMapCapacityLengthRule,
-            Normalization: NoInputNormalization,
+            Normalization: CompiledNoInputNormalization,
         } ||
             source is not
             {
@@ -403,8 +403,8 @@ internal static partial class V2CompositionPlanCompiler
             } ||
             source.ArtifactClass != expectedSourceClass ||
             !sourceNormalizationIsValid ||
-            referenceSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
-            sourceSpace.InstancePolicy != CompositionProfileInstancePolicy.PerBinding
+            referenceSpace.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
+            sourceSpace.InstancePolicy != CompiledInputInstancePolicy.PerBinding
             ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")
             : new RuntimeReferenceReplaceProfileShape(
                 reference,
