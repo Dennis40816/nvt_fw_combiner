@@ -388,6 +388,28 @@ class CodeSizePolicyTests(unittest.TestCase):
             ),
         )
 
+    def test_complete_slice_ratchets_reject_unallocated_runtime_source(self) -> None:
+        self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
+        self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
+        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
+        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "infrastructure\n")
+        self.write("src/Unallocated/Hidden.cs", "unallocated\n")
+
+        self.assertEqual(
+            ["code-size runtime slice allocation mismatch: 4 != total 5"],
+            validate_code_size_policy(
+                self.root,
+                self.limits(
+                    production=5,
+                    runtime_ratchet=5,
+                    domain_profiles_ratchet=1,
+                    application_ratchet=1,
+                    bootstrap_cli_ratchet=1,
+                    infrastructure_contracts_worker_ratchet=1,
+                ),
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

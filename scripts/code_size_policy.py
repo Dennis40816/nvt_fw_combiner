@@ -489,6 +489,14 @@ def validate_code_size_policy(
             limits.infrastructure_contracts_worker_target,
         ),
     )
+    slices = metrics[1:]
+    if all(ratchet is not None for _, _, ratchet, _ in slices):
+        allocated = sum(actual for _, actual, _, _ in slices)
+        if allocated != snapshot.runtime_production_nonblank:
+            errors.append(
+                "code-size runtime slice allocation mismatch: "
+                f"{allocated} != total {snapshot.runtime_production_nonblank}"
+            )
     for label, actual, ratchet, _ in metrics:
         if ratchet is not None and actual > ratchet:
             errors.append(f"code-size {label} grew: {actual} > ratchet {ratchet}")

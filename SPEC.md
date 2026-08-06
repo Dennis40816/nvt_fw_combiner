@@ -1944,6 +1944,8 @@ after the grill closes so issues do not become a competing draft specification.
     The canonical verifier freezes exact descending ratchets at total 74,325
     and the four measured slice values above. A Core PR must lower every
     affected ratchet in the same commit, so cross-slice relocation cannot pass.
+    The four slices must sum exactly to runtime total; an unallocated runtime
+    source root fails rather than creating a fifth ownership bucket.
     Final-cap enforcement remains explicitly inactive while convergence is
     incomplete; #197 activates it in the same verifier and then fails either a
     total above 44,000 or any slice above its approved cap.

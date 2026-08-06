@@ -250,7 +250,9 @@ The same amendment freezes exact descending ratchets at the five measured
 values above: total 74,325, Domain + Profiles 24,953, Application 23,671,
 Bootstrap + CLI 18,670, and Infrastructure + Contracts + CRC worker 7,031.
 Every Core PR must lower each affected ratchet in the same commit; therefore an
-equivalent cross-slice relocation fails on the receiving slice. Final-target
+equivalent cross-slice relocation fails on the receiving slice. The four slice
+measurements must also sum exactly to the runtime total, so a new unallocated
+runtime project fails rather than becoming a fifth ownership bucket. Final-target
 enforcement remains explicitly inactive during convergence because the current
 tree is above every final cap. Ticket #197 is the only planned activation point:
 it enables final-target enforcement in the same canonical verifier, which then
