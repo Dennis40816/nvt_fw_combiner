@@ -191,34 +191,13 @@ internal sealed record PatchScalarProfileOperation : CompositionProfileOperation
     internal CompositionProfileByteValue Value { get; }
 }
 
-/// <summary>Closed source of one scalar-transform addend before map lowering.</summary>
-internal enum TransformAddendSourceKind
-{
-    Fixed,
-    RegionInstanceDelta,
-}
-
 /// <summary>Base value for one normalized scalar-transform addend source.</summary>
-internal abstract record TransformAddendSource
-{
-    protected TransformAddendSource(TransformAddendSourceKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown transform addend source kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal TransformAddendSourceKind Kind { get; }
-}
+internal abstract record TransformAddendSource;
 
 /// <summary>One legacy profile-owned fixed numeric addend.</summary>
 internal sealed record FixedTransformAddendSource : TransformAddendSource
 {
     internal FixedTransformAddendSource(BigInteger value)
-        : base(TransformAddendSourceKind.Fixed)
     {
         Value = value;
     }
@@ -232,7 +211,6 @@ internal sealed record RegionInstanceDeltaTransformAddendSource : TransformAdden
     internal RegionInstanceDeltaTransformAddendSource(
         string sourceRegionInstanceId,
         string targetRegionInstanceId)
-        : base(TransformAddendSourceKind.RegionInstanceDelta)
     {
         SourceRegionInstanceId = CompositionProfileValueRules.RequireId(
             sourceRegionInstanceId,

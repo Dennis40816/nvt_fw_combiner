@@ -102,6 +102,10 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionProfileScalarByteOrder",
             ReadProfileSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TransformAddendSourceKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
