@@ -12,13 +12,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         string familyJson = RuntimeNormalOutputFamilyJson();
         V2CompositionPlanCompileResult flashCode =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeNormalOutputProfileJson(
                     familyHash,
                     tpFirmware: false),
                 familyJson));
         V2CompositionPlanCompileResult tpFirmware =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeNormalOutputProfileJson(
                     familyHash,
                     tpFirmware: true),
@@ -61,7 +61,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankCopyLoweringRejectsNormalTemplateWithoutTypedRule()
     {
         V2CompositionPlanCompileResult result =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeLegacyNormalOutputProfileJson(
                     familyHash)));
 

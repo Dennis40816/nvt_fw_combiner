@@ -11,7 +11,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringUsesWorkBufferAsEngineOwnedIntermediate()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBufferCopyFlow(SupportedProfileJson(familyHash))));
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
@@ -30,7 +30,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsMapRelativeWorkBufferView()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithMapRelativeWorkBufferView(SupportedProfileJson(familyHash))));
 
         Assert.Null(result.CompiledComposition);
@@ -42,7 +42,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void TemplateRangeSelectorsPreserveNativeCoordinatesAcrossInputAndWorkBuffer()
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTemplateRangeCopyFlow(SupportedProfileJson(familyHash)),
             familyJson,
             capacityBytes: 32));
@@ -65,7 +65,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string value)
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithInvalidTemplateReference(
                 SupportedProfileJson(familyHash),
                 propertyName,
@@ -84,7 +84,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void TemplateRangeSelectorRejectsOutputImageView()
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTemplateRangeOutput(SupportedProfileJson(familyHash)),
             familyJson,
             capacityBytes: 32));
@@ -100,7 +100,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void TemplateRangeSelectorRejectsTargetUse()
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTemplateRangeTarget(SupportedProfileJson(familyHash)),
             familyJson,
             capacityBytes: 32));

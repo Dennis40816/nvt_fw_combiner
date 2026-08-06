@@ -12,7 +12,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBuildsFillAndPatchOperations()
     {
-        V2CompositionPlanCompileResult fillResult = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult fillResult = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["operationId"] = "fill-output";
@@ -20,7 +20,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 _ = operation.Remove("sourceViewId");
                 operation["fillByte"] = 90;
             })));
-        V2CompositionPlanCompileResult patchResult = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult patchResult = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["operationId"] = "patch-output";
@@ -51,7 +51,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         int addend,
         int? expectedBefore)
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(
                 SupportedProfileJson(familyHash, access: "explicit-range"),
                 widthBytes,
@@ -81,14 +81,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsPatchAndScalarWidthMismatches()
     {
-        V2CompositionPlanCompileResult patch = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult patch = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["kind"] = "patch-scalar";
                 _ = operation.Remove("sourceViewId");
                 operation["valueHex"] = "aa";
             })));
-        V2CompositionPlanCompileResult transform = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transform = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "explicit-range"), widthBytes: 2),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
 
@@ -102,7 +102,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsUnrepresentableScalarTransform()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(
                 SupportedProfileJson(familyHash, access: "explicit-range"),
                 widthBytes: 1,
@@ -117,7 +117,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsNewTargetOperationsWithoutWriteAccess()
     {
-        V2CompositionPlanCompileResult fill = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult fill = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash, access: "read-only"), operation =>
             {
                 operation["kind"] = "fill-range";
@@ -125,7 +125,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 operation["fillByte"] = 90;
             }),
             FamilyJsonWithRootWriteConstraint("whole-region")));
-        V2CompositionPlanCompileResult patch = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult patch = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash, access: "read-only"), operation =>
             {
                 operation["kind"] = "patch-scalar";
@@ -133,7 +133,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 operation["valueHex"] = "00112233445566778899aabbccddeeff";
             }),
             FamilyJsonWithRootWriteConstraint("whole-region")));
-        V2CompositionPlanCompileResult transform = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transform = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "read-only"), widthBytes: 1),
             FamilyJsonWithRootWriteConstraint("whole-region")));
 
@@ -146,7 +146,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsOverlappingRejectWritesWithoutAnArtifact()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOverlappingOperations(SupportedProfileJson(familyHash))));
 
         Assert.Null(result.CompiledComposition);
@@ -160,7 +160,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringAcceptsFullyCoveredReplaceExistingCopy()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithFullyCoveredReplaceExistingCopy(SupportedProfileJson(familyHash))));
 
         CompositionOperation[] operations = [.. result.CompiledComposition!.Plan.OrderedOperations];
@@ -185,7 +185,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "reversed" => ProfileWithReversedReplaceExistingCopy(SupportedProfileJson(Hash(familyJson))),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown overlap scenario."),
         };
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             _ => profileJson,
             familyJson));
 
@@ -197,7 +197,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringAcceptsAdjacentWritesInDeterministicOrder()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithAdjacentOperations(SupportedProfileJson(familyHash, access: "explicit-range")),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
 
@@ -212,44 +212,44 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringFingerprintsNewOperationSemantics()
     {
-        V2CompositionPlanCompileResult fill90 = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult fill90 = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["kind"] = "fill-range";
                 _ = operation.Remove("sourceViewId");
                 operation["fillByte"] = 90;
             })));
-        V2CompositionPlanCompileResult fill91 = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult fill91 = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["kind"] = "fill-range";
                 _ = operation.Remove("sourceViewId");
                 operation["fillByte"] = 91;
             })));
-        V2CompositionPlanCompileResult patchA = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult patchA = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["kind"] = "patch-scalar";
                 _ = operation.Remove("sourceViewId");
                 operation["valueHex"] = "00112233445566778899aabbccddeeff";
             })));
-        V2CompositionPlanCompileResult patchB = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult patchB = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithOperation(SupportedProfileJson(familyHash), operation =>
             {
                 operation["kind"] = "patch-scalar";
                 _ = operation.Remove("sourceViewId");
                 operation["valueHex"] = "00112233445566778899aabbccddeefe";
             })));
-        V2CompositionPlanCompileResult transformLittle = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transformLittle = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "explicit-range"), 1),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
-        V2CompositionPlanCompileResult transformBig = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transformBig = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "explicit-range"), 1, byteOrder: "big"),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
-        V2CompositionPlanCompileResult transformAddend = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transformAddend = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "explicit-range"), 1, addend: -1),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
-        V2CompositionPlanCompileResult transformExpected = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult transformExpected = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTransformScalar(SupportedProfileJson(familyHash, access: "explicit-range"), 1, expectedBefore: 3),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
 
@@ -272,11 +272,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringIncludesWorkBufferInitializers()
     {
-        V2CompositionPlanCompileResult blank = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult blank = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash))));
-        V2CompositionPlanCompileResult fixedCapacity = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult fixedCapacity = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash), fixedCapacityBytes: 8)));
-        V2CompositionPlanCompileResult clone = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult clone = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(SupportedProfileJson(familyHash), cloneSourceSlotId: "tp-input")));
 
         Assert.Equal(
@@ -304,7 +304,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringClonesEqualLengthDeclaredPrefixIntoWorkBuffer()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(
                 ProfileWithDeclaredPrefix(
                     SupportedProfileJson(familyHash),
@@ -332,7 +332,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsWorkBufferCloneFromExtractedInput()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(
                 ProfileWithTpMaximumInput(SupportedProfileJson(familyHash), new ByteRange(0, 16)),
                 cloneSourceSlotId: "tp-input")));

@@ -12,7 +12,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankOutputLoweringResolvesRegionInstanceDeltaAddend()
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithRegionInstanceDeltaTransform(SupportedProfileJson(familyHash)),
             familyJson,
             capacityBytes: 32));
@@ -34,7 +34,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankOutputLoweringRejectsUnknownRegionInstanceDeltaEndpoint(string propertyName)
     {
         string familyJson = FamilyWithTwoBankInstances();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithInvalidRegionInstanceDelta(
                 SupportedProfileJson(familyHash),
                 propertyName,
@@ -53,7 +53,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankOutputLoweringRejectsDeltaAcrossDifferentCanonicalTemplates()
     {
         string familyJson = FamilyWithSplitBankTemplateAuthority();
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithRegionInstanceDeltaTransform(SupportedProfileJson(familyHash)),
             familyJson,
             capacityBytes: 32));
