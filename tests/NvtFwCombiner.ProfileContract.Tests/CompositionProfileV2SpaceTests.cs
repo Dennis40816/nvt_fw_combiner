@@ -61,18 +61,19 @@ public sealed class CompositionProfileV2SpaceTests
     [Fact]
     public void ViewSelectorsRetainCheckedRangeBasis()
     {
-        var region = new MapRegionViewSelector("dp-code");
+        CompositionProfileViewSelector region = new MapRegionViewSelector("dp-code");
         var slice = new MapRegionSliceViewSelector("dp-code", new ByteRange(4, 8));
         var range = new SpaceRangeViewSelector(new ByteRange(12, 4));
-        var templateRange = new RegionTemplateRangeViewSelector("b-bank", "tp-code");
+        CompositionProfileViewSelector templateRange = new RegionTemplateRangeViewSelector("b-bank", "tp-code");
         var view = new CompositionProfileView("source-view", "source", slice);
 
-        Assert.Equal(CompositionProfileViewSelectorKind.MapRegion, region.Kind);
+        Assert.Equal("dp-code", Assert.IsType<MapRegionViewSelector>(region).RegionId);
         Assert.Equal(new ByteRange(4, 8), slice.RelativeRange);
         Assert.Equal(new ByteRange(12, 4), range.Range);
-        Assert.Equal(CompositionProfileViewSelectorKind.RegionTemplateRange, templateRange.Kind);
-        Assert.Equal("b-bank", templateRange.RegionInstanceId);
-        Assert.Equal("tp-code", templateRange.TemplateRegionId);
+        RegionTemplateRangeViewSelector typedTemplateRange =
+            Assert.IsType<RegionTemplateRangeViewSelector>(templateRange);
+        Assert.Equal("b-bank", typedTemplateRange.RegionInstanceId);
+        Assert.Equal("tp-code", typedTemplateRange.TemplateRegionId);
         Assert.Equal("source", view.SpaceId);
         Assert.Same(slice, view.Selector);
         _ = Assert.Throws<ArgumentException>(() => new MapRegionViewSelector("DP-Code"));
