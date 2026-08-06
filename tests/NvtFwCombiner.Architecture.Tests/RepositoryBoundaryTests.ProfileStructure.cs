@@ -8,7 +8,7 @@ public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Workflow labels may remain wire tokens, but cannot survive as normalized or compiled semantic types.</summary>
     [Fact]
-    public void NormalDpLengthPolicyUsesTheGenericSourceViewContract()
+    public void WorkflowNamedLengthPoliciesUseTheGenericSourceViewContract()
     {
         Assert.DoesNotContain(
             "NormalDpExtractWithWarningLengthRule",
@@ -20,6 +20,10 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.DoesNotContain(
             "TpMaximum256KLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "DeclaredPrefixWithWarningLengthRule",
             ReadProfileSources(),
             StringComparison.Ordinal);
     }

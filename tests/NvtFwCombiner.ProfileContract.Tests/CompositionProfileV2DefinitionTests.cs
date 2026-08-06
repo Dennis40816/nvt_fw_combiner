@@ -166,11 +166,11 @@ public sealed class CompositionProfileV2DefinitionTests
             required: true,
             CompositionProfileSlotCardinality.ExactlyOne,
             [".bin"],
-            new DeclaredPrefixWithWarningLengthRule(
-                16,
+            new SourceViewCoverageLengthRule(
                 [16],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: 16,
+                shortInputIssueCode: "INPUT_SHORT"),
             new NoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [declaredPrefix, replace.InputSlots[1]] }));

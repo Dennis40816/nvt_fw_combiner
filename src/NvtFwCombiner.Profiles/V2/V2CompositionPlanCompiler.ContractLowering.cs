@@ -165,6 +165,16 @@ internal static partial class V2CompositionPlanCompiler
             BoundedLengthRule bounded => new CompiledBoundedInputLengthRequirement(
                 bounded.MinimumBytes,
                 bounded.MaximumBytes),
+            SourceViewCoverageLengthRule
+            {
+                RequiredEndExclusive: { } requiredEndExclusive,
+                ShortInputIssueCode: { } shortInputIssueCode,
+                UnexpectedOuterLengthIssueCode: { } unexpectedOuterLengthIssueCode,
+            } sourceView => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                requiredEndExclusive,
+                sourceView.ExpectedOuterLengths,
+                shortInputIssueCode,
+                unexpectedOuterLengthIssueCode),
             SourceViewCoverageLengthRule { MaximumOuterLength: null } sourceView =>
                 new CompiledSourceViewCoverageInputLengthRequirement(
                     ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
@@ -173,12 +183,6 @@ internal static partial class V2CompositionPlanCompiler
             {
                 MaximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
             } => new CompiledTpMaximum256KInputLengthRequirement(),
-            DeclaredPrefixWithWarningLengthRule declaredPrefix =>
-                new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                    declaredPrefix.RequiredEndExclusive,
-                    declaredPrefix.ExpectedOuterLengths,
-                    declaredPrefix.ShortInputIssueCode,
-                    declaredPrefix.UnexpectedOuterLengthIssueCode),
             _ => throw new ArgumentOutOfRangeException(nameof(lengthRule), "Unknown profile input length rule."),
         };
     }

@@ -101,21 +101,21 @@ internal static partial class CompositionProfileNormalizer
                 $"{path}.kind",
                 "Source-view coverage requires composition-profile schema version '2.13' or later."),
             "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => Wrap(path, () =>
-                new DeclaredPrefixWithWarningLengthRule(
-                    ReadInt64(
+                new SourceViewCoverageLengthRule(
+                    requiredEndExclusive: ReadInt64(
                         Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
                         1,
                         int.MaxValue,
                         $"{path}.requiredEndExclusive"),
-                    NormalizeExpectedInputLengths(
+                    expectedOuterLengths: NormalizeExpectedInputLengths(
                         document.ExpectedOuterLengths,
                         $"{path}.expectedOuterLengths") ?? throw Error(
                             $"{path}.expectedOuterLengths",
                             "Expected outer lengths are missing."),
-                    document.ShortInputIssueCode ?? throw Error(
+                    shortInputIssueCode: document.ShortInputIssueCode ?? throw Error(
                         $"{path}.shortInputIssueCode",
                         "Short-input issue code is missing."),
-                    document.UnexpectedOuterLengthIssueCode ?? throw Error(
+                    unexpectedOuterLengthIssueCode: document.UnexpectedOuterLengthIssueCode ?? throw Error(
                         $"{path}.unexpectedOuterLengthIssueCode",
                         "Unexpected outer-length issue code is missing."))),
             "declared-prefix-with-warning" => throw Error(
