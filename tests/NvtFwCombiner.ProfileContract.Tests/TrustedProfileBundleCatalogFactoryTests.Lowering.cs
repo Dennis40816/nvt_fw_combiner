@@ -378,11 +378,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string familyHash = Hash(familyJson);
         string profileJson = (profileJsonFactory ?? (hash => SupportedProfileJson(hash)))(familyHash);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection, capacityBytes));
+            selection,
+            Inputs(capacityBytes));
         Assert.True(
             preparation.IsAdmitted,
             string.Join(

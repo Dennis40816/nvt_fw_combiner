@@ -64,7 +64,8 @@ internal static partial class V2CompositionPlanCompiler
 
     private static V2CompositionPlanCompileResult Succeed(
         CompositionProfileDefinition profile,
-        TrustedProfileBundleCatalog.ProfileSelection selection,
+        ProfileBundleIdentity bundleIdentity,
+        ProfileBundleEntryIdentity profileEntryIdentity,
         V2CompilationContext context,
         CompositionPlan plan,
         IEnumerable<CompiledInputSlotRequirement> inputSlots,
@@ -77,8 +78,8 @@ internal static partial class V2CompositionPlanCompiler
         IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)
     {
         var provenance = new V2CompilationProvenance(
-            selection.BundleIdentity,
-            selection.ProfileEntryIdentity,
+            bundleIdentity,
+            profileEntryIdentity,
             context,
             profile.Promotion,
             profile.EvidenceRefs,

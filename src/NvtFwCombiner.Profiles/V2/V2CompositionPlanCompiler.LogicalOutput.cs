@@ -13,12 +13,12 @@ internal static partial class V2CompositionPlanCompiler
 
     /// <summary>Lowers one admitted logical-output General Merge request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileLogicalOutput(
-        TrustedProfileBundleCatalog.ProfileSelection selection,
+        ProfileBundleIdentity bundleIdentity,
         TrustedCompositionProfileCatalogEntry profileEntry,
         string memberId,
         V2LogicalOutputCompileRequest request)
     {
-        ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
@@ -85,7 +85,8 @@ internal static partial class V2CompositionPlanCompiler
         CompositionInputSlotDefinition inputSlot = AssertLogicalInputSlot(profile);
         return Succeed(
             profile,
-            selection,
+            bundleIdentity,
+            profileEntry.EntryIdentity,
             new LogicalOutputV2CompilationContext(
                 profile.LogicalOutputBinding.FamilyId,
                 profile.LogicalOutputBinding.FamilyVersion,

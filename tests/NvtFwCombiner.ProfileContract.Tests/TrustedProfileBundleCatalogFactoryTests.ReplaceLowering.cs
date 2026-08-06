@@ -418,11 +418,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         configureProfile?.Invoke(profile);
         string profileJson = profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
         V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
             catalog,
-            Request(selection, modeId: modeId));
+            selection,
+            Inputs(modeId: modeId));
         Assert.Empty(preparation.Issues);
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.True(preparation.IsAdmitted);

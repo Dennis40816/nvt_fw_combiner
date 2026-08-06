@@ -23,7 +23,7 @@ internal static partial class V2CompositionPlanCompiler
     {
         ArgumentNullException.ThrowIfNull(preparation);
         ArgumentNullException.ThrowIfNull(request);
-        if (!preparation.IsAdmitted || preparation.Selection is null ||
+        if (!preparation.IsAdmitted || preparation.BundleIdentity is null ||
             preparation.ProfileEntry is null ||
             preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
         {
@@ -200,7 +200,8 @@ internal static partial class V2CompositionPlanCompiler
             ];
         return Succeed(
             profile,
-            preparation.Selection,
+            preparation.BundleIdentity,
+            preparation.ProfileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
