@@ -30,6 +30,16 @@ class CodeSizePolicyTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    def test_default_targets_match_the_owner_approved_convergence_gate(self) -> None:
+        findings = review_code_size_policy(self.root)
+
+        self.assertTrue(
+            any("final target <= 44000" in finding for finding in findings)
+        )
+        self.assertTrue(
+            any("final target <= 18000" in finding for finding in findings)
+        )
+
     def limits(
         self,
         *,

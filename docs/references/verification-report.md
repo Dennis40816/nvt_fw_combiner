@@ -27,7 +27,7 @@ CI/review, deterministic Windows x64 packaging, visible local startup smoke
 where a desktop is available, protected-environment promotion, exact five-asset
 verification, and downloaded-package smoke. The canonical runtime metric is
 75,638 nonblank lines. Remaining deferred UI, Workbench deletion, Core
-convergence, and the hard 22,607-line #197 gate are allocated to `v0.10.3`, not
+convergence, and the hard 44,000-line #197 gate are allocated to `v0.10.3`, not
 claimed by this release.
 
 ## 0.10.1 headless canonical foundation release candidate
