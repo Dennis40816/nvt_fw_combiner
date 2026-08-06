@@ -78,6 +78,22 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionProfileOutputTokenMissingPolicy",
             ReadProfileSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationSeverity",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileMetadataComparison",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileRejectedBytePattern",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>

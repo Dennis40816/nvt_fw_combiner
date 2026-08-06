@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -10,10 +11,10 @@ internal static partial class CompositionProfileNormalizer
         string path = "validations[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
-        CompositionProfileValidationStage stage = NormalizeValidationStage(
+        CompiledValidationStage stage = NormalizeValidationStage(
             document.Stage,
             $"{path}.stage");
-        CompositionProfileValidationSeverity severity = NormalizeValidationSeverity(
+        CompiledValidationSeverity severity = NormalizeValidationSeverity(
             document.Severity,
             $"{path}.severity");
 
@@ -47,8 +48,8 @@ internal static partial class CompositionProfileNormalizer
 
     private static MetadataValueProfileValidation NormalizeMetadataValue(
         CompositionProfileValidationDocument document,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string path)
     {
         IReadOnlyList<JsonElement> valueDocuments = RequireList(
@@ -76,14 +77,14 @@ internal static partial class CompositionProfileNormalizer
 
     private static RejectMetadataBytePatternProfileValidation NormalizeRejectedPatterns(
         CompositionProfileValidationDocument document,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string path)
     {
         IReadOnlyList<string> patternDocuments = RequireList(
             document.RejectedPatterns,
             $"{path}.rejectedPatterns");
-        var patterns = new CompositionProfileRejectedBytePattern[patternDocuments.Count];
+        var patterns = new CompiledValidationRejectedBytePattern[patternDocuments.Count];
         for (int index = 0; index < patternDocuments.Count; index++)
         {
             patterns[index] = NormalizeRejectedPattern(
@@ -102,8 +103,8 @@ internal static partial class CompositionProfileNormalizer
 
     private static ViewByteAssertionProfileValidation NormalizeViewAssertion(
         CompositionProfileValidationDocument document,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string path)
     {
         CompositionProfileByteValue expected = ReadBytes(
@@ -141,47 +142,47 @@ internal static partial class CompositionProfileNormalizer
                 : throw Error(path, "Metadata scalar must be an integer or non-empty string.");
     }
 
-    private static CompositionProfileValidationStage NormalizeValidationStage(string value, string path)
+    private static CompiledValidationStage NormalizeValidationStage(string value, string path)
     {
         return value switch
         {
-            "profile-compile" => CompositionProfileValidationStage.ProfileCompile,
-            "input-load" => CompositionProfileValidationStage.InputLoad,
-            "pre-operation" => CompositionProfileValidationStage.PreOperation,
-            "post-operation" => CompositionProfileValidationStage.PostOperation,
-            "final-output" => CompositionProfileValidationStage.FinalOutput,
+            "profile-compile" => CompiledValidationStage.ProfileCompile,
+            "input-load" => CompiledValidationStage.InputLoad,
+            "pre-operation" => CompiledValidationStage.PreOperation,
+            "post-operation" => CompiledValidationStage.PostOperation,
+            "final-output" => CompiledValidationStage.FinalOutput,
             _ => throw Error(path, "Unknown validation stage."),
         };
     }
 
-    private static CompositionProfileValidationSeverity NormalizeValidationSeverity(string value, string path)
+    private static CompiledValidationSeverity NormalizeValidationSeverity(string value, string path)
     {
         return value switch
         {
-            "info" => CompositionProfileValidationSeverity.Info,
-            "warning" => CompositionProfileValidationSeverity.Warning,
-            "error" => CompositionProfileValidationSeverity.Error,
+            "info" => CompiledValidationSeverity.Info,
+            "warning" => CompiledValidationSeverity.Warning,
+            "error" => CompiledValidationSeverity.Error,
             _ => throw Error(path, "Unknown validation severity."),
         };
     }
 
-    private static CompositionProfileMetadataComparison NormalizeMetadataComparison(string value, string path)
+    private static CompiledValidationMetadataComparison NormalizeMetadataComparison(string value, string path)
     {
         return value switch
         {
-            "equals" => CompositionProfileMetadataComparison.Equal,
-            "not-equals" => CompositionProfileMetadataComparison.NotEqual,
-            "one-of" => CompositionProfileMetadataComparison.OneOf,
+            "equals" => CompiledValidationMetadataComparison.Equal,
+            "not-equals" => CompiledValidationMetadataComparison.NotEqual,
+            "one-of" => CompiledValidationMetadataComparison.OneOf,
             _ => throw Error(path, "Unknown metadata comparison."),
         };
     }
 
-    private static CompositionProfileRejectedBytePattern NormalizeRejectedPattern(string value, string path)
+    private static CompiledValidationRejectedBytePattern NormalizeRejectedPattern(string value, string path)
     {
         return value switch
         {
-            "all-zero" => CompositionProfileRejectedBytePattern.AllZero,
-            "all-ff" => CompositionProfileRejectedBytePattern.AllFF,
+            "all-zero" => CompiledValidationRejectedBytePattern.AllZero,
+            "all-ff" => CompiledValidationRejectedBytePattern.AllFF,
             _ => throw Error(path, "Unknown rejected byte pattern."),
         };
     }

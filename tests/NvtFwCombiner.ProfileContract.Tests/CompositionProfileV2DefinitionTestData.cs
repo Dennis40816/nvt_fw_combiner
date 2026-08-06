@@ -61,8 +61,8 @@ internal static class CompositionProfileV2DefinitionTestData
                 "copy-code", 0, OverlapPolicy.Reject, "Copy source code.",
                 CompositionProfileOperationKind.CopyRange, "source-view", "target-view")],
             [new PidSanityProfileValidation(
-                "pid-valid", CompositionProfileValidationStage.InputLoad,
-                CompositionProfileValidationSeverity.Error, "PID_INVALID",
+                "pid-valid", CompiledValidationStage.InputLoad,
+                CompiledValidationSeverity.Error, "PID_INVALID",
                 new CompositionProfileMetadataFieldReference("fwconfig", "pid"))],
             [],
             new CompositionProfileOutput(

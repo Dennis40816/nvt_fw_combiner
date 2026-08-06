@@ -98,8 +98,8 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
         var unknownBinding = new PidSanityProfileValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
             new CompositionProfileMetadataFieldReference("unknown", "pid"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
@@ -107,8 +107,8 @@ public sealed class CompositionProfileV2DefinitionGraphTests
 
         var unselectedField = new PidSanityProfileValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
             new CompositionProfileMetadataFieldReference("fwconfig", "chip-number"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
@@ -116,8 +116,8 @@ public sealed class CompositionProfileV2DefinitionGraphTests
 
         var unknownView = new ViewByteAssertionProfileValidation(
             "header-valid",
-            CompositionProfileValidationStage.FinalOutput,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "unknown-view",
             new CompositionProfileByteValue([0]));

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -34,13 +35,13 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
             expectedHex: "a0",
             maskHex: "f0")));
 
-        Assert.Equal(CompositionProfileMetadataComparison.OneOf, metadata.Comparison);
+        Assert.Equal(CompiledValidationMetadataComparison.OneOf, metadata.Comparison);
         _ = Assert.IsType<CompositionProfileIntegerLiteral>(metadata.ExpectedValues[0]);
         _ = Assert.IsType<CompositionProfileTextLiteral>(metadata.ExpectedValues[1]);
         Assert.Equal("pid", pid.Field.FieldId);
         Assert.Equal("legacy", equality.Right.BindingId);
         Assert.Equal(
-            [CompositionProfileRejectedBytePattern.AllZero, CompositionProfileRejectedBytePattern.AllFF],
+            [CompiledValidationRejectedBytePattern.AllZero, CompiledValidationRejectedBytePattern.AllFF],
             patterns.RejectedPatterns);
         Assert.Equal("a0", assertion.Expected.Hex);
         Assert.Equal("f0", assertion.Mask?.Hex);
@@ -55,16 +56,16 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
         string[] comparisons = ["equals", "not-equals", "one-of"];
 
         Assert.Equal(
-            Enum.GetValues<CompositionProfileValidationStage>(),
+            Enum.GetValues<CompiledValidationStage>(),
             stages.Select(stage => Normalize(Validation("pid-sanity", stage: stage, field: Field())).Stage));
         Assert.Equal(
-            Enum.GetValues<CompositionProfileValidationSeverity>(),
+            Enum.GetValues<CompiledValidationSeverity>(),
             severities.Select(severity => Normalize(Validation(
                 "pid-sanity",
                 severity: severity,
                 field: Field())).Severity));
         Assert.Equal(
-            Enum.GetValues<CompositionProfileMetadataComparison>(),
+            Enum.GetValues<CompiledValidationMetadataComparison>(),
             comparisons.Select(comparison => Assert.IsType<MetadataValueProfileValidation>(Normalize(Validation(
                 "metadata-value",
                 field: Field(),

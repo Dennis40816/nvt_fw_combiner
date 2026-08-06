@@ -1,4 +1,5 @@
 using System.Numerics;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -42,31 +43,13 @@ internal sealed record CompositionProfileTextLiteral : CompositionProfileScalarL
     internal string Value { get; }
 }
 
-/// <summary>Closed stage at which a normalized profile validation runs.</summary>
-internal enum CompositionProfileValidationStage
-{
-    ProfileCompile,
-    InputLoad,
-    PreOperation,
-    PostOperation,
-    FinalOutput,
-}
-
-/// <summary>Closed profile validation severity.</summary>
-internal enum CompositionProfileValidationSeverity
-{
-    Info,
-    Warning,
-    Error,
-}
-
 /// <summary>Base value for one normalized profile validation.</summary>
 internal abstract record CompositionProfileValidation
 {
     protected CompositionProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode)
     {
         RuleId = CompositionProfileValueRules.RequireId(ruleId, nameof(ruleId));
@@ -87,20 +70,12 @@ internal abstract record CompositionProfileValidation
 
     internal string RuleId { get; }
 
-    internal CompositionProfileValidationStage Stage { get; }
+    internal CompiledValidationStage Stage { get; }
 
-    internal CompositionProfileValidationSeverity Severity { get; }
+    internal CompiledValidationSeverity Severity { get; }
 
     internal string IssueCode { get; }
 
-}
-
-/// <summary>Closed metadata comparison operator.</summary>
-internal enum CompositionProfileMetadataComparison
-{
-    Equal,
-    NotEqual,
-    OneOf,
 }
 
 /// <summary>Compares one bound metadata field to exact pending field-context literals.</summary>
@@ -110,11 +85,11 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
 
     internal MetadataValueProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         CompositionProfileMetadataFieldReference field,
-        CompositionProfileMetadataComparison comparison,
+        CompiledValidationMetadataComparison comparison,
         IEnumerable<CompositionProfileScalarLiteral> expectedValues)
         : base(ruleId, stage, severity, issueCode)
     {
@@ -124,7 +99,7 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
             throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
         }
 
-        _expectedValues = Domain.Composition.ImmutableReferenceSnapshot.Create(
+        _expectedValues = ImmutableReferenceSnapshot.Create(
             expectedValues,
             "Metadata comparisons require non-null expected values.",
             requireValue: true);
@@ -133,7 +108,7 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
             throw new ArgumentException("Metadata comparison values must be unique.", nameof(expectedValues));
         }
 
-        if (comparison is CompositionProfileMetadataComparison.Equal or CompositionProfileMetadataComparison.NotEqual &&
+        if (comparison is CompiledValidationMetadataComparison.Equal or CompiledValidationMetadataComparison.NotEqual &&
             _expectedValues.Length != 1)
         {
             throw new ArgumentException("Equal and not-equal comparisons require one value.", nameof(expectedValues));
@@ -146,7 +121,7 @@ internal sealed record MetadataValueProfileValidation : CompositionProfileValida
 
     internal CompositionProfileMetadataFieldReference Field { get; }
 
-    internal CompositionProfileMetadataComparison Comparison { get; }
+    internal CompiledValidationMetadataComparison Comparison { get; }
 
     internal IReadOnlyList<CompositionProfileScalarLiteral> ExpectedValues { get; }
 }
@@ -156,8 +131,8 @@ internal sealed record PidSanityProfileValidation : CompositionProfileValidation
 {
     internal PidSanityProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         CompositionProfileMetadataFieldReference field)
         : base(ruleId, stage, severity, issueCode)
@@ -174,8 +149,8 @@ internal sealed record MetadataEqualityProfileValidation : CompositionProfileVal
 {
     internal MetadataEqualityProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         CompositionProfileMetadataFieldReference left,
         CompositionProfileMetadataFieldReference right)
@@ -192,25 +167,18 @@ internal sealed record MetadataEqualityProfileValidation : CompositionProfileVal
     internal CompositionProfileMetadataFieldReference Right { get; }
 }
 
-/// <summary>Closed generic byte patterns rejected from one metadata field.</summary>
-internal enum CompositionProfileRejectedBytePattern
-{
-    AllZero,
-    AllFF,
-}
-
 /// <summary>Rejects declared generic byte patterns from one bound metadata field.</summary>
 internal sealed record RejectMetadataBytePatternProfileValidation : CompositionProfileValidation
 {
-    private readonly CompositionProfileRejectedBytePattern[] _rejectedPatterns;
+    private readonly CompiledValidationRejectedBytePattern[] _rejectedPatterns;
 
     internal RejectMetadataBytePatternProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         CompositionProfileMetadataFieldReference field,
-        IEnumerable<CompositionProfileRejectedBytePattern> rejectedPatterns)
+        IEnumerable<CompiledValidationRejectedBytePattern> rejectedPatterns)
         : base(ruleId, stage, severity, issueCode)
     {
         ArgumentNullException.ThrowIfNull(field);
@@ -233,7 +201,7 @@ internal sealed record RejectMetadataBytePatternProfileValidation : CompositionP
 
     internal CompositionProfileMetadataFieldReference Field { get; }
 
-    internal IReadOnlyList<CompositionProfileRejectedBytePattern> RejectedPatterns { get; }
+    internal IReadOnlyList<CompiledValidationRejectedBytePattern> RejectedPatterns { get; }
 }
 
 /// <summary>Asserts exact or masked bytes in one logical view.</summary>
@@ -241,8 +209,8 @@ internal sealed record ViewByteAssertionProfileValidation : CompositionProfileVa
 {
     internal ViewByteAssertionProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         string viewId,
         CompositionProfileByteValue expected,
@@ -300,14 +268,14 @@ internal sealed record NonUniformRegionProfileValidation : CompositionProfileVal
 {
     internal NonUniformRegionProfileValidation(
         string ruleId,
-        CompositionProfileValidationStage stage,
-        CompositionProfileValidationSeverity severity,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
         string issueCode,
         string viewId)
         : base(ruleId, stage, severity, issueCode)
     {
-        if (stage != CompositionProfileValidationStage.InputLoad ||
-            severity != CompositionProfileValidationSeverity.Warning)
+        if (stage != CompiledValidationStage.InputLoad ||
+            severity != CompiledValidationSeverity.Warning)
         {
             throw new ArgumentException(
                 "Non-uniform region validation is restricted to warning-only input-load checks.");
