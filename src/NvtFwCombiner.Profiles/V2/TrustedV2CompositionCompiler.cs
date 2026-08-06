@@ -368,7 +368,7 @@ internal static class TrustedV2CompositionCompiler
     {
         var regions = map.Regions.Select(static region => region.RegionId).ToHashSet(StringComparer.Ordinal);
         var selected = selectedInputSlotIds.ToHashSet(StringComparer.Ordinal);
-        foreach (CompositionProfileInputSelectionGroup group in profile.InputSelectionGroups)
+        foreach (InputSelectionGroupDefinition group in profile.InputSelectionGroups)
         {
             foreach (string slotId in group.MemberSlotIds.Where(selected.Contains))
             {

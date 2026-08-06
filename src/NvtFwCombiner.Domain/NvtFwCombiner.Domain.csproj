@@ -6,6 +6,7 @@
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.ProfileContract.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Profiles" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
   </ItemGroup>
 
 </Project>

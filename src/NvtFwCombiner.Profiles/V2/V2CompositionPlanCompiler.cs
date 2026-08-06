@@ -190,10 +190,10 @@ internal static partial class V2CompositionPlanCompiler
     {
         InputArtifactProfileSpace inputSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
+        CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.SlotId, clone.SourceSlotId));
         return slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage &&
-            slot.LengthRule is ExactResolvedMapCapacityLengthRule &&
+            slot.LengthRequirement is ResolvedMapCapacityInputLengthDefinition &&
             slot.Normalization is CompiledNoInputNormalization
             ? inputSpace.SpaceId
             : throw new InvalidOperationException(

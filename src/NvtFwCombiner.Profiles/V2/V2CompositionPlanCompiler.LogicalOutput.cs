@@ -82,7 +82,7 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             spaces,
             operations);
-        CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = AssertLogicalInputSlot(profile);
         return Succeed(
             profile,
             selection,
@@ -123,31 +123,25 @@ internal static partial class V2CompositionPlanCompiler
             profile.ProcessorStages.Count == 0;
     }
 
-    private static CompositionProfileInputSlot AssertLogicalInputSlot(CompositionProfileDefinition profile)
+    private static CompositionInputSlotDefinition AssertLogicalInputSlot(CompositionProfileDefinition profile)
     {
         return profile.InputSlots.Count == 1 && profile.InputSlots[0] is
         {
             Required: true,
             Cardinality: CompiledInputSlotCardinality.OneOrMore,
             ArtifactClass: CompiledInputArtifactClass.Auxiliary,
-            LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
+            LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             Normalization: CompiledNoInputNormalization,
         } slot
             ? slot
             : throw new InvalidOperationException("Validated logical-output profile has an invalid input slot.");
     }
 
-    private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionProfileInputSlot slot)
+    private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionInputSlotDefinition slot)
     {
         return new CompiledInputSlotRequirement(
-            slot.SlotId,
-            slot.Role,
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.OneOrMore,
-            slot.AcceptedExtensions,
-            new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
-            new CompiledNoInputNormalization());
+            slot,
+            (CompiledBoundedInputLengthRequirement)slot.LengthRequirement);
     }
 
     private static void ValidateLogicalRequest(
@@ -155,7 +149,7 @@ internal static partial class V2CompositionPlanCompiler
         V2LogicalOutputCompileRequest request,
         List<CompositionIssue> issues)
     {
-        CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = AssertLogicalInputSlot(profile);
         string outputSpaceId = AssertOutputSpace(profile).SpaceId;
         var bindings = new Dictionary<string, V2LogicalOutputInputBinding>(StringComparer.Ordinal);
         foreach (V2LogicalOutputInputBinding? binding in request.Bindings)

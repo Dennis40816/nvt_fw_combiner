@@ -12,7 +12,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryArtifactClass()
     {
-        CompositionProfileInputSlot[] slots =
+        CompositionInputSlotDefinition[] slots =
         [
             Normalize("tp-firmware", TpMaximum(), None()),
             Normalize("dp-firmware", ExactMapCapacity(), None()),
@@ -38,7 +38,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
 
         foreach ((string token, CompiledInputSlotCardinality expected) in cases)
         {
-            CompositionProfileInputSlot slot = CompositionProfileNormalizer.NormalizeInputSlot(
+            CompositionInputSlotDefinition slot = CompositionProfileNormalizer.NormalizeInputSlot(
                 Slot("auxiliary", ExactBytes("1"), None(), cardinality: token));
             Assert.Equal(expected, slot.Cardinality);
         }
@@ -48,25 +48,24 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryLengthRule()
     {
-        ExactBytesLengthRule exact = Assert.IsType<ExactBytesLengthRule>(
-            Normalize("auxiliary", ExactBytes("16.0"), None()).LengthRule);
-        _ = Assert.IsType<ExactResolvedMapCapacityLengthRule>(
-            Normalize("dp-firmware", ExactMapCapacity(), None()).LengthRule);
-        BoundedLengthRule bounded = Assert.IsType<BoundedLengthRule>(
-            Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRule);
-        SourceViewCoverageLengthRule dpWarning = Assert.IsType<SourceViewCoverageLengthRule>(
-            Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
-        SourceViewCoverageLengthRule tpMaximum = Assert.IsType<SourceViewCoverageLengthRule>(
-            Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
-        SourceViewCoverageLengthRule declaredPrefix = Assert.IsType<SourceViewCoverageLengthRule>(
-            Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRule);
+        CompiledExactBytesInputLengthRequirement exact = Assert.IsType<CompiledExactBytesInputLengthRequirement>(
+            Normalize("auxiliary", ExactBytes("16.0"), None()).LengthRequirement);
+        _ = Assert.IsType<ResolvedMapCapacityInputLengthDefinition>(
+            Normalize("dp-firmware", ExactMapCapacity(), None()).LengthRequirement);
+        CompiledBoundedInputLengthRequirement bounded = Assert.IsType<CompiledBoundedInputLengthRequirement>(
+            Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRequirement);
+        SourceViewCoverageInputLengthDefinition dpWarning = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            Normalize("dp-firmware", NormalDpWarning(), None()).LengthRequirement);
+        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(
+            Normalize("tp-firmware", TpMaximum(), None()).LengthRequirement);
+        CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix = Assert.IsType<CompiledDeclaredPrefixWithWarningInputLengthRequirement>(
+            Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRequirement);
 
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(10, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
         Assert.Equal("DP_SIZE_WARNING", dpWarning.UnexpectedOuterLengthIssueCode);
         Assert.Empty(dpWarning.ExpectedOuterLengths);
-        Assert.Equal(262144, tpMaximum.MaximumOuterLength);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("AB_INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
@@ -206,7 +205,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void NormalDpWarningRetainsDeclaredOuterContainerLengths()
     {
-        CompositionProfileInputSlot slot = Normalize(
+        CompositionInputSlotDefinition slot = Normalize(
             "dp-firmware",
             new CompositionProfileLengthRuleDocument(
                 "normal-dp-extract-with-warning",
@@ -214,8 +213,8 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 ExpectedInputLengths: [Number("524288"), Number("2097152")]),
             None());
 
-        SourceViewCoverageLengthRule rule = Assert.IsType<SourceViewCoverageLengthRule>(
-            slot.LengthRule);
+        SourceViewCoverageInputLengthDefinition rule = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            slot.LengthRequirement);
         Assert.Equal([0x80000L, 0x200000L], rule.ExpectedOuterLengths);
         Assert.Equal("DP_SIZE_WARNING", rule.UnexpectedOuterLengthIssueCode);
     }
@@ -224,7 +223,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void ExactTpInputRetainsExactGeometryWithinTheOwnerLimit()
     {
-        CompositionProfileInputSlot exact = Normalize(
+        CompositionInputSlotDefinition exact = Normalize(
             "tp-firmware",
             ExactBytes("262144"),
             None());
@@ -234,7 +233,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 ExactBytes("262145"),
                 None()));
 
-        Assert.Equal(262144, Assert.IsType<ExactBytesLengthRule>(exact.LengthRule).Bytes);
+        Assert.Equal(262144, Assert.IsType<CompiledExactBytesInputLengthRequirement>(exact.LengthRequirement).Bytes);
         Assert.Equal("inputSlots[0]", oversized.Path);
     }
 
@@ -304,7 +303,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal("inputSlots[0]", normalized.Path);
     }
 
-    private static CompositionProfileInputSlot Normalize(
+    private static CompositionInputSlotDefinition Normalize(
         string artifactClass,
         CompositionProfileLengthRuleDocument lengthRule,
         CompositionProfileInputNormalizationDocument normalization)

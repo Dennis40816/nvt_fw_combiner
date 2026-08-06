@@ -5,8 +5,8 @@ namespace NvtFwCombiner.Profiles.V2;
 /// <summary>Complete immutable map-independent composition-profile-v2 definition.</summary>
 internal sealed partial class CompositionProfileDefinition
 {
-    private readonly CompositionProfileInputSlot[] _inputSlots;
-    private readonly CompositionProfileInputSelectionGroup[] _inputSelectionGroups;
+    private readonly CompositionInputSlotDefinition[] _inputSlots;
+    private readonly InputSelectionGroupDefinition[] _inputSelectionGroups;
     private readonly CompositionProfileSpace[] _spaces;
     private readonly CompositionProfileView[] _views;
     private readonly CompositionProfileMetadataBinding[] _metadataBindings;
@@ -24,7 +24,7 @@ internal sealed partial class CompositionProfileDefinition
         IcNumberInputMode? icNumberInputMode,
         CompositionProfileExperience experience,
         CompositionProfileMapBinding mapBinding,
-        IEnumerable<CompositionProfileInputSlot> inputSlots,
+        IEnumerable<CompositionInputSlotDefinition> inputSlots,
         IEnumerable<CompositionProfileSpace> spaces,
         IEnumerable<CompositionProfileView> views,
         IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
@@ -34,7 +34,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
-        IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
+        IEnumerable<InputSelectionGroupDefinition>? inputSelectionGroups = null)
         : this(
             profileId,
             profileVersion,
@@ -65,7 +65,7 @@ internal sealed partial class CompositionProfileDefinition
         IcNumberInputMode? icNumberInputMode,
         CompositionProfileExperience experience,
         CompositionProfileCompilationContext compilationContext,
-        IEnumerable<CompositionProfileInputSlot> inputSlots,
+        IEnumerable<CompositionInputSlotDefinition> inputSlots,
         IEnumerable<CompositionProfileSpace> spaces,
         IEnumerable<CompositionProfileView> views,
         IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
@@ -75,7 +75,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
-        IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
+        IEnumerable<InputSelectionGroupDefinition>? inputSelectionGroups = null)
     {
         ProfileId = CompositionProfileValueRules.RequireId(profileId, nameof(profileId));
         ProfileVersion = CompositionProfileValueRules.RequireSemanticVersion(
@@ -210,9 +210,9 @@ internal sealed partial class CompositionProfileDefinition
     internal LogicalOutputProfileCompilationContext LogicalOutputBinding => CompilationContext as LogicalOutputProfileCompilationContext
         ?? throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
 
-    internal IReadOnlyList<CompositionProfileInputSlot> InputSlots { get; }
+    internal IReadOnlyList<CompositionInputSlotDefinition> InputSlots { get; }
 
-    internal IReadOnlyList<CompositionProfileInputSelectionGroup> InputSelectionGroups { get; }
+    internal IReadOnlyList<InputSelectionGroupDefinition> InputSelectionGroups { get; }
 
     internal IReadOnlyList<CompositionProfileSpace> Spaces { get; }
 

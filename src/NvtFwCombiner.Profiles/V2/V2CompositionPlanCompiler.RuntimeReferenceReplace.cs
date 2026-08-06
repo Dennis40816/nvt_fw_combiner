@@ -376,9 +376,9 @@ internal static partial class V2CompositionPlanCompiler
             output.Initializer is CloneProfileInitializer initializer
             ? initializer
             : throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid output space.");
-        CompositionProfileInputSlot reference = profile.InputSlots.Single(slot =>
+        CompositionInputSlotDefinition reference = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
-        CompositionProfileInputSlot source = profile.InputSlots.Single(slot =>
+        CompositionInputSlotDefinition source = profile.InputSlots.Single(slot =>
             !StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
         InputArtifactProfileSpace referenceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, reference.SlotId));
@@ -392,14 +392,14 @@ internal static partial class V2CompositionPlanCompiler
             Required: true,
             ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
             Cardinality: CompiledInputSlotCardinality.ExactlyOne,
-            LengthRule: ExactResolvedMapCapacityLengthRule,
+            LengthRequirement: ResolvedMapCapacityInputLengthDefinition,
             Normalization: CompiledNoInputNormalization,
         } ||
             source is not
             {
                 Required: true,
                 Cardinality: CompiledInputSlotCardinality.OneOrMore,
-                LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
+                LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             } ||
             source.ArtifactClass != expectedSourceClass ||
             !sourceNormalizationIsValid ||
@@ -591,8 +591,8 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private sealed record RuntimeReferenceReplaceProfileShape(
-        CompositionProfileInputSlot ReferenceSlot,
-        CompositionProfileInputSlot SourceSlot,
+        CompositionInputSlotDefinition ReferenceSlot,
+        CompositionInputSlotDefinition SourceSlot,
         MutableCompositionProfileSpace Output,
         RunProcessorProfileOperation? ProcessorOperation);
 

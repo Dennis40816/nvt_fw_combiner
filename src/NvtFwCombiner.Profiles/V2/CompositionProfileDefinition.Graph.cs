@@ -6,7 +6,7 @@ internal sealed partial class CompositionProfileDefinition
 {
     private void ValidateReferenceGraph()
     {
-        Dictionary<string, CompositionProfileInputSlot> slots = _inputSlots.ToDictionary(
+        Dictionary<string, CompositionInputSlotDefinition> slots = _inputSlots.ToDictionary(
             static slot => slot.SlotId,
             StringComparer.Ordinal);
         Dictionary<string, CompositionProfileSpace> spaces = _spaces.ToDictionary(
@@ -80,12 +80,12 @@ internal sealed partial class CompositionProfileDefinition
                 "Logical-output profiles require one per-binding input template and one zero-filled runtime-request output.");
         }
 
-        CompositionProfileInputSlot slot = _inputSlots[0];
+        CompositionInputSlotDefinition slot = _inputSlots[0];
         if (!slot.Required ||
             slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
             slot.ArtifactClass != CompiledInputArtifactClass.Auxiliary ||
             slot.Normalization is not CompiledNoInputNormalization ||
-            slot.LengthRule is not BoundedLengthRule
+            slot.LengthRequirement is not CompiledBoundedInputLengthRequirement
             {
                 MinimumBytes: 1,
                 MaximumBytes: int.MaxValue,
@@ -147,9 +147,9 @@ internal sealed partial class CompositionProfileDefinition
                 "Runtime reference-replace profiles require two immutable inputs and one runtime-capacity output cloned from the reference slot.");
         }
 
-        CompositionProfileInputSlot? reference = _inputSlots.SingleOrDefault(slot =>
+        CompositionInputSlotDefinition? reference = _inputSlots.SingleOrDefault(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
-        CompositionProfileInputSlot? source = _inputSlots.SingleOrDefault(slot =>
+        CompositionInputSlotDefinition? source = _inputSlots.SingleOrDefault(slot =>
             !StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
         InputArtifactProfileSpace? referenceSpace = inputs.SingleOrDefault(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
@@ -163,14 +163,14 @@ internal sealed partial class CompositionProfileDefinition
                 Required: true,
                 ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
                 Cardinality: CompiledInputSlotCardinality.ExactlyOne,
-                LengthRule: ExactResolvedMapCapacityLengthRule,
+                LengthRequirement: ResolvedMapCapacityInputLengthDefinition,
                 Normalization: CompiledNoInputNormalization,
             } ||
             source is not
             {
                 Required: true,
                 Cardinality: CompiledInputSlotCardinality.OneOrMore,
-                LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
+                LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             } ||
             source.ArtifactClass != expectedSourceClass ||
             !sourceNormalizationIsValid ||
@@ -249,7 +249,7 @@ internal sealed partial class CompositionProfileDefinition
     private void ValidateInputPolicy()
     {
         bool extractsDeclaredPrefix = _inputSlots.Any(static slot =>
-            slot.LengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null });
+            slot.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement);
         if (extractsDeclaredPrefix && CompositionKind != CompositionKind.Merge)
         {
             throw new ArgumentException("Declared-prefix input authority requires Merge composition.");
@@ -276,14 +276,14 @@ internal sealed partial class CompositionProfileDefinition
     }
 
     private void ValidateInputSelectionGroups(
-        IReadOnlyDictionary<string, CompositionProfileInputSlot> slots)
+        IReadOnlyDictionary<string, CompositionInputSlotDefinition> slots)
     {
         var groupedSlotIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CompositionProfileInputSelectionGroup group in _inputSelectionGroups)
+        foreach (InputSelectionGroupDefinition group in _inputSelectionGroups)
         {
             foreach (string memberSlotId in group.MemberSlotIds)
             {
-                CompositionProfileInputSlot slot = RequireReference(
+                CompositionInputSlotDefinition slot = RequireReference(
                     slots,
                     memberSlotId,
                     "Input selection group references an unknown slot.");
@@ -302,7 +302,7 @@ internal sealed partial class CompositionProfileDefinition
         }
     }
 
-    private void ValidateSpaces(IReadOnlyDictionary<string, CompositionProfileInputSlot> slots)
+    private void ValidateSpaces(IReadOnlyDictionary<string, CompositionInputSlotDefinition> slots)
     {
         HashSet<string> referencedSlotIds = new(StringComparer.Ordinal);
         foreach (CompositionProfileSpace space in _spaces)
@@ -317,7 +317,7 @@ internal sealed partial class CompositionProfileDefinition
                 {
                     Initializer: CloneProfileInitializer clone,
                 }:
-                    CompositionProfileInputSlot sourceSlot = RequireReference(
+                    CompositionInputSlotDefinition sourceSlot = RequireReference(
                         slots,
                         clone.SourceSlotId,
                         "Clone initializer references an unknown slot.");
