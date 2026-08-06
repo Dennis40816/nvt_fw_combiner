@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -49,13 +50,13 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static CompositionProfileSlotCardinality NormalizeCardinality(string value, string path)
+    private static CompiledInputSlotCardinality NormalizeCardinality(string value, string path)
     {
         return value switch
         {
-            "exactly-one" => CompositionProfileSlotCardinality.ExactlyOne,
-            "zero-or-one" => CompositionProfileSlotCardinality.ZeroOrOne,
-            "one-or-more" => CompositionProfileSlotCardinality.OneOrMore,
+            "exactly-one" => CompiledInputSlotCardinality.ExactlyOne,
+            "zero-or-one" => CompiledInputSlotCardinality.ZeroOrOne,
+            "one-or-more" => CompiledInputSlotCardinality.OneOrMore,
             _ => throw Error(path, "Unknown input slot cardinality."),
         };
     }

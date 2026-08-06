@@ -179,7 +179,7 @@ internal static partial class V2CompositionPlanCompiler
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
             preparation.Admission,
-            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported,
+            runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements: LowerInputValidations(profile, views),
             inputSelectionGroups: inputSelection.Groups);
     }

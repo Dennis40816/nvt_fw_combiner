@@ -136,7 +136,7 @@ public sealed class CompositionProfileV2InputTests
             new ExactBytesLengthRule(32),
             new NoInputNormalization(),
             required: false,
-            cardinality: CompositionProfileSlotCardinality.OneOrMore);
+            cardinality: CompiledInputSlotCardinality.OneOrMore);
         CompositionProfileInputSlot declaredPrefix = Slot(
             CompositionProfileArtifactClass.Auxiliary,
             new SourceViewCoverageLengthRule(
@@ -155,7 +155,7 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal(CompositionProfileArtifactClass.ReferenceImage, reference.ArtifactClass);
         _ = Assert.IsType<TruncateCtrlRamInputNormalization>(ctrlRam.Normalization);
         Assert.False(auxiliary.Required);
-        Assert.Equal(CompositionProfileSlotCardinality.OneOrMore, auxiliary.Cardinality);
+        Assert.Equal(CompiledInputSlotCardinality.OneOrMore, auxiliary.Cardinality);
         _ = Assert.IsType<SourceViewCoverageLengthRule>(declaredPrefix.LengthRule);
     }
 
@@ -256,10 +256,10 @@ public sealed class CompositionProfileV2InputTests
             new ExactBytesLengthRule(8),
             new NoInputNormalization(),
             required: true,
-            cardinality: CompositionProfileSlotCardinality.ZeroOrOne);
+            cardinality: CompiledInputSlotCardinality.ZeroOrOne);
 
         Assert.True(requiredOptionalCardinality.Required);
-        Assert.Equal(CompositionProfileSlotCardinality.ZeroOrOne, requiredOptionalCardinality.Cardinality);
+        Assert.Equal(CompiledInputSlotCardinality.ZeroOrOne, requiredOptionalCardinality.Cardinality);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Slot(
             (CompositionProfileArtifactClass)99,
             new ExactBytesLengthRule(8),
@@ -269,7 +269,7 @@ public sealed class CompositionProfileV2InputTests
             new ExactBytesLengthRule(8),
             new NoInputNormalization(),
             required: true,
-            cardinality: (CompositionProfileSlotCardinality)99));
+            cardinality: (CompiledInputSlotCardinality)99));
     }
 
     private static CompositionProfileInputSlot Slot(
@@ -277,7 +277,7 @@ public sealed class CompositionProfileV2InputTests
         CompositionProfileLengthRule lengthRule,
         CompositionProfileInputNormalization normalization,
         bool required = true,
-        CompositionProfileSlotCardinality cardinality = CompositionProfileSlotCardinality.ExactlyOne,
+        CompiledInputSlotCardinality cardinality = CompiledInputSlotCardinality.ExactlyOne,
         IEnumerable<string>? extensions = null)
     {
         return new CompositionProfileInputSlot(

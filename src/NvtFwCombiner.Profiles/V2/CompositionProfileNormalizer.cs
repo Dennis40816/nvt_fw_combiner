@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Profiles.V2;
 /// <summary>Normalizes schema-validated composition-profile-v2 DTO values without compiling a plan.</summary>
 internal static partial class CompositionProfileNormalizer
 {
-    internal static CompositionProfilePromotion NormalizePromotion(
+    internal static CompiledProfilePromotion NormalizePromotion(
         CompositionProfilePromotionDocument document,
         string path = "promotion")
     {
@@ -14,21 +14,21 @@ internal static partial class CompositionProfileNormalizer
         IReadOnlyList<CompositionProfilePromotionBlockerDocument> blockerDocuments = RequireList(
             document.Blockers,
             $"{path}.blockers");
-        var blockers = new CompositionProfilePromotionBlocker[blockerDocuments.Count];
+        var blockers = new CompiledProfilePromotionBlocker[blockerDocuments.Count];
         for (int index = 0; index < blockerDocuments.Count; index++)
         {
             CompositionProfilePromotionBlockerDocument blocker = blockerDocuments[index] ?? throw Error(
                 $"{path}.blockers[{index}]",
                 "Promotion blocker cannot be null.");
             string blockerPath = $"{path}.blockers[{index}]";
-            blockers[index] = Wrap(blockerPath, () => new CompositionProfilePromotionBlocker(
+            blockers[index] = Wrap(blockerPath, () => new CompiledProfilePromotionBlocker(
                 blocker.BlockerId,
                 NormalizeBlockerKind(blocker.Kind, $"{blockerPath}.kind"),
                 blocker.Reason,
                 RequireList(blocker.EvidenceRefs, $"{blockerPath}.evidenceRefs")));
         }
 
-        return Wrap(path, () => new CompositionProfilePromotion(
+        return Wrap(path, () => new CompiledProfilePromotion(
             NormalizePromotionStage(document.Stage, $"{path}.stage"),
             blockers));
     }
@@ -79,34 +79,34 @@ internal static partial class CompositionProfileNormalizer
             document.MaximumSelected));
     }
 
-    private static CompositionProfilePromotionStage NormalizePromotionStage(string value, string path)
+    private static CompiledProfilePromotionStage NormalizePromotionStage(string value, string path)
     {
         return value switch
         {
-            "known" => CompositionProfilePromotionStage.Known,
-            "map-resolvable" => CompositionProfilePromotionStage.MapResolvable,
-            "inspectable" => CompositionProfilePromotionStage.Inspectable,
-            "authorable" => CompositionProfilePromotionStage.Authorable,
-            "compilable" => CompositionProfilePromotionStage.Compilable,
-            "executable-candidate" => CompositionProfilePromotionStage.ExecutableCandidate,
-            "supported" => CompositionProfilePromotionStage.Supported,
+            "known" => CompiledProfilePromotionStage.Known,
+            "map-resolvable" => CompiledProfilePromotionStage.MapResolvable,
+            "inspectable" => CompiledProfilePromotionStage.Inspectable,
+            "authorable" => CompiledProfilePromotionStage.Authorable,
+            "compilable" => CompiledProfilePromotionStage.Compilable,
+            "executable-candidate" => CompiledProfilePromotionStage.ExecutableCandidate,
+            "supported" => CompiledProfilePromotionStage.Supported,
             _ => throw Error(path, "Unknown profile promotion stage."),
         };
     }
 
-    private static CompositionProfileBlockerKind NormalizeBlockerKind(string value, string path)
+    private static CompiledProfilePromotionBlockerKind NormalizeBlockerKind(string value, string path)
     {
         return value switch
         {
-            "map" => CompositionProfileBlockerKind.Map,
-            "metadata" => CompositionProfileBlockerKind.Metadata,
-            "operation" => CompositionProfileBlockerKind.Operation,
-            "processor" => CompositionProfileBlockerKind.Processor,
-            "integrity" => CompositionProfileBlockerKind.Integrity,
-            "golden" => CompositionProfileBlockerKind.Golden,
-            "human-review" => CompositionProfileBlockerKind.HumanReview,
-            "ui" => CompositionProfileBlockerKind.Ui,
-            "release" => CompositionProfileBlockerKind.Release,
+            "map" => CompiledProfilePromotionBlockerKind.Map,
+            "metadata" => CompiledProfilePromotionBlockerKind.Metadata,
+            "operation" => CompiledProfilePromotionBlockerKind.Operation,
+            "processor" => CompiledProfilePromotionBlockerKind.Processor,
+            "integrity" => CompiledProfilePromotionBlockerKind.Integrity,
+            "golden" => CompiledProfilePromotionBlockerKind.Golden,
+            "human-review" => CompiledProfilePromotionBlockerKind.HumanReview,
+            "ui" => CompiledProfilePromotionBlockerKind.Ui,
+            "release" => CompiledProfilePromotionBlockerKind.Release,
             _ => throw Error(path, "Unknown promotion blocker kind."),
         };
     }

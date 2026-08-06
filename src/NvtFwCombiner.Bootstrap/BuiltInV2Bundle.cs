@@ -83,7 +83,7 @@ internal sealed class BuiltInV2Bundle
                     profileId));
         V2CompositionProfileDefinition profile =
             profileEntry.Profile.Promotion.Stage ==
-            CompositionProfilePromotionStage.ExecutableCandidate
+            CompiledProfilePromotionStage.ExecutableCandidate
                 ? profileEntry.Profile
                 : throw new InvalidDataException(
                     "General Merge Saved Rule admission requires the exact executable-candidate parent.");

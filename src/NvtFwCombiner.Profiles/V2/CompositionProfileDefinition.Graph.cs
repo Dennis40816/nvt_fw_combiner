@@ -85,7 +85,7 @@ internal sealed partial class CompositionProfileDefinition
 
         CompositionProfileInputSlot slot = _inputSlots[0];
         if (!slot.Required ||
-            slot.Cardinality != CompositionProfileSlotCardinality.OneOrMore ||
+            slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
             slot.ArtifactClass != CompositionProfileArtifactClass.Auxiliary ||
             slot.Normalization is not NoInputNormalization ||
             slot.LengthRule is not BoundedLengthRule
@@ -99,7 +99,7 @@ internal sealed partial class CompositionProfileDefinition
                 "Logical-output profiles require one unnormalized auxiliary one-or-more input slot bounded to the in-memory composition limit.");
         }
 
-        if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)
+        if (Promotion.Stage >= CompiledProfilePromotionStage.Supported)
         {
             throw new ArgumentException("Logical-output profiles cannot be marked supported before runtime per-binding admission exists.");
         }
@@ -165,14 +165,14 @@ internal sealed partial class CompositionProfileDefinition
             {
                 Required: true,
                 ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
-                Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
+                Cardinality: CompiledInputSlotCardinality.ExactlyOne,
                 LengthRule: ExactResolvedMapCapacityLengthRule,
                 Normalization: NoInputNormalization,
             } ||
             source is not
             {
                 Required: true,
-                Cardinality: CompositionProfileSlotCardinality.OneOrMore,
+                Cardinality: CompiledInputSlotCardinality.OneOrMore,
                 LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             } ||
             source.ArtifactClass != expectedSourceClass ||
@@ -184,7 +184,7 @@ internal sealed partial class CompositionProfileDefinition
                 "Runtime reference-replace profiles require one exact singleton reference and one experience-owned per-binding source with its closed normalization policy.");
         }
 
-        if (Promotion.Stage >= CompositionProfilePromotionStage.Supported)
+        if (Promotion.Stage >= CompiledProfilePromotionStage.Supported)
         {
             throw new ArgumentException(
                 "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
@@ -290,7 +290,7 @@ internal sealed partial class CompositionProfileDefinition
                     slots,
                     memberSlotId,
                     "Input selection group references an unknown slot.");
-                if (slot.Required || slot.Cardinality != CompositionProfileSlotCardinality.ZeroOrOne)
+                if (slot.Required || slot.Cardinality != CompiledInputSlotCardinality.ZeroOrOne)
                 {
                     throw new ArgumentException(
                         "Input selection groups may reference only optional zero-or-one slots.");
@@ -325,7 +325,7 @@ internal sealed partial class CompositionProfileDefinition
                         clone.SourceSlotId,
                         "Clone initializer references an unknown slot.");
                     if (!sourceSlot.Required ||
-                        sourceSlot.Cardinality != CompositionProfileSlotCardinality.ExactlyOne)
+                        sourceSlot.Cardinality != CompiledInputSlotCardinality.ExactlyOne)
                     {
                         throw new ArgumentException("Clone initializer source slots must require exactly one artifact.");
                     }

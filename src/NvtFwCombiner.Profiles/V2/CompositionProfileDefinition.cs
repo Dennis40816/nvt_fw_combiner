@@ -19,7 +19,7 @@ internal sealed partial class CompositionProfileDefinition
     internal CompositionProfileDefinition(
         string profileId,
         string profileVersion,
-        CompositionProfilePromotion promotion,
+        CompiledProfilePromotion promotion,
         CompositionKind compositionKind,
         IcNumberInputMode? icNumberInputMode,
         CompositionProfileExperience experience,
@@ -60,7 +60,7 @@ internal sealed partial class CompositionProfileDefinition
     internal CompositionProfileDefinition(
         string profileId,
         string profileVersion,
-        CompositionProfilePromotion promotion,
+        CompiledProfilePromotion promotion,
         CompositionKind compositionKind,
         IcNumberInputMode? icNumberInputMode,
         CompositionProfileExperience experience,
@@ -187,7 +187,7 @@ internal sealed partial class CompositionProfileDefinition
 
     internal string ProfileVersion { get; }
 
-    internal CompositionProfilePromotion Promotion { get; }
+    internal CompiledProfilePromotion Promotion { get; }
 
     internal CompositionKind CompositionKind { get; }
 

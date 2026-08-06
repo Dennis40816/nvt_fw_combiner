@@ -128,7 +128,7 @@ internal static partial class V2CompositionPlanCompiler
         return profile.InputSlots.Count == 1 && profile.InputSlots[0] is
         {
             Required: true,
-            Cardinality: CompositionProfileSlotCardinality.OneOrMore,
+            Cardinality: CompiledInputSlotCardinality.OneOrMore,
             ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
             LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
             Normalization: NoInputNormalization,

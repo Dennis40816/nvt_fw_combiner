@@ -13,20 +13,20 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
     [Fact]
     public void PromotionMapsEveryStage()
     {
-        (string Token, CompositionProfilePromotionStage Stage)[] cases =
+        (string Token, CompiledProfilePromotionStage Stage)[] cases =
         [
-            ("known", CompositionProfilePromotionStage.Known),
-            ("map-resolvable", CompositionProfilePromotionStage.MapResolvable),
-            ("inspectable", CompositionProfilePromotionStage.Inspectable),
-            ("authorable", CompositionProfilePromotionStage.Authorable),
-            ("compilable", CompositionProfilePromotionStage.Compilable),
-            ("executable-candidate", CompositionProfilePromotionStage.ExecutableCandidate),
-            ("supported", CompositionProfilePromotionStage.Supported),
+            ("known", CompiledProfilePromotionStage.Known),
+            ("map-resolvable", CompiledProfilePromotionStage.MapResolvable),
+            ("inspectable", CompiledProfilePromotionStage.Inspectable),
+            ("authorable", CompiledProfilePromotionStage.Authorable),
+            ("compilable", CompiledProfilePromotionStage.Compilable),
+            ("executable-candidate", CompiledProfilePromotionStage.ExecutableCandidate),
+            ("supported", CompiledProfilePromotionStage.Supported),
         ];
 
-        foreach ((string token, CompositionProfilePromotionStage expected) in cases)
+        foreach ((string token, CompiledProfilePromotionStage expected) in cases)
         {
-            CompositionProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
+            CompiledProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
                 new CompositionProfilePromotionDocument(token, []));
             Assert.Equal(expected, promotion.Stage);
         }
@@ -50,13 +50,13 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
                 ["z-evidence", "a-evidence"])),
         ];
 
-        CompositionProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
+        CompiledProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
             new CompositionProfilePromotionDocument("known", documents));
 
         Assert.Equal(9, promotion.Blockers.Count);
         Assert.Equal(["a-evidence", "z-evidence"], promotion.Blockers[0].EvidenceRefs);
         Assert.Equal(
-            Enum.GetValues<CompositionProfileBlockerKind>().Order(),
+            Enum.GetValues<CompiledProfilePromotionBlockerKind>().Order(),
             promotion.Blockers.Select(static blocker => blocker.Kind).Order());
     }
 

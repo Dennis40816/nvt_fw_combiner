@@ -19,7 +19,7 @@ internal static partial class CompositionProfileNormalizer
         IcNumberInputMode? icNumberInputMode = NormalizeIcNumberInputMode(
             document.IcNumberInputMode,
             "icNumberInputMode");
-        CompositionProfilePromotion promotion = NormalizePromotion(
+        CompiledProfilePromotion promotion = NormalizePromotion(
             RequireObject(document.Promotion, "promotion"),
             "promotion");
         CompositionProfileExperience experience = NormalizeExperience(

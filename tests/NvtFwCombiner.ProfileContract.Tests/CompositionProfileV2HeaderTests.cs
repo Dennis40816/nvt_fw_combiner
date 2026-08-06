@@ -8,48 +8,6 @@ public sealed class CompositionProfileV2HeaderTests
 {
     private const string FamilyHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-    /// <summary>Verifies promotion blockers snapshot, sort, and retain evidence without caller mutation.</summary>
-    [Fact]
-    public void PromotionSnapshotsAndOrdersBlockers()
-    {
-        List<string> evidence = ["z-evidence", "a-evidence"];
-        var second = new CompositionProfilePromotionBlocker(
-            "second",
-            CompositionProfileBlockerKind.Golden,
-            "Golden evidence is pending.",
-            evidence);
-        var first = new CompositionProfilePromotionBlocker(
-            "first",
-            CompositionProfileBlockerKind.HumanReview,
-            "Owner review is pending.",
-            []);
-        var blockers = new List<CompositionProfilePromotionBlocker> { second, first };
-
-        var promotion = new CompositionProfilePromotion(
-            CompositionProfilePromotionStage.ExecutableCandidate,
-            blockers);
-        evidence.Add("late-evidence");
-        blockers.Clear();
-
-        Assert.Equal(["first", "second"], promotion.Blockers.Select(static blocker => blocker.BlockerId));
-        Assert.Equal(["a-evidence", "z-evidence"], promotion.Blockers[1].EvidenceRefs);
-        Assert.Equal(CompositionProfilePromotionStage.ExecutableCandidate, promotion.Stage);
-    }
-
-    /// <summary>Verifies supported profiles are blocker-free and blocker ids are unambiguous.</summary>
-    [Fact]
-    public void PromotionRejectsSupportedBlockersAndDuplicateIds()
-    {
-        CompositionProfilePromotionBlocker blocker = Blocker("pending");
-
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfilePromotion(
-            CompositionProfilePromotionStage.Supported,
-            [blocker]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfilePromotion(
-            CompositionProfilePromotionStage.Known,
-            [blocker, Blocker("pending")]));
-    }
-
     /// <summary>Verifies experience policy retains only compiler-consumed dimensions.</summary>
     [Fact]
     public void ExperienceRetainsCompilerConsumedPolicyValues()
@@ -65,18 +23,10 @@ public sealed class CompositionProfileV2HeaderTests
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);
     }
 
-    /// <summary>Verifies invalid enum carriers cannot enter normalized experience or promotion values.</summary>
+    /// <summary>Verifies invalid enum carriers cannot enter normalized experience values.</summary>
     [Fact]
     public void HeaderValuesRejectUnknownEnums()
     {
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfilePromotion(
-            (CompositionProfilePromotionStage)99,
-            []));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfilePromotionBlocker(
-            "blocker",
-            (CompositionProfileBlockerKind)99,
-            "reason",
-            []));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileExperience(
             "experience",
             (LayoutPolicy)99,
@@ -133,7 +83,6 @@ public sealed class CompositionProfileV2HeaderTests
     [Fact]
     public void HeaderValuesEnforceCanonicalSingularIdentity()
     {
-        _ = Assert.Throws<ArgumentException>(() => Blocker("Human-Review"));
         _ = Assert.Throws<ArgumentException>(() => new CompositionProfileExperience(
             "general_replace",
             LayoutPolicy.UserDefined,
@@ -142,15 +91,6 @@ public sealed class CompositionProfileV2HeaderTests
 
         CompositionProfileMapBinding binding = Binding(familyVersion: "1.2.3-rc.1+build.5");
         Assert.Equal("1.2.3-rc.1+build.5", binding.FamilyVersion);
-    }
-
-    private static CompositionProfilePromotionBlocker Blocker(string blockerId)
-    {
-        return new CompositionProfilePromotionBlocker(
-            blockerId,
-            CompositionProfileBlockerKind.Map,
-            "Map evidence is pending.",
-            []);
     }
 
     private static CompositionProfileMapBinding Binding(
