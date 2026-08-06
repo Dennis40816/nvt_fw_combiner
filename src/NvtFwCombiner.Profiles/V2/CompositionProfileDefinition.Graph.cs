@@ -28,7 +28,6 @@ internal sealed partial class CompositionProfileDefinition
         if (CompilationContext is LogicalOutputProfileCompilationContext)
         {
             ValidateLogicalOutputShape();
-            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -39,7 +38,6 @@ internal sealed partial class CompositionProfileDefinition
             ValidateRegionAccess();
             ValidateOperations(views, spaces, processors);
             ValidateProcessors(views, spaces);
-            ValidateOutputNaming(metadataBindings);
             return;
         }
 
@@ -49,7 +47,6 @@ internal sealed partial class CompositionProfileDefinition
         ValidateOperations(views, spaces, processors);
         ValidateProcessors(views, spaces);
         ValidateValidations(views, metadataBindings);
-        ValidateOutputNaming(metadataBindings);
     }
 
     private void ValidateLogicalOutputShape()

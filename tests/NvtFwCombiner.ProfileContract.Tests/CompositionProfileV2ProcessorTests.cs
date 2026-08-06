@@ -1,9 +1,8 @@
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-/// <summary>Tests immutable v2 processor-stage and output naming values.</summary>
+/// <summary>Tests immutable v2 processor-stage values.</summary>
 public sealed class CompositionProfileV2ProcessorTests
 {
     /// <summary>Verifies CRC stages are structurally calculation-only with zero write authority.</summary>
@@ -116,34 +115,6 @@ public sealed class CompositionProfileV2ProcessorTests
             "display-crc",
             "output",
             ["output-image"]));
-    }
-
-    /// <summary>Verifies output naming policy snapshots canonical token ids without rendering paths.</summary>
-    [Fact]
-    public void OutputNamingPolicyIsImmutableAndDoesNotRender()
-    {
-        var tokens = new List<string> { "version", "original-name" };
-        var output = new CompositionProfileOutput(
-            "{original-name}_{version}.bin",
-            allowOverride: false,
-            CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
-            tokens);
-        tokens.Clear();
-
-        Assert.Equal("{original-name}_{version}.bin", output.FileNameTemplate);
-        Assert.False(output.AllowOverride);
-        Assert.Equal(CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore, output.InvalidCharacterPolicy);
-        Assert.Equal(["original-name", "version"], output.RequiredTokenIds);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileOutput(
-            "name.bin",
-            false,
-            CompiledOutputInvalidCharacterPolicy.Reject,
-            ["Version"]));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileOutput(
-            "name.bin",
-            false,
-            (CompiledOutputInvalidCharacterPolicy)99,
-            []));
     }
 
     private static LegacyCombinerProfileProcessorStage Legacy(

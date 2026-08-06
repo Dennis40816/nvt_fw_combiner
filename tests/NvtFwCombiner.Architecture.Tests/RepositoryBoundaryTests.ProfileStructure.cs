@@ -190,6 +190,49 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("EvidenceRef { get; }", processor, StringComparison.Ordinal);
     }
 
+    /// <summary>Output naming is constructed once as the Domain-owned canonical requirement.</summary>
+    [Fact]
+    public void NormalizedOutputNamingUsesDomainCanonicalDefinition()
+    {
+        string definition = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/CompositionProfileDefinition.cs");
+        string processor = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/CompositionProfileProcessor.cs");
+        string lowering = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
+
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "CompositionProfileDefinition.OutputNaming.cs")));
+        Assert.DoesNotContain(
+            "internal sealed class CompositionProfileOutput",
+            processor,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record CompositionProfileOutputTokenRequirement",
+            processor,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("LowerOutputNaming", lowering, StringComparison.Ordinal);
+        Assert.Contains("CompiledOutputNamingRequirement Output", definition, StringComparison.Ordinal);
+    }
+
+    /// <summary>Zero-caller Domain compatibility policy and resolution helpers cannot return.</summary>
+    [Fact]
+    public void DeadDomainProfileCompatibilitySurfaceStaysDeleted()
+    {
+        string domain = ReadDomainSources();
+
+        Assert.DoesNotContain("public enum RegionWritePolicy", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum RegionAtomicity", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetMapResolutionStructuresForMap", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredArtifactBindingIds", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveMapWithin(", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveMapWithinForSelection(", domain, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the legacy typed profile model and its synthetic fixture cannot return.</summary>
     [Fact]
     public void LegacyTypedProfileModelsStayDeleted()

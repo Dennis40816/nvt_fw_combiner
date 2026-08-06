@@ -11,34 +11,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             requiredMetadataStructureIds: null);
     }
 
-    /// <summary>Resolves only physical maps named by an already trusted workflow profile binding.</summary>
-    internal FirmwareMapResolutionResult ResolveMapWithin(
-        FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string> candidateMapIds)
-    {
-        ArgumentNullException.ThrowIfNull(candidateMapIds);
-        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
-
-        return ResolveMapCore(
-            inputs,
-            candidateMapIds,
-            requiredMetadataStructureIds: null);
-    }
-
-    /// <summary>Resolves one trusted profile map using only metadata required by map-selection predicates.</summary>
-    internal FirmwareMapResolutionResult ResolveMapWithinForSelection(
-        FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string> candidateMapIds)
-    {
-        ArgumentNullException.ThrowIfNull(candidateMapIds);
-        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
-
-        return ResolveMapCore(
-            inputs,
-            candidateMapIds,
-            new HashSet<string>(StringComparer.Ordinal));
-    }
-
     /// <summary>
     /// Resolves one trusted profile map using only selection metadata and the
     /// exact metadata structures required by that profile.

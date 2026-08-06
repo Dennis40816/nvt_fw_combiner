@@ -87,8 +87,8 @@ DEFAULT_LIMITS = CodeSizeLimits(
     },
     runtime_production_baseline=45_214,
     runtime_production_target=22_607,
-    runtime_production_ratchet=75_343,
-    domain_profiles_ratchet=25_970,
+    runtime_production_ratchet=75_050,
+    domain_profiles_ratchet=25_677,
     domain_profiles_target=10_500,
 )
 

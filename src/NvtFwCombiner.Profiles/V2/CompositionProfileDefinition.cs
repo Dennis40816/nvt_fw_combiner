@@ -32,7 +32,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileOperation> operations,
         IEnumerable<CompositionProfileValidation> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
-        CompositionProfileOutput output,
+        CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
         IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
         : this(
@@ -73,7 +73,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileOperation> operations,
         IEnumerable<CompositionProfileValidation> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
-        CompositionProfileOutput output,
+        CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
         IEnumerable<CompositionProfileInputSelectionGroup>? inputSelectionGroups = null)
     {
@@ -228,7 +228,7 @@ internal sealed partial class CompositionProfileDefinition
 
     internal IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages { get; }
 
-    internal CompositionProfileOutput Output { get; }
+    internal CompiledOutputNamingRequirement Output { get; }
 
     internal IReadOnlyList<string> EvidenceRefs { get; }
 

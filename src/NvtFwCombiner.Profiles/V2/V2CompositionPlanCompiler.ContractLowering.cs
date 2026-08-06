@@ -95,7 +95,7 @@ internal static partial class V2CompositionPlanCompiler
                 provenance,
                 new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
                 regionAccess,
-                LowerOutputNaming(profile)));
+                profile.Output));
         CompiledComposition artifact = runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(plan, identity, icNumberPolicy)
             : CompiledComposition.CreateV2(plan, identity, icNumberPolicy);
@@ -161,49 +161,6 @@ internal static partial class V2CompositionPlanCompiler
             } => new CompiledTpMaximum256KInputLengthRequirement(),
             _ => throw new ArgumentOutOfRangeException(nameof(lengthRule), "Unknown profile input length rule."),
         };
-    }
-
-    private static CompiledOutputNamingRequirement LowerOutputNaming(
-        CompositionProfileDefinition profile)
-    {
-        CompositionProfileOutput output = profile.Output;
-        return output.RuleId is null
-            ? new CompiledOutputNamingRequirement(
-                output.FileNameTemplate,
-                output.AllowOverride,
-                output.InvalidCharacterPolicy,
-                output.RequiredTokenIds)
-            : new CompiledOutputNamingRequirement(
-                output.FileNameTemplate,
-                output.AllowOverride,
-                output.InvalidCharacterPolicy,
-                output.RequiredTokenIds,
-                output.RuleId,
-                output.OutputArtifactType,
-                output.TokenRequirements.Select(requirement =>
-                    MapOutputTokenRequirement(
-                        requirement,
-                        profile.MetadataBindings)));
-    }
-
-    private static CompiledOutputTokenRequirement MapOutputTokenRequirement(
-        CompositionProfileOutputTokenRequirement requirement,
-        IReadOnlyList<CompositionProfileMetadataBinding> metadataBindings)
-    {
-        CompositionProfileMetadataBinding? metadataBinding =
-            requirement.MetadataBindingId is null
-                ? null
-                : metadataBindings.Single(binding =>
-                    StringComparer.Ordinal.Equals(
-                        binding.BindingId,
-                        requirement.MetadataBindingId));
-        return new CompiledOutputTokenRequirement(
-            requirement.TokenId,
-            requirement.SourceKind,
-            requirement.MetadataBindingId,
-            requirement.MissingPolicy,
-            requirement.Placeholder,
-            metadataBinding?.SpaceId);
     }
 
     private static void AddUnsupported(List<CompositionIssue> issues, string message, string? operationId = null)
