@@ -4,7 +4,6 @@ public sealed partial class CompiledComposition
 {
     private static void ValidateExactBytesInputGeometry(
         CompositionKind compositionKind,
-        string experienceId,
         CompiledInputSlotRequirement requirement,
         CompiledExactBytesInputLengthRequirement exact,
         AddressSpace addressSpace)
@@ -24,7 +23,6 @@ public sealed partial class CompiledComposition
         if (requirement.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement &&
             requirement.Normalization is CompiledTruncateCtrlRamInputNormalization &&
             compositionKind == CompositionKind.Replace &&
-            StringComparer.Ordinal.Equals(experienceId, ExperienceIds.CtrlRamReplace) &&
             addressSpace.Length == exact.Bytes &&
             addressSpace.InputPaddingByte is null &&
             addressSpace.InputOversizePolicy == InputOversizePolicy.TruncateWithWarning &&
@@ -35,7 +33,7 @@ public sealed partial class CompiledComposition
         }
 
         throw new ArgumentException(
-            "Exact input requirements must be an unnormalized TP input within 256 KiB or an evidenced CtrlRAM truncation input for CtrlRAM Replace.",
+            "Exact input requirements must be an unnormalized TP input within 256 KiB or an evidenced typed CtrlRAM truncation input.",
             nameof(requirement));
     }
 }

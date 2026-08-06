@@ -117,6 +117,63 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             });
     }
 
+    /// <summary>CtrlRAM lowering is selected by its closed semantic shape, not by workflow identity.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamSemanticPlanIsInvariantAcrossWorkflowIdentity()
+    {
+        RuntimeReferenceReplaceMapDocument[] maps =
+        [
+            new("single-map", 16, "single"),
+            new("cascade-map", 16, "cascade"),
+        ];
+        var topology = new TopologySelection(
+            3,
+            "cascade",
+            TopologySelectionSource.Requested,
+            "ic-number");
+        V2RuntimeReferenceReplaceCompileRequest request = RuntimeReferenceReplaceRequest(
+            sourceLength: 2,
+            mappings:
+            [RuntimeReferenceReplaceMapping("replace-tp-prefix", 10, new ByteRange(0, 2), new ByteRange(8, 2))]);
+        V2CompositionPlanCompileResult ctrlRamResult = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                mapDefinitions: maps),
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            topology,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            request);
+        V2CompositionPlanCompileResult alternateResult = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
+            CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.GeneralReplace,
+                mapDefinitions: maps,
+                usesCtrlRamSemantics: true),
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.GeneralReplace,
+            topology,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            request);
+
+        Assert.True(
+            ctrlRamResult.IsCompiled,
+            string.Join(Environment.NewLine, ctrlRamResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(
+            alternateResult.IsCompiled,
+            string.Join(Environment.NewLine, alternateResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        CompiledComposition ctrlRam = Assert.IsType<CompiledComposition>(ctrlRamResult.CompiledComposition);
+        CompiledComposition alternate = Assert.IsType<CompiledComposition>(alternateResult.CompiledComposition);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRam.ExperienceId);
+        Assert.Equal(ExperienceIds.GeneralReplace, alternate.ExperienceId);
+        AssertEquivalentRuntimeExecutionSemantics(ctrlRam, alternate);
+    }
+
     /// <summary>
     /// Reviewed postbuild section identities survive compiler lowering and
     /// therefore distinguish the exact compiled processor plan.
@@ -222,7 +279,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 includeProcessor: false,
                 experienceId: ExperienceIds.CtrlRamReplace));
 
-        Assert.Contains("CtrlRAM Replace requires one final Legacy Combiner stage", exception.Message);
+        Assert.Contains("closed user-defined source or fixed processor mapping shape", exception.Message);
     }
 
     /// <summary>Verifies General Replace cannot use the CtrlRAM-only topology disambiguation input.</summary>
@@ -405,7 +462,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string headerWriteConstraint = "explicit-range",
         string headerAccess = "hidden",
         string experienceId = ExperienceIds.GeneralReplace,
-        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null)
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null,
+        bool usesCtrlRamSemantics = false)
     {
         string familyJson = ConditionalRuntimeReferenceReplaceFamilyJson(
             headerWriteConstraint,
@@ -417,7 +475,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             includeProcessor,
             headerAccess,
             experienceId,
-            mapDefinitions?.Select(static map => map.MapId));
+            mapDefinitions?.Select(static map => map.MapId),
+            usesCtrlRamSemantics);
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(Source(
@@ -451,16 +510,24 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         bool includeProcessor,
         string headerAccess,
         string experienceId,
-        IEnumerable<string>? mapIds)
+        IEnumerable<string>? mapIds,
+        bool usesCtrlRamSemantics)
     {
+        string shapeExperienceId = usesCtrlRamSemantics
+            ? ExperienceIds.CtrlRamReplace
+            : experienceId;
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
             RuntimeReferenceReplaceTestDocuments.ProfileJson(
                 familyHash,
                 "compilable",
                 mapIds ?? ["map"],
-                experienceId)));
+                shapeExperienceId)));
+        profile["profileId"] = $"runtime-{experienceId}";
+        JsonObject experience = Assert.IsType<JsonObject>(profile["experience"]);
+        experience["experienceId"] = experienceId;
+        experience["displayNameKey"] = $"runtime-{experienceId}";
         profile["schemaVersion"] = "2.9";
-        if (StringComparer.Ordinal.Equals(experienceId, ExperienceIds.CtrlRamReplace))
+        if (StringComparer.Ordinal.Equals(shapeExperienceId, ExperienceIds.CtrlRamReplace))
         {
             JsonObject sourceSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
             Assert.IsType<JsonObject>(sourceSlot["acceptance"])["normalization"] = new JsonObject
@@ -513,7 +580,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 ["processorStageId"] = "tp-refresh",
                 ["kind"] = "legacy-combiner-v1",
                 ["toolBindingId"] = "legacy-combiner-1.13.0",
-                ["invocationProfileId"] = $"nfc.synthetic.{experienceId}",
+                ["invocationProfileId"] = $"nfc.synthetic.{shapeExperienceId}",
                 ["targetSpaceId"] = "output-image",
                 ["targetViewId"] = "processor-image",
                 ["authority"] = "transform",

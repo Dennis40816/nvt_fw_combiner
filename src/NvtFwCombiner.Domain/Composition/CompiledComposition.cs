@@ -23,7 +23,6 @@ public sealed partial class CompiledComposition
         ValidateV2InputRequirements(plan, identity.CompositionKind, identity.ExperienceId, identity.Details);
         ValidateV2Eligibility(
             identity.Details,
-            identity.ExperienceId,
             identity.CompositionKind,
             eligibility);
 
@@ -105,7 +104,6 @@ public sealed partial class CompiledComposition
         V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
         V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
         CompositionKind == CompositionKind.Merge &&
-        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
         V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
         V2Details.Provenance.Promotion.Blockers.Count != 0 &&
         V2Details.Provenance.Promotion.Blockers.All(static blocker =>
@@ -122,7 +120,6 @@ public sealed partial class CompiledComposition
          IsV2AbFunctionOpenCandidate) &&
         V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
         CompositionKind == CompositionKind.Merge &&
-        StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.AbMerge) &&
         V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
 
     /// <summary>Paired trusted profile-bundle provenance and compiled requirements.</summary>
@@ -287,7 +284,6 @@ public sealed partial class CompiledComposition
                 case CompiledExactBytesInputLengthRequirement exact:
                     ValidateExactBytesInputGeometry(
                         compositionKind,
-                        experienceId,
                         requirement,
                         exact,
                         addressSpace);
@@ -507,7 +503,6 @@ public sealed partial class CompiledComposition
 
     private static void ValidateV2Eligibility(
         V2CompiledCompositionDetails details,
-        string experienceId,
         CompositionKind compositionKind,
         CompiledCompositionEligibility eligibility)
     {
@@ -534,20 +529,12 @@ public sealed partial class CompiledComposition
                 nameof(details));
         }
 
-        bool hasExecutableOutputContract = output.InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
-            (output.RendererKind is
-                CompiledOutputNameRendererKind.Static or
-                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
-                CompiledOutputNameRendererKind.TpFirmwareV1 ||
-             (output.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
-              compositionKind == CompositionKind.Merge &&
-              StringComparer.Ordinal.Equals(experienceId, ExperienceIds.AbMerge)));
         if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
-            !hasExecutableOutputContract)
+            !output.AllowsRuntimeExecution(compositionKind))
         {
             throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its experience.",
+                "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its composition kind.",
                 nameof(details));
         }
     }

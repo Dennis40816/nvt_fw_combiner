@@ -4,6 +4,7 @@
 - Date: 2026-07-15
 - Amended: 2026-07-18 for the NT51926 processor-free DP runtime slice
 - Amended: 2026-07-29 for plan-only diagnostic Preview when required POSTBUILD is unavailable
+- Amended: 2026-08-07 to replace workflow-name semantics with closed profile and map semantics
 - Owners: Architecture owner + firmware owner
 - Amends: ADR 0015 and ADR 0019
 - Amended by: ADR 0023 and ADR 0024
@@ -26,11 +27,13 @@ engine boundary.
 
 ## Decision
 
-Add one map-bound `runtime-reference-replace` compilation context. General
-Replace is the first admitted experience. Schema 2.9 also admits a closed
-CtrlRAM Replace candidate shape after direct Postbuild evidence became
-available; that admission is compiler authority only and remains gated from
-runtime routing and support promotion.
+Add one map-bound `runtime-reference-replace` compilation context. Workflow
+identity is trusted selection and provenance data; it does not select compiler
+behavior. Schema 2.9 admits two closed semantic shapes. The first is a
+user-defined/extensible source shape. The second is a fixed processor shape
+whose typed CtrlRAM source and Postbuild authority require direct evidence.
+That admission is compiler authority only and remains gated from runtime
+routing and support promotion.
 
 This acceptance authorizes only request-scoped candidate compilation and
 Application admission. It does not register a built-in route, promote firmware
@@ -40,22 +43,24 @@ The declaration must contain exactly:
 
 - one required, exact resolved-map-capacity `reference-image` singleton that
   initializes the output clone;
-- one required, unnormalized, bounded `one-or-more` source slot with a
-  per-binding input template: `auxiliary` for General Replace or
-  `ctrlram-replacement` for CtrlRAM Replace;
+- one required, bounded `one-or-more` source slot with a per-binding input
+  template: either unnormalized `auxiliary`, or `ctrlram-replacement` with the
+  evidenced `truncate-ctrlram` normalization;
 - one resolved-map-capacity output image cloned from that reference;
-- no metadata bindings or validations; General Replace has no static byte
-  operations and may use only the schema-2.9 conditional processor shape,
-  while CtrlRAM Replace requires that one final processor shape; and
+- no metadata bindings or validations; the user-defined/extensible shape has
+  no static byte operations and may use only the schema-2.9 conditional
+  processor shape, while the fixed CtrlRAM source shape requires that one
+  final processor shape; and
 - explicit canonical region-access rules that cannot relax the resolved map's
   physical write constraints.
 
 A typed request supplies only concrete immutable source binding identities,
 exact source lengths, and ordered explicit `ReplaceRange` mappings. The exact
-singleton `reference-image` length selects the canonical map capacity. General
-Replace still rejects multiple maps at that capacity. A CtrlRAM request may
-add the profile-owned IC-number topology selection so the canonical resolver,
-rather than Bootstrap, selects one single/cascade map. The request has no
+singleton `reference-image` length selects the canonical map capacity. Multiple
+maps at that capacity require an explicit topology only when canonical map
+applicability declares typed topology requirements; the canonical resolver,
+rather than Bootstrap or a workflow-name branch, selects one single/cascade
+map. The request has no
 independent map-capacity override. It has no
 host paths, source bytes, commands, process arguments, decoded firmware facts,
 or caller-supplied mutable buffers. The compiler materializes those bindings,
@@ -71,16 +76,17 @@ profile has been selected for this V2 route.
 
 Application admits only the explicit `RuntimeReferenceReplaceV2CompilationContext`
 with promotion stage `executable-candidate`, a reference singleton, and one-or-more
-experience-owned per-binding sources. A generic resolved-map artifact cannot obtain this
+typed per-binding sources. A generic resolved-map artifact cannot obtain this
 admission from its input shape. This candidate admission is not a production route,
 UI catalog change, or support promotion.
 
-## CtrlRAM Replace Candidate Boundary
+## Typed CtrlRAM Source Candidate Boundary
 
-The CtrlRAM alternative is narrower than General Replace. Its experience is
-`fixed`/`fixed`; every typed mapping target must resolve to the deepest canonical
-physical region with `owner = tp` and `kind = ctrlram`; and the profile must
-declare exactly one final schema-2.9 Legacy Combiner stage. DP, Header, CRC,
+The typed CtrlRAM alternative is narrower than the user-defined source shape.
+It requires `fixed`/`fixed` authoring, a `ctrlram-replacement` source with
+`truncate-ctrlram`, and exactly one final schema-2.9 Legacy Combiner stage.
+Every typed mapping target must resolve to the deepest canonical physical region
+with `owner = tp` and `kind = ctrlram`. DP, Header, CRC,
 customer, reserved, and unknown regions never become CtrlRAM authoring targets.
 
 Each supplied physical CtrlRAM file is one immutable per-binding source. The
