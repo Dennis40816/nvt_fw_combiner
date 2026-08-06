@@ -89,7 +89,7 @@ The post-#208 integration point immediately before #254 compatibility deletion
 is commit `604199ab4a6bdb2f2da3f976851ce1c00b467bc8`, tree
 `35d83c477fff39f0fc11404f5dbcee7f007a3f4d`. It is retained as a reproducible
 comparison/rollback identity only. It is not a release tag and does not relax
-the `v0.10.3` completion or 22,607-line gates above. The later reviewed #254
+the `v0.10.3` completion or 44,000-line gates above. The later reviewed #254
 merge is included in the `v0.10.2` release scope.
 
 The original `0.9.17` certification and `0.9.18` family-model proposals were
@@ -213,7 +213,7 @@ and cannot re-admit a retired IC.
 | `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and canonical dependency-gated execution plan without changing firmware behavior or support truth. |
 | `v0.10.1` | Headless canonical foundation | Complete all 78 admitted headless routes, reviewed capability/per-compilation identity, allocated firmware contracts, and explicit retirements without claiming deferred UI, deletion, Core convergence, or support certification. |
 | `v0.10.2` | Canonical desktop adoption and first compatibility deletion | Adopt the canonical headless readiness/inspection and exact-compilation contracts in all six desktop workflows, extract the shallow shell and shared read-only Hex viewport, and delete the General/Saved Rule v1 owners through #254 without support promotion. |
-| `v0.10.3` | Complete canonical refactoring | Complete the remaining deferred UI adoption, Workbench/parallel-catalog deletion, four Canonical Core Convergence slices, and the hard 22,607-line integration gate before tagging. |
+| `v0.10.3` | Complete canonical refactoring | Complete the remaining deferred UI adoption, Workbench/parallel-catalog deletion, four Canonical Core Convergence slices, and the hard 44,000-line integration gate before tagging. |
 | `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
 | `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
 | `v0.10.6` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |

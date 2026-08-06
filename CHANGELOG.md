@@ -4,7 +4,13 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No unreleased changes.
+### Changed
+
+- Owner-approved code-size convergence now uses a 43,000-line engineering
+  allocation and 44,000-line hard final gate, both below the formal 45,214-line
+  `v0.9.16` baseline. The canonical verifier freezes exact descending ratchets
+  for all four ownership slices; #197 activates their final caps and the total
+  hard gate through the same verification path.
 
 ## [0.10.2] - 2026-08-04
 
@@ -19,8 +25,8 @@ read-only Hex viewport across Raw Hex Editor, Report Diff, and BIN Inspector,
 and deletes the superseded General/Saved Rule v1 production owners.
 
 This is a support-neutral checkpoint through #254. Remaining deferred UI,
-Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
-22,607-line integration gate move to `v0.10.3`.
+Workbench/parallel-catalog deletion, Canonical Core Convergence, and the revised
+44,000-line integration gate move to `v0.10.3`.
 
 ### Product changes
 
@@ -112,7 +118,7 @@ Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
   firmware-owner gates are approved.
 - Measured result: runtime production code moved from 76,633 lines at the
   post-#208 checkpoint to 75,638 lines at the reviewed #254 tree, a net deletion
-  of 995 lines. This does not claim the deferred 22,607-line integration gate.
+  of 995 lines. This does not claim the deferred 44,000-line integration gate.
 
 #### Deterministic verification and release identity
 
@@ -161,7 +167,7 @@ Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
   headless foundation is 29 of 29 (100%), and its weighted total is 72.4% at
   this release boundary.
 - Runtime production size is 75,638 nonblank lines. Workbench deletion and the
-  four Core Convergence slices remain necessary before the hard 22,607-line
+  four Core Convergence slices remain necessary before the hard 44,000-line
   `v0.10.3` integration gate can close.
 - Direct AB goldens remain missing for NT51919, NT51932, NT51950 Cascade, and
   NT51951. NT51928 remains `ContractOnly` without a complete project golden.

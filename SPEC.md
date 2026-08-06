@@ -1134,10 +1134,11 @@ to each `0.10.x` version.
 54. As a migration reviewer, I want every characterized behavior classified
     before it becomes a parity gate, so that known defects are not preserved as
     compatibility contracts and uncertain firmware behavior is not guessed.
-55. As a repository owner, I want non-UI/test production code reduced by at
-    least 50% by the end of the 0.10.x maintainability program, so that
-    duplicated owners and compatibility paths are actually deleted rather than
-    reorganized into equally large replacement modules.
+55. As a repository owner, I want non-UI/test production code reduced below
+    the formal 45,214-line `v0.9.16` baseline, with a 43,000-line engineering
+    allocation and 44,000-line hard final gate, so that duplicated owners and
+    compatibility paths are actually deleted rather than reorganized into
+    equally large replacement modules.
 56. As an NT51928 operator, I want one Standard Merge and one DP Replace
     capability to resolve either the shared `0x40000` no-LDC form or the
     `0x80000` LDC form, so container differences do not create duplicate
@@ -1912,11 +1913,11 @@ after the grill closes so issues do not become a competing draft specification.
     replacement owner. `EvidenceRequired` remains fail-closed and cannot
     authorize a firmware change. `ApprovedChange` records the accepted old/new
     behavior and tests the new contract.
-21. The non-UI/test production-code measurement, frozen baseline, 50% target,
-    and anti-gaming constraints are owned by
+21. The non-UI/test production-code measurement, frozen baseline, revised
+    below-baseline target, and anti-gaming constraints are owned by
     [`ADR 0021`](docs/adr/0021-code-size-ratchet-and-convergence.md).
     Ticket #171 must make that exact measurement executable through the existing
-    canonical verifier. The resulting 22,607-line limit is a hard final
+    canonical verifier. The resulting 44,000-line limit is a hard final
     `0.10.x` integration gate, not an aspirational report. Every migration slice
     records its production delta and deletes superseded ownership when its
     caller/evidence gate permits. After Workbench/parallel-catalog deletion and
@@ -1926,13 +1927,28 @@ after the grill closes so issues do not become a competing draft specification.
     + CLI, and Infrastructure + Contracts + CRC worker. Each slice declares its
     caller inventory, deletion list, tests, measured delta, and final budget;
     shared registries/schemas have one writer, and no slice mixes in new product
-    functionality or UI layout work. Their provisional hard caps are 10,500,
-    5,000, 2,000, and 4,500 lines respectively, for 22,000 allocated lines.
-    The remaining 607 lines are an unallocated integration reserve. Capacity
+    functionality or UI layout work. Their hard caps are 18,000, 12,000,
+    7,500, and 5,500 lines respectively, for 43,000 allocated lines. The
+    remaining 1,000 lines are an unallocated integration reserve. Capacity
     does not move between slices without owner-approved architecture review,
-    and no reallocation may raise the 22,607 final gate. Ticket #197 remains
+    and no reallocation may raise the 44,000 final gate. Ticket #197 remains
     blocked until the umbrella reaches that gate without weakening behavior,
     architecture, firmware, security, coverage, or release evidence.
+    Owner decision on 2026-08-06 records exact head
+    `d444040403dcea796636ee11839ee9c251de5c19`: Domain + Profiles
+    24,953 -> 18,000 (6,953 remaining), Application 23,671 -> 12,000
+    (11,671), Bootstrap + CLI 18,670 -> 7,500 (11,170), and
+    Infrastructure + Contracts + CRC worker 7,031 -> 5,500 (1,531).
+    The allocated total is 74,325 -> 43,000 (31,325); reaching the
+    44,000-line hard gate requires at least 30,325 lines of total reduction.
+    The canonical verifier freezes exact descending ratchets at total 74,325
+    and the four measured slice values above. A Core PR must lower every
+    affected ratchet in the same commit, so cross-slice relocation cannot pass.
+    The four slices must sum exactly to runtime total; an unallocated runtime
+    source root fails rather than creating a fifth ownership bucket.
+    Final-cap enforcement remains explicitly inactive while convergence is
+    incomplete; #197 activates it in the same verifier and then fails either a
+    total above 44,000 or any slice above its approved cap.
     Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
     is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
     Core-entry ratchets, cumulative positive counted growth is capped at 2,000
@@ -1945,7 +1961,7 @@ after the grill closes so issues do not become a competing draft specification.
     counted runtime lines. This consumes no reusable allowance, does not refill
     after deletion, and does not authorize any other pre-Core growth. #254 is
     the immediate next implementation ticket and records the superseded
-    General/Saved Rule reduction. The 22,607 final gate and 607-line
+    General/Saved Rule reduction. The 44,000 final gate and 1,000-line
     integration reserve remain unchanged.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
@@ -2058,7 +2074,7 @@ after the grill closes so issues do not become a competing draft specification.
     enables exact descending slice ratchets through `scripts/verify.py`. Every
     Core PR lowers each affected slice ratchet and the total; moving equivalent
     logic between slices cannot pass. Final integration enforces both four
-    maximum caps and total 22,607 through that same verifier, with no second
+    maximum caps and total 44,000 through that same verifier, with no second
     command or CI entry point.
 31. Documentation convergence removes boilerplate XML summaries that merely
     restate names and repeated comments on forwarding constructors/properties,
@@ -2124,7 +2140,7 @@ approved specification and consistency grill
   -> implement, review, verify, record production delta, and delete old ownership slice by slice
   -> delete Workbench/parallel catalogs and retire the legacy runtime
   -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
-  -> pass the 22,607-line #197 integration gate
+  -> pass the 44,000-line #197 integration gate
 ```
 
 Owner decision on 2026-08-04 allocates the reviewed state through #254 to
@@ -2132,7 +2148,7 @@ Owner decision on 2026-08-04 allocates the reviewed state through #254 to
 viewport, and first General/Saved Rule compatibility deletion form a stable,
 support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
-refactor and hard 22,607-line gate are complete. `v0.10.4` then performs a
+refactor and hard 44,000-line gate are complete. `v0.10.4` then performs a
 fresh simplification/ownership audit of that result; `v0.10.5` owns performance
 work that unifies every preload behind one observable, cancellable, bounded,
 and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
@@ -2188,7 +2204,7 @@ owner.
 Prerequisite vertical slices can establish the canonical runtime while leaving
 duplicate DTOs, validators, workflow services, fingerprints, caches, processor
 wrappers, Workbench projections, and implementation-shaped tests behind. That
-would preserve the current maintenance burden and miss the hard 22,607-line
+would preserve the current maintenance burden and miss the hard 44,000-line
 non-UI/test production gate even if every feature still works.
 
 Canonical Core Convergence must therefore delete superseded ownership after the
@@ -2213,8 +2229,9 @@ the final code-size constraint executable through the existing verifier.
    differential seams removed only after stable behavioral, golden, mutation,
    and architecture evidence replaces them.
 6. As the repository owner, I want the four Core slices and total production
-   metric to ratchet downward to the approved caps, so the 50% reduction is a
-   verified result rather than a reorganized duplicate architecture.
+   metric to ratchet downward to the approved caps, so the required reduction
+   below the formal pre-refactor baseline is verified rather than presented as
+   a reorganized duplicate architecture.
 
 #### Scope and explicit non-goals
 

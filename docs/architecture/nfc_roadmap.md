@@ -54,7 +54,7 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    compatibility deletion through #254 as a support-neutral stable checkpoint.
 3. `v0.10.3` completes the remaining approved refactoring graph through #197,
    including deferred UI, Workbench/parallel-catalog deletion, all four Core
-   Convergence slices, and the hard 22,607-line gate.
+   Convergence slices, and the hard 44,000-line gate.
 4. `v0.10.4` re-measures that result and audits whether any ownership or code
    can be removed or expressed more simply without weakening evidence.
 5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
