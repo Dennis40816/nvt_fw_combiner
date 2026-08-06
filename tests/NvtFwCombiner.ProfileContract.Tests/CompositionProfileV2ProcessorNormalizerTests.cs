@@ -13,7 +13,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
         CrcWorkerProfileProcessorStage stage = Assert.IsType<CrcWorkerProfileProcessorStage>(
             CompositionProfileNormalizer.NormalizeProcessorStage(CrcWorker()));
 
-        Assert.Equal(CompositionProfileProcessorKind.CrcWorkerV1, stage.Kind);
         Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
         Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
         Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
@@ -42,7 +41,6 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                     new CompositionProfileStagedArtifactBindingDocument("a-bank", "dp-source"),
                 ])));
 
-        Assert.Equal(CompositionProfileProcessorKind.LegacyCombinerV1, stage.Kind);
         Assert.Equal(CompositionProfileProcessorAuthority.Transform, stage.Authority);
         Assert.Equal(CompositionProfileProcessorPurpose.HeaderAndIntegrity, stage.Purpose);
         Assert.Equal(CompositionProfileIntegrityDisposition.RecalculateAndWrite, stage.IntegrityDisposition);

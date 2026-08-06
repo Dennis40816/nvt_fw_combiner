@@ -119,9 +119,9 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException("Profiles require at least two address spaces.", nameof(spaces));
         }
 
-        bool isRuntimeLowered = compilationContext.Kind is
-            CompositionProfileCompilationContextKind.LogicalOutput or
-            CompositionProfileCompilationContextKind.RuntimeReferenceReplace;
+        bool isRuntimeLowered = compilationContext is
+            LogicalOutputProfileCompilationContext or
+            RuntimeReferenceReplaceProfileCompilationContext;
         _views = SnapshotUnique(
             views,
             static view => view.ViewId,

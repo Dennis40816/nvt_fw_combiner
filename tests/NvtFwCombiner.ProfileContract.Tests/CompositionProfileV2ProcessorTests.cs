@@ -18,7 +18,6 @@ public sealed class CompositionProfileV2ProcessorTests
             reads);
         reads.Clear();
 
-        Assert.Equal(CompositionProfileProcessorKind.CrcWorkerV1, stage.Kind);
         Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
         Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
         Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);

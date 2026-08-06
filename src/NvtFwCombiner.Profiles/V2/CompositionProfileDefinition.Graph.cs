@@ -25,14 +25,14 @@ internal sealed partial class CompositionProfileDefinition
         ValidateInputPolicy();
         ValidateInputSelectionGroups(slots);
         ValidateSpaces(slots);
-        if (CompilationContext.Kind == CompositionProfileCompilationContextKind.LogicalOutput)
+        if (CompilationContext is LogicalOutputProfileCompilationContext)
         {
             ValidateLogicalOutputShape();
             ValidateOutputNaming(metadataBindings);
             return;
         }
 
-        if (CompilationContext.Kind == CompositionProfileCompilationContextKind.RuntimeReferenceReplace)
+        if (CompilationContext is RuntimeReferenceReplaceProfileCompilationContext)
         {
             ValidateRuntimeReferenceReplaceShape();
             ValidateViews(spaces);

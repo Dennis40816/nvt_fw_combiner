@@ -1,12 +1,5 @@
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed normalized processor stage kind.</summary>
-internal enum CompositionProfileProcessorKind
-{
-    CrcWorkerV1,
-    LegacyCombinerV1,
-}
-
 /// <summary>Closed processor purpose.</summary>
 internal enum CompositionProfileProcessorPurpose
 {
@@ -46,7 +39,6 @@ internal abstract class CompositionProfileProcessorStage
 
     protected CompositionProfileProcessorStage(
         string processorStageId,
-        CompositionProfileProcessorKind kind,
         string targetSpaceId,
         IEnumerable<string> allowedReadViewIds,
         IEnumerable<string> allowedWriteViewIds)
@@ -54,11 +46,6 @@ internal abstract class CompositionProfileProcessorStage
         ProcessorStageId = CompositionProfileValueRules.RequireId(
             processorStageId,
             nameof(processorStageId));
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown processor stage kind.");
-        }
-
         TargetSpaceId = CompositionProfileValueRules.RequireId(targetSpaceId, nameof(targetSpaceId));
         _allowedReadViewIds = CompositionProfileValueRules.SnapshotIds(
             allowedReadViewIds,
@@ -69,14 +56,11 @@ internal abstract class CompositionProfileProcessorStage
             nameof(allowedWriteViewIds),
             requireValue: false);
 
-        Kind = kind;
         AllowedReadViewIds = Array.AsReadOnly(_allowedReadViewIds);
         AllowedWriteViewIds = Array.AsReadOnly(_allowedWriteViewIds);
     }
 
     internal string ProcessorStageId { get; }
-
-    internal CompositionProfileProcessorKind Kind { get; }
 
     internal string TargetSpaceId { get; }
 
@@ -105,7 +89,6 @@ internal sealed class CrcWorkerProfileProcessorStage : CompositionProfileProcess
         IEnumerable<string> allowedReadViewIds)
         : base(
             processorStageId,
-            CompositionProfileProcessorKind.CrcWorkerV1,
             targetSpaceId,
             allowedReadViewIds,
             [])
@@ -181,7 +164,6 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         string? targetViewId = null)
         : base(
             processorStageId,
-            CompositionProfileProcessorKind.LegacyCombinerV1,
             targetSpaceId,
             allowedReadViewIds,
             RequireWrites(allowedWriteViewIds))
