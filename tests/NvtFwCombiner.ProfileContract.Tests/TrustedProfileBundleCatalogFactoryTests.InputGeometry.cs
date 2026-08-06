@@ -11,7 +11,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDerivesTpInputSpaceFromReferencedSourceSpan()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(SupportedProfileJson(familyHash), new ByteRange(0, 12)),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
 
@@ -32,7 +32,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDerivesTpInputSpaceFromAllResolvedSourceViews()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 4),
@@ -51,7 +51,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringAcceptsTpSourceSpanBelowLargerResolvedMapCapacity()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x30000)),
@@ -68,13 +68,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBoundsTpInputSourceSpanAt256KiB()
     {
-        V2CompositionPlanCompileResult exact = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult exact = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x40000)),
             FamilyJsonWithRootWriteConstraint("explicit-range", capacity: 0x40000),
             capacityBytes: 0x40000));
-        V2CompositionPlanCompileResult overflow = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult overflow = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x40001)),
@@ -91,7 +91,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringClonesWorkBufferFromExactTpInput()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(
                 ProfileWithExactTpInput(SupportedProfileJson(familyHash), 16),
                 cloneSourceSlotId: "tp-input")));
@@ -117,7 +117,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDefersNonTpExactInput()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithAuxiliaryExactInput(SupportedProfileJson(familyHash))));
 
         Assert.Null(result.CompiledComposition);
@@ -128,7 +128,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBindsNormalDpExtractionPolicy()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNormalDpExtraction(SupportedProfileJson(familyHash))));
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
@@ -150,7 +150,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBindsDeclaredNormalDpOuterContainerLengths()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNormalDpExtraction(
                 SupportedProfileJson(familyHash),
                 [0x80000, 0x200000])));
@@ -171,7 +171,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsNormalDpInputWithoutSourceRead()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNoTpSourceView(ProfileWithNormalDpExtraction(
                 SupportedProfileJson(familyHash))),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
@@ -190,7 +190,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string artifactClass,
         int requiredEndExclusive)
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithDeclaredPrefix(
                 SupportedProfileJson(familyHash),
                 role,
@@ -227,7 +227,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankOutputLoweringRejectsViewBeyondDeclaredPrefix()
     {
         const int requiredEndExclusive = 0x40000;
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithDeclaredPrefix(
                 SupportedProfileJson(familyHash),
                 "tp-a",
@@ -244,7 +244,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsTpInputWithoutResolvedSourceView()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNoTpSourceView(ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 12))),

@@ -31,6 +31,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         byte[] family = Encoding.UTF8.GetBytes(familyJson);
         string familyHash = Hash(family);
         string profileJson = TrustedV2BundleTestDocuments.ProfileJson(familyHash)
+            .Replace("\"experienceId\": \"display-merge\"", "\"experienceId\": \"standard\"", StringComparison.Ordinal)
             .Replace("\"artifactClass\": \"tp-firmware\"", "\"artifactClass\": \"reference-image\"", StringComparison.Ordinal)
             .Replace(
                 "\"lengthRule\": { \"kind\": \"tp-maximum-256k\", \"maximumBytes\": 262144 }",
@@ -85,18 +86,26 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         TrustedCompositionProfileCatalogEntry selection = Assert.IsType<TrustedCompositionProfileCatalogEntry>(
             catalog.SelectProfile("profile", "1.0.0", out IReadOnlyList<CompositionIssue> selectionIssues));
         Assert.Empty(selectionIssues);
-        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+        bool admitted = V2CompositionPreparationService.TryPrepare(
             catalog,
             selection,
-            new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, []));
+            new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, []),
+            out FirmwareMapResolutionResult? mapResolution,
+            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<CompositionIssue> preparationIssues);
 
-        Assert.True(preparation.IsAdmitted);
-        Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
-        Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
-        Assert.Same(profileEntry, preparation.ProfileEntry);
-        Assert.Equal("map", preparation.MapResolution?.ResolvedMap?.ImageMap.MapId);
-        Assert.Empty(preparation.CapabilityAdmissions);
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(preparation);
+        Assert.True(admitted);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, mapResolution?.Status);
+        Assert.Equal("map", mapResolution?.ResolvedMap?.ImageMap.MapId);
+        Assert.Empty(capabilityAdmissions);
+        Assert.Empty(preparationIssues);
+        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
+            catalog,
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard",
+            requestedMapCapacity: 16);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.True(compilation.IsCompiled);
         Assert.Empty(compilation.Issues);

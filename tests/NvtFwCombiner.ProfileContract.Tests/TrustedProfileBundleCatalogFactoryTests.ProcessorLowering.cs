@@ -11,7 +11,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void SyntheticArtifactBindingModelLowersLegacyCombinerStage()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithLegacyCombinerStage(SupportedProfileJson(familyHash))));
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
@@ -34,7 +34,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void SyntheticArtifactBindingModelRejectsMutableStagedSource()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithLegacyCombinerStage(SupportedProfileJson(familyHash), mutableStagedSource: true)));
 
         Assert.Null(result.CompiledComposition);
@@ -45,7 +45,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void SyntheticArtifactBindingModelRejectsCrcWorkerExecution()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithCrcWorkerStage(SupportedProfileJson(familyHash))));
 
         Assert.Null(result.CompiledComposition);

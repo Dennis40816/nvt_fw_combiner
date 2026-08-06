@@ -15,13 +15,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("class CompositionProfileMapAdmissionResult", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("sealed class CompositionProfileMapAdmission", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("class AdmittedCapabilityEvidence", profiles, StringComparison.Ordinal);
-        Assert.Contains("IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions", preparation, StringComparison.Ordinal);
+        Assert.Contains("out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions", preparation, StringComparison.Ordinal);
         Assert.DoesNotContain("new CompiledCapabilityAdmission", lowering, StringComparison.Ordinal);
-        Assert.Equal(
-            1,
-            profiles.Split(
-                "V2CompositionPreparationResult.Admitted(",
-                StringSplitOptions.None).Length - 1);
         Assert.Equal(
             1,
             profiles.Split(

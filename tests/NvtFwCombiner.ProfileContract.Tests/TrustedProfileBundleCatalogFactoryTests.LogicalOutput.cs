@@ -10,7 +10,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsRuntimeRequestCapacityWithoutLogicalOutputRoute()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(familyHash =>
+        PreparedProfile preparation = PrepareSupportedBlankCopy(familyHash =>
         {
             JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(SupportedProfileJson(familyHash)));
             profile["schemaVersion"] = "2.3";
@@ -21,7 +21,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             return profile.ToJsonString();
         });
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);

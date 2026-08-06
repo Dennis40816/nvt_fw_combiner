@@ -59,7 +59,6 @@ internal sealed class V2CompositionPlanCompileResult
 /// <summary>Profiles-owned lowering slice for admitted V2 Merge and reference-clone Replace declarations.</summary>
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string PreparationNotAdmitted = "profile.v2.plan.preparation-not-admitted";
     private const string UnsupportedDeclaration = "profile.v2.plan.unsupported-declaration";
     private const string InvalidView = "profile.v2.plan.invalid-view";
     private const string InvalidInputGeometry = "profile.v2.plan.invalid-input-geometry";
@@ -72,20 +71,18 @@ internal static partial class V2CompositionPlanCompiler
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
     /// <summary>Lowers the closed V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
-    internal static V2CompositionPlanCompileResult Compile(
-        V2CompositionPreparationResult preparation,
+    private static V2CompositionPlanCompileResult CompileAdmittedCore(
+        ProfileBundleIdentity bundleIdentity,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
-        ArgumentNullException.ThrowIfNull(preparation);
-        if (!preparation.IsAdmitted || preparation.BundleIdentity is null ||
-            preparation.ProfileEntry is null ||
-            preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
-        {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(PreparationNotAdmitted, "V2 plan lowering requires an admitted trusted preparation.")]);
-        }
-
-        CompositionProfileDefinition profile = preparation.ProfileEntry.Profile;
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
+        ArgumentNullException.ThrowIfNull(profileEntry);
+        ArgumentNullException.ThrowIfNull(resolvedMap);
+        ArgumentNullException.ThrowIfNull(capabilityAdmissions);
+        CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
         ValidateSupportedProfile(profile, issues);
         if (issues.Count != 0)
@@ -105,7 +102,7 @@ internal static partial class V2CompositionPlanCompiler
 
         Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
             profile,
-            preparation.ProfileEntry.Family.Family,
+            profileEntry.Family.Family,
             resolvedMap,
             issues,
             inputSelection.ActiveSlotIds);
@@ -164,8 +161,8 @@ internal static partial class V2CompositionPlanCompiler
             operations);
         return Succeed(
             profile,
-            preparation.BundleIdentity,
-            preparation.ProfileEntry.EntryIdentity,
+            bundleIdentity,
+            profileEntry.EntryIdentity,
             new ResolvedMapV2CompilationContext(resolvedMap),
             plan,
             profile.InputSlots
@@ -180,7 +177,7 @@ internal static partial class V2CompositionPlanCompiler
                 .Select(MapInputSpaceBinding),
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.CapabilityAdmissions,
+            capabilityAdmissions,
             runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements: LowerInputValidations(profile, views),
             inputSelectionGroups: inputSelection.Groups);

@@ -183,7 +183,7 @@ internal static class TrustedV2CompositionCompiler
                 "The selected trusted V2 profile must identify a canonical image map for the requested runtime reference-replace capacity and topology.");
         }
 
-        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+        bool isAdmitted = V2CompositionPlanCompiler.TryCompileRuntimeReferenceReplaceAdmitted(
             catalog,
             profileEntry,
             new FirmwareMapResolutionInputs(
@@ -191,11 +191,14 @@ internal static class TrustedV2CompositionCompiler
                 experienceId,
                 referenceBindings[0].ExactLengthBytes,
                 requestedTopology,
-                artifactSnapshots));
-        return preparation.IsAdmitted
-            ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplace(preparation, request)
+                artifactSnapshots),
+            request,
+            out V2CompositionPlanCompileResult? compilation,
+            out IReadOnlyList<CompositionIssue> preparationIssues);
+        return isAdmitted
+            ? compilation!
             : Failed(
-                preparation.Issues,
+                preparationIssues,
                 PreparationNotAdmitted,
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
     }
@@ -338,7 +341,7 @@ internal static class TrustedV2CompositionCompiler
                     : "The selected trusted V2 profile must identify exactly one canonical image map for the requested capacity.");
         }
 
-        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
+        bool isAdmitted = V2CompositionPlanCompiler.TryCompileAdmitted(
             catalog,
             selectedProfile,
             new FirmwareMapResolutionInputs(
@@ -346,11 +349,14 @@ internal static class TrustedV2CompositionCompiler
                 modeId,
                 mapCandidates[0].CapacityBytes,
                 requestedTopology,
-                resolutionArtifacts));
-        return preparation.IsAdmitted
-            ? V2CompositionPlanCompiler.Compile(preparation, selectedInputSlotIds)
+                resolutionArtifacts),
+            selectedInputSlotIds,
+            out V2CompositionPlanCompileResult? compilation,
+            out IReadOnlyList<CompositionIssue> preparationIssues);
+        return isAdmitted
+            ? compilation!
             : Failed(
-                preparation.Issues,
+                preparationIssues,
                 PreparationNotAdmitted,
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
     }

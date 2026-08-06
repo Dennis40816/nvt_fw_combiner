@@ -5,6 +5,36 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
+    /// <summary>Atomically admits and lowers one exact catalog-owned map-bound profile.</summary>
+    internal static bool TryCompileAdmitted(
+        TrustedProfileBundleCatalog catalog,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        FirmwareMapResolutionInputs resolutionInputs,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        out V2CompositionPlanCompileResult? compilation,
+        out IReadOnlyList<CompositionIssue> issues)
+    {
+        compilation = null;
+        if (!V2CompositionPreparationService.TryPrepare(
+                catalog,
+                profileEntry,
+                resolutionInputs,
+                out FirmwareMapResolutionResult? mapResolution,
+                out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+                out issues))
+        {
+            return false;
+        }
+
+        compilation = CompileAdmittedCore(
+            catalog.BundleIdentity,
+            profileEntry,
+            mapResolution!.ResolvedMap!,
+            capabilityAdmissions,
+            selectedInputSlotIds);
+        return true;
+    }
+
     private static Dictionary<string, AddressSpace> LowerAddressSpaces(
         CompositionProfileDefinition profile,
         FirmwareFamilyResolutionDefinition family,

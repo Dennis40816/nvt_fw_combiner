@@ -12,7 +12,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringBuildsOneV2PlanWithTrustedProvenance()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy());
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy());
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
 
         Assert.True(result.IsCompiled);
@@ -71,15 +71,15 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringMintsRuntimeArtifactOnlyForSupportedTokenFreeProfile()
     {
-        V2CompositionPlanCompileResult runtime = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult runtime = Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash)));
-        V2CompositionPlanCompileResult candidate = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult candidate = Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash, "executable-candidate")));
-        V2CompositionPlanCompileResult tokenized = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult tokenized = Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash, "supported", tokenizedOutput: true)));
-        V2CompositionPlanCompileResult overridable = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult overridable = Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash, "supported", allowOutputOverride: true)));
-        V2CompositionPlanCompileResult replacementPolicy = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult replacementPolicy = Compile(PrepareSupportedBlankCopy(
             familyHash => RuntimeSupportedProfileJson(familyHash, "supported", invalidCharacterPolicy: "replace-underscore")));
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.CompiledComposition?.Eligibility);
@@ -98,10 +98,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [InlineData(17, false)]
     public void BlankCopyLoweringChecksMapRegionSliceBounds(int length, bool expectedSuccess)
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(
+        PreparedProfile preparation = PrepareSupportedBlankCopy(
             familyHash => ProfileWithSourceSlice(SupportedProfileJson(familyHash), length));
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         Assert.Equal(expectedSuccess, result.IsCompiled);
         if (expectedSuccess)
@@ -119,10 +119,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsUnsupportedReplaceOperationWithoutAnArtifact()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
+        PreparedProfile preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
             .Replace("\"kind\": \"copy-range\"", "\"kind\": \"replace-range\"", StringComparison.Ordinal));
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);
@@ -133,10 +133,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsNonRejectOverlapPolicyWithoutAnArtifact()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
+        PreparedProfile preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
             .Replace("\"overlapPolicy\": \"reject\"", "\"overlapPolicy\": \"allow-declared\"", StringComparison.Ordinal));
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);
@@ -147,10 +147,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsPromotionBelowCompilable()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
+        PreparedProfile preparation = PrepareSupportedBlankCopy(familyHash => SupportedProfileJson(familyHash)
             .Replace("\"stage\": \"compilable\"", "\"stage\": \"authorable\"", StringComparison.Ordinal));
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         Assert.False(result.IsCompiled);
         Assert.Null(result.CompiledComposition);
@@ -161,7 +161,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsReadOnlyTargetWithoutAnArtifact()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => SupportedProfileJson(familyHash, access: "read-only"),
                 FamilyJsonWithRootWriteConstraint("whole-region")));
@@ -177,7 +177,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsTargetWithoutDeclaredAccess()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => SupportedProfileJson(familyHash, access: null),
                 FamilyJsonWithRootWriteConstraint("whole-region")));
@@ -190,7 +190,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsWholeAccessOverForbiddenPhysicalRegion()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => SupportedProfileJson(familyHash, access: "whole"),
                 TrustedV2BundleTestDocuments.FamilyJson()));
@@ -205,7 +205,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsChildTargetWhenParentRuleIsReadOnly()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithParentAndChildRules(SupportedProfileJson(familyHash), "read-only"),
                 FamilyJsonWithSplitRoot("declared-subregions")));
@@ -220,7 +220,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsChildTargetWhenParentConstraintIsForbidden()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithTargetSlice(
                     SupportedProfileJson(familyHash, access: "parts"),
@@ -240,7 +240,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringAcceptsDeclaredDirectPart()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash, access: "parts"), 0, 8, "parts", ["left"]),
                 FamilyJsonWithSplitRoot("declared-subregions")));
@@ -261,7 +261,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [InlineData("unknown", "profile.v2.plan.invalid-region-access")]
     public void BlankCopyLoweringRejectsNonMatchingPartsDeclaration(string allowedSubregionId, string issueCode)
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithTargetSlice(
                     SupportedProfileJson(familyHash, access: "parts"),
@@ -279,7 +279,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRejectsPartialWholeRegionTarget()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash), 0, 15, "whole"),
                 FamilyJsonWithRootWriteConstraint("whole-region")));
@@ -294,7 +294,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [InlineData(1, 4, false)]
     public void BlankCopyLoweringChecksExplicitRangeAlignment(int start, int length, bool expectedSuccess)
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult result = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithTargetSlice(SupportedProfileJson(familyHash, access: "explicit-range"), start, length, "explicit-range"),
                 FamilyJsonWithRootWriteConstraint("explicit-range", alignment: 4)));
@@ -310,11 +310,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringFingerprintsReadOnlySourceAccess()
     {
-        V2CompositionPlanCompileResult readOnly = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult readOnly = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithSplitSourceAndTarget(SupportedProfileJson(familyHash), "read-only"),
                 FamilyJsonWithSplitRoot("explicit-range")));
-        V2CompositionPlanCompileResult hidden = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult hidden = Compile(
             PrepareSupportedBlankCopy(
                 familyHash => ProfileWithSplitSourceAndTarget(SupportedProfileJson(familyHash), "hidden"),
                 FamilyJsonWithSplitRoot("explicit-range")));
@@ -330,11 +330,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRetainsDirectCapabilityAdmission()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(
+        PreparedProfile preparation = PrepareSupportedBlankCopy(
             familyHash => ProfileRequiringCapability(SupportedProfileJson(familyHash)),
             FamilyJsonWithDirectCapability());
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         CompiledCapabilityAdmission capability = Assert.Single(
             Assert.IsType<V2CompiledCompositionDetails>(result.CompiledComposition!.V2Details)
@@ -350,11 +350,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankCopyLoweringRetainsAliasedCapabilityAdmission()
     {
-        V2CompositionPreparationResult preparation = PrepareSupportedBlankCopy(
+        PreparedProfile preparation = PrepareSupportedBlankCopy(
             familyHash => ProfileRequiringCapability(SupportedProfileJson(familyHash)),
             FamilyJsonWithAliasedCapability());
 
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(preparation);
+        V2CompositionPlanCompileResult result = Compile(preparation);
 
         CompiledCapabilityAdmission capability = Assert.Single(
             Assert.IsType<V2CompiledCompositionDetails>(result.CompiledComposition!.V2Details)
@@ -369,7 +369,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Same(Assert.Single(preparation.CapabilityAdmissions).Binding, capability.Binding);
     }
 
-    private static V2CompositionPreparationResult PrepareSupportedBlankCopy(
+    private static PreparedProfile PrepareSupportedBlankCopy(
         Func<string, string>? profileJsonFactory = null,
         string? familyJson = null,
         long capacityBytes = 16)
@@ -379,17 +379,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string profileJson = (profileJsonFactory ?? (hash => SupportedProfileJson(hash)))(familyHash);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
-        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
-            catalog,
-            selection,
-            Inputs(capacityBytes));
-        Assert.True(
-            preparation.IsAdmitted,
-            string.Join(
-                Environment.NewLine,
-                preparation.Issues.Select(static issue =>
-                    $"{issue.Code}: {issue.Message}")));
-        return preparation;
+        return PrepareAdmitted(catalog, selection, Inputs(capacityBytes));
     }
 
     private static string SupportedProfileJson(string familyHash, string? access = "whole")

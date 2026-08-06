@@ -5,7 +5,6 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string RuntimeReferencePreparationNotAdmitted = "profile.v2.runtime-reference-replace.preparation-not-admitted";
     private const string RuntimeReferenceProfileShapeInvalid = "profile.v2.runtime-reference-replace.profile-shape-invalid";
     private const string RuntimeReferenceBindingInvalid = "profile.v2.runtime-reference-replace.binding-invalid";
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
@@ -16,24 +15,50 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
     private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
 
-    /// <summary>Lowers one admitted map-bound runtime reference Replace request through the shared plan algebra.</summary>
-    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
-        V2CompositionPreparationResult preparation,
-        V2RuntimeReferenceReplaceCompileRequest request)
+    /// <summary>Atomically admits and lowers one exact catalog-owned runtime reference Replace request.</summary>
+    internal static bool TryCompileRuntimeReferenceReplaceAdmitted(
+        TrustedProfileBundleCatalog catalog,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        FirmwareMapResolutionInputs resolutionInputs,
+        V2RuntimeReferenceReplaceCompileRequest request,
+        out V2CompositionPlanCompileResult? compilation,
+        out IReadOnlyList<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(preparation);
-        ArgumentNullException.ThrowIfNull(request);
-        if (!preparation.IsAdmitted || preparation.BundleIdentity is null ||
-            preparation.ProfileEntry is null ||
-            preparation.MapResolution?.ResolvedMap is not { } resolvedMap)
+        compilation = null;
+        if (!V2CompositionPreparationService.TryPrepare(
+                catalog,
+                profileEntry,
+                resolutionInputs,
+                out FirmwareMapResolutionResult? mapResolution,
+                out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+                out issues))
         {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(
-                    RuntimeReferencePreparationNotAdmitted,
-                    "Runtime reference-replace plan lowering requires an admitted trusted preparation.")]);
+            return false;
         }
 
-        CompositionProfileDefinition profile = preparation.ProfileEntry.Profile;
+        compilation = CompileRuntimeReferenceReplaceAdmittedCore(
+            catalog.BundleIdentity,
+            profileEntry,
+            mapResolution!.ResolvedMap!,
+            capabilityAdmissions,
+            request);
+        return true;
+    }
+
+    /// <summary>Lowers one admitted map-bound runtime reference Replace request through the shared plan algebra.</summary>
+    private static V2CompositionPlanCompileResult CompileRuntimeReferenceReplaceAdmittedCore(
+        ProfileBundleIdentity bundleIdentity,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+        V2RuntimeReferenceReplaceCompileRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
+        ArgumentNullException.ThrowIfNull(profileEntry);
+        ArgumentNullException.ThrowIfNull(resolvedMap);
+        ArgumentNullException.ThrowIfNull(capabilityAdmissions);
+        ArgumentNullException.ThrowIfNull(request);
+        CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
         if (!IsRuntimeReferenceReplaceProfile(profile))
         {
@@ -200,8 +225,8 @@ internal static partial class V2CompositionPlanCompiler
             ];
         return Succeed(
             profile,
-            preparation.BundleIdentity,
-            preparation.ProfileEntry.EntryIdentity,
+            bundleIdentity,
+            profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
                 ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
@@ -217,7 +242,7 @@ internal static partial class V2CompositionPlanCompiler
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
             CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.CapabilityAdmissions,
+            capabilityAdmissions,
             additionalValidationRequirements:
             [
                 .. inputValidations,
