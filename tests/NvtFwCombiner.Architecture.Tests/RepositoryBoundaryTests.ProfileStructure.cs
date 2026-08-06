@@ -18,6 +18,10 @@ public sealed partial class RepositoryBoundaryTests
             "NormalDpExtractWithWarning",
             ReadDomainSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TpMaximum256KLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>

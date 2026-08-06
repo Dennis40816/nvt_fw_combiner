@@ -5,6 +5,8 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileNormalizer
 {
+    private const long LegacyTpMaximumBytes = 262144;
+
     internal static CompositionProfileInputSlot NormalizeInputSlot(
         CompositionProfileInputSlotDocument document,
         string schemaVersion = "2.10",
@@ -123,7 +125,7 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static TpMaximum256KLengthRule NormalizeTpMaximum(
+    private static SourceViewCoverageLengthRule NormalizeTpMaximum(
         CompositionProfileLengthRuleDocument document,
         string path)
     {
@@ -132,11 +134,11 @@ internal static partial class CompositionProfileNormalizer
             1,
             long.MaxValue,
             $"{path}.maximumBytes");
-        return maximum == TpMaximum256KLengthRule.MaximumBytes
-            ? new TpMaximum256KLengthRule()
+        return maximum == LegacyTpMaximumBytes
+            ? new SourceViewCoverageLengthRule(maximumOuterLength: maximum)
             : throw Error(
                 $"{path}.maximumBytes",
-                $"TP maximum must be {TpMaximum256KLengthRule.MaximumBytes} bytes.");
+                $"TP maximum must be {LegacyTpMaximumBytes} bytes.");
     }
 
     private static long[]? NormalizeExpectedInputLengths(
