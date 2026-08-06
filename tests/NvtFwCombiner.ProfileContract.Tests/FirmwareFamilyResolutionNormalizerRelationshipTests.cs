@@ -61,6 +61,36 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             normalizedMap.RegionSetBindings[1].Value);
     }
 
+    /// <summary>One relationship's member uniqueness is translated from its Domain constructor.</summary>
+    [Fact]
+    public void NormalizeTranslatesPerfectFamilyDuplicateMemberInvariant()
+    {
+        FirmwareFamilyDocument source = Document(includePredicate: false);
+        FirmwareFamilyDocument document = source with
+        {
+            Members =
+            [
+                new FirmwareFamilyMemberDocument("NT00001", "Synthetic IC 1"),
+                new FirmwareFamilyMemberDocument("NT00002", "Synthetic IC 2"),
+            ],
+            FamilyRelationships =
+            [
+                new FirmwarePerfectFamilyRelationshipDocument(
+                    "synthetic-perfect-family",
+                    ["NT00001", "NT00001"],
+                    "Owner-confirmed synthetic equality.",
+                    ["perfect-evidence"]),
+            ],
+        };
+
+        FirmwareFamilyNormalizationException exception =
+            Assert.Throws<FirmwareFamilyNormalizationException>(() =>
+                FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
+
+        Assert.Equal("familyRelationships[0]", exception.Path);
+        Assert.Contains("ordinally unique", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>A perfect-like member cannot add a member-only semantic map.</summary>
     [Fact]
     public void NormalizeRejectsPerfectLikeMemberMapOverride()
@@ -163,7 +193,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
                 FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
 
-        Assert.Equal("familyRelationships[0].sharedFactReferences[0].factId", exception.Path);
+        Assert.Equal("familyRelationships[0]", exception.Path);
     }
 
     /// <summary>Equal but separately declared regions are not one canonical shared fact.</summary>
@@ -178,8 +208,8 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
                 FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
 
-        Assert.Equal("familyRelationships[0].sharedFactReferences[0].factId", exception.Path);
-        Assert.Contains("does not reuse one canonical region", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("familyRelationships[0]", exception.Path);
+        Assert.Contains("must reuse one exact canonical value", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Readable role changes do not alter canonical map or fact resolution.</summary>
@@ -285,8 +315,8 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                         ],
                     },
                     FamilyHash));
-        Assert.Equal("familyRelationships[0].applicability.mapIds", incomplete.Path);
-        Assert.Contains("NT00002", incomplete.Message, StringComparison.Ordinal);
+        Assert.Equal("familyRelationships[0]", incomplete.Path);
+        Assert.Contains("cover every relationship member", incomplete.Message, StringComparison.Ordinal);
     }
 
     /// <summary>A typed reference cannot resolve an identifier through the wrong fact kind.</summary>
