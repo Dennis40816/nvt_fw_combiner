@@ -201,7 +201,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool IsDpReplacePayloadInputSource(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation)
+        CompositionOperationDefinition operation)
     {
         string sourceSpaceId = profile.Views.Single(view =>
             StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
@@ -216,7 +216,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool TryAuthorizeDpReplacePayloadTarget(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation,
+        CompositionOperationDefinition operation,
         ResolvedView target,
         List<CompositionIssue> issues)
     {

@@ -11,7 +11,7 @@ internal sealed partial class CompositionProfileDefinition
     private readonly CompositionProfileView[] _views;
     private readonly CompositionProfileMetadataBinding[] _metadataBindings;
     private readonly CompositionProfileRegionAccess[] _regionAccessRules;
-    private readonly CompositionProfileOperation[] _operations;
+    private readonly CompositionOperationDefinition[] _operations;
     private readonly ValidationRequirementDefinition[] _validations;
     private readonly CompositionProfileProcessorStage[] _processorStages;
     private readonly string[] _evidenceRefs;
@@ -28,7 +28,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileView> views,
         IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
         IEnumerable<CompositionProfileRegionAccess> regionAccessRules,
-        IEnumerable<CompositionProfileOperation> operations,
+        IEnumerable<CompositionOperationDefinition> operations,
         IEnumerable<ValidationRequirementDefinition> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompiledOutputNamingRequirement output,
@@ -190,7 +190,7 @@ internal sealed partial class CompositionProfileDefinition
 
     internal IReadOnlyList<CompositionProfileRegionAccess> RegionAccessRules { get; }
 
-    internal IReadOnlyList<CompositionProfileOperation> Operations { get; }
+    internal IReadOnlyList<CompositionOperationDefinition> Operations { get; }
 
     internal IReadOnlyList<ValidationRequirementDefinition> Validations { get; }
 
@@ -219,8 +219,8 @@ internal sealed partial class CompositionProfileDefinition
     }
 
     private static int CompareOperations(
-        CompositionProfileOperation left,
-        CompositionProfileOperation right)
+        CompositionOperationDefinition left,
+        CompositionOperationDefinition right)
     {
         int sequenceComparison = left.Sequence.CompareTo(right.Sequence);
         return sequenceComparison != 0

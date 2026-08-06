@@ -29,9 +29,9 @@ public sealed class CompositionProfileV2DefinitionTests
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
         var slots = parts.InputSlots.ToList();
-        var operations = new List<CompositionProfileOperation>
+        var operations = new List<CompositionOperationDefinition>
         {
-            new FillRangeProfileOperation(
+            CompositionOperationDefinition.FillRange(
                 "fill-target", 2, OverlapPolicy.ReplaceExisting, "Fill target.", "target-view", 0xFF),
             parts.Operations[0],
         };
@@ -64,7 +64,7 @@ public sealed class CompositionProfileV2DefinitionTests
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { InputSlots = [parts.InputSlots[0], parts.InputSlots[0]] }));
 
-        var duplicateSequence = new FillRangeProfileOperation(
+        var duplicateSequence = CompositionOperationDefinition.FillRange(
             "fill-target", 0, OverlapPolicy.ReplaceExisting, "Fill target.", "target-view", 0xFF);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], duplicateSequence] }));

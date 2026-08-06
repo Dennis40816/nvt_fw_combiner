@@ -79,13 +79,13 @@ public sealed class CompositionProfileV2DefinitionGraphTests
     public void DefinitionRejectsInvalidOperationViewGraph()
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var unknownSource = new CopyOrReplaceProfileOperation(
+        var unknownSource = CompositionOperationDefinition.CopyOrReplace(
             "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.CopyRange,
             "unknown-view", "target-view");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [unknownSource] }));
 
-        var immutableTarget = new FillRangeProfileOperation(
+        var immutableTarget = CompositionOperationDefinition.FillRange(
             "fill-source", 0, OverlapPolicy.Reject, "fill", "source-view", 0);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [immutableTarget] }));
@@ -134,12 +134,12 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { ProcessorStages = [stage] }));
 
-        var unknownRun = new RunProcessorProfileOperation(
+        var unknownRun = CompositionOperationDefinition.RunProcessor(
             "postbuild", 1, OverlapPolicy.ReplaceExisting, "postbuild", "unknown-stage");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], unknownRun] }));
 
-        var run = new RunProcessorProfileOperation(
+        var run = CompositionOperationDefinition.RunProcessor(
             "postbuild", 1, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
         var wrongAuthority = new LegacyCombinerProfileProcessorStage(
             "legacy-postbuild",
@@ -177,7 +177,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             "display-crc",
             "source",
             ["source-view"]);
-        var runCrc = new RunProcessorProfileOperation(
+        var runCrc = CompositionOperationDefinition.RunProcessor(
             "verify-crc", 1, OverlapPolicy.Reject, "Verify source CRC.", "crc-check");
         CompositionProfileDefinition calculateInput = CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], runCrc], ProcessorStages = [crc] });
