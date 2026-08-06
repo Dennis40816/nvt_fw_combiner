@@ -31,7 +31,7 @@ internal sealed partial class CompositionProfileDefinition
             StringComparer.Ordinal.Equals(
                 Output.RuleId,
                 CompiledOutputNamingRequirement.NormalFlashCodeV1RuleId) &&
-            Output.OutputArtifactType == CompositionProfileOutputArtifactType.FlashCode &&
+            Output.OutputArtifactType == CompiledOutputArtifactType.FlashCode &&
             StringComparer.Ordinal.Equals(
                 Output.FileNameTemplate,
                 CompiledOutputNamingRequirement.NormalFlashCodeV1Template);
@@ -39,7 +39,7 @@ internal sealed partial class CompositionProfileDefinition
             StringComparer.Ordinal.Equals(
                 Output.RuleId,
                 CompiledOutputNamingRequirement.TpFirmwareV1RuleId) &&
-            Output.OutputArtifactType == CompositionProfileOutputArtifactType.TpFirmware &&
+            Output.OutputArtifactType == CompiledOutputArtifactType.TpFirmware &&
             StringComparer.Ordinal.Equals(
                 Output.FileNameTemplate,
                 CompiledOutputNamingRequirement.TpFirmwareV1Template);
@@ -73,25 +73,25 @@ internal sealed partial class CompositionProfileDefinition
         CompositionProfileOutputTokenRequirement requirement,
         bool isNormalFlashCode)
     {
-        (CompositionProfileOutputTokenSourceKind expectedSource,
-            CompositionProfileOutputTokenMissingPolicy expectedMissing,
+        (CompiledOutputTokenSourceKind expectedSource,
+            CompiledOutputTokenMissingPolicy expectedMissing,
             string? expectedPlaceholder) = requirement.TokenId switch
             {
                 "date" => (
-                    CompositionProfileOutputTokenSourceKind.RunDateUtc,
-                    CompositionProfileOutputTokenMissingPolicy.Block,
+                    CompiledOutputTokenSourceKind.RunDateUtc,
+                    CompiledOutputTokenMissingPolicy.Block,
                     null),
                 "ic" => (
-                    CompositionProfileOutputTokenSourceKind.CompiledIc,
-                    CompositionProfileOutputTokenMissingPolicy.Block,
+                    CompiledOutputTokenSourceKind.CompiledIc,
+                    CompiledOutputTokenMissingPolicy.Block,
                     null),
                 "dp-version" when isNormalFlashCode => (
-                    CompositionProfileOutputTokenSourceKind.DpcmiVersion,
-                    CompositionProfileOutputTokenMissingPolicy.UsePlaceholder,
+                    CompiledOutputTokenSourceKind.DpcmiVersion,
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
                     "xxxx"),
                 "tp-version" => (
-                    CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion,
-                    CompositionProfileOutputTokenMissingPolicy.UsePlaceholder,
+                    CompiledOutputTokenSourceKind.FirmwareConfigTpVersion,
+                    CompiledOutputTokenMissingPolicy.UsePlaceholder,
                     "xxxx"),
                 _ => throw new ArgumentException(
                     $"Output token '{requirement.TokenId}' is not valid for the selected naming rule."),
@@ -113,11 +113,16 @@ internal sealed partial class CompositionProfileDefinition
     {
         string? expectedStructureId = requirement.SourceKind switch
         {
-            CompositionProfileOutputTokenSourceKind.DpcmiVersion => "dpcmi",
-            CompositionProfileOutputTokenSourceKind.FirmwareConfigTpVersion =>
+            CompiledOutputTokenSourceKind.DpcmiVersion => "dpcmi",
+            CompiledOutputTokenSourceKind.FirmwareConfigTpVersion =>
                 "firmware-config-general-parameters",
-            CompositionProfileOutputTokenSourceKind.CompiledIc or
-                CompositionProfileOutputTokenSourceKind.RunDateUtc => null,
+            CompiledOutputTokenSourceKind.CompiledIc or
+                CompiledOutputTokenSourceKind.RunDateUtc => null,
+            CompiledOutputTokenSourceKind.Unspecified =>
+                throw new ArgumentOutOfRangeException(
+                    nameof(requirement),
+                    requirement.SourceKind,
+                    "Typed output tokens cannot have an unspecified source kind."),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(requirement),
                 requirement.SourceKind,

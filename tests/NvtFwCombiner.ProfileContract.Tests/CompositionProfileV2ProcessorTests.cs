@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -133,23 +134,23 @@ public sealed class CompositionProfileV2ProcessorTests
         var output = new CompositionProfileOutput(
             "{original-name}_{version}.bin",
             allowOverride: false,
-            CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore,
+            CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
             tokens);
         tokens.Clear();
 
         Assert.Equal("{original-name}_{version}.bin", output.FileNameTemplate);
         Assert.False(output.AllowOverride);
-        Assert.Equal(CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore, output.InvalidCharacterPolicy);
+        Assert.Equal(CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore, output.InvalidCharacterPolicy);
         Assert.Equal(["original-name", "version"], output.RequiredTokenIds);
         _ = Assert.Throws<ArgumentException>(() => new CompositionProfileOutput(
             "name.bin",
             false,
-            CompositionProfileInvalidCharacterPolicy.Reject,
+            CompiledOutputInvalidCharacterPolicy.Reject,
             ["Version"]));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileOutput(
             "name.bin",
             false,
-            (CompositionProfileInvalidCharacterPolicy)99,
+            (CompiledOutputInvalidCharacterPolicy)99,
             []));
     }
 

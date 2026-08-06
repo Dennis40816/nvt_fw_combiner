@@ -68,7 +68,7 @@ internal static class CompositionProfileV2DefinitionTestData
             new CompositionProfileOutput(
                 "{original-name}_merged.bin",
                 false,
-                CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore,
+                CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
                 ["original-name"]),
             ["profile-evidence"]);
     }
