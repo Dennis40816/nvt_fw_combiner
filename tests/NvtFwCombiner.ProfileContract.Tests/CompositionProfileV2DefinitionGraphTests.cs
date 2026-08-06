@@ -96,31 +96,31 @@ public sealed class CompositionProfileV2DefinitionGraphTests
     public void DefinitionRejectsInvalidValidationGraph()
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var unknownBinding = new PidSanityProfileValidation(
+        var unknownBinding = new CompiledPidSanityValidation(
             "pid-valid",
             CompiledValidationStage.InputLoad,
             CompiledValidationSeverity.Error,
             "PID_INVALID",
-            new CompositionProfileMetadataFieldReference("unknown", "pid"));
+            new CompiledValidationFieldReference("unknown", "pid"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unknownBinding] }));
 
-        var unselectedField = new PidSanityProfileValidation(
+        var unselectedField = new CompiledPidSanityValidation(
             "pid-valid",
             CompiledValidationStage.InputLoad,
             CompiledValidationSeverity.Error,
             "PID_INVALID",
-            new CompositionProfileMetadataFieldReference("fwconfig", "chip-number"));
+            new CompiledValidationFieldReference("fwconfig", "chip-number"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unselectedField] }));
 
-        var unknownView = new ViewByteAssertionProfileValidation(
+        var unknownView = new CompiledViewByteAssertionValidation(
             "header-valid",
             CompiledValidationStage.FinalOutput,
             CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "unknown-view",
-            new CompositionProfileByteValue([0]));
+            new CompiledValidationBytes([0]));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unknownView] }));
     }

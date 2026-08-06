@@ -57,7 +57,7 @@ internal static partial class CompositionProfileNormalizer
             document.Operations,
             "operations",
             (operation, path) => NormalizeOperation(operation, path, document.SchemaVersion));
-        CompositionProfileValidation[] validations = NormalizeList(
+        ValidationRequirementDefinition[] validations = NormalizeList(
             document.Validations,
             "validations",
             NormalizeValidation);

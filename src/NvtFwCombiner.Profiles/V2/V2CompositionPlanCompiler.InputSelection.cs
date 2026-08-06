@@ -127,8 +127,8 @@ internal static partial class V2CompositionPlanCompiler
             AddReferencedViews(operation, activeViewIds);
         }
 
-        foreach (NonUniformRegionProfileValidation validation in profile.Validations
-                     .OfType<NonUniformRegionProfileValidation>())
+        foreach (SourceViewNonUniformValidationDefinition validation in profile.Validations
+                     .OfType<SourceViewNonUniformValidationDefinition>())
         {
             CompositionProfileView view = views[validation.ViewId];
             if (!inactiveInputSpaces.Contains(view.SpaceId) &&
@@ -240,7 +240,7 @@ internal static partial class V2CompositionPlanCompiler
         return
         [
             .. profile.Validations
-                .OfType<NonUniformRegionProfileValidation>()
+                .OfType<SourceViewNonUniformValidationDefinition>()
                 .Where(validation => views.ContainsKey(validation.ViewId))
                 .Select(validation =>
                 {

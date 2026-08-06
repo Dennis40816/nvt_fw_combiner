@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileNormalizer
 {
-    internal static CompositionProfileValidation NormalizeValidation(
+    internal static ValidationRequirementDefinition NormalizeValidation(
         CompositionProfileValidationDocument document,
         string path = "validations[0]")
     {
@@ -21,22 +21,24 @@ internal static partial class CompositionProfileNormalizer
         return document.Kind switch
         {
             "metadata-value" => NormalizeMetadataValue(document, stage, severity, path),
-            "pid-sanity" => Wrap(path, () => new PidSanityProfileValidation(
-                document.RuleId,
-                stage,
-                severity,
-                document.IssueCode,
-                NormalizeFieldReference(document.Field, $"{path}.field"))),
-            "metadata-equality" => Wrap(path, () => new MetadataEqualityProfileValidation(
-                document.RuleId,
-                stage,
-                severity,
-                document.IssueCode,
-                NormalizeFieldReference(document.Left, $"{path}.left"),
-                NormalizeFieldReference(document.Right, $"{path}.right"))),
+            "pid-sanity" => Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
+                new CompiledPidSanityValidation(
+                    document.RuleId,
+                    stage,
+                    severity,
+                    document.IssueCode,
+                    NormalizeFieldReference(document.Field, $"{path}.field")))),
+            "metadata-equality" => Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
+                new CompiledMetadataEqualityValidation(
+                    document.RuleId,
+                    stage,
+                    severity,
+                    document.IssueCode,
+                    NormalizeFieldReference(document.Left, $"{path}.left"),
+                    NormalizeFieldReference(document.Right, $"{path}.right")))),
             "reject-metadata-byte-pattern" => NormalizeRejectedPatterns(document, stage, severity, path),
             "view-byte-assertion" => NormalizeViewAssertion(document, stage, severity, path),
-            "non-uniform-region" => Wrap(path, () => new NonUniformRegionProfileValidation(
+            "non-uniform-region" => Wrap(path, () => new SourceViewNonUniformValidationDefinition(
                 document.RuleId,
                 stage,
                 severity,
@@ -46,7 +48,7 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static MetadataValueProfileValidation NormalizeMetadataValue(
+    private static CompiledMetadataValueValidation NormalizeMetadataValue(
         CompositionProfileValidationDocument document,
         CompiledValidationStage stage,
         CompiledValidationSeverity severity,
@@ -55,7 +57,7 @@ internal static partial class CompositionProfileNormalizer
         IReadOnlyList<JsonElement> valueDocuments = RequireList(
             document.ExpectedValues,
             $"{path}.expectedValues");
-        var expectedValues = new CompositionProfileScalarLiteral[valueDocuments.Count];
+        var expectedValues = new CompiledValidationScalarLiteral[valueDocuments.Count];
         for (int index = 0; index < valueDocuments.Count; index++)
         {
             expectedValues[index] = NormalizeScalarLiteral(
@@ -63,19 +65,20 @@ internal static partial class CompositionProfileNormalizer
                 $"{path}.expectedValues[{index}]");
         }
 
-        return Wrap(path, () => new MetadataValueProfileValidation(
-            document.RuleId,
-            stage,
-            severity,
-            document.IssueCode,
-            NormalizeFieldReference(document.Field, $"{path}.field"),
-            NormalizeMetadataComparison(
-                RequireText(document.Operator, $"{path}.operator", "Metadata comparison is missing."),
-                $"{path}.operator"),
-            expectedValues));
+        return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
+            new CompiledMetadataValueValidation(
+                document.RuleId,
+                stage,
+                severity,
+                document.IssueCode,
+                NormalizeFieldReference(document.Field, $"{path}.field"),
+                NormalizeMetadataComparison(
+                    RequireText(document.Operator, $"{path}.operator", "Metadata comparison is missing."),
+                    $"{path}.operator"),
+                expectedValues)));
     }
 
-    private static RejectMetadataBytePatternProfileValidation NormalizeRejectedPatterns(
+    private static CompiledRejectMetadataBytePatternValidation NormalizeRejectedPatterns(
         CompositionProfileValidationDocument document,
         CompiledValidationStage stage,
         CompiledValidationSeverity severity,
@@ -92,53 +95,56 @@ internal static partial class CompositionProfileNormalizer
                 $"{path}.rejectedPatterns[{index}]");
         }
 
-        return Wrap(path, () => new RejectMetadataBytePatternProfileValidation(
-            document.RuleId,
-            stage,
-            severity,
-            document.IssueCode,
-            NormalizeFieldReference(document.Field, $"{path}.field"),
-            patterns));
+        return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
+            new CompiledRejectMetadataBytePatternValidation(
+                document.RuleId,
+                stage,
+                severity,
+                document.IssueCode,
+                NormalizeFieldReference(document.Field, $"{path}.field"),
+                patterns)));
     }
 
-    private static ViewByteAssertionProfileValidation NormalizeViewAssertion(
+    private static CompiledViewByteAssertionValidation NormalizeViewAssertion(
         CompositionProfileValidationDocument document,
         CompiledValidationStage stage,
         CompiledValidationSeverity severity,
         string path)
     {
-        CompositionProfileByteValue expected = ReadBytes(
+        CompiledValidationBytes expected = new(ReadBytes(
             RequireText(document.ExpectedHex, $"{path}.expectedHex", "Expected bytes are missing."),
-            $"{path}.expectedHex");
-        CompositionProfileByteValue? mask = document.MaskHex is { } maskHex
-            ? ReadBytes(maskHex, $"{path}.maskHex")
+            $"{path}.expectedHex").Bytes);
+        CompiledValidationBytes? mask = document.MaskHex is { } maskHex
+            ? new CompiledValidationBytes(ReadBytes(maskHex, $"{path}.maskHex").Bytes)
             : null;
-        return Wrap(path, () => new ViewByteAssertionProfileValidation(
-            document.RuleId,
-            stage,
-            severity,
-            document.IssueCode,
-            RequireText(document.ViewId, $"{path}.viewId", "Assertion view is missing."),
-            expected,
-            mask));
+        return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
+            new CompiledViewByteAssertionValidation(
+                document.RuleId,
+                stage,
+                severity,
+                document.IssueCode,
+                RequireText(document.ViewId, $"{path}.viewId", "Assertion view is missing."),
+                expected,
+                mask)));
     }
 
-    private static CompositionProfileMetadataFieldReference NormalizeFieldReference(
+    private static CompiledValidationFieldReference NormalizeFieldReference(
         CompositionProfileMetadataFieldReferenceDocument? document,
         string path)
     {
         CompositionProfileMetadataFieldReferenceDocument value = document ?? throw Error(
             path,
             "Metadata field reference is missing.");
-        return Wrap(path, () => new CompositionProfileMetadataFieldReference(value.BindingId, value.FieldId));
+        return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileField(
+            new CompiledValidationFieldReference(value.BindingId, value.FieldId)));
     }
 
-    private static CompositionProfileScalarLiteral NormalizeScalarLiteral(JsonElement value, string path)
+    private static CompiledValidationScalarLiteral NormalizeScalarLiteral(JsonElement value, string path)
     {
         return value.ValueKind == JsonValueKind.Number
-            ? new CompositionProfileIntegerLiteral(ReadInteger(value, path))
+            ? new CompiledValidationIntegerLiteral(ReadInteger(value, path))
             : value.ValueKind == JsonValueKind.String
-                ? Wrap(path, () => new CompositionProfileTextLiteral(ReadString(value, path)))
+                ? Wrap(path, () => new CompiledValidationTextLiteral(ReadString(value, path)))
                 : throw Error(path, "Metadata scalar must be an integer or non-empty string.");
     }
 

@@ -12,7 +12,7 @@ internal sealed partial class CompositionProfileDefinition
     private readonly CompositionProfileMetadataBinding[] _metadataBindings;
     private readonly CompositionProfileRegionAccess[] _regionAccessRules;
     private readonly CompositionProfileOperation[] _operations;
-    private readonly CompositionProfileValidation[] _validations;
+    private readonly ValidationRequirementDefinition[] _validations;
     private readonly CompositionProfileProcessorStage[] _processorStages;
     private readonly string[] _evidenceRefs;
 
@@ -30,7 +30,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
         IEnumerable<CompositionProfileRegionAccess> regionAccessRules,
         IEnumerable<CompositionProfileOperation> operations,
-        IEnumerable<CompositionProfileValidation> validations,
+        IEnumerable<ValidationRequirementDefinition> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
@@ -71,7 +71,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
         IEnumerable<CompositionProfileRegionAccess> regionAccessRules,
         IEnumerable<CompositionProfileOperation> operations,
-        IEnumerable<CompositionProfileValidation> validations,
+        IEnumerable<ValidationRequirementDefinition> validations,
         IEnumerable<CompositionProfileProcessorStage> processorStages,
         CompiledOutputNamingRequirement output,
         IEnumerable<string> evidenceRefs,
@@ -224,7 +224,7 @@ internal sealed partial class CompositionProfileDefinition
 
     internal IReadOnlyList<CompositionProfileOperation> Operations { get; }
 
-    internal IReadOnlyList<CompositionProfileValidation> Validations { get; }
+    internal IReadOnlyList<ValidationRequirementDefinition> Validations { get; }
 
     internal IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages { get; }
 

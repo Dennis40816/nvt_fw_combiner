@@ -17,7 +17,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     IReadOnlyList<CompositionProfileMetadataBinding> MetadataBindings,
     IReadOnlyList<CompositionProfileRegionAccess> RegionAccessRules,
     IReadOnlyList<CompositionProfileOperation> Operations,
-    IReadOnlyList<CompositionProfileValidation> Validations,
+    IReadOnlyList<ValidationRequirementDefinition> Validations,
     IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages,
     CompiledOutputNamingRequirement Output,
     IReadOnlyList<string> EvidenceRefs);
@@ -60,10 +60,10 @@ internal static class CompositionProfileV2DefinitionTestData
             [new CopyOrReplaceProfileOperation(
                 "copy-code", 0, OverlapPolicy.Reject, "Copy source code.",
                 CompositionProfileOperationKind.CopyRange, "source-view", "target-view")],
-            [new PidSanityProfileValidation(
+            [new CompiledPidSanityValidation(
                 "pid-valid", CompiledValidationStage.InputLoad,
                 CompiledValidationSeverity.Error, "PID_INVALID",
-                new CompositionProfileMetadataFieldReference("fwconfig", "pid"))],
+                new CompiledValidationFieldReference("fwconfig", "pid"))],
             [],
             new CompiledOutputNamingRequirement(
                 "{original-name}_merged.bin",

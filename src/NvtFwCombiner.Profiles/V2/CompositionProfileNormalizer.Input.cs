@@ -88,7 +88,7 @@ internal static partial class CompositionProfileNormalizer
             "normal-dp-extract-with-warning" => Wrap(path, () =>
                 new SourceViewCoverageInputLengthDefinition(
                     NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"),
-                    InputPolicyValueRules.RequireIssueCode(
+                    CanonicalPolicyValueRules.RequireIssueCode(
                         document.IssueCode ?? throw Error(
                             $"{path}.issueCode",
                             "Warning issue code is missing."),
@@ -100,7 +100,7 @@ internal static partial class CompositionProfileNormalizer
                         document.ExpectedOuterLengths,
                         $"{path}.expectedOuterLengths"),
                     document.UnexpectedOuterLengthIssueCode is { } issueCode
-                        ? InputPolicyValueRules.RequireIssueCode(issueCode, nameof(document.UnexpectedOuterLengthIssueCode))
+                        ? CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(document.UnexpectedOuterLengthIssueCode))
                         : null)),
             "source-view-coverage" => throw Error(
                 $"{path}.kind",
@@ -117,12 +117,12 @@ internal static partial class CompositionProfileNormalizer
                         $"{path}.expectedOuterLengths") ?? throw Error(
                             $"{path}.expectedOuterLengths",
                             "Expected outer lengths are missing."),
-                    InputPolicyValueRules.RequireIssueCode(
+                    CanonicalPolicyValueRules.RequireIssueCode(
                         document.ShortInputIssueCode ?? throw Error(
                             $"{path}.shortInputIssueCode",
                             "Short-input issue code is missing."),
                         nameof(document.ShortInputIssueCode)),
-                    InputPolicyValueRules.RequireIssueCode(
+                    CanonicalPolicyValueRules.RequireIssueCode(
                         document.UnexpectedOuterLengthIssueCode ?? throw Error(
                             $"{path}.unexpectedOuterLengthIssueCode",
                             "Unexpected outer-length issue code is missing."),
@@ -179,18 +179,18 @@ internal static partial class CompositionProfileNormalizer
                 ReadByte(
                     Require(document.FillByte, $"{path}.fillByte"),
                     $"{path}.fillByte"),
-                InputPolicyValueRules.RequireCanonicalId(
+                CanonicalPolicyValueRules.RequireCanonicalId(
                     document.EvidenceRef ?? throw Error(
                         $"{path}.evidenceRef",
                         "Evidence reference is missing."),
                     nameof(document.EvidenceRef)))),
             "truncate-ctrlram" => Wrap(path, () => new CompiledTruncateCtrlRamInputNormalization(
-                InputPolicyValueRules.RequireIssueCode(
+                CanonicalPolicyValueRules.RequireIssueCode(
                     document.WarningIssueCode ?? throw Error(
                         $"{path}.warningIssueCode",
                         "Warning issue code is missing."),
                     nameof(document.WarningIssueCode)),
-                InputPolicyValueRules.RequireCanonicalId(
+                CanonicalPolicyValueRules.RequireCanonicalId(
                     document.EvidenceRef ?? throw Error(
                         $"{path}.evidenceRef",
                         "Evidence reference is missing."),

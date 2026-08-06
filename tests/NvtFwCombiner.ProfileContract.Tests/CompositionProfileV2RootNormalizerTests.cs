@@ -27,7 +27,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal(2, definition.Spaces.Count);
         Assert.Equal(2, definition.Views.Count);
         _ = Assert.IsType<CopyOrReplaceProfileOperation>(Assert.Single(definition.Operations));
-        _ = Assert.IsType<PidSanityProfileValidation>(Assert.Single(definition.Validations));
+        _ = Assert.IsType<CompiledPidSanityValidation>(Assert.Single(definition.Validations));
         Assert.Empty(definition.ProcessorStages);
         Assert.Equal(["profile-evidence"], definition.EvidenceRefs);
     }

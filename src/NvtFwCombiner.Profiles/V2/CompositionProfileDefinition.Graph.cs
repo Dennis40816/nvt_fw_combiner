@@ -494,27 +494,32 @@ internal sealed partial class CompositionProfileDefinition
         IReadOnlyDictionary<string, CompositionProfileView> views,
         IReadOnlyDictionary<string, CompositionProfileMetadataBinding> metadataBindings)
     {
-        foreach (CompositionProfileValidation validation in _validations)
+        foreach (ValidationRequirementDefinition validation in _validations)
         {
+            if (validation is CompiledValidationRequirement compiled)
+            {
+                _ = CanonicalValidationDefinitionRules.RequireProfileDefinition(compiled);
+            }
+
             switch (validation)
             {
-                case MetadataValueProfileValidation metadataValue:
+                case CompiledMetadataValueValidation metadataValue:
                     ValidateFieldReference(metadataValue.Field, metadataBindings);
                     break;
-                case PidSanityProfileValidation pid:
+                case CompiledPidSanityValidation pid:
                     ValidateFieldReference(pid.Field, metadataBindings);
                     break;
-                case MetadataEqualityProfileValidation equality:
+                case CompiledMetadataEqualityValidation equality:
                     ValidateFieldReference(equality.Left, metadataBindings);
                     ValidateFieldReference(equality.Right, metadataBindings);
                     break;
-                case RejectMetadataBytePatternProfileValidation rejected:
+                case CompiledRejectMetadataBytePatternValidation rejected:
                     ValidateFieldReference(rejected.Field, metadataBindings);
                     break;
-                case ViewByteAssertionProfileValidation assertion:
+                case CompiledViewByteAssertionValidation assertion:
                     _ = RequireReference(views, assertion.ViewId, "Validation references an unknown view.");
                     break;
-                case NonUniformRegionProfileValidation nonUniform:
+                case SourceViewNonUniformValidationDefinition nonUniform:
                     _ = RequireReference(views, nonUniform.ViewId, "Validation references an unknown view.");
                     break;
                 default:
@@ -524,7 +529,7 @@ internal sealed partial class CompositionProfileDefinition
     }
 
     private static void ValidateFieldReference(
-        CompositionProfileMetadataFieldReference field,
+        CompiledValidationFieldReference field,
         IReadOnlyDictionary<string, CompositionProfileMetadataBinding> bindings)
     {
         CompositionProfileMetadataBinding binding = RequireReference(
