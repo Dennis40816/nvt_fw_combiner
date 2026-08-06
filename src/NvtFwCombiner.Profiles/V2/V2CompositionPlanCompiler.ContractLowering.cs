@@ -71,7 +71,7 @@ internal static partial class V2CompositionPlanCompiler
         IEnumerable<CompiledInputSpaceBinding> inputBindings,
         CompiledRegionAccessContract regionAccess,
         CompiledIcNumberPolicy icNumberPolicy,
-        CompositionProfileMapAdmission? admission = null,
+        IEnumerable<CompiledCapabilityAdmission>? capabilityAdmissions = null,
         bool runtimeExecutable = false,
         IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
         IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)
@@ -83,9 +83,7 @@ internal static partial class V2CompositionPlanCompiler
             profile.Promotion,
             profile.EvidenceRefs,
             additionalValidationRequirements ?? [],
-            admission?.RequiredCapabilities.Select(static capability => new CompiledCapabilityAdmission(
-                capability.RequiredCapabilityId,
-                capability.Binding)) ?? []);
+            capabilityAdmissions ?? []);
         var identity = new V2CompiledCompositionIdentity(
             profile.ProfileId,
             profile.ProfileVersion,

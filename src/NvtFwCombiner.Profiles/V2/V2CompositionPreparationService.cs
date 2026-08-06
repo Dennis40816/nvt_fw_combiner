@@ -38,13 +38,15 @@ internal enum V2CompositionPreparationStatus
 internal sealed class V2CompositionPreparationResult
 {
     private const string SelectionStale = "profile.v2.selection.stale";
+    private readonly CompiledCapabilityAdmission[] _capabilityAdmissions;
     private readonly CompositionIssue[] _issues;
 
     private V2CompositionPreparationResult(
         V2CompositionPreparationStatus status,
         TrustedProfileBundleCatalog.ProfileSelection? selection,
+        TrustedCompositionProfileCatalogEntry? profileEntry,
         FirmwareMapResolutionResult? mapResolution,
-        CompositionProfileMapAdmission? admission,
+        IEnumerable<CompiledCapabilityAdmission> capabilityAdmissions,
         IEnumerable<CompositionIssue> issues)
     {
         if (!Enum.IsDefined(status))
@@ -52,6 +54,19 @@ internal sealed class V2CompositionPreparationResult
             throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown V2 composition preparation status.");
         }
 
+        _capabilityAdmissions = ImmutableReferenceSnapshot.Create(
+            capabilityAdmissions,
+            "Preparation capability admissions cannot contain null.");
+        if (_capabilityAdmissions.Select(static admission => admission.RequiredCapabilityId)
+                .Distinct(StringComparer.Ordinal).Count() != _capabilityAdmissions.Length)
+        {
+            throw new ArgumentException(
+                "Preparation capability admissions must be unique by required capability id.",
+                nameof(capabilityAdmissions));
+        }
+
+        Array.Sort(_capabilityAdmissions, static (left, right) =>
+            StringComparer.Ordinal.Compare(left.RequiredCapabilityId, right.RequiredCapabilityId));
         _issues = ImmutableReferenceSnapshot.Create(issues, "Preparation issues cannot contain null.");
 
         Array.Sort(_issues, static (left, right) =>
@@ -67,11 +82,18 @@ internal sealed class V2CompositionPreparationResult
                 ? message
                 : StringComparer.Ordinal.Compare(left.OperationId, right.OperationId);
         });
-        ValidatePayload(status, selection, mapResolution, admission, _issues);
+        ValidatePayload(
+            status,
+            selection,
+            profileEntry,
+            mapResolution,
+            _capabilityAdmissions,
+            _issues);
         Status = status;
         Selection = selection;
+        ProfileEntry = profileEntry;
         MapResolution = mapResolution;
-        Admission = admission;
+        CapabilityAdmissions = Array.AsReadOnly(_capabilityAdmissions);
         Issues = Array.AsReadOnly(_issues);
     }
 
@@ -81,11 +103,14 @@ internal sealed class V2CompositionPreparationResult
     /// <summary>Exact selection retained once catalog identity was accepted; otherwise null.</summary>
     internal TrustedProfileBundleCatalog.ProfileSelection? Selection { get; }
 
+    /// <summary>Exact selected normalized profile and family retained only after map admission.</summary>
+    internal TrustedCompositionProfileCatalogEntry? ProfileEntry { get; }
+
     /// <summary>Unchanged Domain resolver outcome after selection acceptance; otherwise null.</summary>
     internal FirmwareMapResolutionResult? MapResolution { get; }
 
-    /// <summary>Existing admitted physical/profile context only for an admitted preparation.</summary>
-    internal CompositionProfileMapAdmission? Admission { get; }
+    /// <summary>Domain-owned confirmed-present capability admissions retained after map admission.</summary>
+    internal IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions { get; }
 
     /// <summary>Selection or admission errors; map pending/rejection remains in the typed resolver result.</summary>
     internal IReadOnlyList<CompositionIssue> Issues { get; }
@@ -98,8 +123,9 @@ internal sealed class V2CompositionPreparationResult
         return new V2CompositionPreparationResult(
             V2CompositionPreparationStatus.SelectionRejected,
             selection: null,
+            profileEntry: null,
             mapResolution: null,
-            admission: null,
+            capabilityAdmissions: [],
             [new CompositionIssue(SelectionStale, "The selected trusted profile no longer belongs to this catalog.")]);
     }
 
@@ -110,8 +136,9 @@ internal sealed class V2CompositionPreparationResult
         return new V2CompositionPreparationResult(
             V2CompositionPreparationStatus.MapPending,
             selection,
+            profileEntry: null,
             mapResolution,
-            admission: null,
+            capabilityAdmissions: [],
             []);
     }
 
@@ -122,8 +149,9 @@ internal sealed class V2CompositionPreparationResult
         return new V2CompositionPreparationResult(
             V2CompositionPreparationStatus.MapRejected,
             selection,
+            profileEntry: null,
             mapResolution,
-            admission: null,
+            capabilityAdmissions: [],
             []);
     }
 
@@ -135,47 +163,69 @@ internal sealed class V2CompositionPreparationResult
         return new V2CompositionPreparationResult(
             V2CompositionPreparationStatus.AdmissionRejected,
             selection,
+            profileEntry: null,
             mapResolution,
-            admission: null,
+            capabilityAdmissions: [],
             issues);
     }
 
     internal static V2CompositionPreparationResult Admitted(
         TrustedProfileBundleCatalog.ProfileSelection selection,
+        TrustedCompositionProfileCatalogEntry profileEntry,
         FirmwareMapResolutionResult mapResolution,
-        CompositionProfileMapAdmission admission)
+        IEnumerable<CompiledCapabilityAdmission> capabilityAdmissions)
     {
         return new V2CompositionPreparationResult(
             V2CompositionPreparationStatus.Admitted,
             selection,
+            profileEntry,
             mapResolution,
-            admission,
+            capabilityAdmissions,
             []);
     }
 
     private static void ValidatePayload(
         V2CompositionPreparationStatus status,
         TrustedProfileBundleCatalog.ProfileSelection? selection,
+        TrustedCompositionProfileCatalogEntry? profileEntry,
         FirmwareMapResolutionResult? mapResolution,
-        CompositionProfileMapAdmission? admission,
+        CompiledCapabilityAdmission[] capabilityAdmissions,
         CompositionIssue[] issues)
     {
+        bool selectionMatchesEntry = selection is not null && profileEntry is not null &&
+            StringComparer.Ordinal.Equals(
+                selection.ProfileEntryIdentity.EntryId,
+                profileEntry.Identity.EntryId) &&
+            StringComparer.Ordinal.Equals(
+                selection.ProfileEntryIdentity.ContentHash,
+                profileEntry.Identity.ContentHash) &&
+            StringComparer.Ordinal.Equals(selection.ProfileId, profileEntry.Profile.ProfileId) &&
+            StringComparer.Ordinal.Equals(selection.ProfileVersion, profileEntry.Profile.ProfileVersion);
+        bool capabilitiesMatchProfile = profileEntry is not null &&
+            profileEntry.Profile.MapBinding.RequiredCapabilityIds.SequenceEqual(
+                capabilityAdmissions.Select(static admission => admission.RequiredCapabilityId),
+                StringComparer.Ordinal);
         bool valid = status switch
         {
             V2CompositionPreparationStatus.SelectionRejected =>
-                selection is null && mapResolution is null && admission is null && issues.Length == 1,
+                selection is null && profileEntry is null && mapResolution is null &&
+                capabilityAdmissions.Length == 0 && issues.Length == 1,
             V2CompositionPreparationStatus.MapPending =>
-                selection is not null && mapResolution?.Status == FirmwareMapResolutionStatus.Pending && admission is null && issues.Length == 0,
+                selection is not null && profileEntry is null &&
+                mapResolution?.Status == FirmwareMapResolutionStatus.Pending &&
+                capabilityAdmissions.Length == 0 && issues.Length == 0,
             V2CompositionPreparationStatus.MapRejected =>
-                selection is not null && mapResolution?.Status == FirmwareMapResolutionStatus.Rejected && admission is null && issues.Length == 0,
+                selection is not null && profileEntry is null &&
+                mapResolution?.Status == FirmwareMapResolutionStatus.Rejected &&
+                capabilityAdmissions.Length == 0 && issues.Length == 0,
             V2CompositionPreparationStatus.AdmissionRejected =>
-                selection is not null && mapResolution?.Status == FirmwareMapResolutionStatus.Unique && admission is null && issues.Length != 0,
+                selection is not null && profileEntry is null &&
+                mapResolution?.Status == FirmwareMapResolutionStatus.Unique &&
+                capabilityAdmissions.Length == 0 && issues.Length != 0,
             V2CompositionPreparationStatus.Admitted =>
-                selection is not null &&
-                mapResolution is { Status: FirmwareMapResolutionStatus.Unique, ResolvedMap: { } resolvedMap } &&
-                admission is not null &&
-                ReferenceEquals(resolvedMap, admission.ResolvedMap) &&
-                issues.Length == 0,
+                selectionMatchesEntry &&
+                mapResolution is { Status: FirmwareMapResolutionStatus.Unique, ResolvedMap: not null } &&
+                capabilitiesMatchProfile && issues.Length == 0,
             _ => false,
         };
         if (!valid)
@@ -215,23 +265,29 @@ internal static class V2CompositionPreparationService
         switch (mapResolution.Status)
         {
             case FirmwareMapResolutionStatus.Pending:
-                return V2CompositionPreparationResult.MapIsPending(request.Selection, mapResolution);
+                return V2CompositionPreparationResult.MapIsPending(
+                    request.Selection,
+                    mapResolution);
             case FirmwareMapResolutionStatus.Rejected:
-                return V2CompositionPreparationResult.MapWasRejected(request.Selection, mapResolution);
+                return V2CompositionPreparationResult.MapWasRejected(
+                    request.Selection,
+                    mapResolution);
             case FirmwareMapResolutionStatus.Unique:
-                CompositionProfileMapAdmissionResult admission = CompositionProfileMapAdmissionValidator.Validate(
+                IReadOnlyList<CompositionIssue> admissionIssues = CompositionProfileMapAdmissionValidator.Validate(
                     profile.Profile,
                     profile.Family.Family,
-                    mapResolution.ResolvedMap!);
-                return admission.IsAdmitted
+                    mapResolution.ResolvedMap!,
+                    out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
+                return admissionIssues.Count == 0
                     ? V2CompositionPreparationResult.Admitted(
                         request.Selection,
+                        profile,
                         mapResolution,
-                        admission.Admission!)
+                        capabilityAdmissions)
                     : V2CompositionPreparationResult.AdmissionWasRejected(
                         request.Selection,
                         mapResolution,
-                        admission.Issues);
+                        admissionIssues);
             default:
                 throw new InvalidOperationException("Unknown firmware map resolution status.");
         }

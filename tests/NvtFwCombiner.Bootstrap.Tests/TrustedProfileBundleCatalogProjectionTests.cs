@@ -93,8 +93,9 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.True(preparation.IsAdmitted);
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
-        Assert.Same(profileEntry.Profile, preparation.Admission?.Profile);
-        Assert.Equal("map", preparation.Admission?.ResolvedMap.ImageMap.MapId);
+        Assert.Same(profileEntry, preparation.ProfileEntry);
+        Assert.Equal("map", preparation.MapResolution?.ResolvedMap?.ImageMap.MapId);
+        Assert.Empty(preparation.CapabilityAdmissions);
         V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(preparation);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
         Assert.True(compilation.IsCompiled);

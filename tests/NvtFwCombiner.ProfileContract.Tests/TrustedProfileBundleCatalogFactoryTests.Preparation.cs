@@ -31,7 +31,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.Same(selection, preparation.Selection);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
-        Assert.Equal("map", preparation.Admission?.ResolvedMap.ImageMap.MapId);
+        Assert.Equal("map", preparation.MapResolution?.ResolvedMap?.ImageMap.MapId);
+        Assert.NotNull(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Empty(preparation.Issues);
     }
 
@@ -77,7 +79,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(V2CompositionPreparationStatus.SelectionRejected, preparation.Status);
         Assert.Null(preparation.Selection);
         Assert.Null(preparation.MapResolution);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Equal("profile.v2.selection.stale", Assert.Single(preparation.Issues).Code);
     }
 
@@ -103,7 +106,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(
             FirmwareMapResolutionPendingKind.RequestedTopologyMissing,
             Assert.Single(resolution.PendingRequirements).Kind);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Empty(preparation.Issues);
     }
 
@@ -135,7 +139,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
-        Assert.NotNull(preparation.Admission);
+        Assert.NotNull(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Empty(preparation.Issues);
     }
 
@@ -161,7 +166,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution).PendingRequirements);
         Assert.Equal(FirmwareMapResolutionPendingKind.ArtifactMissing, requirement.Kind);
         Assert.Equal("tp-firmware", requirement.ArtifactBindingId);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
     }
 
     /// <summary>Verifies no matching map remains distinct from selection and admission failures.</summary>
@@ -180,7 +186,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution);
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, resolution.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.NoMatchingMap, resolution.RejectionKind);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Empty(preparation.Issues);
     }
 
@@ -203,7 +210,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(V2CompositionPreparationStatus.MapRejected, preparation.Status);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(preparation.MapResolution);
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, resolution.RejectionKind);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Empty(preparation.Issues);
     }
 
@@ -227,7 +235,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Equal(V2CompositionPreparationStatus.AdmissionRejected, preparation.Status);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, preparation.MapResolution?.Status);
-        Assert.Null(preparation.Admission);
+        Assert.Null(preparation.ProfileEntry);
+        Assert.Empty(preparation.CapabilityAdmissions);
         Assert.Equal(
             ["profile.v2.map.required-metadata-structure-missing", "profile.v2.map.required-metadata-structure-missing"],
             preparation.Issues.Select(static issue => issue.Code));

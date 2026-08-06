@@ -340,7 +340,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             Assert.IsType<V2CompiledCompositionDetails>(result.CompiledComposition!.V2Details)
                 .Provenance.RequiredCapabilities);
         Assert.Equal("ab-code", capability.RequiredCapabilityId);
-        Assert.Same(Assert.Single(preparation.Admission!.RequiredCapabilities).Binding, capability.Binding);
+        Assert.Same(Assert.Single(preparation.CapabilityAdmissions).Binding, capability.Binding);
         Assert.Equal("NT00001", capability.Binding.EffectiveKey.MemberId);
         Assert.Equal("map", capability.Binding.EffectiveKey.MapId);
         Assert.Empty(capability.Binding.Provenance.AliasChain);
@@ -366,7 +366,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(
             ["target-capability-to-source"],
             capability.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
-        Assert.Same(Assert.Single(preparation.Admission!.RequiredCapabilities).Binding, capability.Binding);
+        Assert.Same(Assert.Single(preparation.CapabilityAdmissions).Binding, capability.Binding);
     }
 
     private static V2CompositionPreparationResult PrepareSupportedBlankCopy(
