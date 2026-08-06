@@ -113,20 +113,12 @@ internal static partial class V2CompositionPlanCompiler
         return new CompiledInputSlotRequirement(
             slot.SlotId,
             slot.Role,
-            slot.ArtifactClass switch
-            {
-                CompositionProfileArtifactClass.TpFirmware => CompiledInputArtifactClass.TpFirmware,
-                CompositionProfileArtifactClass.DpFirmware => CompiledInputArtifactClass.DpFirmware,
-                CompositionProfileArtifactClass.ReferenceImage => CompiledInputArtifactClass.ReferenceImage,
-                CompositionProfileArtifactClass.CtrlRamReplacement => CompiledInputArtifactClass.CtrlRamReplacement,
-                CompositionProfileArtifactClass.Auxiliary => CompiledInputArtifactClass.Auxiliary,
-                _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.ArtifactClass, "Unknown profile input artifact class."),
-            },
+            slot.ArtifactClass,
             slot.Required || forceRequired,
             cardinality,
             slot.AcceptedExtensions,
             MapInputLengthRequirement(slot.LengthRule, resolvedMap.CapacityBytes),
-            MapInputNormalization(slot.Normalization));
+            slot.Normalization);
     }
 
     private static CompiledInputSpaceBinding MapInputSpaceBinding(InputArtifactProfileSpace space)
@@ -134,12 +126,7 @@ internal static partial class V2CompositionPlanCompiler
         return new CompiledInputSpaceBinding(
             space.SpaceId,
             space.SlotId,
-            space.InstancePolicy switch
-            {
-                CompositionProfileInstancePolicy.Singleton => CompiledInputInstancePolicy.Singleton,
-                CompositionProfileInstancePolicy.PerBinding => CompiledInputInstancePolicy.PerBinding,
-                _ => throw new ArgumentOutOfRangeException(nameof(space), space.InstancePolicy, "Unknown profile input instance policy."),
-            });
+            space.InstancePolicy);
     }
 
     private static CompiledInputLengthRequirement MapInputLengthRequirement(
@@ -173,22 +160,6 @@ internal static partial class V2CompositionPlanCompiler
                 MaximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
             } => new CompiledTpMaximum256KInputLengthRequirement(),
             _ => throw new ArgumentOutOfRangeException(nameof(lengthRule), "Unknown profile input length rule."),
-        };
-    }
-
-    private static CompiledInputNormalization MapInputNormalization(
-        CompositionProfileInputNormalization normalization)
-    {
-        return normalization switch
-        {
-            NoInputNormalization => new CompiledNoInputNormalization(),
-            PadShorterInputNormalization padded => new CompiledPadShorterInputNormalization(
-                padded.FillByte,
-                padded.EvidenceRef),
-            TruncateCtrlRamInputNormalization truncated => new CompiledTruncateCtrlRamInputNormalization(
-                truncated.WarningIssueCode,
-                truncated.EvidenceRef),
-            _ => throw new ArgumentOutOfRangeException(nameof(normalization), "Unknown profile input normalization."),
         };
     }
 

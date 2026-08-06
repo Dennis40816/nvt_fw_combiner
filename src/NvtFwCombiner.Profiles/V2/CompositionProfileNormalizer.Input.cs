@@ -36,16 +36,16 @@ internal static partial class CompositionProfileNormalizer
             document.NotApplicableReason));
     }
 
-    private static CompositionProfileArtifactClass NormalizeArtifactClass(string value, string path)
+    private static CompiledInputArtifactClass NormalizeArtifactClass(string value, string path)
     {
         return value switch
         {
-            "tp-firmware" => CompositionProfileArtifactClass.TpFirmware,
-            "dp-firmware" => CompositionProfileArtifactClass.DpFirmware,
-            "reference-image" => CompositionProfileArtifactClass.ReferenceImage,
+            "tp-firmware" => CompiledInputArtifactClass.TpFirmware,
+            "dp-firmware" => CompiledInputArtifactClass.DpFirmware,
+            "reference-image" => CompiledInputArtifactClass.ReferenceImage,
             CompositionProfileWireTokens.CtrlRamReplacementArtifactClass =>
-                CompositionProfileArtifactClass.CtrlRamReplacement,
-            "auxiliary" => CompositionProfileArtifactClass.Auxiliary,
+                CompiledInputArtifactClass.CtrlRamReplacement,
+            "auxiliary" => CompiledInputArtifactClass.Auxiliary,
             _ => throw Error(path, "Unknown input artifact class."),
         };
     }
@@ -160,23 +160,33 @@ internal static partial class CompositionProfileNormalizer
         return values;
     }
 
-    private static CompositionProfileInputNormalization NormalizeInputNormalization(
+    private static CompiledInputNormalization NormalizeInputNormalization(
         CompositionProfileInputNormalizationDocument document,
         string path)
     {
         return document.Kind switch
         {
-            "none" => new NoInputNormalization(),
-            "pad-shorter" => Wrap(path, () => new PadShorterInputNormalization(
+            "none" => new CompiledNoInputNormalization(),
+            "pad-shorter" => Wrap(path, () => new CompiledPadShorterInputNormalization(
                 ReadByte(
                     Require(document.FillByte, $"{path}.fillByte"),
                     $"{path}.fillByte"),
-                document.EvidenceRef ?? throw Error($"{path}.evidenceRef", "Evidence reference is missing."))),
-            "truncate-ctrlram" => Wrap(path, () => new TruncateCtrlRamInputNormalization(
-                document.WarningIssueCode ?? throw Error(
-                    $"{path}.warningIssueCode",
-                    "Warning issue code is missing."),
-                document.EvidenceRef ?? throw Error($"{path}.evidenceRef", "Evidence reference is missing."))),
+                CompositionProfileValueRules.RequireId(
+                    document.EvidenceRef ?? throw Error(
+                        $"{path}.evidenceRef",
+                        "Evidence reference is missing."),
+                    nameof(document.EvidenceRef)))),
+            "truncate-ctrlram" => Wrap(path, () => new CompiledTruncateCtrlRamInputNormalization(
+                CompositionProfileValueRules.RequireIssueCode(
+                    document.WarningIssueCode ?? throw Error(
+                        $"{path}.warningIssueCode",
+                        "Warning issue code is missing."),
+                    nameof(document.WarningIssueCode)),
+                CompositionProfileValueRules.RequireId(
+                    document.EvidenceRef ?? throw Error(
+                        $"{path}.evidenceRef",
+                        "Evidence reference is missing."),
+                    nameof(document.EvidenceRef)))),
             _ => throw Error($"{path}.kind", "Unknown input normalization."),
         };
     }

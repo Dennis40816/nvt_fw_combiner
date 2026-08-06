@@ -38,7 +38,7 @@ internal static class CompositionProfileV2DefinitionTestData
             MapBinding(),
             [TpSlot()],
             [
-                new InputArtifactProfileSpace("source", "tp-input", CompositionProfileInstancePolicy.Singleton),
+                new InputArtifactProfileSpace("source", "tp-input", CompiledInputInstancePolicy.Singleton),
                 new MutableCompositionProfileSpace(
                     "output",
                     CompositionProfileSpaceKind.OutputImage,
@@ -79,12 +79,12 @@ internal static class CompositionProfileV2DefinitionTestData
         var reference = new CompositionProfileInputSlot(
             "reference-input",
             "reference",
-            CompositionProfileArtifactClass.ReferenceImage,
+            CompiledInputArtifactClass.ReferenceImage,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new ExactResolvedMapCapacityLengthRule(),
-            new NoInputNormalization());
+            new CompiledNoInputNormalization());
         return merge with
         {
             ProfileId = "synthetic-replace",
@@ -98,7 +98,7 @@ internal static class CompositionProfileV2DefinitionTestData
                 new InputArtifactProfileSpace(
                     "reference",
                     "reference-input",
-                    CompositionProfileInstancePolicy.Singleton),
+                    CompiledInputInstancePolicy.Singleton),
                 new MutableCompositionProfileSpace(
                     "output",
                     CompositionProfileSpaceKind.OutputImage,
@@ -161,12 +161,12 @@ internal static class CompositionProfileV2DefinitionTestData
         return new CompositionProfileInputSlot(
             "tp-input",
             "tp",
-            CompositionProfileArtifactClass.TpFirmware,
+            CompiledInputArtifactClass.TpFirmware,
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
             new SourceViewCoverageLengthRule(
                 maximumOuterLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
-            new NoInputNormalization());
+            new CompiledNoInputNormalization());
     }
 }

@@ -109,7 +109,7 @@ internal static partial class V2CompositionPlanCompiler
             profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
             profile.Experience.InputPolicy == InputPolicy.Extensible &&
             profile.Spaces.Count == 2 &&
-            profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault() is { InstancePolicy: CompositionProfileInstancePolicy.PerBinding } &&
+            profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault() is { InstancePolicy: CompiledInputInstancePolicy.PerBinding } &&
             AssertOutputSpace(profile) is
             {
                 Capacity: RuntimeRequestProfileCapacity,
@@ -129,9 +129,9 @@ internal static partial class V2CompositionPlanCompiler
         {
             Required: true,
             Cardinality: CompiledInputSlotCardinality.OneOrMore,
-            ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
+            ArtifactClass: CompiledInputArtifactClass.Auxiliary,
             LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            Normalization: NoInputNormalization,
+            Normalization: CompiledNoInputNormalization,
         } slot
             ? slot
             : throw new InvalidOperationException("Validated logical-output profile has an invalid input slot.");

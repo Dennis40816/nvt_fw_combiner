@@ -74,7 +74,7 @@ internal sealed partial class CompositionProfileDefinition
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         if (_inputSlots.Length != 1 ||
             inputSpaces.Length != 1 ||
-            inputSpaces[0].InstancePolicy != CompositionProfileInstancePolicy.PerBinding ||
+            inputSpaces[0].InstancePolicy != CompiledInputInstancePolicy.PerBinding ||
             output.Capacity is not RuntimeRequestProfileCapacity ||
             output.Initializer is not BlankProfileInitializer { FillByte: 0 } ||
             _spaces.Length != 2)
@@ -86,8 +86,8 @@ internal sealed partial class CompositionProfileDefinition
         CompositionProfileInputSlot slot = _inputSlots[0];
         if (!slot.Required ||
             slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
-            slot.ArtifactClass != CompositionProfileArtifactClass.Auxiliary ||
-            slot.Normalization is not NoInputNormalization ||
+            slot.ArtifactClass != CompiledInputArtifactClass.Auxiliary ||
+            slot.Normalization is not CompiledNoInputNormalization ||
             slot.LengthRule is not BoundedLengthRule
             {
                 MinimumBytes: 1,
@@ -115,9 +115,9 @@ internal sealed partial class CompositionProfileDefinition
         bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
             Experience.ExperienceId,
             ExperienceIds.CtrlRamReplace);
-        CompositionProfileArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompositionProfileArtifactClass.CtrlRamReplacement
-            : CompositionProfileArtifactClass.Auxiliary;
+        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
+            ? CompiledInputArtifactClass.CtrlRamReplacement
+            : CompiledInputArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
@@ -159,15 +159,15 @@ internal sealed partial class CompositionProfileDefinition
         InputArtifactProfileSpace? sourceSpace = inputs.SingleOrDefault(space =>
             !StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
         bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? source?.Normalization is TruncateCtrlRamInputNormalization
-            : source?.Normalization is NoInputNormalization;
+            ? source?.Normalization is CompiledTruncateCtrlRamInputNormalization
+            : source?.Normalization is CompiledNoInputNormalization;
         if (reference is not
             {
                 Required: true,
-                ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
+                ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
                 Cardinality: CompiledInputSlotCardinality.ExactlyOne,
                 LengthRule: ExactResolvedMapCapacityLengthRule,
-                Normalization: NoInputNormalization,
+                Normalization: CompiledNoInputNormalization,
             } ||
             source is not
             {
@@ -177,8 +177,8 @@ internal sealed partial class CompositionProfileDefinition
             } ||
             source.ArtifactClass != expectedSourceClass ||
             !sourceNormalizationIsValid ||
-            referenceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.Singleton } ||
-            sourceSpace is not { InstancePolicy: CompositionProfileInstancePolicy.PerBinding })
+            referenceSpace is not { InstancePolicy: CompiledInputInstancePolicy.Singleton } ||
+            sourceSpace is not { InstancePolicy: CompiledInputInstancePolicy.PerBinding })
         {
             throw new ArgumentException(
                 "Runtime reference-replace profiles require one exact singleton reference and one experience-owned per-binding source with its closed normalization policy.");
@@ -259,7 +259,7 @@ internal sealed partial class CompositionProfileDefinition
         }
 
         bool padsInput = _inputSlots.Any(static slot =>
-            slot.Normalization is PadShorterInputNormalization);
+            slot.Normalization is CompiledPadShorterInputNormalization);
         if (padsInput &&
             (CompositionKind != CompositionKind.Replace ||
              !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.DpReplace) ||
@@ -269,7 +269,7 @@ internal sealed partial class CompositionProfileDefinition
         }
 
         bool truncatesCtrlRam = _inputSlots.Any(static slot =>
-            slot.Normalization is TruncateCtrlRamInputNormalization);
+            slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
         if (truncatesCtrlRam &&
             (CompositionKind != CompositionKind.Replace ||
              !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.CtrlRamReplace)))
@@ -332,7 +332,7 @@ internal sealed partial class CompositionProfileDefinition
 
                     if (space.Kind == CompositionProfileSpaceKind.OutputImage &&
                         CompositionKind == CompositionKind.Replace &&
-                        sourceSlot.ArtifactClass != CompositionProfileArtifactClass.ReferenceImage)
+                        sourceSlot.ArtifactClass != CompiledInputArtifactClass.ReferenceImage)
                     {
                         throw new ArgumentException("Replace output must clone a reference-image slot.");
                     }

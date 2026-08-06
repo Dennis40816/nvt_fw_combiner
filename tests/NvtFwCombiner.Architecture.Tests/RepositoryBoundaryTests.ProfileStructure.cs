@@ -119,6 +119,34 @@ public sealed partial class RepositoryBoundaryTests
             ReadProfileSources(),
             StringComparison.Ordinal);
         Assert.DoesNotContain(
+            "CompositionProfileArtifactClass",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInstancePolicy",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal abstract record CompositionProfileInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record NoInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record PadShorterInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record TruncateCtrlRamInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "MapPromotionStage",
             ReadProfileSources(),
             StringComparison.Ordinal);

@@ -21,7 +21,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("auxiliary", ExactBytes("16"), None()),
         ];
 
-        Assert.Equal(Enum.GetValues<CompositionProfileArtifactClass>(), slots.Select(static slot => slot.ArtifactClass));
+        Assert.Equal(Enum.GetValues<CompiledInputArtifactClass>(), slots.Select(static slot => slot.ArtifactClass));
         Assert.All(slots, static slot => Assert.Equal([".bin", ".hex"], slot.AcceptedExtensions));
     }
 
@@ -77,17 +77,44 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryNormalization()
     {
-        _ = Assert.IsType<NoInputNormalization>(
+        _ = Assert.IsType<CompiledNoInputNormalization>(
             Normalize("auxiliary", ExactBytes("16"), None()).Normalization);
-        PadShorterInputNormalization padding = Assert.IsType<PadShorterInputNormalization>(
+        CompiledPadShorterInputNormalization padding = Assert.IsType<CompiledPadShorterInputNormalization>(
             Normalize("dp-firmware", ExactMapCapacity(), PadShorter("255")).Normalization);
-        TruncateCtrlRamInputNormalization truncation = Assert.IsType<TruncateCtrlRamInputNormalization>(
+        CompiledTruncateCtrlRamInputNormalization truncation = Assert.IsType<CompiledTruncateCtrlRamInputNormalization>(
             Normalize("ctrlram-replacement", Bounded("1", "16"), TruncateCtrlRam()).Normalization);
 
         Assert.Equal(0xFF, padding.FillByte);
         Assert.Equal("dp-padding-evidence", padding.EvidenceRef);
         Assert.Equal("CTRLRAM_TRUNCATED", truncation.WarningIssueCode);
         Assert.Equal("ctrlram-truncation-evidence", truncation.EvidenceRef);
+    }
+
+    /// <summary>Verifies profile wire identifiers remain canonical before entering compiled policy values.</summary>
+    [Fact]
+    public void InputSlotRejectsNonCanonicalNormalizationIdentifiers()
+    {
+        CompositionProfileNormalizationException evidence = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "dp-firmware",
+                ExactMapCapacity(),
+                new CompositionProfileInputNormalizationDocument(
+                    "pad-shorter",
+                    FillByte: Number("255"),
+                    EvidenceRef: "Evidence")));
+        CompositionProfileNormalizationException issueCode = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "ctrlram-replacement",
+                Bounded("1", "16"),
+                new CompositionProfileInputNormalizationDocument(
+                    "truncate-ctrlram",
+                    WarningIssueCode: "ctrlram-truncated",
+                    EvidenceRef: "evidence")));
+
+        Assert.Equal("inputSlots[0].acceptance.normalization", evidence.Path);
+        Assert.Equal("inputSlots[0].acceptance.normalization", issueCode.Path);
+        _ = Assert.IsType<ArgumentException>(evidence.InnerException, exactMatch: false);
+        _ = Assert.IsType<ArgumentException>(issueCode.InnerException, exactMatch: false);
     }
 
     /// <summary>Verifies unknown closed-union tokens fail at their exact discriminator paths.</summary>

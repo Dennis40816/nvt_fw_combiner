@@ -22,7 +22,7 @@ internal static partial class V2CompositionPlanCompiler
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
                 expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
-            ExactBytesLengthRule when slot.Normalization is TruncateCtrlRamInputNormalization => new AddressSpace(
+            ExactBytesLengthRule when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
@@ -31,14 +31,14 @@ internal static partial class V2CompositionPlanCompiler
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable),
-            ExactResolvedMapCapacityLengthRule when slot.Normalization is PadShorterInputNormalization padded => new AddressSpace(
+            ExactResolvedMapCapacityLengthRule when slot.Normalization is CompiledPadShorterInputNormalization padded => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable,
                 inputPaddingByte: padded.FillByte),
             ExactResolvedMapCapacityLengthRule when isCloneSource ||
                                                    (compositionKind == CompositionKind.Replace &&
-                                                    slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage) => new AddressSpace(
+                                                    slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage) => new AddressSpace(
                 addressSpaceId,
                 length,
                 AddressSpaceMutability.Immutable),
@@ -54,11 +54,11 @@ internal static partial class V2CompositionPlanCompiler
     {
         return slot.LengthRule is ExactResolvedMapCapacityLengthRule or
             SourceViewCoverageLengthRule ||
-            (slot.ArtifactClass == CompositionProfileArtifactClass.TpFirmware &&
+            (slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
              slot.LengthRule is ExactBytesLengthRule { Bytes: <= 262144 }) ||
-            (slot.ArtifactClass == CompositionProfileArtifactClass.CtrlRamReplacement &&
+            (slot.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement &&
              slot.LengthRule is ExactBytesLengthRule &&
-             slot.Normalization is TruncateCtrlRamInputNormalization);
+             slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
     }
 
     private static bool TryResolveInputSpaceLength(

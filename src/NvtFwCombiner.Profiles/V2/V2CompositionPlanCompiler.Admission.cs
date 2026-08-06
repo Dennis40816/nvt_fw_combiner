@@ -53,10 +53,10 @@ internal static partial class V2CompositionPlanCompiler
                 Cardinality: CompiledInputSlotCardinality.ZeroOrOne,
             } && profile.InputSelectionGroups.Any(group =>
                 group.MemberSlotIds.Contains(slot.SlotId, StringComparer.Ordinal));
-            if (inputSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
+            if (inputSpace.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
                 slot is null ||
                 (!requiredSingleton && !groupedOptionalSingleton) ||
-                slot.Normalization is not (NoInputNormalization or PadShorterInputNormalization or TruncateCtrlRamInputNormalization) ||
+                slot.Normalization is not (CompiledNoInputNormalization or CompiledPadShorterInputNormalization or CompiledTruncateCtrlRamInputNormalization) ||
                 (slot.LengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null } &&
                  profile.CompositionKind != CompositionKind.Merge) ||
                 !IsCurrentInputLengthRuleSupported(slot))

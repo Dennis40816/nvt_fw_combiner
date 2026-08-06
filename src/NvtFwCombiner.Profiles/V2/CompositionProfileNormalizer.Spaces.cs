@@ -70,12 +70,12 @@ internal static partial class CompositionProfileNormalizer
             NormalizeInitializer(initializer, $"{path}.initializer")));
     }
 
-    private static CompositionProfileInstancePolicy NormalizeInstancePolicy(string value, string path)
+    private static CompiledInputInstancePolicy NormalizeInstancePolicy(string value, string path)
     {
         return value switch
         {
-            "singleton" => CompositionProfileInstancePolicy.Singleton,
-            "per-binding" => CompositionProfileInstancePolicy.PerBinding,
+            "singleton" => CompiledInputInstancePolicy.Singleton,
+            "per-binding" => CompiledInputInstancePolicy.PerBinding,
             _ => throw Error(path, "Unknown input instance policy."),
         };
     }
