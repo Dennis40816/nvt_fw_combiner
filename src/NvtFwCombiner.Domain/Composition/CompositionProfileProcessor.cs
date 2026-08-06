@@ -1,6 +1,4 @@
-using NvtFwCombiner.Domain.Composition;
-
-namespace NvtFwCombiner.Profiles.V2;
+namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Closed processor purpose.</summary>
 internal enum CompositionProfileProcessorPurpose
@@ -74,7 +72,7 @@ internal sealed class CrcWorkerProfileProcessorStage : CompositionProfileProcess
             allowedReadViewIds,
             [])
     {
-        _ = CompositionProfileValueRules.RequireSemanticVersion(
+        _ = CanonicalProfileValueRules.RequireSemanticVersion(
             contractVersion,
             nameof(contractVersion));
         _ = CanonicalPolicyValueRules.RequireCanonicalId(
@@ -130,7 +128,6 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         IEnumerable<CompositionProfileStagedSourceBinding> stagedSourceBindings,
         IEnumerable<CompositionProfileStagedArtifactBinding> stagedArtifactBindings,
         string evidenceRef,
-        string schemaVersion = "2.0",
         string? targetViewId = null)
         : base(
             processorStageId,
@@ -138,11 +135,10 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
             allowedReadViewIds,
             RequireWrites(allowedWriteViewIds))
     {
-        ToolBindingId = CompositionProfileValueRules.RequireExternalToolBindingId(
+        ToolBindingId = CanonicalProfileValueRules.RequireExternalToolBindingId(
             toolBindingId,
             nameof(toolBindingId));
-        InvocationProfileId = CompositionProfileValueRules.RequireLegacyCombinerInvocationProfileIdForSchemaVersion(
-            schemaVersion,
+        InvocationProfileId = CanonicalProfileValueRules.RequireInvocationProfileId(
             invocationProfileId,
             nameof(invocationProfileId));
         if (!Enum.IsDefined(purpose))

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-08-01
+- Last amended: 2026-08-06
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -360,12 +360,12 @@ composition-profile-v2 + ResolvedFirmwareImageMap + compile request
   -> one CompositionPlan / one CompositionEngine
 ```
 
-During migration, `CompositionProfileDefinition` is the existing normalized
-Profiles type. It is not a permanent fourth representation. Canonical Core
-Convergence must either make it the Domain-owned canonical composition
-definition or eliminate it after direct Contract-to-Domain normalization.
-Private Profiles builder/validation state remains ephemeral and cannot be
-returned as consumer data. The canonical v2 definition owns slots, logical
+`CompositionProfileDefinition` is the Domain-owned canonical composition
+definition produced by direct Contracts-to-Domain normalization. Within that
+normalization seam, Profiles owns schema-version parsing and may use only
+private ephemeral validation state; it cannot return a consumer-visible fourth
+semantic model. Profiles retains its separately declared trusted-catalog,
+resolution, admission, and compiler responsibilities. The canonical v2 definition owns slots, logical
 views, experience access, mutable initializers, ordered operations, validators,
 processor stages, output naming, evidence, and promotion state. It references
 canonical map region/view ids and cannot relax map safety.

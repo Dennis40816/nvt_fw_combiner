@@ -5,14 +5,6 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileValueRules
 {
-    internal static string RequireExternalToolBindingId(string value, string parameterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return !ExternalToolBindingIdPattern().IsMatch(value)
-            ? throw new ArgumentException("External tool binding identifier is not in the external-tool manifest form.", parameterName)
-            : value;
-    }
-
     internal static string RequireToolBindingIdForSchemaVersion(
         string schemaVersion,
         string value,
@@ -21,7 +13,7 @@ internal static partial class CompositionProfileValueRules
         return schemaVersion switch
         {
             "2.0" or "2.1" => CanonicalPolicyValueRules.RequireCanonicalId(value, parameterName),
-            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => RequireExternalToolBindingId(value, parameterName),
+            "2.2" or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => CanonicalProfileValueRules.RequireExternalToolBindingId(value, parameterName),
             _ => throw new ArgumentOutOfRangeException(nameof(schemaVersion), schemaVersion, "Unsupported profile schema version."),
         };
     }
@@ -31,25 +23,9 @@ internal static partial class CompositionProfileValueRules
         string value,
         string parameterName)
     {
-        if (schemaVersion is not "2.7" and not "2.8" and not "2.9" and not "2.10" and not "2.11" and not "2.12" and not "2.13" and not "2.14" and not "2.15")
-        {
-            return CanonicalPolicyValueRules.RequireCanonicalId(value, parameterName);
-        }
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return CanonicalPolicyValueRules.IsCanonicalId(value) || LegacyCombinerInvocationProfileIdPattern().IsMatch(value)
-            ? value
-            : throw new ArgumentException(
-                "Invocation profile identifier is not canonical or a published legacy Combiner catalog identifier.",
-                parameterName);
-    }
-
-    internal static string RequireSemanticVersion(string value, string parameterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
-        return !SemanticVersionPattern().IsMatch(value)
-            ? throw new ArgumentException("Value is not a canonical semantic version.", parameterName)
-            : value;
+        return schemaVersion is "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15"
+            ? CanonicalProfileValueRules.RequireInvocationProfileId(value, parameterName)
+            : CanonicalPolicyValueRules.RequireCanonicalId(value, parameterName);
     }
 
     private static string[] SnapshotIds(
@@ -100,38 +76,6 @@ internal static partial class CompositionProfileValueRules
             : value;
     }
 
-    internal static ByteRange RequireRange(ByteRange value, string parameterName)
-    {
-        try
-        {
-            return new ByteRange(value.Start, value.Length);
-        }
-        catch (ArgumentOutOfRangeException exception)
-        {
-            throw new ArgumentOutOfRangeException(parameterName, value, exception.Message);
-        }
-        catch (OverflowException exception)
-        {
-            throw new ArgumentOutOfRangeException(parameterName, value, exception.Message);
-        }
-    }
-
     [GeneratedRegex("^NT[0-9A-Z-]+$", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex IcIdPattern();
-
-    [GeneratedRegex(
-        "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:-[0-9]+(?:\\.[0-9]+)*(?:[-+][0-9A-Za-z.-]+)?)?$",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex ExternalToolBindingIdPattern();
-
-    [GeneratedRegex(
-        "^nfc\\.[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex LegacyCombinerInvocationProfileIdPattern();
-
-    [GeneratedRegex(
-        "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex SemanticVersionPattern();
-
 }

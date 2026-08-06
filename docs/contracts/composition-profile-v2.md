@@ -43,7 +43,7 @@ mathematical value receive the same verdict. Field values must still pass their 
 slice, while operation sequence and signed addend values remain arbitrary precision within this
 resource ceiling.
 
-`CompositionProfileDefinition` is the normalized typed form of this document. It owns:
+`CompositionProfileDefinition` is the Domain-owned normalized typed form of this document. It owns:
 
 - immutable input slots and acceptance/normalization policy;
 - input, work-buffer, and final-output address spaces;

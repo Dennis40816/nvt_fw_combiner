@@ -46,7 +46,7 @@ public sealed partial class RepositoryBoundaryTests
     public void V2RuntimeLoweringTrustsCanonicalProfileShape()
     {
         string definition = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileDefinition.Graph.cs");
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileDefinition.Graph.cs");
         string logical = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.LogicalOutput.cs");
         string runtimeReplace = ReadText(

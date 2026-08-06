@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -113,10 +114,13 @@ internal static partial class CompositionProfileNormalizer
                 schemaVersion,
                 RequireText(document.ToolBindingId, $"{path}.toolBindingId", "Tool binding is missing."),
                 nameof(document.ToolBindingId)),
-            RequireText(
-                document.InvocationProfileId,
-                $"{path}.invocationProfileId",
-                "Invocation profile is missing."),
+            CompositionProfileValueRules.RequireLegacyCombinerInvocationProfileIdForSchemaVersion(
+                schemaVersion,
+                RequireText(
+                    document.InvocationProfileId,
+                    $"{path}.invocationProfileId",
+                    "Invocation profile is missing."),
+                nameof(document.InvocationProfileId)),
             document.TargetSpaceId,
             NormalizeProcessorPurpose(document.Purpose, $"{path}.purpose"),
             NormalizeLegacyIntegrityDisposition(
@@ -127,7 +131,6 @@ internal static partial class CompositionProfileNormalizer
             bindings,
             artifactBindings,
             RequireText(document.EvidenceRef, $"{path}.evidenceRef", "Processor evidence is missing."),
-            schemaVersion,
             schemaVersion is "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15"
                 ? RequireText(document.TargetViewId, $"{path}.targetViewId", "Processor target view is missing.")
                 : document.TargetViewId is null
