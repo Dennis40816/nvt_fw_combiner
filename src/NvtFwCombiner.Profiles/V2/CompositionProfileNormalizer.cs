@@ -38,12 +38,14 @@ internal static partial class CompositionProfileNormalizer
         string path = "experience")
     {
         ArgumentNullException.ThrowIfNull(document);
+        ValidateAudience(document.Audience, $"{path}.audience");
+        LayoutPolicy layoutPolicy = NormalizeLayoutPolicy(document.LayoutPolicy, $"{path}.layoutPolicy");
+        InputPolicy inputPolicy = NormalizeInputPolicy(document.InputPolicy, $"{path}.inputPolicy");
+        ValidateTopologyAuthoring(document.TopologyAuthoring, $"{path}.topologyAuthoring");
         return Wrap(path, () => new CompositionProfileExperience(
             document.ExperienceId,
-            NormalizeAudience(document.Audience, $"{path}.audience"),
-            NormalizeLayoutPolicy(document.LayoutPolicy, $"{path}.layoutPolicy"),
-            NormalizeInputPolicy(document.InputPolicy, $"{path}.inputPolicy"),
-            NormalizeTopologyAuthoring(document.TopologyAuthoring, $"{path}.topologyAuthoring"),
+            layoutPolicy,
+            inputPolicy,
             document.DisplayNameKey));
     }
 
@@ -109,16 +111,12 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static AudienceKind NormalizeAudience(string value, string path)
+    private static void ValidateAudience(string value, string path)
     {
-        return value switch
+        if (value is not ("system" or "dp" or "ctrlram" or "advanced"))
         {
-            "system" => AudienceKind.System,
-            "dp" => AudienceKind.Dp,
-            "ctrlram" => AudienceKind.CtrlRam,
-            "advanced" => AudienceKind.Advanced,
-            _ => throw Error(path, "Unknown experience audience."),
-        };
+            throw Error(path, "Unknown experience audience.");
+        }
     }
 
     private static LayoutPolicy NormalizeLayoutPolicy(string value, string path)
@@ -142,17 +140,12 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static CompositionProfileTopologyAuthoring NormalizeTopologyAuthoring(
-        string value,
-        string path)
+    private static void ValidateTopologyAuthoring(string value, string path)
     {
-        return value switch
+        if (value is not ("hidden" or "single-or-cascade" or "exact-count"))
         {
-            "hidden" => CompositionProfileTopologyAuthoring.Hidden,
-            "single-or-cascade" => CompositionProfileTopologyAuthoring.SingleOrCascade,
-            "exact-count" => CompositionProfileTopologyAuthoring.ExactCount,
-            _ => throw Error(path, "Unknown topology authoring policy."),
-        };
+            throw Error(path, "Unknown topology authoring policy.");
+        }
     }
 
     private static IReadOnlyList<T> RequireList<T>(IReadOnlyList<T>? values, string path)

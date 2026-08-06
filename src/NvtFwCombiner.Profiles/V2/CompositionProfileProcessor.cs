@@ -19,12 +19,6 @@ internal enum CompositionProfileProcessorAuthority
     Transform,
 }
 
-/// <summary>Closed processor failure behavior.</summary>
-internal enum CompositionProfileProcessorFailurePolicy
-{
-    FailClosed,
-}
-
 /// <summary>Closed integrity disposition owned by one processor stage.</summary>
 internal enum CompositionProfileIntegrityDisposition
 {
@@ -75,9 +69,6 @@ internal abstract class CompositionProfileProcessorStage
     internal abstract CompositionProfileProcessorPurpose Purpose { get; }
 
     internal abstract CompositionProfileIntegrityDisposition IntegrityDisposition { get; }
-
-    internal static CompositionProfileProcessorFailurePolicy FailurePolicy =>
-        CompositionProfileProcessorFailurePolicy.FailClosed;
 }
 
 /// <summary>Pure CRC calculation stage with no write authority.</summary>
@@ -95,17 +86,13 @@ internal sealed class CrcWorkerProfileProcessorStage : CompositionProfileProcess
             allowedReadViewIds,
             [])
     {
-        ContractVersion = CompositionProfileValueRules.RequireSemanticVersion(
+        _ = CompositionProfileValueRules.RequireSemanticVersion(
             contractVersion,
             nameof(contractVersion));
-        CalculationSetId = CompositionProfileValueRules.RequireId(
+        _ = CompositionProfileValueRules.RequireId(
             calculationSetId,
             nameof(calculationSetId));
     }
-
-    internal string ContractVersion { get; }
-
-    internal string CalculationSetId { get; }
 
     internal override CompositionProfileProcessorAuthority Authority =>
         CompositionProfileProcessorAuthority.Calculate;
@@ -214,7 +201,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         }
 
         Array.Sort(_stagedArtifactBindings, CompareArtifactBindings);
-        EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
+        _ = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
         Purpose = purpose;
         IntegrityDisposition = integrityDisposition;
         TargetViewId = targetViewId;
@@ -245,8 +232,6 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
     internal IReadOnlyList<CompositionProfileStagedSourceBinding> StagedSourceBindings { get; }
 
     internal IReadOnlyList<CompositionProfileStagedArtifactBinding> StagedArtifactBindings { get; }
-
-    internal string EvidenceRef { get; }
 
     private static string[] RequireWrites(IEnumerable<string> allowedWriteViewIds)
     {

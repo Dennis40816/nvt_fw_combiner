@@ -22,10 +22,8 @@ public sealed class CompositionProfileV2ProcessorTests
         Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
         Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
         Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
-        Assert.Equal(CompositionProfileProcessorFailurePolicy.FailClosed, CompositionProfileProcessorStage.FailurePolicy);
         Assert.Equal(["view-a", "view-z"], stage.AllowedReadViewIds);
         Assert.Empty(stage.AllowedWriteViewIds);
-        Assert.Equal("1.0.0", stage.ContractVersion);
     }
 
     /// <summary>Verifies legacy stages retain only approved ids, views, evidence, and staged bindings.</summary>
@@ -66,8 +64,6 @@ public sealed class CompositionProfileV2ProcessorTests
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
         Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
-        Assert.Equal("combiner-evidence", stage.EvidenceRef);
-        Assert.Equal(CompositionProfileProcessorFailurePolicy.FailClosed, CompositionProfileProcessorStage.FailurePolicy);
     }
 
     /// <summary>Verifies the closed purpose/integrity matrix rejects unsupported authority.</summary>

@@ -50,24 +50,19 @@ public sealed class CompositionProfileV2HeaderTests
             [blocker, Blocker("pending")]));
     }
 
-    /// <summary>Verifies experience policy keeps orthogonal authoring dimensions typed.</summary>
+    /// <summary>Verifies experience policy retains only compiler-consumed dimensions.</summary>
     [Fact]
-    public void ExperienceKeepsOrthogonalPolicyValues()
+    public void ExperienceRetainsCompilerConsumedPolicyValues()
     {
         var experience = new CompositionProfileExperience(
             "general-replace",
-            AudienceKind.Advanced,
             LayoutPolicy.UserDefined,
             InputPolicy.Extensible,
-            CompositionProfileTopologyAuthoring.ExactCount,
             "experience.general-replace");
 
         Assert.Equal("general-replace", experience.ExperienceId);
-        Assert.Equal(AudienceKind.Advanced, experience.Audience);
         Assert.Equal(LayoutPolicy.UserDefined, experience.LayoutPolicy);
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);
-        Assert.Equal(CompositionProfileTopologyAuthoring.ExactCount, experience.TopologyAuthoring);
-        Assert.Equal("experience.general-replace", experience.DisplayNameKey);
     }
 
     /// <summary>Verifies invalid enum carriers cannot enter normalized experience or promotion values.</summary>
@@ -84,10 +79,8 @@ public sealed class CompositionProfileV2HeaderTests
             []));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileExperience(
             "experience",
-            (AudienceKind)99,
-            LayoutPolicy.Fixed,
+            (LayoutPolicy)99,
             InputPolicy.Fixed,
-            CompositionProfileTopologyAuthoring.Hidden,
             "experience.name"));
     }
 
@@ -143,10 +136,8 @@ public sealed class CompositionProfileV2HeaderTests
         _ = Assert.Throws<ArgumentException>(() => Blocker("Human-Review"));
         _ = Assert.Throws<ArgumentException>(() => new CompositionProfileExperience(
             "general_replace",
-            AudienceKind.Advanced,
             LayoutPolicy.UserDefined,
             InputPolicy.Extensible,
-            CompositionProfileTopologyAuthoring.Hidden,
             "experience.general-replace"));
 
         CompositionProfileMapBinding binding = Binding(familyVersion: "1.2.3-rc.1+build.5");

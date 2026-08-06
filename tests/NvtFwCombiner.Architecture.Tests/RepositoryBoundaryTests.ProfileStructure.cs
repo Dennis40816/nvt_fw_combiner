@@ -108,6 +108,24 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
     }
 
+    /// <summary>Validation-only profile fields cannot survive as a fourth stored semantic form.</summary>
+    [Fact]
+    public void NormalizedProfilesDiscardValidationOnlyPolicyState()
+    {
+        string experience = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/CompositionProfileExperience.cs");
+        string processor = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/CompositionProfileProcessor.cs");
+
+        Assert.DoesNotContain("CompositionProfileTopologyAuthoring", experience, StringComparison.Ordinal);
+        Assert.DoesNotContain("Audience { get; }", experience, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayNameKey { get; }", experience, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileProcessorFailurePolicy", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("ContractVersion { get; }", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("CalculationSetId { get; }", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("EvidenceRef { get; }", processor, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
     [Fact]
     public void SyntheticReplaceProfilesStayTestOnly()
