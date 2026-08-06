@@ -155,7 +155,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.CompositionKind == CompositionKind.Replace &&
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace) &&
+            StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.DpReplace) &&
             operation.Kind == CompositionOperationKind.ReplaceRange &&
             !TryAuthorizeDpReplacePayloadTarget(profile, operation, target, issues))
         {

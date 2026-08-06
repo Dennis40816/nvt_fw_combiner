@@ -20,7 +20,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal(CompositionKind.Merge, definition.CompositionKind);
         Assert.Null(definition.IcNumberInputMode);
         Assert.Equal(CompiledProfilePromotionStage.Known, definition.Promotion.Stage);
-        Assert.Equal(ExperienceIds.StandardMerge, definition.Experience.ExperienceId);
+        Assert.Equal(ExperienceIds.StandardMerge, definition.ExperienceId);
         Assert.Equal("standard-map", Assert.Single(definition.MapBinding.MapIds));
         _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(
             Assert.Single(definition.InputSlots).LengthRequirement);
@@ -43,7 +43,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
 
         Assert.Equal(CompositionKind.Replace, definition.CompositionKind);
         Assert.Equal(IcNumberInputMode.SingleSelector, definition.IcNumberInputMode);
-        Assert.Equal(ExperienceIds.DpReplace, definition.Experience.ExperienceId);
+        Assert.Equal(ExperienceIds.DpReplace, definition.ExperienceId);
         Assert.Equal(2, definition.InputSlots.Count);
         Assert.Equal("reference-input", Assert.IsType<CloneProfileInitializer>(output.Initializer).SourceSlotId);
     }

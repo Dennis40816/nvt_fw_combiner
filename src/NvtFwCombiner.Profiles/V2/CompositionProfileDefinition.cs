@@ -22,49 +22,7 @@ internal sealed partial class CompositionProfileDefinition
         CompiledProfilePromotion promotion,
         CompositionKind compositionKind,
         IcNumberInputMode? icNumberInputMode,
-        CompositionProfileExperience experience,
-        CompositionProfileMapBinding mapBinding,
-        IEnumerable<CompositionInputSlotDefinition> inputSlots,
-        IEnumerable<CompositionProfileSpace> spaces,
-        IEnumerable<CompositionProfileView> views,
-        IEnumerable<CompositionProfileMetadataBinding> metadataBindings,
-        IEnumerable<CompositionProfileRegionAccess> regionAccessRules,
-        IEnumerable<CompositionProfileOperation> operations,
-        IEnumerable<ValidationRequirementDefinition> validations,
-        IEnumerable<CompositionProfileProcessorStage> processorStages,
-        CompiledOutputNamingRequirement output,
-        IEnumerable<string> evidenceRefs,
-        IEnumerable<InputSelectionGroupDefinition>? inputSelectionGroups = null)
-        : this(
-            profileId,
-            profileVersion,
-            promotion,
-            compositionKind,
-            icNumberInputMode,
-            experience,
-            new ResolvedMapProfileCompilationContext(mapBinding),
-            inputSlots,
-            spaces,
-            views,
-            metadataBindings,
-            regionAccessRules,
-            operations,
-            validations,
-            processorStages,
-            output,
-            evidenceRefs,
-            inputSelectionGroups)
-    {
-    }
-
-    internal CompositionProfileDefinition(
-        string profileId,
-        string profileVersion,
-        CompiledProfilePromotion promotion,
-        CompositionKind compositionKind,
-        IcNumberInputMode? icNumberInputMode,
-        CompositionProfileExperience experience,
-        CompositionProfileCompilationContext compilationContext,
+        CompositionProfileHeader header,
         IEnumerable<CompositionInputSlotDefinition> inputSlots,
         IEnumerable<CompositionProfileSpace> spaces,
         IEnumerable<CompositionProfileView> views,
@@ -95,8 +53,7 @@ internal sealed partial class CompositionProfileDefinition
                 "Unknown IC-number input mode.");
         }
 
-        ArgumentNullException.ThrowIfNull(experience);
-        ArgumentNullException.ThrowIfNull(compilationContext);
+        ArgumentNullException.ThrowIfNull(header);
         ArgumentNullException.ThrowIfNull(output);
 
         _inputSlots = SnapshotUnique(
@@ -119,9 +76,9 @@ internal sealed partial class CompositionProfileDefinition
             throw new ArgumentException("Profiles require at least two address spaces.", nameof(spaces));
         }
 
-        bool isRuntimeLowered = compilationContext is
-            LogicalOutputProfileCompilationContext or
-            RuntimeReferenceReplaceProfileCompilationContext;
+        bool isRuntimeLowered = header.CompilationContextKind is
+            V2CompilationContextKind.LogicalOutput or
+            V2CompilationContextKind.RuntimeReferenceReplace;
         _views = SnapshotUnique(
             views,
             static view => view.ViewId,
@@ -166,8 +123,7 @@ internal sealed partial class CompositionProfileDefinition
         Promotion = promotion;
         CompositionKind = compositionKind;
         IcNumberInputMode = icNumberInputMode;
-        Experience = experience;
-        CompilationContext = compilationContext;
+        Header = header;
         InputSlots = Array.AsReadOnly(_inputSlots);
         InputSelectionGroups = Array.AsReadOnly(_inputSelectionGroups);
         Spaces = Array.AsReadOnly(_spaces);
@@ -194,21 +150,33 @@ internal sealed partial class CompositionProfileDefinition
     /// <summary>Replace-only profile authority for the caller's IC-number selection.</summary>
     internal IcNumberInputMode? IcNumberInputMode { get; }
 
-    internal CompositionProfileExperience Experience { get; }
+    internal CompositionProfileHeader Header { get; }
 
-    internal CompositionProfileCompilationContext CompilationContext { get; }
+    internal string ExperienceId => Header.ExperienceId;
+
+    internal LayoutPolicy LayoutPolicy => Header.LayoutPolicy;
+
+    internal InputPolicy InputPolicy => Header.InputPolicy;
+
+    internal V2CompilationContextKind CompilationContextKind => Header.CompilationContextKind;
+
+    internal string FamilyId => Header.FamilyId;
+
+    internal string FamilyVersion => Header.FamilyVersion;
+
+    internal string FamilyContentHash => Header.FamilyContentHash;
+
+    internal bool AllowsConditionalProcessor => Header.AllowsConditionalProcessor;
 
     /// <summary>Exact map binding for map-bound profiles only.</summary>
-    internal CompositionProfileMapBinding MapBinding => CompilationContext switch
-    {
-        ResolvedMapProfileCompilationContext mapBound => mapBound.MapBinding,
-        RuntimeReferenceReplaceProfileCompilationContext runtimeReferenceReplace => runtimeReferenceReplace.MapBinding,
-        _ => throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding."),
-    };
+    internal CompositionProfileMapBinding MapBinding => Header.MapBinding
+        ?? throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding.");
 
-    /// <summary>Logical-output binding for General Merge profiles only.</summary>
-    internal LogicalOutputProfileCompilationContext LogicalOutputBinding => CompilationContext as LogicalOutputProfileCompilationContext
-        ?? throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
+    /// <summary>Logical-output family members for General Merge profiles only.</summary>
+    internal IReadOnlyList<string> LogicalOutputMemberIds =>
+        CompilationContextKind == V2CompilationContextKind.LogicalOutput
+            ? Header.LogicalOutputMemberIds
+            : throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
 
     internal IReadOnlyList<CompositionInputSlotDefinition> InputSlots { get; }
 

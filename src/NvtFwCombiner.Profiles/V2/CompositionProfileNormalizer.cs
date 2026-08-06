@@ -33,7 +33,7 @@ internal static partial class CompositionProfileNormalizer
             blockers));
     }
 
-    internal static CompositionProfileExperience NormalizeExperience(
+    internal static (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) NormalizeExperience(
         CompositionProfileExperienceDocument document,
         string path = "experience")
     {
@@ -42,11 +42,14 @@ internal static partial class CompositionProfileNormalizer
         LayoutPolicy layoutPolicy = NormalizeLayoutPolicy(document.LayoutPolicy, $"{path}.layoutPolicy");
         InputPolicy inputPolicy = NormalizeInputPolicy(document.InputPolicy, $"{path}.inputPolicy");
         ValidateTopologyAuthoring(document.TopologyAuthoring, $"{path}.topologyAuthoring");
-        return Wrap(path, () => new CompositionProfileExperience(
-            document.ExperienceId,
-            layoutPolicy,
-            inputPolicy,
-            document.DisplayNameKey));
+        return Wrap(path, () =>
+        {
+            string experienceId = CompositionProfileValueRules.RequireId(
+                document.ExperienceId,
+                nameof(document.ExperienceId));
+            ArgumentException.ThrowIfNullOrWhiteSpace(document.DisplayNameKey);
+            return (experienceId, layoutPolicy, inputPolicy);
+        });
     }
 
     internal static CompositionProfileMapBinding NormalizeMapBinding(

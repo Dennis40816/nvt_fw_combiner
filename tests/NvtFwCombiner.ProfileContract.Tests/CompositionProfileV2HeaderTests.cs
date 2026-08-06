@@ -1,3 +1,4 @@
+using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
@@ -12,26 +13,32 @@ public sealed class CompositionProfileV2HeaderTests
     [Fact]
     public void ExperienceRetainsCompilerConsumedPolicyValues()
     {
-        var experience = new CompositionProfileExperience(
-            "general-replace",
-            LayoutPolicy.UserDefined,
-            InputPolicy.Extensible,
-            "experience.general-replace");
+        (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) experience =
+            CompositionProfileNormalizer.NormalizeExperience(new CompositionProfileExperienceDocument(
+                "general-replace",
+                "advanced",
+                "user-defined",
+                "extensible",
+                "exact-count",
+                "experience.general-replace"));
 
         Assert.Equal("general-replace", experience.ExperienceId);
         Assert.Equal(LayoutPolicy.UserDefined, experience.LayoutPolicy);
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);
     }
 
-    /// <summary>Verifies invalid enum carriers cannot enter normalized experience values.</summary>
+    /// <summary>Verifies unknown policy tokens cannot enter normalized experience values.</summary>
     [Fact]
     public void HeaderValuesRejectUnknownEnums()
     {
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileExperience(
-            "experience",
-            (LayoutPolicy)99,
-            InputPolicy.Fixed,
-            "experience.name"));
+        _ = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeExperience(new CompositionProfileExperienceDocument(
+                ExperienceIds.StandardMerge,
+                "system",
+                "future",
+                "fixed",
+                "hidden",
+                "experience.standard-merge")));
     }
 
     /// <summary>Verifies map binding snapshots every unordered identity set deterministically.</summary>
@@ -83,11 +90,14 @@ public sealed class CompositionProfileV2HeaderTests
     [Fact]
     public void HeaderValuesEnforceCanonicalSingularIdentity()
     {
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileExperience(
-            "general_replace",
-            LayoutPolicy.UserDefined,
-            InputPolicy.Extensible,
-            "experience.general-replace"));
+        _ = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeExperience(new CompositionProfileExperienceDocument(
+                "general_replace",
+                "advanced",
+                "user-defined",
+                "extensible",
+                "exact-count",
+                "experience.general-replace")));
 
         CompositionProfileMapBinding binding = Binding(familyVersion: "1.2.3-rc.1+build.5");
         Assert.Equal("1.2.3-rc.1+build.5", binding.FamilyVersion);

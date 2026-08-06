@@ -9,7 +9,7 @@ internal sealed record CompositionProfileV2DefinitionParts(
     CompiledProfilePromotion Promotion,
     CompositionKind CompositionKind,
     IcNumberInputMode? IcNumberInputMode,
-    CompositionProfileExperience Experience,
+    (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) Experience,
     CompositionProfileMapBinding MapBinding,
     IReadOnlyList<CompositionInputSlotDefinition> InputSlots,
     IReadOnlyList<CompositionProfileSpace> Spaces,
@@ -113,14 +113,24 @@ internal static class CompositionProfileV2DefinitionTestData
 
     internal static CompositionProfileDefinition Create(CompositionProfileV2DefinitionParts parts)
     {
+        var header = new CompositionProfileHeader(
+            parts.Experience.ExperienceId,
+            parts.Experience.LayoutPolicy,
+            parts.Experience.InputPolicy,
+            V2CompilationContextKind.ResolvedMap,
+            parts.MapBinding,
+            parts.MapBinding.FamilyId,
+            parts.MapBinding.FamilyVersion,
+            parts.MapBinding.FamilyContentHash,
+            Array.AsReadOnly(Array.Empty<string>()),
+            AllowsConditionalProcessor: false);
         return new CompositionProfileDefinition(
             parts.ProfileId,
             parts.ProfileVersion,
             parts.Promotion,
             parts.CompositionKind,
             parts.IcNumberInputMode,
-            parts.Experience,
-            parts.MapBinding,
+            header,
             parts.InputSlots,
             parts.Spaces,
             parts.Views,
@@ -133,13 +143,10 @@ internal static class CompositionProfileV2DefinitionTestData
             parts.EvidenceRefs);
     }
 
-    internal static CompositionProfileExperience Experience(string experienceId)
+    internal static (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) Experience(
+        string experienceId)
     {
-        return new CompositionProfileExperience(
-            experienceId,
-            LayoutPolicy.Fixed,
-            InputPolicy.Fixed,
-            $"experience.{experienceId}");
+        return (experienceId, LayoutPolicy.Fixed, InputPolicy.Fixed);
     }
 
     internal static CompositionProfileMapBinding MapBinding(

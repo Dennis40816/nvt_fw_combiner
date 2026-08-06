@@ -118,7 +118,7 @@ internal static partial class V2CompositionPlanCompiler
         var identity = new V2CompiledCompositionIdentity(
             profile.ProfileId,
             profile.ProfileVersion,
-            profile.Experience.ExperienceId,
+            profile.ExperienceId,
             profile.CompositionKind,
             new V2CompiledCompositionDetails(
                 provenance,

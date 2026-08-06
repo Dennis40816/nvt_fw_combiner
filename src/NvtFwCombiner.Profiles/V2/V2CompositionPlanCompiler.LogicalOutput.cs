@@ -31,7 +31,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (string.IsNullOrWhiteSpace(memberId) ||
-            !profile.LogicalOutputBinding.MemberIds.Contains(memberId, StringComparer.Ordinal))
+            !profile.LogicalOutputMemberIds.Contains(memberId, StringComparer.Ordinal))
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -88,9 +88,9 @@ internal static partial class V2CompositionPlanCompiler
             bundleIdentity,
             profileEntry.EntryIdentity,
             new LogicalOutputV2CompilationContext(
-                profile.LogicalOutputBinding.FamilyId,
-                profile.LogicalOutputBinding.FamilyVersion,
-                profile.LogicalOutputBinding.FamilyContentHash,
+                profile.FamilyId,
+                profile.FamilyVersion,
+                profile.FamilyContentHash,
                 memberId),
             plan,
             [MapLogicalInputSlot(inputSlot)],
@@ -104,11 +104,11 @@ internal static partial class V2CompositionPlanCompiler
 
     private static bool IsLogicalOutputProfile(CompositionProfileDefinition profile)
     {
-        return profile.CompilationContext is LogicalOutputProfileCompilationContext &&
+        return profile.CompilationContextKind == V2CompilationContextKind.LogicalOutput &&
             profile.CompositionKind == CompositionKind.Merge &&
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.GeneralMerge) &&
-            profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
-            profile.Experience.InputPolicy == InputPolicy.Extensible &&
+            StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.GeneralMerge) &&
+            profile.LayoutPolicy == LayoutPolicy.UserDefined &&
+            profile.InputPolicy == InputPolicy.Extensible &&
             profile.Spaces.Count == 2 &&
             profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault() is { InstancePolicy: CompiledInputInstancePolicy.PerBinding } &&
             AssertOutputSpace(profile) is

@@ -22,10 +22,24 @@ internal static partial class CompositionProfileNormalizer
         CompiledProfilePromotion promotion = NormalizePromotion(
             RequireObject(document.Promotion, "promotion"),
             "promotion");
-        CompositionProfileExperience experience = NormalizeExperience(
-            RequireObject(document.Experience, "experience"),
-            "experience");
-        CompositionProfileCompilationContext compilationContext = NormalizeCompilationContext(document);
+        (
+            string experienceId,
+            LayoutPolicy layoutPolicy,
+            InputPolicy inputPolicy) = NormalizeExperience(
+                RequireObject(document.Experience, "experience"),
+                "experience");
+        NormalizedCompilationContext compilationContext = NormalizeCompilationContext(document);
+        var header = new CompositionProfileHeader(
+            experienceId,
+            layoutPolicy,
+            inputPolicy,
+            compilationContext.Kind,
+            compilationContext.MapBinding,
+            compilationContext.FamilyId,
+            compilationContext.FamilyVersion,
+            compilationContext.FamilyContentHash,
+            Array.AsReadOnly([.. compilationContext.LogicalOutputMemberIds]),
+            compilationContext.AllowsConditionalProcessor);
         CompositionInputSlotDefinition[] inputSlots = NormalizeList(
             document.InputSlots,
             "inputSlots",
@@ -78,8 +92,7 @@ internal static partial class CompositionProfileNormalizer
             promotion,
             compositionKind,
             icNumberInputMode,
-            experience,
-            compilationContext,
+            header,
             inputSlots,
             spaces,
             views,
