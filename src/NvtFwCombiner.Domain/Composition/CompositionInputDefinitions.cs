@@ -142,8 +142,12 @@ internal sealed class CompositionInputSlotDefinition
             ArgumentException.ThrowIfNullOrWhiteSpace(notApplicableReason);
         }
 
-        SlotId = slotId;
-        Role = role;
+        SlotId = validateCanonicalPolicy
+            ? InputPolicyValueRules.RequireCanonicalId(slotId, nameof(slotId))
+            : slotId;
+        Role = validateCanonicalPolicy
+            ? InputPolicyValueRules.RequireCanonicalId(role, nameof(role))
+            : role;
         ArtifactClass = artifactClass;
         Required = required;
         Cardinality = cardinality;

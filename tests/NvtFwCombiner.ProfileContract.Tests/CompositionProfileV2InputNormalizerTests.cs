@@ -116,6 +116,22 @@ public sealed class CompositionProfileV2InputNormalizerTests
         _ = Assert.IsType<ArgumentException>(issueCode.InnerException, exactMatch: false);
     }
 
+    /// <summary>Verifies canonical slot identity is enforced before the definition enters the Domain model.</summary>
+    [Fact]
+    public void InputSlotRejectsNonCanonicalSlotIdentifiers()
+    {
+        CompositionProfileInputSlotDocument slot = Slot("auxiliary", ExactBytes("1"), None());
+        CompositionProfileNormalizationException slotId = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(slot with { SlotId = "Input" }));
+        CompositionProfileNormalizationException role = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(slot with { Role = "Source" }));
+
+        Assert.Equal("inputSlots[0]", slotId.Path);
+        Assert.Equal("inputSlots[0]", role.Path);
+        _ = Assert.IsType<ArgumentException>(slotId.InnerException, exactMatch: false);
+        _ = Assert.IsType<ArgumentException>(role.InnerException, exactMatch: false);
+    }
+
     /// <summary>Verifies unknown closed-union tokens fail at their exact discriminator paths.</summary>
     [Fact]
     public void InputSlotRejectsUnknownTokensWithPaths()
