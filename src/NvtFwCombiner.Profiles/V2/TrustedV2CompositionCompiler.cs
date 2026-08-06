@@ -519,7 +519,7 @@ internal static class TrustedV2CompositionCompiler
             return false;
         }
 
-        if (!StringComparer.Ordinal.Equals(selected.Profile.Experience.ExperienceId, modeId))
+        if (!StringComparer.Ordinal.Equals(selected.Profile.ExperienceId, modeId))
         {
             issues =
             [

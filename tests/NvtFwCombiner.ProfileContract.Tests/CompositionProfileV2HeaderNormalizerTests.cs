@@ -72,7 +72,8 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
             "exact-count",
             "experience.general-replace");
 
-        CompositionProfileExperience experience = CompositionProfileNormalizer.NormalizeExperience(document);
+        (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) experience =
+            CompositionProfileNormalizer.NormalizeExperience(document);
 
         Assert.Equal(LayoutPolicy.UserDefined, experience.LayoutPolicy);
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);

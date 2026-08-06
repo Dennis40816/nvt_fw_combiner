@@ -11,8 +11,8 @@ internal static partial class V2CompositionPlanCompiler
             AddUnsupported(issues, "composition kind must be Merge or Replace");
         }
 
-        bool isDpReplace = StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace);
+        bool isDpReplace = StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.DpReplace);
+        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace);
         if (profile.CompositionKind == CompositionKind.Replace && !isDpReplace && !isCtrlRamReplace)
         {
             AddUnsupported(issues, "Replace runtime lowering currently supports only dp-replace or ctrlram-replace experiences");
@@ -130,7 +130,7 @@ internal static partial class V2CompositionPlanCompiler
                  profile.Output.RuleId,
                  CompiledOutputNamingRequirement.TpFirmwareV1RuleId) ||
              (profile.CompositionKind == CompositionKind.Merge &&
-              StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.AbMerge) &&
+              StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.AbMerge) &&
               StringComparer.Ordinal.Equals(profile.Output.FileNameTemplate, CompiledOutputNamingRequirement.AbCodeV1Template) &&
               profile.Output.RequiredTokenIds.SequenceEqual(
                   ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"],

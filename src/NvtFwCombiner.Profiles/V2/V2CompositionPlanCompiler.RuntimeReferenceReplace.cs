@@ -77,7 +77,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         bool truncateCtrlRamSources =
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) &&
+            StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace) &&
             shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
             static binding => binding.BindingId,
@@ -229,8 +229,7 @@ internal static partial class V2CompositionPlanCompiler
             profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
-                ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
-                    .AllowsConditionalProcessor,
+                profile.AllowsConditionalProcessor,
                 processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
@@ -263,7 +262,7 @@ internal static partial class V2CompositionPlanCompiler
             return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
-        if (!StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) ||
+        if (!StringComparer.Ordinal.Equals(profile.ExperienceId, ExperienceIds.CtrlRamReplace) ||
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
@@ -344,27 +343,24 @@ internal static partial class V2CompositionPlanCompiler
     private static bool IsRuntimeReferenceReplaceProfile(CompositionProfileDefinition profile)
     {
         bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
+            profile.ExperienceId,
             ExperienceIds.GeneralReplace);
         bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
+            profile.ExperienceId,
             ExperienceIds.CtrlRamReplace);
-        return profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext &&
+        return profile.CompilationContextKind == V2CompilationContextKind.RuntimeReferenceReplace &&
             profile.CompositionKind == CompositionKind.Replace &&
             ((isGeneralReplace &&
-              profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
-              profile.Experience.InputPolicy == InputPolicy.Extensible) ||
+              profile.LayoutPolicy == LayoutPolicy.UserDefined &&
+              profile.InputPolicy == InputPolicy.Extensible) ||
              (isCtrlRamReplace &&
-              profile.Experience.LayoutPolicy == LayoutPolicy.Fixed &&
-              profile.Experience.InputPolicy == InputPolicy.Fixed)) &&
+              profile.LayoutPolicy == LayoutPolicy.Fixed &&
+              profile.InputPolicy == InputPolicy.Fixed)) &&
             profile.MetadataBindings.Count == 0 &&
             profile.RegionAccessRules.Count != 0 &&
             profile.Validations.Count == 0 &&
             ((!isCtrlRamReplace && profile.ProcessorStages.Count == 0) ||
-             profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext
-             {
-                 AllowsConditionalProcessor: true,
-             });
+             profile.AllowsConditionalProcessor);
     }
 
     internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
@@ -393,7 +389,7 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile)
     {
         bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
+            profile.ExperienceId,
             ExperienceIds.CtrlRamReplace);
         CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
             ? CompiledInputArtifactClass.CtrlRamReplacement

@@ -160,13 +160,13 @@ internal static class TrustedProfileBundleCatalogFactory
             TrustedCompositionProfileJsonSource source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
-            switch (profile.CompilationContext)
+            switch (profile.CompilationContextKind)
             {
-                case ResolvedMapProfileCompilationContext:
-                case RuntimeReferenceReplaceProfileCompilationContext:
+                case V2CompilationContextKind.ResolvedMap:
+                case V2CompilationContextKind.RuntimeReferenceReplace:
                     ValidateDeclaredMaps(profile, family, source.Identity);
                     break;
-                case LogicalOutputProfileCompilationContext:
+                case V2CompilationContextKind.LogicalOutput:
                     ValidateLogicalMembers(profile, family, source.Identity);
                     break;
                 default:
@@ -248,13 +248,12 @@ internal static class TrustedProfileBundleCatalogFactory
         IReadOnlyList<TrustedFirmwareFamilyCatalogEntry> families,
         TrustedProfileBundleCatalogEntryIdentity profileIdentity)
     {
-        CompositionProfileCompilationContext binding = profile.CompilationContext;
         TrustedFirmwareFamilyCatalogEntry[] matches =
         [
             .. families.Where(candidate =>
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyId, binding.FamilyId) &&
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, binding.FamilyVersion) &&
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyContentHash, binding.FamilyContentHash)),
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyId, profile.FamilyId) &&
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, profile.FamilyVersion) &&
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyContentHash, profile.FamilyContentHash)),
         ];
         return matches.Length switch
         {
@@ -293,7 +292,7 @@ internal static class TrustedProfileBundleCatalogFactory
         TrustedFirmwareFamilyCatalogEntry family,
         TrustedProfileBundleCatalogEntryIdentity profileIdentity)
     {
-        foreach (string memberId in profile.LogicalOutputBinding.MemberIds)
+        foreach (string memberId in profile.LogicalOutputMemberIds)
         {
             if (!family.MemberIds.Contains(memberId, StringComparer.Ordinal))
             {

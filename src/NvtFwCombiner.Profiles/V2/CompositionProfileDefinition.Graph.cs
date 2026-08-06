@@ -25,13 +25,13 @@ internal sealed partial class CompositionProfileDefinition
         ValidateInputPolicy();
         ValidateInputSelectionGroups(slots);
         ValidateSpaces(slots);
-        if (CompilationContext is LogicalOutputProfileCompilationContext)
+        if (CompilationContextKind == V2CompilationContextKind.LogicalOutput)
         {
             ValidateLogicalOutputShape();
             return;
         }
 
-        if (CompilationContext is RuntimeReferenceReplaceProfileCompilationContext)
+        if (CompilationContextKind == V2CompilationContextKind.RuntimeReferenceReplace)
         {
             ValidateRuntimeReferenceReplaceShape();
             ValidateViews(spaces);
@@ -52,9 +52,9 @@ internal sealed partial class CompositionProfileDefinition
     private void ValidateLogicalOutputShape()
     {
         if (CompositionKind != CompositionKind.Merge ||
-            !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.GeneralMerge) ||
-            Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
-            Experience.InputPolicy != InputPolicy.Extensible ||
+            !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.GeneralMerge) ||
+            LayoutPolicy != LayoutPolicy.UserDefined ||
+            InputPolicy != InputPolicy.Extensible ||
             _metadataBindings.Length != 0 ||
             _regionAccessRules.Length != 0 ||
             _operations.Length != 0 ||
@@ -104,13 +104,11 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateRuntimeReferenceReplaceShape()
     {
-        var context =
-            (RuntimeReferenceReplaceProfileCompilationContext)CompilationContext;
         bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            Experience.ExperienceId,
+            ExperienceId,
             ExperienceIds.GeneralReplace);
         bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            Experience.ExperienceId,
+            ExperienceId,
             ExperienceIds.CtrlRamReplace);
         CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
             ? CompiledInputArtifactClass.CtrlRamReplacement
@@ -118,16 +116,16 @@ internal sealed partial class CompositionProfileDefinition
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
-        bool conditionalProcessor = context.AllowsConditionalProcessor &&
+        bool conditionalProcessor = AllowsConditionalProcessor &&
             HasValidRuntimeReferenceProcessorShape(output);
         if (CompositionKind != CompositionKind.Replace ||
             (!isGeneralReplace && !isCtrlRamReplace) ||
             (isGeneralReplace &&
-             (Experience.LayoutPolicy != LayoutPolicy.UserDefined ||
-              Experience.InputPolicy != InputPolicy.Extensible)) ||
+             (LayoutPolicy != LayoutPolicy.UserDefined ||
+              InputPolicy != InputPolicy.Extensible)) ||
             (isCtrlRamReplace &&
-             (Experience.LayoutPolicy != LayoutPolicy.Fixed ||
-              Experience.InputPolicy != InputPolicy.Fixed ||
+             (LayoutPolicy != LayoutPolicy.Fixed ||
+              InputPolicy != InputPolicy.Fixed ||
               !conditionalProcessor)) ||
             _metadataBindings.Length != 0 ||
             _validations.Length != 0 ||
@@ -259,7 +257,7 @@ internal sealed partial class CompositionProfileDefinition
             slot.Normalization is CompiledPadShorterInputNormalization);
         if (padsInput &&
             (CompositionKind != CompositionKind.Replace ||
-             !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.DpReplace) ||
+             !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.DpReplace) ||
              _processorStages.Length != 0))
         {
             throw new ArgumentException("Short-input padding requires DP Replace without processor stages.");
@@ -269,7 +267,7 @@ internal sealed partial class CompositionProfileDefinition
             slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
         if (truncatesCtrlRam &&
             (CompositionKind != CompositionKind.Replace ||
-             !StringComparer.Ordinal.Equals(Experience.ExperienceId, ExperienceIds.CtrlRamReplace)))
+             !StringComparer.Ordinal.Equals(ExperienceId, ExperienceIds.CtrlRamReplace)))
         {
             throw new ArgumentException("CtrlRAM truncation requires the CtrlRAM Replace experience.");
         }

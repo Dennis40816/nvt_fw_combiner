@@ -46,7 +46,7 @@ internal static class SavedRuleV2GeneralReplaceExactParentResolver
                 CompiledProfilePromotionStage.ExecutableCandidate ||
             profile.CompositionKind != CompositionKind.Replace ||
             !StringComparer.Ordinal.Equals(
-                profile.Experience.ExperienceId,
+                profile.ExperienceId,
                 ExperienceIds.GeneralReplace))
         {
             throw new InvalidDataException(

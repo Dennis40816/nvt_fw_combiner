@@ -170,14 +170,14 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void NormalizedProfilesDiscardValidationOnlyPolicyState()
     {
-        string experience = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileExperience.cs");
+        string header = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/CompositionProfileHeader.cs");
         string processor = ReadText(
             "src/NvtFwCombiner.Profiles/V2/CompositionProfileProcessor.cs");
 
-        Assert.DoesNotContain("CompositionProfileTopologyAuthoring", experience, StringComparison.Ordinal);
-        Assert.DoesNotContain("Audience { get; }", experience, StringComparison.Ordinal);
-        Assert.DoesNotContain("DisplayNameKey { get; }", experience, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileTopologyAuthoring", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("Audience { get; }", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayNameKey { get; }", header, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileProcessorFailurePolicy", processor, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileProcessorAuthority", processor, StringComparison.Ordinal);
         Assert.DoesNotContain("internal abstract CompositionProfileProcessorPurpose", processor, StringComparison.Ordinal);
