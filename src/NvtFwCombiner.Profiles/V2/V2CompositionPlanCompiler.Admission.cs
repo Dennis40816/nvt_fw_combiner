@@ -84,16 +84,16 @@ internal static partial class V2CompositionPlanCompiler
         {
             bool isCopyRange = operation is CopyOrReplaceProfileOperation
             {
-                Kind: CompositionProfileOperationKind.CopyRange,
+                Kind: CompositionOperationKind.CopyRange,
             };
             bool isDpReplaceRange = isDpReplace &&
                 operation is CopyOrReplaceProfileOperation replace &&
-                replace.Kind == CompositionProfileOperationKind.ReplaceRange &&
+                replace.Kind == CompositionOperationKind.ReplaceRange &&
                 IsDpReplacePayloadInputSource(profile, replace);
             bool isProcessorRun = operation is RunProcessorProfileOperation;
             bool isCtrlRamProcessorRun = isCtrlRamReplace && isProcessorRun;
             bool isReferenceRestore = operation is CopyOrReplaceProfileOperation copy &&
-                copy.Kind == CompositionProfileOperationKind.CopyRange &&
+                copy.Kind == CompositionOperationKind.CopyRange &&
                 copy.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
                 StringComparer.Ordinal.Equals(
                     replaceReferenceSourceSpaceId,

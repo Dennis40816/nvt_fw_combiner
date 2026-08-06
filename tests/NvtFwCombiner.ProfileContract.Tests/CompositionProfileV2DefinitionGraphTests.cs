@@ -80,7 +80,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
         var unknownSource = new CopyOrReplaceProfileOperation(
-            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.CopyRange,
+            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.CopyRange,
             "unknown-view", "target-view");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [unknownSource] }));

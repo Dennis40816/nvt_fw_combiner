@@ -3,69 +3,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Closed normalized profile operation kind.</summary>
-internal enum CompositionProfileOperationKind
-{
-    CopyRange,
-    ReplaceRange,
-    FillRange,
-    PatchScalar,
-    TransformScalar,
-    RunProcessor,
-}
-
-/// <summary>Immutable exact byte value used by profile patches and assertions.</summary>
-internal sealed class CompositionProfileByteValue : IEquatable<CompositionProfileByteValue>
-{
-    private readonly byte[] _bytes;
-
-    internal CompositionProfileByteValue(ReadOnlySpan<byte> bytes)
-    {
-        if (bytes.IsEmpty)
-        {
-            throw new ArgumentException("Profile byte values cannot be empty.", nameof(bytes));
-        }
-
-        _bytes = bytes.ToArray();
-        Hex = Convert.ToHexString(_bytes).ToLowerInvariant();
-    }
-
-    internal int Length => _bytes.Length;
-
-    internal string Hex { get; }
-
-    internal ReadOnlySpan<byte> Bytes => _bytes;
-
-    public bool Equals(CompositionProfileByteValue? other)
-    {
-        return other is not null && _bytes.AsSpan().SequenceEqual(other._bytes);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is CompositionProfileByteValue other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (byte value in _bytes)
-            {
-                hash = (hash * 31) + value;
-            }
-
-            return hash;
-        }
-    }
-
-    public override string ToString()
-    {
-        return Hex;
-    }
-}
-
 /// <summary>Base value for one ordered normalized profile operation.</summary>
 internal abstract record CompositionProfileOperation
 {
@@ -74,7 +11,7 @@ internal abstract record CompositionProfileOperation
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
         string reason,
-        CompositionProfileOperationKind kind)
+        CompositionOperationKind kind)
     {
         OperationId = CompositionProfileValueRules.RequireId(operationId, nameof(operationId));
         if (sequence.Sign < 0)
@@ -106,7 +43,7 @@ internal abstract record CompositionProfileOperation
 
     internal string Reason { get; }
 
-    internal CompositionProfileOperationKind Kind { get; }
+    internal CompositionOperationKind Kind { get; }
 }
 
 /// <summary>Copies or replaces one source logical view into one target logical view.</summary>
@@ -117,7 +54,7 @@ internal sealed record CopyOrReplaceProfileOperation : CompositionProfileOperati
         BigInteger sequence,
         OverlapPolicy overlapPolicy,
         string reason,
-        CompositionProfileOperationKind kind,
+        CompositionOperationKind kind,
         string sourceViewId,
         string targetViewId)
         : base(operationId, sequence, overlapPolicy, reason, ValidateKind(kind))
@@ -130,9 +67,9 @@ internal sealed record CopyOrReplaceProfileOperation : CompositionProfileOperati
 
     internal string TargetViewId { get; }
 
-    private static CompositionProfileOperationKind ValidateKind(CompositionProfileOperationKind kind)
+    private static CompositionOperationKind ValidateKind(CompositionOperationKind kind)
     {
-        return kind is CompositionProfileOperationKind.CopyRange or CompositionProfileOperationKind.ReplaceRange
+        return kind is CompositionOperationKind.CopyRange or CompositionOperationKind.ReplaceRange
             ? kind
             : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Copy operations must copy or replace a range.");
     }
@@ -153,7 +90,7 @@ internal sealed record FillRangeProfileOperation : CompositionProfileOperation
             sequence,
             overlapPolicy,
             reason,
-            CompositionProfileOperationKind.FillRange)
+            CompositionOperationKind.FillRange)
     {
         TargetViewId = CompositionProfileValueRules.RequireId(targetViewId, nameof(targetViewId));
         FillByte = fillByte;
@@ -173,13 +110,13 @@ internal sealed record PatchScalarProfileOperation : CompositionProfileOperation
         OverlapPolicy overlapPolicy,
         string reason,
         string targetViewId,
-        CompositionProfileByteValue value)
+        CompiledValidationBytes value)
         : base(
             operationId,
             sequence,
             overlapPolicy,
             reason,
-            CompositionProfileOperationKind.PatchScalar)
+            CompositionOperationKind.PatchScalar)
     {
         TargetViewId = CompositionProfileValueRules.RequireId(targetViewId, nameof(targetViewId));
         ArgumentNullException.ThrowIfNull(value);
@@ -188,41 +125,7 @@ internal sealed record PatchScalarProfileOperation : CompositionProfileOperation
 
     internal string TargetViewId { get; }
 
-    internal CompositionProfileByteValue Value { get; }
-}
-
-/// <summary>Base value for one normalized scalar-transform addend source.</summary>
-internal abstract record TransformAddendSource;
-
-/// <summary>One legacy profile-owned fixed numeric addend.</summary>
-internal sealed record FixedTransformAddendSource : TransformAddendSource
-{
-    internal FixedTransformAddendSource(BigInteger value)
-    {
-        Value = value;
-    }
-
-    internal BigInteger Value { get; }
-}
-
-/// <summary>One addend derived from two explicit placements of the same canonical template.</summary>
-internal sealed record RegionInstanceDeltaTransformAddendSource : TransformAddendSource
-{
-    internal RegionInstanceDeltaTransformAddendSource(
-        string sourceRegionInstanceId,
-        string targetRegionInstanceId)
-    {
-        SourceRegionInstanceId = CompositionProfileValueRules.RequireId(
-            sourceRegionInstanceId,
-            nameof(sourceRegionInstanceId));
-        TargetRegionInstanceId = CompositionProfileValueRules.RequireId(
-            targetRegionInstanceId,
-            nameof(targetRegionInstanceId));
-    }
-
-    internal string SourceRegionInstanceId { get; }
-
-    internal string TargetRegionInstanceId { get; }
+    internal CompiledValidationBytes Value { get; }
 }
 
 /// <summary>Reads an unsigned scalar, adds a checked signed value, and writes one target view.</summary>
@@ -248,7 +151,8 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
             targetViewId,
             width,
             byteOrder,
-            new FixedTransformAddendSource(addend),
+            addend,
+            ScalarTransformAddendSource.Fixed,
             expectedBefore)
     {
     }
@@ -262,14 +166,15 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
         string targetViewId,
         ScalarTransformWidth width,
         ScalarTransformByteOrder byteOrder,
-        TransformAddendSource addendSource,
+        BigInteger? fixedAddend,
+        ScalarTransformAddendSource addendSource,
         ulong? expectedBefore)
         : base(
             operationId,
             sequence,
             overlapPolicy,
             reason,
-            CompositionProfileOperationKind.TransformScalar)
+            CompositionOperationKind.TransformScalar)
     {
         SourceViewId = CompositionProfileValueRules.RequireId(sourceViewId, nameof(sourceViewId));
         TargetViewId = CompositionProfileValueRules.RequireId(targetViewId, nameof(targetViewId));
@@ -292,8 +197,26 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
         }
 
         ArgumentNullException.ThrowIfNull(addendSource);
+        if (addendSource.Kind == ScalarTransformAddendSourceKind.Fixed != fixedAddend.HasValue)
+        {
+            throw new ArgumentException(
+                "Fixed scalar addends require one value; region-instance deltas must remain unresolved.",
+                nameof(fixedAddend));
+        }
+
+        if (addendSource.Kind == ScalarTransformAddendSourceKind.RegionInstanceDelta)
+        {
+            _ = CanonicalPolicyValueRules.RequireCanonicalId(
+                addendSource.SourceRegionInstanceId!,
+                nameof(addendSource.SourceRegionInstanceId));
+            _ = CanonicalPolicyValueRules.RequireCanonicalId(
+                addendSource.TargetRegionInstanceId!,
+                nameof(addendSource.TargetRegionInstanceId));
+        }
+
         Width = width;
         ByteOrder = byteOrder;
+        FixedAddend = fixedAddend;
         AddendSource = addendSource;
         ExpectedBefore = expectedBefore;
     }
@@ -306,14 +229,16 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
 
     internal ScalarTransformByteOrder ByteOrder { get; }
 
-    internal BigInteger Addend => AddendSource is FixedTransformAddendSource fixedAddend
-        ? fixedAddend.Value
+    internal BigInteger Addend => FixedAddend is { } fixedAddend
+        ? fixedAddend
         : throw new InvalidOperationException(
             "A region-instance delta addend must be resolved against one firmware map.");
 
-    internal TransformAddendSource AddendSource { get; }
+    internal ScalarTransformAddendSource AddendSource { get; }
 
     internal ulong? ExpectedBefore { get; }
+
+    private BigInteger? FixedAddend { get; }
 
     private static bool CanRepresent(ScalarTransformWidth width, ulong value)
     {
@@ -342,7 +267,7 @@ internal sealed record RunProcessorProfileOperation : CompositionProfileOperatio
             sequence,
             overlapPolicy,
             reason,
-            CompositionProfileOperationKind.RunProcessor)
+            CompositionOperationKind.RunExternalProcessor)
     {
         ProcessorStageId = CompositionProfileValueRules.RequireId(
             processorStageId,

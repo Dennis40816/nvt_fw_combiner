@@ -12,16 +12,16 @@ public sealed class CompositionProfileV2OperationTests
     public void OperationKindsKeepTypedLogicalReferences()
     {
         var copy = new CopyOrReplaceProfileOperation(
-            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.CopyRange,
+            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.CopyRange,
             "source", "target");
         var replace = new CopyOrReplaceProfileOperation(
             "replace-code", 1, OverlapPolicy.ReplaceExisting, "replace",
-            CompositionProfileOperationKind.ReplaceRange, "replacement", "target");
+            CompositionOperationKind.ReplaceRange, "replacement", "target");
         var fill = new FillRangeProfileOperation(
             "fill-gap", 2, OverlapPolicy.Reject, "fill", "gap", 0xFF);
         var patch = new PatchScalarProfileOperation(
             "patch-header", 3, OverlapPolicy.AllowDeclared, "patch", "header-field",
-            new CompositionProfileByteValue([0x01, 0x02]));
+            new CompiledValidationBytes([0x01, 0x02]));
         var transform = new TransformScalarProfileOperation(
             "relocate", 4, OverlapPolicy.ReplaceExisting, "relocate", "source-scalar", "target-scalar",
             ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
@@ -29,18 +29,18 @@ public sealed class CompositionProfileV2OperationTests
         var instanceDelta = new TransformScalarProfileOperation(
             "relocate-instance", 5, OverlapPolicy.Reject, "relocate", "source-scalar", "target-scalar",
             ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
-            new RegionInstanceDeltaTransformAddendSource("a-bank", "b-bank"), null);
+            null, ScalarTransformAddendSource.RegionInstanceDelta("a-bank", "b-bank"), null);
         var processor = new RunProcessorProfileOperation(
             "postbuild", 6, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
 
-        Assert.Equal(CompositionProfileOperationKind.CopyRange, copy.Kind);
+        Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
         Assert.Equal("target", replace.TargetViewId);
         Assert.Equal(0xFF, fill.FillByte);
         Assert.Equal("0102", patch.Value.Hex);
         Assert.Equal(ScalarTransformWidth.FourBytes, transform.Width);
         Assert.Equal(-16, transform.Addend);
-        RegionInstanceDeltaTransformAddendSource delta =
-            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(instanceDelta.AddendSource);
+        ScalarTransformAddendSource delta = instanceDelta.AddendSource;
+        Assert.Equal(ScalarTransformAddendSourceKind.RegionInstanceDelta, delta.Kind);
         Assert.Equal("a-bank", delta.SourceRegionInstanceId);
         Assert.Equal("b-bank", delta.TargetRegionInstanceId);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
@@ -51,17 +51,17 @@ public sealed class CompositionProfileV2OperationTests
     public void ByteValuesAreImmutableAndStructural()
     {
         byte[] bytes = [0xAA, 0x55];
-        var value = new CompositionProfileByteValue(bytes);
+        var value = new CompiledValidationBytes(bytes);
         bytes[0] = 0;
-        var equal = new CompositionProfileByteValue([0xAA, 0x55]);
-        var different = new CompositionProfileByteValue([0xAA, 0x56]);
+        var equal = new CompiledValidationBytes([0xAA, 0x55]);
+        var different = new CompiledValidationBytes([0xAA, 0x56]);
 
         Assert.Equal("aa55", value.Hex);
         Assert.Equal(2, value.Length);
         Assert.Equal(value, equal);
         Assert.Equal(value.GetHashCode(), equal.GetHashCode());
         Assert.NotEqual(value, different);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileByteValue([]));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledValidationBytes([]));
     }
 
     /// <summary>Verifies schema-sized sequence and signed addend values stay lossless.</summary>
@@ -121,7 +121,7 @@ public sealed class CompositionProfileV2OperationTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FillRangeProfileOperation(
             "fill", 0, (OverlapPolicy)99, "fill", "target", 0));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CopyOrReplaceProfileOperation(
-            "copy", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.FillRange,
+            "copy", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.FillRange,
             "source", "target"));
         _ = Assert.Throws<ArgumentNullException>(() => new PatchScalarProfileOperation(
             "patch", 0, OverlapPolicy.Reject, "patch", "target", null!));

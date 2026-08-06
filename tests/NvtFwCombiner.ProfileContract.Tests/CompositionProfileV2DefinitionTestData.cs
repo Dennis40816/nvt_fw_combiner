@@ -59,7 +59,7 @@ internal static class CompositionProfileV2DefinitionTestData
                 "dp-code", RegionAccessKind.ReadOnly, "Source region is immutable.")],
             [new CopyOrReplaceProfileOperation(
                 "copy-code", 0, OverlapPolicy.Reject, "Copy source code.",
-                CompositionProfileOperationKind.CopyRange, "source-view", "target-view")],
+                CompositionOperationKind.CopyRange, "source-view", "target-view")],
             [new CompiledPidSanityValidation(
                 "pid-valid", CompiledValidationStage.InputLoad,
                 CompiledValidationSeverity.Error, "PID_INVALID",
@@ -107,7 +107,7 @@ internal static class CompositionProfileV2DefinitionTestData
             ],
             Operations = [new CopyOrReplaceProfileOperation(
                 "replace-code", 0, OverlapPolicy.ReplaceExisting, "Replace source code.",
-                CompositionProfileOperationKind.ReplaceRange, "source-view", "target-view")],
+                CompositionOperationKind.ReplaceRange, "source-view", "target-view")],
         };
     }
 
