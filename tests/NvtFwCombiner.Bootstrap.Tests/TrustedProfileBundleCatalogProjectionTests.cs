@@ -19,6 +19,55 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
     private const string CompositionProfileSchemaId =
         "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
 
+    /// <summary>Static catalog failures retain their exact typed code at the production compiler boundary.</summary>
+    [Fact]
+    public void BuiltInCompilerPreservesStaticCatalogFailureCodeAndProvenance()
+    {
+        using var workspace = TempWorkspace.Create("nfc-bootstrap-invalid-catalog");
+        byte[] familySchema = ReadSchema("firmware-family-v1.schema.json");
+        byte[] profileSchema = ReadSchema("composition-profile-v2.schema.json");
+        byte[] family = Encoding.UTF8.GetBytes(TrustedV2BundleTestDocuments.FamilyJson());
+        string familyHash = Hash(family);
+        byte[] profile = Encoding.UTF8.GetBytes(
+            TrustedV2BundleTestDocuments.ProfileJson(familyHash).Replace(
+                "\"requiredMetadataStructureIds\": []",
+                "\"requiredMetadataStructureIds\": [\"missing-structure\"]",
+                StringComparison.Ordinal));
+        var entries = new List<ProfileBundleEntryDocument>
+        {
+            new("family-schema", "schema", "schemas/family.schema.json", FirmwareFamilySchemaId, Hash(familySchema)),
+            new("profile-schema", "schema", "schemas/profile.schema.json", CompositionProfileSchemaId, Hash(profileSchema)),
+            new("family-entry", "firmware-family", "families/family.json", FirmwareFamilySchemaId, familyHash),
+            new("profile-entry", "composition-profile", "profiles/profile.json", CompositionProfileSchemaId, Hash(profile)),
+        };
+        string bundleContentHash = ProfileBundleEntryArrayHasher.CalculateContentHash(entries);
+        _ = workspace.Write("schemas/family.schema.json", familySchema);
+        _ = workspace.Write("schemas/profile.schema.json", profileSchema);
+        _ = workspace.Write("families/family.json", family);
+        _ = workspace.Write("profiles/profile.json", profile);
+        _ = workspace.Write(
+            "profile-bundle.json",
+            Encoding.UTF8.GetBytes(Manifest(entries, bundleContentHash)));
+        var bundle = new BuiltInV2Bundle(
+            workspace.Root,
+            "1.0.0",
+            bundleContentHash,
+            "release-manifest");
+
+        V2CompositionPlanCompileResult result = bundle.Compile(
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "display-merge",
+            requestedMapCapacity: 16,
+            resolutionArtifacts: []);
+
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile-bundle.catalog.profile-required-metadata-missing", issue.Code);
+        Assert.Contains("profile-entry", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("profiles/profile.json", issue.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the bridge preserves trusted entry identity while Profiles owns semantic normalization.</summary>
     [Fact]
     public async Task CreateProjectsTrustedBundleIntoRuntimeArtifactAndExistingEngine()

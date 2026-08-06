@@ -32,17 +32,9 @@ public abstract class V2CompilationContext
 
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
-        ArgumentNullException.ThrowIfNull(familyContentHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
-        if (familyContentHash.Length != 64 ||
-            familyContentHash.Any(static character => !char.IsAsciiHexDigit(character)) ||
-            familyContentHash.Any(char.IsUpper))
-        {
-            throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
-        }
+        _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
         Kind = kind;
         FamilyId = familyId;

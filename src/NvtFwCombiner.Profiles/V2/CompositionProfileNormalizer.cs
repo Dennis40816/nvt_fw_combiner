@@ -44,7 +44,7 @@ internal static partial class CompositionProfileNormalizer
         ValidateTopologyAuthoring(document.TopologyAuthoring, $"{path}.topologyAuthoring");
         return Wrap(path, () =>
         {
-            string experienceId = CompositionProfileValueRules.RequireId(
+            string experienceId = CanonicalPolicyValueRules.RequireCanonicalId(
                 document.ExperienceId,
                 nameof(document.ExperienceId));
             ArgumentException.ThrowIfNullOrWhiteSpace(document.DisplayNameKey);

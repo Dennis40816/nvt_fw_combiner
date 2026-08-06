@@ -52,7 +52,7 @@ internal sealed record CloneProfileInitializer : CompositionProfileInitializer
 {
     internal CloneProfileInitializer(string sourceSlotId)
     {
-        SourceSlotId = CompositionProfileValueRules.RequireId(sourceSlotId, nameof(sourceSlotId));
+        SourceSlotId = CanonicalPolicyValueRules.RequireCanonicalId(sourceSlotId, nameof(sourceSlotId));
     }
 
     internal string SourceSlotId { get; }
@@ -63,7 +63,7 @@ internal abstract record CompositionProfileSpace
 {
     protected CompositionProfileSpace(string spaceId, CompositionProfileSpaceKind kind)
     {
-        SpaceId = CompositionProfileValueRules.RequireId(spaceId, nameof(spaceId));
+        SpaceId = CanonicalPolicyValueRules.RequireCanonicalId(spaceId, nameof(spaceId));
         if (!Enum.IsDefined(kind))
         {
             throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile space kind.");
@@ -86,7 +86,7 @@ internal sealed record InputArtifactProfileSpace : CompositionProfileSpace
         CompiledInputInstancePolicy instancePolicy)
         : base(spaceId, CompositionProfileSpaceKind.InputArtifact)
     {
-        SlotId = CompositionProfileValueRules.RequireId(slotId, nameof(slotId));
+        SlotId = CanonicalPolicyValueRules.RequireCanonicalId(slotId, nameof(slotId));
         if (!Enum.IsDefined(instancePolicy))
         {
             throw new ArgumentOutOfRangeException(

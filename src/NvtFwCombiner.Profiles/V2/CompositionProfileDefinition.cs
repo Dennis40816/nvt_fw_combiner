@@ -35,7 +35,7 @@ internal sealed partial class CompositionProfileDefinition
         IEnumerable<string> evidenceRefs,
         IEnumerable<InputSelectionGroupDefinition>? inputSelectionGroups = null)
     {
-        ProfileId = CompositionProfileValueRules.RequireId(profileId, nameof(profileId));
+        ProfileId = CanonicalPolicyValueRules.RequireCanonicalId(profileId, nameof(profileId));
         ProfileVersion = CompositionProfileValueRules.RequireSemanticVersion(
             profileVersion,
             nameof(profileVersion));
@@ -115,7 +115,7 @@ internal sealed partial class CompositionProfileDefinition
             static processor => processor.ProcessorStageId,
             nameof(processorStages),
             requireValue: false);
-        _evidenceRefs = CompositionProfileValueRules.SnapshotIds(
+        _evidenceRefs = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             evidenceRefs,
             nameof(evidenceRefs),
             requireValue: true);

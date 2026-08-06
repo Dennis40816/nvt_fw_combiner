@@ -13,12 +13,11 @@ public sealed class ProfileBundleIdentity
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
-        ValidateSha256(contentHash, nameof(contentHash));
+        ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
         ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
 
         BundleId = bundleId;
         BundleVersion = bundleVersion;
-        ContentHash = contentHash;
         TrustAnchorBindingId = trustAnchorBindingId;
     }
 
@@ -34,15 +33,6 @@ public sealed class ProfileBundleIdentity
     /// <summary>External release/install binding that established the bundle root.</summary>
     public string TrustAnchorBindingId { get; }
 
-    internal static void ValidateSha256(string value, string parameterName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value);
-        if (value.Length != 64 || value.Any(static character =>
-            character is not (>= '0' and <= '9') and not (>= 'a' and <= 'f')))
-        {
-            throw new ArgumentException("Expected a lowercase 64-character SHA-256 hash.", parameterName);
-        }
-    }
 }
 
 /// <summary>Immutable allowlisted identity of the exact composition-profile document inside one bundle.</summary>
@@ -51,9 +41,8 @@ public sealed class ProfileBundleEntryIdentity
     internal ProfileBundleEntryIdentity(string entryId, string contentHash)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entryId);
-        ProfileBundleIdentity.ValidateSha256(contentHash, nameof(contentHash));
         EntryId = entryId;
-        ContentHash = contentHash;
+        ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
     }
 
     /// <summary>Stable composition-profile entry id from the closed bundle inventory.</summary>

@@ -11,7 +11,7 @@ internal sealed record MapRegionViewSelector : CompositionProfileViewSelector
 {
     internal MapRegionViewSelector(string regionId)
     {
-        RegionId = CompositionProfileValueRules.RequireId(regionId, nameof(regionId));
+        RegionId = CanonicalPolicyValueRules.RequireCanonicalId(regionId, nameof(regionId));
     }
 
     internal string RegionId { get; }
@@ -22,7 +22,7 @@ internal sealed record MapRegionSliceViewSelector : CompositionProfileViewSelect
 {
     internal MapRegionSliceViewSelector(string regionId, ByteRange relativeRange)
     {
-        RegionId = CompositionProfileValueRules.RequireId(regionId, nameof(regionId));
+        RegionId = CanonicalPolicyValueRules.RequireCanonicalId(regionId, nameof(regionId));
         RelativeRange = CompositionProfileValueRules.RequireRange(relativeRange, nameof(relativeRange));
     }
 
@@ -49,10 +49,10 @@ internal sealed record RegionTemplateRangeViewSelector : CompositionProfileViewS
         string regionInstanceId,
         string templateRegionId)
     {
-        RegionInstanceId = CompositionProfileValueRules.RequireId(
+        RegionInstanceId = CanonicalPolicyValueRules.RequireCanonicalId(
             regionInstanceId,
             nameof(regionInstanceId));
-        TemplateRegionId = CompositionProfileValueRules.RequireId(
+        TemplateRegionId = CanonicalPolicyValueRules.RequireCanonicalId(
             templateRegionId,
             nameof(templateRegionId));
     }
@@ -70,8 +70,8 @@ internal sealed record CompositionProfileView
         string spaceId,
         CompositionProfileViewSelector selector)
     {
-        ViewId = CompositionProfileValueRules.RequireId(viewId, nameof(viewId));
-        SpaceId = CompositionProfileValueRules.RequireId(spaceId, nameof(spaceId));
+        ViewId = CanonicalPolicyValueRules.RequireCanonicalId(viewId, nameof(viewId));
+        SpaceId = CanonicalPolicyValueRules.RequireCanonicalId(spaceId, nameof(spaceId));
         ArgumentNullException.ThrowIfNull(selector);
         Selector = selector;
     }
@@ -136,9 +136,9 @@ internal sealed class CompositionProfileMetadataBinding
         IEnumerable<CompositionProfileMetadataPurpose> purposes,
         IEnumerable<string> evidenceRefs)
     {
-        BindingId = CompositionProfileValueRules.RequireId(bindingId, nameof(bindingId));
-        SpaceId = CompositionProfileValueRules.RequireId(spaceId, nameof(spaceId));
-        StructureId = CompositionProfileValueRules.RequireId(structureId, nameof(structureId));
+        BindingId = CanonicalPolicyValueRules.RequireCanonicalId(bindingId, nameof(bindingId));
+        SpaceId = CanonicalPolicyValueRules.RequireCanonicalId(spaceId, nameof(spaceId));
+        StructureId = CanonicalPolicyValueRules.RequireCanonicalId(structureId, nameof(structureId));
         _targetReferences = ImmutableReferenceSnapshot.Create(
             targetReferences,
             "Metadata target references cannot contain null.");
@@ -183,7 +183,7 @@ internal sealed class CompositionProfileMetadataBinding
         }
 
         Array.Sort(_purposes);
-        _evidenceRefs = CompositionProfileValueRules.SnapshotIds(
+        _evidenceRefs = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             evidenceRefs,
             nameof(evidenceRefs),
             requireValue: false);
@@ -219,14 +219,14 @@ internal sealed class CompositionProfileRegionAccess
         string reason,
         IEnumerable<string>? allowedSubregionIds = null)
     {
-        RegionId = CompositionProfileValueRules.RequireId(regionId, nameof(regionId));
+        RegionId = CanonicalPolicyValueRules.RequireCanonicalId(regionId, nameof(regionId));
         if (!Enum.IsDefined(access))
         {
             throw new ArgumentOutOfRangeException(nameof(access), access, "Unknown region access kind.");
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _allowedSubregionIds = CompositionProfileValueRules.SnapshotIds(
+        _allowedSubregionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedSubregionIds ?? [],
             nameof(allowedSubregionIds),
             requireValue: access == RegionAccessKind.Parts);

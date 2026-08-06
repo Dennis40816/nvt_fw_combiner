@@ -8,15 +8,10 @@ public sealed record FirmwareArtifactIdentity
     internal FirmwareArtifactIdentity(string artifactId, string sha256, long lengthBytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lengthBytes);
-        if (!IsLowercaseSha256(sha256))
-        {
-            throw new ArgumentException("Artifact SHA-256 must be 64 lowercase hexadecimal characters.", nameof(sha256));
-        }
 
         ArtifactId = artifactId;
-        Sha256 = sha256;
+        Sha256 = CanonicalSha256.Require(sha256, nameof(sha256));
         LengthBytes = lengthBytes;
     }
 
@@ -29,11 +24,6 @@ public sealed record FirmwareArtifactIdentity
     /// <summary>Exact immutable artifact length.</summary>
     public long LengthBytes { get; }
 
-    private static bool IsLowercaseSha256(string value)
-    {
-        return value.Length == 64 && value.All(static character =>
-            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-    }
 }
 
 /// <summary>One immutable firmware artifact payload used by map resolution or declared metadata inspection.</summary>

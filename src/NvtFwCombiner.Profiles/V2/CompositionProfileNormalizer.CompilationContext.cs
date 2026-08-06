@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -66,7 +67,7 @@ internal static partial class CompositionProfileNormalizer
     {
         return Wrap("logicalOutputBinding", () =>
         {
-            string familyId = CompositionProfileValueRules.RequireId(document.FamilyId, "familyId");
+            string familyId = CanonicalPolicyValueRules.RequireCanonicalId(document.FamilyId, "familyId");
             string familyVersion = CompositionProfileValueRules.RequireSemanticVersion(
                 document.FamilyVersion,
                 "familyVersion");
@@ -103,10 +104,6 @@ internal static partial class CompositionProfileNormalizer
 
     private static string RequireFamilyContentHash(string familyContentHash)
     {
-        return CompositionProfileValueRules.IsLowercaseSha256(familyContentHash)
-            ? familyContentHash
-            : throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
+        return CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
     }
 }

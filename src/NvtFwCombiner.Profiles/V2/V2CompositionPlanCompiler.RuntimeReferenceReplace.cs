@@ -60,7 +60,7 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
-        if (!IsRuntimeReferenceReplaceProfile(profile))
+        if (profile.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -340,101 +340,36 @@ internal static partial class V2CompositionPlanCompiler
     }
 
 
-    private static bool IsRuntimeReferenceReplaceProfile(CompositionProfileDefinition profile)
-    {
-        bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            profile.ExperienceId,
-            ExperienceIds.GeneralReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.ExperienceId,
-            ExperienceIds.CtrlRamReplace);
-        return profile.CompilationContextKind == V2CompilationContextKind.RuntimeReferenceReplace &&
-            profile.CompositionKind == CompositionKind.Replace &&
-            ((isGeneralReplace &&
-              profile.LayoutPolicy == LayoutPolicy.UserDefined &&
-              profile.InputPolicy == InputPolicy.Extensible) ||
-             (isCtrlRamReplace &&
-              profile.LayoutPolicy == LayoutPolicy.Fixed &&
-              profile.InputPolicy == InputPolicy.Fixed)) &&
-            profile.MetadataBindings.Count == 0 &&
-            profile.RegionAccessRules.Count != 0 &&
-            profile.Validations.Count == 0 &&
-            ((!isCtrlRamReplace && profile.ProcessorStages.Count == 0) ||
-             profile.AllowsConditionalProcessor);
-    }
-
     internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
         CompositionProfileDefinition profile,
         out string referenceSlotId)
     {
         ArgumentNullException.ThrowIfNull(profile);
         referenceSlotId = string.Empty;
-        if (!IsRuntimeReferenceReplaceProfile(profile))
+        if (profile.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return false;
         }
 
-        try
-        {
-            referenceSlotId = AssertRuntimeReferenceReplaceProfileShape(profile).ReferenceSlot.SlotId;
-            return true;
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
+        referenceSlotId = AssertRuntimeReferenceReplaceProfileShape(profile).ReferenceSlot.SlotId;
+        return true;
     }
 
     private static RuntimeReferenceReplaceProfileShape AssertRuntimeReferenceReplaceProfileShape(
         CompositionProfileDefinition profile)
     {
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.ExperienceId,
-            ExperienceIds.CtrlRamReplace);
-        CompiledInputArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompiledInputArtifactClass.CtrlRamReplacement
-            : CompiledInputArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        CloneProfileInitializer clone = output.Capacity is RuntimeRequestProfileCapacity &&
-            output.Initializer is CloneProfileInitializer initializer
-            ? initializer
-            : throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid output space.");
+        var clone = (CloneProfileInitializer)output.Initializer;
         CompositionInputSlotDefinition reference = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
         CompositionInputSlotDefinition source = profile.InputSlots.Single(slot =>
             !StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
-        InputArtifactProfileSpace referenceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, reference.SlotId));
-        InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, source.SlotId));
-        bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? source.Normalization is CompiledTruncateCtrlRamInputNormalization
-            : source.Normalization is CompiledNoInputNormalization;
-        return reference is not
-        {
-            Required: true,
-            ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
-            Cardinality: CompiledInputSlotCardinality.ExactlyOne,
-            LengthRequirement: ResolvedMapCapacityInputLengthDefinition,
-            Normalization: CompiledNoInputNormalization,
-        } ||
-            source is not
-            {
-                Required: true,
-                Cardinality: CompiledInputSlotCardinality.OneOrMore,
-                LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            } ||
-            source.ArtifactClass != expectedSourceClass ||
-            !sourceNormalizationIsValid ||
-            referenceSpace.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
-            sourceSpace.InstancePolicy != CompiledInputInstancePolicy.PerBinding
-            ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")
-            : new RuntimeReferenceReplaceProfileShape(
-                reference,
-                source,
-                output,
-                profile.Operations.SingleOrDefault(static operation =>
-                    operation.Kind == CompositionOperationKind.RunExternalProcessor));
+        return new RuntimeReferenceReplaceProfileShape(
+            reference,
+            source,
+            output,
+            profile.Operations.SingleOrDefault(static operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor));
     }
 
     private static Dictionary<string, V2RuntimeReferenceReplaceInputBinding> ValidateRuntimeReferenceReplaceBindings(

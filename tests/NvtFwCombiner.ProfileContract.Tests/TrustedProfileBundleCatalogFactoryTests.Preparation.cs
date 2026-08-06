@@ -247,9 +247,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Empty(issues);
     }
 
-    /// <summary>Verifies profile metadata requirements are admitted only after the selected map is unique.</summary>
+    /// <summary>Verifies static profile metadata requirements are rejected while the trusted catalog is built.</summary>
     [Fact]
-    public void PreparationReturnsExistingAdmissionIssuesWithoutCreatingAPlan()
+    public void CatalogRejectsMissingStaticMetadataRequirementsBeforePreparation()
     {
         string familyJson = TrustedV2BundleTestDocuments.FamilyJson();
         string familyHash = Hash(familyJson);
@@ -257,34 +257,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "\"requiredMetadataStructureIds\": []",
             "\"requiredMetadataStructureIds\": [\"missing-b\", \"missing-a\"]",
             StringComparison.Ordinal);
-        TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            CreateCatalog(familyJson, profileJson));
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
-            catalog,
-            selection,
-            Inputs(),
-            out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
-            out IReadOnlyList<CompositionIssue> issues);
-
-        Assert.False(admitted);
-        Assert.Equal(FirmwareMapResolutionStatus.Unique, mapResolution?.Status);
-        Assert.Empty(capabilityAdmissions);
-        Assert.Equal(
-            ["profile.v2.map.required-metadata-structure-missing", "profile.v2.map.required-metadata-structure-missing"],
-            issues.Select(static issue => issue.Code));
-
-        bool compiled = V2CompositionPlanCompiler.TryCompileAdmitted(
-            catalog,
-            selection,
-            Inputs(),
-            selectedInputSlotIds: null,
-            out V2CompositionPlanCompileResult? compilation,
-            out IReadOnlyList<CompositionIssue> compilationIssues);
-        Assert.False(compiled);
-        Assert.Null(compilation);
-        Assert.Equal(issues.Select(static issue => issue.Code), compilationIssues.Select(static issue => issue.Code));
+        Assert.Equal("profile-bundle.catalog.profile-required-metadata-missing", exception.Code);
+        Assert.Contains("missing-a", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies a missing required capability cannot enter raw plan lowering with an empty admission set.</summary>

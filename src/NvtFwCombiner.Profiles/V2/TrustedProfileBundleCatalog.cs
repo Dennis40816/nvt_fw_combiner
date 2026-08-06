@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -74,7 +75,7 @@ internal sealed partial class TrustedProfileBundleCatalog
         IEnumerable<TrustedCompositionProfileCatalogEntry> profiles)
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);
-        ProfileBundleIdentity.ValidateSha256(manifestSha256, nameof(manifestSha256));
+        _ = CanonicalSha256.Require(manifestSha256, nameof(manifestSha256));
         _families = ImmutableReferenceSnapshot.Create(
             families,
             "Trusted catalog entries cannot contain null values.");
