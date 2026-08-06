@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Domain.Composition;
 
-internal static class InputPolicyValueRules
+internal static class CanonicalPolicyValueRules
 {
     internal static string RequireCanonicalId(string value, string parameterName)
     {
@@ -57,7 +57,7 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
             : SnapshotExpectedOuterLengths(expectedOuterLengths);
         if (unexpectedOuterLengthIssueCode is not null)
         {
-            _ = InputPolicyValueRules.RequireIssueCode(
+            _ = CanonicalPolicyValueRules.RequireIssueCode(
                 unexpectedOuterLengthIssueCode,
                 nameof(unexpectedOuterLengthIssueCode));
         }
@@ -143,10 +143,10 @@ internal sealed class CompositionInputSlotDefinition
         }
 
         SlotId = validateCanonicalPolicy
-            ? InputPolicyValueRules.RequireCanonicalId(slotId, nameof(slotId))
+            ? CanonicalPolicyValueRules.RequireCanonicalId(slotId, nameof(slotId))
             : slotId;
         Role = validateCanonicalPolicy
-            ? InputPolicyValueRules.RequireCanonicalId(role, nameof(role))
+            ? CanonicalPolicyValueRules.RequireCanonicalId(role, nameof(role))
             : role;
         ArtifactClass = artifactClass;
         Required = required;
@@ -204,16 +204,16 @@ internal sealed class CompositionInputSlotDefinition
         switch (lengthRequirement)
         {
             case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                _ = InputPolicyValueRules.RequireIssueCode(
+                _ = CanonicalPolicyValueRules.RequireIssueCode(
                     declaredPrefix.ShortInputIssueCode,
                     nameof(declaredPrefix.ShortInputIssueCode));
-                _ = InputPolicyValueRules.RequireIssueCode(
+                _ = CanonicalPolicyValueRules.RequireIssueCode(
                     declaredPrefix.UnexpectedOuterLengthIssueCode,
                     nameof(declaredPrefix.UnexpectedOuterLengthIssueCode));
                 break;
             case CompiledSourceViewCoverageInputLengthRequirement sourceView
                 when sourceView.UnexpectedOuterLengthIssueCode is { } issueCode:
-                _ = InputPolicyValueRules.RequireIssueCode(issueCode, nameof(issueCode));
+                _ = CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(issueCode));
                 break;
             default:
                 break;
@@ -222,13 +222,13 @@ internal sealed class CompositionInputSlotDefinition
         switch (normalization)
         {
             case CompiledPadShorterInputNormalization padded:
-                _ = InputPolicyValueRules.RequireCanonicalId(padded.EvidenceRef, nameof(padded.EvidenceRef));
+                _ = CanonicalPolicyValueRules.RequireCanonicalId(padded.EvidenceRef, nameof(padded.EvidenceRef));
                 break;
             case CompiledTruncateCtrlRamInputNormalization truncated:
-                _ = InputPolicyValueRules.RequireIssueCode(
+                _ = CanonicalPolicyValueRules.RequireIssueCode(
                     truncated.WarningIssueCode,
                     nameof(truncated.WarningIssueCode));
-                _ = InputPolicyValueRules.RequireCanonicalId(
+                _ = CanonicalPolicyValueRules.RequireCanonicalId(
                     truncated.EvidenceRef,
                     nameof(truncated.EvidenceRef));
                 break;

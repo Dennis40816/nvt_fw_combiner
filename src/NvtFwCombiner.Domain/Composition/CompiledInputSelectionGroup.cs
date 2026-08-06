@@ -13,12 +13,12 @@ internal sealed class InputSelectionGroupDefinition
         int minimumSelected,
         int maximumSelected)
     {
-        GroupId = InputPolicyValueRules.RequireCanonicalId(groupId, nameof(groupId));
+        GroupId = CanonicalPolicyValueRules.RequireCanonicalId(groupId, nameof(groupId));
         ArgumentNullException.ThrowIfNull(memberSlotIds);
         _memberSlotIds = [.. memberSlotIds];
         foreach (string memberSlotId in _memberSlotIds)
         {
-            _ = InputPolicyValueRules.RequireCanonicalId(memberSlotId, nameof(memberSlotIds));
+            _ = CanonicalPolicyValueRules.RequireCanonicalId(memberSlotId, nameof(memberSlotIds));
         }
 
         if (_memberSlotIds.Length == 0 ||

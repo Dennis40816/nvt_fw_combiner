@@ -30,7 +30,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.Validations.Any(static validation =>
-                validation is not NonUniformRegionProfileValidation))
+                validation is not SourceViewNonUniformValidationDefinition))
         {
             AddUnsupported(issues, "only warning-only non-uniform-region validations are lowered in this slice");
         }

@@ -13,31 +13,31 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
     [Fact]
     public void ValidationMapsEveryKind()
     {
-        MetadataValueProfileValidation metadata = Assert.IsType<MetadataValueProfileValidation>(Normalize(Validation(
+        CompiledMetadataValueValidation metadata = Assert.IsType<CompiledMetadataValueValidation>(Normalize(Validation(
             "metadata-value",
             field: Field("cmd", "major"),
             comparison: "one-of",
             expectedValues: [Number("1"), Text("02")])));
-        PidSanityProfileValidation pid = Assert.IsType<PidSanityProfileValidation>(Normalize(Validation(
+        CompiledPidSanityValidation pid = Assert.IsType<CompiledPidSanityValidation>(Normalize(Validation(
             "pid-sanity",
             field: Field("fwconfig", "pid"))));
-        MetadataEqualityProfileValidation equality = Assert.IsType<MetadataEqualityProfileValidation>(Normalize(Validation(
+        CompiledMetadataEqualityValidation equality = Assert.IsType<CompiledMetadataEqualityValidation>(Normalize(Validation(
             "metadata-equality",
             left: Field("cmd", "major"),
             right: Field("legacy", "major"))));
-        RejectMetadataBytePatternProfileValidation patterns = Assert.IsType<RejectMetadataBytePatternProfileValidation>(Normalize(Validation(
+        CompiledRejectMetadataBytePatternValidation patterns = Assert.IsType<CompiledRejectMetadataBytePatternValidation>(Normalize(Validation(
             "reject-metadata-byte-pattern",
             field: Field("fwconfig", "pid"),
             rejectedPatterns: ["all-ff", "all-zero"])));
-        ViewByteAssertionProfileValidation assertion = Assert.IsType<ViewByteAssertionProfileValidation>(Normalize(Validation(
+        CompiledViewByteAssertionValidation assertion = Assert.IsType<CompiledViewByteAssertionValidation>(Normalize(Validation(
             "view-byte-assertion",
             viewId: "header",
             expectedHex: "a0",
             maskHex: "f0")));
 
         Assert.Equal(CompiledValidationMetadataComparison.OneOf, metadata.Comparison);
-        _ = Assert.IsType<CompositionProfileIntegerLiteral>(metadata.ExpectedValues[0]);
-        _ = Assert.IsType<CompositionProfileTextLiteral>(metadata.ExpectedValues[1]);
+        _ = Assert.IsType<CompiledValidationIntegerLiteral>(metadata.ExpectedValues[0]);
+        _ = Assert.IsType<CompiledValidationTextLiteral>(metadata.ExpectedValues[1]);
         Assert.Equal("pid", pid.Field.FieldId);
         Assert.Equal("legacy", equality.Right.BindingId);
         Assert.Equal(
@@ -66,7 +66,7 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
                 field: Field())).Severity));
         Assert.Equal(
             Enum.GetValues<CompiledValidationMetadataComparison>(),
-            comparisons.Select(comparison => Assert.IsType<MetadataValueProfileValidation>(Normalize(Validation(
+            comparisons.Select(comparison => Assert.IsType<CompiledMetadataValueValidation>(Normalize(Validation(
                 "metadata-value",
                 field: Field(),
                 comparison: comparison,
@@ -79,14 +79,14 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
     [Fact]
     public void MetadataValuePreservesIntegerAndTextLiterals()
     {
-        MetadataValueProfileValidation validation = Assert.IsType<MetadataValueProfileValidation>(Normalize(Validation(
+        CompiledMetadataValueValidation validation = Assert.IsType<CompiledMetadataValueValidation>(Normalize(Validation(
             "metadata-value",
             field: Field(),
             comparison: "one-of",
             expectedValues: [Number("18446744073709551616.0"), Text("0010")])));
 
-        CompositionProfileIntegerLiteral integer = Assert.IsType<CompositionProfileIntegerLiteral>(validation.ExpectedValues[0]);
-        CompositionProfileTextLiteral text = Assert.IsType<CompositionProfileTextLiteral>(validation.ExpectedValues[1]);
+        CompiledValidationIntegerLiteral integer = Assert.IsType<CompiledValidationIntegerLiteral>(validation.ExpectedValues[0]);
+        CompiledValidationTextLiteral text = Assert.IsType<CompiledValidationTextLiteral>(validation.ExpectedValues[1]);
         Assert.Equal(
             BigInteger.Parse("18446744073709551616", System.Globalization.CultureInfo.InvariantCulture),
             integer.Value);
@@ -147,6 +147,22 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
         Assert.Equal("validations[0].expectedHex", expected.Path);
     }
 
+    /// <summary>Verifies noncanonical metadata references fail at their exact source members.</summary>
+    [Fact]
+    public void ValidationRejectsNonCanonicalFieldReferencesWithPaths()
+    {
+        CompositionProfileNormalizationException field = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Validation("pid-sanity", field: Field("Fwconfig", "pid"))));
+        CompositionProfileNormalizationException left = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Validation("metadata-equality", left: Field("Cmd", "major"), right: Field())));
+        CompositionProfileNormalizationException right = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Validation("metadata-equality", left: Field(), right: Field("Legacy", "major"))));
+
+        Assert.Equal("validations[0].field", field.Path);
+        Assert.Equal("validations[0].left", left.Path);
+        Assert.Equal("validations[0].right", right.Path);
+    }
+
     /// <summary>Verifies invalid scalar and hexadecimal values retain exact element paths.</summary>
     [Fact]
     public void ValidationRejectsInvalidLiteralValuesWithPaths()
@@ -201,7 +217,7 @@ public sealed class CompositionProfileV2ValidationNormalizerTests
         _ = Assert.IsType<ArgumentException>(mask.InnerException, exactMatch: false);
     }
 
-    private static CompositionProfileValidation Normalize(CompositionProfileValidationDocument document)
+    private static ValidationRequirementDefinition Normalize(CompositionProfileValidationDocument document)
     {
         return CompositionProfileNormalizer.NormalizeValidation(document);
     }

@@ -191,31 +191,34 @@ public sealed class CompiledValidationBytes : IEquatable<CompiledValidationBytes
     }
 }
 
-/// <summary>Base value for one retained profile validation stage.</summary>
-public abstract record CompiledValidationRequirement
+/// <summary>Base value for one immutable canonical validation before or after range resolution.</summary>
+public abstract record ValidationRequirementDefinition
 {
-    private protected CompiledValidationRequirement(
+    private protected ValidationRequirementDefinition(
         string ruleId,
         CompiledValidationStage stage,
         CompiledValidationSeverity severity,
-        string issueCode,
-        CompiledValidationKind kind)
+        string issueCode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
         ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
-        if (!Enum.IsDefined(stage) || !Enum.IsDefined(severity) || !Enum.IsDefined(kind))
+        if (!Enum.IsDefined(stage))
         {
-            throw new ArgumentOutOfRangeException(nameof(kind), "Unknown compiled validation discriminator.");
+            throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown validation stage.");
+        }
+
+        if (!Enum.IsDefined(severity))
+        {
+            throw new ArgumentOutOfRangeException(nameof(severity), severity, "Unknown validation severity.");
         }
 
         RuleId = ruleId;
         Stage = stage;
         Severity = severity;
         IssueCode = issueCode;
-        Kind = kind;
     }
 
-    /// <summary>Stable profile rule id.</summary>
+    /// <summary>Stable validation rule id.</summary>
     public string RuleId { get; }
 
     /// <summary>Closed execution stage.</summary>
@@ -226,6 +229,26 @@ public abstract record CompiledValidationRequirement
 
     /// <summary>Stable issue code emitted on failure.</summary>
     public string IssueCode { get; }
+}
+
+/// <summary>Base value for one resolved validation retained by a compiled composition.</summary>
+public abstract record CompiledValidationRequirement : ValidationRequirementDefinition
+{
+    private protected CompiledValidationRequirement(
+        string ruleId,
+        CompiledValidationStage stage,
+        CompiledValidationSeverity severity,
+        string issueCode,
+        CompiledValidationKind kind)
+        : base(ruleId, stage, severity, issueCode)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), "Unknown compiled validation discriminator.");
+        }
+
+        Kind = kind;
+    }
 
     /// <summary>Closed validation kind.</summary>
     public CompiledValidationKind Kind { get; }
