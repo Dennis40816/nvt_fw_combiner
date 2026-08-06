@@ -94,6 +94,14 @@ public sealed partial class RepositoryBoundaryTests
             "CompositionProfileRejectedBytePattern",
             ReadProfileSources(),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarWidth",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarByteOrder",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
     }
 
     /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>

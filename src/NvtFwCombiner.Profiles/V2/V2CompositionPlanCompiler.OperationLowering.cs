@@ -559,20 +559,8 @@ internal static partial class V2CompositionPlanCompiler
         try
         {
             transform = new ScalarTransform(
-                operation.Width switch
-                {
-                    CompositionProfileScalarWidth.OneByte => ScalarTransformWidth.OneByte,
-                    CompositionProfileScalarWidth.TwoBytes => ScalarTransformWidth.TwoBytes,
-                    CompositionProfileScalarWidth.FourBytes => ScalarTransformWidth.FourBytes,
-                    CompositionProfileScalarWidth.EightBytes => ScalarTransformWidth.EightBytes,
-                    _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown scalar width."),
-                },
-                operation.ByteOrder switch
-                {
-                    CompositionProfileScalarByteOrder.LittleEndian => ScalarTransformByteOrder.LittleEndian,
-                    CompositionProfileScalarByteOrder.BigEndian => ScalarTransformByteOrder.BigEndian,
-                    _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown scalar byte order."),
-                },
+                operation.Width,
+                operation.ByteOrder,
                 addend,
                 operation.ExpectedBefore,
                 ScalarTransformOverflowPolicy.Reject,

@@ -191,22 +191,6 @@ internal sealed record PatchScalarProfileOperation : CompositionProfileOperation
     internal CompositionProfileByteValue Value { get; }
 }
 
-/// <summary>Closed scalar width supported by bounded relocation transforms.</summary>
-internal enum CompositionProfileScalarWidth
-{
-    OneByte = 1,
-    TwoBytes = 2,
-    FourBytes = 4,
-    EightBytes = 8,
-}
-
-/// <summary>Closed byte order for one unsigned scalar transform.</summary>
-internal enum CompositionProfileScalarByteOrder
-{
-    LittleEndian,
-    BigEndian,
-}
-
 /// <summary>Closed source of one scalar-transform addend before map lowering.</summary>
 internal enum TransformAddendSourceKind
 {
@@ -273,8 +257,8 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
         string reason,
         string sourceViewId,
         string targetViewId,
-        CompositionProfileScalarWidth width,
-        CompositionProfileScalarByteOrder byteOrder,
+        ScalarTransformWidth width,
+        ScalarTransformByteOrder byteOrder,
         BigInteger addend,
         ulong? expectedBefore)
         : this(
@@ -298,8 +282,8 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
         string reason,
         string sourceViewId,
         string targetViewId,
-        CompositionProfileScalarWidth width,
-        CompositionProfileScalarByteOrder byteOrder,
+        ScalarTransformWidth width,
+        ScalarTransformByteOrder byteOrder,
         TransformAddendSource addendSource,
         ulong? expectedBefore)
         : base(
@@ -340,9 +324,9 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
 
     internal string TargetViewId { get; }
 
-    internal CompositionProfileScalarWidth Width { get; }
+    internal ScalarTransformWidth Width { get; }
 
-    internal CompositionProfileScalarByteOrder ByteOrder { get; }
+    internal ScalarTransformByteOrder ByteOrder { get; }
 
     internal BigInteger Addend => AddendSource is FixedTransformAddendSource fixedAddend
         ? fixedAddend.Value
@@ -353,14 +337,14 @@ internal sealed record TransformScalarProfileOperation : CompositionProfileOpera
 
     internal ulong? ExpectedBefore { get; }
 
-    private static bool CanRepresent(CompositionProfileScalarWidth width, ulong value)
+    private static bool CanRepresent(ScalarTransformWidth width, ulong value)
     {
         return width switch
         {
-            CompositionProfileScalarWidth.OneByte => value <= byte.MaxValue,
-            CompositionProfileScalarWidth.TwoBytes => value <= ushort.MaxValue,
-            CompositionProfileScalarWidth.FourBytes => value <= uint.MaxValue,
-            CompositionProfileScalarWidth.EightBytes => true,
+            ScalarTransformWidth.OneByte => value <= byte.MaxValue,
+            ScalarTransformWidth.TwoBytes => value <= ushort.MaxValue,
+            ScalarTransformWidth.FourBytes => value <= uint.MaxValue,
+            ScalarTransformWidth.EightBytes => true,
             _ => false,
         };
     }
