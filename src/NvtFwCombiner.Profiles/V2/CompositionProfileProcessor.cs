@@ -12,13 +12,6 @@ internal enum CompositionProfileProcessorPurpose
     CompositePostProcess,
 }
 
-/// <summary>Closed processor authority over staged bytes.</summary>
-internal enum CompositionProfileProcessorAuthority
-{
-    Calculate,
-    Transform,
-}
-
 /// <summary>Closed integrity disposition owned by one processor stage.</summary>
 internal enum CompositionProfileIntegrityDisposition
 {
@@ -64,11 +57,6 @@ internal abstract class CompositionProfileProcessorStage
 
     internal IReadOnlyList<string> AllowedWriteViewIds { get; }
 
-    internal abstract CompositionProfileProcessorAuthority Authority { get; }
-
-    internal abstract CompositionProfileProcessorPurpose Purpose { get; }
-
-    internal abstract CompositionProfileIntegrityDisposition IntegrityDisposition { get; }
 }
 
 /// <summary>Pure CRC calculation stage with no write authority.</summary>
@@ -94,13 +82,6 @@ internal sealed class CrcWorkerProfileProcessorStage : CompositionProfileProcess
             nameof(calculationSetId));
     }
 
-    internal override CompositionProfileProcessorAuthority Authority =>
-        CompositionProfileProcessorAuthority.Calculate;
-
-    internal override CompositionProfileProcessorPurpose Purpose => CompositionProfileProcessorPurpose.Checksum;
-
-    internal override CompositionProfileIntegrityDisposition IntegrityDisposition =>
-        CompositionProfileIntegrityDisposition.VerifyExisting;
 }
 
 /// <summary>One immutable source view staged into a processor target view.</summary>
@@ -222,12 +203,9 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
 
     internal string? TargetViewId { get; }
 
-    internal override CompositionProfileProcessorAuthority Authority =>
-        CompositionProfileProcessorAuthority.Transform;
+    internal CompositionProfileProcessorPurpose Purpose { get; }
 
-    internal override CompositionProfileProcessorPurpose Purpose { get; }
-
-    internal override CompositionProfileIntegrityDisposition IntegrityDisposition { get; }
+    internal CompositionProfileIntegrityDisposition IntegrityDisposition { get; }
 
     internal IReadOnlyList<CompositionProfileStagedSourceBinding> StagedSourceBindings { get; }
 

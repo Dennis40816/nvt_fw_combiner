@@ -452,7 +452,7 @@ internal sealed partial class CompositionProfileDefinition
                 processor.TargetSpaceId,
                 "Processor references an unknown target space.");
             if (targetSpace.Kind == CompositionProfileSpaceKind.InputArtifact &&
-                processor.Authority == CompositionProfileProcessorAuthority.Transform)
+                processor is LegacyCombinerProfileProcessorStage)
             {
                 throw new ArgumentException("Transform processors cannot target immutable input spaces.");
             }

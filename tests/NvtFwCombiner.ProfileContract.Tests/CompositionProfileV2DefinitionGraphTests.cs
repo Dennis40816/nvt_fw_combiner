@@ -181,7 +181,6 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             "verify-crc", 1, OverlapPolicy.Reject, "Verify source CRC.", "crc-check");
         CompositionProfileDefinition calculateInput = CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], runCrc], ProcessorStages = [crc] });
-        Assert.Equal(CompositionProfileProcessorAuthority.Calculate, calculateInput.ProcessorStages[0].Authority);
 
         CompositionProfileDefinition valid = CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], run], ProcessorStages = [stage] });

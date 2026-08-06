@@ -121,6 +121,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("Audience { get; }", experience, StringComparison.Ordinal);
         Assert.DoesNotContain("DisplayNameKey { get; }", experience, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileProcessorFailurePolicy", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileProcessorAuthority", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal abstract CompositionProfileProcessorPurpose", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal abstract CompositionProfileIntegrityDisposition",
+            processor,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("ContractVersion { get; }", processor, StringComparison.Ordinal);
         Assert.DoesNotContain("CalculationSetId { get; }", processor, StringComparison.Ordinal);
         Assert.DoesNotContain("EvidenceRef { get; }", processor, StringComparison.Ordinal);

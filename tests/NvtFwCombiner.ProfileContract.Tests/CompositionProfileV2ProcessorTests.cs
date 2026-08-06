@@ -19,9 +19,6 @@ public sealed class CompositionProfileV2ProcessorTests
             reads);
         reads.Clear();
 
-        Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
-        Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
-        Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
         Assert.Equal(["view-a", "view-z"], stage.AllowedReadViewIds);
         Assert.Empty(stage.AllowedWriteViewIds);
     }
@@ -59,7 +56,6 @@ public sealed class CompositionProfileV2ProcessorTests
         bindings.Clear();
         artifactBindings.Clear();
 
-        Assert.Equal(CompositionProfileProcessorAuthority.Transform, stage.Authority);
         Assert.Equal(["crc", "header"], stage.AllowedWriteViewIds);
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
         Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
