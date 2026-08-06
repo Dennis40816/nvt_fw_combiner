@@ -21,37 +21,13 @@ internal enum CompositionProfileSlotCardinality
     OneOrMore,
 }
 
-/// <summary>Closed input length rule kind.</summary>
-// Values mirror compiled fingerprint wire codes; retired values 3, 4, and 5 stay reserved.
-internal enum CompositionProfileLengthRuleKind
-{
-    ExactBytes = 0,
-    ExactResolvedMapCapacity = 1,
-    Bounded = 2,
-    SourceViewCoverage = 6,
-}
-
 /// <summary>Base value for one normalized input length rule.</summary>
-internal abstract record CompositionProfileLengthRule
-{
-    protected CompositionProfileLengthRule(CompositionProfileLengthRuleKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown input length rule kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileLengthRuleKind Kind { get; }
-}
+internal abstract record CompositionProfileLengthRule;
 
 /// <summary>Requires one exact positive input length.</summary>
 internal sealed record ExactBytesLengthRule : CompositionProfileLengthRule
 {
     internal ExactBytesLengthRule(long bytes)
-        : base(CompositionProfileLengthRuleKind.ExactBytes)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -62,13 +38,12 @@ internal sealed record ExactBytesLengthRule : CompositionProfileLengthRule
 
 /// <summary>Requires the uniquely resolved map capacity.</summary>
 internal sealed record ExactResolvedMapCapacityLengthRule()
-    : CompositionProfileLengthRule(CompositionProfileLengthRuleKind.ExactResolvedMapCapacity);
+    : CompositionProfileLengthRule;
 
 /// <summary>Accepts a closed positive input length interval.</summary>
 internal sealed record BoundedLengthRule : CompositionProfileLengthRule
 {
     internal BoundedLengthRule(long minimumBytes, long maximumBytes)
-        : base(CompositionProfileLengthRuleKind.Bounded)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minimumBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
@@ -103,7 +78,6 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
         long? maximumOuterLength = null,
         long? requiredEndExclusive = null,
         string? shortInputIssueCode = null)
-        : base(CompositionProfileLengthRuleKind.SourceViewCoverage)
     {
         if (expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null)
         {
@@ -206,39 +180,17 @@ internal sealed record SourceViewCoverageLengthRule : CompositionProfileLengthRu
     }
 }
 
-/// <summary>Closed transient input normalization kind.</summary>
-internal enum CompositionProfileInputNormalizationKind
-{
-    None,
-    PadShorter,
-    TruncateCtrlRam,
-}
-
 /// <summary>Base value for one normalized transient input policy.</summary>
-internal abstract record CompositionProfileInputNormalization
-{
-    protected CompositionProfileInputNormalization(CompositionProfileInputNormalizationKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown input normalization kind.");
-        }
-
-        Kind = kind;
-    }
-
-    internal CompositionProfileInputNormalizationKind Kind { get; }
-}
+internal abstract record CompositionProfileInputNormalization;
 
 /// <summary>Preserves immutable input bytes without transient normalization.</summary>
 internal sealed record NoInputNormalization()
-    : CompositionProfileInputNormalization(CompositionProfileInputNormalizationKind.None);
+    : CompositionProfileInputNormalization;
 
 /// <summary>Pads a shorter transient DP replacement buffer with an evidenced byte.</summary>
 internal sealed record PadShorterInputNormalization : CompositionProfileInputNormalization
 {
     internal PadShorterInputNormalization(byte fillByte, string evidenceRef)
-        : base(CompositionProfileInputNormalizationKind.PadShorter)
     {
         EvidenceRef = CompositionProfileValueRules.RequireId(evidenceRef, nameof(evidenceRef));
         FillByte = fillByte;
@@ -253,7 +205,6 @@ internal sealed record PadShorterInputNormalization : CompositionProfileInputNor
 internal sealed record TruncateCtrlRamInputNormalization : CompositionProfileInputNormalization
 {
     internal TruncateCtrlRamInputNormalization(string warningIssueCode, string evidenceRef)
-        : base(CompositionProfileInputNormalizationKind.TruncateCtrlRam)
     {
         WarningIssueCode = CompositionProfileValueRules.RequireIssueCode(
             warningIssueCode,
@@ -338,33 +289,32 @@ internal sealed partial class CompositionProfileInputSlot
     {
         if (artifactClass == CompositionProfileArtifactClass.TpFirmware &&
             (!IsApprovedTpLengthRule(lengthRule) ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+             normalization is not NoInputNormalization))
         {
             throw new ArgumentException(
                 "TP firmware requires one approved unnormalized section or exact length rule.");
         }
 
         if (artifactClass == CompositionProfileArtifactClass.DpFirmware &&
-            lengthRule.Kind is not CompositionProfileLengthRuleKind.ExactResolvedMapCapacity and
-                not CompositionProfileLengthRuleKind.SourceViewCoverage)
+            lengthRule is not (ExactResolvedMapCapacityLengthRule or SourceViewCoverageLengthRule))
         {
             throw new ArgumentException("DP firmware requires an approved DP length rule.");
         }
 
         if (artifactClass == CompositionProfileArtifactClass.ReferenceImage &&
-            (lengthRule.Kind != CompositionProfileLengthRuleKind.ExactResolvedMapCapacity ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+            (lengthRule is not ExactResolvedMapCapacityLengthRule ||
+             normalization is not NoInputNormalization))
         {
             throw new ArgumentException("Reference images require exact map capacity without normalization.");
         }
 
-        if (normalization.Kind == CompositionProfileInputNormalizationKind.PadShorter &&
+        if (normalization is PadShorterInputNormalization &&
             artifactClass != CompositionProfileArtifactClass.DpFirmware)
         {
             throw new ArgumentException("Short-input padding is restricted to DP firmware.");
         }
 
-        if (normalization.Kind == CompositionProfileInputNormalizationKind.TruncateCtrlRam &&
+        if (normalization is TruncateCtrlRamInputNormalization &&
             artifactClass != CompositionProfileArtifactClass.CtrlRamReplacement)
         {
             throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
@@ -373,7 +323,7 @@ internal sealed partial class CompositionProfileInputSlot
         if (lengthRule is SourceViewCoverageLengthRule { RequiredEndExclusive: not null } &&
             (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
                 CompositionProfileArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None))
+             normalization is not NoInputNormalization))
         {
             throw new ArgumentException(
                 "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
@@ -382,7 +332,7 @@ internal sealed partial class CompositionProfileInputSlot
         if (lengthRule is SourceViewCoverageLengthRule sourceView &&
             (artifactClass is CompositionProfileArtifactClass.ReferenceImage or
                 CompositionProfileArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompositionProfileInputNormalizationKind.None ||
+             normalization is not NoInputNormalization ||
              (sourceView.MaximumOuterLength is not null &&
               artifactClass != CompositionProfileArtifactClass.TpFirmware)))
         {
