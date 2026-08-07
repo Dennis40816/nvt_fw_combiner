@@ -159,8 +159,8 @@ public sealed partial class RepositoryBoundaryTests
             "profile.Output.AllowsRuntimeExecution(profile.CompositionKind)",
             ReadText("src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.Admission.cs"),
             StringComparison.Ordinal);
-        Assert.Contains(
-            "!output.AllowsRuntimeExecution(compositionKind)",
+        Assert.DoesNotContain(
+            "AllowsRuntimeExecution(",
             ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"),
             StringComparison.Ordinal);
         Assert.DoesNotContain(

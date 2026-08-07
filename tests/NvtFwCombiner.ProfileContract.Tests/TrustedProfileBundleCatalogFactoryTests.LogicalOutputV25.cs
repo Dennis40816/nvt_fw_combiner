@@ -39,6 +39,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal([0, 0xAA, 0xBB, 0, 0, 0], execution.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies the logical compiler cannot mint an artifact below the compilable promotion boundary.</summary>
+    [Fact]
+    public void LogicalOutputLoweringRequiresCompilablePromotion()
+    {
+        TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog("authorable");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => catalog.CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            LogicalRequest(outputCapacity: 6)));
+
+        Assert.StartsWith("Only compilable v2 profiles", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies one rejected logical member returns only its request-scoped admission issue.</summary>
     [Fact]
     public void LogicalOutputLoweringRejectsUnadmittedMemberWithoutMapResolution()
@@ -333,11 +348,12 @@ catalog.CompileLogicalOutput(
         }
     }
 
-    private static TrustedProfileBundleCatalog CreateLogicalOutputCatalog()
+    private static TrustedProfileBundleCatalog CreateLogicalOutputCatalog(
+        string promotionStage = "compilable")
     {
         string familyJson = TrustedV2BundleTestDocuments.FamilyJson();
         string familyHash = Hash(familyJson);
-        string profileJson = LogicalOutputProfileJson(familyHash);
+        string profileJson = LogicalOutputProfileJson(familyHash, promotionStage: promotionStage);
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(Source(
             [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
@@ -387,7 +403,10 @@ catalog.CompileLogicalOutput(
             reason: "test logical mapping");
     }
 
-    private static string LogicalOutputProfileJson(string familyHash, string memberId = LogicalTestMemberId)
+    private static string LogicalOutputProfileJson(
+        string familyHash,
+        string memberId = LogicalTestMemberId,
+        string promotionStage = "compilable")
     {
         var profile = new JsonObject
         {
@@ -396,7 +415,7 @@ catalog.CompileLogicalOutput(
             ["profileVersion"] = "1.0.0",
             ["promotion"] = new JsonObject
             {
-                ["stage"] = "compilable",
+                ["stage"] = promotionStage,
                 ["blockers"] = new JsonArray(),
             },
             ["compositionKind"] = "merge",

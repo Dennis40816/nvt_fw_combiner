@@ -38,16 +38,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
 
-    /// <summary>Verifies a v2 artifact cannot be minted before profile compilation evidence is sufficient.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsPromotionBelowCompilable()
-    {
-        CompiledProfilePromotion promotion = new(CompiledProfilePromotionStage.Authorable, []);
-
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(promotion: promotion));
-    }
-
-    /// <summary>Verifies only a supported token-free reject-policy V2 artifact can receive runtime eligibility.</summary>
+    /// <summary>Verifies compiler-established runtime eligibility retains its supported output policy.</summary>
     [Fact]
     public void V2RuntimeArtifactRequiresSupportedUnblockedTokenFreePromotion()
     {
@@ -68,13 +59,6 @@ public sealed partial class CompiledCompositionTests
             allowOutputOverride: true,
             runtimeExecutable: true);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, overridable.Eligibility);
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
-            outputTemplate: "runtime.bin",
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
-            requiredOutputTokenIds: [],
-            runtimeExecutable: true));
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
     }
 
     /// <summary>Canonical normal FlashCode and TP-firmware renderers are closed executable contracts.</summary>
@@ -110,12 +94,6 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(
             CompiledCompositionEligibility.V2RuntimeExecutable,
             tpFirmware.Eligibility);
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            promotion: supported,
-            outputTemplate: CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
-            requiredOutputTokenIds: ["date", "dp-version", "ic", "tp-version"],
-            runtimeExecutable: true));
     }
 
     /// <summary>Verifies profile-bundle and output requirement values cannot be forged with malformed or ambiguous identities.</summary>

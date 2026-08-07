@@ -193,15 +193,6 @@ public sealed partial class CompiledCompositionTests
                 baselineUniformFingerprint,
                 CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
 
-        CompiledValidationRequirement outsideInput =
-            CompiledValidationRequirements.RejectUniformInputRanges(
-                "outside-input",
-                CompiledValidationSeverity.Error,
-                "input.uniform",
-                "input",
-                [new ByteRange(3, 2)]);
-        _ = Assert.Throws<ArgumentException>(() =>
-            CreateMerge(validationRequirements: [outsideInput]));
     }
 
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
