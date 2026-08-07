@@ -627,9 +627,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
             observeAbVersion
                 ? CompiledOutputNamingRequirement.AbCodeV1Template
                 : $"synthetic-{workflowId}.bin",
-            icNumberPolicy: replace
-                ? CompiledIcNumberPolicy.SingleSelector
-                : CompiledIcNumberPolicy.NotApplicable,
+            icNumberInputMode: replace
+                ? IcNumberInputMode.SingleSelector
+                : null,
             validationRequirements: validationRequirement is null ? null : [validationRequirement],
             mapId: mapId,
             inputRolesByAddressSpace: observeAbVersion

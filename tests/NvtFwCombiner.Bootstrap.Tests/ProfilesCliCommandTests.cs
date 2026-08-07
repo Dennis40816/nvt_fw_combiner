@@ -1,8 +1,46 @@
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>CLI tests for stable profile catalog projections.</summary>
 public sealed class ProfilesCliCommandTests
 {
+    /// <summary>A failed DP Replace summary preserves its declared IC-number mode.</summary>
+    [Fact]
+    public void FailedDpReplaceProfilePreservesDeclaredIcNumberMode()
+    {
+        var profile = new CapabilityProfileSummary(
+            "profile",
+            "NT51950",
+            CompositionKind.Replace,
+            [],
+            "output.bin",
+            IcNumberInputMode.SingleSelector,
+            CompileSucceeded: false,
+            ["profile.compile.failed"]);
+
+        Assert.Equal("SingleSelector", CliApplication.FormatIcNumberPolicy(profile));
+    }
+
+    /// <summary>An invalid projected IC-number mode remains fail-closed at the CLI boundary.</summary>
+    [Fact]
+    public void ProfileFormatterRejectsUnknownIcNumberMode()
+    {
+        var profile = new CapabilityProfileSummary(
+            "profile",
+            "NT51950",
+            CompositionKind.Replace,
+            [],
+            "output.bin",
+            (IcNumberInputMode)99,
+            CompileSucceeded: false,
+            ["profile.compile.failed"]);
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CliApplication.FormatIcNumberPolicy(profile));
+    }
+
     /// <summary>The profiles list command preserves profile order and compiled display facts.</summary>
     [Fact]
     public async Task ProfilesListOutputRemainsStable()

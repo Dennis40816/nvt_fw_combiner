@@ -246,7 +246,6 @@ internal static partial class V2CompositionPlanCompiler
                     ? CompiledInputInstancePolicy.Singleton
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
-            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
             capabilityAdmissions,
             additionalValidationRequirements:
             [

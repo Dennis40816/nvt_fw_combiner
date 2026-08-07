@@ -278,7 +278,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
                 "capability-fingerprint-drift",
                 composition,
                 [],
-                composition.DefaultOutputFileName,
+                composition.V2Details.OutputNamingRequirement.FileNameTemplate,
                 resolvedCapability: capability));
 
         Assert.Equal("resolvedCapability", exception.ParamName);
@@ -456,7 +456,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable,
+            null,
             mapId: mapId ?? Route.MapVariant);
     }
 
@@ -495,7 +495,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable,
+            null,
             mapId: Route.MapVariant);
     }
 

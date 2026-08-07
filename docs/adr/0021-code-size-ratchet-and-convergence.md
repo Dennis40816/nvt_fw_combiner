@@ -295,6 +295,15 @@ and enables exact descending slice ratchets through the existing canonical
 verifier. Every later Core PR lowers each affected slice ratchet and the total
 metric. Moving equivalent code to another slice cannot satisfy either check.
 
+Owner amendment on 2026-08-06 permits #230 and #231 to interleave only where an
+Application caller is the last blocker to deleting a named Domain + Profiles
+compatibility surface. The bounded caller migration and deletion must land in
+the same PR, the deleted surface must have zero remaining callers, no measured
+slice may grow, and both the deleted-owner ratchet and runtime total must fall.
+This exception does not authorize an Application semantic mirror, UI or
+Bootstrap behavior work, cap reallocation, or a caller-migration PR that leaves
+the superseded surface alive.
+
 Final integration enforces both the four maximum slice caps and the 44,000
 total. These checks remain modules invoked by `scripts/verify.py`; no second
 code-size command, validator, or CI entry point is introduced.

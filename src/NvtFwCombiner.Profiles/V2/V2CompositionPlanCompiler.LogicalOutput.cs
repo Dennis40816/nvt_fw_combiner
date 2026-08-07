@@ -98,8 +98,7 @@ internal static partial class V2CompositionPlanCompiler
                 binding.BindingId,
                 binding.SlotId,
                 CompiledInputInstancePolicy.PerBinding)),
-            new CompiledRegionAccessContract([], []),
-            CompiledIcNumberPolicy.NotApplicable);
+            new CompiledRegionAccessContract([], []));
     }
 
     private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionInputSlotDefinition slot)

@@ -198,7 +198,7 @@ public sealed partial class CompositionRunServiceTests
                 "general-replace",
                 CompositionKind.Replace),
             "multi-reference.bin",
-            CompiledIcNumberPolicy.SingleSelector);
+            IcNumberInputMode.SingleSelector);
         return new CompositionRunRequest(
             "run-multi-reference-replace",
             compiledComposition,
@@ -256,7 +256,7 @@ public sealed partial class CompositionRunServiceTests
                 plan,
                 identity,
                 "padded.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base",
@@ -317,7 +317,7 @@ public sealed partial class CompositionRunServiceTests
                 plan,
                 identity,
                 "ctrlram.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
@@ -384,7 +384,7 @@ public sealed partial class CompositionRunServiceTests
                 "dp-replace",
                 CompositionKind.Replace),
             "synthetic-dp-replace.bin",
-            CompiledIcNumberPolicy.SingleSelector);
+            IcNumberInputMode.SingleSelector);
     }
 
     private static CompositionRunRequest CreateNumericReplaceRequest(string icCount)
@@ -411,7 +411,7 @@ public sealed partial class CompositionRunServiceTests
                 plan,
                 identity,
                 "numeric.bin",
-                CompiledIcNumberPolicy.NumericSelector),
+                IcNumberInputMode.NumericSelector),
             [new InputArtifactBinding(
                 "reference-base", "reference-safe", "reference-artifact", "reference-base.bin",
                 CompiledInputArtifactClass.ReferenceImage)],

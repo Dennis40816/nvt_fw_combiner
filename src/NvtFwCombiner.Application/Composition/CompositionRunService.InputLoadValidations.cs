@@ -9,7 +9,7 @@ public sealed partial class CompositionRunService
         IReadOnlyDictionary<string, byte[]> inputBytes)
     {
         var evaluations = new List<InputLoadValidationEvaluation>();
-        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements.Where(
+        foreach (CompiledValidationRequirement requirement in compiledComposition.V2Details.Provenance.ValidationRequirements.Where(
                      static requirement => requirement.Stage == CompiledValidationStage.InputLoad))
         {
             CompositionIssue? issue = requirement switch
@@ -41,7 +41,7 @@ public sealed partial class CompositionRunService
     {
         return
         [
-            .. compiledComposition.ValidationRequirements
+            .. compiledComposition.V2Details.Provenance.ValidationRequirements
                 .Where(static requirement => requirement.Stage == CompiledValidationStage.InputLoad)
                 .Select(static requirement => new InputLoadValidationEvaluation(
                     new ValidationRunSummary(

@@ -1946,6 +1946,13 @@ after the grill closes so issues do not become a competing draft specification.
     affected ratchet in the same commit, so cross-slice relocation cannot pass.
     The four slices must sum exactly to runtime total; an unallocated runtime
     source root fails rather than creating a fifth ownership bucket.
+    Owner amendment on 2026-08-06 permits #230 and #231 to interleave only when
+    an Application caller is the last blocker to deleting a named Domain +
+    Profiles compatibility surface. The caller migration and zero-caller
+    deletion land in the same PR; no measured slice may grow, and both the
+    deleted-owner ratchet and runtime total must fall. The exception adds no
+    Application semantic mirror, UI or Bootstrap behavior, cap reallocation,
+    or migration-only PR that keeps the superseded surface alive.
     Final-cap enforcement remains explicitly inactive while convergence is
     incomplete; #197 activates it in the same verifier and then fails either a
     total above 44,000 or any slice above its approved cap.

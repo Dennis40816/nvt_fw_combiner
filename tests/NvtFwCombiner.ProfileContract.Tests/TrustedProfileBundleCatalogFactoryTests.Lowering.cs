@@ -18,7 +18,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.True(result.IsCompiled);
         Assert.Empty(result.Issues);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal("{original-name}_merged.bin", composition.DefaultOutputFileName);
+        Assert.Equal("{original-name}_merged.bin", composition.V2Details.OutputNamingRequirement.FileNameTemplate);
         Assert.Equal("output", composition.Plan.OutputSpaceId);
         Assert.Equal(2, composition.Plan.AddressSpaces.Count);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");

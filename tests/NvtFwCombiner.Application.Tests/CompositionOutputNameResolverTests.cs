@@ -523,10 +523,7 @@ public sealed partial class CompositionOutputNameResolverTests
                     OverlapPolicy.Reject,
                     "copy accepted naming input"),
             ]);
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            details,
-            CompiledIcNumberPolicy.NotApplicable);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static InputArtifactBinding CreateInputBinding()

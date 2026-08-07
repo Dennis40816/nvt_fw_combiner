@@ -336,7 +336,7 @@ public static class MemoryLayoutProjector
                     canonicalRegion,
                     range,
                     addressSpaceId,
-                    composition.CompositionKind == CompositionKind.Merge
+                    composition.V2Details.CompositionKind == CompositionKind.Merge
                         ? MemoryWorkflowDisposition.WillWrite
                         : MemoryWorkflowDisposition.WillReplace,
                     dominant.SourceSpaceId,

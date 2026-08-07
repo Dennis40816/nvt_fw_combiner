@@ -261,18 +261,16 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             source.InputContract.SpaceBindings,
             selectionGroups: []);
         var details = new V2CompiledCompositionDetails(
-            composition.ProfileId,
-            composition.ProfileVersion,
-            composition.ExperienceId,
-            composition.CompositionKind,
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
+            composition.V2Details.ExperienceId,
+            composition.V2Details.CompositionKind,
             source.Provenance,
             inputContract,
             source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            composition.Plan,
-            details,
-            composition.IcNumberPolicy);
+            source.OutputNamingRequirement,
+            source.IcNumberInputMode);
+        return CompiledComposition.CreateV2RuntimeExecutable(composition.Plan, details);
     }
 
     private static CompiledComposition WithLogicalFamilyId(
@@ -296,17 +294,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             provenance.ValidationRequirements,
             provenance.RequiredCapabilities);
         var details = new V2CompiledCompositionDetails(
-            composition.ProfileId,
-            composition.ProfileVersion,
-            composition.ExperienceId,
-            composition.CompositionKind,
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
+            composition.V2Details.ExperienceId,
+            composition.V2Details.CompositionKind,
             changedProvenance,
             source.InputContract,
             source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        return CompiledComposition.CreateV2(
-            composition.Plan,
-            details,
-            composition.IcNumberPolicy);
+            source.OutputNamingRequirement,
+            source.IcNumberInputMode);
+        return CompiledComposition.CreateV2(composition.Plan, details);
     }
 }

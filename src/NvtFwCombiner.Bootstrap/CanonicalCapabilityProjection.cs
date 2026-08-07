@@ -77,7 +77,7 @@ public static partial class CanonicalCapabilityProjection
             .GroupBy(
                 static capability => (
                     capability.Identity.IcId,
-                    capability.CompiledComposition.ProfileId))
+                    capability.CompiledComposition.V2Details.ProfileId))
             .ToDictionary(
                 static group => group.Key,
                 static group => group
@@ -218,12 +218,12 @@ public static partial class CanonicalCapabilityProjection
     {
         ArgumentNullException.ThrowIfNull(composition);
         return new CapabilityProfileSummary(
-            composition.ProfileId,
-            composition.IcId,
-            composition.CompositionKind,
+            composition.V2Details.ProfileId,
+            composition.V2Details.Provenance.Context.MemberId,
+            composition.V2Details.CompositionKind,
             Array.AsReadOnly(composition.Plan.RequiredInputAddressSpaceIds.ToArray()),
-            composition.DefaultOutputFileName,
-            composition.IcNumberPolicy,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
+            composition.V2Details.IcNumberInputMode,
             CompileSucceeded: true,
             []);
     }

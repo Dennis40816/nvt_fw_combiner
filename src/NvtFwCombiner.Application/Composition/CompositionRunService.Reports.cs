@@ -56,12 +56,12 @@ public sealed partial class CompositionRunService
 
         return new CompositionRunReport(
             request.RunId,
-            request.CompiledComposition.ProfileId,
-            request.CompiledComposition.ProfileVersion,
-            request.CompiledComposition.IcId,
-            request.CompiledComposition.ModeId,
-            request.CompiledComposition.ExperienceId,
-            request.CompiledComposition.CompositionKind,
+            request.CompiledComposition.V2Details.ProfileId,
+            request.CompiledComposition.V2Details.ProfileVersion,
+            request.CompiledComposition.V2Details.Provenance.Context.MemberId,
+            request.CompiledComposition.V2Details.Provenance.Context.ModeId,
+            request.CompiledComposition.V2Details.ExperienceId,
+            request.CompiledComposition.V2Details.CompositionKind,
             startedAtUtc,
             completedAtUtc,
             inputSummaries,
@@ -75,7 +75,7 @@ public sealed partial class CompositionRunService
             outputNaming,
             generalAdmission: request.GeneralAdmission,
             imageInitialization: StringComparer.Ordinal.Equals(
-                request.CompiledComposition.ExperienceId,
+                request.CompiledComposition.V2Details.ExperienceId,
                 ExperienceIds.GeneralMerge)
                     ? ImageInitializationSummary.FromCompiled(
                         request.CompiledComposition.Plan.OutputInitialization)

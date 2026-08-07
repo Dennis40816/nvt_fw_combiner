@@ -12,15 +12,15 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateV2();
 
-        Assert.Equal("profile-v2", composition.ProfileId);
-        Assert.Equal("2.0.0", composition.ProfileVersion);
-        Assert.Equal("NT-SYNTHETIC", composition.IcId);
-        Assert.Equal("standard", composition.ModeId);
-        Assert.Equal("standard-merge", composition.ExperienceId);
-        Assert.Equal(CompositionKind.Merge, composition.CompositionKind);
-        Assert.Equal("{original-name}_merged.bin", composition.DefaultOutputFileName);
+        Assert.Equal("profile-v2", composition.V2Details.ProfileId);
+        Assert.Equal("2.0.0", composition.V2Details.ProfileVersion);
+        Assert.Equal("NT-SYNTHETIC", composition.V2Details.Provenance.Context.MemberId);
+        Assert.Equal("standard", composition.V2Details.Provenance.Context.ModeId);
+        Assert.Equal("standard-merge", composition.V2Details.ExperienceId);
+        Assert.Equal(CompositionKind.Merge, composition.V2Details.CompositionKind);
+        Assert.Equal("{original-name}_merged.bin", composition.V2Details.OutputNamingRequirement.FileNameTemplate);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
+        Assert.Null(composition.V2Details.IcNumberInputMode);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         V2CompilationProvenance provenance = details.Provenance;
         Assert.Equal("bundle-v2", provenance.Bundle.BundleId);
@@ -38,6 +38,14 @@ public sealed partial class CompiledCompositionTests
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
 
+    /// <summary>Compiled artifacts reject IC-number modes outside the canonical closed vocabulary.</summary>
+    [Fact]
+    public void V2DetailsRejectUnknownIcNumberInputMode()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CreateV2(icNumberInputMode: (IcNumberInputMode)99));
+    }
+
     /// <summary>Verifies compiler-established runtime eligibility retains its supported output policy.</summary>
     [Fact]
     public void V2RuntimeArtifactRequiresSupportedUnblockedTokenFreePromotion()
@@ -50,7 +58,7 @@ public sealed partial class CompiledCompositionTests
             runtimeExecutable: true);
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.Eligibility);
-        Assert.Equal("runtime.bin", runtime.DefaultOutputFileName);
+        Assert.Equal("runtime.bin", runtime.V2Details.OutputNamingRequirement.FileNameTemplate);
         CompiledComposition overridable = CreateV2(
             promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             outputTemplate: "runtime.bin",
@@ -482,7 +490,7 @@ public sealed partial class CompiledCompositionTests
         string modeId = "standard",
         string experienceId = "standard-merge",
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         string profileId = "profile-v2",
         string profileVersion = "2.0.0")
     {
@@ -514,7 +522,8 @@ public sealed partial class CompiledCompositionTests
             provenance,
             inputContract ?? CreateInputContract(),
             regionAccessContract ?? new CompiledRegionAccessContract([], []),
-            output);
+            output,
+            icNumberInputMode);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -535,14 +544,8 @@ public sealed partial class CompiledCompositionTests
                 OverlapPolicy.Reject,
                 "copy synthetic immutable input")]);
         return runtimeExecutable
-            ? CompiledComposition.CreateV2RuntimeExecutable(
-                plan,
-                details,
-                icNumberPolicy)
-            : CompiledComposition.CreateV2(
-                plan,
-                details,
-                icNumberPolicy);
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
+            : CompiledComposition.CreateV2(plan, details);
     }
 
     private static CompiledInputContract CreateInputContract()

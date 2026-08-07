@@ -327,7 +327,7 @@ public sealed class CompositionRunExecutionMetricsTests
                 ExperienceIds.CtrlRamReplace,
                 CompositionKind.Replace),
             "synthetic-performance-ctrlram-replace.bin",
-            CompiledIcNumberPolicy.SingleSelector,
+            IcNumberInputMode.SingleSelector,
             []);
         return CreateRequest(
             composition,
@@ -358,7 +358,7 @@ public sealed class CompositionRunExecutionMetricsTests
             "run-performance-baseline",
             composition,
             bindings,
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             icNumberSelection: selection,
             resolvedCapability: resolvedCapability);
     }

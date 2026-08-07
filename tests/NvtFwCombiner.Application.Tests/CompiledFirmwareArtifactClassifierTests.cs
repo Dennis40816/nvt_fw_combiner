@@ -316,10 +316,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                     "copy declared TP source"),
             ]);
 
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            details,
-            CompiledIcNumberPolicy.NotApplicable);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap()

@@ -44,7 +44,7 @@ public sealed partial class CompositionRunServiceTests
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         bool allowOutputOverride = false)
     {
@@ -52,7 +52,7 @@ public sealed partial class CompositionRunServiceTests
             plan,
             identity,
             defaultOutputFileName,
-            icNumberPolicy,
+            icNumberInputMode,
             validationRequirements,
             allowOutputOverride: allowOutputOverride);
     }

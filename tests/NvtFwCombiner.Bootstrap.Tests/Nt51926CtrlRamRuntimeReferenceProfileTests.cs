@@ -23,7 +23,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
 
         Assert.True(result.IsCompiled, FormatIssues(result.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
-        Assert.Equal(profileId, composition.ProfileId);
+        Assert.Equal(profileId, composition.V2Details.ProfileId);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
             composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
@@ -79,7 +79,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
         Assert.True(result.IsCompiled, FormatIssues(result.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal(profileId, composition.ProfileId);
+        Assert.Equal(profileId, composition.V2Details.ProfileId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(
             "nt51926-ctrlram-fw141-tp-work-240k",
@@ -179,7 +179,7 @@ public sealed class Nt51926CtrlRamRuntimeReferenceProfileTests
             operation => Assert.Equal(CompositionOperationKind.ReplaceRange, operation.Kind),
             operation => Assert.Equal(CompositionOperationKind.RunExternalProcessor, operation.Kind));
         CompiledFirmwareConfigBackupVersionValidation validation = Assert.IsType<
-            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(composition.ValidationRequirements));
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(composition.V2Details.Provenance.ValidationRequirements));
         Assert.Equal(0x27, validation.FirmwareVersion);
         Assert.Equal(0x04, validation.FirmwareSubVersion);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(

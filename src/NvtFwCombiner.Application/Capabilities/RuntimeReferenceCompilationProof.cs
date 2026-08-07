@@ -61,7 +61,7 @@ public sealed class RuntimeReferenceCompilationProof
                 nameof(composition));
         ExternalProcessorInvocation invocation = GetSingleProcessor(composition);
         if (!StringComparer.Ordinal.Equals(
-                composition.IcId,
+                composition.V2Details.Provenance.Context.MemberId,
                 plan.Profile.IcId) ||
             !StringComparer.Ordinal.Equals(
                 invocation.ProcessorId,
@@ -290,7 +290,7 @@ public sealed class RuntimeReferenceCompilationProof
     private static IEnumerable<ByteRange> GetCompiledPostbuildAuthorityRanges(
         CompiledComposition composition)
     {
-        return composition.ValidationRequirements
+        return composition.V2Details.Provenance.ValidationRequirements
             .OfType<CompiledFirmwareConfigBackupPlacementAuthorityValidation>()
             .Select(static requirement => requirement.AuthorityRange);
     }

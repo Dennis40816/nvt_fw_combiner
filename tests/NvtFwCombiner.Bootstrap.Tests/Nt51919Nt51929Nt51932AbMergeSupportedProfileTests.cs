@@ -97,7 +97,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             "ab-runtime",
             composition,
             bindings,
-            composition.DefaultOutputFileName);
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate);
 
         Assert.Equal(composition, request.CompiledComposition);
         Assert.Equal(3, request.ArtifactBindings.Count);

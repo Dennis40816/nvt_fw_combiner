@@ -176,7 +176,6 @@ internal static partial class V2CompositionPlanCompiler
                 .Where(space => inputSelection.ActiveSlotIds.Contains(space.SlotId))
                 .Select(MapInputSpaceBinding),
             regionAccess.Contract,
-            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
             capabilityAdmissions,
             runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements: LowerInputValidations(profile, views),

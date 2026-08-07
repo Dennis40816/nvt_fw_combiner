@@ -11,7 +11,7 @@ public sealed partial class CompositionRunService
         ReadOnlyMemory<byte> outputBytes)
     {
         var evaluations = new List<FinalOutputValidationEvaluation>();
-        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements.Where(
+        foreach (CompiledValidationRequirement requirement in compiledComposition.V2Details.Provenance.ValidationRequirements.Where(
                      static requirement => requirement.Stage == CompiledValidationStage.FinalOutput))
         {
             CompositionIssue? issue = requirement switch
@@ -61,7 +61,7 @@ public sealed partial class CompositionRunService
         CompiledComposition compiledComposition)
     {
         return [
-            .. compiledComposition.ValidationRequirements
+            .. compiledComposition.V2Details.Provenance.ValidationRequirements
                 .Where(static requirement => requirement.Stage == CompiledValidationStage.FinalOutput)
                 .Select(static requirement => new FinalOutputValidationEvaluation(
                     new ValidationRunSummary(

@@ -191,7 +191,7 @@ public sealed class CompositionReportPerformanceBaselineTests
                 "general-replace",
                 CompositionKind.Replace),
             "fragmented-report.bin",
-            CompiledIcNumberPolicy.SingleSelector);
+            IcNumberInputMode.SingleSelector);
         return new CompositionRunRequest(
             "fragmented-report-baseline-run",
             compiledComposition,

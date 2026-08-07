@@ -97,7 +97,7 @@ public sealed class CompositionRunResultOwnershipTests
                 "general-merge",
                 CompositionKind.Merge),
             "run-result-ownership.bin",
-            CompiledIcNumberPolicy.NotApplicable);
+            null);
         return new CompositionRunRequest(
             "run-result-ownership",
             compiled,

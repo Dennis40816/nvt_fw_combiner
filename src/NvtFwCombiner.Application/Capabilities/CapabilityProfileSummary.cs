@@ -9,6 +9,6 @@ public sealed record CapabilityProfileSummary(
     CompositionKind CompositionKind,
     IReadOnlyList<string> RequiredInputAddressSpaceIds,
     string DefaultOutputFileName,
-    CompiledIcNumberPolicy? IcNumberPolicy,
+    IcNumberInputMode? IcNumberInputMode,
     bool CompileSucceeded,
     IReadOnlyList<string> IssueCodes);

@@ -94,7 +94,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "fwconfig-final-output.bin",
-                CompiledIcNumberPolicy.SingleSelector,
+                IcNumberInputMode.SingleSelector,
                 [validation]),
             [new InputArtifactBinding(
                 "reference-base",
@@ -170,7 +170,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "external-staged-source.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-base", "reference-artifact", "reference-base.bin",
@@ -233,7 +233,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "mapped-processor.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-base", "reference-artifact", "reference-base.bin",
