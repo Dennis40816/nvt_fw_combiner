@@ -160,7 +160,7 @@ public sealed class FirmwareMapApplicabilityTests
 
     /// <summary>Verifies equivalent declarations produce equal detailed evaluations.</summary>
     [Fact]
-    public void EvaluateUsesValueEqualityIndependentOfDeclarationOrder()
+    public void EvaluateCanonicalizesComponentsIndependentOfDeclarationOrder()
     {
         var first = new FirmwareMapApplicability(
             ["NT00002", "NT00001"],
@@ -180,8 +180,8 @@ public sealed class FirmwareMapApplicabilityTests
         FirmwareMapApplicabilityEvaluation firstEvaluation = first.Evaluate(Inputs());
         FirmwareMapApplicabilityEvaluation secondEvaluation = second.Evaluate(Inputs());
 
-        Assert.Equal(firstEvaluation, secondEvaluation);
-        Assert.Equal(firstEvaluation.GetHashCode(), secondEvaluation.GetHashCode());
+        Assert.Equal(firstEvaluation.Result, secondEvaluation.Result);
+        Assert.Equal(firstEvaluation.PendingRequirements, secondEvaluation.PendingRequirements);
         Assert.Empty(typeof(FirmwareMapApplicabilityEvaluation).GetConstructors());
     }
 

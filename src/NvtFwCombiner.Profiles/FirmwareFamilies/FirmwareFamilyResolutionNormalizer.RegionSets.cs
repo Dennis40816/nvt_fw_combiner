@@ -60,7 +60,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         {
             string path = $"{regionSetPath}.regionTemplates[{templateId}]";
             IReadOnlyList<FirmwareRegionDocument> regionDocuments = document.Regions;
-            FirmwareRelativeRegion[] regions = NormalizeItems(
+            FirmwareRegion[] regions = NormalizeItems(
                 regionDocuments,
                 $"{path}.regions",
                 (region, regionPath) =>
@@ -68,7 +68,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                     FirmwareRegion physical = NormalizeRegion(region, regionPath);
                     return TranslateInvariant(
                     regionPath,
-                    () => new FirmwareRelativeRegion(
+                    () => new FirmwareRegion(
                         physical.RegionId,
                         physical.ParentRegionId,
                         physical.Owner,

@@ -72,15 +72,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             StringBuilder builder,
             IReadOnlyList<FirmwareArtifactIdentity> identities)
         {
-            AppendInteger(builder, "artifact.count", identities.Count);
-            for (int index = 0; index < identities.Count; index++)
-            {
-                FirmwareArtifactIdentity identity = identities[index];
-                string prefix = FormattableString.Invariant($"artifact.{index}");
-                AppendField(builder, $"{prefix}.id", identity.ArtifactId);
-                AppendField(builder, $"{prefix}.sha256", identity.Sha256);
-                AppendInteger(builder, $"{prefix}.length", identity.LengthBytes);
-            }
+            AppendList(builder, "artifact", identities, AppendArtifactIdentity);
         }
 
         private static void AppendMetadataStructures(
