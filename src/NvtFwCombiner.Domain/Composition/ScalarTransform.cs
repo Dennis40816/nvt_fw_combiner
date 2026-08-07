@@ -53,10 +53,7 @@ public sealed record ScalarTransformAddendSource
         string? sourceRegionInstanceId,
         string? targetRegionInstanceId)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scalar addend source kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown scalar addend source kind.");
 
         if (kind == ScalarTransformAddendSourceKind.Fixed)
         {
@@ -132,23 +129,9 @@ public sealed class ScalarTransform
         ScalarTransformOverflowPolicy overflowPolicy,
         ScalarTransformAddendSource addendSource)
     {
-        if (!Enum.IsDefined(width))
-        {
-            throw new ArgumentOutOfRangeException(nameof(width), width, "Unknown scalar transform width.");
-        }
-
-        if (!Enum.IsDefined(byteOrder))
-        {
-            throw new ArgumentOutOfRangeException(nameof(byteOrder), byteOrder, "Unknown scalar transform byte order.");
-        }
-
-        if (!Enum.IsDefined(overflowPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(overflowPolicy),
-                overflowPolicy,
-                "Unknown scalar transform overflow policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(width, "Unknown scalar transform width.");
+        ClosedEnum.ThrowIfUndefined(byteOrder, "Unknown scalar transform byte order.");
+        ClosedEnum.ThrowIfUndefined(overflowPolicy, "Unknown scalar transform overflow policy.");
 
         ArgumentNullException.ThrowIfNull(addendSource);
         BigInteger maximumValue = GetMaximumValue(width);

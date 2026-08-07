@@ -54,10 +54,8 @@ public sealed record CompiledFirmwareConfigBackupPlacementAuthorityValidation :
             CompiledValidationKind.FirmwareConfigBackupPlacementAuthority)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(backupLength);
-        ArgumentException.ThrowIfNullOrWhiteSpace(inactiveMutationIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(referenceAddressSpaceId);
-        InactiveMutationIssueCode = inactiveMutationIssueCode;
-        ReferenceAddressSpaceId = referenceAddressSpaceId;
+        InactiveMutationIssueCode = RequiredValue.NotBlank(inactiveMutationIssueCode);
+        ReferenceAddressSpaceId = RequiredValue.NotBlank(referenceAddressSpaceId);
         AuthorityRange = authorityRange;
         BackupLength = backupLength;
     }

@@ -21,24 +21,21 @@ public sealed class CompositionOperation
         string reason,
         OperationProvenance? provenance)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        OperationId = RequiredValue.NotBlank(operationId);
+        TargetSpaceId = RequiredValue.NotBlank(targetSpaceId);
+        Reason = RequiredValue.NotBlank(reason);
         ArgumentOutOfRangeException.ThrowIfNegative(sequence);
 
-        OperationId = operationId;
         Sequence = sequence;
         Kind = kind;
         SourceSpaceId = sourceSpaceId;
         SourceRange = sourceRange;
-        TargetSpaceId = targetSpaceId;
         TargetRange = targetRange;
         OverlapPolicy = overlapPolicy;
         FillByte = fillByte;
         _patchBytes = [.. patchBytes];
         ScalarTransform = scalarTransform;
         ExternalProcessorInvocation = externalProcessorInvocation;
-        Reason = reason;
         Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
 

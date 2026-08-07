@@ -8,11 +8,8 @@ public sealed class FirmwareMetadataPredicateOutcome
         FirmwarePredicateResult result,
         FirmwareMetadataValue? actualValue)
     {
-        ArgumentNullException.ThrowIfNull(predicate);
-        if (!Enum.IsDefined(result))
-        {
-            throw new ArgumentOutOfRangeException(nameof(result), result, "Unknown predicate result.");
-        }
+        Predicate = RequiredValue.NotNull(predicate);
+        ClosedEnum.ThrowIfUndefined(result, "Unknown predicate result.");
 
         bool isMissing = result == FirmwarePredicateResult.Missing;
         if (isMissing != (actualValue is null))
@@ -22,7 +19,6 @@ public sealed class FirmwareMetadataPredicateOutcome
                 nameof(actualValue));
         }
 
-        Predicate = predicate;
         Result = result;
         ActualValue = actualValue;
     }

@@ -19,10 +19,7 @@ public sealed class AddressSpace
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
-        if (!Enum.IsDefined(inputOversizePolicy))
-        {
-            throw new ArgumentOutOfRangeException(nameof(inputOversizePolicy), inputOversizePolicy, "Unknown input oversize policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(inputOversizePolicy, "Unknown input oversize policy.");
 
         _allowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
         _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);

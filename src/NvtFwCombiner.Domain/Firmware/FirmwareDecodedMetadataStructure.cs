@@ -9,15 +9,10 @@ public sealed record FirmwareDecodedMetadataFact
         string fieldId,
         FirmwareMetadataValue value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        ArgumentNullException.ThrowIfNull(value);
-
-        ArtifactBindingId = artifactBindingId;
-        MetadataStructureId = metadataStructureId;
-        FieldId = fieldId;
-        Value = value;
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        MetadataStructureId = RequiredValue.NotBlank(metadataStructureId);
+        FieldId = RequiredValue.NotBlank(fieldId);
+        Value = RequiredValue.NotNull(value);
     }
 
     /// <summary>Exact runtime artifact binding used to decode this fact.</summary>
@@ -43,18 +38,12 @@ public sealed record FirmwareDecodedMetadataRelation
         string relatedFieldId,
         bool isSatisfied)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relationId);
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata relation kind.");
-        }
+        RelationId = RequiredValue.NotBlank(relationId);
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown metadata relation kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(relatedFieldId);
-        RelationId = relationId;
+        SourceFieldId = RequiredValue.NotBlank(sourceFieldId);
+        RelatedFieldId = RequiredValue.NotBlank(relatedFieldId);
         Kind = kind;
-        SourceFieldId = sourceFieldId;
-        RelatedFieldId = relatedFieldId;
         IsSatisfied = isSatisfied;
     }
 
@@ -86,8 +75,8 @@ public sealed class FirmwareDecodedMetadataStructure
         IEnumerable<FirmwareDecodedMetadataFact> facts,
         IEnumerable<FirmwareDecodedMetadataRelation>? relations = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        MetadataStructureId = RequiredValue.NotBlank(metadataStructureId);
         _facts = Composition.ImmutableReferenceSnapshot.Create(
             facts,
             "Decoded metadata structures cannot contain null facts.");
@@ -113,8 +102,6 @@ public sealed class FirmwareDecodedMetadataStructure
             throw new ArgumentException("Decoded metadata relation ids must be ordinally unique.", nameof(relations));
         }
 
-        ArtifactBindingId = artifactBindingId;
-        MetadataStructureId = metadataStructureId;
         Facts = Array.AsReadOnly(_facts);
         Relations = Array.AsReadOnly(_relations);
     }

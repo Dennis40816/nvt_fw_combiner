@@ -17,7 +17,7 @@ internal sealed class CompositionOperationDefinition
         Sequence = sequence.Sign >= 0
             ? sequence
             : throw new ArgumentOutOfRangeException(nameof(sequence), sequence, "Operation sequence cannot be negative.");
-        OverlapPolicy = Enum.IsDefined(overlapPolicy)
+        OverlapPolicy = ClosedEnum.IsDefined(overlapPolicy)
             ? overlapPolicy
             : throw new ArgumentOutOfRangeException(nameof(overlapPolicy), overlapPolicy, "Unknown overlap policy.");
         Reason = reason;
@@ -101,15 +101,8 @@ internal sealed class CompositionOperationDefinition
         ScalarTransformAddendSource addendSource,
         ulong? expectedBefore)
     {
-        if (!Enum.IsDefined(width))
-        {
-            throw new ArgumentOutOfRangeException(nameof(width), width, "Unknown scalar width.");
-        }
-
-        if (!Enum.IsDefined(byteOrder))
-        {
-            throw new ArgumentOutOfRangeException(nameof(byteOrder), byteOrder, "Unknown scalar byte order.");
-        }
+        ClosedEnum.ThrowIfUndefined(width, "Unknown scalar width.");
+        ClosedEnum.ThrowIfUndefined(byteOrder, "Unknown scalar byte order.");
 
         if (expectedBefore is { } expected &&
             expected > (BigInteger.One << (checked((int)width) * 8)) - BigInteger.One)

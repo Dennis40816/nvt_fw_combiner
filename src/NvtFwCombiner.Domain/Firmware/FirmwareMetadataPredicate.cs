@@ -40,10 +40,7 @@ public sealed class FirmwareMetadataPredicate
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        if (!Enum.IsDefined(comparison))
-        {
-            throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
-        }
+        ClosedEnum.ThrowIfUndefined(comparison, "Unknown metadata comparison.");
 
         _expectedValues = Composition.ImmutableReferenceSnapshot.Create(
             expectedValues,

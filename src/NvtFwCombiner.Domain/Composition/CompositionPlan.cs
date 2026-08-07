@@ -28,7 +28,7 @@ public sealed partial class CompositionPlan
         IEnumerable<CompositionOperation> operations)
     {
         ArgumentNullException.ThrowIfNull(initializations);
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputSpaceId);
+        OutputSpaceId = RequiredValue.NotBlank(outputSpaceId);
         ArgumentNullException.ThrowIfNull(addressSpaces);
         ArgumentNullException.ThrowIfNull(operations);
 
@@ -37,7 +37,6 @@ public sealed partial class CompositionPlan
         _addressSpacesById = BuildAddressSpaceIndex(AddressSpaces);
         (_initializations, _initializationsByTargetSpaceId) = BuildInitializationIndex(initializations);
         Initializations = Array.AsReadOnly(_initializations);
-        OutputSpaceId = outputSpaceId;
 
         ValidateInitializations();
         ValidateOperations();

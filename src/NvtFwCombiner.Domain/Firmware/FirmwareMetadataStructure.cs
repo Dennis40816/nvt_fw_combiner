@@ -36,19 +36,15 @@ public sealed class FirmwareMetadataStructure
         FirmwareMetadataStructureDefinition definition,
         FirmwareMetadataLocator locator)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentNullException.ThrowIfNull(definition);
-        ArgumentNullException.ThrowIfNull(locator);
+        StructureId = RequiredValue.NotBlank(structureId);
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        Definition = RequiredValue.NotNull(definition);
+        Locator = RequiredValue.NotNull(locator);
         ValidateLocatorShape(
             locator,
             definition.LengthBytes,
             definition.Assertions.Count);
 
-        StructureId = structureId;
-        ArtifactBindingId = artifactBindingId;
-        Definition = definition;
-        Locator = locator;
     }
 
     /// <summary>Family-global binding identifier for this artifact and locator.</summary>

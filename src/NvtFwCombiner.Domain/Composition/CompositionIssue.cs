@@ -10,18 +10,15 @@ public sealed class CompositionIssue
         string? operationId = null,
         string severity = CompositionIssueSeverity.Error)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        ArgumentException.ThrowIfNullOrWhiteSpace(message);
-        ArgumentException.ThrowIfNullOrWhiteSpace(severity);
+        Code = RequiredValue.NotBlank(code);
+        Message = RequiredValue.NotBlank(message);
+        Severity = RequiredValue.NotBlank(severity);
         if (!CompositionIssueSeverity.IsDefined(severity))
         {
             throw new ArgumentException($"Unsupported issue severity '{severity}'.", nameof(severity));
         }
 
-        Code = code;
-        Message = message;
         OperationId = string.IsNullOrWhiteSpace(operationId) ? null : operationId;
-        Severity = severity;
     }
 
     /// <summary>Stable machine-readable issue code.</summary>

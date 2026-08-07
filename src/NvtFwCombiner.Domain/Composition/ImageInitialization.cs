@@ -10,11 +10,10 @@ public sealed class ImageInitialization
         byte fillByte,
         string? referenceSpaceId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
+        TargetSpaceId = RequiredValue.NotBlank(targetSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
         Kind = kind;
-        TargetSpaceId = targetSpaceId;
         Capacity = capacity;
         FillByte = fillByte;
         ReferenceSpaceId = referenceSpaceId;

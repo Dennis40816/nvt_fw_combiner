@@ -165,13 +165,7 @@ public sealed partial class CompiledComposition
         CompositionKind compositionKind,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        if (!Enum.IsDefined(icNumberPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(icNumberPolicy),
-                icNumberPolicy,
-                "Unknown compiled IC-number policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(icNumberPolicy, "Unknown compiled IC-number policy.");
 
         if (compositionKind == CompositionKind.Merge && icNumberPolicy != CompiledIcNumberPolicy.NotApplicable)
         {

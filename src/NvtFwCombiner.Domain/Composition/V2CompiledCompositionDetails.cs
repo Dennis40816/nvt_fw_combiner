@@ -11,14 +11,10 @@ public sealed class ProfileBundleIdentity
         string contentHash,
         string trustAnchorBindingId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
+        BundleId = RequiredValue.NotBlank(bundleId);
+        BundleVersion = RequiredValue.NotBlank(bundleVersion);
         ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
-        ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
-
-        BundleId = bundleId;
-        BundleVersion = bundleVersion;
-        TrustAnchorBindingId = trustAnchorBindingId;
+        TrustAnchorBindingId = RequiredValue.NotBlank(trustAnchorBindingId);
     }
 
     /// <summary>Stable bundle identifier.</summary>
@@ -40,8 +36,7 @@ public sealed class ProfileBundleEntryIdentity
 {
     internal ProfileBundleEntryIdentity(string entryId, string contentHash)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(entryId);
-        EntryId = entryId;
+        EntryId = RequiredValue.NotBlank(entryId);
         ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
     }
 
@@ -105,22 +100,17 @@ public sealed class CompiledProfilePromotionBlocker
         string reason,
         IEnumerable<string> evidenceRefs)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(blockerId);
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile promotion blocker kind.");
-        }
+        BlockerId = RequiredValue.NotBlank(blockerId);
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown profile promotion blocker kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        Reason = RequiredValue.NotBlank(reason);
         _evidenceRefs = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
-        BlockerId = blockerId;
         Kind = kind;
-        Reason = reason;
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
@@ -147,10 +137,7 @@ public sealed class CompiledProfilePromotion
         CompiledProfilePromotionStage stage,
         IEnumerable<CompiledProfilePromotionBlocker> blockers)
     {
-        if (!Enum.IsDefined(stage))
-        {
-            throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown profile promotion stage.");
-        }
+        ClosedEnum.ThrowIfUndefined(stage, "Unknown profile promotion stage.");
 
         _blockers = ImmutableReferenceSnapshot.CreateUnique(
             blockers,
@@ -322,13 +309,7 @@ public sealed class V2CompiledCompositionDetails
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(experienceId);
-        if (!Enum.IsDefined(compositionKind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(compositionKind),
-                compositionKind,
-                "Unknown composition kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(compositionKind, "Unknown composition kind.");
 
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(inputContract);

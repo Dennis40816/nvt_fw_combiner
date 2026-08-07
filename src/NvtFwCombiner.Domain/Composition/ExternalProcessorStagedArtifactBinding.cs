@@ -7,10 +7,9 @@ public sealed class ExternalProcessorStagedArtifactBinding
     public ExternalProcessorStagedArtifactBinding(string artifactId, string sourceSpaceId, ByteRange sourceRange)
     {
         ExternalProcessorStagedArtifact.ValidateArtifactId(artifactId, nameof(artifactId));
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceSpaceId);
+        SourceSpaceId = RequiredValue.NotBlank(sourceSpaceId);
 
         ArtifactId = artifactId;
-        SourceSpaceId = sourceSpaceId;
         SourceRange = sourceRange;
     }
 

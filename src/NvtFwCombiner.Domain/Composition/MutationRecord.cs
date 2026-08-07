@@ -14,21 +14,15 @@ public sealed class MutationRecord
         string afterSha256,
         string reason)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
-        ArgumentNullException.ThrowIfNull(changedRanges);
-        ArgumentException.ThrowIfNullOrWhiteSpace(beforeSha256);
-        ArgumentException.ThrowIfNullOrWhiteSpace(afterSha256);
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        OperationId = RequiredValue.NotBlank(operationId);
+        TargetSpaceId = RequiredValue.NotBlank(targetSpaceId);
+        ChangedRanges = RequiredValue.NotNull(changedRanges);
+        BeforeSha256 = RequiredValue.NotBlank(beforeSha256);
+        AfterSha256 = RequiredValue.NotBlank(afterSha256);
+        Reason = RequiredValue.NotBlank(reason);
 
-        OperationId = operationId;
         OperationKind = operationKind;
-        TargetSpaceId = targetSpaceId;
         TargetRange = targetRange;
-        ChangedRanges = changedRanges;
-        BeforeSha256 = beforeSha256;
-        AfterSha256 = afterSha256;
-        Reason = reason;
     }
 
     /// <summary>Operation id that produced this trace.</summary>

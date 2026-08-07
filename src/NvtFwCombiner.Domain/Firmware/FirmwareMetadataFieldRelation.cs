@@ -17,23 +17,17 @@ public sealed class FirmwareMetadataFieldRelation
         string sourceFieldId,
         string relatedFieldId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relationId);
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata field relation kind.");
-        }
+        RelationId = RequiredValue.NotBlank(relationId);
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown metadata field relation kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(relatedFieldId);
+        SourceFieldId = RequiredValue.NotBlank(sourceFieldId);
+        RelatedFieldId = RequiredValue.NotBlank(relatedFieldId);
         if (StringComparer.Ordinal.Equals(sourceFieldId, relatedFieldId))
         {
             throw new ArgumentException("Metadata relations require two distinct fields.");
         }
 
-        RelationId = relationId;
         Kind = kind;
-        SourceFieldId = sourceFieldId;
-        RelatedFieldId = relatedFieldId;
     }
 
     /// <summary>Stable relation identifier unique inside one metadata structure.</summary>

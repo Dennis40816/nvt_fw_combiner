@@ -32,18 +32,12 @@ public sealed record FirmwareMapFactKey
     /// <summary>Creates one checked member/map fact identity.</summary>
     public FirmwareMapFactKey(string memberId, string mapId, FirmwareFactKind factKind, string factId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(factId);
-        if (!Enum.IsDefined(factKind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(factKind), factKind, "Unknown firmware fact kind.");
-        }
+        MemberId = RequiredValue.NotBlank(memberId);
+        MapId = RequiredValue.NotBlank(mapId);
+        FactId = RequiredValue.NotBlank(factId);
+        ClosedEnum.ThrowIfUndefined(factKind, "Unknown firmware fact kind.");
 
-        MemberId = memberId;
-        MapId = mapId;
         FactKind = factKind;
-        FactId = factId;
     }
 
     /// <summary>Family member that exposes the fact.</summary>
@@ -385,7 +379,7 @@ public sealed class FirmwareMapFactBinding<TFact>
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(applicability);
         ArgumentNullException.ThrowIfNull(provenance);
-        if (!Enum.IsDefined(value.FactKind) ||
+        if (!ClosedEnum.IsDefined(value.FactKind) ||
             effectiveKey.FactKind != value.FactKind ||
             directSourceKey.FactKind != value.FactKind)
         {

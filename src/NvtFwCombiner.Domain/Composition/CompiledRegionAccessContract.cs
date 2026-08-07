@@ -30,10 +30,7 @@ public sealed class CompiledPhysicalRegionConstraint
         int alignment)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        if (!Enum.IsDefined(writeConstraint))
-        {
-            throw new ArgumentOutOfRangeException(nameof(writeConstraint), writeConstraint, "Unknown firmware write constraint.");
-        }
+        ClosedEnum.ThrowIfUndefined(writeConstraint, "Unknown firmware write constraint.");
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(alignment);
         RegionId = regionId;
@@ -110,10 +107,7 @@ public sealed class CompiledRegionAccessRequirement
         IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        if (!Enum.IsDefined(access))
-        {
-            throw new ArgumentOutOfRangeException(nameof(access), access, "Unknown compiled region access kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(access, "Unknown compiled region access kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         _allowedSubregionIds = ImmutableStringSnapshot.Create(

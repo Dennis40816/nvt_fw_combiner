@@ -39,10 +39,7 @@ public sealed class FirmwareSharedFactReference
         FirmwareRegion? region,
         FirmwareMetadataStructureDefinition? metadataDefinition)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown shared firmware fact kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown shared firmware fact kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(factId);
         bool isRegion = kind == FirmwareSharedFactKind.Region;
@@ -208,10 +205,7 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
         IEnumerable<string> evidenceRefs)
         : base(relationshipId, memberIds, reason, evidenceRefs)
     {
-        if (!Enum.IsDefined(role))
-        {
-            throw new ArgumentOutOfRangeException(nameof(role), role, "Unknown shared-fact role.");
-        }
+        ClosedEnum.ThrowIfUndefined(role, "Unknown shared-fact role.");
 
         _applicableMaps = Composition.ImmutableReferenceSnapshot.CreateUnique(
             applicableMaps,

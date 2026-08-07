@@ -141,10 +141,7 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         InvocationProfileId = CanonicalProfileValueRules.RequireInvocationProfileId(
             invocationProfileId,
             nameof(invocationProfileId));
-        if (!Enum.IsDefined(purpose))
-        {
-            throw new ArgumentOutOfRangeException(nameof(purpose), purpose, "Unknown processor purpose.");
-        }
+        ClosedEnum.ThrowIfUndefined(purpose, "Unknown processor purpose.");
 
         if (integrityDisposition is not CompositionProfileIntegrityDisposition.None and
             not CompositionProfileIntegrityDisposition.RecalculateAndWrite)
