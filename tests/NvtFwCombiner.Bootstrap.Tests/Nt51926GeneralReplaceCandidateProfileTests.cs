@@ -255,8 +255,8 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
             "NT51926",
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("base", "reference", referenceLength),
-                    new V2RuntimeReferenceReplaceInputBinding("source-a", "source", sourceLength),
+                    new V2ExplicitMappingInputBinding("base", "reference", referenceLength),
+                    new V2ExplicitMappingInputBinding("source-a", "source", sourceLength),
                 ],
                 [new ExplicitMapping(
                     "dp-map",

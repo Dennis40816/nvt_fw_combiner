@@ -517,11 +517,11 @@ internal sealed class GeneralReplaceV2Registration
         IReadOnlyList<AddressSpace> sourceSpaces,
         IReadOnlyList<ExplicitMapping> mappings)
     {
-        V2RuntimeReferenceReplaceInputBinding[] bindings =
+        V2ExplicitMappingInputBinding[] bindings =
         [
             new(ReferenceAddressSpaceId, ReferenceSlotId, referenceLength),
             .. sourceSpaces.Select(source =>
-                new V2RuntimeReferenceReplaceInputBinding(
+                new V2ExplicitMappingInputBinding(
                     source.AddressSpaceId,
                     SourceSlotId,
                     source.Length)),

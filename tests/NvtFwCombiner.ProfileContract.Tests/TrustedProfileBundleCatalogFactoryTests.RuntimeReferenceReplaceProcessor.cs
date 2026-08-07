@@ -183,7 +183,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "single",
             TopologySelectionSource.Requested,
             "ic-number");
-        V2RuntimeReferenceReplaceInputBinding[] bindings =
+        V2ExplicitMappingInputBinding[] bindings =
         [
             new("base", "reference", 16),
             new("source-a", "source", 4),

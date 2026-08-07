@@ -21,8 +21,8 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
             "NT00001",
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
-                    new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
+                    new V2ExplicitMappingInputBinding("base", "reference", 16),
+                    new V2ExplicitMappingInputBinding("source-a", "source", 4),
                 ],
                 [new ExplicitMapping(
                     "replace-source",

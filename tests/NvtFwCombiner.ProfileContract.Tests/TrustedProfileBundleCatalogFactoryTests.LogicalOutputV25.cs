@@ -85,7 +85,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     10,
@@ -97,9 +97,29 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     OverlapPolicy.Reject,
                     alignment: 1,
                     reason: "test logical mapping")]));
+        V2CompositionPlanCompileResult oversizedBinding = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                [new V2ExplicitMappingInputBinding("source-a", "source", (long)int.MaxValue + 1)],
+                [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))]));
+        V2CompositionPlanCompileResult maximumBinding = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                [new V2ExplicitMappingInputBinding("source-a", "source", int.MaxValue)],
+                [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))]));
 
         Assert.False(result.IsCompiled);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.logical.source-out-of-bounds");
+        Assert.False(oversizedBinding.IsCompiled);
+        Assert.Null(oversizedBinding.CompiledComposition);
+        Assert.Contains(oversizedBinding.Issues, issue => issue.Code == "profile.v2.logical.binding-invalid");
+        Assert.True(maximumBinding.IsCompiled);
     }
 
     /// <summary>Verifies malformed logical mappings are rejected only during the selected request's lowering.</summary>
@@ -114,7 +134,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-first", 11, new ByteRange(2, 2), new ByteRange(2, 2))]));
         V2CompositionPlanCompileResult overlapping = catalog.CompileLogicalOutput(
             "logical-general-merge",
@@ -122,11 +142,98 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-second", 11, new ByteRange(2, 2), new ByteRange(1, 2))]));
 
         Assert.Contains(duplicate.Issues, issue => issue.Code == "profile.v2.logical.mapping-invalid");
         Assert.Contains(overlapping.Issues, issue => issue.Code == "profile.v2.plan.operation-overlap");
+    }
+
+    /// <summary>Locks every compiler-owned logical binding and mapping guard at the shared request seam.</summary>
+    [Theory]
+    [InlineData("duplicate-binding", "profile.v2.logical.binding-invalid")]
+    [InlineData("duplicate-sequence", "profile.v2.logical.mapping-invalid")]
+    [InlineData("unknown-binding", "profile.v2.logical.mapping-invalid")]
+    [InlineData("wrong-kind", "profile.v2.logical.mapping-invalid")]
+    [InlineData("wrong-overlap", "profile.v2.logical.mapping-invalid")]
+    [InlineData("source-start-alignment", "profile.v2.logical.mapping-invalid")]
+    [InlineData("source-length-alignment", "profile.v2.logical.mapping-invalid")]
+    [InlineData("target-out-of-bounds", "profile.v2.logical.target-out-of-bounds")]
+    public void LogicalOutputLoweringRejectsInvalidExplicitMappingRequest(
+        string mutation,
+        string expectedIssueCode)
+    {
+        V2ExplicitMappingInputBinding[] bindings =
+            [new("source-a", "source", 4)];
+        ExplicitMapping[] mappings =
+            [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))];
+        switch (mutation)
+        {
+            case "duplicate-binding":
+                bindings = [.. bindings, new("source-a", "source", 4)];
+                break;
+            case "duplicate-sequence":
+                mappings =
+                [
+                    mappings[0],
+                    Mapping("copy-second", 10, new ByteRange(2, 2), new ByteRange(2, 2)),
+                ];
+                break;
+            case "unknown-binding":
+                mappings =
+                    [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2), "missing")];
+                break;
+            case "wrong-kind":
+                mappings =
+                [
+                    Mapping(
+                        "copy-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(0, 2),
+                        operationKind: ExplicitMappingOperationKind.ReplaceRange),
+                ];
+                break;
+            case "wrong-overlap":
+                mappings =
+                [
+                    Mapping(
+                        "copy-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(0, 2),
+                        overlapPolicy: OverlapPolicy.ReplaceExisting),
+                ];
+                break;
+            case "source-start-alignment":
+                mappings =
+                [Mapping("copy-source", 10, new ByteRange(1, 2), new ByteRange(0, 2), alignment: 2)];
+                break;
+            case "source-length-alignment":
+                bindings = [new("source-a", "source", 6)];
+                mappings =
+                [Mapping("copy-source", 10, new ByteRange(0, 3), new ByteRange(0, 3), alignment: 2)];
+                break;
+            case "target-out-of-bounds":
+                mappings =
+                    [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(5, 2))];
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown logical mutation.");
+        }
+
+        V2CompositionPlanCompileResult result = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                bindings,
+                mappings));
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues, issue => issue.Code == expectedIssueCode);
     }
 
     /// <summary>Verifies a malformed input/output address-space collision stays within that logical compile request.</summary>
@@ -140,7 +247,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
+                [new V2ExplicitMappingInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     10,
@@ -243,7 +350,7 @@ catalog.CompileLogicalOutput(
     {
         return new V2LogicalOutputCompileRequest(
             new GeneralMergeOutputInitializer(outputCapacity, fillByte),
-            [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+            [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
             [new ExplicitMapping(
                 "copy-source",
                 10,
@@ -257,18 +364,26 @@ catalog.CompileLogicalOutput(
                 reason: "test logical mapping")]);
     }
 
-    private static ExplicitMapping Mapping(string mappingId, int sequence, ByteRange source, ByteRange target)
+    private static ExplicitMapping Mapping(
+        string mappingId,
+        int sequence,
+        ByteRange source,
+        ByteRange target,
+        string sourceBindingId = "source-a",
+        ExplicitMappingOperationKind operationKind = ExplicitMappingOperationKind.CopyRange,
+        OverlapPolicy overlapPolicy = OverlapPolicy.Reject,
+        int alignment = 1)
     {
         return new ExplicitMapping(
             mappingId,
             sequence,
-            ExplicitMappingOperationKind.CopyRange,
-            "source-a",
+            operationKind,
+            sourceBindingId,
             source,
             CompositionAddressSpaceIds.OutputImage,
             target,
-            OverlapPolicy.Reject,
-            alignment: 1,
+            overlapPolicy,
+            alignment,
             reason: "test logical mapping");
     }
 

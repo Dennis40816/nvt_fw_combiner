@@ -114,7 +114,7 @@ internal static partial class CompositionPlanningAdapter
             icId,
             new V2LogicalOutputCompileRequest(
                 draft.OutputInitializer,
-                spaces.Select(static space => new V2LogicalOutputInputBinding(
+                spaces.Select(static space => new V2ExplicitMappingInputBinding(
                     space.AddressSpaceId,
                     "source",
                     (int)space.Length)),

@@ -2,26 +2,6 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>One concrete immutable input binding supplied for a map-bound runtime reference-replace request.</summary>
-internal sealed class V2RuntimeReferenceReplaceInputBinding
-{
-    internal V2RuntimeReferenceReplaceInputBinding(string bindingId, string slotId, long exactLengthBytes)
-    {
-        BindingId = bindingId;
-        SlotId = slotId;
-        ExactLengthBytes = exactLengthBytes;
-    }
-
-    /// <summary>Concrete immutable address-space identity for this compile request.</summary>
-    internal string BindingId { get; }
-
-    /// <summary>Profile slot materialized by this concrete binding.</summary>
-    internal string SlotId { get; }
-
-    /// <summary>Exact immutable source capacity expected by the resulting plan.</summary>
-    internal long ExactLengthBytes { get; }
-}
-
 internal sealed record V2RuntimeReferenceReplaceFirmwareVersionEdit(
     ByteRange SourceFirmwareVersionAndBarRange, ByteRange SourceFirmwareSubVersionRange,
     byte FirmwareVersion, byte FirmwareSubVersion, string InvalidOutputIssueCode,
@@ -119,36 +99,21 @@ internal sealed class V2RuntimeReferenceReplacePostbuildPolicy
 }
 
 /// <summary>Typed map-bound General Replace overlay containing only input lengths and explicit half-open mappings.</summary>
-internal sealed class V2RuntimeReferenceReplaceCompileRequest
+internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappingCompileRequest
 {
-    private readonly V2RuntimeReferenceReplaceInputBinding[] _bindings;
-    private readonly ExplicitMapping[] _mappings;
-    private readonly ExternalProcessorWriteRangeSection[] _postbuildWriteRangeSections;
-
     internal V2RuntimeReferenceReplaceCompileRequest(
-        IEnumerable<V2RuntimeReferenceReplaceInputBinding> bindings,
+        IEnumerable<V2ExplicitMappingInputBinding> bindings,
         IEnumerable<ExplicitMapping> mappings,
         V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy = null,
         IEnumerable<ExternalProcessorWriteRangeSection>? postbuildWriteRangeSections = null)
+        : base(bindings, mappings)
     {
-        ArgumentNullException.ThrowIfNull(bindings);
-        ArgumentNullException.ThrowIfNull(mappings);
-        _bindings = [.. bindings];
-        _mappings = [.. mappings];
-        _postbuildWriteRangeSections = [.. postbuildWriteRangeSections ?? []];
-        Bindings = Array.AsReadOnly(_bindings);
-        Mappings = Array.AsReadOnly(_mappings);
+        PostbuildWriteRangeSections = Array.AsReadOnly(
+            [.. postbuildWriteRangeSections ?? []]);
         FirmwareVersionEdit = firmwareVersionEdit;
         PostbuildPolicy = postbuildPolicy;
-        PostbuildWriteRangeSections = Array.AsReadOnly(_postbuildWriteRangeSections);
     }
-
-    /// <summary>Concrete immutable inputs with no host paths, source bytes, or process authority.</summary>
-    internal IReadOnlyList<V2RuntimeReferenceReplaceInputBinding> Bindings { get; }
-
-    /// <summary>Explicit source-to-output mappings lowered through the shared composition plan algebra.</summary>
-    internal IReadOnlyList<ExplicitMapping> Mappings { get; }
 
     internal V2RuntimeReferenceReplaceFirmwareVersionEdit? FirmwareVersionEdit { get; }
 

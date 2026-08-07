@@ -202,7 +202,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "NT51928",
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(16),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     1,

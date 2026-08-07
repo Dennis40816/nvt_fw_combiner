@@ -132,6 +132,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Empty(CompiledIcIdentityRegex().Matches(compilationSources));
 
         string profileSources = ReadProfileSources();
+        Assert.DoesNotContain("V2LogicalOutputInputBinding", profileSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("V2RuntimeReferenceReplaceInputBinding", profileSources, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(profileSources, "record V2ExplicitMappingInputBinding("));
+        Assert.Equal(1, CountOccurrences(profileSources, "abstract class V2ExplicitMappingCompileRequest"));
         int planConstructionCount = CompositionPlanConstructionRegex().Count(compilerSources);
         int detailsConstructionCount = CompiledDetailsConstructionRegex().Count(compilerSources);
         Assert.NotEqual(0, planConstructionCount);

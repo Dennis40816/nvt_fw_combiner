@@ -485,8 +485,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
                 ResolutionReference(icId, chipCount, referenceCapacity))],
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("reference-base", "reference-base", referenceCapacity),
-                    new V2RuntimeReferenceReplaceInputBinding("ctrlram-source-1", "ctrlram-source", targetLength),
+                    new V2ExplicitMappingInputBinding("reference-base", "reference-base", referenceCapacity),
+                    new V2ExplicitMappingInputBinding("ctrlram-source-1", "ctrlram-source", targetLength),
                 ],
                 [new ExplicitMapping(
                     "replace-ctrlram-byte",

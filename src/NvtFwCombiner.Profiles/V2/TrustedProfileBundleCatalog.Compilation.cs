@@ -94,7 +94,7 @@ internal sealed partial class TrustedProfileBundleCatalog
                 "Only a topology-disambiguating runtime reference-replace profile can use an explicit topology selection.");
         }
 
-        V2RuntimeReferenceReplaceInputBinding[] referenceBindings =
+        V2ExplicitMappingInputBinding[] referenceBindings =
         [
             .. request.Bindings.Where(binding =>
                 binding is not null &&
