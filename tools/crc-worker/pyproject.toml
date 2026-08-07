@@ -16,7 +16,7 @@ dev = [
   "pyright>=1.1.400,<2",
   "pytest>=8.3,<10",
   "coverage==7.14.3",
-  "pytest-cov==6.3.0",
+  "pytest-cov==7.1.0",
   "ruff>=0.11,<1"
 ]
 package = ["pyinstaller>=6.13,<7"]
