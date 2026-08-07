@@ -148,8 +148,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         Assert.Equal("map", mapResolution?.ResolvedMap?.ImageMap.MapId);
         Assert.Empty(capabilityAdmissions);
         Assert.Empty(preparationIssues);
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult compilation = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",

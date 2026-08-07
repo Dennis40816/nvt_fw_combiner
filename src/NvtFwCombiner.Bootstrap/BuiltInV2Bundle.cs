@@ -284,8 +284,7 @@ internal sealed class BuiltInV2Bundle
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         try
         {
-            return TrustedV2CompositionCompiler.Compile(
-                _catalog.Value,
+            return _catalog.Value.Compile(
                 profileId,
                 profileVersion,
                 icId,
@@ -309,8 +308,7 @@ internal sealed class BuiltInV2Bundle
     {
         try
         {
-            return TrustedV2CompositionCompiler.CompileLogicalOutput(
-                _catalog.Value,
+            return _catalog.Value.CompileLogicalOutput(
                 profileId,
                 profileVersion,
                 memberId,
@@ -353,8 +351,7 @@ internal sealed class BuiltInV2Bundle
         ArgumentNullException.ThrowIfNull(request);
         try
         {
-            return TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-                _catalog.Value,
+            return _catalog.Value.CompileRuntimeReferenceReplace(
                 profileId,
                 profileVersion,
                 memberId,
@@ -378,8 +375,7 @@ internal sealed class BuiltInV2Bundle
     {
         try
         {
-            return TrustedV2CompositionCompiler.GetMapCapacities(
-                _catalog.Value,
+            return _catalog.Value.GetMapCapacities(
                 profileId,
                 profileVersion,
                 icId,
@@ -421,8 +417,7 @@ internal sealed class BuiltInV2Bundle
     {
         try
         {
-            return TrustedV2CompositionCompiler.GetMapVariants(
-                _catalog.Value,
+            return _catalog.Value.GetMapVariants(
                 profileId,
                 profileVersion,
                 icId,

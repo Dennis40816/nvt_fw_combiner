@@ -4,8 +4,8 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>Profiles-owned compiler entry point for one exact trusted V2 profile selection.</summary>
-internal static class TrustedV2CompositionCompiler
+/// <summary>Compiler entry points owned by the exact trusted catalog snapshot they select from.</summary>
+internal sealed partial class TrustedProfileBundleCatalog
 {
     private const string SelectionUnresolved = "profile.v2.compile.selection-unresolved";
     private const string ProfileExperienceMismatch = "profile.v2.compile.profile-experience-mismatch";
@@ -18,14 +18,12 @@ internal static class TrustedV2CompositionCompiler
         "profile.v2.runtime-reference-replace.resolution-artifact-invalid";
 
     /// <summary>Compiles one trusted logical-output General Merge request without resolving a physical image map.</summary>
-    internal static V2CompositionPlanCompileResult CompileLogicalOutput(
-        TrustedProfileBundleCatalog catalog,
+    internal V2CompositionPlanCompileResult CompileLogicalOutput(
         string profileId,
         string profileVersion,
         string memberId,
         V2LogicalOutputCompileRequest request)
     {
-        ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(request);
         if (string.IsNullOrWhiteSpace(profileId) ||
             string.IsNullOrWhiteSpace(profileVersion) ||
@@ -37,7 +35,7 @@ internal static class TrustedV2CompositionCompiler
                 "Logical-output compilation requires profile identity and member selections.");
         }
 
-        TrustedCompositionProfileCatalogEntry? profileEntry = catalog.SelectProfile(
+        TrustedCompositionProfileCatalogEntry? profileEntry = SelectProfile(
             profileId,
             profileVersion,
             out IReadOnlyList<CompositionIssue> selectionIssues);
@@ -47,54 +45,14 @@ internal static class TrustedV2CompositionCompiler
                 "profile.v2.logical.selection-unresolved",
                 "The selected trusted logical-output profile could not be resolved from its catalog.")
             : V2CompositionPlanCompiler.CompileLogicalOutput(
-                catalog.BundleIdentity,
+                BundleIdentity,
                 profileEntry,
                 memberId,
                 request);
     }
 
-    /// <summary>Compiles one trusted map-bound General Replace request through the shared resolved-map preparation path.</summary>
-    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
-        TrustedProfileBundleCatalog catalog,
-        string profileId,
-        string profileVersion,
-        string memberId,
-        V2RuntimeReferenceReplaceCompileRequest request)
-    {
-        return CompileRuntimeReferenceReplace(
-            catalog,
-            profileId,
-            profileVersion,
-            memberId,
-            ExperienceIds.GeneralReplace,
-            requestedTopology: null,
-            request);
-    }
-
-    /// <summary>Compiles one trusted map-bound Replace request with explicit experience and topology selection.</summary>
-    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
-        TrustedProfileBundleCatalog catalog,
-        string profileId,
-        string profileVersion,
-        string memberId,
-        string experienceId,
-        TopologySelection? requestedTopology,
-        V2RuntimeReferenceReplaceCompileRequest request)
-    {
-        return CompileRuntimeReferenceReplace(
-            catalog,
-            profileId,
-            profileVersion,
-            memberId,
-            experienceId,
-            requestedTopology,
-            [],
-            request);
-    }
-
     /// <summary>Compiles one trusted runtime reference-replace request with optional immutable map-resolution evidence.</summary>
-    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
-        TrustedProfileBundleCatalog catalog,
+    internal V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
         string profileId,
         string profileVersion,
         string memberId,
@@ -106,7 +64,6 @@ internal static class TrustedV2CompositionCompiler
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         ArgumentNullException.ThrowIfNull(request);
         if (!TryResolveMapCandidates(
-                catalog,
                 profileId,
                 profileVersion,
                 memberId,
@@ -182,7 +139,7 @@ internal static class TrustedV2CompositionCompiler
         }
 
         bool isAdmitted = V2CompositionPlanCompiler.TryCompileRuntimeReferenceReplaceAdmitted(
-            catalog,
+            this,
             profileEntry,
             new FirmwareMapResolutionInputs(
                 memberId,
@@ -201,51 +158,8 @@ internal static class TrustedV2CompositionCompiler
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
     }
 
-    internal static V2CompositionPlanCompileResult Compile(
-        TrustedProfileBundleCatalog catalog,
-        string profileId,
-        string profileVersion,
-        string memberId,
-        string modeId,
-        long? requestedMapCapacity = null)
-    {
-        return Compile(
-            catalog,
-            profileId,
-            profileVersion,
-            memberId,
-            modeId,
-            requestedMapCapacity,
-            requestedTopology: null,
-            []);
-    }
-
-    /// <summary>Compiles one trusted map-bound profile with immutable artifacts used only for map resolution.</summary>
-    internal static V2CompositionPlanCompileResult Compile(
-        TrustedProfileBundleCatalog catalog,
-        string profileId,
-        string profileVersion,
-        string memberId,
-        string modeId,
-        long? requestedMapCapacity,
-        IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
-    {
-        return Compile(
-            catalog,
-            profileId,
-            profileVersion,
-            memberId,
-            modeId,
-            requestedMapCapacity,
-            requestedTopology: null,
-            resolutionArtifacts,
-            selectedInputSlotIds);
-    }
-
     /// <summary>Compiles one trusted map-bound profile with an optional typed topology selection.</summary>
-    internal static V2CompositionPlanCompileResult Compile(
-        TrustedProfileBundleCatalog catalog,
+    internal V2CompositionPlanCompileResult Compile(
         string profileId,
         string profileVersion,
         string memberId,
@@ -257,7 +171,6 @@ internal static class TrustedV2CompositionCompiler
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (!TryResolveMapCandidates(
-                catalog,
                 profileId,
                 profileVersion,
                 memberId,
@@ -331,7 +244,7 @@ internal static class TrustedV2CompositionCompiler
         }
 
         bool isAdmitted = V2CompositionPlanCompiler.TryCompileAdmitted(
-            catalog,
+            this,
             selectedProfile,
             new FirmwareMapResolutionInputs(
                 memberId,
@@ -393,8 +306,7 @@ internal static class TrustedV2CompositionCompiler
     }
 
     /// <summary>Returns the trusted profile's eligible canonical map capacities without selecting one.</summary>
-    internal static IReadOnlyList<long> GetMapCapacities(
-        TrustedProfileBundleCatalog catalog,
+    internal IReadOnlyList<long> GetMapCapacities(
         string profileId,
         string profileVersion,
         string memberId,
@@ -402,7 +314,6 @@ internal static class TrustedV2CompositionCompiler
         out IReadOnlyList<CompositionIssue> issues)
     {
         if (!TryResolveMapCandidates(
-                catalog,
                 profileId,
                 profileVersion,
                 memberId,
@@ -424,28 +335,8 @@ internal static class TrustedV2CompositionCompiler
         ]);
     }
 
-    /// <summary>Returns exact eligible canonical map references without selecting one.</summary>
-    internal static IReadOnlyList<FirmwareImageMap> GetMapVariants(
-        TrustedProfileBundleCatalog catalog,
-        string profileId,
-        string profileVersion,
-        string memberId,
-        string modeId,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        return GetMapVariants(
-            catalog,
-            profileId,
-            profileVersion,
-            memberId,
-            modeId,
-            out _,
-            out issues);
-    }
-
     /// <summary>Returns the profile IC Count input mode with its exact eligible map references.</summary>
-    internal static IReadOnlyList<FirmwareImageMap> GetMapVariants(
-        TrustedProfileBundleCatalog catalog,
+    internal IReadOnlyList<FirmwareImageMap> GetMapVariants(
         string profileId,
         string profileVersion,
         string memberId,
@@ -454,7 +345,6 @@ internal static class TrustedV2CompositionCompiler
         out IReadOnlyList<CompositionIssue> issues)
     {
         if (!TryResolveMapCandidates(
-                catalog,
                 profileId,
                 profileVersion,
                 memberId,
@@ -475,8 +365,7 @@ internal static class TrustedV2CompositionCompiler
         ]);
     }
 
-    private static bool TryResolveMapCandidates(
-        TrustedProfileBundleCatalog catalog,
+    private bool TryResolveMapCandidates(
         string profileId,
         string profileVersion,
         string memberId,
@@ -485,7 +374,6 @@ internal static class TrustedV2CompositionCompiler
         out FirmwareImageMap[] mapCandidates,
         out IReadOnlyList<CompositionIssue> issues)
     {
-        ArgumentNullException.ThrowIfNull(catalog);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
@@ -494,7 +382,7 @@ internal static class TrustedV2CompositionCompiler
         profileEntry = null;
         mapCandidates = [];
         issues = [];
-        TrustedCompositionProfileCatalogEntry? selected = catalog.SelectProfile(
+        TrustedCompositionProfileCatalogEntry? selected = SelectProfile(
             profileId,
             profileVersion,
             out IReadOnlyList<CompositionIssue> selectionIssues);

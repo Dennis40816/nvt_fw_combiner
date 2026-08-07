@@ -250,8 +250,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public void CandidateProfileRejectsNon512KiBMapCapacity()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -269,8 +268,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public void CandidateProfileSelectsOneMebibyteCascadeMap()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -315,8 +313,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public async Task CascadePlanPreservesCompleteDpSeedOutsideTpPlacementsAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cascade-preservation");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -424,8 +421,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
     private static CompiledComposition CompileCandidate(TempWorkspace workspace)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",

@@ -111,8 +111,7 @@ public sealed class GeneralMergeV2CandidateProfileTests
             workspace,
             bundleDirectory,
             bundleContentHash);
-        V2CompositionPlanCompileResult compile = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult compile = catalog.CompileLogicalOutput(
             profileId,
             "0.1.0",
             memberId,

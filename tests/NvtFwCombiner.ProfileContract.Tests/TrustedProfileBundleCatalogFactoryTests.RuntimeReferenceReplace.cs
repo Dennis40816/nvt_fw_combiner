@@ -13,8 +13,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void RuntimeReferenceReplaceLoweringCompilesAndExecutesThroughTheSharedEngine()
     {
         TrustedProfileBundleCatalog catalog = CreateRuntimeReferenceReplaceCatalog();
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult result = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -51,8 +50,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsForbiddenPhysicalTarget()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceReplaceCatalog(FirmwareWriteConstraint.Forbidden),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog(FirmwareWriteConstraint.Forbidden).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -66,8 +64,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsMissingReferenceLengthBeforeMapSelection()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceReplaceCatalog(),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog().CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -92,8 +89,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new RuntimeReferenceReplaceMapDocument("map-32", 32),
             ]);
 
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult result = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -116,14 +112,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new RuntimeReferenceReplaceMapDocument("map-16", 16),
                 new RuntimeReferenceReplaceMapDocument("map-32", 32),
             ]);
-        V2CompositionPlanCompileResult unavailable = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult unavailable = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
             RuntimeReferenceReplaceRequest(referenceLength: 24));
-        V2CompositionPlanCompileResult duplicateReference = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult duplicateReference = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -134,8 +128,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
                 ],
                 [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]));
-        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult valid = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -154,13 +147,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsAmbiguousReferenceCapacity()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog(
                 mapDefinitions:
                 [
                     new RuntimeReferenceReplaceMapDocument("map-a", 16),
                     new RuntimeReferenceReplaceMapDocument("map-b", 16),
-                ]),
+                ]).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -175,8 +167,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void RuntimeReferenceReplaceLoweringRejectsOutOfBoundsSourceWithoutAffectingLaterRequest()
     {
         TrustedProfileBundleCatalog catalog = CreateRuntimeReferenceReplaceCatalog();
-        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult rejected = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -187,8 +178,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     10,
                     new ByteRange(3, 2),
                     new ByteRange(8, 2))]));
-        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult valid = catalog.CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -203,8 +193,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsOutOfBoundsTarget()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceReplaceCatalog(),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog().CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -226,8 +215,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceLoweringRejectsOverlappingTargets()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceReplaceCatalog(),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog().CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,

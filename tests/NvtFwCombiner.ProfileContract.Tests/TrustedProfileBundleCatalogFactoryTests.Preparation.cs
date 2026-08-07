@@ -297,14 +297,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             StringComparison.Ordinal);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
 
-        V2CompositionPlanCompileResult admitted = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult admitted = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
             "standard");
-        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult rejected = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
@@ -354,8 +352,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string profileJson = RuntimeProfileForTopologyVariants(Hash(familyJson), "standard", includeCascadeMap: false);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
 
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult result = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
@@ -376,28 +373,24 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string profileJson = RuntimeProfileForCapacityVariants(Hash(familyJson));
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
 
-        V2CompositionPlanCompileResult missing = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult missing = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
             "standard");
-        V2CompositionPlanCompileResult sixteen = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult sixteen = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
             "standard",
             requestedMapCapacity: 16);
-        V2CompositionPlanCompileResult thirtyTwo = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult thirtyTwo = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
             "standard",
             requestedMapCapacity: 32);
-        V2CompositionPlanCompileResult unavailable = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult unavailable = catalog.Compile(
             "profile",
             "1.0.0",
             "NT00001",
@@ -575,8 +568,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         string familyJson = FamilyJsonWithTopologyVariants(experienceId);
         string profileJson = RuntimeProfileForTopologyVariants(Hash(familyJson), experienceId);
-        return TrustedV2CompositionCompiler.Compile(
-            CreateCatalog(familyJson, profileJson),
+        return CreateCatalog(familyJson, profileJson).Compile(
             "profile",
             "1.0.0",
             "NT00001",

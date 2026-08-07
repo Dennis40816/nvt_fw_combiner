@@ -249,8 +249,7 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         int targetStart,
         int targetLength)
     {
-        return TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CandidateCatalog.Value,
+        return CandidateCatalog.Value.CompileRuntimeReferenceReplace(
             "nt51926-general-replace-dp-single-candidate",
             "0.1.0",
             "NT51926",

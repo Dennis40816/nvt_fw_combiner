@@ -5,64 +5,28 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Profiles.V2;
 
 /// <summary>Exact immutable identity of a canonical JSON document supplied by the trusted Bootstrap seam.</summary>
-internal sealed class TrustedProfileBundleCatalogEntryIdentity
-{
-    internal TrustedProfileBundleCatalogEntryIdentity(
-        string entryId,
-        string path,
-        string schemaId,
-        string contentHash)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(entryId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        ArgumentException.ThrowIfNullOrWhiteSpace(schemaId);
-        EntryId = entryId;
-        Path = path;
-        SchemaId = schemaId;
-        ContentHash = CanonicalSha256.Require(contentHash, nameof(contentHash));
-    }
-
-    internal string EntryId { get; }
-
-    internal string Path { get; }
-
-    internal string SchemaId { get; }
-
-    internal string ContentHash { get; }
-}
+internal sealed record TrustedProfileBundleCatalogEntryIdentity(
+    string EntryId,
+    string Path,
+    string SchemaId,
+    string ContentHash);
 
 /// <summary>One immutable firmware-family JSON tree and its trusted entry identity.</summary>
-internal sealed class TrustedFirmwareFamilyJsonSource
+internal sealed class TrustedFirmwareFamilyJsonSource(
+    TrustedProfileBundleCatalogEntryIdentity identity,
+    JsonElement document)
 {
-    internal TrustedFirmwareFamilyJsonSource(
-        TrustedProfileBundleCatalogEntryIdentity identity,
-        JsonElement document)
-    {
-        ArgumentNullException.ThrowIfNull(identity);
-        Identity = identity;
-        Document = document;
-    }
-
-    internal TrustedProfileBundleCatalogEntryIdentity Identity { get; }
-
-    internal JsonElement Document { get; }
+    internal TrustedProfileBundleCatalogEntryIdentity Identity { get; } = RequiredValue.NotNull(identity);
+    internal JsonElement Document { get; } = document;
 }
 
 /// <summary>One immutable composition-profile JSON tree and its trusted entry identity.</summary>
-internal sealed class TrustedCompositionProfileJsonSource
+internal sealed class TrustedCompositionProfileJsonSource(
+    TrustedProfileBundleCatalogEntryIdentity identity,
+    JsonElement document)
 {
-    internal TrustedCompositionProfileJsonSource(
-        TrustedProfileBundleCatalogEntryIdentity identity,
-        JsonElement document)
-    {
-        ArgumentNullException.ThrowIfNull(identity);
-        Identity = identity;
-        Document = document;
-    }
-
-    internal TrustedProfileBundleCatalogEntryIdentity Identity { get; }
-
-    internal JsonElement Document { get; }
+    internal TrustedProfileBundleCatalogEntryIdentity Identity { get; } = RequiredValue.NotNull(identity);
+    internal JsonElement Document { get; } = document;
 }
 
 /// <summary>All trusted bundle identities and immutable canonical JSON trees consumed atomically by Profiles.</summary>
@@ -73,18 +37,12 @@ internal sealed class TrustedProfileBundleCatalogSource
 
     internal TrustedProfileBundleCatalogSource(
         string manifestSha256,
-        string bundleId,
-        string bundleVersion,
-        string bundleContentHash,
-        string trustAnchorBindingId,
+        ProfileBundleIdentity bundleIdentity,
         IEnumerable<TrustedFirmwareFamilyJsonSource> families,
         IEnumerable<TrustedCompositionProfileJsonSource> profiles)
     {
         _ = CanonicalSha256.Require(manifestSha256, nameof(manifestSha256));
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(bundleVersion);
-        _ = CanonicalSha256.Require(bundleContentHash, nameof(bundleContentHash));
-        ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
         _families = ImmutableReferenceSnapshot.Create(
             families,
             "Trusted bundle sources cannot contain null values.");
@@ -93,23 +51,14 @@ internal sealed class TrustedProfileBundleCatalogSource
             "Trusted bundle sources cannot contain null values.");
 
         ManifestSha256 = manifestSha256;
-        BundleId = bundleId;
-        BundleVersion = bundleVersion;
-        BundleContentHash = bundleContentHash;
-        TrustAnchorBindingId = trustAnchorBindingId;
+        BundleIdentity = bundleIdentity;
         Families = Array.AsReadOnly(_families);
         Profiles = Array.AsReadOnly(_profiles);
     }
 
     internal string ManifestSha256 { get; }
 
-    internal string BundleId { get; }
-
-    internal string BundleVersion { get; }
-
-    internal string BundleContentHash { get; }
-
-    internal string TrustAnchorBindingId { get; }
+    internal ProfileBundleIdentity BundleIdentity { get; }
 
     internal IReadOnlyList<TrustedFirmwareFamilyJsonSource> Families { get; }
 

@@ -234,7 +234,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal),
         ];
         Assert.Equal(
-            ["TrustedV2CompositionCompiler", "V2CompositionPlanCompiler"],
+            ["V2CompositionPlanCompiler"],
             compilerTypes);
 
         Assert.Empty(WorkflowSpecificExecutionTypeRegex().Matches(production));
