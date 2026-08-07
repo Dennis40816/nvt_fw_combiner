@@ -7,46 +7,22 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompiledOutputNamingRequirement NormalizeOutput(
         CompositionProfileOutputDocument document,
-        string schemaVersion,
         string path = "output",
         IReadOnlyList<CompositionProfileMetadataBinding>? metadataBindings = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-        ArgumentException.ThrowIfNullOrWhiteSpace(schemaVersion);
-        bool supportsTypedNaming = StringComparer.Ordinal.Equals(
-            schemaVersion,
-            "2.15");
         string? ruleId = null;
         CompiledOutputArtifactType outputArtifactType =
             CompiledOutputArtifactType.Unspecified;
         OutputTokenBuilder[]? normalizedTokenRequirements = null;
-        if (!supportsTypedNaming)
-        {
-            if (document.RuleId is not null ||
-                document.OutputArtifactType is not null ||
-                document.TokenRequirements is not null)
-            {
-                throw Error(
-                    path,
-                    "Typed output naming declarations require profile schema version '2.15'.");
-            }
-        }
-        else if (document.RuleId is null ||
-                 document.OutputArtifactType is null ||
-                 document.TokenRequirements is null)
-        {
-            throw Error(
-                path,
-                "Profile schema version '2.15' requires one complete typed output naming declaration.");
-        }
-        else
+        if (document.RuleId is not null)
         {
             ruleId = document.RuleId;
             outputArtifactType = NormalizeOutputArtifactType(
-                document.OutputArtifactType,
+                document.OutputArtifactType!,
                 $"{path}.outputArtifactType");
             normalizedTokenRequirements = NormalizeOutputTokenRequirements(
-                document.TokenRequirements,
+                document.TokenRequirements!,
                 $"{path}.tokenRequirements");
         }
 
@@ -54,14 +30,6 @@ internal static partial class CompositionProfileNormalizer
             NormalizeInvalidCharacterPolicy(
                 document.InvalidCharacterPolicy,
                 $"{path}.invalidCharacterPolicy");
-        invalidCharacterPolicy =
-            supportsTypedNaming &&
-            invalidCharacterPolicy !=
-            CompiledOutputInvalidCharacterPolicy.Reject
-            ? throw Error(
-                $"{path}.invalidCharacterPolicy",
-                "Profile schema version '2.15' requires the reject invalid-character policy.")
-            : invalidCharacterPolicy;
 
         CompiledOutputTokenRequirement[]? tokenRequirements = normalizedTokenRequirements?
             .Select((requirement, index) => CompileOutputTokenRequirement(
@@ -70,20 +38,17 @@ internal static partial class CompositionProfileNormalizer
                 metadataBindings ?? []))
             .ToArray();
 
-        IReadOnlyList<string> requiredTokenIds = RequireList(
-            document.RequiredTokenIds,
-            $"{path}.requiredTokenIds");
         return Wrap(path, () => ruleId is null
             ? new CompiledOutputNamingRequirement(
                 document.FileNameTemplate,
                 document.AllowOverride,
                 invalidCharacterPolicy,
-                requiredTokenIds)
+                document.RequiredTokenIds)
             : new CompiledOutputNamingRequirement(
                 document.FileNameTemplate,
                 document.AllowOverride,
                 invalidCharacterPolicy,
-                requiredTokenIds,
+                document.RequiredTokenIds,
                 ruleId,
                 outputArtifactType,
                 tokenRequirements));
@@ -127,9 +92,7 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileOutputTokenRequirementDocument document,
         string path)
     {
-        CompositionProfileOutputTokenSourceDocument source = RequireObject(
-            document.Source,
-            $"{path}.source");
+        CompositionProfileOutputTokenSourceDocument source = document.Source;
         CompiledOutputTokenSourceKind sourceKind = source.Kind switch
         {
             "compiled-ic" => CompiledOutputTokenSourceKind.CompiledIc,
@@ -142,19 +105,11 @@ internal static partial class CompositionProfileNormalizer
         bool isMetadataSource = sourceKind is
             CompiledOutputTokenSourceKind.DpcmiVersion or
             CompiledOutputTokenSourceKind.FirmwareConfigTpVersion;
-        string? metadataBindingId = source.MetadataBindingId;
-        if (isMetadataSource)
-        {
-            metadataBindingId = CanonicalPolicyValueRules.RequireCanonicalId(
-                metadataBindingId!,
-                $"{path}.source.metadataBindingId");
-        }
-        else if (metadataBindingId is not null)
-        {
-            throw Error(
-                $"{path}.source.metadataBindingId",
-                "Only metadata-backed output token sources can declare a binding.");
-        }
+        string? metadataBindingId = isMetadataSource
+            ? CanonicalPolicyValueRules.RequireCanonicalId(
+                source.MetadataBindingId!,
+                $"{path}.source.metadataBindingId")
+            : source.MetadataBindingId;
 
         CompiledOutputTokenMissingPolicy missingPolicy =
             document.MissingPolicy switch
@@ -166,17 +121,6 @@ internal static partial class CompositionProfileNormalizer
                     $"{path}.missingPolicy",
                     "Unknown output token missing policy."),
             };
-        if (missingPolicy == CompiledOutputTokenMissingPolicy.UsePlaceholder)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(document.Placeholder);
-        }
-        else if (document.Placeholder is not null)
-        {
-            throw Error(
-                $"{path}.placeholder",
-                "Blocking output tokens cannot declare a placeholder.");
-        }
-
         return new OutputTokenBuilder(
             CanonicalPolicyValueRules.RequireCanonicalId(
                 document.TokenId,

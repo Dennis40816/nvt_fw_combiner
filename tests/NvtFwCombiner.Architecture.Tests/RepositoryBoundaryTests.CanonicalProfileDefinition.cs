@@ -60,17 +60,16 @@ public sealed partial class RepositoryBoundaryTests
             profileSources,
             StringComparison.Ordinal);
 
-        string profileValueRules = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/CompositionProfileValueRules.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "CompositionProfileValueRules.cs")));
         Assert.DoesNotContain("SemanticVersionPattern", profileSources, StringComparison.Ordinal);
         Assert.DoesNotContain("ExternalToolBindingIdPattern", profileSources, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyCombinerInvocationProfileIdPattern", profileSources, StringComparison.Ordinal);
         Assert.DoesNotMatch(ProfileRangeValidatorDeclarationRegex(), profileSources);
-        Assert.Contains("RequireToolBindingIdForSchemaVersion", profileValueRules, StringComparison.Ordinal);
-        Assert.Contains(
-            "RequireLegacyCombinerInvocationProfileIdForSchemaVersion",
-            profileValueRules,
-            StringComparison.Ordinal);
     }
 
     /// <summary>The plan compiler lowers closed semantic kinds without workflow-name branches or private range algebra.</summary>

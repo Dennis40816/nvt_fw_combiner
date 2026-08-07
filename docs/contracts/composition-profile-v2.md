@@ -53,6 +53,17 @@ resource ceiling.
 - one ordered operation list and closed processor stages; and
 - output naming.
 
+Every production document reaches that definition through one mandatory trust
+route: exact manifest/hash admission, the selected strict schema snapshot,
+immutable trusted document projection, and then Profiles normalization. The
+selected schema is the sole owner of required/null members, fixed wire values,
+closed union shape, and which declarations exist in each schema version.
+Profiles maps the already admitted tokens and cross-references into Domain;
+Domain constructors own canonical semantic invariants and the compiler owns
+selection/lowering semantics. Schema-shape failures therefore come from bundle
+loading/schema validation, not from a second version-aware normalizer. Test-only
+direct normalizer calls do not form a supported intake path.
+
 ## Compiled Plan Boundary
 
 When a profile is admitted to one resolved map, lowering produces one V2 plan artifact. `Merge`

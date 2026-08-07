@@ -43,7 +43,7 @@ internal static partial class CompositionProfileNormalizer
                 stage,
                 severity,
                 document.IssueCode,
-                RequireText(document.ViewId, $"{path}.viewId", "Non-uniform source view is missing."))),
+                document.ViewId!)),
             _ => throw Error($"{path}.kind", "Unknown profile validation kind."),
         };
     }
@@ -54,9 +54,7 @@ internal static partial class CompositionProfileNormalizer
         CompiledValidationSeverity severity,
         string path)
     {
-        IReadOnlyList<JsonElement> valueDocuments = RequireList(
-            document.ExpectedValues,
-            $"{path}.expectedValues");
+        IReadOnlyList<JsonElement> valueDocuments = document.ExpectedValues!;
         var expectedValues = new CompiledValidationScalarLiteral[valueDocuments.Count];
         for (int index = 0; index < valueDocuments.Count; index++)
         {
@@ -73,7 +71,7 @@ internal static partial class CompositionProfileNormalizer
                 document.IssueCode,
                 NormalizeFieldReference(document.Field, $"{path}.field"),
                 NormalizeMetadataComparison(
-                    RequireText(document.Operator, $"{path}.operator", "Metadata comparison is missing."),
+                    document.Operator!,
                     $"{path}.operator"),
                 expectedValues)));
     }
@@ -84,9 +82,7 @@ internal static partial class CompositionProfileNormalizer
         CompiledValidationSeverity severity,
         string path)
     {
-        IReadOnlyList<string> patternDocuments = RequireList(
-            document.RejectedPatterns,
-            $"{path}.rejectedPatterns");
+        IReadOnlyList<string> patternDocuments = document.RejectedPatterns!;
         var patterns = new CompiledValidationRejectedBytePattern[patternDocuments.Count];
         for (int index = 0; index < patternDocuments.Count; index++)
         {
@@ -112,7 +108,7 @@ internal static partial class CompositionProfileNormalizer
         string path)
     {
         CompiledValidationBytes expected = ReadBytes(
-            RequireText(document.ExpectedHex, $"{path}.expectedHex", "Expected bytes are missing."),
+            document.ExpectedHex!,
             $"{path}.expectedHex");
         CompiledValidationBytes? mask = document.MaskHex is { } maskHex
             ? ReadBytes(maskHex, $"{path}.maskHex")
@@ -123,7 +119,7 @@ internal static partial class CompositionProfileNormalizer
                 stage,
                 severity,
                 document.IssueCode,
-                RequireText(document.ViewId, $"{path}.viewId", "Assertion view is missing."),
+                document.ViewId!,
                 expected,
                 mask)));
     }
@@ -132,11 +128,8 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMetadataFieldReferenceDocument? document,
         string path)
     {
-        CompositionProfileMetadataFieldReferenceDocument value = document ?? throw Error(
-            path,
-            "Metadata field reference is missing.");
         return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileField(
-            new CompiledValidationFieldReference(value.BindingId, value.FieldId)));
+            new CompiledValidationFieldReference(document!.BindingId, document.FieldId)));
     }
 
     private static CompiledValidationScalarLiteral NormalizeScalarLiteral(JsonElement value, string path)

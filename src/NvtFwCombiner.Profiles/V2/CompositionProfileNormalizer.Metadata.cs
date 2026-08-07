@@ -11,7 +11,7 @@ internal static partial class CompositionProfileNormalizer
         string path = "metadataBindings[0]")
     {
         ArgumentNullException.ThrowIfNull(document);
-        IReadOnlyList<string> purposeDocuments = RequireList(document.Purposes, $"{path}.purposes");
+        IReadOnlyList<string> purposeDocuments = document.Purposes;
         var purposes = new CompositionProfileMetadataPurpose[purposeDocuments.Count];
         for (int index = 0; index < purposeDocuments.Count; index++)
         {
@@ -21,19 +21,12 @@ internal static partial class CompositionProfileNormalizer
         }
 
         bool hasTypedTargets = document.TargetReferences is not null;
-        if (hasTypedTargets && document.FieldIds is not null)
-        {
-            throw Error(
-                path,
-                "Metadata bindings cannot mix legacy fieldIds with typed targetReferences.");
-        }
-
         FirmwareMetadataReferenceTarget[] targets;
         IReadOnlyList<string> evidenceRefs;
         if (hasTypedTargets)
         {
             IReadOnlyList<CompositionProfileMetadataTargetReferenceDocument> targetDocuments =
-                RequireList(document.TargetReferences, $"{path}.targetReferences");
+                document.TargetReferences!;
             targets = new FirmwareMetadataReferenceTarget[targetDocuments.Count];
             for (int index = 0; index < targetDocuments.Count; index++)
             {
@@ -42,18 +35,11 @@ internal static partial class CompositionProfileNormalizer
                     $"{path}.targetReferences[{index}]");
             }
 
-            evidenceRefs = RequireList(document.EvidenceRefs, $"{path}.evidenceRefs");
-            if (evidenceRefs.Count == 0)
-            {
-                throw Error(
-                    $"{path}.evidenceRefs",
-                    "Typed metadata target references require evidence.");
-            }
+            evidenceRefs = document.EvidenceRefs!;
         }
         else
         {
-            IReadOnlyList<string> fieldIds =
-                RequireList(document.FieldIds, $"{path}.fieldIds");
+            IReadOnlyList<string> fieldIds = document.FieldIds!;
             targets =
             [
                 .. fieldIds.Select(static fieldId =>
