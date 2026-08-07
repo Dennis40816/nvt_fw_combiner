@@ -8,13 +8,11 @@ public sealed class FirmwareMetadataByteAssertion
     private FirmwareMetadataByteAssertion(
         long offset,
         FirmwareMetadataBytes expectedBytes,
-        FirmwareMetadataBytes maskBytes,
-        bool isExact)
+        FirmwareMetadataBytes maskBytes)
     {
         Range = new ByteRange(offset, expectedBytes.Length);
         ExpectedBytes = expectedBytes;
         MaskBytes = maskBytes;
-        IsExact = isExact;
     }
 
     /// <summary>Checked structure-relative assertion range.</summary>
@@ -26,9 +24,6 @@ public sealed class FirmwareMetadataByteAssertion
     /// <summary>Normalized mask bytes; exact assertions use all <c>ff</c>.</summary>
     public FirmwareMetadataBytes MaskBytes { get; }
 
-    /// <summary>Whether the source declaration canonically omitted its all-<c>ff</c> mask.</summary>
-    public bool IsExact { get; }
-
     /// <summary>Creates the canonical exact-match form with an omitted source mask.</summary>
     public static FirmwareMetadataByteAssertion Exact(long offset, ReadOnlySpan<byte> expectedBytes)
     {
@@ -38,8 +33,7 @@ public sealed class FirmwareMetadataByteAssertion
         return new FirmwareMetadataByteAssertion(
             offset,
             expected,
-            new FirmwareMetadataBytes(mask),
-            isExact: true);
+            new FirmwareMetadataBytes(mask));
     }
 
     /// <summary>Creates a canonical nontrivial partial-mask assertion.</summary>
@@ -78,8 +72,7 @@ public sealed class FirmwareMetadataByteAssertion
             : new FirmwareMetadataByteAssertion(
             offset,
             new FirmwareMetadataBytes(expectedBytes),
-            new FirmwareMetadataBytes(maskBytes),
-            isExact: false);
+            new FirmwareMetadataBytes(maskBytes));
     }
 
     /// <summary>Evaluates bytes already sliced from this assertion's resolved structure range.</summary>

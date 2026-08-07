@@ -41,7 +41,11 @@ public sealed partial class FirmwareImageMapTests
             map.RegionSets.Select(static regionSet => regionSet.RegionSetId));
         Assert.Equal(["system-image", "system-code", "system-data", "reserved-gap", "tp-image"],
             map.Regions.Select(static region => region.RegionId));
-        Assert.Equal(["config-metadata", "version-metadata"], map.MetadataSetIds);
+        Assert.Equal(
+            ["config-metadata", "version-metadata"],
+            map.MetadataSetBindings.Select(static binding => binding.CanonicalFactId)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal));
         Assert.Equal(["evidence-a", "evidence-z"], map.EvidenceRefs);
 
         IList<FirmwareRegionSet> setView = Assert.IsType<IList<FirmwareRegionSet>>(
@@ -50,19 +54,14 @@ public sealed partial class FirmwareImageMapTests
         IList<FirmwareRegion> regionView = Assert.IsType<IList<FirmwareRegion>>(
             map.Regions,
             exactMatch: false);
-        IList<string> metadataSetView = Assert.IsType<IList<string>>(
-            map.MetadataSetIds,
-            exactMatch: false);
         IList<string> evidenceView = Assert.IsType<IList<string>>(
             map.EvidenceRefs,
             exactMatch: false);
         Assert.True(setView.IsReadOnly);
         Assert.True(regionView.IsReadOnly);
-        Assert.True(metadataSetView.IsReadOnly);
         Assert.True(evidenceView.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => setView[0] = Set("changed", [Region("changed", 0, 16)]));
         _ = Assert.Throws<NotSupportedException>(() => regionView[0] = Region("changed", 0, 16));
-        _ = Assert.Throws<NotSupportedException>(() => metadataSetView[0] = "changed");
         _ = Assert.Throws<NotSupportedException>(() => evidenceView[0] = "changed");
     }
 
@@ -241,7 +240,13 @@ public sealed partial class FirmwareImageMapTests
         Assert.Equal(
             first.Regions.Select(static region => region.RegionId),
             second.Regions.Select(static region => region.RegionId));
-        Assert.Equal(first.MetadataSetIds, second.MetadataSetIds);
+        Assert.Equal(
+            first.MetadataSetBindings.Select(static binding => binding.CanonicalFactId)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal),
+            second.MetadataSetBindings.Select(static binding => binding.CanonicalFactId)
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal));
         Assert.Equal(first.EvidenceRefs, second.EvidenceRefs);
     }
 

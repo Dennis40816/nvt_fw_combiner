@@ -159,7 +159,7 @@ internal static class TrustedProfileBundleCatalogFactory
             TrustedCompositionProfileJsonSource source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
-            switch (profile.CompilationContextKind)
+            switch (profile.Header.CompilationContextKind)
             {
                 case V2CompilationContextKind.ResolvedMap:
                 case V2CompilationContextKind.RuntimeReferenceReplace:
@@ -250,9 +250,9 @@ internal static class TrustedProfileBundleCatalogFactory
         TrustedFirmwareFamilyCatalogEntry[] matches =
         [
             .. families.Where(candidate =>
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyId, profile.FamilyId) &&
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, profile.FamilyVersion) &&
-                StringComparer.Ordinal.Equals(candidate.Family.FamilyContentHash, profile.FamilyContentHash)),
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyId, profile.Header.FamilyId) &&
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyVersion, profile.Header.FamilyVersion) &&
+                StringComparer.Ordinal.Equals(candidate.Family.FamilyContentHash, profile.Header.FamilyContentHash)),
         ];
         return matches.Length switch
         {

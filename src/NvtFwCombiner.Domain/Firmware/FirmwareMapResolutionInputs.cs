@@ -47,9 +47,6 @@ public sealed class FirmwareArtifactPayload
     /// <summary>Stable family-declared artifact binding identifier.</summary>
     public string ArtifactId => Identity.ArtifactId;
 
-    /// <summary>Lowercase SHA-256 of the private byte snapshot.</summary>
-    public string Sha256 => Identity.Sha256;
-
     /// <summary>Exact private byte-snapshot length.</summary>
     public long LengthBytes => Identity.LengthBytes;
 

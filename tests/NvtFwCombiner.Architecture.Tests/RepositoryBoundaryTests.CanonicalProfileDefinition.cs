@@ -115,6 +115,62 @@ public sealed partial class RepositoryBoundaryTests
             "ValidateDefaultOutputFileName(",
             ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"),
             StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "IntegrityFingerprint",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"),
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Raw profile-admission vocabulary remains an internal normalization and compilation seam.</summary>
+    [Fact]
+    public void RawProfileAdmissionVocabularyRemainsInternal()
+    {
+        string capabilitySources = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledCapabilityAdmission.cs"),
+            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareCapabilityFact.cs"));
+        Assert.DoesNotContain("public sealed class CompiledCapabilityAdmission", capabilitySources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum FirmwareCapabilityState", capabilitySources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class FirmwareCapabilityFact", capabilitySources, StringComparison.Ordinal);
+
+        string familyRelationshipSources = ReadText(
+            "src/NvtFwCombiner.Domain/Firmware/FirmwareFamilyRelationship.cs");
+        Assert.DoesNotContain("public enum FirmwareSharedFactRole", familyRelationshipSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum FirmwareSharedFactKind", familyRelationshipSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class FirmwareSharedFactReference", familyRelationshipSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public abstract class FirmwareFamilyRelationship", familyRelationshipSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class PerfectFamilyRelationship", familyRelationshipSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class SharedFactRelationship", familyRelationshipSources, StringComparison.Ordinal);
+
+        string regionTemplateSources = ReadText(
+            "src/NvtFwCombiner.Domain/Firmware/FirmwareRegionTemplate.cs");
+        Assert.DoesNotContain("public sealed record FirmwareRelativeRegion", regionTemplateSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class FirmwareRegionTemplate", regionTemplateSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed class FirmwareRegionInstance", regionTemplateSources, StringComparison.Ordinal);
+
+        string compiledRegionAccessSources = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompiledRegionAccessContract.cs");
+        Assert.DoesNotContain("CompiledPhysicalRegionConstraint", compiledRegionAccessSources, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<FirmwareRegion> GoverningRegionChain", compiledRegionAccessSources, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "ToCompiledRegionChain(",
+            ReadText("src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.cs"),
+            StringComparison.Ordinal);
+
+        string familyNormalizerSources = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareFamilyNormalizationException.cs"),
+            ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareMetadataStructureDefinitionResolver.cs"),
+            ReadText("src/NvtFwCombiner.Profiles/IcIdentifier.cs"));
+        Assert.DoesNotContain("public sealed class FirmwareFamilyNormalizationException", familyNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public sealed record FirmwareMetadataStructureDefinitionReference", familyNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public interface IFirmwareMetadataStructureDefinitionResolver", familyNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public static class IcIdentifier", familyNormalizerSources, StringComparison.Ordinal);
+
+        string imageMapSources = ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareImageMap.cs");
+        Assert.DoesNotContain("public FirmwareImageMap(", imageMapSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings", imageMapSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IReadOnlyList<FirmwareRegionSet> RegionSets", imageMapSources, StringComparison.Ordinal);
     }
 
     /// <summary>The plan compiler lowers closed semantic kinds without workflow-name branches or private range algebra.</summary>
@@ -178,7 +234,7 @@ public sealed partial class RepositoryBoundaryTests
         string contractLowering = ReadText(
             "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
         Assert.Contains("profile.ProfileId,", contractLowering, StringComparison.Ordinal);
-        Assert.Contains("profile.ExperienceId,", contractLowering, StringComparison.Ordinal);
+        Assert.Contains("profile.Header.ExperienceId,", contractLowering, StringComparison.Ordinal);
         Assert.Contains(
             "profile.Output.AllowsRuntimeExecution(profile.CompositionKind)",
             ReadText("src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.Admission.cs"),

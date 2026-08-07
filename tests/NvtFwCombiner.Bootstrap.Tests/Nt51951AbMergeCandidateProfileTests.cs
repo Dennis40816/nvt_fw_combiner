@@ -27,8 +27,8 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.Equal(
-            "6a5888486d14dc81df85f30bb5529816919d31993c0001580fa0479fde777e97",
-            composition.IntegrityFingerprint);
+            "f29aff9ccf4159cd00cf37bfa80b1ab3cb357fe3d783ec0e42d5c6e560e13247",
+            composition.CompilationFingerprint);
         Assert.Equal("nt51951-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(

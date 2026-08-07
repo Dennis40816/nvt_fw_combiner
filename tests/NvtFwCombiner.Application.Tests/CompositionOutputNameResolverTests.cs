@@ -50,8 +50,8 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.Collection(
             summary.Tokens,
             token => AssertToken(token, "ic", "NT51929", known: true, null),
-            token => AssertToken(token, "dp-version", "8205", known: true, fixture.Artifact.Sha256),
-            token => AssertToken(token, "tp-version", "8004", known: true, fixture.Artifact.Sha256),
+            token => AssertToken(token, "dp-version", "8205", known: true, fixture.Artifact.Identity.Sha256),
+            token => AssertToken(token, "tp-version", "8004", known: true, fixture.Artifact.Identity.Sha256),
             token => AssertToken(token, "date", "20260728", known: true, null));
         Assert.Empty(resolved.Issues);
     }
@@ -441,7 +441,7 @@ public sealed partial class CompositionOutputNameResolverTests
             ArtifactBindingId,
             "input-artifact",
             artifact.LengthBytes,
-            artifact.Sha256);
+            artifact.Identity.Sha256);
         return new InspectionFixture(
             bytes,
             artifact,

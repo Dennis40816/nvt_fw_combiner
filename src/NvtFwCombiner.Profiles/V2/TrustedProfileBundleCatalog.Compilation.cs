@@ -355,7 +355,7 @@ internal sealed partial class TrustedProfileBundleCatalog
             return false;
         }
 
-        if (!StringComparer.Ordinal.Equals(selected.Profile.ExperienceId, modeId))
+        if (!StringComparer.Ordinal.Equals(selected.Profile.Header.ExperienceId, modeId))
         {
             issues =
             [

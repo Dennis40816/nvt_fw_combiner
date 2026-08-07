@@ -10,7 +10,6 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateExternalProcessorComposition();
 
-        Assert.NotNull(composition.IntegrityFingerprint);
         Assert.Equal(
             "ab62d604a3e8e44d27a80f751055dcd384ab5f007f53e09c28a6a4a407457c88",
             composition.CompilationFingerprint);
@@ -54,7 +53,6 @@ public sealed partial class CompiledCompositionTests
                 ScalarTransformOverflowPolicy.Reject)),
         ];
 
-        Assert.NotNull(baseline.IntegrityFingerprint);
         Assert.All(
             variants,
             variant =>
@@ -62,9 +60,6 @@ public sealed partial class CompiledCompositionTests
                 Assert.NotEqual(
                     baseline.CompilationFingerprint,
                     variant.CompilationFingerprint);
-                Assert.NotEqual(
-                    baseline.IntegrityFingerprint,
-                    variant.IntegrityFingerprint);
             });
         CompiledComposition reasonOnly = CreateScalarTransformComposition(
             baseline.Plan.OrderedOperations.Single().ScalarTransform!,
@@ -72,9 +67,6 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(
             baseline.CompilationFingerprint,
             reasonOnly.CompilationFingerprint);
-        Assert.Equal(
-            baseline.IntegrityFingerprint,
-            reasonOnly.IntegrityFingerprint);
     }
 
     /// <summary>Verifies a resolved instance delta cannot collide with an equal fixed addend.</summary>
@@ -96,7 +88,6 @@ public sealed partial class CompiledCompositionTests
             ScalarTransformAddendSource.RegionInstanceDelta("a-bank", "b-bank")));
 
         Assert.NotEqual(fixedAddend.CompilationFingerprint, instanceDelta.CompilationFingerprint);
-        Assert.NotEqual(fixedAddend.IntegrityFingerprint, instanceDelta.IntegrityFingerprint);
     }
 
     private static CompiledComposition CreateScalarTransformComposition(

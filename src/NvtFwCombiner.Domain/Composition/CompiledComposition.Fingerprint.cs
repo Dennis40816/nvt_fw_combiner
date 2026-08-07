@@ -11,43 +11,7 @@ public sealed partial class CompiledComposition
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
     private const string CapabilityBoundV2FingerprintFormat =
         "nfc.compiled-composition.profile-v2.v7";
-    private const string IntegrityFingerprintFormat =
-        "nfc.compiled-composition.integrity.v1";
     private const string V2CompilerModelVersion = "1.0";
-
-    private static string? CalculateIntegrityFingerprint(CompositionPlan plan)
-    {
-        CompositionOperation[] operations =
-        [
-            .. plan.OrderedOperations.Where(static operation =>
-                operation.Kind is
-                    CompositionOperationKind.RunExternalProcessor or
-                    CompositionOperationKind.TransformScalar),
-        ];
-        if (operations.Length == 0)
-        {
-            return null;
-        }
-
-        var builder = new StringBuilder();
-        AppendField(builder, "format", IntegrityFingerprintFormat);
-        AppendInteger(builder, "integrity-operation.count", operations.Length);
-        for (int index = 0; index < operations.Length; index++)
-        {
-            CompositionOperation operation = operations[index];
-            string prefix =
-                FormattableString.Invariant($"integrity-operation.{index}");
-            AppendOperationExecutionSemantics(builder, operation, prefix);
-            AppendProcessor(
-                builder,
-                prefix,
-                operation.ExternalProcessorInvocation);
-        }
-
-        return Convert.ToHexString(
-                SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
-            .ToLowerInvariant();
-    }
 
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
     {
@@ -192,7 +156,10 @@ public sealed partial class CompiledComposition
         AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
         AppendEnum(builder, "output.renderer", output.RendererKind);
-        AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
+        AppendStringList(
+            builder,
+            "output.required-token",
+            [.. output.TokenRequirements.Select(static requirement => requirement.TokenId)]);
         if (output.RuleId is not null)
         {
             AppendField(builder, "output.rule-id", output.RuleId);

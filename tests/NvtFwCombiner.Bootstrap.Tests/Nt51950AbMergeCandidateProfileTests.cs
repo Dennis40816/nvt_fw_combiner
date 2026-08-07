@@ -29,8 +29,8 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.Equal(
-            "b00181e924452c038a629b7d8ff52d12c240bf0bb5d14efed6f77529ec6ae042",
-            composition.IntegrityFingerprint);
+            "ea98508d187b178fb2e47403f2f0ec385a7556e4c97df320dbff6d5c051ddb8f",
+            composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
         AssertRegionRange(details, "a-cmi-dp-version", 0x3B016, 3);

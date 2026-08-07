@@ -16,11 +16,10 @@ public sealed class FirmwareImageMap
     private readonly FirmwareMapFactBinding<FirmwareMetadataSet>[] _metadataSetBindings;
     private readonly FirmwareRegionSet[] _regionSets;
     private readonly FirmwareRegion[] _regions;
-    private readonly string[] _metadataSetIds;
     private readonly string[] _evidenceRefs;
 
     /// <summary>Creates a checked physical image map from member-scoped immutable fact bindings.</summary>
-    public FirmwareImageMap(
+    internal FirmwareImageMap(
         string mapId,
         string addressSpaceId,
         FirmwareMapApplicability applicability,
@@ -61,7 +60,6 @@ public sealed class FirmwareImageMap
 
         Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
-        _metadataSetIds = DeriveCanonicalIds(_metadataSetBindings);
         _evidenceRefs = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
@@ -77,7 +75,6 @@ public sealed class FirmwareImageMap
         MetadataSetBindings = Array.AsReadOnly(_metadataSetBindings);
         RegionSets = Array.AsReadOnly(_regionSets);
         Regions = Array.AsReadOnly(_regions);
-        MetadataSetIds = Array.AsReadOnly(_metadataSetIds);
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
@@ -96,20 +93,15 @@ public sealed class FirmwareImageMap
     /// <summary>Physical coverage invariant enforced by this map.</summary>
     public FirmwareImageMapCoveragePolicy CoveragePolicy { get; }
 
-    /// <summary>Member-specific region-set bindings that provide the map's canonical region graph.</summary>
-    public IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings { get; }
+    internal IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings { get; }
 
     /// <summary>Member-specific metadata-set bindings selected by this physical map.</summary>
     public IReadOnlyList<FirmwareMapFactBinding<FirmwareMetadataSet>> MetadataSetBindings { get; }
 
-    /// <summary>Canonical region-set projection derived only from <see cref="RegionSetBindings"/>.</summary>
-    public IReadOnlyList<FirmwareRegionSet> RegionSets { get; }
+    internal IReadOnlyList<FirmwareRegionSet> RegionSets { get; }
 
     /// <summary>Flattened physical region graph in deterministic range order.</summary>
     public IReadOnlyList<FirmwareRegion> Regions { get; }
-
-    /// <summary>Canonical metadata-set id projection derived only from <see cref="MetadataSetBindings"/>.</summary>
-    public IReadOnlyList<string> MetadataSetIds { get; }
 
     /// <summary>Map-level evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
@@ -252,18 +244,6 @@ public sealed class FirmwareImageMap
                 "Bindings sharing one canonical fact id must share one immutable value instance.",
                 nameof(bindings));
         }
-    }
-
-    private static string[] DeriveCanonicalIds(
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareMetadataSet>> bindings)
-    {
-        return
-        [
-            .. bindings
-                .Select(static binding => binding.CanonicalFactId)
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
     }
 
     private static int CompareBindings<TFact>(

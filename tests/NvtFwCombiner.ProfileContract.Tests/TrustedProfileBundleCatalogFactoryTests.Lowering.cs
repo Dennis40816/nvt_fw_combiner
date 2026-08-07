@@ -64,6 +64,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("root", access.RegionId);
         Assert.Equal(RegionAccessKind.Whole, access.Access);
         Assert.Equal(FirmwareWriteConstraint.WholeRegion, Assert.Single(access.GoverningRegionChain).WriteConstraint);
+        FirmwareRegion canonicalRoot = details.Provenance.ResolvedMap.ImageMap.Regions.Single(
+            static region => region.RegionId == "root");
+        Assert.Same(canonicalRoot, Assert.Single(access.GoverningRegionChain));
+        Assert.All(
+            details.RegionAccessContract.ResolvedViews,
+            view => Assert.Same(canonicalRoot, Assert.Single(view.GoverningRegionChain)));
         Assert.Equal(["output-code", "tp-code"], details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
     }
 
@@ -250,9 +256,18 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(RegionAccessKind.Parts, access.Access);
         Assert.Equal(["left"], access.AllowedSubregionIds);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
-        Assert.Equal(["root", "left"], Assert.Single(
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        FirmwareRegion root = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions.Single(
+            static region => region.RegionId == "root");
+        FirmwareRegion left = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions.Single(
+            static region => region.RegionId == "left");
+        Assert.Same(root, Assert.Single(access.GoverningRegionChain));
+        IReadOnlyList<FirmwareRegion> viewChain = Assert.Single(
             result.CompiledComposition.V2Details.RegionAccessContract.ResolvedViews,
-            static view => view.ViewId == "output-code").GoverningRegionChain.Select(static region => region.RegionId));
+            static view => view.ViewId == "output-code").GoverningRegionChain;
+        Assert.Equal(["root", "left"], viewChain.Select(static region => region.RegionId));
+        Assert.Same(root, viewChain[0]);
+        Assert.Same(left, viewChain[1]);
     }
 
     /// <summary>Verifies parts access cannot authorize a sibling or an unknown non-child target declaration.</summary>

@@ -171,7 +171,9 @@ public sealed class FirmwareMapFactsTests
         });
         Assert.All(map.MetadataSetBindings, binding => Assert.Same(metadataSet, binding.Value));
         Assert.Equal(["regions"], map.RegionSets.Select(static value => value.RegionSetId));
-        Assert.Equal(["metadata"], map.MetadataSetIds);
+        Assert.Equal(
+            ["metadata"],
+            map.MetadataSetBindings.Select(static binding => binding.CanonicalFactId).Distinct(StringComparer.Ordinal));
         Assert.Equal(["root"], map.Regions.Select(static region => region.RegionId));
     }
 

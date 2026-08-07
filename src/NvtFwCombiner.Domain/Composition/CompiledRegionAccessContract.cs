@@ -2,43 +2,16 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>One resolved physical constraint retained without duplicating its map range.</summary>
-public sealed class CompiledPhysicalRegionConstraint
-{
-    internal CompiledPhysicalRegionConstraint(
-        string regionId,
-        FirmwareWriteConstraint writeConstraint,
-        int alignment)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        ClosedEnum.ThrowIfUndefined(writeConstraint, "Unknown firmware write constraint.");
-
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(alignment);
-        RegionId = regionId;
-        WriteConstraint = writeConstraint;
-        Alignment = alignment;
-    }
-
-    /// <summary>Canonical region id resolved from the selected map.</summary>
-    public string RegionId { get; }
-
-    /// <summary>Non-relaxable physical write constraint selected from the canonical map.</summary>
-    public FirmwareWriteConstraint WriteConstraint { get; }
-
-    /// <summary>Physical write alignment selected from the canonical map.</summary>
-    public int Alignment { get; }
-}
-
 /// <summary>One logical profile view and the canonical physical ancestor chain governing its resolved range.</summary>
 public sealed class CompiledResolvedPhysicalView
 {
-    private readonly CompiledPhysicalRegionConstraint[] _governingRegionChain;
+    private readonly FirmwareRegion[] _governingRegionChain;
 
     internal CompiledResolvedPhysicalView(
         string viewId,
         string addressSpaceId,
         ByteRange range,
-        IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
+        IEnumerable<FirmwareRegion> governingRegionChain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(viewId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -69,21 +42,21 @@ public sealed class CompiledResolvedPhysicalView
     public ByteRange Range { get; }
 
     /// <summary>Physical ancestor chain in root-to-leaf order; canonical map regions remain the physical range authority.</summary>
-    public IReadOnlyList<CompiledPhysicalRegionConstraint> GoverningRegionChain { get; }
+    public IReadOnlyList<FirmwareRegion> GoverningRegionChain { get; }
 }
 
 /// <summary>One profile-owned access rule resolved against the selected canonical physical map.</summary>
 public sealed class CompiledRegionAccessRequirement
 {
     private readonly string[] _allowedSubregionIds;
-    private readonly CompiledPhysicalRegionConstraint[] _governingRegionChain;
+    private readonly FirmwareRegion[] _governingRegionChain;
 
     internal CompiledRegionAccessRequirement(
         string regionId,
         RegionAccessKind access,
         string reason,
         IEnumerable<string> allowedSubregionIds,
-        IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
+        IEnumerable<FirmwareRegion> governingRegionChain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         ClosedEnum.ThrowIfUndefined(access, "Unknown compiled region access kind.");
@@ -130,7 +103,7 @@ public sealed class CompiledRegionAccessRequirement
     public IReadOnlyList<string> AllowedSubregionIds { get; }
 
     /// <summary>Physical ancestor chain that governed this profile declaration.</summary>
-    public IReadOnlyList<CompiledPhysicalRegionConstraint> GoverningRegionChain { get; }
+    public IReadOnlyList<FirmwareRegion> GoverningRegionChain { get; }
 }
 
 /// <summary>Complete immutable V2 region-access policy and logical-to-physical view provenance.</summary>

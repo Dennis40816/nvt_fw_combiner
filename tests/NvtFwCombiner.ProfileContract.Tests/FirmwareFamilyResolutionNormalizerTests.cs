@@ -2,6 +2,7 @@ using System.Globalization;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -10,6 +11,21 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 public sealed partial class FirmwareFamilyResolutionNormalizerTests
 {
     private const string FamilyHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+    /// <summary>Locks Profiles normalization helpers to the internal adapter boundary.</summary>
+    [Fact]
+    public void NormalizationHelpersRemainInternal()
+    {
+        Type[] helpers =
+        [
+            typeof(FirmwareFamilyNormalizationException),
+            typeof(FirmwareMetadataStructureDefinitionReference),
+            typeof(IFirmwareMetadataStructureDefinitionResolver),
+            typeof(IcIdentifier),
+        ];
+
+        Assert.All(helpers, type => Assert.True(type.IsNotPublic, type.FullName));
+    }
 
     /// <summary>Verifies direct family facts and typed predicates normalize into one Domain definition.</summary>
     [Fact]
@@ -27,7 +43,9 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal("map", map.MapId);
         Assert.Equal(16, map.CapacityBytes);
         Assert.Equal(["physical"], map.RegionSets.Select(static set => set.RegionSetId));
-        Assert.Equal(["metadata"], map.MetadataSetIds);
+        Assert.Equal(
+            ["metadata"],
+            map.MetadataSetBindings.Select(static binding => binding.CanonicalFactId).Distinct(StringComparer.Ordinal));
         FirmwareMapFactBinding<FirmwareRegionSet> regionBinding = Assert.Single(map.RegionSetBindings);
         FirmwareMapFactBinding<FirmwareMetadataSet> metadataBinding = Assert.Single(map.MetadataSetBindings);
         Assert.Equal(regionBinding.EffectiveKey, regionBinding.DirectSourceKey);

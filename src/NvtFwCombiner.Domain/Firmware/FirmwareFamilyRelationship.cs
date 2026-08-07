@@ -1,7 +1,7 @@
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Closed author-facing roles for one partial shared-fact relationship.</summary>
-public enum FirmwareSharedFactRole
+internal enum FirmwareSharedFactRole
 {
     /// <summary>Initial Code geometry and its explicitly referenced metadata.</summary>
     InitialCodeShared,
@@ -17,7 +17,7 @@ public enum FirmwareSharedFactRole
 }
 
 /// <summary>Closed kinds of canonical facts that a shared-fact relationship may reference.</summary>
-public enum FirmwareSharedFactKind
+internal enum FirmwareSharedFactKind
 {
     /// <summary>One exact physical region selected from every applicable map.</summary>
     Region,
@@ -31,7 +31,7 @@ public enum FirmwareSharedFactKind
 /// selected kind determines which typed value is present; display role never
 /// participates in resolution.
 /// </summary>
-public sealed class FirmwareSharedFactReference
+internal sealed class FirmwareSharedFactReference
 {
     private FirmwareSharedFactReference(
         FirmwareSharedFactKind kind,
@@ -67,10 +67,8 @@ public sealed class FirmwareSharedFactReference
         MetadataDefinition = metadataDefinition;
     }
 
-    /// <summary>Closed canonical fact kind.</summary>
     public FirmwareSharedFactKind Kind { get; }
 
-    /// <summary>Stable canonical fact identifier.</summary>
     public string FactId { get; }
 
     /// <summary>Canonical region when <see cref="Kind"/> is <see cref="FirmwareSharedFactKind.Region"/>.</summary>
@@ -82,7 +80,6 @@ public sealed class FirmwareSharedFactReference
     /// </summary>
     public FirmwareMetadataStructureDefinition? MetadataDefinition { get; }
 
-    /// <summary>Creates one exact canonical region reference.</summary>
     public static FirmwareSharedFactReference ForRegion(FirmwareRegion region)
     {
         ArgumentNullException.ThrowIfNull(region);
@@ -93,7 +90,6 @@ public sealed class FirmwareSharedFactReference
             null);
     }
 
-    /// <summary>Creates one exact canonical metadata-definition reference.</summary>
     public static FirmwareSharedFactReference ForMetadataDefinition(
         FirmwareMetadataStructureDefinition definition)
     {
@@ -107,12 +103,11 @@ public sealed class FirmwareSharedFactReference
 }
 
 /// <summary>Common immutable identity, membership, reason, and evidence for one family relationship.</summary>
-public abstract class FirmwareFamilyRelationship
+internal abstract class FirmwareFamilyRelationship
 {
     private readonly string[] _memberIds;
     private readonly string[] _evidenceRefs;
 
-    /// <summary>Creates the shared owner-declared relationship envelope.</summary>
     protected FirmwareFamilyRelationship(
         string relationshipId,
         IEnumerable<string> memberIds,
@@ -146,13 +141,10 @@ public abstract class FirmwareFamilyRelationship
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
 
-    /// <summary>Stable relationship identifier.</summary>
     public string RelationshipId { get; }
 
-    /// <summary>Explicit owner-declared members.</summary>
     public IReadOnlyList<string> MemberIds { get; }
 
-    /// <summary>Owner-backed reason for the relationship.</summary>
     public string Reason { get; }
 
     /// <summary>Relationship evidence; never support, publication, or execution authority.</summary>
@@ -164,9 +156,8 @@ public abstract class FirmwareFamilyRelationship
 /// Strong complete-equivalence relationship. Members consume one family-owned
 /// modeled firmware definition and cannot carry partial semantic overrides.
 /// </summary>
-public sealed class PerfectFamilyRelationship : FirmwareFamilyRelationship
+internal sealed class PerfectFamilyRelationship : FirmwareFamilyRelationship
 {
-    /// <summary>Creates one owner-declared complete perfect family.</summary>
     public PerfectFamilyRelationship(
         string relationshipId,
         IEnumerable<string> memberIds,
@@ -181,12 +172,11 @@ public sealed class PerfectFamilyRelationship : FirmwareFamilyRelationship
 /// Partial relationship that reuses only exact typed canonical facts on exact
 /// canonical maps. The readable role never selects runtime behavior.
 /// </summary>
-public sealed class SharedFactRelationship : FirmwareFamilyRelationship
+internal sealed class SharedFactRelationship : FirmwareFamilyRelationship
 {
     private readonly FirmwareImageMap[] _applicableMaps;
     private readonly FirmwareSharedFactReference[] _sharedFactReferences;
 
-    /// <summary>Creates one checked partial shared-fact relationship.</summary>
     public SharedFactRelationship(
         string relationshipId,
         FirmwareSharedFactRole role,
@@ -239,13 +229,10 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
         SharedFactReferences = Array.AsReadOnly(_sharedFactReferences);
     }
 
-    /// <summary>Readable author-facing role that grants no behavior.</summary>
     public FirmwareSharedFactRole Role { get; }
 
-    /// <summary>Exact canonical maps on which these fact references apply.</summary>
     public IReadOnlyList<FirmwareImageMap> ApplicableMaps { get; }
 
-    /// <summary>Exact typed canonical facts shared by the declared members.</summary>
     public IReadOnlyList<FirmwareSharedFactReference> SharedFactReferences { get; }
 
     private static void ValidateMemberCoverage(
@@ -325,7 +312,6 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
     }
 }
 
-/// <summary>Identifies the relationship whose family-level invariant failed.</summary>
 internal sealed class FirmwareFamilyRelationshipInvariantException(
     string relationshipId,
     string message) : ArgumentException(message)

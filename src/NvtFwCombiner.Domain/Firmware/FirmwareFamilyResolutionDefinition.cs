@@ -121,11 +121,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Referenced metadata sets in ordinal set-id order.</summary>
     public IReadOnlyList<FirmwareMetadataSet> MetadataSets { get; }
 
-    /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
-    public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
+    internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
 
-    /// <summary>Owner-declared perfect-like and shared-part firmware relationships.</summary>
-    public IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
+    internal IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
 
     /// <summary>Returns metadata structures selected by one exact candidate map.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> GetStructuresForMap(string mapId)

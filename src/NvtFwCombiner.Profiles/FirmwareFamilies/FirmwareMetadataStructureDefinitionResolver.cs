@@ -3,9 +3,8 @@ using NvtFwCombiner.Domain.Firmware;
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
 /// <summary>Exact trusted identity of one canonical metadata structure definition.</summary>
-public sealed record FirmwareMetadataStructureDefinitionReference
+internal sealed record FirmwareMetadataStructureDefinitionReference
 {
-    /// <summary>Creates one checked exact definition identity.</summary>
     public FirmwareMetadataStructureDefinitionReference(
         string familyId,
         string familyVersion,
@@ -22,16 +21,12 @@ public sealed record FirmwareMetadataStructureDefinitionReference
         StructureId = structureId;
     }
 
-    /// <summary>Exact provider family identifier.</summary>
     public string FamilyId { get; }
 
-    /// <summary>Exact provider family semantic version.</summary>
     public string FamilyVersion { get; }
 
-    /// <summary>Exact provider family content hash.</summary>
     public string FamilyContentHash { get; }
 
-    /// <summary>Canonical logical structure identifier in the provider.</summary>
     public string StructureId { get; }
 }
 
@@ -39,9 +34,8 @@ public sealed record FirmwareMetadataStructureDefinitionReference
 /// Resolves only exact, trusted canonical metadata definitions. Implementations
 /// must not infer aliases or copy field declarations.
 /// </summary>
-public interface IFirmwareMetadataStructureDefinitionResolver
+internal interface IFirmwareMetadataStructureDefinitionResolver
 {
-    /// <summary>Resolves one exact trusted definition identity.</summary>
     bool TryResolve(
         FirmwareMetadataStructureDefinitionReference reference,
         out FirmwareMetadataStructureDefinition? definition);

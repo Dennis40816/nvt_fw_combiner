@@ -118,7 +118,7 @@ internal static partial class V2CompositionPlanCompiler
         var details = new V2CompiledCompositionDetails(
             profile.ProfileId,
             profile.ProfileVersion,
-            profile.ExperienceId,
+            profile.Header.ExperienceId,
             profile.CompositionKind,
             provenance,
             new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),

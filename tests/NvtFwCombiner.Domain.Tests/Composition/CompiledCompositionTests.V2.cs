@@ -29,7 +29,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(CompiledProfilePromotionStage.Compilable, provenance.Promotion.Stage);
         Assert.Equal(["profile-evidence"], provenance.ProfileEvidenceRefs);
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        Assert.Equal(["original-name"], output.RequiredTokenIds);
+        Assert.Equal(["original-name"], output.TokenRequirements.Select(static requirement => requirement.TokenId));
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
         Assert.Equal(
@@ -164,7 +164,7 @@ public sealed partial class CompiledCompositionTests
             allowOverride: false,
             CompiledOutputInvalidCharacterPolicy.Reject,
             ["original-name"]);
-        Assert.Equal(["original-name"], repeated.RequiredTokenIds);
+        Assert.Equal(["original-name"], repeated.TokenRequirements.Select(static requirement => requirement.TokenId));
     }
 
     /// <summary>
@@ -284,15 +284,21 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void V2FingerprintBindsRegionAccessAndPhysicalViewProvenance()
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        FirmwareRegion root = resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
         CompiledComposition readOnly = CreateV2(regionAccessContract: CreateRegionAccessContract(
             RegionAccessKind.ReadOnly,
-            "Source bytes are inspectable only."));
+            "Source bytes are inspectable only.",
+            root), resolvedMap: resolvedMap);
         CompiledComposition hidden = CreateV2(regionAccessContract: CreateRegionAccessContract(
             RegionAccessKind.Hidden,
-            "Source bytes are inspectable only."));
+            "Source bytes are inspectable only.",
+            root), resolvedMap: resolvedMap);
         CompiledComposition changedReason = CreateV2(regionAccessContract: CreateRegionAccessContract(
             RegionAccessKind.ReadOnly,
-            "Source bytes require a different review rule."));
+            "Source bytes require a different review rule.",
+            root), resolvedMap: resolvedMap);
 
         CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details.RegionAccessContract.Requirements);
         Assert.Equal("root", access.RegionId);
@@ -307,14 +313,25 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void V2RegionAccessContractRejectsMapMismatches()
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        FirmwareRegion canonicalRoot = resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
+        var wrongConstraint = new FirmwareRegion(
+            "root",
+            parentRegionId: null,
+            FirmwareRegionOwner.System,
+            FirmwareRegionKind.Image,
+            new ByteRange(0, 4),
+            FirmwareWriteConstraint.WholeRegion);
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
             RegionAccessKind.Whole,
             "Incorrect physical constraint.",
-            writeConstraint: FirmwareWriteConstraint.WholeRegion)));
+            wrongConstraint), resolvedMap: resolvedMap));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
             RegionAccessKind.Parts,
             "Unknown child.",
-            allowedSubregionIds: ["missing-child"])));
+            canonicalRoot,
+            allowedSubregionIds: ["missing-child"]), resolvedMap: resolvedMap));
     }
 
     /// <summary>Verifies resolved-view provenance cannot omit either the canonical root or deepest containing region.</summary>
@@ -322,8 +339,8 @@ public sealed partial class CompiledCompositionTests
     public void V2RegionAccessContractRejectsTruncatedPhysicalViewChains()
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap nestedMap = CreateResolvedNestedMap();
-        CompiledPhysicalRegionConstraint root = new("root", FirmwareWriteConstraint.DeclaredSubregions, 1);
-        CompiledPhysicalRegionConstraint left = new("left", FirmwareWriteConstraint.WholeRegion, 1);
+        FirmwareRegion root = nestedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
+        FirmwareRegion left = nestedMap.ImageMap.Regions.Single(static region => region.RegionId == "left");
         CompiledRegionAccessContract leafOnly = new(
             [],
             [new CompiledResolvedPhysicalView("input", "input", new ByteRange(0, 2), [left])]);
@@ -549,13 +566,10 @@ public sealed partial class CompiledCompositionTests
     private static CompiledRegionAccessContract CreateRegionAccessContract(
         RegionAccessKind access,
         string reason,
-        FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.Forbidden,
+        FirmwareRegion region,
         IReadOnlyList<string>? allowedSubregionIds = null)
     {
-        CompiledPhysicalRegionConstraint[] chain = [new CompiledPhysicalRegionConstraint(
-            "root",
-            writeConstraint,
-            alignment: 1)];
+        FirmwareRegion[] chain = [region];
         return new CompiledRegionAccessContract(
             [new CompiledRegionAccessRequirement(
                 "root",

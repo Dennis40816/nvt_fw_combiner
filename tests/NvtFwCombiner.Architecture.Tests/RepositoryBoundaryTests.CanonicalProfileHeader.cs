@@ -21,8 +21,9 @@ public sealed partial class RepositoryBoundaryTests
             "Array.AsReadOnly([.. compilationContext.LogicalOutputMemberIds])",
             profiles,
             StringComparison.Ordinal);
-        Assert.Contains("internal V2CompilationContextKind CompilationContextKind => Header.CompilationContextKind;", domain, StringComparison.Ordinal);
-        Assert.Contains("internal string ExperienceId => Header.ExperienceId;", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal V2CompilationContextKind CompilationContextKind =>", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal string ExperienceId => Header.ExperienceId;", domain, StringComparison.Ordinal);
+        Assert.Contains("profile.Header.ExperienceId", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain(".Experience.ExperienceId", bootstrap, StringComparison.Ordinal);
     }
 }

@@ -143,29 +143,13 @@ internal sealed partial class CompositionProfileDefinition
 
     internal CompositionProfileHeader Header { get; }
 
-    internal string ExperienceId => Header.ExperienceId;
-
-    internal LayoutPolicy LayoutPolicy => Header.LayoutPolicy;
-
-    internal InputPolicy InputPolicy => Header.InputPolicy;
-
-    internal V2CompilationContextKind CompilationContextKind => Header.CompilationContextKind;
-
-    internal string FamilyId => Header.FamilyId;
-
-    internal string FamilyVersion => Header.FamilyVersion;
-
-    internal string FamilyContentHash => Header.FamilyContentHash;
-
-    internal bool AllowsConditionalProcessor => Header.AllowsConditionalProcessor;
-
     /// <summary>Exact map binding for map-bound profiles only.</summary>
     internal CompositionProfileMapBinding MapBinding => Header.MapBinding
         ?? throw new InvalidOperationException("Logical-output profiles do not declare a physical map binding.");
 
     /// <summary>Logical-output family members for General Merge profiles only.</summary>
     internal IReadOnlyList<string> LogicalOutputMemberIds =>
-        CompilationContextKind == V2CompilationContextKind.LogicalOutput
+        Header.CompilationContextKind == V2CompilationContextKind.LogicalOutput
             ? Header.LogicalOutputMemberIds
             : throw new InvalidOperationException("This profile is not admitted through the logical-output context.");
 

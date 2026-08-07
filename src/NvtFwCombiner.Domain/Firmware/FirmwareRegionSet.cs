@@ -24,11 +24,7 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
     {
     }
 
-    /// <summary>
-    /// Creates a region set from direct regions plus canonical relative
-    /// templates placed at explicit instance bases.
-    /// </summary>
-    public FirmwareRegionSet(
+    internal FirmwareRegionSet(
         string regionSetId,
         string addressSpaceId,
         IEnumerable<FirmwareRegion> regions,
@@ -100,11 +96,9 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
     /// <summary>Physical regions in deterministic range order.</summary>
     public IReadOnlyList<FirmwareRegion> Regions { get; }
 
-    /// <summary>Canonical relative definitions in ordinal template-id order.</summary>
-    public IReadOnlyList<FirmwareRegionTemplate> RegionTemplates { get; }
+    internal IReadOnlyList<FirmwareRegionTemplate> RegionTemplates { get; }
 
-    /// <summary>Resolved template placements in ordinal instance-id order.</summary>
-    public IReadOnlyList<FirmwareRegionInstance> RegionInstances { get; }
+    internal IReadOnlyList<FirmwareRegionInstance> RegionInstances { get; }
 
     /// <summary>Evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }

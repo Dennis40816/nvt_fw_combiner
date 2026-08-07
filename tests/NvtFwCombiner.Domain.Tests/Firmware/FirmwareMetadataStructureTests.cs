@@ -34,14 +34,14 @@ public sealed class FirmwareMetadataStructureTests
         Assert.Equal(4, structure.LengthBytes);
         Assert.Equal(["header", "high-nibble", "low-nibble"],
             structure.Fields.Select(static field => field.FieldId));
-        Assert.Equal([0L, 1L], structure.Assertions.Select(static assertion => assertion.Range.Start));
+        Assert.Equal([0L, 1L], structure.Definition.Assertions.Select(static assertion => assertion.Range.Start));
 
         IList<FirmwareMetadataField> fieldView = Assert.IsType<IList<FirmwareMetadataField>>(
             structure.Fields,
             exactMatch: false);
         IList<FirmwareMetadataByteAssertion> assertionView =
             Assert.IsType<IList<FirmwareMetadataByteAssertion>>(
-                structure.Assertions,
+                structure.Definition.Assertions,
                 exactMatch: false);
         Assert.True(fieldView.IsReadOnly);
         Assert.True(assertionView.IsReadOnly);
@@ -105,7 +105,7 @@ public sealed class FirmwareMetadataStructureTests
                 (1L, "10", "ff"),
                 (1L, "20", "ff"),
             ],
-            structure.Assertions.Select(static assertion =>
+            structure.Definition.Assertions.Select(static assertion =>
                 (assertion.Range.Length, assertion.ExpectedBytes.Hex, assertion.MaskBytes.Hex)));
     }
 
@@ -144,8 +144,8 @@ public sealed class FirmwareMetadataStructureTests
             locator: MarkerLocator(selection: terminalSelection),
             assertions: [FirmwareMetadataByteAssertion.Exact(0, [1])]);
 
-        Assert.Empty(unique.Assertions);
-        _ = Assert.Single(asserted.Assertions);
+        Assert.Empty(unique.Definition.Assertions);
+        _ = Assert.Single(asserted.Definition.Assertions);
     }
 
     /// <summary>Verifies structure identity, collection, and duplicate-field boundaries fail closed.</summary>

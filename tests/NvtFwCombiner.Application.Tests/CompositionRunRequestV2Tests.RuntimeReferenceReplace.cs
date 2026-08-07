@@ -374,22 +374,17 @@ public sealed partial class CompositionRunRequestV2Tests
             rootOwner: rootOwner,
             rootKind: rootKind,
             includeNestedCtrlRamRegion: useNestedCtrlRamMap);
-        var rootConstraint = new CompiledPhysicalRegionConstraint(
-            "root",
-            FirmwareWriteConstraint.ExplicitRange,
-            alignment: 1);
-        CompiledPhysicalRegionConstraint[] rootChain =
+        FirmwareRegion rootRegion = resolvedMap.ImageMap.Regions.Single(
+            static region => region.RegionId == "root");
+        FirmwareRegion[] rootChain =
         [
-            rootConstraint,
+            rootRegion,
         ];
-        CompiledPhysicalRegionConstraint[] writeChain = useNestedCtrlRamMap
+        FirmwareRegion[] writeChain = useNestedCtrlRamMap
             ?
             [
-                rootConstraint,
-                new CompiledPhysicalRegionConstraint(
-                    "ctrlram",
-                    FirmwareWriteConstraint.ExplicitRange,
-                    alignment: 1),
+                rootRegion,
+                resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "ctrlram"),
             ]
             : rootChain;
         string writeRegionId = useNestedCtrlRamMap ? "ctrlram" : "root";
