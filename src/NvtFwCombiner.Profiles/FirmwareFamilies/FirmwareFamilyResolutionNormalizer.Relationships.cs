@@ -25,28 +25,25 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         var mapsById = maps.ToDictionary(
             static map => map.MapId,
             StringComparer.Ordinal);
-        var normalized = new FirmwareFamilyRelationship[relationshipDocuments.Count];
-
-        for (int index = 0; index < relationshipDocuments.Count; index++)
-        {
-            FirmwareFamilyRelationshipDocument relationship = relationshipDocuments[index];
-            string path = $"familyRelationships[{index}]";
-            ValidateMemberReferences(relationship.MemberIds, membersById, $"{path}.memberIds");
-            normalized[index] = relationship switch
+        return NormalizeItems<FirmwareFamilyRelationshipDocument, FirmwareFamilyRelationship>(
+            relationshipDocuments,
+            "familyRelationships",
+            (relationship, path) =>
             {
-                FirmwarePerfectFamilyRelationshipDocument perfect =>
-                    NormalizePerfectFamilyRelationship(perfect, path),
-                FirmwareSharedFactRelationshipDocument shared =>
-                    NormalizeSharedFactRelationship(
-                        shared,
-                        path,
-                        mapsById,
-                        structuresByMap),
-                _ => throw Error(path, "Unknown family relationship shape."),
-            };
-        }
-
-        return normalized;
+                ValidateMemberReferences(relationship.MemberIds, membersById, $"{path}.memberIds");
+                return relationship switch
+                {
+                    FirmwarePerfectFamilyRelationshipDocument perfect =>
+                        NormalizePerfectFamilyRelationship(perfect, path),
+                    FirmwareSharedFactRelationshipDocument shared =>
+                        NormalizeSharedFactRelationship(
+                            shared,
+                            path,
+                            mapsById,
+                            structuresByMap),
+                    _ => throw Error(path, "Unknown family relationship shape."),
+                };
+            });
     }
 
     private static PerfectFamilyRelationship NormalizePerfectFamilyRelationship(
@@ -69,31 +66,26 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         FirmwareSharedFactRole role = NormalizeSharedFactRole(document.Role, $"{path}.role");
         IReadOnlyList<string> mapIds = document.Applicability.MapIds;
 
-        var applicableMaps = new FirmwareImageMap[mapIds.Count];
-        for (int index = 0; index < mapIds.Count; index++)
-        {
-            string mapId = mapIds[index];
-            if (!mapsById.TryGetValue(mapId, out FirmwareImageMap? map))
+        FirmwareImageMap[] applicableMaps = NormalizeItems(
+            mapIds,
+            $"{path}.applicability.mapIds",
+            (mapId, mapPath) =>
             {
-                throw Error(
-                    $"{path}.applicability.mapIds[{index}]",
-                    $"Unknown shared-fact applicability map '{mapId}'.");
-            }
-
-            applicableMaps[index] = map;
-        }
+                return mapsById.TryGetValue(mapId, out FirmwareImageMap? map)
+                    ? map
+                    : throw Error(
+                        mapPath,
+                        $"Unknown shared-fact applicability map '{mapId}'.");
+            });
 
         IReadOnlyList<FirmwareSharedFactReferenceDocument> referenceDocuments =
             document.SharedFactReferences;
-        var references = new FirmwareSharedFactReference[referenceDocuments.Count];
-        for (int index = 0; index < referenceDocuments.Count; index++)
-        {
-            FirmwareSharedFactReferenceDocument reference = referenceDocuments[index];
-            string referencePath = $"{path}.sharedFactReferences[{index}]";
-            FirmwareSharedFactKind kind = NormalizeSharedFactKind(
+        FirmwareSharedFactReference[] references = NormalizeItems(
+            referenceDocuments,
+            $"{path}.sharedFactReferences",
+            (reference, referencePath) => NormalizeSharedFactKind(
                 reference.FactKind,
-                $"{referencePath}.factKind");
-            references[index] = kind switch
+                $"{referencePath}.factKind") switch
             {
                 FirmwareSharedFactKind.Region => ResolveSharedRegionReference(
                     reference.FactId,
@@ -108,8 +100,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 _ => throw Error(
                     $"{referencePath}.factKind",
                     "Unknown shared firmware fact kind."),
-            };
-        }
+            });
 
         return TranslateInvariant(path, () => new SharedFactRelationship(
                 document.RelationshipId,

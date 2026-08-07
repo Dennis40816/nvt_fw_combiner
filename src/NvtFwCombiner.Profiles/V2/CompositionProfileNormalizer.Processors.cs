@@ -35,27 +35,21 @@ internal static partial class CompositionProfileNormalizer
     {
         IReadOnlyList<CompositionProfileStagedSourceBindingDocument> bindingDocuments =
             document.StagedSourceBindings!;
-        var bindings = new CompositionProfileStagedSourceBinding[bindingDocuments.Count];
-        for (int index = 0; index < bindingDocuments.Count; index++)
-        {
-            CompositionProfileStagedSourceBindingDocument binding = bindingDocuments[index];
-            string bindingPath = $"{path}.stagedSourceBindings[{index}]";
-            bindings[index] = Wrap(bindingPath, () => new CompositionProfileStagedSourceBinding(
+        CompositionProfileStagedSourceBinding[] bindings = NormalizeList(
+            bindingDocuments,
+            $"{path}.stagedSourceBindings",
+            (binding, bindingPath) => Wrap(bindingPath, () => new CompositionProfileStagedSourceBinding(
                 binding.SourceViewId,
-                binding.TargetViewId));
-        }
+                binding.TargetViewId)));
 
         IReadOnlyList<CompositionProfileStagedArtifactBindingDocument> artifactBindingDocuments =
             document.StagedArtifactBindings ?? [];
-        var artifactBindings = new CompositionProfileStagedArtifactBinding[artifactBindingDocuments.Count];
-        for (int index = 0; index < artifactBindingDocuments.Count; index++)
-        {
-            CompositionProfileStagedArtifactBindingDocument binding = artifactBindingDocuments[index];
-            string bindingPath = $"{path}.stagedArtifactBindings[{index}]";
-            artifactBindings[index] = Wrap(bindingPath, () => new CompositionProfileStagedArtifactBinding(
+        CompositionProfileStagedArtifactBinding[] artifactBindings = NormalizeList(
+            artifactBindingDocuments,
+            $"{path}.stagedArtifactBindings",
+            (binding, bindingPath) => Wrap(bindingPath, () => new CompositionProfileStagedArtifactBinding(
                 binding.ArtifactId,
-                binding.SourceViewId));
-        }
+                binding.SourceViewId)));
 
         return Wrap(path, () => new LegacyCombinerProfileProcessorStage(
             document.ProcessorStageId,

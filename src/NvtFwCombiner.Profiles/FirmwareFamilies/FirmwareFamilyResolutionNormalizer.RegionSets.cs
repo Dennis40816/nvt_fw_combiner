@@ -18,11 +18,10 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         {
             string path = $"regionSets[{regionSetId}]";
             IReadOnlyList<FirmwareRegionDocument> regionDocuments = document.Regions;
-            var regions = new FirmwareRegion[regionDocuments.Count];
-            for (int index = 0; index < regionDocuments.Count; index++)
-            {
-                regions[index] = NormalizeRegion(regionDocuments[index], $"{path}.regions[{index}]");
-            }
+            FirmwareRegion[] regions = NormalizeItems(
+                regionDocuments,
+                $"{path}.regions",
+                NormalizeRegion);
 
             IReadOnlyList<FirmwareRegionTemplateDocument> templateDocuments =
                 document.RegionTemplates ?? [];
@@ -61,14 +60,14 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         {
             string path = $"{regionSetPath}.regionTemplates[{templateId}]";
             IReadOnlyList<FirmwareRegionDocument> regionDocuments = document.Regions;
-            var regions = new FirmwareRelativeRegion[regionDocuments.Count];
-            for (int index = 0; index < regionDocuments.Count; index++)
-            {
-                FirmwareRegion physical = NormalizeRegion(
-                    regionDocuments[index],
-                    $"{path}.regions[{index}]");
-                regions[index] = TranslateInvariant(
-                    $"{path}.regions[{index}]",
+            FirmwareRelativeRegion[] regions = NormalizeItems(
+                regionDocuments,
+                $"{path}.regions",
+                (region, regionPath) =>
+                {
+                    FirmwareRegion physical = NormalizeRegion(region, regionPath);
+                    return TranslateInvariant(
+                    regionPath,
                     () => new FirmwareRelativeRegion(
                         physical.RegionId,
                         physical.ParentRegionId,
@@ -77,7 +76,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                         physical.Range,
                         physical.WriteConstraint,
                         physical.Alignment));
-            }
+                });
 
             TranslateInvariant(path, () => normalized.Add(
                 templateId,

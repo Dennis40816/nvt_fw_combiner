@@ -54,13 +54,10 @@ internal static partial class CompositionProfileNormalizer
         string path)
     {
         IReadOnlyList<JsonElement> valueDocuments = document.ExpectedValues!;
-        var expectedValues = new CompiledValidationScalarLiteral[valueDocuments.Count];
-        for (int index = 0; index < valueDocuments.Count; index++)
-        {
-            expectedValues[index] = NormalizeScalarLiteral(
-                valueDocuments[index],
-                $"{path}.expectedValues[{index}]");
-        }
+        CompiledValidationScalarLiteral[] expectedValues = NormalizeList(
+            valueDocuments,
+            $"{path}.expectedValues",
+            NormalizeScalarLiteral);
 
         return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
             new CompiledMetadataValueValidation(
@@ -82,13 +79,10 @@ internal static partial class CompositionProfileNormalizer
         string path)
     {
         IReadOnlyList<string> patternDocuments = document.RejectedPatterns!;
-        var patterns = new CompiledValidationRejectedBytePattern[patternDocuments.Count];
-        for (int index = 0; index < patternDocuments.Count; index++)
-        {
-            patterns[index] = NormalizeRejectedPattern(
-                patternDocuments[index],
-                $"{path}.rejectedPatterns[{index}]");
-        }
+        CompiledValidationRejectedBytePattern[] patterns = NormalizeList(
+            patternDocuments,
+            $"{path}.rejectedPatterns",
+            NormalizeRejectedPattern);
 
         return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(
             new CompiledRejectMetadataBytePatternValidation(

@@ -111,18 +111,12 @@ internal static partial class CompositionProfileNormalizer
         IReadOnlyList<JsonElement>? documents,
         string path)
     {
-        if (documents is null)
-        {
-            return null;
-        }
-
-        long[] values = new long[documents.Count];
-        for (int index = 0; index < documents.Count; index++)
-        {
-            values[index] = ReadInt64(documents[index], 1, long.MaxValue, $"{path}[{index}]");
-        }
-
-        return values;
+        return documents is null
+            ? null
+            : NormalizeList(
+                documents,
+                path,
+                static (value, valuePath) => ReadInt64(value, 1, long.MaxValue, valuePath));
     }
 
     private static CompiledInputNormalization NormalizeInputNormalization(

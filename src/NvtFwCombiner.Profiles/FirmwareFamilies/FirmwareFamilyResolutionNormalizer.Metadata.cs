@@ -20,14 +20,13 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         {
             string path = $"metadataSets[{metadataSetId}]";
             IReadOnlyList<FirmwareMetadataStructureDocument> structureDocuments = document.Structures;
-            var structures = new FirmwareMetadataStructure[structureDocuments.Count];
-            for (int index = 0; index < structureDocuments.Count; index++)
-            {
-                structures[index] = NormalizeStructure(
-                    structureDocuments[index],
-                    $"{path}.structures[{index}]",
-                    metadataDefinitionResolver);
-            }
+            FirmwareMetadataStructure[] structures = NormalizeItems(
+                structureDocuments,
+                $"{path}.structures",
+                (structure, structurePath) => NormalizeStructure(
+                    structure,
+                    structurePath,
+                    metadataDefinitionResolver));
 
             TranslateInvariant(path, () => normalized.Add(
                 metadataSetId,
@@ -73,30 +72,23 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         FirmwareMetadataTypedDefinition? typedDefinition =
             NormalizeTypedDefinition(document, path);
         IReadOnlyList<FirmwareMetadataFieldDocument> fieldDocuments = document.Fields;
-        var fields = new FirmwareMetadataField[fieldDocuments.Count];
-        for (int index = 0; index < fieldDocuments.Count; index++)
-        {
-            fields[index] = NormalizeField(fieldDocuments[index], $"{path}.fields[{index}]");
-        }
+        FirmwareMetadataField[] fields = NormalizeItems(
+            fieldDocuments,
+            $"{path}.fields",
+            NormalizeField);
 
         IReadOnlyList<FirmwareByteAssertionDocument> assertionDocuments = document.Assertions;
-        var assertions = new FirmwareMetadataByteAssertion[assertionDocuments.Count];
-        for (int index = 0; index < assertionDocuments.Count; index++)
-        {
-            assertions[index] = NormalizeAssertion(
-                assertionDocuments[index],
-                $"{path}.assertions[{index}]");
-        }
+        FirmwareMetadataByteAssertion[] assertions = NormalizeItems(
+            assertionDocuments,
+            $"{path}.assertions",
+            NormalizeAssertion);
 
         IReadOnlyList<FirmwareMetadataFieldRelationDocument> relationDocuments =
             document.Relations ?? [];
-        var relations = new FirmwareMetadataFieldRelation[relationDocuments.Count];
-        for (int index = 0; index < relationDocuments.Count; index++)
-        {
-            relations[index] = NormalizeRelation(
-                relationDocuments[index],
-                $"{path}.relations[{index}]");
-        }
+        FirmwareMetadataFieldRelation[] relations = NormalizeItems(
+            relationDocuments,
+            $"{path}.relations",
+            NormalizeRelation);
 
         return TranslateInvariant(path, () => new FirmwareMetadataStructure(
                 document.StructureId,
@@ -130,49 +122,38 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         string path)
     {
         IReadOnlyList<FirmwareMetadataNamedSpanDocument> spanDocuments = document.Spans;
-        var spans = new FirmwareMetadataNamedSpan[spanDocuments.Count];
-        for (int index = 0; index < spanDocuments.Count; index++)
-        {
-            FirmwareMetadataNamedSpanDocument span = spanDocuments[index];
-            spans[index] = TranslateInvariant(
-                $"{path}.spans[{index}]",
+        FirmwareMetadataNamedSpan[] spans = NormalizeItems(
+            spanDocuments,
+            $"{path}.spans",
+            (span, spanPath) => TranslateInvariant(
+                spanPath,
                 () => new FirmwareMetadataNamedSpan(
                     span.SpanId,
-                    NormalizeRange(span.Range, $"{path}.spans[{index}].range")));
-        }
+                    NormalizeRange(span.Range, $"{spanPath}.range"))));
 
         IReadOnlyList<FirmwareTpFlashHeaderFieldSemanticsDocument> semanticsDocuments =
             document.FieldSemantics;
-        var fieldSemantics =
-            new FirmwareTpFlashHeaderFieldSemantics[semanticsDocuments.Count];
-        for (int index = 0; index < semanticsDocuments.Count; index++)
-        {
-            fieldSemantics[index] = NormalizeTpFlashHeaderFieldSemantics(
-                semanticsDocuments[index],
-                $"{path}.fieldSemantics[{index}]");
-        }
+        FirmwareTpFlashHeaderFieldSemantics[] fieldSemantics = NormalizeItems(
+            semanticsDocuments,
+            $"{path}.fieldSemantics",
+            NormalizeTpFlashHeaderFieldSemantics);
 
         IReadOnlyList<FirmwareMetadataFieldSeriesDocument> seriesDocuments = document.FieldSeries;
-        var fieldSeries = new FirmwareMetadataFieldSeries[seriesDocuments.Count];
-        for (int index = 0; index < seriesDocuments.Count; index++)
-        {
-            fieldSeries[index] = NormalizeMetadataFieldSeries(
-                seriesDocuments[index],
-                $"{path}.fieldSeries[{index}]");
-        }
+        FirmwareMetadataFieldSeries[] fieldSeries = NormalizeItems(
+            seriesDocuments,
+            $"{path}.fieldSeries",
+            NormalizeMetadataFieldSeries);
 
         IReadOnlyList<FirmwareMetadataFieldGroupDocument> groupDocuments = document.FieldGroups;
-        var fieldGroups = new FirmwareMetadataFieldGroup[groupDocuments.Count];
-        for (int index = 0; index < groupDocuments.Count; index++)
-        {
-            FirmwareMetadataFieldGroupDocument group = groupDocuments[index];
-            fieldGroups[index] = TranslateInvariant(
-                $"{path}.fieldGroups[{index}]",
+        FirmwareMetadataFieldGroup[] fieldGroups = NormalizeItems(
+            groupDocuments,
+            $"{path}.fieldGroups",
+            (group, groupPath) => TranslateInvariant(
+                groupPath,
                 () => new FirmwareMetadataFieldGroup(
                     group.GroupId,
                     group.FieldIds,
-                    group.SeriesIds));
-        }
+                    group.SeriesIds)));
 
         return TranslateInvariant(
             path,
@@ -253,40 +234,33 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         string path)
     {
         IReadOnlyList<FirmwareMetadataFieldSeriesMemberDocument> memberDocuments = document.Members;
-        var members = new FirmwareMetadataFieldSeriesMember[memberDocuments.Count];
-        for (int index = 0; index < memberDocuments.Count; index++)
-        {
-            FirmwareMetadataFieldSeriesMemberDocument member = memberDocuments[index];
-            members[index] = TranslateInvariant(
-                $"{path}.members[{index}]",
+        FirmwareMetadataFieldSeriesMember[] members = NormalizeItems(
+            memberDocuments,
+            $"{path}.members",
+            (member, memberPath) => TranslateInvariant(
+                memberPath,
                 () => new FirmwareMetadataFieldSeriesMember(
-                    ReadInt32(member.Index, $"{path}.members[{index}].index"),
-                    member.FieldId));
-        }
+                    ReadInt32(member.Index, $"{memberPath}.index"),
+                    member.FieldId)));
 
         IReadOnlyList<FirmwareMetadataFieldSeriesApplicabilityDocument>
             applicabilityDocuments = document.Applicability;
-        var applicability =
-            new FirmwareMetadataFieldSeriesApplicability[applicabilityDocuments.Count];
-        for (int index = 0; index < applicabilityDocuments.Count; index++)
-        {
-            FirmwareMetadataFieldSeriesApplicabilityDocument row =
-                applicabilityDocuments[index];
-            IReadOnlyList<System.Text.Json.JsonElement> activeIndexDocuments = row.ActiveIndices;
-            int[] activeIndices = new int[activeIndexDocuments.Count];
-            for (int activeIndex = 0; activeIndex < activeIndexDocuments.Count; activeIndex++)
+        FirmwareMetadataFieldSeriesApplicability[] applicability = NormalizeItems(
+            applicabilityDocuments,
+            $"{path}.applicability",
+            (row, applicabilityPath) =>
             {
-                activeIndices[activeIndex] = ReadInt32(
-                    activeIndexDocuments[activeIndex],
-                    $"{path}.applicability[{index}].activeIndices[{activeIndex}]");
-            }
-
-            applicability[index] = TranslateInvariant(
-                $"{path}.applicability[{index}]",
-                () => new FirmwareMetadataFieldSeriesApplicability(
-                    ReadInt32(row.IcCount, $"{path}.applicability[{index}].icCount"),
-                    activeIndices));
-        }
+                IReadOnlyList<System.Text.Json.JsonElement> activeIndexDocuments = row.ActiveIndices;
+                int[] activeIndices = NormalizeItems(
+                    activeIndexDocuments,
+                    $"{applicabilityPath}.activeIndices",
+                    ReadInt32);
+                return TranslateInvariant(
+                    applicabilityPath,
+                    () => new FirmwareMetadataFieldSeriesApplicability(
+                        ReadInt32(row.IcCount, $"{applicabilityPath}.icCount"),
+                        activeIndices));
+            });
 
         return TranslateInvariant(
             path,
@@ -406,21 +380,15 @@ internal static partial class FirmwareFamilyResolutionNormalizer
             IReadOnlyList<FirmwareMetadataFieldSelectedBranchDocument> documents,
             string path)
     {
-        var branches =
-            new FirmwareMetadataFieldSelectedBranch[documents.Count];
-        for (int index = 0; index < documents.Count; index++)
-        {
-            FirmwareMetadataFieldSelectedBranchDocument document =
-                documents[index];
-            branches[index] = new FirmwareMetadataFieldSelectedBranch(
-                ReadUInt64(document.MinimumValue, $"{path}[{index}].minimumValue"),
-                ReadUInt64(document.MaximumValue, $"{path}[{index}].maximumValue"),
+        return NormalizeItems(
+            documents,
+            path,
+            (document, branchPath) => new FirmwareMetadataFieldSelectedBranch(
+                ReadUInt64(document.MinimumValue, $"{branchPath}.minimumValue"),
+                ReadUInt64(document.MaximumValue, $"{branchPath}.maximumValue"),
                 NormalizeAddressedRange(
                     document.AnchorRange,
-                    $"{path}[{index}].anchorRange"));
-        }
-
-        return branches;
+                    $"{branchPath}.anchorRange")));
     }
 
     private static FirmwareMarkerSelection NormalizeMarkerSelection(

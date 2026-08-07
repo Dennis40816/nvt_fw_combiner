@@ -27,14 +27,13 @@ internal static partial class FirmwareFamilyResolutionNormalizer
     {
         IReadOnlyList<FirmwareMetadataPredicateDocument> predicateDocuments =
             document.MetadataPredicates ?? [];
-        var predicates = new FirmwareMetadataPredicate[predicateDocuments.Count];
-        for (int index = 0; index < predicateDocuments.Count; index++)
-        {
-            predicates[index] = NormalizePredicate(
-                predicateDocuments[index],
+        FirmwareMetadataPredicate[] predicates = NormalizeItems(
+            predicateDocuments,
+            $"{path}.metadataPredicates",
+            (predicate, predicatePath) => NormalizePredicate(
+                predicate,
                 selectedStructures,
-                $"{path}.metadataPredicates[{index}]");
-        }
+                predicatePath));
 
         return TranslateInvariant(path, () => new FirmwareMapApplicability(
                 document.MemberIds,
@@ -52,14 +51,13 @@ internal static partial class FirmwareFamilyResolutionNormalizer
     {
         IReadOnlyList<FirmwareMetadataPredicateDocument> predicateDocuments =
             document.MetadataPredicates ?? [];
-        var predicates = new FirmwareMetadataPredicate[predicateDocuments.Count];
-        for (int index = 0; index < predicateDocuments.Count; index++)
-        {
-            predicates[index] = NormalizePredicate(
-                predicateDocuments[index],
+        FirmwareMetadataPredicate[] predicates = NormalizeItems(
+            predicateDocuments,
+            $"{path}.metadataPredicates",
+            (predicate, predicatePath) => NormalizePredicate(
+                predicate,
                 selectedStructures,
-                $"{path}.metadataPredicates[{index}]");
-        }
+                predicatePath));
 
         return TranslateInvariant(path, () => new FirmwareFactApplicability(
                 document.ModeIds,
@@ -88,14 +86,10 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 $"{path}.fieldId",
                 $"Field '{document.FieldId}' does not exist in structure '{structure.StructureId}'.");
         IReadOnlyList<System.Text.Json.JsonElement> expectedDocuments = document.ExpectedValues;
-        var expectedValues = new FirmwareMetadataValue[expectedDocuments.Count];
-        for (int index = 0; index < expectedDocuments.Count; index++)
-        {
-            expectedValues[index] = NormalizeExpectedValue(
-                expectedDocuments[index],
-                field,
-                $"{path}.expectedValues[{index}]");
-        }
+        FirmwareMetadataValue[] expectedValues = NormalizeItems(
+            expectedDocuments,
+            $"{path}.expectedValues",
+            (expected, expectedPath) => NormalizeExpectedValue(expected, field, expectedPath));
 
         FirmwareMetadataPredicateOperator comparison = document.Operator switch
         {
@@ -145,6 +139,20 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         }
 
         return indexed;
+    }
+
+    private static TResult[] NormalizeItems<TSource, TResult>(
+        IReadOnlyList<TSource> values,
+        string path,
+        Func<TSource, string, TResult> normalize)
+    {
+        var normalized = new TResult[values.Count];
+        for (int index = 0; index < values.Count; index++)
+        {
+            normalized[index] = normalize(values[index], $"{path}[{index}]");
+        }
+
+        return normalized;
     }
 
     private static T TranslateInvariant<T>(string path, Func<T> factory)
