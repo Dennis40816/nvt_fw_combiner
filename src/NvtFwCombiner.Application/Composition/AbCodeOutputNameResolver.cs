@@ -50,7 +50,7 @@ internal static class AbCodeOutputNameResolver
         string date = startedAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         string canonicalIcNumber =
             CompiledOutputNameResolver.GetCanonicalIcIdentity(
-                request.CompiledComposition.IcId)[2..];
+                request.CompiledComposition.V2Details.Provenance.Context.MemberId)[2..];
         OutputNamingTokenSummary[] tokens =
         [
             new OutputNamingTokenSummary("ic", canonicalIcNumber, IsKnown: true, null, null, "compiled-profile"),

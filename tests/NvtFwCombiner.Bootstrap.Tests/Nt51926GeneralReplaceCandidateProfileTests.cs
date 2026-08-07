@@ -27,8 +27,8 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         Assert.True(result.IsCompiled, FormatIssues(result.Issues));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal("nt51926-general-replace-dp-single-candidate", composition.ProfileId);
-        Assert.Equal("0.1.0", composition.ProfileVersion);
+        Assert.Equal("nt51926-general-replace-dp-single-candidate", composition.V2Details.ProfileId);
+        Assert.Equal("0.1.0", composition.V2Details.ProfileVersion);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(2, composition.V2Details.Provenance.Promotion.Blockers.Count);
         Assert.Equal(

@@ -30,7 +30,7 @@ public sealed partial class CompositionRunService
                         OutputDifferenceClassifications.DeclaredReplacement,
                         true,
                         operation.OperationId,
-                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.CompiledComposition.IcId} / {icNumber}.",
+                        $"Accepted: staged replacement source '{binding.SourceSpaceId}' is pasted back by postbuild for {request.CompiledComposition.V2Details.Provenance.Context.MemberId} / {icNumber}.",
                         FormatDifferenceSectionLabel(binding.SourceSpaceId, operation.Reason),
                         PostbuildWriteSectionIds.CtrlRamReplacement,
                         null);
@@ -54,7 +54,7 @@ public sealed partial class CompositionRunService
                                 OutputDifferenceClassifications.PostbuildCrcHeader,
                                 true,
                                 $"{operation.OperationId}: {invocation.ProcessorId}",
-                                $"Accepted: this range is inside the {request.CompiledComposition.IcId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
+                                $"Accepted: this range is inside the {request.CompiledComposition.V2Details.Provenance.Context.MemberId} / {icNumber} approved {sectionLabel} postbuild write ranges.",
                                 sectionLabel,
                                 sectionId,
                                 section is not null && section.TryMapRangeToSourceRange(processorSegment, out ByteRange sourceRange)

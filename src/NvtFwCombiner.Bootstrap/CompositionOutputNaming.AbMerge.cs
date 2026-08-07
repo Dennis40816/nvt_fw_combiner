@@ -66,7 +66,7 @@ public static partial class CompositionOutputNaming
             CreateNamingRunId(runIdPrefix),
             compiledComposition,
             bindings,
-            compiledComposition.DefaultOutputFileName,
+            compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate,
             abMergeTopologySelection: abMergeTopologySelection,
             resolvedCapability: CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
                 compiledComposition));

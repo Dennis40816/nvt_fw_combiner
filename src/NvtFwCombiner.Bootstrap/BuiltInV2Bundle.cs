@@ -445,9 +445,9 @@ internal sealed class BuiltInV2Bundle
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
         ArgumentNullException.ThrowIfNull(composition);
-        if (!StringComparer.Ordinal.Equals(composition.ProfileId, profileId) ||
+        if (!StringComparer.Ordinal.Equals(composition.V2Details.ProfileId, profileId) ||
             !StringComparer.Ordinal.Equals(
-                composition.ProfileVersion,
+                composition.V2Details.ProfileVersion,
                 profileVersion))
         {
             throw new InvalidDataException(

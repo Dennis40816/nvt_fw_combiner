@@ -19,8 +19,8 @@ public sealed partial class RepositoryBoundaryTests
 
         string composition = ReadText(
             "src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs");
-        Assert.Contains("ValidationRequirements =>", composition, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.DoesNotContain("ValidationRequirements =>", composition, StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "V2Details.Provenance.ValidationRequirements;",
             composition,
             StringComparison.Ordinal);

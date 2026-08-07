@@ -78,7 +78,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             icId,
             capacity);
 
-        Assert.Equal(expectedOutputFileName, v2.DefaultOutputFileName);
+        Assert.Equal(expectedOutputFileName, v2.V2Details.OutputNamingRequirement.FileNameTemplate);
         AssertDeclaredDpPerspectivePlan(v2.Plan, capacity);
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 

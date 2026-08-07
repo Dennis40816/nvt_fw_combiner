@@ -71,8 +71,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Empty(result.Issues);
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
-        Assert.Equal("display-merge", composition.ExperienceId);
-        Assert.NotEqual(ExperienceIds.AbMerge, composition.ExperienceId);
+        Assert.Equal("display-merge", composition.V2Details.ExperienceId);
+        Assert.NotEqual(ExperienceIds.AbMerge, composition.V2Details.ExperienceId);
         Assert.Equal(CompiledOutputNameRendererKind.AbCodeV1, composition.V2Details?.OutputNamingRequirement.RendererKind);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
     }

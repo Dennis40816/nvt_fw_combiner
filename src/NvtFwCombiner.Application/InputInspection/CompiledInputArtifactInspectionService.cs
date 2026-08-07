@@ -191,7 +191,7 @@ public static class CompiledInputArtifactInspectionService
             return inspection;
         }
 
-        CompiledUniformInputRangeValidation? failed = composition.ValidationRequirements
+        CompiledUniformInputRangeValidation? failed = composition.V2Details.Provenance.ValidationRequirements
             .OfType<CompiledUniformInputRangeValidation>()
             .Where(requirement => StringComparer.Ordinal.Equals(
                 requirement.AddressSpaceId,

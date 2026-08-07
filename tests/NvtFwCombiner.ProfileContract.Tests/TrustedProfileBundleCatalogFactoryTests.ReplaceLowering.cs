@@ -15,8 +15,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Empty(compilation.Issues);
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
-        Assert.Equal(CompositionKind.Replace, composition.CompositionKind);
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
+        Assert.Equal(CompositionKind.Replace, composition.V2Details.CompositionKind);
+        Assert.Equal(IcNumberInputMode.SingleSelector, composition.V2Details.IcNumberInputMode);
         ImageInitialization initialization = composition.Plan.OutputInitialization;
         Assert.Equal(ImageInitializationKind.Reference, initialization.Kind);
         Assert.Equal("reference-source", initialization.ReferenceSpaceId);
@@ -225,7 +225,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Empty(compilation.Issues);
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
-        Assert.Equal("general-replace", composition.ExperienceId);
+        Assert.Equal("general-replace", composition.V2Details.ExperienceId);
         Assert.Equal(
             [CompositionOperationKind.ReplaceRange],
             composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
@@ -245,7 +245,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         Assert.Empty(compilation.Issues);
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
-        Assert.Equal("ctrlram-replace", composition.ExperienceId);
+        Assert.Equal("ctrlram-replace", composition.V2Details.ExperienceId);
         Assert.Equal(
             [CompositionOperationKind.ReplaceRange],
             composition.Plan.OrderedOperations.Select(static operation => operation.Kind));

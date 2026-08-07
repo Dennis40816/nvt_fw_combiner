@@ -82,12 +82,13 @@ public sealed partial class CompiledComposition
             builder,
             "authority.model-version",
             V2CompilerModelVersion);
-        AppendField(builder, "profile.id", composition.ProfileId);
-        AppendField(builder, "profile.version", composition.ProfileVersion);
-        AppendField(builder, "profile.ic", composition.IcId);
-        AppendField(builder, "profile.mode", composition.ModeId);
-        AppendField(builder, "profile.experience", composition.ExperienceId);
-        AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
+        V2CompiledCompositionDetails details = composition.V2Details;
+        AppendField(builder, "profile.id", details.ProfileId);
+        AppendField(builder, "profile.version", details.ProfileVersion);
+        AppendField(builder, "profile.ic", details.Provenance.Context.MemberId);
+        AppendField(builder, "profile.mode", details.Provenance.Context.ModeId);
+        AppendField(builder, "profile.experience", details.ExperienceId);
+        AppendEnum(builder, "profile.composition-kind", details.CompositionKind);
     }
 
     private static void AppendCapabilityFingerprint(
@@ -105,7 +106,7 @@ public sealed partial class CompiledComposition
         CompiledComposition composition,
         V2CompilationProvenance provenance)
     {
-        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendIcNumberInputMode(builder, composition.V2Details.IcNumberInputMode);
         AppendEnum(builder, "eligibility", composition.Eligibility);
         AppendField(builder, "bundle.id", provenance.Bundle.BundleId);
         AppendField(builder, "bundle.version", provenance.Bundle.BundleVersion);
@@ -119,8 +120,18 @@ public sealed partial class CompiledComposition
         StringBuilder builder,
         CompiledComposition composition)
     {
-        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendIcNumberInputMode(builder, composition.V2Details.IcNumberInputMode);
         AppendEnum(builder, "eligibility", composition.Eligibility);
+    }
+
+    private static void AppendIcNumberInputMode(
+        StringBuilder builder,
+        IcNumberInputMode? inputMode)
+    {
+        AppendInteger(
+            builder,
+            "run-policy.ic-number",
+            inputMode is { } mode ? (long)mode + 1 : 0);
     }
 
     private static string CompleteV2Fingerprint(
@@ -148,7 +159,7 @@ public sealed partial class CompiledComposition
             AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         }
 
-        AppendValidationRequirements(builder, composition.ValidationRequirements);
+        AppendValidationRequirements(builder, provenance.ValidationRequirements);
         AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
         AppendInputContract(builder, details.InputContract);
         AppendRegionAccessContract(builder, details.RegionAccessContract);

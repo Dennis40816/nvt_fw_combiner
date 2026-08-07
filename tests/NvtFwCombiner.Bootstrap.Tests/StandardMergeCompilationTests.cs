@@ -19,7 +19,7 @@ public sealed class StandardMergeCompilationTests
         Assert.True(succeeded);
         Assert.Empty(issues);
         Assert.NotNull(composition);
-        Assert.Equal("nt51923-standard-merge-gen-flash", composition.ProfileId);
+        Assert.Equal("nt51923-standard-merge-gen-flash", composition.V2Details.ProfileId);
         Assert.Equal(0x40000, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(["dp-input", "tp-input"], composition.Plan.RequiredInputAddressSpaceIds);
     }
@@ -43,17 +43,17 @@ public sealed class StandardMergeCompilationTests
         Assert.True(succeeded);
         Assert.Empty(issues);
         Assert.NotNull(composition);
-        Assert.Equal(icId, composition.IcId);
-        Assert.EndsWith("-standard-merge-dp-perspective", composition.ProfileId, StringComparison.Ordinal);
+        Assert.Equal(icId, composition.V2Details.Provenance.Context.MemberId);
+        Assert.EndsWith("-standard-merge-dp-perspective", composition.V2Details.ProfileId, StringComparison.Ordinal);
         Assert.Equal(dpInputLength, composition.Plan.OutputInitialization.Capacity);
         CapabilityProfileSummary baseline = CanonicalCapabilityProjection
             .GetStandardMergeProfileSummaries()
             .Single(summary => string.Equals(summary.IcId, icId, StringComparison.Ordinal));
-        Assert.Equal(baseline.ProfileId, composition.ProfileId);
-        Assert.Equal(baseline.CompositionKind, composition.CompositionKind);
+        Assert.Equal(baseline.ProfileId, composition.V2Details.ProfileId);
+        Assert.Equal(baseline.CompositionKind, composition.V2Details.CompositionKind);
         Assert.Equal(baseline.RequiredInputAddressSpaceIds, composition.Plan.RequiredInputAddressSpaceIds);
-        Assert.Equal(baseline.DefaultOutputFileName, composition.DefaultOutputFileName);
-        Assert.Equal(baseline.IcNumberPolicy, composition.IcNumberPolicy);
+        Assert.Equal(baseline.DefaultOutputFileName, composition.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal(baseline.IcNumberInputMode, composition.V2Details.IcNumberInputMode);
         Assert.Equal(
             new ByteRange(0x0A000, 0x2D000),
             composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions

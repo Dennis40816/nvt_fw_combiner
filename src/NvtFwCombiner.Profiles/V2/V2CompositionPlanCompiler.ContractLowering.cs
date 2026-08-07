@@ -101,7 +101,6 @@ internal static partial class V2CompositionPlanCompiler
         IEnumerable<CompiledInputSlotRequirement> inputSlots,
         IEnumerable<CompiledInputSpaceBinding> inputBindings,
         CompiledRegionAccessContract regionAccess,
-        CompiledIcNumberPolicy icNumberPolicy,
         IEnumerable<CompiledCapabilityAdmission>? capabilityAdmissions = null,
         bool runtimeExecutable = false,
         IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
@@ -123,11 +122,12 @@ internal static partial class V2CompositionPlanCompiler
             provenance,
             new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
             regionAccess,
-            profile.Output);
+            profile.Output,
+            profile.IcNumberInputMode);
         ValidateArtifactAdmission(details, runtimeExecutable);
         CompiledComposition artifact = runtimeExecutable
-            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details, icNumberPolicy)
-            : CompiledComposition.CreateV2(plan, details, icNumberPolicy);
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
+            : CompiledComposition.CreateV2(plan, details);
         return V2CompositionPlanCompileResult.Succeeded(artifact);
     }
 

@@ -175,7 +175,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             "ab-candidate",
             composition,
             CreateRuntimeBindings(),
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             abMergeTopologySelection: SingleTopology());
 
         Assert.Same(composition, request.CompiledComposition);

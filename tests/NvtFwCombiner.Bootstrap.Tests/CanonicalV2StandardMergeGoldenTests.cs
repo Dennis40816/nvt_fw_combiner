@@ -44,9 +44,9 @@ public sealed class CanonicalV2StandardMergeGoldenTests
                 ? [CompositionAddressSpaceIds.LdcInput]
                 : null);
 
-        Assert.Equal(profileId, v2.ProfileId);
-        Assert.Equal(icId, v2.IcId);
-        Assert.Equal(expectedOutputFileName, v2.DefaultOutputFileName);
+        Assert.Equal(profileId, v2.V2Details.ProfileId);
+        Assert.Equal(icId, v2.V2Details.Provenance.Context.MemberId);
+        Assert.Equal(expectedOutputFileName, v2.V2Details.OutputNamingRequirement.FileNameTemplate);
         AssertNormalDpInputContract(v2, expectedDpSourceLength);
         if (expectsLdc)
         {
@@ -84,7 +84,7 @@ public sealed class CanonicalV2StandardMergeGoldenTests
                 regionSetProvenance.Where(static candidate =>
                     candidate.AliasChain.Count == 0),
                 AssertDirectProvenance);
-            (string EffectiveMapId, string EffectiveFactId, string SourceMemberId, string SourceMapId, string SourceFactId, string AliasId) = composition.IcId switch
+            (string EffectiveMapId, string EffectiveFactId, string SourceMemberId, string SourceMapId, string SourceFactId, string AliasId) = composition.V2Details.Provenance.Context.MemberId switch
             {
                 "NT51919" => (
                     "nt51919-standard-merge-256k",
@@ -93,10 +93,10 @@ public sealed class CanonicalV2StandardMergeGoldenTests
                     "nt51929-standard-merge-256k",
                     "nt51929-nt51932-standard-merge-flash",
                     "nt51919-standard-merge-region-set-alias"),
-                _ => throw new Xunit.Sdk.XunitException($"Unexpected region-set alias for {composition.IcId}."),
+                _ => throw new Xunit.Sdk.XunitException($"Unexpected region-set alias for {composition.V2Details.Provenance.Context.MemberId}."),
             };
 
-            Assert.Equal(composition.IcId, provenance.EffectiveKey.MemberId);
+            Assert.Equal(composition.V2Details.Provenance.Context.MemberId, provenance.EffectiveKey.MemberId);
             Assert.Equal(EffectiveMapId, provenance.EffectiveKey.MapId);
             Assert.Equal(EffectiveFactId, provenance.EffectiveKey.FactId);
             Assert.Equal(SourceMemberId, provenance.DirectSourceKey.MemberId);

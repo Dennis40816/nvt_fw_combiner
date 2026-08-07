@@ -213,8 +213,8 @@ public sealed partial class CompositionRunRequestV2Tests
         ResolvedCapabilityRoute CreateRoute(IReadOnlyList<string> bindings)
         {
             var contract = new CanonicalCapabilityCompilationContract(
-                composition.ProfileId,
-                composition.ProfileVersion,
+                composition.V2Details.ProfileId,
+                composition.V2Details.ProfileVersion,
                 composition.V2Details.Provenance.Bundle.ContentHash,
                 ["map"],
                 CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
@@ -474,7 +474,8 @@ public sealed partial class CompositionRunRequestV2Tests
                 "runtime-reference.bin",
                 allowOverride: false,
                 CompiledOutputInvalidCharacterPolicy.Reject,
-                []));
+                []),
+            IcNumberInputMode.SingleSelector);
         AddressSpace[] spaces =
         [
             new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
@@ -530,10 +531,7 @@ public sealed partial class CompositionRunRequestV2Tests
             ImageInitialization.Reference("output-image", "reference", 4),
             spaces,
             [.. mappingOperations, .. processorOperations]);
-        return CompiledComposition.CreateV2(
-            plan,
-            details,
-            CompiledIcNumberPolicy.SingleSelector);
+        return CompiledComposition.CreateV2(plan, details);
 
         static IReadOnlyList<ExternalProcessorWriteRangeSection>
             CreateSyntheticPostbuildWriteSections(

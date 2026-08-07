@@ -166,8 +166,8 @@ internal static partial class CompositionPlanningAdapter
         GeneralMergeV2CandidateRegistration registration)
     {
         return composition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-               StringComparer.Ordinal.Equals(composition.ProfileId, registration.ProfileId) &&
-               StringComparer.Ordinal.Equals(composition.ProfileVersion, registration.ProfileVersion) &&
+               StringComparer.Ordinal.Equals(composition.V2Details.ProfileId, registration.ProfileId) &&
+               StringComparer.Ordinal.Equals(composition.V2Details.ProfileVersion, registration.ProfileVersion) &&
                composition.V2Details.Provenance.Context is LogicalOutputV2CompilationContext context &&
                composition.V2Details.Provenance.Promotion.Stage ==
                    CompiledProfilePromotionStage.ExecutableCandidate &&

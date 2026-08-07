@@ -115,7 +115,7 @@ public static partial class CompositionExecutionAdapter
             firstInputPath,
             build,
             outputPath,
-            compiledComposition.DefaultOutputFileName,
+            compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate,
             automaticOutputDirectory);
         if (outputPathUsesAutomaticName)
         {
@@ -123,7 +123,7 @@ public static partial class CompositionExecutionAdapter
             // template as the Application request value so execution snapshots render the final
             // automatic name, rather than accidentally treating the dialog's stale suggestion as
             // an operator override.
-            outputFileName = compiledComposition.DefaultOutputFileName;
+            outputFileName = compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate;
         }
         if (previewOutputFileName is not null)
         {

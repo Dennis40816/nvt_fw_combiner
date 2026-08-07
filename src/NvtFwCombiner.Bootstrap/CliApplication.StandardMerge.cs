@@ -136,7 +136,7 @@ public static partial class CliApplication
 
         CliOutputTarget outputTarget = CliCompositionRunSupport.ResolveOutputTarget(
             options.Values.GetValueOrDefault("--output"),
-            compiledComposition.DefaultOutputFileName);
+            compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
         if (action == "build")
         {
             CliCompositionRunSupport.EnsureOutputDoesNotAliasInputs(outputTarget, bindings);

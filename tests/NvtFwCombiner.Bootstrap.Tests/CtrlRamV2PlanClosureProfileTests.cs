@@ -503,8 +503,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.True(compile.IsCompiled, string.Join(Environment.NewLine, compile.Issues.Select(static issue => issue.Message)));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
         Assert.Equal(expectedEligibility, composition.Eligibility);
-        Assert.Equal(profileId, composition.ProfileId);
-        Assert.Equal(icId, composition.IcId);
+        Assert.Equal(profileId, composition.V2Details.ProfileId);
+        Assert.Equal(icId, composition.V2Details.Provenance.Context.MemberId);
         return composition;
     }
 

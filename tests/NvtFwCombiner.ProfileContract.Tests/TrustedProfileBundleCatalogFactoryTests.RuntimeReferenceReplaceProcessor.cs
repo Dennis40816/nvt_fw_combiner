@@ -91,7 +91,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal(ExperienceIds.CtrlRamReplace, composition.ExperienceId);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, composition.V2Details.ExperienceId);
         Assert.Equal("cascade-map", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         CompiledInputSlotRequirement sourceSlot = Assert.Single(
             composition.V2Details.InputContract.Slots,
@@ -221,8 +221,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             string.Join(Environment.NewLine, alternateResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         CompiledComposition ctrlRam = Assert.IsType<CompiledComposition>(ctrlRamResult.CompiledComposition);
         CompiledComposition alternate = Assert.IsType<CompiledComposition>(alternateResult.CompiledComposition);
-        Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRam.ExperienceId);
-        Assert.Equal(ExperienceIds.GeneralReplace, alternate.ExperienceId);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRam.V2Details.ExperienceId);
+        Assert.Equal(ExperienceIds.GeneralReplace, alternate.V2Details.ExperienceId);
         AssertEquivalentRuntimeExecutionSemantics(ctrlRam, alternate);
     }
 

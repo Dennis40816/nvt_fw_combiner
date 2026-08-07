@@ -22,7 +22,7 @@ internal static class CompiledCompositionTestFactory
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         string mapId = "application-test-map",
         bool allowOutputOverride = false,
@@ -60,11 +60,9 @@ internal static class CompiledCompositionTestFactory
                 defaultOutputFileName,
                 allowOverride: allowOutputOverride,
                 CompiledOutputInvalidCharacterPolicy.Reject,
-                outputRequiredTokenIds ?? []));
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            details,
-            icNumberPolicy);
+                outputRequiredTokenIds ?? []),
+            icNumberInputMode);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static CompiledInputContract CreateInputContract(

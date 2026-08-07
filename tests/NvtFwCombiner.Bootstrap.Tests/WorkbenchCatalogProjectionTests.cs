@@ -116,11 +116,11 @@ public sealed class WorkbenchCatalogProjectionTests
 
             Assert.True(summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
-            Assert.Equal(composition.ProfileId, summary.ProfileId);
-            Assert.Equal(composition.CompositionKind, summary.CompositionKind);
+            Assert.Equal(composition.V2Details.ProfileId, summary.ProfileId);
+            Assert.Equal(composition.V2Details.CompositionKind, summary.CompositionKind);
             Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
+            Assert.Equal(composition.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
+            Assert.Equal(composition.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
         }
     }
 
@@ -148,11 +148,11 @@ public sealed class WorkbenchCatalogProjectionTests
             CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
             Assert.True(summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
-            Assert.Equal(artifact.ProfileId, summary.ProfileId);
-            Assert.Equal(artifact.CompositionKind, summary.CompositionKind);
+            Assert.Equal(artifact.V2Details.ProfileId, summary.ProfileId);
+            Assert.Equal(artifact.V2Details.CompositionKind, summary.CompositionKind);
             Assert.Equal(artifact.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(artifact.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(artifact.IcNumberPolicy, summary.IcNumberPolicy);
+            Assert.Equal(artifact.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
+            Assert.Equal(artifact.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
         }
     }
 }

@@ -193,9 +193,9 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("boundInputs.InputBytes,", root, StringComparison.Ordinal);
         Assert.Contains("execution.OutputBytes);", root, StringComparison.Ordinal);
-        Assert.Contains("ValidationRequirements =>", composition, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidationRequirements =>", composition, StringComparison.Ordinal);
         Assert.Contains(
-            "AppendValidationRequirements(builder, composition.ValidationRequirements)",
+            "AppendValidationRequirements(builder, provenance.ValidationRequirements)",
             fingerprint,
             StringComparison.Ordinal);
         Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", finalOutputValidations, StringComparison.Ordinal);

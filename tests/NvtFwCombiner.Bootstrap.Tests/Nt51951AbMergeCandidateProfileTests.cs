@@ -87,7 +87,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             "ab-candidate",
             composition,
             CreateRuntimeBindings(),
-            composition.DefaultOutputFileName);
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate);
 
         Assert.Same(composition, request.CompiledComposition);
     }

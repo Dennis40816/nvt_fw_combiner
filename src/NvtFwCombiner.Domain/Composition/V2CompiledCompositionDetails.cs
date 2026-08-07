@@ -298,12 +298,17 @@ public sealed class V2CompiledCompositionDetails
         V2CompilationProvenance provenance,
         CompiledInputContract inputContract,
         CompiledRegionAccessContract regionAccessContract,
-        CompiledOutputNamingRequirement outputNamingRequirement)
+        CompiledOutputNamingRequirement outputNamingRequirement,
+        IcNumberInputMode? icNumberInputMode = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(experienceId);
         ClosedEnum.ThrowIfUndefined(compositionKind, "Unknown composition kind.");
+        if (icNumberInputMode is { } inputMode)
+        {
+            ClosedEnum.ThrowIfUndefined(inputMode, "Unknown IC-number input mode.");
+        }
 
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(inputContract);
@@ -327,6 +332,7 @@ public sealed class V2CompiledCompositionDetails
         InputContract = inputContract;
         RegionAccessContract = regionAccessContract;
         OutputNamingRequirement = outputNamingRequirement;
+        IcNumberInputMode = icNumberInputMode;
     }
 
     /// <summary>Stable profile id.</summary>
@@ -352,6 +358,9 @@ public sealed class V2CompiledCompositionDetails
 
     /// <summary>Unrendered profile-owned output naming requirement.</summary>
     public CompiledOutputNamingRequirement OutputNamingRequirement { get; }
+
+    /// <summary>Canonical IC-number input mode, or null when it is not applicable.</summary>
+    public IcNumberInputMode? IcNumberInputMode { get; }
 
     private static void ValidateRegionAccessContract(
         FirmwareImageMap map,

@@ -1,6 +1,5 @@
 using System.Globalization;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap;
 
@@ -72,20 +71,12 @@ public static partial class CliApplication
         return Success;
     }
 
-    private static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
+    internal static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
     {
-        return profile.IcNumberPolicy switch
-        {
-            CompiledIcNumberPolicy.NotApplicable => "none",
-            CompiledIcNumberPolicy.SingleSelector => nameof(CompiledIcNumberPolicy.SingleSelector),
-            CompiledIcNumberPolicy.CascadeSelector => nameof(CompiledIcNumberPolicy.CascadeSelector),
-            CompiledIcNumberPolicy.NumericSelector => nameof(CompiledIcNumberPolicy.NumericSelector),
-            null => "compile-error",
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(profile),
-                profile.IcNumberPolicy,
-                "Unknown compiled IC-number policy."),
-        };
+        return profile.IcNumberInputMode is not { } mode
+            ? profile.CompileSucceeded ? "none" : "compile-error"
+            : Enum.IsDefined(mode) ? mode.ToString() : throw new ArgumentOutOfRangeException(
+                nameof(profile), mode, "Unknown IC-number input mode.");
     }
 
     private static string FormatProfileIssues(CapabilityProfileSummary profile)

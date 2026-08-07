@@ -6,14 +6,12 @@ public sealed partial class CompiledComposition
     private CompiledComposition(
         CompositionPlan plan,
         V2CompiledCompositionDetails details,
-        CompiledIcNumberPolicy icNumberPolicy,
         CompiledCompositionEligibility eligibility)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(details);
 
         Plan = plan;
-        IcNumberPolicy = icNumberPolicy;
         Eligibility = eligibility;
         V2Details = details;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
@@ -24,7 +22,6 @@ public sealed partial class CompiledComposition
         string capabilityFingerprint)
     {
         Plan = source.Plan;
-        IcNumberPolicy = source.IcNumberPolicy;
         Eligibility = source.Eligibility;
         V2Details = source.V2Details;
         CapabilityFingerprint = capabilityFingerprint;
@@ -33,30 +30,6 @@ public sealed partial class CompiledComposition
 
     /// <summary>The sole validated byte-execution plan.</summary>
     public CompositionPlan Plan { get; }
-
-    /// <summary>Stable profile id.</summary>
-    public string ProfileId => V2Details.ProfileId;
-
-    /// <summary>Profile content version.</summary>
-    public string ProfileVersion => V2Details.ProfileVersion;
-
-    /// <summary>IC id declared by the profile.</summary>
-    public string IcId => V2Details.Provenance.Context.MemberId;
-
-    /// <summary>Mode id declared by the profile.</summary>
-    public string ModeId => V2Details.Provenance.Context.ModeId;
-
-    /// <summary>Experience id declared by the profile.</summary>
-    public string ExperienceId => V2Details.ExperienceId;
-
-    /// <summary>Merge or Replace composition kind.</summary>
-    public CompositionKind CompositionKind => V2Details.CompositionKind;
-
-    /// <summary>Profile-rendered default output file name.</summary>
-    public string DefaultOutputFileName => V2Details.OutputNamingRequirement.FileNameTemplate;
-
-    /// <summary>Compiled IC-number input policy.</summary>
-    public CompiledIcNumberPolicy IcNumberPolicy { get; }
 
     /// <summary>Execution eligibility established by the compiler authority.</summary>
     public CompiledCompositionEligibility Eligibility { get; }
@@ -70,7 +43,7 @@ public sealed partial class CompiledComposition
         Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
         V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
         V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
-        CompositionKind == CompositionKind.Merge &&
+        V2Details.CompositionKind == CompositionKind.Merge &&
         V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1 &&
         V2Details.Provenance.Promotion.Blockers.Count != 0 &&
         V2Details.Provenance.Promotion.Blockers.All(static blocker =>
@@ -86,15 +59,11 @@ public sealed partial class CompiledComposition
         (Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable ||
          IsV2AbFunctionOpenCandidate) &&
         V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
-        CompositionKind == CompositionKind.Merge &&
+        V2Details.CompositionKind == CompositionKind.Merge &&
         V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.AbCodeV1;
 
     /// <summary>Paired trusted profile-bundle provenance and compiled requirements.</summary>
     public V2CompiledCompositionDetails V2Details { get; }
-
-    /// <summary>Closed validation requirements retained by the compiler authority.</summary>
-    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements =>
-        V2Details.Provenance.ValidationRequirements;
 
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
@@ -123,18 +92,16 @@ public sealed partial class CompiledComposition
     /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>
     internal static CompiledComposition CreateV2(
         CompositionPlan plan,
-        V2CompiledCompositionDetails details,
-        CompiledIcNumberPolicy icNumberPolicy)
+        V2CompiledCompositionDetails details)
     {
-        return new CompiledComposition(plan, details, icNumberPolicy, CompiledCompositionEligibility.V2PlanCompiled);
+        return new CompiledComposition(plan, details, CompiledCompositionEligibility.V2PlanCompiled);
     }
 
     /// <summary>Creates a trusted profile-bundle-v2 artifact admitted to the current closed runtime subset.</summary>
     internal static CompiledComposition CreateV2RuntimeExecutable(
         CompositionPlan plan,
-        V2CompiledCompositionDetails details,
-        CompiledIcNumberPolicy icNumberPolicy)
+        V2CompiledCompositionDetails details)
     {
-        return new CompiledComposition(plan, details, icNumberPolicy, CompiledCompositionEligibility.V2RuntimeExecutable);
+        return new CompiledComposition(plan, details, CompiledCompositionEligibility.V2RuntimeExecutable);
     }
 }

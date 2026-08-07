@@ -29,7 +29,7 @@ internal static class CompiledOutputNameResolver
             CompiledOutputNameRendererKind.NormalFlashCodeV1 or
                 CompiledOutputNameRendererKind.TpFirmwareV1 =>
                     ResolveNormal(
-                        request.CompiledComposition.IcId,
+                        request.CompiledComposition.V2Details.Provenance.Context.MemberId,
                         output,
                         request.OutputFileName,
                         request.IsOutputFileNameOverride,

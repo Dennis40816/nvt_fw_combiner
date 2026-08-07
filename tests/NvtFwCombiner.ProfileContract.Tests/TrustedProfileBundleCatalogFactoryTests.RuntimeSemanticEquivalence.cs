@@ -10,8 +10,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition actual)
     {
         Assert.Equal(expected.Eligibility, actual.Eligibility);
-        Assert.Equal(expected.CompositionKind, actual.CompositionKind);
-        Assert.Equal(expected.IcNumberPolicy, actual.IcNumberPolicy);
+        Assert.Equal(expected.V2Details.CompositionKind, actual.V2Details.CompositionKind);
+        Assert.Equal(
+            expected.V2Details.IcNumberInputMode,
+            actual.V2Details.IcNumberInputMode);
         Assert.Equal(expected.Plan.OutputSpaceId, actual.Plan.OutputSpaceId);
         Assert.Equal(
             expected.Plan.AddressSpaces.OrderBy(static space => space.AddressSpaceId).Select(static space =>

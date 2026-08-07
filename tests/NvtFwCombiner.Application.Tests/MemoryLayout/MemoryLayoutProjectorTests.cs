@@ -351,13 +351,11 @@ public sealed partial class MemoryLayoutProjectorTests
                 $"{workflowId}.bin",
                 allowOverride: true,
                 CompiledOutputInvalidCharacterPolicy.Reject,
-                []));
-        var composition = CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            details,
+                []),
             kind == CompositionKind.Merge
-                ? CompiledIcNumberPolicy.NotApplicable
-                : CompiledIcNumberPolicy.SingleSelector);
+                ? null
+                : IcNumberInputMode.SingleSelector);
+        var composition = CompiledComposition.CreateV2RuntimeExecutable(plan, details);
         var route = new CapabilityRouteIdentity(
             "NT-SYNTHETIC",
             workflowId,

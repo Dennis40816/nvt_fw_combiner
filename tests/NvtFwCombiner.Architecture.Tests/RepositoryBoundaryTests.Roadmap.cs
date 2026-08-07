@@ -68,7 +68,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("| 6 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, #259, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 16 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 18 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 19 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 18 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 19 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 20 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 21 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);

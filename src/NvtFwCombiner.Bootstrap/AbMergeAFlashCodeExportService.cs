@@ -34,7 +34,7 @@ public static class AbMergeAFlashCodeExportService
                TryRenderSuggestedFileName(outputNamePreview.OutputNaming, out string? fileName) &&
                fileName is not null
             ? ValueTask.FromResult<WorkbenchAbAFlashCodeDeliveryPlan?>(new WorkbenchAbAFlashCodeDeliveryPlan(
-                composition.ProfileId,
+                composition.V2Details.ProfileId,
                 // Keep every selected source path.  A case-insensitive de-duplication would
                 // discard a distinct input on a case-sensitive filesystem, leaving that path
                 // outside the delivery-time overwrite guard.

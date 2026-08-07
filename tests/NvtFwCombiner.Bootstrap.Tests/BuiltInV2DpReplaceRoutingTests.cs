@@ -35,7 +35,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.True(registered);
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
-        Assert.Equal(profileId, artifact.ProfileId);
+        Assert.Equal(profileId, artifact.V2Details.ProfileId);
         Assert.Equal(bundleContentHash, artifact.V2Details.Provenance.Bundle.ContentHash);
         Assert.Equal(
             [CompositionAddressSpaceIds.DpReplacement, CompositionAddressSpaceIds.ReferenceBase],
@@ -70,7 +70,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.True(registered);
         Assert.Empty(issues);
         CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
-        Assert.Equal("nt51928-dp-replace-gen-flash", artifact.ProfileId);
+        Assert.Equal("nt51928-dp-replace-gen-flash", artifact.V2Details.ProfileId);
         Assert.Equal(
             selectedInputIds.Split(',').Append(CompositionAddressSpaceIds.ReferenceBase).Order(StringComparer.Ordinal),
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
@@ -389,16 +389,16 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
-        Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.ProfileId);
+        Assert.Equal($"nt{icId[2..]}-dp-replace-dp-perspective", artifact.V2Details.ProfileId);
         Assert.Equal(baseCapacity, artifact.Plan.OutputInitialization.Capacity);
         CapabilityProfileSummary summary = CanonicalCapabilityProjection
             .GetDpReplaceProfileSummaries()
             .Single(profile => string.Equals(profile.IcId, icId, StringComparison.Ordinal));
-        Assert.Equal(summary.ProfileId, artifact.ProfileId);
-        Assert.Equal(summary.CompositionKind, artifact.CompositionKind);
+        Assert.Equal(summary.ProfileId, artifact.V2Details.ProfileId);
+        Assert.Equal(summary.CompositionKind, artifact.V2Details.CompositionKind);
         Assert.Equal(summary.RequiredInputAddressSpaceIds, artifact.Plan.RequiredInputAddressSpaceIds);
-        Assert.Equal(summary.DefaultOutputFileName, artifact.DefaultOutputFileName);
-        Assert.Equal(summary.IcNumberPolicy, artifact.IcNumberPolicy);
+        Assert.Equal(summary.DefaultOutputFileName, artifact.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal(summary.IcNumberInputMode, artifact.V2Details.IcNumberInputMode);
     }
 
     /// <summary>Verifies unsupported base capacities fail at the V2 resolver and never fall back to legacy planning.</summary>

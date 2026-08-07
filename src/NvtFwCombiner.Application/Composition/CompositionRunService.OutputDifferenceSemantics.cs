@@ -18,7 +18,7 @@ public sealed partial class CompositionRunService
         {
             OutputDifferenceClassifications.PostbuildCrcHeader =>
                 CreatePostbuildDifferenceSemantic(
-                    request.CompiledComposition.IcId,
+                    request.CompiledComposition.V2Details.Provenance.Context.MemberId,
                     reportMetadata,
                     expectation,
                     range),

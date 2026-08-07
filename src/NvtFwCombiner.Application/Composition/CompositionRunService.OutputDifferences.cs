@@ -13,7 +13,7 @@ public sealed partial class CompositionRunService
         ReadOnlyMemory<byte> outputBytes)
     {
         if (execution.Status != CompositionExecutionStatus.Succeeded ||
-            request.CompiledComposition.CompositionKind != CompositionKind.Replace ||
+            request.CompiledComposition.V2Details.CompositionKind != CompositionKind.Replace ||
             request.CompiledComposition.Plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             request.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId is not { } referenceSpaceId ||
             !inputBytes.TryGetValue(referenceSpaceId, out byte[]? referenceBytes) ||

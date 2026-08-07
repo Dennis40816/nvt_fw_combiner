@@ -141,8 +141,8 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateDpReplaceComposition();
 
-        Assert.Equal(CompositionKind.Replace, composition.CompositionKind);
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
+        Assert.Equal(CompositionKind.Replace, composition.V2Details.CompositionKind);
+        Assert.Equal(IcNumberInputMode.SingleSelector, composition.V2Details.IcNumberInputMode);
         Assert.Equal(ImageInitializationKind.Reference, composition.Plan.OutputInitialization.Kind);
         Assert.Equal("reference-source", composition.Plan.OutputInitialization.ReferenceSpaceId);
         AddressSpace reference = Assert.Single(
@@ -380,7 +380,7 @@ public sealed partial class CompiledCompositionTests
             compositionKind: CompositionKind.Replace,
             modeId: "dp-replace",
             experienceId: "dp-replace",
-            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector);
+            icNumberInputMode: IcNumberInputMode.SingleSelector);
     }
 
     private static CompositionPlan CreateTpPlan(

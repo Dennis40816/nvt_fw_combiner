@@ -109,10 +109,10 @@ public sealed record CanonicalCapabilityCompilationContract
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(composition);
         ArgumentNullException.ThrowIfNull(metadataPlan);
-        if (!StringComparer.Ordinal.Equals(identity.IcId, composition.IcId) ||
-            !StringComparer.Ordinal.Equals(identity.WorkflowId, composition.ExperienceId) ||
-            !StringComparer.Ordinal.Equals(ProfileId, composition.ProfileId) ||
-            !StringComparer.Ordinal.Equals(ProfileVersion, composition.ProfileVersion))
+        if (!StringComparer.Ordinal.Equals(identity.IcId, composition.V2Details.Provenance.Context.MemberId) ||
+            !StringComparer.Ordinal.Equals(identity.WorkflowId, composition.V2Details.ExperienceId) ||
+            !StringComparer.Ordinal.Equals(ProfileId, composition.V2Details.ProfileId) ||
+            !StringComparer.Ordinal.Equals(ProfileVersion, composition.V2Details.ProfileVersion))
         {
             throw new ArgumentException(
                 "Compiled composition identity does not match its canonical capability definition.",
@@ -277,8 +277,8 @@ public sealed record CanonicalCapabilityCompilationContract
                 nameof(identity));
 
         return new CanonicalCapabilityCompilationContract(
-            composition.ProfileId,
-            composition.ProfileVersion,
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
             composition.V2Details.Provenance.Bundle.ContentHash,
             [validatedMapId],
             composition.V2Details.Provenance.Context switch

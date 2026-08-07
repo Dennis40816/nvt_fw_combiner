@@ -203,7 +203,7 @@ public static class CompiledFirmwareArtifactClassifier
                 : ByteRange.FromStartEndExclusive(candidate.Length, requiredEndExclusive));
         CompiledUniformInputRangeValidation[] validations =
         [
-            .. composition.ValidationRequirements
+            .. composition.V2Details.Provenance.ValidationRequirements
                 .OfType<CompiledUniformInputRangeValidation>()
                 .Where(validation =>
                     StringComparer.Ordinal.Equals(validation.AddressSpaceId, addressSpaceId)),

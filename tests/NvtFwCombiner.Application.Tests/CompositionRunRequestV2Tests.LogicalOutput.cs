@@ -290,7 +290,7 @@ public sealed partial class CompositionRunRequestV2Tests
                 allowOverride: false,
                 CompiledOutputInvalidCharacterPolicy.Reject,
                 []));
-        return CompiledComposition.CreateV2(plan, details, CompiledIcNumberPolicy.NotApplicable);
+        return CompiledComposition.CreateV2(plan, details);
     }
 
     private static InputArtifactBinding CreateLogicalBinding(string bindingId, string originalFileName)

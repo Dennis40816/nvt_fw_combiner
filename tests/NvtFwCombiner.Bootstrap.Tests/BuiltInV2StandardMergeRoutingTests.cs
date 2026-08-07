@@ -48,8 +48,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal(bundleContentHash, details.Provenance.Bundle.ContentHash);
-        Assert.Equal(profileId, artifact.ProfileId);
-        Assert.Equal(icId, artifact.IcId);
+        Assert.Equal(profileId, artifact.V2Details.ProfileId);
+        Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(
             expectedInputAddressSpaceIds.Split(','),
             artifact.Plan.RequiredInputAddressSpaceIds.Order(StringComparer.Ordinal));
@@ -154,8 +154,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, artifact.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(artifact.V2Details);
         Assert.Equal("56e39af41aaed8abad5da0f49274053ad2fb619949b53efd9497ed31a10ee99b", details.Provenance.Bundle.ContentHash);
-        Assert.Equal(profileId, artifact.ProfileId);
-        Assert.Equal(icId, artifact.IcId);
+        Assert.Equal(profileId, artifact.V2Details.ProfileId);
+        Assert.Equal(icId, artifact.V2Details.Provenance.Context.MemberId);
         Assert.Equal(dpInputLength, artifact.Plan.OutputInitialization.Capacity);
     }
 

@@ -385,7 +385,7 @@ internal sealed class BuiltInV2Registration
                     : IsDpReplace
                         ? $"nt{IcId[2..].ToLowerInvariant()}-dp-replace.bin"
                         : $"nt{IcId[2..].ToLowerInvariant()}-ab-merge.bin",
-                IsDpReplace ? CompiledIcNumberPolicy.SingleSelector : null,
+                IsDpReplace ? IcNumberInputMode.SingleSelector : null,
                 CompileSucceeded: false,
                 Array.AsReadOnly(compilation.Issues.Select(static issue => issue.Code).ToArray()));
     }

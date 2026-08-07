@@ -7,14 +7,17 @@ public sealed partial class CompiledCompositionTests
 {
     /// <summary>Verifies every supported Replace IC-number policy is represented without null or unknown states.</summary>
     [Theory]
-    [InlineData(CompiledIcNumberPolicy.SingleSelector)]
-    [InlineData(CompiledIcNumberPolicy.CascadeSelector)]
-    [InlineData(CompiledIcNumberPolicy.NumericSelector)]
-    public void ReplaceAcceptsExplicitIcNumberPolicies(CompiledIcNumberPolicy policy)
+    [InlineData(IcNumberInputMode.SingleSelector, "00d8b5220f887fc1dc44044d8616b8f42e56eb320735809a25de64bed8f00df0")]
+    [InlineData(IcNumberInputMode.CascadeSelector, "a987c5ae6c9e4150b5ad2e15c213ee109a94070c6b5602da9ea4fed1ab226b3d")]
+    [InlineData(IcNumberInputMode.NumericSelector, "b2055f1234aadce751122f44033521ef7c2c78379b0515412eaeef82466ceb19")]
+    public void ReplaceAcceptsExplicitIcNumberPolicies(
+        IcNumberInputMode inputMode,
+        string expectedFingerprint)
     {
-        CompiledComposition composition = CreateReplace(policy);
+        CompiledComposition composition = CreateReplace(inputMode);
 
-        Assert.Equal(policy, composition.IcNumberPolicy);
+        Assert.Equal(inputMode, composition.V2Details.IcNumberInputMode);
+        Assert.Equal(expectedFingerprint, composition.CompilationFingerprint);
     }
 
     /// <summary>Verifies compiled default output policy cannot contain path or control syntax.</summary>
@@ -57,15 +60,15 @@ public sealed partial class CompiledCompositionTests
             CreateMerge(modeId: "alternate"),
             CreateMerge(experienceId: "general-merge"),
             CreateMerge(defaultOutputFileName: "alternate.bin"),
-            CreateReplace(CompiledIcNumberPolicy.SingleSelector),
+            CreateReplace(IcNumberInputMode.SingleSelector),
         ];
 
         Assert.All(
             variants,
             variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
         Assert.NotEqual(
-            CreateReplace(CompiledIcNumberPolicy.SingleSelector).CompilationFingerprint,
-            CreateReplace(CompiledIcNumberPolicy.CascadeSelector).CompilationFingerprint);
+            CreateReplace(IcNumberInputMode.SingleSelector).CompilationFingerprint,
+            CreateReplace(IcNumberInputMode.CascadeSelector).CompilationFingerprint);
     }
 
     /// <summary>Verifies final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
@@ -90,7 +93,7 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition changed = CreateMerge(validationRequirements: [changedRequirement]);
 
         CompiledFirmwareConfigBackupVersionValidation requirement = Assert.IsType<
-            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.ValidationRequirements));
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.V2Details.Provenance.ValidationRequirements));
         Assert.Equal(CompiledValidationStage.FinalOutput, requirement.Stage);
         Assert.Equal(CompiledValidationSeverity.Error, requirement.Severity);
         Assert.Equal(0x27, requirement.FirmwareVersion);
@@ -325,7 +328,7 @@ public sealed partial class CompiledCompositionTests
             profileVersion: profileVersion);
     }
 
-    private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
+    private static CompiledComposition CreateReplace(IcNumberInputMode inputMode)
     {
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference", 4),
@@ -347,7 +350,7 @@ public sealed partial class CompiledCompositionTests
             modeId: "replace",
             experienceId: "general-replace",
             compositionKind: CompositionKind.Replace,
-            icNumberPolicy: policy,
+            icNumberInputMode: inputMode,
             profileId: "replace-profile",
             profileVersion: "1.0.0");
     }

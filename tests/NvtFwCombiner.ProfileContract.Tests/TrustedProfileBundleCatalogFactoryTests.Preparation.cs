@@ -332,8 +332,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition actual = Assert.IsType<CompiledComposition>(standard.CompiledComposition);
         Assert.Equal("map-cascade", expected.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal("map-cascade", actual.V2Details?.Provenance.ResolvedMap.ImageMap.MapId);
-        Assert.Equal(ExperienceIds.AbMerge, expected.ExperienceId);
-        Assert.Equal("standard", actual.ExperienceId);
+        Assert.Equal(ExperienceIds.AbMerge, expected.V2Details!.ExperienceId);
+        Assert.Equal("standard", actual.V2Details!.ExperienceId);
         Assert.Equal(expected.Plan.OutputInitialization.Kind, actual.Plan.OutputInitialization.Kind);
         Assert.Equal(expected.Plan.OutputInitialization.Capacity, actual.Plan.OutputInitialization.Capacity);
         Assert.Equal(expected.Plan.OutputInitialization.FillByte, actual.Plan.OutputInitialization.FillByte);
