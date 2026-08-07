@@ -18,27 +18,20 @@ public abstract class V2CompilationContext
 {
     /// <summary>Creates a checked exact compilation context.</summary>
     protected V2CompilationContext(
-        V2CompilationContextKind kind,
         string familyId,
         string familyVersion,
         string familyContentHash,
         string memberId,
         string modeId)
     {
-        ClosedEnum.ThrowIfUndefined(kind, "Unknown V2 compilation context kind.");
-
         FamilyId = RequiredValue.NotBlank(familyId);
         FamilyVersion = RequiredValue.NotBlank(familyVersion);
         MemberId = RequiredValue.NotBlank(memberId);
         ModeId = RequiredValue.NotBlank(modeId);
         _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
-        Kind = kind;
         FamilyContentHash = familyContentHash;
     }
-
-    /// <summary>Closed provenance context kind.</summary>
-    public V2CompilationContextKind Kind { get; }
 
     /// <summary>Exact trusted firmware family identifier.</summary>
     public string FamilyId { get; }
@@ -61,10 +54,8 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
 {
     /// <summary>Creates one checked map-bound context with a closed purpose discriminator.</summary>
     protected MapBoundV2CompilationContext(
-        V2CompilationContextKind kind,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
         : base(
-            kind,
             RequireMap(resolvedMap).FamilyId,
             resolvedMap.FamilyVersion,
             resolvedMap.FamilyContentHash,
@@ -88,7 +79,7 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
 public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationContext
 {
     internal ResolvedMapV2CompilationContext(FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
-        : base(V2CompilationContextKind.ResolvedMap, resolvedMap)
+        : base(resolvedMap)
     {
     }
 }
@@ -102,7 +93,7 @@ public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2Comp
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool allowsConditionalProcessor,
         IEnumerable<string>? processorWriteViewIds = null)
-        : base(V2CompilationContextKind.RuntimeReferenceReplace, resolvedMap)
+        : base(resolvedMap)
     {
         _processorWriteViewIds = ImmutableStringSnapshot.Create(
             processorWriteViewIds ?? [],
@@ -130,7 +121,6 @@ public sealed class LogicalOutputV2CompilationContext : V2CompilationContext
         string familyContentHash,
         string memberId)
         : base(
-            V2CompilationContextKind.LogicalOutput,
             familyId,
             familyVersion,
             familyContentHash,

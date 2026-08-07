@@ -61,14 +61,8 @@ internal static partial class V2CompositionPlanCompiler
     {
         sourceSpaceId = null;
         error = null;
-        InputArtifactProfileSpace? source = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
+        InputArtifactProfileSpace source = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        if (source is null)
-        {
-            error = $"mutable space '{mutableSpace.SpaceId}' clone source slot '{clone.SourceSlotId}' has no immutable input space";
-            return false;
-        }
-
         if (spaces[source.SpaceId].Length != spaces[mutableSpace.SpaceId].Length)
         {
             error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' does not match its capacity";
@@ -117,13 +111,6 @@ internal static partial class V2CompositionPlanCompiler
         if (!usesExactGeometry && !usesSourceViewSnapshot)
         {
             error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or checked equal-length source-snapshot geometry";
-            return false;
-        }
-
-        if (mutableSpace.Kind == CompositionProfileSpaceKind.OutputImage &&
-            ResolveCloneReferenceSourceSpaceId(profile, clone) != source.SpaceId)
-        {
-            error = "the output image clone source does not meet the Replace reference-image contract";
             return false;
         }
 

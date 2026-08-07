@@ -62,7 +62,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(CompiledInputInstancePolicy.Singleton, inputBinding.InstancePolicy);
         CompiledRegionAccessRequirement access = Assert.Single(details.RegionAccessContract.Requirements);
         Assert.Equal("root", access.RegionId);
-        Assert.Equal(CompiledRegionAccessKind.Whole, access.Access);
+        Assert.Equal(RegionAccessKind.Whole, access.Access);
         Assert.Equal(FirmwareWriteConstraint.WholeRegion, Assert.Single(access.GoverningRegionChain).WriteConstraint);
         Assert.Equal(["output-code", "tp-code"], details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
     }
@@ -247,7 +247,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         CompiledRegionAccessRequirement access = Assert.Single(
             result.CompiledComposition!.V2Details.RegionAccessContract.Requirements);
-        Assert.Equal(CompiledRegionAccessKind.Parts, access.Access);
+        Assert.Equal(RegionAccessKind.Parts, access.Access);
         Assert.Equal(["left"], access.AllowedSubregionIds);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
         Assert.Equal(["root", "left"], Assert.Single(
@@ -322,7 +322,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledRegionAccessRequirement rule = Assert.Single(
             readOnly.CompiledComposition!.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "left");
-        Assert.Equal(CompiledRegionAccessKind.ReadOnly, rule.Access);
+        Assert.Equal(RegionAccessKind.ReadOnly, rule.Access);
         Assert.NotEqual(readOnly.CompiledComposition.CompilationFingerprint, hidden.CompiledComposition!.CompilationFingerprint);
     }
 

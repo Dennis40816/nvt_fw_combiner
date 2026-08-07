@@ -17,7 +17,7 @@ public sealed class CompositionProfileV2InputTests
         var sourceViewWithContainers = new SourceViewCoverageInputLengthDefinition(
             [0x80000, 0x200000],
             "DP_SIZE_WARNING");
-        var tpMaximum = new CompiledTpMaximum256KInputLengthRequirement();
+        _ = new CompiledTpMaximum256KInputLengthRequirement();
         var declaredPrefix = new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
             0x80000,
             [0x80000],
@@ -31,9 +31,6 @@ public sealed class CompositionProfileV2InputTests
         Assert.Equal("DP_SIZE_WARNING", sourceViewWithResolvedContainer.UnexpectedOuterLengthIssueCode);
         Assert.Empty(sourceViewWithResolvedContainer.ExpectedOuterLengths);
         Assert.Equal([0x80000L, 0x200000L], sourceViewWithContainers.ExpectedOuterLengths);
-        Assert.Equal(
-            CompiledInputLengthRequirementKind.TpMaximum256K,
-            tpMaximum.Kind);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("INPUT_SHORT", declaredPrefix.ShortInputIssueCode);

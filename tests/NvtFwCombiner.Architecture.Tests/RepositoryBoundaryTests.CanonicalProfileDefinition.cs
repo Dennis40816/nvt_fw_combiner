@@ -88,6 +88,30 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Domain/Composition/CompiledInputSlotRequirement.cs"),
             "internal CompiledInputSlotRequirement("));
         Assert.DoesNotContain(
+            "CompiledInputLengthRequirementKind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledInputSlotRequirement.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledValidationScalarLiteralKind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledValidationRequirement.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledValidationKind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledValidationRequirement.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledRegionAccessKind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledRegionAccessContract.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "public V2CompilationContextKind Kind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/V2CompilationContext.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompiledInputNormalizationKind",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledInputSlotRequirement.cs"),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "ValidateDefaultOutputFileName(",
             ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"),
             StringComparison.Ordinal);
@@ -176,6 +200,7 @@ public sealed partial class RepositoryBoundaryTests
             trustedCompiler,
             StringComparison.Ordinal);
         Assert.DoesNotContain("GetDeclaredWriteRanges(", compilerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryResolveSourceAndTarget(", compilerSources, StringComparison.Ordinal);
         Assert.Contains(
             "internal bool IsInputSlotApplicable(",
             ReadText("src/NvtFwCombiner.Domain/Composition/CompositionProfileDefinition.Graph.cs"),

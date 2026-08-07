@@ -28,29 +28,6 @@ public enum CompiledValidationSeverity
     Error,
 }
 
-/// <summary>Closed executable validation kind.</summary>
-public enum CompiledValidationKind
-{
-    /// <inheritdoc/>
-    MetadataValue,
-    /// <inheritdoc/>
-    PidSanity,
-    /// <inheritdoc/>
-    MetadataEquality,
-    /// <inheritdoc/>
-    RejectMetadataBytePattern,
-    /// <inheritdoc/>
-    ViewByteAssertion,
-    /// <inheritdoc/>
-    FirmwareConfigBackupVersion,
-    /// <inheritdoc/>
-    FirmwareConfigBackupPlacementAuthority,
-    /// <inheritdoc/>
-    FirmwareConfigBackupExpectedAddress,
-    /// <inheritdoc/>
-    RejectUniformInputRanges,
-}
-
 /// <summary>One metadata field reached through a profile metadata binding.</summary>
 public sealed record CompiledValidationFieldReference
 {
@@ -67,34 +44,13 @@ public sealed record CompiledValidationFieldReference
     public string FieldId { get; }
 }
 
-/// <summary>Closed scalar literal kind retained until field-specific runtime evaluation.</summary>
-public enum CompiledValidationScalarLiteralKind
-{
-    /// <inheritdoc/>
-    Integral,
-    /// <inheritdoc/>
-    Text,
-}
-
 /// <summary>Base value for one exact compiled validation literal.</summary>
-public abstract record CompiledValidationScalarLiteral
-{
-    private protected CompiledValidationScalarLiteral(CompiledValidationScalarLiteralKind kind)
-    {
-        ClosedEnum.ThrowIfUndefined(kind, "Unknown validation scalar literal kind.");
-
-        Kind = kind;
-    }
-
-    /// <summary>Closed literal carrier kind.</summary>
-    public CompiledValidationScalarLiteralKind Kind { get; }
-}
+public abstract record CompiledValidationScalarLiteral;
 
 /// <summary>One arbitrary-precision exact integer literal.</summary>
 public sealed record CompiledValidationIntegerLiteral : CompiledValidationScalarLiteral
 {
     internal CompiledValidationIntegerLiteral(BigInteger value)
-        : base(CompiledValidationScalarLiteralKind.Integral)
     {
         Value = value;
     }
@@ -107,7 +63,6 @@ public sealed record CompiledValidationIntegerLiteral : CompiledValidationScalar
 public sealed record CompiledValidationTextLiteral : CompiledValidationScalarLiteral
 {
     internal CompiledValidationTextLiteral(string value)
-        : base(CompiledValidationScalarLiteralKind.Text)
     {
         ArgumentException.ThrowIfNullOrEmpty(value);
         Value = value;
@@ -221,20 +176,10 @@ public abstract record CompiledValidationRequirement : ValidationRequirementDefi
         string ruleId,
         CompiledValidationStage stage,
         CompiledValidationSeverity severity,
-        string issueCode,
-        CompiledValidationKind kind)
+        string issueCode)
         : base(ruleId, stage, severity, issueCode)
     {
-        if (!ClosedEnum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), "Unknown compiled validation discriminator.");
-        }
-
-        Kind = kind;
     }
-
-    /// <summary>Closed validation kind.</summary>
-    public CompiledValidationKind Kind { get; }
 }
 
 /// <summary>Compares one bound metadata field to exact typed literals.</summary>
@@ -250,7 +195,7 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
         CompiledValidationFieldReference field,
         CompiledValidationMetadataComparison comparison,
         IEnumerable<CompiledValidationScalarLiteral> expectedValues)
-        : base(ruleId, stage, severity, issueCode, CompiledValidationKind.MetadataValue)
+        : base(ruleId, stage, severity, issueCode)
     {
         Field = RequiredValue.NotNull(field);
         ClosedEnum.ThrowIfUndefined(comparison, "Unknown metadata comparison.");
@@ -281,15 +226,16 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
 
     private static int CompareLiterals(CompiledValidationScalarLiteral left, CompiledValidationScalarLiteral right)
     {
-        int kind = left.Kind.CompareTo(right.Kind);
-        return kind != 0
-            ? kind
-            : left switch
-            {
-                CompiledValidationIntegerLiteral integer => integer.Value.CompareTo(((CompiledValidationIntegerLiteral)right).Value),
-                CompiledValidationTextLiteral text => StringComparer.Ordinal.Compare(text.Value, ((CompiledValidationTextLiteral)right).Value),
-                _ => throw new InvalidOperationException("Unknown compiled validation literal kind."),
-            };
+        return (left, right) switch
+        {
+            (CompiledValidationIntegerLiteral first, CompiledValidationIntegerLiteral second) =>
+                first.Value.CompareTo(second.Value),
+            (CompiledValidationIntegerLiteral, CompiledValidationTextLiteral) => -1,
+            (CompiledValidationTextLiteral, CompiledValidationIntegerLiteral) => 1,
+            (CompiledValidationTextLiteral first, CompiledValidationTextLiteral second) =>
+                StringComparer.Ordinal.Compare(first.Value, second.Value),
+            _ => throw new InvalidOperationException("Unknown compiled validation literal kind."),
+        };
     }
 }
 
@@ -297,7 +243,7 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
 public sealed record CompiledPidSanityValidation : CompiledValidationRequirement
 {
     internal CompiledPidSanityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference field)
-        : base(ruleId, stage, severity, issueCode, CompiledValidationKind.PidSanity)
+        : base(ruleId, stage, severity, issueCode)
     {
         Field = RequiredValue.NotNull(field);
     }
@@ -310,7 +256,7 @@ public sealed record CompiledPidSanityValidation : CompiledValidationRequirement
 public sealed record CompiledMetadataEqualityValidation : CompiledValidationRequirement
 {
     internal CompiledMetadataEqualityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference left, CompiledValidationFieldReference right)
-        : base(ruleId, stage, severity, issueCode, CompiledValidationKind.MetadataEquality)
+        : base(ruleId, stage, severity, issueCode)
     {
         Left = RequiredValue.NotNull(left);
         Right = RequiredValue.NotNull(right);
@@ -329,7 +275,7 @@ public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValid
     private readonly CompiledValidationRejectedBytePattern[] _rejectedPatterns;
 
     internal CompiledRejectMetadataBytePatternValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference field, IEnumerable<CompiledValidationRejectedBytePattern> rejectedPatterns)
-        : base(ruleId, stage, severity, issueCode, CompiledValidationKind.RejectMetadataBytePattern)
+        : base(ruleId, stage, severity, issueCode)
     {
         Field = RequiredValue.NotNull(field);
         ArgumentNullException.ThrowIfNull(rejectedPatterns);
@@ -354,7 +300,7 @@ public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValid
 public sealed record CompiledViewByteAssertionValidation : CompiledValidationRequirement
 {
     internal CompiledViewByteAssertionValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, string viewId, CompiledValidationBytes expected, CompiledValidationBytes? mask = null)
-        : base(ruleId, stage, severity, issueCode, CompiledValidationKind.ViewByteAssertion)
+        : base(ruleId, stage, severity, issueCode)
     {
         ViewId = RequiredValue.NotBlank(viewId);
         Expected = RequiredValue.NotNull(expected);

@@ -269,12 +269,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!spaces.TryGetValue(view.SpaceId, out AddressSpace? space))
-            {
-                issues.Add(new CompositionIssue(InvalidView, $"View '{view.ViewId}' names an unsupported space '{view.SpaceId}'.", view.ViewId));
-                continue;
-            }
-
+            AddressSpace space = spaces[view.SpaceId];
             if (!TryResolveViewRange(view, resolvedMap, space, out ByteRange range, out string? error))
             {
                 issues.Add(new CompositionIssue(InvalidView, error!, view.ViewId));
@@ -392,7 +387,7 @@ internal static partial class V2CompositionPlanCompiler
 
             var requirement = new CompiledRegionAccessRequirement(
                 rule.RegionId,
-                MapRegionAccessKind(rule.Access),
+                rule.Access,
                 rule.Reason,
                 rule.AllowedSubregionIds,
                 ToCompiledRegionChain(governingRegionChain));
@@ -561,13 +556,13 @@ internal static partial class V2CompositionPlanCompiler
             Owner: FirmwareRegionOwner.Tp,
             Kind: FirmwareRegionKind.CtrlRam,
         };
-        CompiledRegionAccessKind mostSpecificAccess = applicableRules
+        RegionAccessKind mostSpecificAccess = applicableRules
             .OrderBy(static rule => rule.Region.Range.Length)
             .ThenBy(static rule => rule.Region.RegionId, StringComparer.Ordinal)
             .First()
             .Requirement.Access;
         if (!isAuthorableTpCtrlRam &&
-            mostSpecificAccess is not (CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly))
+            mostSpecificAccess is not (RegionAccessKind.Hidden or RegionAccessKind.ReadOnly))
         {
             AddAccessDenied(
                 issues,
@@ -598,12 +593,12 @@ internal static partial class V2CompositionPlanCompiler
     {
         return rule.Requirement.Access switch
         {
-            CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly => false,
-            CompiledRegionAccessKind.Whole => rule.Region.Range == targetRange,
-            CompiledRegionAccessKind.Parts => rule.Requirement.AllowedSubregionIds.Any(subregionId =>
+            RegionAccessKind.Hidden or RegionAccessKind.ReadOnly => false,
+            RegionAccessKind.Whole => rule.Region.Range == targetRange,
+            RegionAccessKind.Parts => rule.Requirement.AllowedSubregionIds.Any(subregionId =>
                 regionsById[subregionId].Range == targetRange &&
                 StringComparer.Ordinal.Equals(regionsById[subregionId].ParentRegionId, rule.Region.RegionId)),
-            CompiledRegionAccessKind.ExplicitRange =>
+            RegionAccessKind.ExplicitRange =>
                 rule.Region.Range.Contains(targetRange) && IsAligned(targetRange, rule.Region.Alignment),
             _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown region access kind."),
         };
@@ -649,19 +644,6 @@ internal static partial class V2CompositionPlanCompiler
             region.RegionId,
             region.WriteConstraint,
             region.Alignment))];
-    }
-
-    private static CompiledRegionAccessKind MapRegionAccessKind(RegionAccessKind access)
-    {
-        return access switch
-        {
-            RegionAccessKind.Hidden => CompiledRegionAccessKind.Hidden,
-            RegionAccessKind.ReadOnly => CompiledRegionAccessKind.ReadOnly,
-            RegionAccessKind.Whole => CompiledRegionAccessKind.Whole,
-            RegionAccessKind.Parts => CompiledRegionAccessKind.Parts,
-            RegionAccessKind.ExplicitRange => CompiledRegionAccessKind.ExplicitRange,
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown region access kind."),
-        };
     }
 
     private sealed record ResolvedView(

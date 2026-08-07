@@ -101,17 +101,8 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveSourceAndTarget(
-                operation.OperationId,
-                operation.SourceViewId,
-                operation.TargetViewId,
-                views,
-                issues,
-                out ResolvedView source,
-                out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView source = views[operation.SourceViewId];
+        ResolvedView target = views[operation.TargetViewId];
 
         if (source.Range.Length != target.Range.Length)
         {
@@ -146,9 +137,8 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
-        operations.Add(operation.Kind switch
-        {
-            CompositionOperationKind.CopyRange => CompositionOperation.CopyRange(
+        operations.Add(operation.Kind == CompositionOperationKind.CopyRange
+            ? CompositionOperation.CopyRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -156,8 +146,8 @@ internal static partial class V2CompositionPlanCompiler
                 target.SpaceId,
                 target.Range,
                 operation.OverlapPolicy,
-                operation.Reason),
-            CompositionOperationKind.ReplaceRange => CompositionOperation.ReplaceRange(
+                operation.Reason)
+            : CompositionOperation.ReplaceRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -165,16 +155,7 @@ internal static partial class V2CompositionPlanCompiler
                 target.SpaceId,
                 target.Range,
                 operation.OverlapPolicy,
-                operation.Reason),
-            CompositionOperationKind.FillRange or
-            CompositionOperationKind.PatchScalar or
-            CompositionOperationKind.TransformScalar or
-            CompositionOperationKind.RunExternalProcessor => throw new ArgumentOutOfRangeException(
-                nameof(operation),
-                operation.Kind,
-                "Copy-like lowering requires a copy-range or replace-range operation."),
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported copy-like operation."),
-        });
+                operation.Reason));
     }
 
     private static void LowerFillOperation(
@@ -185,8 +166,8 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveTarget(operation.OperationId, operation.TargetViewId, views, issues, out ResolvedView target) ||
-            !TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
+        ResolvedView target = views[operation.TargetViewId];
+        if (!TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
         {
             return;
         }
@@ -209,10 +190,7 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveTarget(operation.OperationId, operation.TargetViewId, views, issues, out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView target = views[operation.TargetViewId];
 
         if (operation.PatchBytes.Length != target.Range.Length)
         {
@@ -244,17 +222,8 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveSourceAndTarget(
-                operation.OperationId,
-                operation.SourceViewId,
-                operation.TargetViewId,
-                views,
-                issues,
-                out ResolvedView source,
-                out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView source = views[operation.SourceViewId];
+        ResolvedView target = views[operation.TargetViewId];
 
         if (source.Range.Length != target.Range.Length)
         {
@@ -446,47 +415,6 @@ internal static partial class V2CompositionPlanCompiler
                 Owner: FirmwareRegionOwner.Tp,
                 Kind: FirmwareRegionKind.CtrlRam,
             };
-    }
-
-    private static bool TryResolveSourceAndTarget(
-        string operationId,
-        string sourceViewId,
-        string targetViewId,
-        IReadOnlyDictionary<string, ResolvedView> views,
-        List<CompositionIssue> issues,
-        out ResolvedView source,
-        out ResolvedView target)
-    {
-        if (!views.TryGetValue(sourceViewId, out ResolvedView? resolvedSource) || resolvedSource is null ||
-            !views.TryGetValue(targetViewId, out ResolvedView? resolvedTarget) || resolvedTarget is null)
-        {
-            issues.Add(new CompositionIssue(InvalidView, $"Operation '{operationId}' references an unresolved view.", operationId));
-            source = null!;
-            target = null!;
-            return false;
-        }
-
-        source = resolvedSource;
-        target = resolvedTarget;
-        return true;
-    }
-
-    private static bool TryResolveTarget(
-        string operationId,
-        string targetViewId,
-        IReadOnlyDictionary<string, ResolvedView> views,
-        List<CompositionIssue> issues,
-        out ResolvedView target)
-    {
-        if (!views.TryGetValue(targetViewId, out ResolvedView? resolvedTarget) || resolvedTarget is null)
-        {
-            issues.Add(new CompositionIssue(InvalidView, $"Operation '{operationId}' references an unresolved view.", operationId));
-            target = null!;
-            return false;
-        }
-
-        target = resolvedTarget;
-        return true;
     }
 
     private static bool TryResolveSequence(

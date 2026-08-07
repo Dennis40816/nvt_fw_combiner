@@ -35,38 +35,8 @@ public enum CompiledInputInstancePolicy
     PerBinding,
 }
 
-/// <summary>Closed input length-rule kind retained by a compiled artifact.</summary>
-/// <remarks>Values are fingerprint wire codes; retired value 3 must not be reused or renumbered.</remarks>
-public enum CompiledInputLengthRequirementKind
-{
-    /// <inheritdoc/>
-    ExactBytes = 0,
-    /// <inheritdoc/>
-    ExactResolvedMapCapacity = 1,
-    /// <inheritdoc/>
-    Bounded = 2,
-    /// <inheritdoc/>
-    TpMaximum256K = 4,
-    /// <inheritdoc/>
-    DeclaredPrefixWithWarning = 5,
-    /// <inheritdoc/>
-    SourceViewCoverage = 6,
-}
-
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
-public abstract record CompiledInputLengthRequirement : InputLengthRequirementDefinition
-{
-    /// <summary>Creates a checked closed length requirement kind.</summary>
-    protected CompiledInputLengthRequirement(CompiledInputLengthRequirementKind kind)
-    {
-        ClosedEnum.ThrowIfUndefined(kind, "Unknown compiled input length requirement kind.");
-
-        Kind = kind;
-    }
-
-    /// <summary>Closed requirement kind.</summary>
-    public CompiledInputLengthRequirementKind Kind { get; }
-}
+public abstract record CompiledInputLengthRequirement : InputLengthRequirementDefinition;
 
 /// <summary>Accepts one immutable execution prefix while retaining full-source diagnostic authority.</summary>
 public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : CompiledInputLengthRequirement
@@ -79,7 +49,6 @@ public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : C
         IReadOnlyList<long> expectedOuterLengths,
         string shortInputIssueCode,
         string unexpectedOuterLengthIssueCode)
-        : base(CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning)
     {
         if (requiredEndExclusive is <= 0 or > int.MaxValue)
         {
@@ -133,7 +102,6 @@ public sealed record CompiledExactBytesInputLengthRequirement : CompiledInputLen
 {
     /// <summary>Creates an exact-length requirement.</summary>
     public CompiledExactBytesInputLengthRequirement(long bytes)
-        : base(CompiledInputLengthRequirementKind.ExactBytes)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -148,7 +116,6 @@ public sealed record CompiledExactResolvedMapCapacityInputLengthRequirement : Co
 {
     /// <summary>Creates an exact resolved-map-capacity requirement.</summary>
     public CompiledExactResolvedMapCapacityInputLengthRequirement(long bytes)
-        : base(CompiledInputLengthRequirementKind.ExactResolvedMapCapacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -163,7 +130,6 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
 {
     /// <summary>Creates a bounded-length requirement.</summary>
     public CompiledBoundedInputLengthRequirement(long minimumBytes, long maximumBytes)
-        : base(CompiledInputLengthRequirementKind.Bounded)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minimumBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
@@ -188,7 +154,7 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
 
 /// <summary>Rejects TP firmware larger than the owner-approved 256 KiB limit.</summary>
 public sealed record CompiledTpMaximum256KInputLengthRequirement()
-    : CompiledInputLengthRequirement(CompiledInputLengthRequirementKind.TpMaximum256K)
+    : CompiledInputLengthRequirement
 {
     /// <summary>Owner-approved maximum TP input length.</summary>
     public const long MaximumBytes = 262144;
@@ -207,7 +173,6 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     public CompiledSourceViewCoverageInputLengthRequirement(
         IReadOnlyList<long>? expectedOuterLengths = null,
         string? unexpectedOuterLengthIssueCode = null)
-        : base(CompiledInputLengthRequirementKind.SourceViewCoverage)
     {
         DomainInvariant.Reject(
             (expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null),
@@ -235,42 +200,17 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
 
 }
 
-/// <summary>Closed transient input-normalization kind retained by a compiled artifact.</summary>
-public enum CompiledInputNormalizationKind
-{
-    /// <inheritdoc/>
-    None,
-    /// <inheritdoc/>
-    PadShorter,
-    /// <inheritdoc/>
-    TruncateCtrlRam,
-}
-
 /// <summary>Base value for one immutable compiled input-normalization policy.</summary>
-public abstract record CompiledInputNormalization
-{
-    /// <summary>Creates a checked closed normalization kind.</summary>
-    protected CompiledInputNormalization(CompiledInputNormalizationKind kind)
-    {
-        ClosedEnum.ThrowIfUndefined(kind, "Unknown compiled input normalization kind.");
-
-        Kind = kind;
-    }
-
-    /// <summary>Closed normalization kind.</summary>
-    public CompiledInputNormalizationKind Kind { get; }
-}
+public abstract record CompiledInputNormalization;
 
 /// <summary>Preserves immutable source bytes without normalization.</summary>
-public sealed record CompiledNoInputNormalization()
-    : CompiledInputNormalization(CompiledInputNormalizationKind.None);
+public sealed record CompiledNoInputNormalization : CompiledInputNormalization;
 
 /// <summary>Pads a shorter DP source with one evidenced byte.</summary>
 public sealed record CompiledPadShorterInputNormalization : CompiledInputNormalization
 {
     /// <summary>Creates a checked short-input padding policy.</summary>
     public CompiledPadShorterInputNormalization(byte fillByte, string evidenceRef)
-        : base(CompiledInputNormalizationKind.PadShorter)
     {
         EvidenceRef = RequiredValue.NotBlank(evidenceRef);
         FillByte = fillByte;
@@ -288,7 +228,6 @@ public sealed record CompiledTruncateCtrlRamInputNormalization : CompiledInputNo
 {
     /// <summary>Creates a checked CtrlRAM truncation policy.</summary>
     public CompiledTruncateCtrlRamInputNormalization(string warningIssueCode, string evidenceRef)
-        : base(CompiledInputNormalizationKind.TruncateCtrlRam)
     {
         WarningIssueCode = RequiredValue.NotBlank(warningIssueCode);
         EvidenceRef = RequiredValue.NotBlank(evidenceRef);

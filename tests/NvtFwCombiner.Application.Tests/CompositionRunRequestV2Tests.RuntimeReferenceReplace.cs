@@ -447,7 +447,7 @@ public sealed partial class CompositionRunRequestV2Tests
             [
                 new CompiledRegionAccessRequirement(
                     writeRegionId,
-                    CompiledRegionAccessKind.ExplicitRange,
+                    RegionAccessKind.ExplicitRange,
                     "Synthetic runtime reference-replace target.",
                     [],
                     writeChain),

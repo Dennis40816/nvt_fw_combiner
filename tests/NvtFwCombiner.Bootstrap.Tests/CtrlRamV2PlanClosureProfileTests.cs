@@ -266,7 +266,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.Contains(
             composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "diff-ctrlram" &&
-                requirement.Access == CompiledRegionAccessKind.ExplicitRange);
+                requirement.Access == RegionAccessKind.ExplicitRange);
         Assert.DoesNotContain(
             composition.V2Details.RegionAccessContract.ResolvedViews,
             static view => view.ViewId == "fw-config-backup-output");
@@ -347,7 +347,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.Contains(
             composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "nf-master" &&
-                requirement.Access == CompiledRegionAccessKind.ExplicitRange);
+                requirement.Access == RegionAccessKind.ExplicitRange);
     }
 
     /// <summary>NT51950 and NT51951 cascade use identical TP authority despite different preserved image tails.</summary>
