@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
-using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.Normalization;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -53,11 +53,11 @@ internal static partial class CompositionProfileNormalizer
         }
     }
 
-    private static CompiledValidationBytes ReadBytes(string value, string path)
+    private static FirmwareMetadataBytes ReadBytes(string value, string path)
     {
         try
         {
-            return new CompiledValidationBytes(ContractJsonValueReader.ParseCanonicalHex(value));
+            return new FirmwareMetadataBytes(ContractJsonValueReader.ParseCanonicalHex(value));
         }
         catch (ArgumentException exception)
         {

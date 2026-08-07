@@ -13,7 +13,7 @@ public sealed class FirmwareMetadataStructureDefinition
     private readonly FirmwareMetadataFieldRelation[] _relations;
 
     /// <summary>Creates one checked logical metadata definition.</summary>
-    public FirmwareMetadataStructureDefinition(
+    internal FirmwareMetadataStructureDefinition(
         string definitionId,
         long lengthBytes,
         IEnumerable<FirmwareMetadataField> fields,
@@ -94,11 +94,7 @@ public sealed class FirmwareMetadataStructureDefinition
     /// <summary>Closed common-metadata specialization discriminator.</summary>
     public FirmwareMetadataStructureKind StructureKind { get; }
 
-    /// <summary>
-    /// Optional typed specialization. Null is the explicit legacy/common
-    /// metadata shape and never implies TP Header semantics.
-    /// </summary>
-    public FirmwareMetadataTypedDefinition? TypedDefinition { get; }
+    internal FirmwareMetadataTypedDefinition? TypedDefinition { get; }
 
     /// <summary>
     /// Resolves every physical field without granting mutation authority.

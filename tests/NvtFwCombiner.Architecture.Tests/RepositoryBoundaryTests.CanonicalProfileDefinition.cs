@@ -163,7 +163,7 @@ public sealed partial class RepositoryBoundaryTests
             ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareMetadataStructureDefinitionResolver.cs"),
             ReadText("src/NvtFwCombiner.Profiles/IcIdentifier.cs"));
         Assert.DoesNotContain("public sealed class FirmwareFamilyNormalizationException", familyNormalizerSources, StringComparison.Ordinal);
-        Assert.DoesNotContain("public sealed record FirmwareMetadataStructureDefinitionReference", familyNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("record FirmwareMetadataStructureDefinitionReference", familyNormalizerSources, StringComparison.Ordinal);
         Assert.DoesNotContain("public interface IFirmwareMetadataStructureDefinitionResolver", familyNormalizerSources, StringComparison.Ordinal);
         Assert.DoesNotContain("public static class IcIdentifier", familyNormalizerSources, StringComparison.Ordinal);
 
@@ -171,6 +171,60 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("public FirmwareImageMap(", imageMapSources, StringComparison.Ordinal);
         Assert.DoesNotContain("public IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings", imageMapSources, StringComparison.Ordinal);
         Assert.DoesNotContain("public IReadOnlyList<FirmwareRegionSet> RegionSets", imageMapSources, StringComparison.Ordinal);
+
+        string metadataDefinitionSources = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareMetadataLocator.cs"),
+            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareMetadataStructureDefinition.cs"),
+            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareTpFlashHeaderDefinition.cs"),
+            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareMetadataFieldSeries.cs"));
+        foreach (string internalDefinitionType in new[]
+                 {
+                     "FirmwareMetadataLocator",
+                     "FirmwareAbsoluteRangeLocator",
+                     "FirmwareRegionRelativeLocator",
+                     "FirmwareMarkerSelection",
+                     "FirmwareUniqueMarkerSelection",
+                     "FirmwareTerminalMarkerSelection",
+                     "FirmwareMarkerRelativeLocator",
+                     "FirmwareMetadataFieldSelectedBranch",
+                     "FirmwareMetadataFieldSelectedLocator",
+                     "FirmwareMetadataTypedDefinition",
+                     "FirmwareMetadataNamedSpan",
+                     "FirmwareTpFlashHeaderStoredAddressSemantics",
+                     "FirmwareTpFlashHeaderFieldSemantics",
+                     "FirmwareTpFlashHeaderDefinition",
+                     "FirmwareMetadataFieldSeriesMember",
+                     "FirmwareMetadataFieldSeriesApplicability",
+                     "FirmwareMetadataFieldSeries",
+                     "FirmwareMetadataFieldGroup",
+                 })
+        {
+            Assert.DoesNotContain($"public abstract record {internalDefinitionType}", metadataDefinitionSources, StringComparison.Ordinal);
+            Assert.DoesNotContain($"public sealed record {internalDefinitionType}", metadataDefinitionSources, StringComparison.Ordinal);
+            Assert.DoesNotContain($"public abstract class {internalDefinitionType}", metadataDefinitionSources, StringComparison.Ordinal);
+            Assert.DoesNotContain($"public sealed class {internalDefinitionType}", metadataDefinitionSources, StringComparison.Ordinal);
+        }
+
+        string validationDefinitionSources = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompiledValidationRequirement.cs");
+        foreach (string internalValidationType in new[]
+                 {
+                     "CompiledValidationFieldReference",
+                     "CompiledValidationScalarLiteral",
+                     "CompiledValidationIntegerLiteral",
+                     "CompiledValidationTextLiteral",
+                     "CompiledMetadataValueValidation",
+                     "CompiledPidSanityValidation",
+                     "CompiledMetadataEqualityValidation",
+                     "CompiledRejectMetadataBytePatternValidation",
+                     "CompiledViewByteAssertionValidation",
+                 })
+        {
+            Assert.DoesNotContain($"public abstract record {internalValidationType}", validationDefinitionSources, StringComparison.Ordinal);
+            Assert.DoesNotContain($"public sealed record {internalValidationType}", validationDefinitionSources, StringComparison.Ordinal);
+            Assert.DoesNotContain($"public sealed class {internalValidationType}", validationDefinitionSources, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>The plan compiler lowers closed semantic kinds without workflow-name branches or private range algebra.</summary>
@@ -189,6 +243,8 @@ public sealed partial class RepositoryBoundaryTests
                 .Select(File.ReadAllText));
 
         Assert.DoesNotContain("ExperienceIds.", compilerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateSupportedProfile(", compilerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateMapBoundOutputShape(", compilerSources, StringComparison.Ordinal);
         string trustedCompiler = ReadText(
             "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.Compilation.cs");
         string compilationSources = string.Join(
@@ -237,7 +293,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("profile.Header.ExperienceId,", contractLowering, StringComparison.Ordinal);
         Assert.Contains(
             "profile.Output.AllowsRuntimeExecution(profile.CompositionKind)",
-            ReadText("src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.Admission.cs"),
+            compilerSources,
             StringComparison.Ordinal);
         Assert.DoesNotContain(
             "AllowsRuntimeExecution(",

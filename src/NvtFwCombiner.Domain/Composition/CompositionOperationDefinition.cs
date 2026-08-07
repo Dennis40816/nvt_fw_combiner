@@ -1,4 +1,5 @@
 using System.Numerics;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
@@ -40,7 +41,7 @@ internal sealed class CompositionOperationDefinition
 
     internal byte FillByte { get; private init; }
 
-    internal CompiledValidationBytes PatchBytes { get; private init; } = null!;
+    internal FirmwareMetadataBytes PatchBytes { get; private init; } = null!;
 
     internal ScalarTransformWidth TransformWidth { get; private init; }
 
@@ -78,7 +79,7 @@ internal sealed class CompositionOperationDefinition
         OverlapPolicy overlapPolicy,
         string reason,
         string targetViewId,
-        CompiledValidationBytes patchBytes)
+        FirmwareMetadataBytes patchBytes)
     {
         ArgumentNullException.ThrowIfNull(patchBytes);
         return new(operationId, sequence, overlapPolicy, reason, CompositionOperationKind.PatchScalar)

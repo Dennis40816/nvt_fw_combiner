@@ -84,7 +84,33 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(capabilityAdmissions);
         CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
-        ValidateSupportedProfile(profile, issues);
+        if (profile.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
+        {
+            AddUnsupported(issues, "promotion stage must be Compilable or later");
+        }
+
+        if (profile.Promotion.Stage == CompiledProfilePromotionStage.Supported &&
+            !profile.Output.AllowsRuntimeExecution(profile.CompositionKind))
+        {
+            AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared composition kind");
+        }
+
+        if (profile.Validations.Any(static validation =>
+                validation is not SourceViewNonUniformValidationDefinition))
+        {
+            AddUnsupported(issues, "only warning-only non-uniform-region validations are lowered in this slice");
+        }
+
+        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
+        if (output.Capacity is RuntimeRequestProfileCapacity)
+        {
+            AddUnsupported(issues, "runtime-request output capacity requires logical-output V2 lowering");
+        }
+        else if (output.Capacity is not ResolvedMapProfileCapacity)
+        {
+            AddUnsupported(issues, "map-bound output images require resolved-map capacity");
+        }
+
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -147,7 +173,6 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
         ImageInitialization[] initializations = LowerInitializations(profile, spaces, issues);
         if (issues.Count != 0)
         {

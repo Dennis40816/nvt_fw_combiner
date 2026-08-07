@@ -106,13 +106,14 @@ public sealed partial class FirmwareMetadataStructureResolutionTests
 
     /// <summary>Verifies terminal selection counts overlapping matches and chooses the declared end.</summary>
     [Theory]
-    [InlineData(FirmwareMarkerTerminal.LowestAddress, 4L, 8L)]
-    [InlineData(FirmwareMarkerTerminal.HighestAddress, 5L, 9L)]
+    [InlineData((int)FirmwareMarkerTerminal.LowestAddress, 4L, 8L)]
+    [InlineData((int)FirmwareMarkerTerminal.HighestAddress, 5L, 9L)]
     public void TerminalMarkerCountsOverlappingMatches(
-        FirmwareMarkerTerminal terminal,
+        int terminalValue,
         long expectedMarkerStart,
         long expectedResultStart)
     {
+        var terminal = (FirmwareMarkerTerminal)terminalValue;
         FirmwareMetadataStructure structure = Structure(
             Marker(
                 searchStart: 4,

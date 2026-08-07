@@ -19,8 +19,8 @@ public enum FirmwareMetadataLocatorKind
     MetadataFieldSelected,
 }
 
-/// <summary>Base declaration for one closed metadata locator.</summary>
-public abstract record FirmwareMetadataLocator
+/// <summary>Internal canonical declaration for one closed metadata locator.</summary>
+internal abstract record FirmwareMetadataLocator
 {
     private protected FirmwareMetadataLocator(
         FirmwareMetadataLocatorKind kind,
@@ -30,18 +30,15 @@ public abstract record FirmwareMetadataLocator
         Kind = kind;
     }
 
-    /// <summary>Closed locator kind.</summary>
-    public FirmwareMetadataLocatorKind Kind { get; }
+    internal FirmwareMetadataLocatorKind Kind { get; }
 
-    /// <summary>Canonical candidate-map region that must contain the full result.</summary>
-    public string AllowedResultRegionId { get; }
+    internal string AllowedResultRegionId { get; }
 }
 
 /// <summary>Metadata structure located at one exact addressed range.</summary>
-public sealed record FirmwareAbsoluteRangeLocator : FirmwareMetadataLocator
+internal sealed record FirmwareAbsoluteRangeLocator : FirmwareMetadataLocator
 {
-    /// <summary>Creates an exact-range locator.</summary>
-    public FirmwareAbsoluteRangeLocator(
+    internal FirmwareAbsoluteRangeLocator(
         FirmwareAddressedRange range,
         string allowedResultRegionId)
         : base(FirmwareMetadataLocatorKind.AbsoluteRange, allowedResultRegionId)
@@ -49,15 +46,13 @@ public sealed record FirmwareAbsoluteRangeLocator : FirmwareMetadataLocator
         Range = RequiredValue.NotNull(range);
     }
 
-    /// <summary>Exact addressed structure range.</summary>
-    public FirmwareAddressedRange Range { get; }
+    internal FirmwareAddressedRange Range { get; }
 }
 
 /// <summary>Metadata structure located relative to one canonical map region.</summary>
-public sealed record FirmwareRegionRelativeLocator : FirmwareMetadataLocator
+internal sealed record FirmwareRegionRelativeLocator : FirmwareMetadataLocator
 {
-    /// <summary>Creates a nonnegative region-relative locator.</summary>
-    public FirmwareRegionRelativeLocator(
+    internal FirmwareRegionRelativeLocator(
         string regionId,
         long offset,
         string allowedResultRegionId)
@@ -68,60 +63,47 @@ public sealed record FirmwareRegionRelativeLocator : FirmwareMetadataLocator
         Offset = offset;
     }
 
-    /// <summary>Canonical base region id.</summary>
-    public string RegionId { get; }
+    internal string RegionId { get; }
 
-    /// <summary>Nonnegative offset from the base region start.</summary>
-    public long Offset { get; }
+    internal long Offset { get; }
 }
 
-/// <summary>Closed marker match-selection kind.</summary>
-public enum FirmwareMarkerSelectionKind
+internal enum FirmwareMarkerSelectionKind
 {
-    /// <summary>Exactly one match must exist.</summary>
     Unique,
-
-    /// <summary>An evidenced count must exist and one terminal match is selected.</summary>
     TerminalMatch,
 }
 
 /// <summary>Base declaration for marker cardinality and selection.</summary>
-public abstract record FirmwareMarkerSelection
+internal abstract record FirmwareMarkerSelection
 {
     private protected FirmwareMarkerSelection(FirmwareMarkerSelectionKind kind)
     {
         Kind = kind;
     }
 
-    /// <summary>Closed marker-selection kind.</summary>
-    public FirmwareMarkerSelectionKind Kind { get; }
+    internal FirmwareMarkerSelectionKind Kind { get; }
 }
 
 /// <summary>Requires exactly one marker match.</summary>
-public sealed record FirmwareUniqueMarkerSelection : FirmwareMarkerSelection
+internal sealed record FirmwareUniqueMarkerSelection : FirmwareMarkerSelection
 {
-    /// <summary>Creates the unique marker-selection policy.</summary>
-    public FirmwareUniqueMarkerSelection()
+    internal FirmwareUniqueMarkerSelection()
         : base(FirmwareMarkerSelectionKind.Unique)
     {
     }
 }
 
-/// <summary>Terminal direction for an evidenced marker match set.</summary>
-public enum FirmwareMarkerTerminal
+internal enum FirmwareMarkerTerminal
 {
-    /// <summary>Select the lowest-address match.</summary>
     LowestAddress,
-
-    /// <summary>Select the highest-address match.</summary>
     HighestAddress,
 }
 
 /// <summary>Requires an exact evidenced match count and selects one terminal match.</summary>
-public sealed record FirmwareTerminalMarkerSelection : FirmwareMarkerSelection
+internal sealed record FirmwareTerminalMarkerSelection : FirmwareMarkerSelection
 {
-    /// <summary>Creates a checked terminal marker-selection policy.</summary>
-    public FirmwareTerminalMarkerSelection(
+    internal FirmwareTerminalMarkerSelection(
         FirmwareMarkerTerminal terminal,
         int expectedMatchCount)
         : base(FirmwareMarkerSelectionKind.TerminalMatch)
@@ -133,18 +115,15 @@ public sealed record FirmwareTerminalMarkerSelection : FirmwareMarkerSelection
         ExpectedMatchCount = expectedMatchCount;
     }
 
-    /// <summary>Selected terminal direction.</summary>
-    public FirmwareMarkerTerminal Terminal { get; }
+    internal FirmwareMarkerTerminal Terminal { get; }
 
-    /// <summary>Required exact match count.</summary>
-    public int ExpectedMatchCount { get; }
+    internal int ExpectedMatchCount { get; }
 }
 
 /// <summary>Metadata structure located at a checked signed offset from a selected marker.</summary>
-public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
+internal sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
 {
-    /// <summary>Creates a bounded marker-relative locator with immutable marker bytes.</summary>
-    public FirmwareMarkerRelativeLocator(
+    internal FirmwareMarkerRelativeLocator(
         FirmwareAddressedRange searchRange,
         ReadOnlySpan<byte> markerBytes,
         FirmwareMarkerSelection selection,
@@ -170,27 +149,22 @@ public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
         ResultOffset = resultOffset;
     }
 
-    /// <summary>Bounded addressed marker search range.</summary>
-    public FirmwareAddressedRange SearchRange { get; }
+    internal FirmwareAddressedRange SearchRange { get; }
 
-    /// <summary>Exact immutable marker bytes.</summary>
-    public FirmwareMetadataBytes MarkerBytes { get; }
+    internal FirmwareMetadataBytes MarkerBytes { get; }
 
-    /// <summary>Required marker cardinality and selection.</summary>
-    public FirmwareMarkerSelection Selection { get; }
+    internal FirmwareMarkerSelection Selection { get; }
 
-    /// <summary>Signed offset from the selected marker start to the structure start.</summary>
-    public long ResultOffset { get; }
+    internal long ResultOffset { get; }
 }
 
 /// <summary>
 /// One non-overlapping unsigned prerequisite value interval and its exact
 /// logical-address anchor.
 /// </summary>
-public sealed record FirmwareMetadataFieldSelectedBranch
+internal sealed record FirmwareMetadataFieldSelectedBranch
 {
-    /// <summary>Creates one checked inclusive value interval.</summary>
-    public FirmwareMetadataFieldSelectedBranch(
+    internal FirmwareMetadataFieldSelectedBranch(
         ulong minimumValue,
         ulong maximumValue,
         FirmwareAddressedRange anchorRange)
@@ -204,17 +178,13 @@ public sealed record FirmwareMetadataFieldSelectedBranch
         MaximumValue = maximumValue;
     }
 
-    /// <summary>Inclusive minimum prerequisite value.</summary>
-    public ulong MinimumValue { get; }
+    internal ulong MinimumValue { get; }
 
-    /// <summary>Inclusive maximum prerequisite value.</summary>
-    public ulong MaximumValue { get; }
+    internal ulong MaximumValue { get; }
 
-    /// <summary>Exact map-relative logical-address anchor.</summary>
-    public FirmwareAddressedRange AnchorRange { get; }
+    internal FirmwareAddressedRange AnchorRange { get; }
 
-    /// <summary>Whether this branch accepts one decoded unsigned value.</summary>
-    public bool Contains(ulong value)
+    internal bool Contains(ulong value)
     {
         return value >= MinimumValue && value <= MaximumValue;
     }
@@ -224,12 +194,11 @@ public sealed record FirmwareMetadataFieldSelectedBranch
 /// Metadata structure located from one prerequisite field-selected logical
 /// address anchor.
 /// </summary>
-public sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLocator
+internal sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLocator
 {
     private readonly FirmwareMetadataFieldSelectedBranch[] _branches;
 
-    /// <summary>Creates one deterministic prerequisite-selected locator.</summary>
-    public FirmwareMetadataFieldSelectedLocator(
+    internal FirmwareMetadataFieldSelectedLocator(
         string prerequisiteStructureId,
         string prerequisiteFieldId,
         IEnumerable<FirmwareMetadataFieldSelectedBranch> branches,
@@ -272,20 +241,16 @@ public sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLoca
         Branches = Array.AsReadOnly(_branches);
     }
 
-    /// <summary>Exact prerequisite structure binding selected by the same map.</summary>
-    public string PrerequisiteStructureId { get; }
+    internal string PrerequisiteStructureId { get; }
 
-    /// <summary>Unsigned field that selects one logical-address anchor.</summary>
-    public string PrerequisiteFieldId { get; }
+    internal string PrerequisiteFieldId { get; }
 
-    /// <summary>Non-overlapping value branches in ascending order.</summary>
-    public IReadOnlyList<FirmwareMetadataFieldSelectedBranch> Branches { get; }
+    internal IReadOnlyList<FirmwareMetadataFieldSelectedBranch> Branches { get; }
 
-    /// <summary>Checked signed offset from the selected anchor start.</summary>
-    public long ResultOffset { get; }
+    internal long ResultOffset { get; }
 
     /// <summary>Returns the unique branch for one decoded value.</summary>
-    public bool TrySelect(
+    internal bool TrySelect(
         ulong value,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out FirmwareMetadataFieldSelectedBranch? branch)

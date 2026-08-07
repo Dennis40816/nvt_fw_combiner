@@ -1,3 +1,4 @@
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
@@ -7,17 +8,13 @@ namespace NvtFwCombiner.Bootstrap;
 /// <summary>
 /// Resolves exact metadata identities from the hash-closed built-in bundle set.
 /// </summary>
-internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
+internal sealed class BuiltInCanonicalMetadataDefinitionResolver() :
     IFirmwareMetadataStructureDefinitionResolver
 {
     internal static BuiltInCanonicalMetadataDefinitionResolver Instance { get; } = new();
 
-    private BuiltInCanonicalMetadataDefinitionResolver()
-    {
-    }
-
     public bool TryResolve(
-        FirmwareMetadataStructureDefinitionReference reference,
+        FirmwareMetadataStructureDefinitionReferenceDocument reference,
         out FirmwareMetadataStructureDefinition? definition)
     {
         ArgumentNullException.ThrowIfNull(reference);
@@ -29,6 +26,8 @@ internal sealed class BuiltInCanonicalMetadataDefinitionResolver :
         definition = null;
         return providerBundle is not null &&
             BuiltInV2BundleRegistry.All[providerBundle.BundleDirectory]
-                .TryResolveMetadataDefinition(reference, out definition);
+                .TryResolveMetadataDefinition(
+                    reference,
+                    out definition);
     }
 }

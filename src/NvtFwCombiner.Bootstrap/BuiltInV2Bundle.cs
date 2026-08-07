@@ -1,9 +1,9 @@
 using System.Collections.Frozen;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Infrastructure.Bundles;
-using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
 using V2CompositionProfileDefinition = NvtFwCombiner.Domain.Composition.CompositionProfileDefinition;
 
@@ -141,7 +141,7 @@ internal sealed class BuiltInV2Bundle
     }
 
     internal bool TryResolveMetadataDefinition(
-        FirmwareMetadataStructureDefinitionReference reference,
+        FirmwareMetadataStructureDefinitionReferenceDocument reference,
         out FirmwareMetadataStructureDefinition? definition)
     {
         ArgumentNullException.ThrowIfNull(reference);

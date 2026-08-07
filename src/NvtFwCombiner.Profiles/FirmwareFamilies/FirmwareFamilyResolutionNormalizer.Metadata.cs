@@ -46,15 +46,10 @@ internal static partial class FirmwareFamilyResolutionNormalizer
             $"{path}.locator");
         if (document.DefinitionReference is { } referenceDocument)
         {
-            var reference = new FirmwareMetadataStructureDefinitionReference(
-                referenceDocument.FamilyId,
-                referenceDocument.FamilyVersion,
-                referenceDocument.FamilyContentHash,
-                referenceDocument.StructureId);
             FirmwareMetadataStructureDefinition definition =
                 metadataDefinitionResolver is not null &&
                 metadataDefinitionResolver.TryResolve(
-                    reference,
+                    referenceDocument,
                     out FirmwareMetadataStructureDefinition? resolvedDefinition) &&
                 resolvedDefinition is not null
                     ? resolvedDefinition

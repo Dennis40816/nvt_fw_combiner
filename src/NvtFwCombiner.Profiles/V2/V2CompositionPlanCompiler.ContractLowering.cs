@@ -43,15 +43,49 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlySet<string>? activeSlotIds = null)
     {
         var spaces = new Dictionary<string, AddressSpace>(StringComparer.Ordinal);
-        foreach (InputArtifactProfileSpace input in profile.Spaces.OfType<InputArtifactProfileSpace>())
+        InputArtifactProfileSpace[] inputSpaces =
+        [
+            .. profile.Spaces.OfType<InputArtifactProfileSpace>(),
+        ];
+        if (profile.InputSlots.Any(slot => inputSpaces.Count(space =>
+                StringComparer.Ordinal.Equals(space.SlotId, slot.SlotId)) != 1))
         {
+            AddUnsupported(issues, "current runtime lowering requires exactly one immutable address space per input slot");
+        }
+
+        foreach (InputArtifactProfileSpace input in inputSpaces)
+        {
+            CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate =>
+                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
+            bool requiredSingleton = slot is
+            {
+                Required: true,
+                Cardinality: CompiledInputSlotCardinality.ExactlyOne,
+            };
+            bool groupedOptionalSingleton = slot is
+            {
+                Required: false,
+                Cardinality: CompiledInputSlotCardinality.ZeroOrOne,
+            } && profile.InputSelectionGroups.Any(group =>
+                group.MemberSlotIds.Contains(slot.SlotId, StringComparer.Ordinal));
+            if (input.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
+                (!requiredSingleton && !groupedOptionalSingleton) ||
+                slot.Normalization is not (CompiledNoInputNormalization or
+                    CompiledPadShorterInputNormalization or
+                    CompiledTruncateCtrlRamInputNormalization) ||
+                !IsCurrentInputLengthRequirementSupported(slot))
+            {
+                AddUnsupported(
+                    issues,
+                    $"input space '{input.SpaceId}' must bind one required exact-one or grouped optional zero-or-one singleton slot with approved length and normalization");
+                continue;
+            }
+
             if (activeSlotIds is not null && !activeSlotIds.Contains(input.SlotId))
             {
                 continue;
             }
 
-            CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate =>
-                StringComparer.Ordinal.Equals(candidate.SlotId, input.SlotId));
             if (!TryResolveInputSpaceLength(
                     profile,
                     family,

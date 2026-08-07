@@ -19,7 +19,6 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Type[] helpers =
         [
             typeof(FirmwareFamilyNormalizationException),
-            typeof(FirmwareMetadataStructureDefinitionReference),
             typeof(IFirmwareMetadataStructureDefinitionResolver),
             typeof(IcIdentifier),
         ];

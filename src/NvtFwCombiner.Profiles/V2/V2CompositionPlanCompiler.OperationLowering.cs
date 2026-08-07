@@ -17,8 +17,23 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlySet<string>? activeOperationIds = null)
     {
         var operations = new List<CompositionOperation>();
+        string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
+            ? AssertOutputSpace(profile).Initializer is CloneProfileInitializer clone
+                ? ResolveCloneReferenceSourceSpaceId(profile, clone)
+                : null
+            : null;
         foreach (CompositionOperationDefinition operation in profile.Operations)
         {
+            if (!useProcessorWriteAuthority &&
+                !IsAdmittedOperation(profile, operation, replaceReferenceSourceSpaceId))
+            {
+                AddUnsupported(
+                    issues,
+                    $"operation '{operation.OperationId}' is outside the closed Merge or reference-clone Replace operation subset",
+                    operation.OperationId);
+                continue;
+            }
+
             if (activeOperationIds is not null && !activeOperationIds.Contains(operation.OperationId))
             {
                 continue;
@@ -69,6 +84,45 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         return [.. operations];
+    }
+
+    private static bool IsAdmittedOperation(
+        CompositionProfileDefinition profile,
+        CompositionOperationDefinition operation,
+        string? replaceReferenceSourceSpaceId)
+    {
+        return profile.CompositionKind == CompositionKind.Merge
+            ? operation.Kind switch
+            {
+                CompositionOperationKind.CopyRange or
+                    CompositionOperationKind.RunExternalProcessor =>
+                    operation.OverlapPolicy is OverlapPolicy.Reject or OverlapPolicy.ReplaceExisting,
+                CompositionOperationKind.FillRange or
+                    CompositionOperationKind.PatchScalar or
+                    CompositionOperationKind.TransformScalar =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject,
+                CompositionOperationKind.ReplaceRange => false,
+                _ => throw new InvalidOperationException("Unknown canonical operation kind."),
+            }
+            : operation.Kind switch
+            {
+                CompositionOperationKind.ReplaceRange =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject &&
+                    IsReplacePayloadInputSource(profile, operation),
+                CompositionOperationKind.RunExternalProcessor =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject,
+                CompositionOperationKind.CopyRange =>
+                    operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
+                    StringComparer.Ordinal.Equals(
+                        replaceReferenceSourceSpaceId,
+                        profile.Views.Single(view => StringComparer.Ordinal.Equals(
+                            view.ViewId,
+                            operation.SourceViewId)).SpaceId),
+                CompositionOperationKind.FillRange or
+                    CompositionOperationKind.PatchScalar or
+                    CompositionOperationKind.TransformScalar => false,
+                _ => throw new InvalidOperationException("Unknown canonical operation kind."),
+            };
     }
 
     private static void ValidateOperationOverlaps(

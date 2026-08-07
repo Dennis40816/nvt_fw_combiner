@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Domain.Firmware;
 public sealed class FirmwareMetadataStructure
 {
     /// <summary>Creates a checked structure declaration without reading artifact bytes.</summary>
-    public FirmwareMetadataStructure(
+    internal FirmwareMetadataStructure(
         string structureId,
         string artifactBindingId,
         long lengthBytes,
@@ -30,7 +30,7 @@ public sealed class FirmwareMetadataStructure
     }
 
     /// <summary>Binds one shared logical definition to an exact artifact and locator.</summary>
-    public FirmwareMetadataStructure(
+    internal FirmwareMetadataStructure(
         string structureId,
         string artifactBindingId,
         FirmwareMetadataStructureDefinition definition,
@@ -59,8 +59,7 @@ public sealed class FirmwareMetadataStructure
     /// <summary>Exact positive structure length.</summary>
     public long LengthBytes => Definition.LengthBytes;
 
-    /// <summary>Closed physical locator declaration.</summary>
-    public FirmwareMetadataLocator Locator { get; }
+    internal FirmwareMetadataLocator Locator { get; }
 
     /// <summary>Fields in deterministic structure-relative range order.</summary>
     public IReadOnlyList<FirmwareMetadataField> Fields => Definition.Fields;

@@ -126,6 +126,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
     }
 
+    /// <summary>Capability admission remains fail-closed when an inactive optional slot uses unsupported geometry.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsUnsupportedInactiveOptionalInput()
+    {
+        V2CompositionPlanCompileResult result = Compile(
+            PrepareSupportedBlankCopy(familyHash => ProfileWithInactiveOptionalBranch(
+                SupportedProfileJson(familyHash),
+                slot => Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] =
+                    new JsonObject { ["kind"] = "exact-bytes", ["bytes"] = 16 })),
+            selectedInputSlotIds: []);
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
+    }
+
     /// <summary>Verifies Normal DP extraction lowers into a declared source span with map-capacity expectation and profile warning code.</summary>
     [Fact]
     public void BlankOutputLoweringBindsNormalDpExtractionPolicy()
@@ -328,6 +343,68 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["kind"] = "exact-bytes",
             ["bytes"] = 16,
         };
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithInactiveOptionalBranch(
+        string profileJson,
+        Action<JsonObject>? mutateSlot = null,
+        Action<JsonObject>? mutateOperation = null)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        profile["schemaVersion"] = "2.13";
+        profile["compilationContext"] = new JsonObject { ["kind"] = "resolved-map" };
+        var slot = new JsonObject
+        {
+            ["slotId"] = "optional-input",
+            ["role"] = "auxiliary",
+            ["artifactClass"] = "auxiliary",
+            ["required"] = false,
+            ["cardinality"] = "zero-or-one",
+            ["acceptedExtensions"] = new JsonArray(".bin"),
+            ["acceptance"] = new JsonObject
+            {
+                ["lengthRule"] = new JsonObject { ["kind"] = "source-view-coverage" },
+                ["normalization"] = new JsonObject { ["kind"] = "none" },
+            },
+        };
+        Assert.IsType<JsonArray>(profile["inputSlots"]).Add(slot);
+        profile["inputSelectionGroups"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["groupId"] = "optional-selection",
+                ["memberSlotIds"] = new JsonArray("optional-input"),
+                ["minimumSelected"] = 0,
+                ["maximumSelected"] = 1,
+            },
+        };
+        Assert.IsType<JsonArray>(profile["spaces"]).Add(new JsonObject
+        {
+            ["spaceId"] = "optional-source",
+            ["kind"] = "input-artifact",
+            ["slotId"] = "optional-input",
+            ["instancePolicy"] = "singleton",
+        });
+        Assert.IsType<JsonArray>(profile["views"]).Add(new JsonObject
+        {
+            ["viewId"] = "optional-view",
+            ["spaceId"] = "optional-source",
+            ["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "root" },
+        });
+        var operation = new JsonObject
+        {
+            ["operationId"] = "copy-optional",
+            ["sequence"] = 1,
+            ["overlapPolicy"] = "reject",
+            ["reason"] = "Copy the selected optional source view.",
+            ["kind"] = "copy-range",
+            ["sourceViewId"] = "optional-view",
+            ["targetViewId"] = "output-code",
+        };
+        Assert.IsType<JsonArray>(profile["operations"]).Add(operation);
+        mutateSlot?.Invoke(slot);
+        mutateOperation?.Invoke(operation);
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

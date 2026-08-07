@@ -1,5 +1,6 @@
 using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -19,7 +20,7 @@ public sealed class CompositionProfileV2OperationTests
             "fill-gap", 2, OverlapPolicy.Reject, "fill", "gap", 0xFF);
         var patch = CompositionOperationDefinition.PatchScalar(
             "patch-header", 3, OverlapPolicy.AllowDeclared, "patch", "header-field",
-            new CompiledValidationBytes([0x01, 0x02]));
+            new FirmwareMetadataBytes([0x01, 0x02]));
         var transform = CompositionOperationDefinition.TransformScalar(
             "relocate", 4, OverlapPolicy.ReplaceExisting, "relocate", "source-scalar", "target-scalar",
             ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
@@ -49,17 +50,17 @@ public sealed class CompositionProfileV2OperationTests
     public void ByteValuesAreImmutableAndStructural()
     {
         byte[] bytes = [0xAA, 0x55];
-        var value = new CompiledValidationBytes(bytes);
+        var value = new FirmwareMetadataBytes(bytes);
         bytes[0] = 0;
-        var equal = new CompiledValidationBytes([0xAA, 0x55]);
-        var different = new CompiledValidationBytes([0xAA, 0x56]);
+        var equal = new FirmwareMetadataBytes([0xAA, 0x55]);
+        var different = new FirmwareMetadataBytes([0xAA, 0x56]);
 
         Assert.Equal("aa55", value.Hex);
         Assert.Equal(2, value.Length);
         Assert.Equal(value, equal);
         Assert.Equal(value.GetHashCode(), equal.GetHashCode());
         Assert.NotEqual(value, different);
-        _ = Assert.Throws<ArgumentException>(() => new CompiledValidationBytes([]));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataBytes([]));
     }
 
     /// <summary>Verifies schema-sized sequence and signed addend values stay lossless.</summary>
