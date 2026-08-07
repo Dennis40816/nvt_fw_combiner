@@ -13,6 +13,8 @@
   <ItemGroup>
     <Compile Include="..\NvtFwCombiner.TestSupport\LegacyCombinerPostbuildCatalogAlias.cs"
              Link="LegacyCombinerPostbuildCatalogAlias.cs" />
+    <Compile Include="..\NvtFwCombiner.TestSupport\CompiledInputSlotTestFactory.cs"
+             Link="CompiledInputSlotTestFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

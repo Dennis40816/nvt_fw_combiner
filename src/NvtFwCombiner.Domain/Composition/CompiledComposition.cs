@@ -19,7 +19,6 @@ public sealed partial class CompiledComposition
         }
 
         ValidateIcNumberPolicy(details.CompositionKind, icNumberPolicy);
-        ValidateDefaultOutputFileName(details.OutputNamingRequirement.FileNameTemplate);
         ValidateV2InputRequirements(plan, details.CompositionKind, details.ExperienceId, details);
         ValidateV2Eligibility(
             details,
@@ -175,19 +174,6 @@ public sealed partial class CompiledComposition
         if (compositionKind == CompositionKind.Replace && icNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
         {
             throw new ArgumentException("Replace compositions require an IC-number input policy.", nameof(icNumberPolicy));
-        }
-    }
-
-    private static void ValidateDefaultOutputFileName(string defaultOutputFileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(defaultOutputFileName);
-        if (defaultOutputFileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
-            defaultOutputFileName is "." or ".." ||
-            defaultOutputFileName.Any(char.IsControl))
-        {
-            throw new ArgumentException(
-                "Default output file name must be a plain filename without path or control syntax.",
-                nameof(defaultOutputFileName));
         }
     }
 

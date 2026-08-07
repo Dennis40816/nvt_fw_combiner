@@ -10,7 +10,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMetadataBindingDocument document,
         string path = "metadataBindings[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<string> purposeDocuments = document.Purposes;
         var purposes = new CompositionProfileMetadataPurpose[purposeDocuments.Count];
         for (int index = 0; index < purposeDocuments.Count; index++)
@@ -63,7 +62,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileRegionAccessRuleDocument document,
         string path = "regionAccessRules[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new CompositionProfileRegionAccess(
             document.RegionId,
             NormalizeRegionAccess(document.Access, $"{path}.access"),
@@ -96,7 +94,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMetadataTargetReferenceDocument document,
         string path)
     {
-        ArgumentNullException.ThrowIfNull(document);
         FirmwareMetadataReferenceTargetKind kind = document.TargetKind switch
         {
             "span" => FirmwareMetadataReferenceTargetKind.Span,

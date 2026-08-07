@@ -553,7 +553,7 @@ public sealed partial class CompiledCompositionTests
     private static CompiledInputContract CreateInputContract()
     {
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 "input-slot",
                 "input",
                 CompiledInputArtifactClass.ReferenceImage,

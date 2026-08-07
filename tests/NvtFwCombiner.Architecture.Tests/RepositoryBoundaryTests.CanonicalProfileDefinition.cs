@@ -70,6 +70,27 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("ExternalToolBindingIdPattern", profileSources, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyCombinerInvocationProfileIdPattern", profileSources, StringComparison.Ordinal);
         Assert.DoesNotMatch(ProfileRangeValidatorDeclarationRegex(), profileSources);
+
+        string compositionNormalizerSources = string.Join(
+            Environment.NewLine,
+            Directory.EnumerateFiles(
+                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Profiles", "V2"),
+                    "CompositionProfileNormalizer*.cs")
+                .OrderBy(static path => path, StringComparer.Ordinal)
+                .Select(File.ReadAllText));
+        Assert.DoesNotContain("OutputTokenBuilder", compositionNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateAudience", compositionNormalizerSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidateTopologyAuthoring", compositionNormalizerSources, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(
+            compositionNormalizerSources,
+            "ArgumentNullException.ThrowIfNull(document);"));
+        Assert.Equal(1, CountOccurrences(
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledInputSlotRequirement.cs"),
+            "internal CompiledInputSlotRequirement("));
+        Assert.DoesNotContain(
+            "ValidateDefaultOutputFileName(",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledComposition.cs"),
+            StringComparison.Ordinal);
     }
 
     /// <summary>The plan compiler lowers closed semantic kinds without workflow-name branches or private range algebra.</summary>
@@ -141,6 +162,23 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain(
             "private static IEnumerable<ByteRange> Subtract(",
             compilerSources,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "private static bool IsSlotApplicable(",
+            compilerSources,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "private static bool MapSupportsSelectedOptionalSlots(",
+            trustedCompiler,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDeclaredWriteRanges(", compilerSources, StringComparison.Ordinal);
+        Assert.Contains(
+            "internal bool IsInputSlotApplicable(",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompositionProfileDefinition.Graph.cs"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "internal string? GetProfileOverlapError(",
+            ReadText("src/NvtFwCombiner.Domain/Composition/CompositionOperation.cs"),
             StringComparison.Ordinal);
     }
 

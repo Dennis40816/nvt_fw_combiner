@@ -89,7 +89,7 @@ internal static class CompiledCompositionTestFactory
                     space,
                     identity,
                     isReference);
-            slots.Add(new CompiledInputSlotRequirement(
+            slots.Add(CompiledInputSlotTestFactory.Create(
                 slotId,
                 inputRolesByAddressSpace?.GetValueOrDefault(space.AddressSpaceId) ??
                     space.AddressSpaceId,
@@ -141,7 +141,7 @@ internal static class CompiledCompositionTestFactory
                 CompiledInputArtifactClass.CtrlRamReplacement,
                 new CompiledExactBytesInputLengthRequirement(space.Length),
                 new CompiledTruncateCtrlRamInputNormalization(
-                    "application-test-ctrlram-truncated",
+                    "APPLICATION_TEST_CTRLRAM_TRUNCATED",
                     "application-test-evidence"));
         }
 

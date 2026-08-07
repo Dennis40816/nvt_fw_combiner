@@ -10,7 +10,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileValidationDocument document,
         string path = "validations[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         CompiledValidationStage stage = NormalizeValidationStage(
             document.Stage,
             $"{path}.stage");

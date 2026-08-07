@@ -9,7 +9,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileProcessorStageDocument document,
         string path = "processorStages[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return document.Kind switch
         {
             "crc-worker-v1" => NormalizeCrcWorker(document, path),

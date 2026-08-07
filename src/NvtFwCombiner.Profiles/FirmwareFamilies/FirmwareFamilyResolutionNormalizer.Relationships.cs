@@ -3,14 +3,12 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareFamilyRelationship[] NormalizeFamilyRelationships(
         FirmwareFamilyDocument document,
         IReadOnlyList<FirmwareImageMap> maps,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap,
-        IReadOnlyList<AliasDeclaration> aliases,
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities)
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap)
     {
         IReadOnlyList<FirmwareFamilyRelationshipDocument> relationshipDocuments =
             document.FamilyRelationships ?? [];
@@ -20,15 +18,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
         }
 
         Dictionary<string, FirmwareFamilyMemberDocument> membersById = IndexUnique(
-            RequireList(document.Members, "members"),
+            document.Members,
             static member => member.MemberId,
             "members",
             "memberId");
         var mapsById = maps.ToDictionary(
             static map => map.MapId,
             StringComparer.Ordinal);
-        var perfectFamilyMembers = new HashSet<string>(StringComparer.Ordinal);
-        var sharedBindings = new HashSet<SharedBindingKey>();
         var normalized = new FirmwareFamilyRelationship[relationshipDocuments.Count];
 
         for (int index = 0; index < relationshipDocuments.Count; index++)
@@ -39,20 +35,13 @@ public static partial class FirmwareFamilyResolutionNormalizer
             normalized[index] = relationship switch
             {
                 FirmwarePerfectFamilyRelationshipDocument perfect =>
-                    NormalizePerfectFamilyRelationship(
-                        perfect,
-                        path,
-                        maps,
-                        aliases,
-                        capabilities,
-                        perfectFamilyMembers),
+                    NormalizePerfectFamilyRelationship(perfect, path),
                 FirmwareSharedFactRelationshipDocument shared =>
                     NormalizeSharedFactRelationship(
                         shared,
                         path,
                         mapsById,
-                        structuresByMap,
-                        sharedBindings),
+                        structuresByMap),
                 _ => throw Error(path, "Unknown family relationship shape."),
             };
         }
@@ -62,89 +51,23 @@ public static partial class FirmwareFamilyResolutionNormalizer
 
     private static PerfectFamilyRelationship NormalizePerfectFamilyRelationship(
         FirmwarePerfectFamilyRelationshipDocument document,
-        string path,
-        IReadOnlyList<FirmwareImageMap> maps,
-        IReadOnlyList<AliasDeclaration> aliases,
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities,
-        HashSet<string> perfectFamilyMembers)
+        string path)
     {
-        PerfectFamilyRelationship normalized = TranslateInvariant(path, () =>
-            new PerfectFamilyRelationship(
+        return TranslateInvariant(path, () => new PerfectFamilyRelationship(
                 document.RelationshipId,
                 document.MemberIds,
                 document.Reason,
                 document.EvidenceRefs));
-        foreach (string memberId in normalized.MemberIds)
-        {
-            if (!perfectFamilyMembers.Add(memberId))
-            {
-                throw Error(
-                    $"{path}.memberIds",
-                    $"Member '{memberId}' has more than one perfect-family relationship.");
-            }
-        }
-
-        var memberIds = new HashSet<string>(normalized.MemberIds, StringComparer.Ordinal);
-        FirmwareImageMap[] relatedMaps =
-        [
-            .. maps.Where(map => map.Applicability.MemberIds.Any(memberIds.Contains)),
-        ];
-        if (relatedMaps.Length == 0 ||
-            normalized.MemberIds.Any(memberId =>
-                relatedMaps.All(map => !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal))))
-        {
-            throw Error(path, "Every perfect-family member must be selected by a family-owned map.");
-        }
-
-        foreach (FirmwareImageMap map in relatedMaps)
-        {
-            if (!memberIds.SetEquals(map.Applicability.MemberIds))
-            {
-                throw Error(
-                    path,
-                    $"Perfect-family relationship '{document.RelationshipId}' contains member-specific map " +
-                    $"'{map.MapId}'.");
-            }
-        }
-
-        bool hasMemberAlias = aliases.Any(alias =>
-            memberIds.Contains(alias.TargetKey.MemberId) ||
-            memberIds.Contains(alias.SourceKey.MemberId));
-        bool hasMemberCapability =
-            capabilities.Any(binding => memberIds.Contains(binding.EffectiveKey.MemberId));
-        return (hasMemberAlias, hasMemberCapability) switch
-        {
-            (true, _) => throw Error(
-                path,
-                "Perfect-family firmware semantics cannot be represented by member-specific fact aliases."),
-            (_, true) => throw Error(
-                path,
-                "Perfect-family firmware semantics cannot contain member-specific capability facts."),
-            _ => normalized,
-        };
     }
 
     private static SharedFactRelationship NormalizeSharedFactRelationship(
         FirmwareSharedFactRelationshipDocument document,
         string path,
         Dictionary<string, FirmwareImageMap> mapsById,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap,
-        HashSet<SharedBindingKey> sharedBindings)
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap)
     {
         FirmwareSharedFactRole role = NormalizeSharedFactRole(document.Role, $"{path}.role");
-        FirmwareSharedFactApplicabilityDocument applicability =
-            document.Applicability ?? throw Error(
-                $"{path}.applicability",
-                "Shared-fact relationships require explicit map applicability.");
-        IReadOnlyList<string> mapIds = RequireList(
-            applicability.MapIds,
-            $"{path}.applicability.mapIds");
-        if (mapIds.Count == 0)
-        {
-            throw Error(
-                $"{path}.applicability.mapIds",
-                "Shared-fact relationships require at least one applicable map.");
-        }
+        IReadOnlyList<string> mapIds = document.Applicability.MapIds;
 
         var applicableMaps = new FirmwareImageMap[mapIds.Count];
         for (int index = 0; index < mapIds.Count; index++)
@@ -160,16 +83,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
             applicableMaps[index] = map;
         }
 
-        IReadOnlyList<FirmwareSharedFactReferenceDocument> referenceDocuments = RequireList(
-            document.SharedFactReferences,
-            $"{path}.sharedFactReferences");
+        IReadOnlyList<FirmwareSharedFactReferenceDocument> referenceDocuments =
+            document.SharedFactReferences;
         var references = new FirmwareSharedFactReference[referenceDocuments.Count];
         for (int index = 0; index < referenceDocuments.Count; index++)
         {
-            FirmwareSharedFactReferenceDocument reference =
-                referenceDocuments[index] ?? throw Error(
-                    $"{path}.sharedFactReferences[{index}]",
-                    "Shared-fact reference cannot be null.");
+            FirmwareSharedFactReferenceDocument reference = referenceDocuments[index];
             string referencePath = $"{path}.sharedFactReferences[{index}]";
             FirmwareSharedFactKind kind = NormalizeSharedFactKind(
                 reference.FactKind,
@@ -192,7 +111,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             };
         }
 
-        SharedFactRelationship normalized = TranslateInvariant(path, () => new SharedFactRelationship(
+        return TranslateInvariant(path, () => new SharedFactRelationship(
                 document.RelationshipId,
                 role,
                 document.MemberIds,
@@ -200,22 +119,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 references,
                 document.Reason,
                 document.EvidenceRefs));
-        foreach (FirmwareImageMap map in normalized.ApplicableMaps)
-        {
-            foreach (FirmwareSharedFactReference reference in normalized.SharedFactReferences)
-            {
-                var key = new SharedBindingKey(map.MapId, reference.Kind, reference.FactId);
-                if (!sharedBindings.Add(key))
-                {
-                    throw Error(
-                        $"{path}.sharedFactReferences",
-                        $"Canonical fact '{reference.Kind}:{reference.FactId}' has more than one " +
-                        $"shared relationship on map '{map.MapId}'.");
-                }
-            }
-        }
-
-        return normalized;
     }
 
     private static FirmwareSharedFactReference ResolveSharedRegionReference(
@@ -223,7 +126,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         FirmwareImageMap[] applicableMaps,
         string path)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         FirmwareImageMap map = applicableMaps[0];
         FirmwareRegion[] matches =
         [
@@ -243,7 +145,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, FirmwareMetadataStructure>> structuresByMap,
         string path)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
         FirmwareImageMap map = applicableMaps[0];
         return FirmwareSharedFactReference.ForMetadataDefinition(ResolveSharedDefinition(
             structuresByMap[map.MapId],
@@ -294,8 +195,4 @@ public static partial class FirmwareFamilyResolutionNormalizer
         };
     }
 
-    private sealed record SharedBindingKey(
-        string MapId,
-        FirmwareSharedFactKind Kind,
-        string FactId);
 }

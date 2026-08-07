@@ -10,7 +10,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileInputSlotDocument document,
         string path = "inputSlots[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         CompositionProfileInputAcceptanceDocument acceptance = document.Acceptance;
 
         return Wrap(path, () => new CompositionInputSlotDefinition(

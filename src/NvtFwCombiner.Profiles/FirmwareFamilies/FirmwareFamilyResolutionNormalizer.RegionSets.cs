@@ -3,11 +3,10 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static Dictionary<string, FirmwareRegionSet> NormalizeRegionSets(
-        IReadOnlyList<FirmwareRegionSetDocument> documents,
-        string schemaVersion)
+        IReadOnlyList<FirmwareRegionSetDocument> documents)
     {
         Dictionary<string, FirmwareRegionSetDocument> documentsById = IndexUnique(
             documents,
@@ -18,38 +17,17 @@ public static partial class FirmwareFamilyResolutionNormalizer
         foreach ((string regionSetId, FirmwareRegionSetDocument document) in documentsById)
         {
             string path = $"regionSets[{regionSetId}]";
-            IReadOnlyList<FirmwareRegionDocument> regionDocuments =
-                RequireList(document.Regions, $"{path}.regions");
+            IReadOnlyList<FirmwareRegionDocument> regionDocuments = document.Regions;
             var regions = new FirmwareRegion[regionDocuments.Count];
             for (int index = 0; index < regionDocuments.Count; index++)
             {
                 regions[index] = NormalizeRegion(regionDocuments[index], $"{path}.regions[{index}]");
             }
 
-            bool hasTemplateDeclarations = document.RegionTemplates is not null;
-            bool hasInstanceDeclarations = document.RegionInstances is not null;
-            if (hasTemplateDeclarations != hasInstanceDeclarations)
-            {
-                throw Error(
-                    path,
-                    "Region templates and region instances must be declared together.");
-            }
-
             IReadOnlyList<FirmwareRegionTemplateDocument> templateDocuments =
-                document.RegionTemplates is null
-                    ? []
-                    : RequireList(document.RegionTemplates, $"{path}.regionTemplates");
+                document.RegionTemplates ?? [];
             IReadOnlyList<FirmwareRegionInstanceDocument> instanceDocuments =
-                document.RegionInstances is null
-                    ? []
-                    : RequireList(document.RegionInstances, $"{path}.regionInstances");
-            if (schemaVersion != "1.2" &&
-                (templateDocuments.Count != 0 || instanceDocuments.Count != 0))
-            {
-                throw Error(
-                    path,
-                    "Instance-relative region definitions require firmware-family schema version '1.2'.");
-            }
+                document.RegionInstances ?? [];
 
             Dictionary<string, FirmwareRegionTemplate> templates =
                 NormalizeRegionTemplates(templateDocuments, path);
@@ -82,8 +60,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         foreach ((string templateId, FirmwareRegionTemplateDocument document) in documentsById)
         {
             string path = $"{regionSetPath}.regionTemplates[{templateId}]";
-            IReadOnlyList<FirmwareRegionDocument> regionDocuments =
-                RequireList(document.Regions, $"{path}.regions");
+            IReadOnlyList<FirmwareRegionDocument> regionDocuments = document.Regions;
             var regions = new FirmwareRelativeRegion[regionDocuments.Count];
             for (int index = 0; index < regionDocuments.Count; index++)
             {
@@ -106,11 +83,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 templateId,
                 new FirmwareRegionTemplate(
                     templateId,
-                    ReadInt64(
-                        document.CapacityBytes,
-                        1,
-                        long.MaxValue,
-                        $"{path}.capacityBytes"),
+                    ReadInt64(document.CapacityBytes, $"{path}.capacityBytes"),
                     regions)));
         }
 
@@ -139,28 +112,21 @@ public static partial class FirmwareFamilyResolutionNormalizer
                     $"Unknown region template '{document.TemplateId}'.");
             }
 
-            IReadOnlyList<FirmwareRegionIdBindingDocument> bindingDocuments =
-                RequireList(document.ResolvedRegionIds, $"{path}.resolvedRegionIds");
+            IReadOnlyList<FirmwareRegionIdBindingDocument> bindingDocuments = document.ResolvedRegionIds;
             Dictionary<string, FirmwareRegionIdBindingDocument> bindings = IndexUnique(
                 bindingDocuments,
                 static binding => binding.TemplateRegionId,
                 $"{path}.resolvedRegionIds",
                 "templateRegionId");
-            var resolvedIds = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach ((string templateRegionId, FirmwareRegionIdBindingDocument binding) in bindings)
-            {
-                if (!resolvedIds.TryAdd(templateRegionId, binding.ResolvedRegionId))
-                {
-                    throw Error(
-                        $"{path}.resolvedRegionIds",
-                        $"Duplicate template region id '{templateRegionId}'.");
-                }
-            }
+            var resolvedIds = bindings.ToDictionary(
+                static pair => pair.Key,
+                static pair => pair.Value.ResolvedRegionId,
+                StringComparer.Ordinal);
 
             instances[index++] = TranslateInvariant(path, () => new FirmwareRegionInstance(
                 instanceId,
                 template,
-                ReadInt64(document.BaseOffset, 0, long.MaxValue, $"{path}.baseOffset"),
+                ReadInt64(document.BaseOffset, $"{path}.baseOffset"),
                 document.ParentRegionId,
                 resolvedIds));
         }
@@ -177,6 +143,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 NormalizeRegionKind(document.Kind, $"{path}.kind"),
                 NormalizeRange(document.Range, $"{path}.range"),
                 NormalizeWriteConstraint(document.WriteConstraint, $"{path}.writeConstraint"),
-                ReadInt32(document.Alignment, 1, int.MaxValue, $"{path}.alignment")));
+                ReadInt32(document.Alignment, $"{path}.alignment")));
     }
 }

@@ -11,7 +11,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileOperationDocument document,
         string path = "operations[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         BigInteger sequence = ReadInteger(document.Sequence, $"{path}.sequence");
         OverlapPolicy overlapPolicy = NormalizeOverlapPolicy(
             document.OverlapPolicy,

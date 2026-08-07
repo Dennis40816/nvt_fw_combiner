@@ -345,3 +345,11 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
             : StringComparer.Ordinal.Compare(left.FactId, right.FactId);
     }
 }
+
+/// <summary>Identifies the relationship whose family-level invariant failed.</summary>
+internal sealed class FirmwareFamilyRelationshipInvariantException(
+    string relationshipId,
+    string message) : ArgumentException(message)
+{
+    internal string RelationshipId { get; } = relationshipId;
+}

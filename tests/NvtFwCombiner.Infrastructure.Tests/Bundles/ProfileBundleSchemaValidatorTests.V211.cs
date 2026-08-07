@@ -7,6 +7,118 @@ namespace NvtFwCombiner.Infrastructure.Tests.Bundles;
 
 public sealed partial class ProfileBundleSchemaValidatorTests
 {
+    /// <summary>Verifies schema-owned TP Header and shared-fact shapes reject drift at the bundle gateway.</summary>
+    [Theory]
+    [InlineData("missing-structure-kind")]
+    [InlineData("missing-tp-header")]
+    [InlineData("unknown-structure-kind")]
+    [InlineData("inline-definition-reference")]
+    [InlineData("unknown-subject")]
+    [InlineData("unknown-role")]
+    [InlineData("unknown-stored-address-basis")]
+    [InlineData("drifted-coverage-policy")]
+    public void ValidateEntriesEnforcesSchemaOwnedFirmwareFamilyShape(string mutation)
+    {
+        JsonObject baseline = LoadFirmwareFamilyWithTpHeader();
+        ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureFirmwareFamilyV11TpHeader(baseline.ToJsonString()),
+            32);
+
+        JsonObject family = Assert.IsType<JsonObject>(baseline.DeepClone());
+        JsonObject structure = FirstMetadataStructure(family);
+        JsonObject semantics = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(
+                Assert.IsType<JsonObject>(structure["tpFlashHeader"])["fieldSemantics"])[0]);
+        switch (mutation)
+        {
+            case "missing-structure-kind":
+                _ = structure.Remove("structureKind");
+                break;
+            case "missing-tp-header":
+                _ = structure.Remove("tpFlashHeader");
+                break;
+            case "unknown-structure-kind":
+                structure["structureKind"] = "future";
+                break;
+            case "inline-definition-reference":
+                structure["definitionReference"] = new JsonObject
+                {
+                    ["familyId"] = "synthetic-family",
+                    ["familyVersion"] = "1.0.0",
+                    ["familyContentHash"] = new string('a', 64),
+                    ["structureId"] = "synthetic-structure",
+                };
+                break;
+            case "unknown-subject":
+                semantics["subject"] = "future";
+                break;
+            case "unknown-role":
+                semantics["role"] = "future";
+                break;
+            case "unknown-stored-address-basis":
+                Assert.IsType<JsonObject>(
+                    FindSemantics(
+                        Assert.IsType<JsonArray>(
+                            Assert.IsType<JsonObject>(structure["tpFlashHeader"])["fieldSemantics"]),
+                        "ilm-destination-address-in-sram")["storedAddress"])["basis"] = "future";
+                break;
+            case "drifted-coverage-policy":
+                Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(family["imageMaps"])[0])[
+                    "coveragePolicy"] = "future";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(mutation),
+                    mutation,
+                    "Unknown firmware-family schema mutation.");
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(
+                CaptureFirmwareFamilyV11TpHeader(family.ToJsonString()),
+                32));
+    }
+
+    /// <summary>Verifies the relationship schema owns nonblank and unique shared-fact identifiers.</summary>
+    [Theory]
+    [InlineData("blank-shared-fact-id")]
+    [InlineData("duplicate-shared-fact")]
+    public void ValidateEntriesEnforcesSchemaOwnedSharedFactIdentifiers(string mutation)
+    {
+        JsonObject baseline = LoadFirmwareFamilyWithRelationships();
+        ProfileBundleSchemaValidator.ValidateEntries(
+            CaptureFirmwareFamily(
+                baseline.ToJsonString(),
+                "firmware-family-v1.2-tp-header-subjects.schema.json"),
+            32);
+
+        JsonObject family = Assert.IsType<JsonObject>(baseline.DeepClone());
+        JsonObject relationship = Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(family["familyRelationships"])[1]);
+        JsonArray sharedFacts = Assert.IsType<JsonArray>(relationship["sharedFactReferences"]);
+        switch (mutation)
+        {
+            case "blank-shared-fact-id":
+                Assert.IsType<JsonObject>(sharedFacts[0])["factId"] = string.Empty;
+                break;
+            case "duplicate-shared-fact":
+                sharedFacts.Add(sharedFacts[0]!.DeepClone());
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(mutation),
+                    mutation,
+                    "Unknown shared-fact schema mutation.");
+        }
+
+        _ = Assert.Throws<InvalidDataException>(() =>
+            ProfileBundleSchemaValidator.ValidateEntries(
+                CaptureFirmwareFamily(
+                    family.ToJsonString(),
+                    "firmware-family-v1.2-tp-header-subjects.schema.json"),
+                32));
+    }
+
     /// <summary>Verifies the TP Header successor schema keeps stored-address meaning closed and role-specific.</summary>
     [Theory]
     [InlineData("valid", true)]
@@ -83,8 +195,46 @@ public sealed partial class ProfileBundleSchemaValidatorTests
                 StringComparison.Ordinal)));
     }
 
+    private static JsonObject LoadFirmwareFamilyWithTpHeader()
+    {
+        return Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(
+            RepositoryPaths.FromRepositoryRoot(
+                "profiles",
+                "built-in",
+                "nt51929-standard-merge",
+                "families",
+                "nt51929-nt51932.json"))));
+    }
+
+    private static JsonObject LoadFirmwareFamilyWithRelationships()
+    {
+        return Assert.IsType<JsonObject>(JsonNode.Parse(File.ReadAllText(
+            RepositoryPaths.FromRepositoryRoot(
+                "profiles",
+                "built-in",
+                "nt51927-standard-merge",
+                "families",
+                "nt51927-nt51928.json"))));
+    }
+
+    private static JsonObject FirstMetadataStructure(JsonObject family)
+    {
+        return Assert.IsType<JsonObject>(
+            Assert.IsType<JsonArray>(
+                Assert.IsType<JsonObject>(
+                    Assert.IsType<JsonArray>(family["metadataSets"])[0])[
+                        "structures"])[0]);
+    }
+
     private static ProfileBundleEntrySnapshotCollection CaptureFirmwareFamilyV11TpHeader(
         string family)
+    {
+        return CaptureFirmwareFamily(family, "firmware-family-v1.1-tp-header.schema.json");
+    }
+
+    private static ProfileBundleEntrySnapshotCollection CaptureFirmwareFamily(
+        string family,
+        string schemaFileName)
     {
         const string schemaId =
             "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json";
@@ -93,11 +243,11 @@ public sealed partial class ProfileBundleSchemaValidatorTests
         byte[] schemaBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
             "docs",
             "contracts",
-            "firmware-family-v1.1-tp-header.schema.json"));
+            schemaFileName));
         byte[] familyBytes = Encoding.UTF8.GetBytes(family);
         _ = workspace.Write("profile-bundle.json", Encoding.UTF8.GetBytes("{}"));
         _ = workspace.Write(
-            "schemas/firmware-family-v1.1-tp-header.schema.json",
+            $"schemas/{schemaFileName}",
             schemaBytes);
         _ = workspace.Write("families/family.json", familyBytes);
 
@@ -113,7 +263,7 @@ public sealed partial class ProfileBundleSchemaValidatorTests
                     Entry(
                         "schema",
                         ProfileBundleEntryKind.Schema,
-                        "schemas/firmware-family-v1.1-tp-header.schema.json",
+                        $"schemas/{schemaFileName}",
                         schemaBytes,
                         schemaId),
                     Entry(

@@ -510,7 +510,7 @@ public sealed partial class MemoryLayoutProjectorTests
         CompiledInputArtifactClass artifactClass,
         CompiledInputLengthRequirement length)
     {
-        return new CompiledInputSlotRequirement(
+        return CompiledInputSlotTestFactory.Create(
             slotId,
             role,
             artifactClass,

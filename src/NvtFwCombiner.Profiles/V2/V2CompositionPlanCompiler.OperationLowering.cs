@@ -78,51 +78,18 @@ internal static partial class V2CompositionPlanCompiler
         var priorWrites = new List<CompositionOperation>();
         foreach (CompositionOperation operation in operations.OrderBy(static operation => operation.Sequence).ThenBy(static operation => operation.OperationId, StringComparer.Ordinal))
         {
-            ByteRange[] writeRanges = GetDeclaredWriteRanges(operation);
-            CompositionOperation[] overlaps = [.. priorWrites.Where(candidate =>
-                StringComparer.Ordinal.Equals(candidate.TargetSpaceId, operation.TargetSpaceId) &&
-                GetDeclaredWriteRanges(candidate).Any(candidateRange =>
-                    writeRanges.Any(writeRange => candidateRange.Overlaps(writeRange))))];
-            if (overlaps.Length == 0)
-            {
-                if (operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
-                {
-                    issues.Add(new CompositionIssue(
-                        OperationOverlap,
-                        $"Operation '{operation.OperationId}' declares ReplaceExisting but has no earlier write covering its target range in target space '{operation.TargetSpaceId}'.",
-                        operation.OperationId));
-                    return;
-                }
-            }
-            else if (operation.OverlapPolicy != OverlapPolicy.ReplaceExisting)
-            {
-                CompositionOperation prior = overlaps[0];
-                issues.Add(new CompositionIssue(
-                    OperationOverlap,
-                    $"Operation '{operation.OperationId}' overlaps earlier operation '{prior.OperationId}' in target space '{operation.TargetSpaceId}'.",
-                    operation.OperationId));
-                return;
-            }
-            else if (operation.Kind is not (CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor) ||
-                     !writeRanges.All(writeRange => overlaps.Any(candidate =>
-                         GetDeclaredWriteRanges(candidate).Any(candidateRange => candidateRange.Contains(writeRange)))))
+            string? error = operation.GetProfileOverlapError(priorWrites);
+            if (error is not null)
             {
                 issues.Add(new CompositionIssue(
                     OperationOverlap,
-                    $"Operation '{operation.OperationId}' declares ReplaceExisting but no earlier write fully covers its target range in target space '{operation.TargetSpaceId}'.",
+                    error,
                     operation.OperationId));
                 return;
             }
 
             priorWrites.Add(operation);
         }
-    }
-
-    private static ByteRange[] GetDeclaredWriteRanges(CompositionOperation operation)
-    {
-        return operation.Kind == CompositionOperationKind.RunExternalProcessor
-            ? [.. operation.ExternalProcessorInvocation!.AllowedWriteRanges]
-            : [operation.TargetRange];
     }
 
     private static void LowerCopyOrReplaceOperation(

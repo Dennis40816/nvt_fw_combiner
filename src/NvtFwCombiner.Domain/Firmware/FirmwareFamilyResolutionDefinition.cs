@@ -65,6 +65,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             "Family relationships cannot contain null.",
             "Family relationship ids must be ordinally unique.",
             StringComparer.Ordinal);
+        ValidateFamilyRelationships(
+            _familyRelationships,
+            _imageMaps,
+            _capabilityBindings);
         Array.Sort(
             _familyRelationships,
             static (left, right) =>
@@ -236,6 +240,79 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             throw new ArgumentException(
                 $"Capability binding references unknown image map '{key.MapId}'.",
                 parameterName);
+    }
+
+    private static void ValidateFamilyRelationships(
+        IReadOnlyList<FirmwareFamilyRelationship> relationships,
+        IReadOnlyList<FirmwareImageMap> maps,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities)
+    {
+        HashSet<string> perfectMembers = new(StringComparer.Ordinal);
+        HashSet<(string MapId, FirmwareSharedFactKind Kind, string FactId)> sharedFacts = [];
+        foreach (FirmwareFamilyRelationship relationship in relationships)
+        {
+            if (relationship is PerfectFamilyRelationship perfect)
+            {
+                HashSet<string> members = [.. perfect.MemberIds];
+                if (members.Any(member => !perfectMembers.Add(member)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "A member cannot have more than one perfect-family relationship.");
+                }
+
+                FirmwareImageMap[] selectedMaps =
+                    [.. maps.Where(map => map.Applicability.MemberIds.Any(members.Contains))];
+                if (perfect.MemberIds.Any(member =>
+                        selectedMaps.All(map => !map.Applicability.MemberIds.Contains(member, StringComparer.Ordinal))))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Every perfect-family member must be selected by a family-owned map.");
+                }
+
+                if (selectedMaps.Any(map => !members.SetEquals(map.Applicability.MemberIds)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family relationships cannot contain member-specific maps.");
+                }
+
+                if (maps.Any(map =>
+                        HasMemberAlias(map.RegionSetBindings, members) ||
+                        HasMemberAlias(map.MetadataSetBindings, members)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family firmware semantics cannot use member-specific fact aliases.");
+                }
+
+                if (capabilities.Any(binding => members.Contains(binding.EffectiveKey.MemberId)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family firmware semantics cannot contain member-specific capability facts.");
+                }
+            }
+            else if (relationship is SharedFactRelationship shared &&
+                shared.ApplicableMaps.Any(map => shared.SharedFactReferences.Any(reference =>
+                    !sharedFacts.Add((map.MapId, reference.Kind, reference.FactId)))))
+            {
+                throw new FirmwareFamilyRelationshipInvariantException(
+                    relationship.RelationshipId,
+                    "A canonical map fact cannot have more than one shared relationship.");
+            }
+        }
+    }
+
+    private static bool HasMemberAlias<TFact>(
+        IEnumerable<FirmwareMapFactBinding<TFact>> bindings,
+        HashSet<string> members)
+        where TFact : class, IFirmwareMapFact
+    {
+        return bindings.Any(binding => binding.Provenance.AliasChain.Any(hop =>
+            members.Contains(hop.TargetKey.MemberId) ||
+            members.Contains(hop.SourceKey.MemberId)));
     }
 
     private static void ValidateFamilyStructureIds(IEnumerable<FirmwareMetadataSet> metadataSets)

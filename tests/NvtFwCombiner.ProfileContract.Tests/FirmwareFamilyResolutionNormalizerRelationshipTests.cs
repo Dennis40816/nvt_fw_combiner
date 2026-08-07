@@ -269,7 +269,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             Assert.Throws<FirmwareFamilyNormalizationException>(() =>
                 FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
 
-        Assert.Equal("familyRelationships[1].sharedFactReferences", exception.Path);
+        Assert.Equal("familyRelationships[1]", exception.Path);
         Assert.Contains("more than one shared relationship", exception.Message, StringComparison.Ordinal);
     }
 

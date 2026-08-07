@@ -10,7 +10,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfilePromotionDocument document,
         string path = "promotion")
     {
-        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<CompositionProfilePromotionBlockerDocument> blockerDocuments = document.Blockers;
         var blockers = new CompiledProfilePromotionBlocker[blockerDocuments.Count];
         for (int index = 0; index < blockerDocuments.Count; index++)
@@ -33,17 +32,13 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileExperienceDocument document,
         string path = "experience")
     {
-        ArgumentNullException.ThrowIfNull(document);
-        ValidateAudience(document.Audience, $"{path}.audience");
         LayoutPolicy layoutPolicy = NormalizeLayoutPolicy(document.LayoutPolicy, $"{path}.layoutPolicy");
         InputPolicy inputPolicy = NormalizeInputPolicy(document.InputPolicy, $"{path}.inputPolicy");
-        ValidateTopologyAuthoring(document.TopologyAuthoring, $"{path}.topologyAuthoring");
         return Wrap(path, () =>
         {
             string experienceId = CanonicalPolicyValueRules.RequireCanonicalId(
                 document.ExperienceId,
                 nameof(document.ExperienceId));
-            ArgumentException.ThrowIfNullOrWhiteSpace(document.DisplayNameKey);
             return (experienceId, layoutPolicy, inputPolicy);
         });
     }
@@ -52,7 +47,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMapBindingDocument document,
         string path = "mapBinding")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new CompositionProfileMapBinding(
             document.FamilyId,
             document.FamilyVersion,
@@ -68,7 +62,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileInputSelectionGroupDocument document,
         string path = "inputSelectionGroups[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new InputSelectionGroupDefinition(
             document.GroupId,
             document.MemberSlotIds,
@@ -108,14 +101,6 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static void ValidateAudience(string value, string path)
-    {
-        if (value is not ("system" or "dp" or "ctrlram" or "advanced"))
-        {
-            throw Error(path, "Unknown experience audience.");
-        }
-    }
-
     private static LayoutPolicy NormalizeLayoutPolicy(string value, string path)
     {
         return value switch
@@ -135,14 +120,6 @@ internal static partial class CompositionProfileNormalizer
             "extensible" => InputPolicy.Extensible,
             _ => throw Error(path, "Unknown experience input policy."),
         };
-    }
-
-    private static void ValidateTopologyAuthoring(string value, string path)
-    {
-        if (value is not ("hidden" or "single-or-cascade" or "exact-count"))
-        {
-            throw Error(path, "Unknown topology authoring policy.");
-        }
     }
 
     private static T Wrap<T>(string path, Func<T> factory)

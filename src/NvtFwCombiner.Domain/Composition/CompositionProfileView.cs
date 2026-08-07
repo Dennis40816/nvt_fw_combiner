@@ -79,6 +79,13 @@ internal sealed record CompositionProfileView
     internal string SpaceId { get; }
 
     internal CompositionProfileViewSelector Selector { get; }
+
+    internal string? MapRegionId => Selector switch
+    {
+        MapRegionViewSelector region => region.RegionId,
+        MapRegionSliceViewSelector slice => slice.RegionId,
+        _ => null,
+    };
 }
 
 /// <summary>Closed purpose for one profile metadata binding.</summary>

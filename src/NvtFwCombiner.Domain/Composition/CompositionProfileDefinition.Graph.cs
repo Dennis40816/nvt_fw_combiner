@@ -295,6 +295,33 @@ internal sealed partial class CompositionProfileDefinition
         }
     }
 
+    internal bool IsInputSlotApplicable(
+        string slotId,
+        IReadOnlySet<string> availableRegionIds)
+    {
+        ArgumentNullException.ThrowIfNull(availableRegionIds);
+        var inputSpaceIds = _spaces
+            .OfType<InputArtifactProfileSpace>()
+            .Where(space => StringComparer.Ordinal.Equals(space.SlotId, slotId))
+            .Select(static space => space.SpaceId)
+            .ToHashSet(StringComparer.Ordinal);
+        return _views
+            .Where(view => inputSpaceIds.Contains(view.SpaceId))
+            .All(view => view.MapRegionId is not string regionId || availableRegionIds.Contains(regionId));
+    }
+
+    internal bool AreSelectedOptionalInputSlotsApplicable(
+        IReadOnlyCollection<string> selectedSlotIds,
+        IReadOnlySet<string> availableRegionIds)
+    {
+        ArgumentNullException.ThrowIfNull(selectedSlotIds);
+        var selected = selectedSlotIds.ToHashSet(StringComparer.Ordinal);
+        return _inputSelectionGroups
+            .SelectMany(static group => group.MemberSlotIds)
+            .Where(selected.Contains)
+            .All(slotId => IsInputSlotApplicable(slotId, availableRegionIds));
+    }
+
     private void ValidateSpaces(IReadOnlyDictionary<string, CompositionInputSlotDefinition> slots)
     {
         HashSet<string> referencedSlotIds = new(StringComparer.Ordinal);
@@ -347,13 +374,7 @@ internal sealed partial class CompositionProfileDefinition
         foreach (CompositionProfileView view in _views)
         {
             _ = RequireReference(spaces, view.SpaceId, "View references an unknown space.");
-            string? regionId = view.Selector switch
-            {
-                MapRegionViewSelector region => region.RegionId,
-                MapRegionSliceViewSelector slice => slice.RegionId,
-                _ => null,
-            };
-            if (regionId is not null &&
+            if (view.MapRegionId is { } regionId &&
                 !MapBinding.RequiredRegionIds.Contains(regionId, StringComparer.Ordinal) &&
                 !MapBinding.OptionalRegionIds.Contains(regionId, StringComparer.Ordinal))
             {

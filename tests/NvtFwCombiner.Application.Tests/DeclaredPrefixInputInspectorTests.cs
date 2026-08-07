@@ -1,14 +1,15 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Application.Tests;
 
 /// <summary>Behavior evidence for the Application-owned declared-prefix diagnostic substrate.</summary>
 public sealed class DeclaredPrefixInputInspectorTests
 {
-    private const string ShortCode = "test.input.required-prefix-missing";
-    private const string OuterLengthCode = "test.input.outer-length-unexpected";
+    private const string ShortCode = "TEST_INPUT_REQUIRED_PREFIX_MISSING";
+    private const string OuterLengthCode = "TEST_INPUT_OUTER_LENGTH_UNEXPECTED";
 
     /// <summary>A source one byte short is blocking and cannot claim an accepted snapshot.</summary>
     [Fact]
@@ -213,7 +214,7 @@ public sealed class DeclaredPrefixInputInspectorTests
     [Fact]
     public void CompiledContractProjectionRejectsExactLengthMismatch()
     {
-        var slot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement slot = CompiledInputSlotTestFactory.Create(
             "source-slot",
             "source",
             CompiledInputArtifactClass.Auxiliary,
@@ -255,7 +256,7 @@ public sealed class DeclaredPrefixInputInspectorTests
                 "other-input",
                 Sequence(16)));
 
-        var exactSlot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement exactSlot = CompiledInputSlotTestFactory.Create(
             "source-slot",
             "source",
             CompiledInputArtifactClass.Auxiliary,
@@ -293,7 +294,7 @@ public sealed class DeclaredPrefixInputInspectorTests
         long requiredEndExclusive,
         IReadOnlyList<long> expectedOuterLengths)
     {
-        var slot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement slot = CompiledInputSlotTestFactory.Create(
             "source-slot",
             "source",
             CompiledInputArtifactClass.Auxiliary,

@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private sealed record MapInput(int Index, FirmwareImageMapDocument Document)
     {
