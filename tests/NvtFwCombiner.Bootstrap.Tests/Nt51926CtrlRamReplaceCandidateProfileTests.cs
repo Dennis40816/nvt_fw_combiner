@@ -498,11 +498,11 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 [new FirmwareArtifactPayload("reference-base", referenceBase)],
                 new V2RuntimeReferenceReplaceCompileRequest(
                     [
-                        new V2RuntimeReferenceReplaceInputBinding(
+                        new V2ExplicitMappingInputBinding(
                             "reference-base",
                             "reference-base",
                             referenceBase.Length),
-                        new V2RuntimeReferenceReplaceInputBinding("vn-source", "ctrlram-source", sourceLength),
+                        new V2ExplicitMappingInputBinding("vn-source", "ctrlram-source", sourceLength),
                     ],
                     [new ExplicitMapping(
                         "replace-vn",

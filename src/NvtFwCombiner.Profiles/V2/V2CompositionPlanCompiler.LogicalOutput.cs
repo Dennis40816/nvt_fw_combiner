@@ -116,13 +116,13 @@ internal static partial class V2CompositionPlanCompiler
     {
         CompositionInputSlotDefinition inputSlot = profile.InputSlots[0];
         string outputSpaceId = AssertOutputSpace(profile).SpaceId;
-        var bindings = new Dictionary<string, V2LogicalOutputInputBinding>(StringComparer.Ordinal);
-        foreach (V2LogicalOutputInputBinding? binding in request.Bindings)
+        var bindings = new Dictionary<string, V2ExplicitMappingInputBinding>(StringComparer.Ordinal);
+        foreach (V2ExplicitMappingInputBinding? binding in request.Bindings)
         {
             if (binding is null ||
                 string.IsNullOrWhiteSpace(binding.BindingId) ||
                 !StringComparer.Ordinal.Equals(binding.SlotId, inputSlot.SlotId) ||
-                binding.ExactLengthBytes <= 0 ||
+                binding.ExactLengthBytes is <= 0 or > int.MaxValue ||
                 StringComparer.Ordinal.Equals(binding.BindingId, outputSpaceId) ||
                 !bindings.TryAdd(binding.BindingId, binding))
             {
@@ -145,7 +145,6 @@ internal static partial class V2CompositionPlanCompiler
         foreach (ExplicitMapping? mapping in request.Mappings)
         {
             if (mapping is null ||
-                string.IsNullOrWhiteSpace(mapping.MappingId) ||
                 !mappingIds.Add(mapping.MappingId) ||
                 !sequences.Add(mapping.Sequence) ||
                 mapping.OperationKind != ExplicitMappingOperationKind.CopyRange ||
@@ -155,8 +154,7 @@ internal static partial class V2CompositionPlanCompiler
                     CompositionAddressSpaceIds.OutputImage) ||
                 mapping.TargetRegionId is not null ||
                 mapping.SourceRange.Start % mapping.Alignment != 0 ||
-                mapping.SourceRange.Length % mapping.Alignment != 0 ||
-                mapping.TargetRange.Length % mapping.Alignment != 0)
+                mapping.SourceRange.Length % mapping.Alignment != 0)
             {
                 issues.Add(new CompositionIssue(
                     LogicalMappingInvalid,
@@ -165,7 +163,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2LogicalOutputInputBinding? source))
+            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2ExplicitMappingInputBinding? source))
             {
                 issues.Add(new CompositionIssue(
                     LogicalMappingInvalid,

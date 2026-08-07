@@ -69,7 +69,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "1.0.0",
             LogicalTestMemberId,
             new V2RuntimeReferenceReplaceCompileRequest(
-                [new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 16)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 16)],
                 [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]));
 
         Assert.False(result.IsCompiled);
@@ -123,9 +123,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             LogicalTestMemberId,
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
-                    new V2RuntimeReferenceReplaceInputBinding("base-duplicate", "reference", 16),
-                    new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
+                    new V2ExplicitMappingInputBinding("base", "reference", 16),
+                    new V2ExplicitMappingInputBinding("base-duplicate", "reference", 16),
+                    new V2ExplicitMappingInputBinding("source-a", "source", 4),
                 ],
                 [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]));
         V2CompositionPlanCompileResult valid = catalog.CompileRuntimeReferenceReplace(
@@ -230,6 +230,113 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.plan.operation-overlap");
     }
 
+    /// <summary>Locks shared runtime-reference binding and mapping guards without duplicating workflow tests.</summary>
+    [Theory]
+    [InlineData("duplicate-binding", "profile.v2.runtime-reference-replace.binding-invalid")]
+    [InlineData("duplicate-mapping-id", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    [InlineData("duplicate-sequence", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    [InlineData("unknown-binding", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    [InlineData("wrong-kind", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    [InlineData("wrong-overlap", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    [InlineData("wrong-alignment", "profile.v2.runtime-reference-replace.mapping-invalid")]
+    public void RuntimeReferenceReplaceLoweringRejectsInvalidExplicitMappingRequest(
+        string mutation,
+        string expectedIssueCode)
+    {
+        V2ExplicitMappingInputBinding[] bindings =
+        [
+            new("base", "reference", 16),
+            new("source-a", "source", 4),
+        ];
+        ExplicitMapping[] mappings =
+            [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(0, 2), new ByteRange(8, 2))];
+        switch (mutation)
+        {
+            case "duplicate-binding":
+                bindings = [.. bindings, new("source-a", "source", 4)];
+                break;
+            case "duplicate-mapping-id":
+                mappings =
+                [
+                    mappings[0],
+                    RuntimeReferenceReplaceMapping(
+                        "replace-source",
+                        11,
+                        new ByteRange(2, 2),
+                        new ByteRange(10, 2)),
+                ];
+                break;
+            case "duplicate-sequence":
+                mappings =
+                [
+                    mappings[0],
+                    RuntimeReferenceReplaceMapping(
+                        "replace-second",
+                        10,
+                        new ByteRange(2, 2),
+                        new ByteRange(10, 2)),
+                ];
+                break;
+            case "unknown-binding":
+                mappings =
+                [
+                    RuntimeReferenceReplaceMapping(
+                        "replace-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(8, 2),
+                        "missing"),
+                ];
+                break;
+            case "wrong-kind":
+                mappings =
+                [
+                    RuntimeReferenceReplaceMapping(
+                        "replace-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(8, 2),
+                        operationKind: ExplicitMappingOperationKind.CopyRange),
+                ];
+                break;
+            case "wrong-overlap":
+                mappings =
+                [
+                    RuntimeReferenceReplaceMapping(
+                        "replace-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(8, 2),
+                        overlapPolicy: OverlapPolicy.ReplaceExisting),
+                ];
+                break;
+            case "wrong-alignment":
+                mappings =
+                [
+                    RuntimeReferenceReplaceMapping(
+                        "replace-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(8, 2),
+                        alignment: 2),
+                ];
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown runtime mutation.");
+        }
+
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceReplaceCatalog()
+            .CompileRuntimeReferenceReplace(
+                "runtime-general-replace",
+                "1.0.0",
+                LogicalTestMemberId,
+                new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues, issue => issue.Code == expectedIssueCode);
+    }
+
     private static TrustedProfileBundleCatalog CreateRuntimeReferenceReplaceCatalog(
         FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.ExplicitRange,
         string promotionStage = "compilable",
@@ -272,8 +379,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         return new V2RuntimeReferenceReplaceCompileRequest(
             [
-                new V2RuntimeReferenceReplaceInputBinding("base", "reference", referenceLength),
-                new V2RuntimeReferenceReplaceInputBinding("source-a", "source", sourceLength),
+                new V2ExplicitMappingInputBinding("base", "reference", referenceLength),
+                new V2ExplicitMappingInputBinding("source-a", "source", sourceLength),
             ],
             mappings.Length == 0
                 ? [RuntimeReferenceReplaceMapping("replace-source", 10, new ByteRange(2, 2), new ByteRange(8, 2))]
@@ -284,18 +391,22 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string mappingId,
         int sequence,
         ByteRange sourceRange,
-        ByteRange targetRange)
+        ByteRange targetRange,
+        string sourceBindingId = "source-a",
+        ExplicitMappingOperationKind operationKind = ExplicitMappingOperationKind.ReplaceRange,
+        OverlapPolicy overlapPolicy = OverlapPolicy.Reject,
+        int alignment = 1)
     {
         return new ExplicitMapping(
             mappingId,
             sequence,
-            ExplicitMappingOperationKind.ReplaceRange,
-            "source-a",
+            operationKind,
+            sourceBindingId,
             sourceRange,
             "output-image",
             targetRange,
-            OverlapPolicy.Reject,
-            alignment: 1,
+            overlapPolicy,
+            alignment,
             reason: "Synthetic runtime General Replace mapping");
     }
 

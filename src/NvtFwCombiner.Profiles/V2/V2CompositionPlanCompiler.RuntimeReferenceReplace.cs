@@ -69,7 +69,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings =
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings =
             ValidateRuntimeReferenceReplaceBindings(shape, resolvedMap, request, issues);
         if (issues.Count != 0)
         {
@@ -173,7 +173,7 @@ internal static partial class V2CompositionPlanCompiler
             : [];
         CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];
 
-        V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>
+        V2ExplicitMappingInputBinding referenceBinding = bindings.Values.Single(binding =>
             StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
         var plan = new CompositionPlan(
             [ImageInitialization.Reference(shape.Output.SpaceId, referenceBinding.BindingId, resolvedMap.CapacityBytes)],
@@ -383,16 +383,16 @@ internal static partial class V2CompositionPlanCompiler
                 operation.Kind == CompositionOperationKind.RunExternalProcessor));
     }
 
-    private static Dictionary<string, V2RuntimeReferenceReplaceInputBinding> ValidateRuntimeReferenceReplaceBindings(
+    private static Dictionary<string, V2ExplicitMappingInputBinding> ValidateRuntimeReferenceReplaceBindings(
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
         List<CompositionIssue> issues)
     {
-        var bindings = new Dictionary<string, V2RuntimeReferenceReplaceInputBinding>(StringComparer.Ordinal);
+        var bindings = new Dictionary<string, V2ExplicitMappingInputBinding>(StringComparer.Ordinal);
         int referenceCount = 0;
         int sourceCount = 0;
-        foreach (V2RuntimeReferenceReplaceInputBinding? binding in request.Bindings)
+        foreach (V2ExplicitMappingInputBinding? binding in request.Bindings)
         {
             bool isReference = binding is not null && StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId);
             bool isSource = binding is not null && StringComparer.Ordinal.Equals(binding.SlotId, shape.SourceSlot.SlotId);
@@ -431,7 +431,7 @@ internal static partial class V2CompositionPlanCompiler
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings,
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
@@ -445,15 +445,13 @@ internal static partial class V2CompositionPlanCompiler
         foreach (ExplicitMapping? mapping in request.Mappings)
         {
             if (mapping is null ||
-                string.IsNullOrWhiteSpace(mapping.MappingId) ||
                 !mappingIds.Add(mapping.MappingId) ||
                 !sequences.Add(mapping.Sequence) ||
                 mapping.OperationKind != ExplicitMappingOperationKind.ReplaceRange ||
                 mapping.OverlapPolicy != OverlapPolicy.Reject ||
                 !StringComparer.Ordinal.Equals(mapping.TargetSpaceId, shape.Output.SpaceId) ||
                 mapping.TargetRegionId is not null ||
-                mapping.Alignment != 1 ||
-                mapping.SourceRange.Length != mapping.TargetRange.Length)
+                mapping.Alignment != 1)
             {
                 issues.Add(new CompositionIssue(
                     RuntimeReferenceMappingInvalid,
@@ -462,7 +460,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2RuntimeReferenceReplaceInputBinding? source) ||
+            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2ExplicitMappingInputBinding? source) ||
                 !StringComparer.Ordinal.Equals(source.SlotId, shape.SourceSlot.SlotId))
             {
                 issues.Add(new CompositionIssue(

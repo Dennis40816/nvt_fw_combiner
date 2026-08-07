@@ -97,7 +97,7 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool truncatesCtrlRamSources,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy,
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings,
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings,
         IReadOnlyList<CompositionOperation> mappingOperations,
         CompositionOperation[] processorOperations,
         List<CompositionIssue> issues)
@@ -111,7 +111,7 @@ internal static partial class V2CompositionPlanCompiler
             postbuildPolicy.SourceAddressSpaceId is null ||
             (bindings.TryGetValue(
                  postbuildPolicy.SourceAddressSpaceId,
-                 out V2RuntimeReferenceReplaceInputBinding? sourceBinding) &&
+                 out V2ExplicitMappingInputBinding? sourceBinding) &&
              postbuildPolicy.RequiredNonuniformSourceRanges.All(range =>
                  range.EndExclusive <= sourceBinding.ExactLengthBytes &&
                  mappingOperations.Any(mapping =>

@@ -179,13 +179,13 @@ internal static partial class CompositionPlanningAdapter
         TopologySelection topology,
         FirmwareArtifactPayload referencePayload)
     {
-        V2RuntimeReferenceReplaceInputBinding[] bindings =
+        V2ExplicitMappingInputBinding[] bindings =
         [
             new(
                 CompositionAddressSpaceIds.ReferenceBase,
                 CompositionAddressSpaceIds.ReferenceBase,
                 referencePayload.LengthBytes),
-            .. context.SelectedSources.Select(source => new V2RuntimeReferenceReplaceInputBinding(
+            .. context.SelectedSources.Select(source => new V2ExplicitMappingInputBinding(
                 CompositionMemoryProjection.CtrlRamSlotId(source.SourceId),
                 "ctrlram-source",
                 context.SelectedSourceLengths[source.SourceId])),
