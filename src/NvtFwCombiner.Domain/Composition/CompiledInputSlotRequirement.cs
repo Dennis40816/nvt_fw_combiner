@@ -38,65 +38,6 @@ public enum CompiledInputInstancePolicy
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
 public abstract record CompiledInputLengthRequirement : InputLengthRequirementDefinition;
 
-/// <summary>Accepts one immutable execution prefix while retaining full-source diagnostic authority.</summary>
-public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : CompiledInputLengthRequirement
-{
-    private readonly long[] _expectedOuterLengths;
-
-    /// <summary>Creates one checked declared-prefix requirement.</summary>
-    public CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-        long requiredEndExclusive,
-        IReadOnlyList<long> expectedOuterLengths,
-        string shortInputIssueCode,
-        string unexpectedOuterLengthIssueCode)
-    {
-        if (requiredEndExclusive is <= 0 or > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(requiredEndExclusive),
-                requiredEndExclusive,
-                "Required end must fit the in-memory execution snapshot limit.");
-        }
-
-        ArgumentNullException.ThrowIfNull(expectedOuterLengths);
-        DomainInvariant.Reject(
-            expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths,
-            $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-            nameof(expectedOuterLengths));
-
-        _expectedOuterLengths = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            DomainInvariant.Reject(
-                value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous),
-                "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
-                nameof(expectedOuterLengths));
-
-            _expectedOuterLengths[index] = value;
-            previous = value;
-        }
-
-        ShortInputIssueCode = RequiredValue.NotBlank(shortInputIssueCode);
-        UnexpectedOuterLengthIssueCode = RequiredValue.NotBlank(unexpectedOuterLengthIssueCode);
-        RequiredEndExclusive = requiredEndExclusive;
-        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
-    }
-
-    /// <summary>First unavailable byte that makes a shorter source blocking.</summary>
-    public long RequiredEndExclusive { get; }
-
-    /// <summary>Complete source lengths that do not emit an outer-length warning.</summary>
-    public IReadOnlyList<long> ExpectedOuterLengths { get; }
-
-    /// <summary>Stable blocking issue code for a source shorter than the required end.</summary>
-    public string ShortInputIssueCode { get; }
-
-    /// <summary>Stable warning issue code for an accepted unexpected outer length.</summary>
-    public string UnexpectedOuterLengthIssueCode { get; }
-}
-
 /// <summary>Requires one exact positive source length.</summary>
 public sealed record CompiledExactBytesInputLengthRequirement : CompiledInputLengthRequirement
 {
@@ -152,14 +93,6 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
     public long MaximumBytes { get; }
 }
 
-/// <summary>Rejects TP firmware larger than the owner-approved 256 KiB limit.</summary>
-public sealed record CompiledTpMaximum256KInputLengthRequirement()
-    : CompiledInputLengthRequirement
-{
-    /// <summary>Owner-approved maximum TP input length.</summary>
-    public const long MaximumBytes = 262144;
-}
-
 /// <summary>
 /// Accepts an immutable source that covers the compiled address-space reads,
 /// with optional complete-container diagnostics.
@@ -172,11 +105,29 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     /// <summary>Creates one checked source-view coverage requirement.</summary>
     public CompiledSourceViewCoverageInputLengthRequirement(
         IReadOnlyList<long>? expectedOuterLengths = null,
-        string? unexpectedOuterLengthIssueCode = null)
+        string? unexpectedOuterLengthIssueCode = null,
+        long? requiredEndExclusive = null,
+        string? shortInputIssueCode = null,
+        long? maximumBytes = null)
     {
+        if (requiredEndExclusive is <= 0 or > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(requiredEndExclusive),
+                requiredEndExclusive,
+                "Required end must fit the in-memory execution snapshot limit.");
+        }
+
         DomainInvariant.Reject(
             (expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null),
             "Expected outer lengths and their warning issue code must be declared together.");
+        DomainInvariant.Reject(
+            (requiredEndExclusive is null) != (shortInputIssueCode is null),
+            "An explicit required end and its blocking issue code must be declared together within the in-memory limit.");
+        DomainInvariant.Reject(
+            maximumBytes is <= 0 or > int.MaxValue ||
+            (maximumBytes is not null && (requiredEndExclusive is not null || expectedOuterLengths is not null)),
+            "Source-view maximum length must fit the in-memory limit and cannot carry another coverage policy.");
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
@@ -187,9 +138,24 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
         }
+        if (shortInputIssueCode is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(shortInputIssueCode);
+        }
+        if (requiredEndExclusive is { } requiredEnd)
+        {
+            DomainInvariant.Reject(
+                _expectedOuterLengths.Length == 0 ||
+                _expectedOuterLengths.Any(length => length < requiredEnd || length > int.MaxValue),
+                "Expected outer lengths must cover the explicit required end and fit the in-memory limit.",
+                nameof(expectedOuterLengths));
+        }
 
         ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
+        RequiredEndExclusive = requiredEndExclusive;
+        ShortInputIssueCode = shortInputIssueCode;
+        MaximumBytes = maximumBytes;
     }
 
     /// <summary>Known complete-container lengths that suppress an optional warning.</summary>
@@ -198,6 +164,14 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     /// <summary>Optional stable warning code for an unexpected complete-container length.</summary>
     public string? UnexpectedOuterLengthIssueCode { get; }
 
+    /// <summary>Optional first unavailable byte that makes a shorter source blocking.</summary>
+    public long? RequiredEndExclusive { get; }
+
+    /// <summary>Blocking issue code paired with an explicit required end.</summary>
+    public string? ShortInputIssueCode { get; }
+
+    /// <summary>Optional inclusive maximum accepted complete source length.</summary>
+    public long? MaximumBytes { get; }
 }
 
 /// <summary>Base value for one immutable compiled input-normalization policy.</summary>

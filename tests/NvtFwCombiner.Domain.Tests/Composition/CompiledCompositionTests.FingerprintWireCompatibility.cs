@@ -11,22 +11,34 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void InputPolicyFingerprintWireCodesRemainCompatible()
     {
-        (CompiledInputLengthRequirement Requirement, string Code)[] lengths =
+        (CompiledInputLengthRequirement Requirement, string Code, string Payload)[] lengths =
         [
-            (new CompiledExactBytesInputLengthRequirement(4), "0"),
-            (new CompiledExactResolvedMapCapacityInputLengthRequirement(4), "1"),
-            (new CompiledBoundedInputLengthRequirement(1, 4), "2"),
-            (new CompiledTpMaximum256KInputLengthRequirement(), "4"),
-            (new CompiledDeclaredPrefixWithWarningInputLengthRequirement(4, [4], "SHORT", "OUTER"), "5"),
-            (new CompiledSourceViewCoverageInputLengthRequirement([4], "OUTER"), "6"),
+            (new CompiledExactBytesInputLengthRequirement(4), "0", "10:input.kind=1:0\n11:input.bytes=1:4\n"),
+            (new CompiledExactResolvedMapCapacityInputLengthRequirement(4), "1", "10:input.kind=1:1\n11:input.bytes=1:4\n"),
+            (new CompiledBoundedInputLengthRequirement(1, 4), "2",
+                "10:input.kind=1:2\n19:input.minimum-bytes=1:1\n19:input.maximum-bytes=1:4\n"),
+            (new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), "4",
+                "10:input.kind=1:4\n19:input.maximum-bytes=6:262144\n"),
+            (new CompiledSourceViewCoverageInputLengthRequirement(
+                [4], "OUTER", requiredEndExclusive: 4, shortInputIssueCode: "SHORT"), "5",
+                "10:input.kind=1:5\n28:input.required-end-exclusive=1:4\n" +
+                "33:input.expected-outer-length.count=1:1\n29:input.expected-outer-length.0=1:4\n" +
+                "28:input.short-input-issue-code=5:SHORT\n" +
+                "40:input.unexpected-outer-length-issue-code=5:OUTER\n"),
+            (new CompiledSourceViewCoverageInputLengthRequirement([4], "OUTER"), "6",
+                "10:input.kind=1:6\n33:input.expected-outer-length.count=1:1\n" +
+                "29:input.expected-outer-length.0=1:4\n" +
+                "40:input.unexpected-outer-length-issue-code=5:OUTER\n"),
         ];
-        foreach ((CompiledInputLengthRequirement requirement, string code) in lengths)
+        foreach ((CompiledInputLengthRequirement requirement, string code, string expectedPayload) in lengths)
         {
             string payload = InvokeFingerprintWriter(
                 "AppendInputLengthRequirement",
                 "input",
                 requirement);
             Assert.Equal(code, ReadFingerprintField(payload, "input.kind"));
+            Assert.Equal(expectedPayload, payload);
         }
 
         Assert.DoesNotContain(lengths, static item => item.Code == "3");

@@ -128,18 +128,18 @@ public sealed partial class CompositionRunService
                         $"Input bytes for address space '{binding.AddressSpaceId}' must exactly match the resolved-map capacity (actual {bytes.LongLength} bytes, expected {exact.Bytes} bytes).",
                         binding.AddressSpaceId));
                     break;
-                case CompiledTpMaximum256KInputLengthRequirement
-                    when bytes.LongLength > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes:
+                case CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: { } maximumBytes }
+                    when bytes.LongLength > maximumBytes:
                     issues.Add(new CompositionIssue(
                         CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                        $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {CompiledTpMaximum256KInputLengthRequirement.MaximumBytes} bytes).",
+                        $"Input bytes for address space '{binding.AddressSpaceId}' exceed the 256 KiB maximum (actual {bytes.LongLength} bytes, maximum {maximumBytes} bytes).",
                         binding.AddressSpaceId));
                     break;
-                case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix
-                    when bytes.LongLength < declaredPrefix.RequiredEndExclusive:
+                case CompiledSourceViewCoverageInputLengthRequirement
+                { RequiredEndExclusive: { } declaredEnd } declaredPrefix when bytes.LongLength < declaredEnd:
                     issues.Add(new CompositionIssue(
-                        declaredPrefix.ShortInputIssueCode,
-                        $"Input bytes for address space '{binding.AddressSpaceId}' end at 0x{bytes.LongLength:X}, before required end 0x{declaredPrefix.RequiredEndExclusive:X}; no padding is authorized.",
+                        declaredPrefix.ShortInputIssueCode!,
+                        $"Input bytes for address space '{binding.AddressSpaceId}' end at 0x{bytes.LongLength:X}, before required end 0x{declaredEnd:X}; no padding is authorized.",
                         binding.AddressSpaceId));
                     break;
                 case CompiledSourceViewCoverageInputLengthRequirement
@@ -301,7 +301,6 @@ public sealed partial class CompositionRunService
         CompiledInputSlotRequirement? slot = details.InputContract.Slots.SingleOrDefault(
             candidate => StringComparer.Ordinal.Equals(candidate.SlotId, spaceBinding.SlotId));
         if (slot?.LengthRequirement is not (
-                CompiledDeclaredPrefixWithWarningInputLengthRequirement or
                 CompiledSourceViewCoverageInputLengthRequirement or
                 CompiledExactBytesInputLengthRequirement or
                 CompiledExactResolvedMapCapacityInputLengthRequirement))

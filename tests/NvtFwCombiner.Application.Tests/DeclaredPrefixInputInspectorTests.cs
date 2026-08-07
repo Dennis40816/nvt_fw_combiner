@@ -188,7 +188,7 @@ public sealed class DeclaredPrefixInputInspectorTests
         CompiledInputContract contract = Contract(requiredEndExclusive: 16, expectedOuterLengths: [16]);
 
         CompiledInputArtifactInspectionResult result =
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+            CompiledInputArtifactInspectionService.Inspect(
                 contract,
                 "source-input",
                 Sequence(17));
@@ -245,37 +245,15 @@ public sealed class DeclaredPrefixInputInspectorTests
             result.NextAction);
     }
 
-    /// <summary>Unknown spaces and non-declared-prefix rules cannot be inspected through this use case.</summary>
+    /// <summary>Unknown spaces cannot select a compiled inspection policy.</summary>
     [Fact]
     public void CompiledContractProjectionRejectsUnownedPolicySelection()
     {
         CompiledInputContract declaredPrefix = Contract(16, [16]);
         _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+            CompiledInputArtifactInspectionService.Inspect(
                 declaredPrefix,
                 "other-input",
-                Sequence(16)));
-
-        CompiledInputSlotRequirement exactSlot = CompiledInputSlotTestFactory.Create(
-            "source-slot",
-            "source",
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"],
-            new CompiledExactBytesInputLengthRequirement(16),
-            new CompiledNoInputNormalization());
-        var exactContract = new CompiledInputContract(
-            [exactSlot],
-            [new CompiledInputSpaceBinding(
-                "source-input",
-                exactSlot.SlotId,
-                CompiledInputInstancePolicy.Singleton)]);
-
-        _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
-                exactContract,
-                "source-input",
                 Sequence(16)));
     }
 
@@ -301,11 +279,11 @@ public sealed class DeclaredPrefixInputInspectorTests
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                requiredEndExclusive,
+            new CompiledSourceViewCoverageInputLengthRequirement(
                 expectedOuterLengths,
-                ShortCode,
-                OuterLengthCode),
+                OuterLengthCode,
+                requiredEndExclusive,
+                ShortCode),
             new CompiledNoInputNormalization());
         return new CompiledInputContract(
             [slot],

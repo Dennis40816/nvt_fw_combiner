@@ -171,7 +171,8 @@ internal static class CompositionProfileV2DefinitionTestData
             required: true,
             CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new CompiledTpMaximum256KInputLengthRequirement(),
+            new SourceViewCoverageInputLengthDefinition(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
             new CompiledNoInputNormalization());
     }
 }

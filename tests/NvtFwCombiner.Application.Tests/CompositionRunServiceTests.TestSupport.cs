@@ -40,13 +40,68 @@ public sealed partial class CompositionRunServiceTests
         ];
     }
 
+    private static (CompositionRunService Service, CompositionRunRequest Request, FakeOutputWriter Writer)
+        CreateTpMaximumRun(int sourceLength)
+    {
+        var source = new AddressSpace(
+            "tp-input",
+            4,
+            AddressSpaceMutability.Immutable,
+            inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange);
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 4, 0xFF),
+            [source, new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable)],
+            [CompositionOperation.CopyRange(
+                "copy-tp",
+                100,
+                source.AddressSpaceId,
+                new ByteRange(0, 4),
+                "output-image",
+                new ByteRange(0, 4),
+                OverlapPolicy.Reject,
+                "Copy the accepted TP source view.")]);
+        CompiledComposition composition = CreateCompiledComposition(
+            plan,
+            new TestCompiledCompositionIdentity(
+                "synthetic-tp-maximum",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                ExperienceIds.StandardMerge,
+                ExperienceIds.StandardMerge,
+                CompositionKind.Merge),
+            "synthetic-tp-maximum.bin",
+            inputLengthRequirement: new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes));
+        var reader = new FakeArtifactReader(new Dictionary<string, byte[]>
+        {
+            ["tp-artifact"] = new byte[sourceLength],
+        });
+        var writer = new FakeOutputWriter();
+        var service = new CompositionRunService(
+            reader,
+            new FakeClock([FirstTimestamp, SecondTimestamp, ThirdTimestamp, FourthTimestamp]),
+            writer);
+        var request = new CompositionRunRequest(
+            "run-tp-maximum",
+            composition,
+            [new InputArtifactBinding(
+                source.AddressSpaceId,
+                "tp-input",
+                "tp-artifact",
+                "tp.bin",
+                CompiledInputArtifactClass.TpFirmware)],
+            "synthetic-tp-maximum.bin");
+        return (service, request, writer);
+    }
+
     private static CompiledComposition CreateCompiledComposition(
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
         string defaultOutputFileName,
         IcNumberInputMode? icNumberInputMode = null,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
-        bool allowOutputOverride = false)
+        bool allowOutputOverride = false,
+        CompiledInputLengthRequirement? inputLengthRequirement = null)
     {
         return CompiledCompositionTestFactory.Create(
             plan,
@@ -54,7 +109,8 @@ public sealed partial class CompositionRunServiceTests
             defaultOutputFileName,
             icNumberInputMode,
             validationRequirements,
-            allowOutputOverride: allowOutputOverride);
+            allowOutputOverride: allowOutputOverride,
+            inputLengthRequirement: inputLengthRequirement);
     }
 
     private sealed class FakeOutputWriter : ICompositionOutputWriter

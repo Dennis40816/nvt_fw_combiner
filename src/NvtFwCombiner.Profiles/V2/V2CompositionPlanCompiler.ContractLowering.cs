@@ -187,7 +187,10 @@ internal static partial class V2CompositionPlanCompiler
             SourceViewCoverageInputLengthDefinition sourceView =>
                 new CompiledSourceViewCoverageInputLengthRequirement(
                     ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
-                    sourceView.UnexpectedOuterLengthIssueCode),
+                    sourceView.UnexpectedOuterLengthIssueCode,
+                    sourceView.RequiredEndExclusive,
+                    sourceView.ShortInputIssueCode,
+                    sourceView.MaximumBytes),
             CompiledInputLengthRequirement compiled => compiled,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(lengthRequirement),

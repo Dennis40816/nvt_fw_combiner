@@ -76,38 +76,18 @@ internal static partial class V2CompositionPlanCompiler
             sourceAddressSpace.ExpectedInputLengths.Count == 0;
         CompositionInputSlotDefinition sourceSlot = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, source.SlotId));
-        bool hasSourceViewSnapshot = sourceSlot.LengthRequirement is
-            SourceViewCoverageInputLengthDefinition or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement;
-        long? requiredEndExclusive = sourceSlot.LengthRequirement is
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix
-                ? declaredPrefix.RequiredEndExclusive
-                : null;
-        IReadOnlyList<long> expectedOuterLengths = sourceSlot.LengthRequirement switch
-        {
-            SourceViewCoverageInputLengthDefinition sourceView => sourceView.ExpectedOuterLengths,
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement prefixWithWarning =>
-                prefixWithWarning.ExpectedOuterLengths,
-            _ => [],
-        };
-        string? unexpectedOuterLengthIssueCode = sourceSlot.LengthRequirement switch
-        {
-            SourceViewCoverageInputLengthDefinition sourceView => sourceView.UnexpectedOuterLengthIssueCode,
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement prefixWithWarning =>
-                prefixWithWarning.UnexpectedOuterLengthIssueCode,
-            _ => null,
-        };
+        var sourceView = sourceSlot.LengthRequirement as SourceViewCoverageInputLengthDefinition;
         bool usesSourceViewSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
-            hasSourceViewSnapshot &&
-            (requiredEndExclusive is null ||
-             requiredEndExclusive == spaces[mutableSpace.SpaceId].Length) &&
+            sourceView is { MaximumBytes: null } &&
+            (sourceView.RequiredEndExclusive is null ||
+             sourceView.RequiredEndExclusive == spaces[mutableSpace.SpaceId].Length) &&
             sourceAddressSpace.InputPaddingByte is null &&
             sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
             sourceAddressSpace.AllowedInputLengths.Count == 0 &&
-            sourceAddressSpace.ExpectedInputLengths.SequenceEqual(expectedOuterLengths) &&
+            sourceAddressSpace.ExpectedInputLengths.SequenceEqual(sourceView.ExpectedOuterLengths) &&
             StringComparer.Ordinal.Equals(
                 sourceAddressSpace.UnexpectedInputLengthIssueCode,
-                unexpectedOuterLengthIssueCode);
+                sourceView.UnexpectedOuterLengthIssueCode);
         if (!usesExactGeometry && !usesSourceViewSnapshot)
         {
             error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or checked equal-length source-snapshot geometry";

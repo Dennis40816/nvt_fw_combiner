@@ -78,7 +78,8 @@ internal static partial class CompositionProfileNormalizer
                     CanonicalPolicyValueRules.RequireIssueCode(
                         document.IssueCode!,
                         nameof(document.IssueCode)))),
-            "tp-maximum-256k" => new CompiledTpMaximum256KInputLengthRequirement(),
+            "tp-maximum-256k" => new SourceViewCoverageInputLengthDefinition(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
             "source-view-coverage" => Wrap(path, () =>
                 new SourceViewCoverageInputLengthDefinition(
                     NormalizeExpectedInputLengths(
@@ -88,21 +89,21 @@ internal static partial class CompositionProfileNormalizer
                         ? CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(document.UnexpectedOuterLengthIssueCode))
                         : null)),
             "declared-prefix-with-warning" => Wrap(path, () =>
-                new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
+                new SourceViewCoverageInputLengthDefinition(
+                    NormalizeExpectedInputLengths(
+                        document.ExpectedOuterLengths,
+                        $"{path}.expectedOuterLengths")!,
+                    CanonicalPolicyValueRules.RequireIssueCode(
+                        document.UnexpectedOuterLengthIssueCode!,
+                        nameof(document.UnexpectedOuterLengthIssueCode)),
                     ReadInt64(
                         document.RequiredEndExclusive!.Value,
                         1,
                         int.MaxValue,
                         $"{path}.requiredEndExclusive"),
-                    NormalizeExpectedInputLengths(
-                        document.ExpectedOuterLengths,
-                        $"{path}.expectedOuterLengths")!,
                     CanonicalPolicyValueRules.RequireIssueCode(
                         document.ShortInputIssueCode!,
-                        nameof(document.ShortInputIssueCode)),
-                    CanonicalPolicyValueRules.RequireIssueCode(
-                        document.UnexpectedOuterLengthIssueCode!,
-                        nameof(document.UnexpectedOuterLengthIssueCode)))),
+                        nameof(document.ShortInputIssueCode)))),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
     }

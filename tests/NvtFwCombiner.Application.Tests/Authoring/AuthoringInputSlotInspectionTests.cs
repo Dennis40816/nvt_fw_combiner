@@ -180,6 +180,30 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.NotNull(result.Inspection);
     }
 
+    /// <summary>The retained TP maximum alias reaches terminal shared source-view health without throwing.</summary>
+    [Theory]
+    [InlineData(3, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputSourceViewIncomplete)]
+    [InlineData(4, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
+    [InlineData(8, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
+    [InlineData(262145, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    public void TpMaximumCompatibilityPublishesTerminalCompiledInspection(
+        int sourceLength,
+        AuthoringSlotLifecycle expectedLifecycle,
+        string expectedIssueCode)
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge, tpMaximum: true);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(6),
+            ReadySelection(),
+            SourceSpace,
+            new byte[sourceLength]);
+
+        Assert.Equal(expectedLifecycle, result.InspectionLifecycle);
+        Assert.Equal(expectedIssueCode, result.Inspection!.IssueCode);
+    }
+
     /// <summary>Profile-declared input-load plausibility is part of terminal slot health.</summary>
     [Fact]
     public void UniformAcceptedSourcePublishesWarning()
@@ -549,7 +573,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
         string publicationToken = "headless-publication",
         CompiledValidationRequirement? validationRequirement = null,
         bool observeAbVersion = false,
-        bool includeExternalProcessor = false)
+        bool includeExternalProcessor = false,
+        bool tpMaximum = false)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -641,7 +666,11 @@ public sealed partial class AuthoringInputSlotInspectionTests
             outputRequiredTokenIds: observeAbVersion
                 ? ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
                 : null,
-            allowOutputOverride: false);
+            allowOutputOverride: false,
+            inputLengthRequirement: tpMaximum
+                ? new CompiledSourceViewCoverageInputLengthRequirement(
+                    maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes)
+                : null);
         var identity = new CapabilityRouteIdentity(
             "NT-HEADLESS",
             workflowId,

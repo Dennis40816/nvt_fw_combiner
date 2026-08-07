@@ -45,7 +45,7 @@ internal static partial class V2CompositionPlanCompiler
                 slot is null ||
                 (!requiredSingleton && !groupedOptionalSingleton) ||
                 slot.Normalization is not (CompiledNoInputNormalization or CompiledPadShorterInputNormalization or CompiledTruncateCtrlRamInputNormalization) ||
-                (slot.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
+                (slot.LengthRequirement is SourceViewCoverageInputLengthDefinition { RequiredEndExclusive: not null } &&
                  profile.CompositionKind != CompositionKind.Merge) ||
                 !IsCurrentInputLengthRequirementSupported(slot))
             {

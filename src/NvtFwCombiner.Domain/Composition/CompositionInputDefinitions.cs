@@ -69,11 +69,23 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
 
     internal SourceViewCoverageInputLengthDefinition(
         IReadOnlyList<long>? expectedOuterLengths = null,
-        string? unexpectedOuterLengthIssueCode = null)
+        string? unexpectedOuterLengthIssueCode = null,
+        long? requiredEndExclusive = null,
+        string? shortInputIssueCode = null,
+        long? maximumBytes = null)
     {
         DomainInvariant.Reject(
             expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null,
             "Expected outer lengths and their warning issue code must be declared together.");
+        DomainInvariant.Reject(
+            (requiredEndExclusive is null) != (shortInputIssueCode is null) ||
+            requiredEndExclusive is <= 0 or > int.MaxValue,
+            "An explicit required end and its blocking issue code must be declared together within the in-memory limit.");
+        DomainInvariant.Reject(
+            maximumBytes is <= 0 or > int.MaxValue ||
+            (maximumBytes is not null && (requiredEndExclusive is not null ||
+             expectedOuterLengths is not null || unexpectedOuterLengthIssueCode is not null)),
+            "Source-view maximum length must fit the in-memory limit and cannot carry another coverage policy.");
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
@@ -86,14 +98,31 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
                 unexpectedOuterLengthIssueCode,
                 nameof(unexpectedOuterLengthIssueCode));
         }
+        if (requiredEndExclusive is { } requiredEnd)
+        {
+            DomainInvariant.Reject(
+                _expectedOuterLengths.Length == 0 ||
+                _expectedOuterLengths.Any(length => length < requiredEnd || length > int.MaxValue),
+                "Expected outer lengths must cover the explicit required end and fit the in-memory limit.",
+                nameof(expectedOuterLengths));
+        }
 
         ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
+        RequiredEndExclusive = requiredEndExclusive;
+        ShortInputIssueCode = shortInputIssueCode;
+        MaximumBytes = maximumBytes;
     }
 
     internal IReadOnlyList<long> ExpectedOuterLengths { get; }
 
     internal string? UnexpectedOuterLengthIssueCode { get; }
+
+    internal long? RequiredEndExclusive { get; }
+
+    internal string? ShortInputIssueCode { get; }
+
+    internal long? MaximumBytes { get; }
 
 }
 
@@ -191,17 +220,31 @@ internal sealed class CompositionInputSlotDefinition
     {
         switch (lengthRequirement)
         {
-            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                _ = CanonicalPolicyValueRules.RequireIssueCode(
-                    declaredPrefix.ShortInputIssueCode,
-                    nameof(declaredPrefix.ShortInputIssueCode));
-                _ = CanonicalPolicyValueRules.RequireIssueCode(
-                    declaredPrefix.UnexpectedOuterLengthIssueCode,
-                    nameof(declaredPrefix.UnexpectedOuterLengthIssueCode));
+            case SourceViewCoverageInputLengthDefinition sourceView:
+                if (sourceView.ShortInputIssueCode is { } shortInputIssueCode)
+                {
+                    _ = CanonicalPolicyValueRules.RequireIssueCode(shortInputIssueCode, nameof(shortInputIssueCode));
+                }
+                if (sourceView.UnexpectedOuterLengthIssueCode is { } unexpectedOuterLengthIssueCode)
+                {
+                    _ = CanonicalPolicyValueRules.RequireIssueCode(
+                        unexpectedOuterLengthIssueCode,
+                        nameof(unexpectedOuterLengthIssueCode));
+                }
                 break;
-            case CompiledSourceViewCoverageInputLengthRequirement sourceView
-                when sourceView.UnexpectedOuterLengthIssueCode is { } issueCode:
-                _ = CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(issueCode));
+            case CompiledSourceViewCoverageInputLengthRequirement sourceView:
+                if (sourceView.ShortInputIssueCode is { } compiledShortInputIssueCode)
+                {
+                    _ = CanonicalPolicyValueRules.RequireIssueCode(
+                        compiledShortInputIssueCode,
+                        nameof(compiledShortInputIssueCode));
+                }
+                if (sourceView.UnexpectedOuterLengthIssueCode is { } compiledOuterLengthIssueCode)
+                {
+                    _ = CanonicalPolicyValueRules.RequireIssueCode(
+                        compiledOuterLengthIssueCode,
+                        nameof(compiledOuterLengthIssueCode));
+                }
                 break;
             default:
                 break;
@@ -237,15 +280,19 @@ internal sealed class CompositionInputSlotDefinition
             "TP firmware requires one approved unnormalized section or exact length rule.");
 
         DomainInvariant.Reject(
-            lengthRequirement is CompiledTpMaximum256KInputLengthRequirement &&
-            artifactClass != CompiledInputArtifactClass.TpFirmware,
+            artifactClass != CompiledInputArtifactClass.TpFirmware &&
+            lengthRequirement switch
+            {
+                SourceViewCoverageInputLengthDefinition { MaximumBytes: not null } => true,
+                CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: not null } => true,
+                _ => false,
+            },
             "The fixed 256 KiB rule is restricted to TP firmware.");
 
         DomainInvariant.Reject(
             artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
                 CompiledExactResolvedMapCapacityInputLengthRequirement or
-                CompiledDeclaredPrefixWithWarningInputLengthRequirement or
                 SourceViewCoverageInputLengthDefinition or
                 CompiledSourceViewCoverageInputLengthRequirement),
             "DP firmware requires an approved DP length rule.");
@@ -274,33 +321,36 @@ internal sealed class CompositionInputSlotDefinition
             "CtrlRAM truncation requires a CtrlRAM replacement artifact.");
 
         DomainInvariant.Reject(
-            lengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
+            lengthRequirement is SourceViewCoverageInputLengthDefinition { RequiredEndExclusive: not null } &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
              normalization is not CompiledNoInputNormalization),
             "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
 
         DomainInvariant.Reject(
-            lengthRequirement is SourceViewCoverageInputLengthDefinition or
-                CompiledSourceViewCoverageInputLengthRequirement &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization is not CompiledNoInputNormalization),
+             normalization is not CompiledNoInputNormalization) &&
+            lengthRequirement is SourceViewCoverageInputLengthDefinition or
+                CompiledSourceViewCoverageInputLengthRequirement,
             "Source-view coverage is restricted to unnormalized immutable section sources.");
     }
 
     private static bool IsApprovedTpLengthRequirement(InputLengthRequirementDefinition lengthRequirement)
     {
-        return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
-            SourceViewCoverageInputLengthDefinition or
-            CompiledSourceViewCoverageInputLengthRequirement or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement
+        return lengthRequirement is SourceViewCoverageInputLengthDefinition
         {
-            RequiredEndExclusive: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            MaximumBytes: null or <= InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            RequiredEndExclusive: null or <= InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+        } or
+            CompiledSourceViewCoverageInputLengthRequirement
+        {
+            MaximumBytes: null or <= InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            RequiredEndExclusive: null or <= InputLengthPolicyLimits.MaximumTpFirmwareBytes,
         } or
             CompiledExactBytesInputLengthRequirement
         {
-            Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            Bytes: <= InputLengthPolicyLimits.MaximumTpFirmwareBytes,
         };
     }
 }

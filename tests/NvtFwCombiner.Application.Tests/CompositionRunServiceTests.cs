@@ -114,6 +114,45 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal([1, 2, 3, 4, 9, 8, 7, 6], writer.OutputBytes);
     }
 
+    /// <summary>A TP maximum compatibility source reuses source-view snapshots through Preview and Build.</summary>
+    [Fact]
+    public async Task TpMaximumCompatibilityPreviewAndBuildUseAcceptedSourceView()
+    {
+        (CompositionRunService service, CompositionRunRequest request, FakeOutputWriter writer) =
+            CreateTpMaximumRun(sourceLength: 8);
+
+        CompositionRunResult preview = await service.PreviewAsync(request, CancellationToken.None);
+        CompositionRunResult build = await service.BuildAsync(
+            request.WithApprovedPreviewToken(preview.PreviewToken!),
+            CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Succeeded, preview.Status);
+        InputArtifactExecutionSnapshotSummary snapshot = Assert.IsType<InputArtifactExecutionSnapshotSummary>(
+            Assert.Single(preview.Report.Inputs).ExecutionSnapshot);
+        Assert.Equal(new ByteRange(0, 4), snapshot.AcceptedRange);
+        Assert.Equal(new ByteRange(4, 4), snapshot.IgnoredTrailingRange);
+        Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
+        Assert.True(writer.WasCalled);
+        Assert.DoesNotContain(build.Report.Issues, issue => issue.Code == "input.artifact.read-failed");
+    }
+
+    /// <summary>TP maximum compatibility failures retain typed length issues instead of read failures.</summary>
+    [Theory]
+    [InlineData(3, CompositionIssueCodes.InputSourceViewIncomplete)]
+    [InlineData(262145, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    public async Task TpMaximumCompatibilityPreviewReportsTypedLengthIssue(
+        int sourceLength,
+        string expectedIssueCode)
+    {
+        (CompositionRunService service, CompositionRunRequest request, _) = CreateTpMaximumRun(sourceLength);
+
+        CompositionRunResult result = await service.PreviewAsync(request, CancellationToken.None);
+
+        Assert.Equal(CompositionExecutionStatus.Failed, result.Status);
+        Assert.Contains(result.Report.Issues, issue => issue.Code == expectedIssueCode);
+        Assert.DoesNotContain(result.Report.Issues, issue => issue.Code == "input.artifact.read-failed");
+    }
+
     /// <summary>Verifies automatic build commits the exact output from one authoritative execution.</summary>
     [Fact]
     public async Task AutomaticBuildCommitsSyntheticStandardMergeOutputFromOneRun()
