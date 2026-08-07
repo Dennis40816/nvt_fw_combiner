@@ -512,16 +512,14 @@ public sealed partial class CompiledCompositionTests
             outputInvalidCharacterPolicy,
             requiredOutputTokenIds ?? ["original-name"]);
         var details = new V2CompiledCompositionDetails(
-            provenance,
-            inputContract ?? CreateInputContract(),
-            regionAccessContract ?? new CompiledRegionAccessContract([], []),
-            output);
-        var identity = new V2CompiledCompositionIdentity(
             profileId,
             profileVersion,
             experienceId,
             compositionKind,
-            details);
+            provenance,
+            inputContract ?? CreateInputContract(),
+            regionAccessContract ?? new CompiledRegionAccessContract([], []),
+            output);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -544,11 +542,11 @@ public sealed partial class CompiledCompositionTests
         return runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(
                 plan,
-                identity,
+                details,
                 icNumberPolicy)
             : CompiledComposition.CreateV2(
                 plan,
-                identity,
+                details,
                 icNumberPolicy);
     }
 

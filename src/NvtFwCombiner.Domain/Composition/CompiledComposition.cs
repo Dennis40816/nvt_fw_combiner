@@ -5,39 +5,31 @@ public sealed partial class CompiledComposition
 {
     private CompiledComposition(
         CompositionPlan plan,
-        V2CompiledCompositionIdentity identity,
+        V2CompiledCompositionDetails details,
         CompiledIcNumberPolicy icNumberPolicy,
         CompiledCompositionEligibility eligibility)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        ArgumentNullException.ThrowIfNull(identity);
-        if (identity.Details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
+        ArgumentNullException.ThrowIfNull(details);
+        if (details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
         {
             throw new ArgumentException(
                 "Only compilable v2 profiles may produce a complete composition plan.",
-                nameof(identity));
+                nameof(details));
         }
 
-        ValidateIcNumberPolicy(identity.CompositionKind, icNumberPolicy);
-        ValidateDefaultOutputFileName(identity.Details.OutputNamingRequirement.FileNameTemplate);
-        ValidateV2InputRequirements(plan, identity.CompositionKind, identity.ExperienceId, identity.Details);
+        ValidateIcNumberPolicy(details.CompositionKind, icNumberPolicy);
+        ValidateDefaultOutputFileName(details.OutputNamingRequirement.FileNameTemplate);
+        ValidateV2InputRequirements(plan, details.CompositionKind, details.ExperienceId, details);
         ValidateV2Eligibility(
-            identity.Details,
-            identity.CompositionKind,
+            details,
+            details.CompositionKind,
             eligibility);
 
         Plan = plan;
-        ProfileId = identity.ProfileId;
-        ProfileVersion = identity.ProfileVersion;
-        IcId = identity.Details.Provenance.Context.MemberId;
-        ModeId = identity.Details.Provenance.Context.ModeId;
-        ExperienceId = identity.ExperienceId;
-        CompositionKind = identity.CompositionKind;
-        DefaultOutputFileName = identity.Details.OutputNamingRequirement.FileNameTemplate;
         IcNumberPolicy = icNumberPolicy;
         Eligibility = eligibility;
-        V2Details = identity.Details;
-        ValidationRequirements = CopyValidationRequirements(identity.Details.Provenance.ValidationRequirements);
+        V2Details = details;
         ValidateValidationRequirements(plan, ValidationRequirements);
         IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
@@ -48,17 +40,9 @@ public sealed partial class CompiledComposition
         string capabilityFingerprint)
     {
         Plan = source.Plan;
-        ProfileId = source.ProfileId;
-        ProfileVersion = source.ProfileVersion;
-        IcId = source.IcId;
-        ModeId = source.ModeId;
-        ExperienceId = source.ExperienceId;
-        CompositionKind = source.CompositionKind;
-        DefaultOutputFileName = source.DefaultOutputFileName;
         IcNumberPolicy = source.IcNumberPolicy;
         Eligibility = source.Eligibility;
         V2Details = source.V2Details;
-        ValidationRequirements = source.ValidationRequirements;
         IntegrityFingerprint = source.IntegrityFingerprint;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
@@ -68,25 +52,25 @@ public sealed partial class CompiledComposition
     public CompositionPlan Plan { get; }
 
     /// <summary>Stable profile id.</summary>
-    public string ProfileId { get; }
+    public string ProfileId => V2Details.ProfileId;
 
     /// <summary>Profile content version.</summary>
-    public string ProfileVersion { get; }
+    public string ProfileVersion => V2Details.ProfileVersion;
 
     /// <summary>IC id declared by the profile.</summary>
-    public string IcId { get; }
+    public string IcId => V2Details.Provenance.Context.MemberId;
 
     /// <summary>Mode id declared by the profile.</summary>
-    public string ModeId { get; }
+    public string ModeId => V2Details.Provenance.Context.ModeId;
 
     /// <summary>Experience id declared by the profile.</summary>
-    public string ExperienceId { get; }
+    public string ExperienceId => V2Details.ExperienceId;
 
     /// <summary>Merge or Replace composition kind.</summary>
-    public CompositionKind CompositionKind { get; }
+    public CompositionKind CompositionKind => V2Details.CompositionKind;
 
     /// <summary>Profile-rendered default output file name.</summary>
-    public string DefaultOutputFileName { get; }
+    public string DefaultOutputFileName => V2Details.OutputNamingRequirement.FileNameTemplate;
 
     /// <summary>Compiled IC-number input policy.</summary>
     public CompiledIcNumberPolicy IcNumberPolicy { get; }
@@ -126,7 +110,8 @@ public sealed partial class CompiledComposition
     public V2CompiledCompositionDetails V2Details { get; }
 
     /// <summary>Closed validation requirements retained by the compiler authority.</summary>
-    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
+    public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements =>
+        V2Details.Provenance.ValidationRequirements;
 
     /// <summary>Canonical lowercase SHA-256 over the complete compiled policy and plan.</summary>
     public string CompilationFingerprint { get; }
@@ -161,19 +146,19 @@ public sealed partial class CompiledComposition
     /// <summary>Creates a complete but non-executable profile-bundle-v2 plan artifact.</summary>
     internal static CompiledComposition CreateV2(
         CompositionPlan plan,
-        V2CompiledCompositionIdentity identity,
+        V2CompiledCompositionDetails details,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        return new CompiledComposition(plan, identity, icNumberPolicy, CompiledCompositionEligibility.V2PlanCompiled);
+        return new CompiledComposition(plan, details, icNumberPolicy, CompiledCompositionEligibility.V2PlanCompiled);
     }
 
     /// <summary>Creates a trusted profile-bundle-v2 artifact admitted to the current closed runtime subset.</summary>
     internal static CompiledComposition CreateV2RuntimeExecutable(
         CompositionPlan plan,
-        V2CompiledCompositionIdentity identity,
+        V2CompiledCompositionDetails details,
         CompiledIcNumberPolicy icNumberPolicy)
     {
-        return new CompiledComposition(plan, identity, icNumberPolicy, CompiledCompositionEligibility.V2RuntimeExecutable);
+        return new CompiledComposition(plan, details, icNumberPolicy, CompiledCompositionEligibility.V2RuntimeExecutable);
     }
 
     private static void ValidateIcNumberPolicy(

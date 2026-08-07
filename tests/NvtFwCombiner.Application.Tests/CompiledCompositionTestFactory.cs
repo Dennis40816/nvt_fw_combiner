@@ -49,6 +49,10 @@ internal static class CompiledCompositionTestFactory
             validationRequirements ?? [],
             []);
         var details = new V2CompiledCompositionDetails(
+            identity.ProfileId,
+            identity.ProfileVersion,
+            identity.ExperienceId,
+            identity.CompositionKind,
             provenance,
             CreateInputContract(plan, identity, inputRolesByAddressSpace),
             new CompiledRegionAccessContract([], []),
@@ -57,15 +61,9 @@ internal static class CompiledCompositionTestFactory
                 allowOverride: allowOutputOverride,
                 CompiledOutputInvalidCharacterPolicy.Reject,
                 outputRequiredTokenIds ?? []));
-        var compiledIdentity = new V2CompiledCompositionIdentity(
-            identity.ProfileId,
-            identity.ProfileVersion,
-            identity.ExperienceId,
-            identity.CompositionKind,
-            details);
         return CompiledComposition.CreateV2RuntimeExecutable(
             plan,
-            compiledIdentity,
+            details,
             icNumberPolicy);
     }
 

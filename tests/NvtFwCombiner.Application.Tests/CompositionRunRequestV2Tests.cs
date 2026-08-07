@@ -478,16 +478,15 @@ public sealed partial class CompositionRunRequestV2Tests
             allowOverride: allowOutputOverride,
             CompiledOutputInvalidCharacterPolicy.Reject,
             requiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "profile-v2",
             "2.0.0",
             experienceId,
             compositionKind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract ?? CreateInputContract(),
-                new CompiledRegionAccessContract([], []),
-                output));
+            provenance,
+            inputContract ?? CreateInputContract(),
+            new CompiledRegionAccessContract([], []),
+            output);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -506,11 +505,11 @@ public sealed partial class CompositionRunRequestV2Tests
         return runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(
                 plan,
-                identity,
+                details,
                 icNumberPolicy)
             : CompiledComposition.CreateV2(
                 plan,
-                identity,
+                details,
                 icNumberPolicy);
     }
 

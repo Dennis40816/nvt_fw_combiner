@@ -632,19 +632,17 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             provenance.ValidationRequirements,
             provenance.RequiredCapabilities);
         var details = new V2CompiledCompositionDetails(
-            changedProvenance,
-            source.InputContract,
-            source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        var identity = new V2CompiledCompositionIdentity(
             composition.ProfileId,
             composition.ProfileVersion,
             composition.ExperienceId,
             composition.CompositionKind,
-            details);
+            changedProvenance,
+            source.InputContract,
+            source.RegionAccessContract,
+            source.OutputNamingRequirement);
         return CompiledComposition.CreateV2RuntimeExecutable(
             composition.Plan,
-            identity,
+            details,
             composition.IcNumberPolicy);
     }
 

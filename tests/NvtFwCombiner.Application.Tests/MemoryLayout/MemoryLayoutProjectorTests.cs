@@ -339,23 +339,22 @@ public sealed partial class MemoryLayoutProjectorTests
             ["test-evidence"],
             [],
             []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             $"profile-{workflowId}",
             "1.0.0",
             workflowId,
             kind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                new CompiledRegionAccessContract([], []),
-                new CompiledOutputNamingRequirement(
-                    $"{workflowId}.bin",
-                    allowOverride: true,
-                    CompiledOutputInvalidCharacterPolicy.Reject,
-                    [])));
+            provenance,
+            inputContract,
+            new CompiledRegionAccessContract([], []),
+            new CompiledOutputNamingRequirement(
+                $"{workflowId}.bin",
+                allowOverride: true,
+                CompiledOutputInvalidCharacterPolicy.Reject,
+                []));
         var composition = CompiledComposition.CreateV2RuntimeExecutable(
             plan,
-            identity,
+            details,
             kind == CompositionKind.Merge
                 ? CompiledIcNumberPolicy.NotApplicable
                 : CompiledIcNumberPolicy.SingleSelector);

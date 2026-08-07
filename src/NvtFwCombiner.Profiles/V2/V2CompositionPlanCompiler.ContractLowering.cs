@@ -115,19 +115,18 @@ internal static partial class V2CompositionPlanCompiler
             profile.EvidenceRefs,
             additionalValidationRequirements ?? [],
             capabilityAdmissions ?? []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             profile.ProfileId,
             profile.ProfileVersion,
             profile.ExperienceId,
             profile.CompositionKind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
-                regionAccess,
-                profile.Output));
+            provenance,
+            new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
+            regionAccess,
+            profile.Output);
         CompiledComposition artifact = runtimeExecutable
-            ? CompiledComposition.CreateV2RuntimeExecutable(plan, identity, icNumberPolicy)
-            : CompiledComposition.CreateV2(plan, identity, icNumberPolicy);
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details, icNumberPolicy)
+            : CompiledComposition.CreateV2(plan, details, icNumberPolicy);
         return V2CompositionPlanCompileResult.Succeeded(artifact);
     }
 
