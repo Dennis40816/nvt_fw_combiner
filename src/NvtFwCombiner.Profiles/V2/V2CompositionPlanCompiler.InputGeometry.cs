@@ -171,29 +171,22 @@ internal static partial class V2CompositionPlanCompiler
         foreach (CompositionProfileMetadataBinding binding in profile.MetadataBindings.Where(binding =>
                      StringComparer.Ordinal.Equals(binding.SpaceId, input.SpaceId)))
         {
-            string? error = null;
             if (!family.TryResolveStructure(
                     resolvedMap.ImageMap.MapId,
                     binding.StructureId,
                     out FirmwareMetadataStructure? structure) ||
-                structure is null ||
-                !TryResolveMetadataReadEnd(
-                    family,
-                    resolvedMap,
-                    structure,
-                    new HashSet<string>(StringComparer.Ordinal),
-                    out long metadataEnd,
-                    out error))
+                structure is null)
             {
                 issues.Add(new CompositionIssue(
                     InvalidInputGeometry,
                     $"{inputKind} input space '{input.SpaceId}' cannot resolve metadata binding " +
-                    $"'{binding.BindingId}': {error ?? "the selected structure is unavailable."}",
+                    $"'{binding.BindingId}': the selected structure is unavailable.",
                     binding.BindingId));
                 length = 0;
                 return false;
             }
 
+            long metadataEnd = family.GetMaximumMetadataReadEnd(resolvedMap, structure);
             maximumEndExclusive = Math.Max(maximumEndExclusive, metadataEnd);
             hasRead = true;
         }
@@ -222,98 +215,6 @@ internal static partial class V2CompositionPlanCompiler
 
         length = maximumEndExclusive;
         return true;
-    }
-
-    private static bool TryResolveMetadataReadEnd(
-        FirmwareFamilyResolutionDefinition family,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        FirmwareMetadataStructure structure,
-        HashSet<string> visitedStructureIds,
-        out long endExclusive,
-        out string? error)
-    {
-        endExclusive = 0;
-        error = null;
-        if (!visitedStructureIds.Add(structure.StructureId))
-        {
-            error = $"metadata dependency cycle at '{structure.StructureId}'.";
-            return false;
-        }
-
-        try
-        {
-            switch (structure.Locator)
-            {
-                case FirmwareAbsoluteRangeLocator absolute:
-                    endExclusive = absolute.Range.Range.EndExclusive;
-                    return true;
-                case FirmwareRegionRelativeLocator relative:
-                    FirmwareRegion? region = resolvedMap.ImageMap.Regions.SingleOrDefault(candidate =>
-                        StringComparer.Ordinal.Equals(candidate.RegionId, relative.RegionId));
-                    if (region is null)
-                    {
-                        error = $"unknown metadata base region '{relative.RegionId}'.";
-                        return false;
-                    }
-
-                    endExclusive = checked(region.Range.Start + relative.Offset + structure.LengthBytes);
-                    return true;
-                case FirmwareMarkerRelativeLocator marker:
-                    long maximumMarkerStart = checked(
-                        marker.SearchRange.Range.EndExclusive - marker.MarkerBytes.Length);
-                    long maximumResultStart = checked(maximumMarkerStart + marker.ResultOffset);
-                    if (maximumResultStart < 0)
-                    {
-                        error = $"marker-relative structure '{structure.StructureId}' can resolve below zero.";
-                        return false;
-                    }
-
-                    endExclusive = Math.Max(
-                        marker.SearchRange.Range.EndExclusive,
-                        checked(maximumResultStart + structure.LengthBytes));
-                    return true;
-                case FirmwareMetadataFieldSelectedLocator selected:
-                    if (!family.TryResolveStructure(
-                            resolvedMap.ImageMap.MapId,
-                            selected.PrerequisiteStructureId,
-                            out FirmwareMetadataStructure? prerequisite) ||
-                        prerequisite is null ||
-                        !TryResolveMetadataReadEnd(
-                            family,
-                            resolvedMap,
-                            prerequisite,
-                            visitedStructureIds,
-                            out long prerequisiteEnd,
-                            out error))
-                    {
-                        error ??= $"unknown metadata prerequisite '{selected.PrerequisiteStructureId}'.";
-                        return false;
-                    }
-
-                    long maximumResultEnd = selected.Branches.Max(branch =>
-                        checked(branch.AnchorRange.Range.Start + selected.ResultOffset + structure.LengthBytes));
-                    if (maximumResultEnd < 0)
-                    {
-                        error = $"field-selected structure '{structure.StructureId}' can resolve below zero.";
-                        return false;
-                    }
-
-                    endExclusive = Math.Max(prerequisiteEnd, maximumResultEnd);
-                    return true;
-                default:
-                    error = $"unsupported locator for metadata structure '{structure.StructureId}'.";
-                    return false;
-            }
-        }
-        catch (OverflowException)
-        {
-            error = $"metadata structure '{structure.StructureId}' read range overflows.";
-            return false;
-        }
-        finally
-        {
-            _ = visitedStructureIds.Remove(structure.StructureId);
-        }
     }
 
     private static bool TryResolveSelectorRange(

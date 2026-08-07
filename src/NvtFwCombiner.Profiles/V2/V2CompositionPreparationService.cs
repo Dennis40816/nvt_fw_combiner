@@ -52,9 +52,8 @@ internal static class V2CompositionPreparationService
             return false;
         }
 
-        issues = CompositionProfileMapAdmissionValidator.Validate(
-            selectedProfile.Profile,
-            selectedProfile.Family.Family,
+        issues = selectedProfile.Family.Family.AdmitRequiredCapabilities(
+            selectedProfile.Profile.MapBinding,
             mapResolution.ResolvedMap!,
             out IReadOnlyList<CompiledCapabilityAdmission> admittedCapabilities);
         if (issues.Count != 0)

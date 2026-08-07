@@ -380,6 +380,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             Marker("other", 0, 4, 0, "root"),
             Marker("flash", 15, 2, 0, "root"),
             Marker("flash", 0, 4, 0, "missing"),
+            Marker("flash", 0, 4, -4, "root"),
         ];
 
         foreach (FirmwareMetadataLocator locator in invalidLocators)

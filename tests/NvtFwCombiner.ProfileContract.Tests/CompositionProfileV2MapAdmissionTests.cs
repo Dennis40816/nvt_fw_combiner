@@ -171,9 +171,8 @@ public sealed class CompositionProfileV2MapAdmissionTests
         CompositionProfileDefinition profile,
         ResolutionContext context)
     {
-        IReadOnlyList<CompositionIssue> issues = CompositionProfileMapAdmissionValidator.Validate(
-            profile,
-            context.Family,
+        IReadOnlyList<CompositionIssue> issues = context.Family.AdmitRequiredCapabilities(
+            profile.MapBinding,
             context.ResolvedMap,
             out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
         return new AdmissionResult(issues, capabilityAdmissions);

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Firmware;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
@@ -228,45 +229,12 @@ internal static partial class FirmwareFamilyResolutionNormalizer
             }
         }
 
-        var states = new Dictionary<FirmwareMapFactKey, DependencyVisitState>();
-        foreach (FirmwareMapFactKey key in dependencies.Keys)
-        {
-            if (states.TryGetValue(key, out DependencyVisitState rootState) &&
-                rootState == DependencyVisitState.Resolved)
-            {
-                continue;
-            }
-
-            states[key] = DependencyVisitState.Visiting;
-            var pending = new Stack<DependencyFrame>();
-            pending.Push(new DependencyFrame(key, [.. dependencies[key].Distinct()]));
-            while (pending.Count != 0)
-            {
-                DependencyFrame frame = pending.Peek();
-                if (frame.NextIndex == frame.Dependencies.Length)
-                {
-                    states[frame.Key] = DependencyVisitState.Resolved;
-                    _ = pending.Pop();
-                    continue;
-                }
-
-                FirmwareMapFactKey dependency = frame.Dependencies[frame.NextIndex++];
-                if (states.TryGetValue(dependency, out DependencyVisitState dependencyState))
-                {
-                    if (dependencyState == DependencyVisitState.Visiting)
-                    {
-                        throw Error(
-                            "factAliases",
-                            $"Alias predicate dependency cycle includes '{DescribeKey(dependency)}'.");
-                    }
-
-                    continue;
-                }
-
-                states[dependency] = DependencyVisitState.Visiting;
-                pending.Push(new DependencyFrame(dependency, [.. dependencies[dependency].Distinct()]));
-            }
-        }
+        _ = AcyclicDependencyGraph.Sort(
+            dependencies.Keys,
+            key => dependencies[key].Distinct(),
+            (_, dependency) => Error(
+                "factAliases",
+                $"Alias predicate dependency cycle includes '{DescribeKey(dependency)}'."));
     }
 
     private static FirmwareMapFactKey FindMetadataBindingForStructure(

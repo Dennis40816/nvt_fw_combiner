@@ -1,4 +1,5 @@
 using NvtFwCombiner.Contracts.Firmware;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
@@ -34,7 +35,6 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         private readonly IReadOnlyDictionary<FirmwareMapFactKey, TFact> _direct;
         private readonly IReadOnlyDictionary<FirmwareMapFactKey, AliasDeclaration> _aliases;
         private readonly Dictionary<FirmwareMapFactKey, ResolvedFact<TFact>> _resolved = [];
-        private readonly Dictionary<FirmwareMapFactKey, DependencyVisitState> _states = [];
 
         internal FactAliasResolver(
             IReadOnlyDictionary<FirmwareMapFactKey, TFact> direct,
@@ -58,96 +58,51 @@ internal static partial class FirmwareFamilyResolutionNormalizer
             IEnumerable<FirmwareMapFactKey> expected)
         {
             ArgumentNullException.ThrowIfNull(expected);
-            foreach (FirmwareMapFactKey key in expected)
+            FirmwareMapFactKey[] required = [.. expected];
+            foreach (FirmwareMapFactKey key in required)
             {
-                _ = Resolve(key, "imageMaps");
+                RequireProvider(key, "imageMaps");
             }
 
             foreach (AliasDeclaration alias in _aliases.Values)
             {
-                _ = Resolve(alias.TargetKey, alias.Path);
+                RequireProvider(alias.SourceKey, $"{alias.Path}.source");
+            }
+
+            FirmwareMapFactKey[] ordered = AcyclicDependencyGraph.Sort(
+                required.Concat(_aliases.Keys),
+                key => _aliases.TryGetValue(key, out AliasDeclaration? alias)
+                    ? [alias.SourceKey]
+                    : [],
+                (sourceKey, cycleKey) => Error(
+                    $"{_aliases[sourceKey].Path}.source",
+                    $"Fact alias cycle includes '{DescribeKey(cycleKey)}'."));
+            foreach (FirmwareMapFactKey key in ordered)
+            {
+                if (_direct.TryGetValue(key, out TFact? value))
+                {
+                    _resolved.Add(key, new ResolvedFact<TFact>(key, key, value, []));
+                    continue;
+                }
+
+                AliasDeclaration alias = _aliases[key];
+                ResolvedFact<TFact> source = _resolved[alias.SourceKey];
+                _resolved.Add(key, new ResolvedFact<TFact>(
+                    key,
+                    source.DirectSourceKey,
+                    source.Value,
+                    [alias, .. source.AliasChain]));
             }
 
             return _resolved;
         }
 
-        private ResolvedFact<TFact> Resolve(FirmwareMapFactKey key, string path)
+        private void RequireProvider(FirmwareMapFactKey key, string path)
         {
-            if (_resolved.TryGetValue(key, out ResolvedFact<TFact>? existing))
+            if (!_direct.ContainsKey(key) && !_aliases.ContainsKey(key))
             {
-                return existing;
+                throw Error(path, $"Fact '{DescribeKey(key)}' has no direct provider or alias.");
             }
-
-            var pending = new Stack<(FirmwareMapFactKey Key, string Path)>();
-            pending.Push((key, path));
-            while (pending.Count != 0)
-            {
-                (FirmwareMapFactKey currentKey, string currentPath) = pending.Peek();
-                if (_resolved.ContainsKey(currentKey))
-                {
-                    _ = pending.Pop();
-                    continue;
-                }
-
-                if (_direct.TryGetValue(currentKey, out TFact? value))
-                {
-                    _states[currentKey] = DependencyVisitState.Resolved;
-                    _resolved.Add(currentKey, new ResolvedFact<TFact>(currentKey, currentKey, value, []));
-                    _ = pending.Pop();
-                    continue;
-                }
-
-                if (!_aliases.TryGetValue(currentKey, out AliasDeclaration? alias))
-                {
-                    throw Error(currentPath, $"Fact '{DescribeKey(currentKey)}' has no direct provider or alias.");
-                }
-
-                _states[currentKey] = DependencyVisitState.Visiting;
-                FirmwareMapFactKey sourceKey = alias.SourceKey;
-                if (_resolved.TryGetValue(sourceKey, out ResolvedFact<TFact>? source))
-                {
-                    AliasDeclaration[] chain = [alias, .. source.AliasChain];
-                    _states[currentKey] = DependencyVisitState.Resolved;
-                    _resolved.Add(currentKey, new ResolvedFact<TFact>(
-                        currentKey,
-                        source.DirectSourceKey,
-                        source.Value,
-                        chain));
-                    _ = pending.Pop();
-                    continue;
-                }
-
-                if (_states.TryGetValue(sourceKey, out DependencyVisitState state) &&
-                    state == DependencyVisitState.Visiting)
-                {
-                    throw Error($"{alias.Path}.source", $"Fact alias cycle includes '{DescribeKey(sourceKey)}'.");
-                }
-
-                pending.Push((sourceKey, $"{alias.Path}.source"));
-            }
-
-            return _resolved[key];
         }
-    }
-
-    private sealed class DependencyFrame
-    {
-        internal DependencyFrame(FirmwareMapFactKey key, FirmwareMapFactKey[] dependencies)
-        {
-            Key = key;
-            Dependencies = dependencies;
-        }
-
-        internal FirmwareMapFactKey Key { get; }
-
-        internal FirmwareMapFactKey[] Dependencies { get; }
-
-        internal int NextIndex { get; set; }
-    }
-
-    private enum DependencyVisitState
-    {
-        Visiting,
-        Resolved,
     }
 }

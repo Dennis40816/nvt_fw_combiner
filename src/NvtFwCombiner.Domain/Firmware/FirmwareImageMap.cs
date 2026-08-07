@@ -309,43 +309,12 @@ public sealed class FirmwareImageMap
         IEnumerable<FirmwareRegion> regions,
         Dictionary<string, FirmwareRegion> regionsById)
     {
-        var states = regions.ToDictionary(
-            static region => region.RegionId,
-            static _ => ParentVisitState.Unvisited,
+        _ = AcyclicDependencyGraph.Sort(
+            regions.Select(static region => region.RegionId),
+            regionId => regionsById[regionId].ParentRegionId is { } parentId ? [parentId] : [],
+            static (_, _) => new ArgumentException(
+                "Firmware region parent relationships cannot contain cycles.", nameof(regions)),
             StringComparer.Ordinal);
-        foreach (FirmwareRegion region in regions)
-        {
-            if (states[region.RegionId] != ParentVisitState.Unvisited)
-            {
-                continue;
-            }
-
-            List<string> path = [];
-            FirmwareRegion? current = region;
-            while (current is not null)
-            {
-                ParentVisitState state = states[current.RegionId];
-                DomainInvariant.Reject(
-                    state == ParentVisitState.Visiting,
-                    "Firmware region parent relationships cannot contain cycles.", nameof(regions));
-
-                if (state == ParentVisitState.Visited)
-                {
-                    break;
-                }
-
-                states[current.RegionId] = ParentVisitState.Visiting;
-                path.Add(current.RegionId);
-                current = current.ParentRegionId is { } parentId
-                    ? regionsById[parentId]
-                    : null;
-            }
-
-            foreach (string regionId in path)
-            {
-                states[regionId] = ParentVisitState.Visited;
-            }
-        }
     }
 
     private static void ValidateCompletePartitions(
@@ -401,10 +370,4 @@ public sealed class FirmwareImageMap
             nameof(regions));
     }
 
-    private enum ParentVisitState
-    {
-        Unvisited,
-        Visiting,
-        Visited,
-    }
 }
