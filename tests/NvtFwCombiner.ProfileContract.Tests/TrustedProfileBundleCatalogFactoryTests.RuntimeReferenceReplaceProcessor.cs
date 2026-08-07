@@ -113,6 +113,64 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             });
     }
 
+    /// <summary>Verifies postbuild source evidence must be bounded by its binding and match one compiled mapping.</summary>
+    [Theory]
+    [InlineData(0, 3)]
+    [InlineData(1, 1)]
+    public void RuntimeReferenceCtrlRamRejectsUnmappedPostbuildSourceRange(
+        long requiredStart,
+        long requiredLength)
+    {
+        ExplicitMapping[] mappings =
+        [
+            RuntimeReferenceReplaceMapping(
+                "replace-tp",
+                10,
+                new ByteRange(0, 2),
+                new ByteRange(8, 2)),
+        ];
+        var postbuildPolicy = new V2RuntimeReferenceReplacePostbuildPolicy(
+            "postbuild",
+            "source-a",
+            [new ByteRange(requiredStart, requiredLength)],
+            "SOURCE_UNIFORM",
+            new ByteRange(12, 4),
+            new ByteRange(12, 4),
+            expectedFirmwareConfigBackupStart: 12,
+            firmwareConfigBackupLength: 2,
+            "INVALID_PLACEMENT",
+            "INACTIVE_MUTATION",
+            "UNEXPECTED_PLACEMENT");
+        var request = new V2RuntimeReferenceReplaceCompileRequest(
+            [
+                new V2ExplicitMappingInputBinding("base", "reference", 16),
+                new V2ExplicitMappingInputBinding("source-a", "source", 2),
+            ],
+            mappings,
+            postbuildPolicy: postbuildPolicy);
+
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                mapDefinitions:
+                [
+                    new RuntimeReferenceReplaceMapDocument("single-map", 16, "single"),
+                    new RuntimeReferenceReplaceMapDocument("cascade-map", 16, "cascade"),
+                ]).CompileRuntimeReferenceReplace(
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            new TopologySelection(3, "cascade", TopologySelectionSource.Requested, "ic-number"),
+            request);
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.processor-required");
+    }
+
     /// <summary>CtrlRAM lowering is selected by its closed semantic shape, not by workflow identity.</summary>
     [Fact]
     public void RuntimeReferenceCtrlRamSemanticPlanIsInvariantAcrossWorkflowIdentity()

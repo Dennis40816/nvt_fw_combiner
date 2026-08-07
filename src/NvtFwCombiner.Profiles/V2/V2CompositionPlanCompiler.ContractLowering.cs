@@ -124,10 +124,37 @@ internal static partial class V2CompositionPlanCompiler
             new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
             regionAccess,
             profile.Output);
+        ValidateArtifactAdmission(details, runtimeExecutable);
         CompiledComposition artifact = runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(plan, details, icNumberPolicy)
             : CompiledComposition.CreateV2(plan, details, icNumberPolicy);
         return V2CompositionPlanCompileResult.Succeeded(artifact);
+    }
+
+    private static void ValidateArtifactAdmission(
+        V2CompiledCompositionDetails details,
+        bool runtimeExecutable)
+    {
+        if (details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
+        {
+            throw new ArgumentException(
+                "Only compilable v2 profiles may produce a complete composition plan.",
+                nameof(details));
+        }
+
+        if (runtimeExecutable)
+        {
+            CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
+            if (output.RendererKind is
+                CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                CompiledOutputNameRendererKind.TpFirmwareV1)
+            {
+                CompiledOutputNamingRequirement.ValidateCanonicalIcIdentity(
+                    details.Provenance.Context.MemberId,
+                    nameof(details));
+            }
+
+        }
     }
 
     private static CompiledInputSlotRequirement MapInputSlot(
