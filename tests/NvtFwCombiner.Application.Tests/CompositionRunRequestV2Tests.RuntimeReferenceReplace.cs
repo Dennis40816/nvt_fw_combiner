@@ -469,7 +469,7 @@ public sealed partial class CompositionRunRequestV2Tests
             ["runtime-reference-evidence"],
             [],
             []);
-        var referenceSlot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement referenceSlot = CompiledInputSlotTestFactory.Create(
             "reference-slot",
             "reference",
             CompiledInputArtifactClass.ReferenceImage,
@@ -478,7 +478,7 @@ public sealed partial class CompositionRunRequestV2Tests
             [".bin"],
             new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
             new CompiledNoInputNormalization());
-        var sourceSlot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement sourceSlot = CompiledInputSlotTestFactory.Create(
             "source-slot",
             "source",
             sourceArtifactClass,
@@ -488,7 +488,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
             sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
                 ? new CompiledTruncateCtrlRamInputNormalization(
-                    "synthetic.ctrlram-truncated",
+                    "SYNTHETIC_CTRLRAM_TRUNCATED",
                     "synthetic-ctrlram-normalization")
                 : new CompiledNoInputNormalization());
         var referenceBinding = new CompiledInputSpaceBinding(

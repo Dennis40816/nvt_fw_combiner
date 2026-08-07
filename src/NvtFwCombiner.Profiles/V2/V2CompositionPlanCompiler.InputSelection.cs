@@ -56,7 +56,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             string[] applicable =
             [
-                .. group.MemberSlotIds.Where(slotId => IsSlotApplicable(profile, slotId, regions)),
+                .. group.MemberSlotIds.Where(slotId => profile.IsInputSlotApplicable(slotId, regions)),
             ];
             string[] selected = requested is null
                 ? [.. applicable.Take(group.MinimumSelected)]
@@ -132,14 +132,14 @@ internal static partial class V2CompositionPlanCompiler
         {
             CompositionProfileView view = views[validation.ViewId];
             if (!inactiveInputSpaces.Contains(view.SpaceId) &&
-                ViewRegionExists(view, regions))
+                (view.MapRegionId is not string regionId || regions.Contains(regionId)))
             {
                 _ = activeViewIds.Add(validation.ViewId);
             }
         }
 
         var activeRegionIds = activeViewIds
-            .Select(viewId => TryGetViewRegionId(views[viewId]))
+            .Select(viewId => views[viewId].MapRegionId)
             .Where(static regionId => regionId is not null)
             .Select(static regionId => regionId!)
             .ToHashSet(StringComparer.Ordinal);
@@ -149,41 +149,6 @@ internal static partial class V2CompositionPlanCompiler
             activeViewIds,
             activeRegionIds,
             compiledGroups);
-    }
-
-    private static bool IsSlotApplicable(
-        CompositionProfileDefinition profile,
-        string slotId,
-        IReadOnlySet<string> availableRegionIds)
-    {
-        string[] spaceIds =
-        [
-            .. profile.Spaces
-                .OfType<InputArtifactProfileSpace>()
-                .Where(space => StringComparer.Ordinal.Equals(space.SlotId, slotId))
-                .Select(static space => space.SpaceId),
-        ];
-        return profile.Views
-            .Where(view => spaceIds.Contains(view.SpaceId, StringComparer.Ordinal))
-            .All(view => ViewRegionExists(view, availableRegionIds));
-    }
-
-    private static bool ViewRegionExists(
-        CompositionProfileView view,
-        IReadOnlySet<string> availableRegionIds)
-    {
-        string? regionId = TryGetViewRegionId(view);
-        return regionId is null || availableRegionIds.Contains(regionId);
-    }
-
-    private static string? TryGetViewRegionId(CompositionProfileView view)
-    {
-        return view.Selector switch
-        {
-            MapRegionViewSelector region => region.RegionId,
-            MapRegionSliceViewSelector slice => slice.RegionId,
-            _ => null,
-        };
     }
 
     private static bool ReferencesInactiveInput(

@@ -223,10 +223,11 @@ internal sealed partial class TrustedProfileBundleCatalog
             mapCandidates =
             [
                 .. mapCandidates
-                    .Where(map => MapSupportsSelectedOptionalSlots(
-                        selectedProfile.Profile,
-                        map,
-                        selectedInputSlotIds ?? []))
+                    .Where(map => selectedProfile.Profile.AreSelectedOptionalInputSlotsApplicable(
+                        selectedInputSlotIds ?? [],
+                        map.Regions
+                            .Select(static region => region.RegionId)
+                            .ToHashSet(StringComparer.Ordinal)))
                     .OrderBy(static map => map.CapacityBytes)
                     .ThenBy(static map => map.MapId, StringComparer.Ordinal)
                     .Take(1),
@@ -261,48 +262,6 @@ internal sealed partial class TrustedProfileBundleCatalog
                 preparationIssues,
                 PreparationNotAdmitted,
                 "The selected trusted V2 profile was not admitted to its canonical image map.");
-    }
-
-    private static bool MapSupportsSelectedOptionalSlots(
-        CompositionProfileDefinition profile,
-        FirmwareImageMap map,
-        IReadOnlyCollection<string> selectedInputSlotIds)
-    {
-        var regions = map.Regions.Select(static region => region.RegionId).ToHashSet(StringComparer.Ordinal);
-        var selected = selectedInputSlotIds.ToHashSet(StringComparer.Ordinal);
-        foreach (InputSelectionGroupDefinition group in profile.InputSelectionGroups)
-        {
-            foreach (string slotId in group.MemberSlotIds.Where(selected.Contains))
-            {
-                string[] inputSpaceIds =
-                [
-                    .. profile.Spaces
-                        .OfType<InputArtifactProfileSpace>()
-                        .Where(space => StringComparer.Ordinal.Equals(space.SlotId, slotId))
-                        .Select(static space => space.SpaceId),
-                ];
-                if (profile.Views
-                    .Where(view => inputSpaceIds.Contains(view.SpaceId, StringComparer.Ordinal))
-                    .Select(TryGetRegionId)
-                    .Where(static regionId => regionId is not null)
-                    .Any(regionId => !regions.Contains(regionId!)))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private static string? TryGetRegionId(CompositionProfileView view)
-    {
-        return view.Selector switch
-        {
-            MapRegionViewSelector region => region.RegionId,
-            MapRegionSliceViewSelector slice => slice.RegionId,
-            _ => null,
-        };
     }
 
     /// <summary>Returns the trusted profile's eligible canonical map capacities without selecting one.</summary>

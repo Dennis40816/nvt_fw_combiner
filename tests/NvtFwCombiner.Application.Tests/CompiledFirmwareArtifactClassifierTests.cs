@@ -220,7 +220,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         ];
         var inputContract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,
@@ -231,7 +231,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                         dpExpectedOuterLengths,
                         dpUnexpectedOuterLengthIssueCode),
                     new CompiledNoInputNormalization()),
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "tp-slot",
                     "tp",
                     CompiledInputArtifactClass.TpFirmware,

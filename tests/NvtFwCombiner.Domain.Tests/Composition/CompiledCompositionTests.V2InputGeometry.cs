@@ -242,7 +242,7 @@ public sealed partial class CompiledCompositionTests
     {
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "tp-slot",
                     "tp",
                     CompiledInputArtifactClass.TpFirmware,
@@ -274,7 +274,7 @@ public sealed partial class CompiledCompositionTests
         IReadOnlyList<long> addressSpaceExpected = addressSpaceExpectedInputLengths ?? expected;
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,
@@ -327,7 +327,7 @@ public sealed partial class CompiledCompositionTests
         long outputCapacity = Math.Max(requiredEndExclusive, 16);
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "source-slot",
                     "source",
                     CompiledInputArtifactClass.Auxiliary,
@@ -378,7 +378,7 @@ public sealed partial class CompiledCompositionTests
         const long capacity = 16;
         var contract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "reference-slot",
                     "reference",
                     CompiledInputArtifactClass.ReferenceImage,
@@ -387,7 +387,7 @@ public sealed partial class CompiledCompositionTests
                     [".bin"],
                     new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity),
                     new CompiledNoInputNormalization()),
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,

@@ -207,8 +207,7 @@ public sealed partial class CompositionPlan
                     nameof(priorWrites));
             }
 
-            if (!string.Equals(prior.TargetSpaceId, operation.TargetSpaceId, StringComparison.Ordinal) ||
-                !DeclaredWriteRangesOverlap(prior, operation))
+            if (!prior.DeclaredWritesOverlap(operation))
             {
                 continue;
             }
@@ -234,29 +233,6 @@ public sealed partial class CompositionPlan
                     nameof(priorWrites));
             }
         }
-    }
-
-    private static bool DeclaredWriteRangesOverlap(CompositionOperation first, CompositionOperation second)
-    {
-        foreach (ByteRange firstRange in DeclaredWriteRanges(first))
-        {
-            foreach (ByteRange secondRange in DeclaredWriteRanges(second))
-            {
-                if (firstRange.Overlaps(secondRange))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static IReadOnlyList<ByteRange> DeclaredWriteRanges(CompositionOperation operation)
-    {
-        return operation.Kind == CompositionOperationKind.RunExternalProcessor
-            ? operation.ExternalProcessorInvocation!.AllowedWriteRanges
-            : [operation.TargetRange];
     }
 
     private bool CreatesSameSequenceMutableDependency(

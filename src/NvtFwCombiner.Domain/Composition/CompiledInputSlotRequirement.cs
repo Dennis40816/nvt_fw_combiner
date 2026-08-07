@@ -313,30 +313,6 @@ public sealed class CompiledInputSlotRequirement
     private readonly CompositionInputSlotDefinition _definition;
 
     internal CompiledInputSlotRequirement(
-        string slotId,
-        string role,
-        CompiledInputArtifactClass artifactClass,
-        bool required,
-        CompiledInputSlotCardinality cardinality,
-        IEnumerable<string> acceptedExtensions,
-        CompiledInputLengthRequirement lengthRequirement,
-        CompiledInputNormalization normalization)
-        : this(
-            new CompositionInputSlotDefinition(
-                slotId,
-                role,
-                artifactClass,
-                required,
-                cardinality,
-                acceptedExtensions,
-                lengthRequirement,
-                normalization,
-                validateCanonicalPolicy: false),
-            lengthRequirement)
-    {
-    }
-
-    internal CompiledInputSlotRequirement(
         CompositionInputSlotDefinition definition,
         CompiledInputLengthRequirement lengthRequirement,
         bool forceRequired = false)

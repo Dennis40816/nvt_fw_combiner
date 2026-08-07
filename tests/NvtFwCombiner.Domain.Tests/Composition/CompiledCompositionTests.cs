@@ -504,7 +504,7 @@ public sealed partial class CompiledCompositionTests
     {
         string slotId = $"{addressSpaceId}-slot";
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 slotId,
                 addressSpaceId,
                 artifactClass,

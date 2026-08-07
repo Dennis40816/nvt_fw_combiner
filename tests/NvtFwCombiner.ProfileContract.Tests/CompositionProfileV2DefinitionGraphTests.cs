@@ -5,6 +5,21 @@ namespace NvtFwCombiner.ProfileContract.Tests;
 /// <summary>Tests fail-closed internal references in map-independent v2 definitions.</summary>
 public sealed class CompositionProfileV2DefinitionGraphTests
 {
+    /// <summary>Map applicability follows the canonical regions referenced by a slot's views.</summary>
+    [Fact]
+    public void DefinitionOwnsInputSlotMapApplicability()
+    {
+        CompositionProfileDefinition definition = CompositionProfileV2DefinitionTestData.Create(
+            CompositionProfileV2DefinitionTestData.ValidMergeParts());
+
+        Assert.True(definition.IsInputSlotApplicable(
+            "tp-input",
+            new HashSet<string>(["dp-code"], StringComparer.Ordinal)));
+        Assert.False(definition.IsInputSlotApplicable(
+            "tp-input",
+            new HashSet<string>(StringComparer.Ordinal)));
+    }
+
     /// <summary>Verifies spaces and clone initializers reference declared input slots only.</summary>
     [Fact]
     public void DefinitionRejectsUnknownAndOrphanSlotReferences()

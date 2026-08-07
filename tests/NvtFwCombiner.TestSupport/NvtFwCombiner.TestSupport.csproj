@@ -8,5 +8,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="LegacyCombinerPostbuildCatalogAlias.cs" />
+    <Compile Remove="CompiledInputSlotTestFactory.cs" />
   </ItemGroup>
 </Project>

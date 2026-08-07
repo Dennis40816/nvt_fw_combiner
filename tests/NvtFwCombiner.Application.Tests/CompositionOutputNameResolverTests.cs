@@ -473,7 +473,7 @@ public sealed partial class CompositionOutputNameResolverTests
             []);
         var inputContract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     ArtifactSlotId,
                     "input",
                     CompiledInputArtifactClass.ReferenceImage,

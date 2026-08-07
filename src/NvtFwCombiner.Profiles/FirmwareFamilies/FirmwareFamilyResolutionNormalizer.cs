@@ -4,20 +4,16 @@ using NvtFwCombiner.Domain.Firmware;
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
 /// <summary>Normalizes schema-validated v1 family facts into one map-bound Domain definition.</summary>
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     /// <summary>Normalizes direct and aliased family facts without inferring maps, workflows, or execution support.</summary>
-    public static FirmwareFamilyResolutionDefinition Normalize(
+    internal static FirmwareFamilyResolutionDefinition Normalize(
         FirmwareFamilyDocument document,
         string familyContentHash,
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
-        _ = document.SchemaVersion is "1.1" or "1.2"
-            ? true
-            : throw Error("schemaVersion", "Expected firmware-family schema version '1.1' or '1.2'.");
-
         return NormalizeMapBoundFacts(
             document,
             familyContentHash,
@@ -44,7 +40,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 document.MemberIds,
                 document.ModeIds,
                 NormalizeTopology(document.TopologyRequirement, $"{path}.topologyRequirement"),
-                ReadInt64(document.CapacityBytes, 1, long.MaxValue, $"{path}.capacityBytes"),
+                ReadInt64(document.CapacityBytes, $"{path}.capacityBytes"),
                 document.CommonFirmwareCategoryIds,
                 predicates));
     }
@@ -54,7 +50,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         IReadOnlyDictionary<string, FirmwareMetadataStructure> selectedStructures,
         string path)
     {
-        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<FirmwareMetadataPredicateDocument> predicateDocuments =
             document.MetadataPredicates ?? [];
         var predicates = new FirmwareMetadataPredicate[predicateDocuments.Count];
@@ -69,7 +64,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         return TranslateInvariant(path, () => new FirmwareFactApplicability(
                 document.ModeIds,
                 NormalizeTopology(document.TopologyRequirement, $"{path}.topologyRequirement"),
-                ReadInt64(document.CapacityBytes, 1, long.MaxValue, $"{path}.capacityBytes"),
+                ReadInt64(document.CapacityBytes, $"{path}.capacityBytes"),
                 document.CommonFirmwareCategoryIds,
                 predicates));
     }
@@ -92,8 +87,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             StringComparer.Ordinal.Equals(candidate.FieldId, document.FieldId)) ?? throw Error(
                 $"{path}.fieldId",
                 $"Field '{document.FieldId}' does not exist in structure '{structure.StructureId}'.");
-        IReadOnlyList<System.Text.Json.JsonElement> expectedDocuments =
-            RequireList(document.ExpectedValues, $"{path}.expectedValues");
+        IReadOnlyList<System.Text.Json.JsonElement> expectedDocuments = document.ExpectedValues;
         var expectedValues = new FirmwareMetadataValue[expectedDocuments.Count];
         for (int index = 0; index < expectedDocuments.Count; index++)
         {
@@ -119,12 +113,11 @@ public static partial class FirmwareFamilyResolutionNormalizer
     }
 
     private static void ValidateMemberReferences(
-        IReadOnlyList<string>? memberIds,
+        IReadOnlyList<string> memberIds,
         IReadOnlyDictionary<string, FirmwareFamilyMemberDocument> membersById,
         string path)
     {
-        IReadOnlyList<string> required = RequireList(memberIds, path);
-        foreach (string memberId in required)
+        foreach (string memberId in memberIds)
         {
             if (!membersById.ContainsKey(memberId))
             {
@@ -143,7 +136,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         Dictionary<string, T> indexed = new(StringComparer.Ordinal);
         for (int index = 0; index < values.Count; index++)
         {
-            T value = values[index] ?? throw Error($"{path}[{index}]", "Value cannot be null.");
+            T value = values[index];
             string id = idSelector(value);
             if (!indexed.TryAdd(id, value))
             {
@@ -152,11 +145,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         }
 
         return indexed;
-    }
-
-    private static IReadOnlyList<T> RequireList<T>(IReadOnlyList<T>? values, string path)
-    {
-        return values ?? throw Error(path, "Required array is missing.");
     }
 
     private static T TranslateInvariant<T>(string path, Func<T> factory)

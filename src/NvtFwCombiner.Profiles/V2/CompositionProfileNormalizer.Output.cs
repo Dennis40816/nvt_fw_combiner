@@ -10,33 +10,26 @@ internal static partial class CompositionProfileNormalizer
         string path = "output",
         IReadOnlyList<CompositionProfileMetadataBinding>? metadataBindings = null)
     {
-        ArgumentNullException.ThrowIfNull(document);
         string? ruleId = null;
         CompiledOutputArtifactType outputArtifactType =
             CompiledOutputArtifactType.Unspecified;
-        OutputTokenBuilder[]? normalizedTokenRequirements = null;
+        CompiledOutputTokenRequirement[]? tokenRequirements = null;
         if (document.RuleId is not null)
         {
             ruleId = document.RuleId;
             outputArtifactType = NormalizeOutputArtifactType(
                 document.OutputArtifactType!,
                 $"{path}.outputArtifactType");
-            normalizedTokenRequirements = NormalizeOutputTokenRequirements(
+            tokenRequirements = NormalizeOutputTokenRequirements(
                 document.TokenRequirements!,
-                $"{path}.tokenRequirements");
+                $"{path}.tokenRequirements",
+                metadataBindings ?? []);
         }
 
         CompiledOutputInvalidCharacterPolicy invalidCharacterPolicy =
             NormalizeInvalidCharacterPolicy(
                 document.InvalidCharacterPolicy,
                 $"{path}.invalidCharacterPolicy");
-
-        CompiledOutputTokenRequirement[]? tokenRequirements = normalizedTokenRequirements?
-            .Select((requirement, index) => CompileOutputTokenRequirement(
-                requirement,
-                $"{path}.tokenRequirements[{index}]",
-                metadataBindings ?? []))
-            .ToArray();
 
         return Wrap(path, () => ruleId is null
             ? new CompiledOutputNamingRequirement(
@@ -78,19 +71,21 @@ internal static partial class CompositionProfileNormalizer
         };
     }
 
-    private static OutputTokenBuilder[] NormalizeOutputTokenRequirements(
+    private static CompiledOutputTokenRequirement[] NormalizeOutputTokenRequirements(
         IReadOnlyList<CompositionProfileOutputTokenRequirementDocument> documents,
-        string path)
+        string path,
+        IReadOnlyList<CompositionProfileMetadataBinding> metadataBindings)
     {
-        return NormalizeList(
-            documents,
-            path,
-            NormalizeOutputTokenRequirement);
+        return [.. documents.Select((document, index) => NormalizeOutputTokenRequirement(
+            document,
+            $"{path}[{index}]",
+            metadataBindings))];
     }
 
-    private static OutputTokenBuilder NormalizeOutputTokenRequirement(
+    private static CompiledOutputTokenRequirement NormalizeOutputTokenRequirement(
         CompositionProfileOutputTokenRequirementDocument document,
-        string path)
+        string path,
+        IReadOnlyList<CompositionProfileMetadataBinding> metadataBindings)
     {
         CompositionProfileOutputTokenSourceDocument source = document.Source;
         CompiledOutputTokenSourceKind sourceKind = source.Kind switch
@@ -121,28 +116,13 @@ internal static partial class CompositionProfileNormalizer
                     $"{path}.missingPolicy",
                     "Unknown output token missing policy."),
             };
-        return new OutputTokenBuilder(
-            CanonicalPolicyValueRules.RequireCanonicalId(
-                document.TokenId,
-                $"{path}.tokenId"),
-            sourceKind,
-            metadataBindingId,
-            missingPolicy,
-            document.Placeholder);
-    }
-
-    private static CompiledOutputTokenRequirement CompileOutputTokenRequirement(
-        OutputTokenBuilder requirement,
-        string path,
-        IReadOnlyList<CompositionProfileMetadataBinding> metadataBindings)
-    {
         string? metadataSpaceId = null;
-        if (requirement.MetadataBindingId is { } metadataBindingId)
+        if (metadataBindingId is not null)
         {
             CompositionProfileMetadataBinding? binding = metadataBindings.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.BindingId, metadataBindingId));
             string expectedStructureId =
-                requirement.SourceKind == CompiledOutputTokenSourceKind.DpcmiVersion
+                sourceKind == CompiledOutputTokenSourceKind.DpcmiVersion
                     ? "dpcmi"
                     : "firmware-config-general-parameters";
             if (binding is null ||
@@ -158,18 +138,13 @@ internal static partial class CompositionProfileNormalizer
         }
 
         return new CompiledOutputTokenRequirement(
-            requirement.TokenId,
-            requirement.SourceKind,
-            requirement.MetadataBindingId,
-            requirement.MissingPolicy,
-            requirement.Placeholder,
+            CanonicalPolicyValueRules.RequireCanonicalId(
+                document.TokenId,
+                $"{path}.tokenId"),
+            sourceKind,
+            metadataBindingId,
+            missingPolicy,
+            document.Placeholder,
             metadataSpaceId);
     }
-
-    private sealed record OutputTokenBuilder(
-        string TokenId,
-        CompiledOutputTokenSourceKind SourceKind,
-        string? MetadataBindingId,
-        CompiledOutputTokenMissingPolicy MissingPolicy,
-        string? Placeholder);
 }

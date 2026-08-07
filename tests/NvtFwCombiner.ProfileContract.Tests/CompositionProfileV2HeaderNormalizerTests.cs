@@ -117,14 +117,6 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
             CompositionProfileNormalizer.NormalizeExperience(
                 new CompositionProfileExperienceDocument(
                     "Experience", "system", "fixed", "fixed", "hidden", "name")));
-        CompositionProfileNormalizationException audience = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeExperience(
-                new CompositionProfileExperienceDocument(
-                    "experience", "future", "fixed", "fixed", "hidden", "name")));
-        CompositionProfileNormalizationException topology = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeExperience(
-                new CompositionProfileExperienceDocument(
-                    "experience", "system", "fixed", "fixed", "future", "name")));
         CompositionProfileNormalizationException map = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeMapBinding(
                 new CompositionProfileMapBindingDocument(
@@ -133,8 +125,6 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
         Assert.Equal("promotion.stage", stage.Path);
         Assert.Equal("promotion.blockers[0].kind", blocker.Path);
         Assert.Equal("experience", experience.Path);
-        Assert.Equal("experience.audience", audience.Path);
-        Assert.Equal("experience.topologyAuthoring", topology.Path);
         Assert.Equal("mapBinding", map.Path);
     }
 

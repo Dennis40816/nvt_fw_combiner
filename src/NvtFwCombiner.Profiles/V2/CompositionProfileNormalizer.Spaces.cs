@@ -10,7 +10,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileSpaceDocument document,
         string path = "spaces[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return document.Kind switch
         {
             "input-artifact" => Wrap(path, () => new InputArtifactProfileSpace(
@@ -35,7 +34,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileViewDocument document,
         string path = "views[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new CompositionProfileView(
             document.ViewId,
             document.SpaceId,

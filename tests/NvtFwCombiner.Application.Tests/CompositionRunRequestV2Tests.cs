@@ -389,7 +389,7 @@ public sealed partial class CompositionRunRequestV2Tests
             experienceId: "dp-replace",
             inputContract: new CompiledInputContract(
                 [
-                    new CompiledInputSlotRequirement(
+                    CompiledInputSlotTestFactory.Create(
                         "reference-slot",
                         "reference",
                         CompiledInputArtifactClass.ReferenceImage,
@@ -398,7 +398,7 @@ public sealed partial class CompositionRunRequestV2Tests
                         [".bin"],
                         new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
                         new CompiledNoInputNormalization()),
-                    new CompiledInputSlotRequirement(
+                    CompiledInputSlotTestFactory.Create(
                         "dp-slot",
                         "dp",
                         CompiledInputArtifactClass.DpFirmware,
@@ -516,7 +516,7 @@ public sealed partial class CompositionRunRequestV2Tests
     private static CompiledInputContract CreateInputContract()
     {
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 "input-slot",
                 "input",
                 CompiledInputArtifactClass.ReferenceImage,

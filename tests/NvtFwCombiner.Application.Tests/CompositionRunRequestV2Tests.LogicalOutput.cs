@@ -271,7 +271,7 @@ public sealed partial class CompositionRunRequestV2Tests
             CompositionKind.Merge,
             provenance,
             new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                         "source-slot",
                         "source",
                         CompiledInputArtifactClass.Auxiliary,

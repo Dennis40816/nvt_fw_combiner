@@ -3,7 +3,7 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareMapFactBinding<FirmwareCapabilityFact>[] NormalizeCapabilities(
         IReadOnlyList<FirmwareCapabilityFactDocument> documents,
@@ -16,9 +16,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         var direct = new Dictionary<FirmwareMapFactKey, CapabilityDirect>();
         for (int index = 0; index < documents.Count; index++)
         {
-            FirmwareCapabilityFactDocument document = documents[index] ?? throw Error(
-                $"capabilities[{index}]",
-                "Capability fact cannot be null.");
+            FirmwareCapabilityFactDocument document = documents[index];
             string path = $"capabilities[{index}]";
 
             FirmwareImageMap map = mapsById.TryGetValue(document.MapId, out FirmwareImageMap? candidate)
@@ -312,20 +310,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         }
     }
 
-    private static void ValidateDistinctFactIds(IReadOnlyList<string>? ids, string path)
-    {
-        IReadOnlyList<string> required = RequireList(ids, path);
-        if (required.Any(string.IsNullOrWhiteSpace))
-        {
-            throw Error(path, "Fact identifiers cannot contain null or whitespace.");
-        }
-
-        if (required.Distinct(StringComparer.Ordinal).Count() != required.Count)
-        {
-            throw Error(path, "Fact identifiers must be ordinally unique within one image map.");
-        }
-    }
-
     private static MapInput FindMap(
         IReadOnlyDictionary<string, MapInput> mapsById,
         string mapId,
@@ -365,22 +349,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 path,
                 $"Image map '{map.Document.MapId}' does not declare fact '{factId}'.");
         }
-    }
-
-    private static FirmwareImageMapCoveragePolicy NormalizeCoveragePolicy(string value, string path)
-    {
-        return value switch
-        {
-            "complete-with-explicit-gaps" => FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
-            _ => throw Error(path, "Unknown image-map coverage policy."),
-        };
-    }
-
-    private static string RequireFactId(string value, string path)
-    {
-        return !string.IsNullOrWhiteSpace(value)
-            ? value
-            : throw Error(path, "Fact identifier cannot be null or whitespace.");
     }
 
     private static string FactCollectionName(FirmwareFactKind kind)
