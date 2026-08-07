@@ -142,6 +142,22 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             result => Assert.Equal("profile.v2.plan.region-access-denied", Assert.Single(result.Issues).Code));
     }
 
+    /// <summary>Capability admission rejects an unsupported operation even when its optional input is inactive.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsUnsupportedInactiveOptionalOperation()
+    {
+        V2CompositionPlanCompileResult result = Compile(
+            PrepareSupportedBlankCopy(familyHash => ProfileWithInactiveOptionalBranch(
+                SupportedProfileJson(familyHash),
+                mutateOperation: operation => operation["kind"] = "replace-range")),
+            selectedInputSlotIds: []);
+
+        Assert.Null(result.CompiledComposition);
+        CompositionIssue issue = Assert.Single(result.Issues);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code);
+        Assert.Equal("copy-optional", issue.OperationId);
+    }
+
     /// <summary>Verifies a profile overlap returns a deterministic compiler issue instead of leaking a plan-construction exception.</summary>
     [Fact]
     public void BlankOutputLoweringRejectsOverlappingRejectWritesWithoutAnArtifact()

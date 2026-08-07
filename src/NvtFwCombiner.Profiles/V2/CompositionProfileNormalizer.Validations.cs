@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.V2;
 
@@ -100,10 +101,10 @@ internal static partial class CompositionProfileNormalizer
         CompiledValidationSeverity severity,
         string path)
     {
-        CompiledValidationBytes expected = ReadBytes(
+        FirmwareMetadataBytes expected = ReadBytes(
             document.ExpectedHex!,
             $"{path}.expectedHex");
-        CompiledValidationBytes? mask = document.MaskHex is { } maskHex
+        FirmwareMetadataBytes? mask = document.MaskHex is { } maskHex
             ? ReadBytes(maskHex, $"{path}.maskHex")
             : null;
         return Wrap(path, () => CanonicalValidationDefinitionRules.RequireProfileDefinition(

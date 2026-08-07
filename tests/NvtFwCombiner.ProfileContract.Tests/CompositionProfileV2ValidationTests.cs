@@ -1,5 +1,6 @@
 using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -45,8 +46,8 @@ public sealed class CompositionProfileV2ValidationTests
             CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "header",
-            new CompiledValidationBytes([0xA0]),
-            new CompiledValidationBytes([0xF0]));
+            new FirmwareMetadataBytes([0xA0]),
+            new FirmwareMetadataBytes([0xF0]));
 
         CompiledMetadataValueValidation metadataValue =
             Assert.IsType<CompiledMetadataValueValidation>(validation);
@@ -147,17 +148,17 @@ public sealed class CompositionProfileV2ValidationTests
             CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "header",
-            new CompiledValidationBytes([0xA0, 0x00]),
-            new CompiledValidationBytes([0xF0])));
+            new FirmwareMetadataBytes([0xA0, 0x00]),
+            new FirmwareMetadataBytes([0xF0])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompiledValidationBytes([0x00]),
-            new CompiledValidationBytes([0x00])));
+            new FirmwareMetadataBytes([0x00]),
+            new FirmwareMetadataBytes([0x00])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompiledValidationBytes([0xAA]),
-            new CompiledValidationBytes([0xFF])));
+            new FirmwareMetadataBytes([0xAA]),
+            new FirmwareMetadataBytes([0xFF])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompiledValidationBytes([0xA1]),
-            new CompiledValidationBytes([0xF0])));
+            new FirmwareMetadataBytes([0xA1]),
+            new FirmwareMetadataBytes([0xF0])));
     }
 
     /// <summary>Verifies common validation identity and enum carriers fail closed.</summary>
@@ -219,8 +220,8 @@ public sealed class CompositionProfileV2ValidationTests
     }
 
     private static CompiledViewByteAssertionValidation Assertion(
-        CompiledValidationBytes expected,
-        CompiledValidationBytes? mask)
+        FirmwareMetadataBytes expected,
+        FirmwareMetadataBytes? mask)
     {
         return CanonicalValidationDefinitionRules.RequireProfileDefinition(
             new CompiledViewByteAssertionValidation(

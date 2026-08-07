@@ -75,54 +75,56 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     [InlineData(
         "header",
         "integrity-value",
-        TpFlashHeaderFieldSubject.Header,
-        TpFlashHeaderFieldRole.IntegrityValue)]
+        (int)TpFlashHeaderFieldSubject.Header,
+        (int)TpFlashHeaderFieldRole.IntegrityValue)]
     [InlineData(
         "ilm",
         "destination-address",
-        TpFlashHeaderFieldSubject.Ilm,
-        TpFlashHeaderFieldRole.DestinationAddress)]
+        (int)TpFlashHeaderFieldSubject.Ilm,
+        (int)TpFlashHeaderFieldRole.DestinationAddress)]
     [InlineData(
         "dlm",
         "size",
-        TpFlashHeaderFieldSubject.Dlm,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.Dlm,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "data",
         "size",
-        TpFlashHeaderFieldSubject.Data,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.Data,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "firmware-config",
         "size",
-        TpFlashHeaderFieldSubject.FirmwareConfig,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.FirmwareConfig,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "ctrlram",
         "size",
-        TpFlashHeaderFieldSubject.CtrlRam,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.CtrlRam,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "mp-ctrlram",
         "size",
-        TpFlashHeaderFieldSubject.MpCtrlRam,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.MpCtrlRam,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "dlm-difference",
         "tp-bin-start-address",
-        TpFlashHeaderFieldSubject.DlmDifference,
-        TpFlashHeaderFieldRole.TpBinStartAddress)]
+        (int)TpFlashHeaderFieldSubject.DlmDifference,
+        (int)TpFlashHeaderFieldRole.TpBinStartAddress)]
     [InlineData(
         "header",
         "option",
-        TpFlashHeaderFieldSubject.Header,
-        TpFlashHeaderFieldRole.Option)]
+        (int)TpFlashHeaderFieldSubject.Header,
+        (int)TpFlashHeaderFieldRole.Option)]
     public void NormalizeMapsClosedTpHeaderSemanticTokens(
         string subject,
         string role,
-        TpFlashHeaderFieldSubject expectedSubject,
-        TpFlashHeaderFieldRole expectedRole)
+        int expectedSubjectValue,
+        int expectedRoleValue)
     {
+        var expectedSubject = (TpFlashHeaderFieldSubject)expectedSubjectValue;
+        var expectedRole = (TpFlashHeaderFieldRole)expectedRoleValue;
         FirmwareTpFlashHeaderDocument payload = TpFlashHeaderPayload();
         FirmwareTpFlashHeaderFieldSemanticsDocument first = payload.FieldSemantics[0];
         payload = payload with

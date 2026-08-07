@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Tests.Composition;
 
@@ -80,7 +81,7 @@ public sealed partial class CompiledCompositionTests
                 "PATTERN", field, [CompiledValidationRejectedBytePattern.AllZero]),
             new CompiledViewByteAssertionValidation(
                 "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error,
-                "VIEW", "output", new CompiledValidationBytes([0x5A])),
+                "VIEW", "output", new FirmwareMetadataBytes([0x5A])),
             CompiledValidationRequirements.FirmwareConfigBackupVersion(
                 "version", "INVALID", "MISMATCH", 1, 2),
             CompiledValidationRequirements.FirmwareConfigBackupPlacementAuthority(

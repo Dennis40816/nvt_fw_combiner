@@ -1,8 +1,8 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -235,31 +235,31 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
     public void BuiltInDefinitionResolverRejectsNonExactReference(
         string mismatch)
     {
-        var exact = new FirmwareMetadataStructureDefinitionReference(
+        var exact = new FirmwareMetadataStructureDefinitionReferenceDocument(
                 "nt51929-nt51932",
                 "1.3.0",
                 "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
                 DpcmiMetadataContract.StructureId);
-        FirmwareMetadataStructureDefinitionReference changed =
+        FirmwareMetadataStructureDefinitionReferenceDocument changed =
             mismatch switch
             {
-                "family" => new FirmwareMetadataStructureDefinitionReference(
+                "family" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     "unknown-family",
                     exact.FamilyVersion,
                     exact.FamilyContentHash,
                     exact.StructureId),
-                "version" => new FirmwareMetadataStructureDefinitionReference(
+                "version" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     exact.FamilyId,
                     "1.2.1",
                     exact.FamilyContentHash,
                     exact.StructureId),
-                "hash" => new FirmwareMetadataStructureDefinitionReference(
+                "hash" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     exact.FamilyId,
                     exact.FamilyVersion,
                     "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                     exact.StructureId),
                 "structure" =>
-                    new FirmwareMetadataStructureDefinitionReference(
+                    new FirmwareMetadataStructureDefinitionReferenceDocument(
                         exact.FamilyId,
                         exact.FamilyVersion,
                         exact.FamilyContentHash,

@@ -387,7 +387,7 @@ public sealed partial class CompiledCompositionTests
             CreateV2(validationRequirements:
             [new CompiledViewByteAssertionValidation(
                 "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-                new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0xF0]))]),
+                new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0xF0]))]),
         ];
 
         Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
@@ -441,13 +441,13 @@ public sealed partial class CompiledCompositionTests
 
         string withoutMask = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0])));
+            new FirmwareMetadataBytes([0xA0])));
         string masked = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0xF0])));
+            new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0xF0])));
         string changedMask = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0x0F])));
+            new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0x0F])));
         Assert.NotEqual(withoutMask, masked);
         Assert.NotEqual(masked, changedMask);
 

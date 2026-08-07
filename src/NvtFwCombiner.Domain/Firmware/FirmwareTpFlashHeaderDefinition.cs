@@ -66,10 +66,9 @@ public sealed record FirmwareMetadataReferenceTarget
 }
 
 /// <summary>Base for an exact typed specialization of common firmware metadata.</summary>
-public abstract class FirmwareMetadataTypedDefinition
+internal abstract class FirmwareMetadataTypedDefinition
 {
-    /// <summary>Closed specialization discriminator.</summary>
-    public abstract FirmwareMetadataStructureKind StructureKind { get; }
+    internal abstract FirmwareMetadataStructureKind StructureKind { get; }
 
     internal abstract void Validate(
         IReadOnlyList<FirmwareMetadataField> fields,
@@ -81,76 +80,43 @@ public abstract class FirmwareMetadataTypedDefinition
 }
 
 /// <summary>One named structure-relative span, including reserved bytes.</summary>
-public sealed record FirmwareMetadataNamedSpan
+internal sealed record FirmwareMetadataNamedSpan
 {
-    /// <summary>Creates one checked named half-open span.</summary>
-    public FirmwareMetadataNamedSpan(string spanId, ByteRange range)
+    internal FirmwareMetadataNamedSpan(string spanId, ByteRange range)
     {
         SpanId = RequiredValue.NotBlank(spanId);
         Range = range;
     }
 
-    /// <summary>Stable span identity inside one structure definition.</summary>
-    public string SpanId { get; }
+    internal string SpanId { get; }
 
-    /// <summary>Checked structure-relative range.</summary>
-    public ByteRange Range { get; }
+    internal ByteRange Range { get; }
 }
 
-/// <summary>Semantic subject carried by one TP Flash Header field.</summary>
-public enum TpFlashHeaderFieldSubject
+internal enum TpFlashHeaderFieldSubject
 {
-    /// <summary>Whole-header or build-option state.</summary>
     Header,
-
-    /// <summary>Instruction local memory payload.</summary>
     Ilm,
-
-    /// <summary>Data local memory payload.</summary>
     Dlm,
-
-    /// <summary>Difference DLM payload.</summary>
     DlmDifference,
-
-    /// <summary>Generic DATA payload declared by normal TP headers.</summary>
     Data,
-
-    /// <summary>Firmware configuration payload.</summary>
     FirmwareConfig,
-
-    /// <summary>Normal CtrlRAM payload.</summary>
     CtrlRam,
-
-    /// <summary>Manufacturing-process CtrlRAM payload.</summary>
     MpCtrlRam,
 }
 
-/// <summary>Closed value role carried by one TP Flash Header field.</summary>
-public enum TpFlashHeaderFieldRole
+internal enum TpFlashHeaderFieldRole
 {
-    /// <summary>CRC or another integrity result value.</summary>
     IntegrityValue,
-
-    /// <summary>Runtime destination address.</summary>
     DestinationAddress,
-
-    /// <summary>Declared payload byte size.</summary>
     Size,
-
-    /// <summary>Stored TP-BIN-relative payload start address.</summary>
     TpBinStartAddress,
-
-    /// <summary>Build or transport option value.</summary>
     Option,
 }
 
-/// <summary>Closed basis used to interpret one address value stored in a Header field.</summary>
-public enum TpFlashHeaderStoredAddressBasis
+internal enum TpFlashHeaderStoredAddressBasis
 {
-    /// <summary>The encoded value is absolute in its declared value address space.</summary>
     Absolute,
-
-    /// <summary>The encoded value is relative to the start of the immutable TP BIN.</summary>
     TpBinOffset,
 }
 
@@ -158,10 +124,9 @@ public enum TpFlashHeaderStoredAddressBasis
 /// Meaning of an address integer stored in one Header field. This describes
 /// the value and never the byte position of the field itself.
 /// </summary>
-public sealed record FirmwareTpFlashHeaderStoredAddressSemantics
+internal sealed record FirmwareTpFlashHeaderStoredAddressSemantics
 {
-    /// <summary>Creates one checked stored-address value declaration.</summary>
-    public FirmwareTpFlashHeaderStoredAddressSemantics(
+    internal FirmwareTpFlashHeaderStoredAddressSemantics(
         string addressSpaceId,
         TpFlashHeaderStoredAddressBasis basis)
     {
@@ -171,18 +136,15 @@ public sealed record FirmwareTpFlashHeaderStoredAddressSemantics
         Basis = basis;
     }
 
-    /// <summary>Address space named by the encoded value.</summary>
-    public string AddressSpaceId { get; }
+    internal string AddressSpaceId { get; }
 
-    /// <summary>Origin/basis used to interpret the encoded value.</summary>
-    public TpFlashHeaderStoredAddressBasis Basis { get; }
+    internal TpFlashHeaderStoredAddressBasis Basis { get; }
 }
 
 /// <summary>TP-specific meaning attached to one already declared physical field.</summary>
-public sealed record FirmwareTpFlashHeaderFieldSemantics
+internal sealed record FirmwareTpFlashHeaderFieldSemantics
 {
-    /// <summary>Creates one exact field-to-span semantic binding.</summary>
-    public FirmwareTpFlashHeaderFieldSemantics(
+    internal FirmwareTpFlashHeaderFieldSemantics(
         string fieldId,
         string spanId,
         TpFlashHeaderFieldSubject subject,
@@ -206,38 +168,28 @@ public sealed record FirmwareTpFlashHeaderFieldSemantics
         StoredAddress = storedAddress;
     }
 
-    /// <summary>Exact physical field identity.</summary>
-    public string FieldId { get; }
+    internal string FieldId { get; }
 
-    /// <summary>Named span that contains the field.</summary>
-    public string SpanId { get; }
+    internal string SpanId { get; }
 
-    /// <summary>Typed firmware subject.</summary>
-    public TpFlashHeaderFieldSubject Subject { get; }
+    internal TpFlashHeaderFieldSubject Subject { get; }
 
-    /// <summary>Typed value role.</summary>
-    public TpFlashHeaderFieldRole Role { get; }
+    internal TpFlashHeaderFieldRole Role { get; }
 
-    /// <summary>Optional logical record index.</summary>
-    public int? LogicalIndex { get; }
+    internal int? LogicalIndex { get; }
 
-    /// <summary>
-    /// Value address space/basis when this field stores an address; null for
-    /// non-address values.
-    /// </summary>
-    public FirmwareTpFlashHeaderStoredAddressSemantics? StoredAddress { get; }
+    internal FirmwareTpFlashHeaderStoredAddressSemantics? StoredAddress { get; }
 }
 
 /// <summary>Typed TP Flash Header payload attached to one common metadata definition.</summary>
-public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefinition
+internal sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefinition
 {
     private readonly FirmwareMetadataNamedSpan[] _spans;
     private readonly FirmwareTpFlashHeaderFieldSemantics[] _fieldSemantics;
     private readonly FirmwareMetadataFieldSeries[] _fieldSeries;
     private readonly FirmwareMetadataFieldGroup[] _fieldGroups;
 
-    /// <summary>Creates one immutable typed TP Flash Header payload.</summary>
-    public FirmwareTpFlashHeaderDefinition(
+    internal FirmwareTpFlashHeaderDefinition(
         IEnumerable<FirmwareMetadataNamedSpan> spans,
         IEnumerable<FirmwareTpFlashHeaderFieldSemantics> fieldSemantics,
         IEnumerable<FirmwareMetadataFieldSeries> fieldSeries,
@@ -286,21 +238,16 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
         FieldGroups = Array.AsReadOnly(_fieldGroups);
     }
 
-    /// <inheritdoc />
-    public override FirmwareMetadataStructureKind StructureKind =>
+    internal override FirmwareMetadataStructureKind StructureKind =>
         FirmwareMetadataStructureKind.TpFlashHeader;
 
-    /// <summary>Named structure-relative spans.</summary>
-    public IReadOnlyList<FirmwareMetadataNamedSpan> Spans { get; }
+    internal IReadOnlyList<FirmwareMetadataNamedSpan> Spans { get; }
 
-    /// <summary>Semantic binding for every physical field.</summary>
-    public IReadOnlyList<FirmwareTpFlashHeaderFieldSemantics> FieldSemantics { get; }
+    internal IReadOnlyList<FirmwareTpFlashHeaderFieldSemantics> FieldSemantics { get; }
 
-    /// <summary>Explicit repeated-field series.</summary>
-    public IReadOnlyList<FirmwareMetadataFieldSeries> FieldSeries { get; }
+    internal IReadOnlyList<FirmwareMetadataFieldSeries> FieldSeries { get; }
 
-    /// <summary>Reference-only semantic field groups.</summary>
-    public IReadOnlyList<FirmwareMetadataFieldGroup> FieldGroups { get; }
+    internal IReadOnlyList<FirmwareMetadataFieldGroup> FieldGroups { get; }
 
     internal override void Validate(
         IReadOnlyList<FirmwareMetadataField> fields,

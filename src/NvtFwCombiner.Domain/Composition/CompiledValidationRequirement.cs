@@ -1,4 +1,5 @@
 using System.Numerics;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
@@ -29,7 +30,7 @@ public enum CompiledValidationSeverity
 }
 
 /// <summary>One metadata field reached through a profile metadata binding.</summary>
-public sealed record CompiledValidationFieldReference
+internal sealed record CompiledValidationFieldReference
 {
     internal CompiledValidationFieldReference(string bindingId, string fieldId)
     {
@@ -37,30 +38,20 @@ public sealed record CompiledValidationFieldReference
         FieldId = RequiredValue.NotBlank(fieldId);
     }
 
-    /// <summary>Stable profile metadata binding identifier.</summary>
-    public string BindingId { get; }
+    internal string BindingId { get; }
 
-    /// <summary>Stable field identifier inside the bound metadata structure.</summary>
-    public string FieldId { get; }
+    internal string FieldId { get; }
 }
 
 /// <summary>Base value for one exact compiled validation literal.</summary>
-public abstract record CompiledValidationScalarLiteral;
+internal abstract record CompiledValidationScalarLiteral;
 
 /// <summary>One arbitrary-precision exact integer literal.</summary>
-public sealed record CompiledValidationIntegerLiteral : CompiledValidationScalarLiteral
-{
-    internal CompiledValidationIntegerLiteral(BigInteger value)
-    {
-        Value = value;
-    }
-
-    /// <summary>Exact signed integer value.</summary>
-    public BigInteger Value { get; }
-}
+internal sealed record CompiledValidationIntegerLiteral(BigInteger Value) :
+    CompiledValidationScalarLiteral;
 
 /// <summary>One non-empty exact text literal.</summary>
-public sealed record CompiledValidationTextLiteral : CompiledValidationScalarLiteral
+internal sealed record CompiledValidationTextLiteral : CompiledValidationScalarLiteral
 {
     internal CompiledValidationTextLiteral(string value)
     {
@@ -68,74 +59,20 @@ public sealed record CompiledValidationTextLiteral : CompiledValidationScalarLit
         Value = value;
     }
 
-    /// <summary>Exact text value.</summary>
-    public string Value { get; }
+    internal string Value { get; }
 }
 
-/// <summary>Closed metadata comparison operator.</summary>
-public enum CompiledValidationMetadataComparison
+internal enum CompiledValidationMetadataComparison
 {
-    /// <inheritdoc/>
     Equal,
-    /// <inheritdoc/>
     NotEqual,
-    /// <inheritdoc/>
     OneOf,
 }
 
-/// <summary>Closed metadata byte pattern rejected by one validation.</summary>
-public enum CompiledValidationRejectedBytePattern
+internal enum CompiledValidationRejectedBytePattern
 {
-    /// <inheritdoc/>
     AllZero,
-    /// <inheritdoc/>
     AllFF,
-}
-
-/// <summary>Immutable exact byte value used by a view assertion.</summary>
-public sealed class CompiledValidationBytes : IEquatable<CompiledValidationBytes>
-{
-    private readonly byte[] _bytes;
-
-    internal CompiledValidationBytes(ReadOnlySpan<byte> bytes)
-    {
-        DomainInvariant.Reject(bytes.IsEmpty, "Validation bytes cannot be empty.", nameof(bytes));
-
-        _bytes = bytes.ToArray();
-        Hex = Convert.ToHexString(_bytes).ToLowerInvariant();
-    }
-
-    /// <summary>Exact byte length.</summary>
-    public int Length => _bytes.Length;
-
-    /// <summary>Canonical lowercase hexadecimal bytes.</summary>
-    public string Hex { get; }
-
-    internal ReadOnlySpan<byte> Bytes => _bytes;
-
-    /// <inheritdoc />
-    public bool Equals(CompiledValidationBytes? other)
-    {
-        return other is not null && _bytes.AsSpan().SequenceEqual(other._bytes);
-    }
-
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return Equals(obj as CompiledValidationBytes);
-    }
-
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        HashCode hash = new();
-        foreach (byte value in _bytes)
-        {
-            hash.Add(value);
-        }
-
-        return hash.ToHashCode();
-    }
 }
 
 /// <summary>Base value for one immutable canonical validation before or after range resolution.</summary>
@@ -183,7 +120,7 @@ public abstract record CompiledValidationRequirement : ValidationRequirementDefi
 }
 
 /// <summary>Compares one bound metadata field to exact typed literals.</summary>
-public sealed record CompiledMetadataValueValidation : CompiledValidationRequirement
+internal sealed record CompiledMetadataValueValidation : CompiledValidationRequirement
 {
     private readonly CompiledValidationScalarLiteral[] _expectedValues;
 
@@ -215,14 +152,11 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
         ExpectedValues = Array.AsReadOnly(_expectedValues);
     }
 
-    /// <summary>Bound metadata field.</summary>
-    public CompiledValidationFieldReference Field { get; }
+    internal CompiledValidationFieldReference Field { get; }
 
-    /// <summary>Closed comparison operator.</summary>
-    public CompiledValidationMetadataComparison Comparison { get; }
+    internal CompiledValidationMetadataComparison Comparison { get; }
 
-    /// <summary>Canonical expected literals.</summary>
-    public IReadOnlyList<CompiledValidationScalarLiteral> ExpectedValues { get; }
+    internal IReadOnlyList<CompiledValidationScalarLiteral> ExpectedValues { get; }
 
     private static int CompareLiterals(CompiledValidationScalarLiteral left, CompiledValidationScalarLiteral right)
     {
@@ -240,7 +174,7 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
 }
 
 /// <summary>Rejects all-zero and all-FF values from one PID field.</summary>
-public sealed record CompiledPidSanityValidation : CompiledValidationRequirement
+internal sealed record CompiledPidSanityValidation : CompiledValidationRequirement
 {
     internal CompiledPidSanityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference field)
         : base(ruleId, stage, severity, issueCode)
@@ -248,12 +182,11 @@ public sealed record CompiledPidSanityValidation : CompiledValidationRequirement
         Field = RequiredValue.NotNull(field);
     }
 
-    /// <summary>PID metadata field.</summary>
-    public CompiledValidationFieldReference Field { get; }
+    internal CompiledValidationFieldReference Field { get; }
 }
 
 /// <summary>Compares two bound metadata fields for exact typed equality.</summary>
-public sealed record CompiledMetadataEqualityValidation : CompiledValidationRequirement
+internal sealed record CompiledMetadataEqualityValidation : CompiledValidationRequirement
 {
     internal CompiledMetadataEqualityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference left, CompiledValidationFieldReference right)
         : base(ruleId, stage, severity, issueCode)
@@ -262,15 +195,13 @@ public sealed record CompiledMetadataEqualityValidation : CompiledValidationRequ
         Right = RequiredValue.NotNull(right);
     }
 
-    /// <summary>First bound metadata field.</summary>
-    public CompiledValidationFieldReference Left { get; }
+    internal CompiledValidationFieldReference Left { get; }
 
-    /// <summary>Second bound metadata field.</summary>
-    public CompiledValidationFieldReference Right { get; }
+    internal CompiledValidationFieldReference Right { get; }
 }
 
 /// <summary>Rejects declared byte patterns from one metadata field.</summary>
-public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValidationRequirement
+internal sealed record CompiledRejectMetadataBytePatternValidation : CompiledValidationRequirement
 {
     private readonly CompiledValidationRejectedBytePattern[] _rejectedPatterns;
 
@@ -289,17 +220,15 @@ public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValid
         RejectedPatterns = Array.AsReadOnly(_rejectedPatterns);
     }
 
-    /// <summary>Bound metadata field.</summary>
-    public CompiledValidationFieldReference Field { get; }
+    internal CompiledValidationFieldReference Field { get; }
 
-    /// <summary>Canonical rejected patterns.</summary>
-    public IReadOnlyList<CompiledValidationRejectedBytePattern> RejectedPatterns { get; }
+    internal IReadOnlyList<CompiledValidationRejectedBytePattern> RejectedPatterns { get; }
 }
 
 /// <summary>Asserts exact or masked bytes in one compiled logical view.</summary>
-public sealed record CompiledViewByteAssertionValidation : CompiledValidationRequirement
+internal sealed record CompiledViewByteAssertionValidation : CompiledValidationRequirement
 {
-    internal CompiledViewByteAssertionValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, string viewId, CompiledValidationBytes expected, CompiledValidationBytes? mask = null)
+    internal CompiledViewByteAssertionValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, string viewId, FirmwareMetadataBytes expected, FirmwareMetadataBytes? mask = null)
         : base(ruleId, stage, severity, issueCode)
     {
         ViewId = RequiredValue.NotBlank(viewId);
@@ -311,12 +240,9 @@ public sealed record CompiledViewByteAssertionValidation : CompiledValidationReq
         Mask = mask;
     }
 
-    /// <summary>Compiled logical view id.</summary>
-    public string ViewId { get; }
+    internal string ViewId { get; }
 
-    /// <summary>Expected bytes.</summary>
-    public CompiledValidationBytes Expected { get; }
+    internal FirmwareMetadataBytes Expected { get; }
 
-    /// <summary>Optional partial mask.</summary>
-    public CompiledValidationBytes? Mask { get; }
+    internal FirmwareMetadataBytes? Mask { get; }
 }

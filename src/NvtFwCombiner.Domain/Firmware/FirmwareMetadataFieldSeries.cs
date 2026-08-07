@@ -3,30 +3,26 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>One explicit logical index to physical-field series membership.</summary>
-public sealed record FirmwareMetadataFieldSeriesMember
+internal sealed record FirmwareMetadataFieldSeriesMember
 {
-    /// <summary>Creates one checked membership reference.</summary>
-    public FirmwareMetadataFieldSeriesMember(int index, string fieldId)
+    internal FirmwareMetadataFieldSeriesMember(int index, string fieldId)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         FieldId = RequiredValue.NotBlank(fieldId);
         Index = index;
     }
 
-    /// <summary>Owner-declared logical index.</summary>
-    public int Index { get; }
+    internal int Index { get; }
 
-    /// <summary>Exact physical field reference.</summary>
-    public string FieldId { get; }
+    internal string FieldId { get; }
 }
 
 /// <summary>Exact active series indices for one owner-evidenced IC Count.</summary>
-public sealed class FirmwareMetadataFieldSeriesApplicability
+internal sealed class FirmwareMetadataFieldSeriesApplicability
 {
     private readonly int[] _activeIndices;
 
-    /// <summary>Creates one exact IC Count table row.</summary>
-    public FirmwareMetadataFieldSeriesApplicability(
+    internal FirmwareMetadataFieldSeriesApplicability(
         int chipCount,
         IEnumerable<int> activeIndices)
     {
@@ -44,11 +40,9 @@ public sealed class FirmwareMetadataFieldSeriesApplicability
         ActiveIndices = Array.AsReadOnly(_activeIndices);
     }
 
-    /// <summary>Exact selected IC Count.</summary>
-    public int ChipCount { get; }
+    internal int ChipCount { get; }
 
-    /// <summary>Explicitly active logical indices.</summary>
-    public IReadOnlyList<int> ActiveIndices { get; }
+    internal IReadOnlyList<int> ActiveIndices { get; }
 
     internal bool IsActive(int index)
     {
@@ -60,13 +54,12 @@ public sealed class FirmwareMetadataFieldSeriesApplicability
 /// One repeated semantic series that references explicitly declared physical
 /// fields; it never generates geometry from an inferred stride.
 /// </summary>
-public sealed class FirmwareMetadataFieldSeries
+internal sealed class FirmwareMetadataFieldSeries
 {
     private readonly FirmwareMetadataFieldSeriesMember[] _members;
     private readonly FirmwareMetadataFieldSeriesApplicability[] _applicability;
 
-    /// <summary>Creates one checked explicit field series.</summary>
-    public FirmwareMetadataFieldSeries(
+    internal FirmwareMetadataFieldSeries(
         string seriesId,
         IEnumerable<FirmwareMetadataFieldSeriesMember> members,
         IEnumerable<FirmwareMetadataFieldSeriesApplicability> applicability)
@@ -110,14 +103,11 @@ public sealed class FirmwareMetadataFieldSeries
         Applicability = Array.AsReadOnly(_applicability);
     }
 
-    /// <summary>Stable series identity inside one structure.</summary>
-    public string SeriesId { get; }
+    internal string SeriesId { get; }
 
-    /// <summary>Explicit logical-index-to-field memberships.</summary>
-    public IReadOnlyList<FirmwareMetadataFieldSeriesMember> Members { get; }
+    internal IReadOnlyList<FirmwareMetadataFieldSeriesMember> Members { get; }
 
-    /// <summary>Explicit owner-evidenced IC Count rows.</summary>
-    public IReadOnlyList<FirmwareMetadataFieldSeriesApplicability> Applicability { get; }
+    internal IReadOnlyList<FirmwareMetadataFieldSeriesApplicability> Applicability { get; }
 
     internal FirmwareMetadataFieldApplicabilityState Resolve(
         string fieldId,
@@ -139,13 +129,12 @@ public sealed class FirmwareMetadataFieldSeries
 }
 
 /// <summary>One semantic group over exact fields and/or field series.</summary>
-public sealed class FirmwareMetadataFieldGroup
+internal sealed class FirmwareMetadataFieldGroup
 {
     private readonly string[] _fieldIds;
     private readonly string[] _seriesIds;
 
-    /// <summary>Creates one checked reference-only semantic group.</summary>
-    public FirmwareMetadataFieldGroup(
+    internal FirmwareMetadataFieldGroup(
         string groupId,
         IEnumerable<string> fieldIds,
         IEnumerable<string> seriesIds)
@@ -162,14 +151,11 @@ public sealed class FirmwareMetadataFieldGroup
         SeriesIds = Array.AsReadOnly(_seriesIds);
     }
 
-    /// <summary>Stable group identity inside one structure.</summary>
-    public string GroupId { get; }
+    internal string GroupId { get; }
 
-    /// <summary>Exact scalar field references.</summary>
-    public IReadOnlyList<string> FieldIds { get; }
+    internal IReadOnlyList<string> FieldIds { get; }
 
-    /// <summary>Exact series references.</summary>
-    public IReadOnlyList<string> SeriesIds { get; }
+    internal IReadOnlyList<string> SeriesIds { get; }
 
     private static string[] SnapshotIds(IEnumerable<string> values, string parameterName)
     {

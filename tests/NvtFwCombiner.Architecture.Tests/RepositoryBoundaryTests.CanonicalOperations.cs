@@ -22,7 +22,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RegionInstanceDeltaTransformAddendSource", profiles, StringComparison.Ordinal);
         Assert.Contains("class CompositionOperationDefinition", domain, StringComparison.Ordinal);
         Assert.Contains("enum CompositionOperationKind", domain, StringComparison.Ordinal);
-        Assert.Contains("class CompiledValidationBytes", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledValidationBytes", domain, StringComparison.Ordinal);
+        Assert.Contains("FirmwareMetadataBytes", domain, StringComparison.Ordinal);
         Assert.Contains("record ScalarTransformAddendSource", domain, StringComparison.Ordinal);
     }
 }

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -134,7 +135,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "unknown-view",
-            new CompiledValidationBytes([0]));
+            new FirmwareMetadataBytes([0]));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unknownView] }));
     }

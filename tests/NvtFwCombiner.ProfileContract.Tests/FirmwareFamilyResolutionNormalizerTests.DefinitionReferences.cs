@@ -21,7 +21,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         (
             FirmwareFamilyDocument consumer,
             FirmwareMetadataStructureDefinition provider,
-            FirmwareMetadataStructureDefinitionReference reference) =
+            FirmwareMetadataStructureDefinitionReferenceDocument reference) =
             ReferencedDocument();
         var resolver = new ExactDefinitionResolver(reference, provider);
 
@@ -52,7 +52,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         (
             FirmwareFamilyDocument consumer,
             FirmwareMetadataStructureDefinition provider,
-            FirmwareMetadataStructureDefinitionReference reference) =
+            FirmwareMetadataStructureDefinitionReferenceDocument reference) =
             ReferencedDocument();
         var resolver = new ExactDefinitionResolver(reference, provider);
         FirmwareMetadataStructureDocument structure =
@@ -102,7 +102,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     private static (
         FirmwareFamilyDocument Consumer,
         FirmwareMetadataStructureDefinition Provider,
-        FirmwareMetadataStructureDefinitionReference Reference)
+        FirmwareMetadataStructureDefinitionReferenceDocument Reference)
         ReferencedDocument()
     {
         FirmwareFamilyDocument source = Document();
@@ -114,7 +114,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                 FirmwareFamilyResolutionNormalizer.Normalize(source, FamilyHash)
                     .GetStructuresForMap("map"))
                 .Definition;
-        var reference = new FirmwareMetadataStructureDefinitionReference(
+        var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
             ProviderFamilyId,
             ProviderFamilyVersion,
             ProviderFamilyHash,
@@ -148,12 +148,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     }
 
     private sealed class ExactDefinitionResolver(
-        FirmwareMetadataStructureDefinitionReference expected,
+        FirmwareMetadataStructureDefinitionReferenceDocument expected,
         FirmwareMetadataStructureDefinition definition)
         : IFirmwareMetadataStructureDefinitionResolver
     {
         public bool TryResolve(
-            FirmwareMetadataStructureDefinitionReference reference,
+            FirmwareMetadataStructureDefinitionReferenceDocument reference,
             out FirmwareMetadataStructureDefinition? resolved)
         {
             if (reference == expected)
