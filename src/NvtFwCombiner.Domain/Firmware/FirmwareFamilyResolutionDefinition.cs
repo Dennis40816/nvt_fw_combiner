@@ -485,34 +485,15 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareImageMap map,
         IReadOnlyDictionary<string, FirmwareMetadataStructure> structuresById)
     {
-        var visiting = new HashSet<string>(StringComparer.Ordinal);
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string structureId in structuresById.Keys)
-        {
-            Visit(structureId);
-        }
-
-        void Visit(string structureId)
-        {
-            if (visited.Contains(structureId))
-            {
-                return;
-            }
-
-            DomainInvariant.Reject(
-                !visiting.Add(structureId),
+        _ = AcyclicDependencyGraph.Sort(
+            structuresById.Keys,
+            structureId => structuresById[structureId].Locator is FirmwareMetadataFieldSelectedLocator selected
+                ? [selected.PrerequisiteStructureId]
+                : [],
+            (_, structureId) => new ArgumentException(
                 $"Metadata dependency graph contains a cycle at '{structureId}' in map '{map.MapId}'.",
-                nameof(structuresById));
-
-            FirmwareMetadataStructure structure = structuresById[structureId];
-            if (structure.Locator is FirmwareMetadataFieldSelectedLocator selected)
-            {
-                Visit(selected.PrerequisiteStructureId);
-            }
-
-            _ = visiting.Remove(structureId);
-            _ = visited.Add(structureId);
-        }
+                nameof(structuresById)),
+            StringComparer.Ordinal);
     }
 
     private static void ValidateAddressedRange(
@@ -551,6 +532,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         long lastMatch = checked(marker.SearchRange.Range.EndExclusive - marker.MarkerBytes.Length);
         long firstResult = checked(firstMatch + marker.ResultOffset);
         long lastResult = checked(lastMatch + marker.ResultOffset);
+        DomainInvariant.Reject(
+            lastResult < 0,
+            "Marker-relative metadata results cannot resolve entirely below zero.",
+            nameof(marker));
         _ = checked(firstResult + structureLength);
         _ = checked(lastResult + structureLength);
     }

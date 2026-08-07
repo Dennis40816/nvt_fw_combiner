@@ -2,7 +2,6 @@ using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -266,9 +265,8 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         FirmwareFamilyResolutionDefinition definition,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
     {
-        IReadOnlyList<CompositionIssue> issues = CompositionProfileMapAdmissionValidator.Validate(
-            profile,
-            definition,
+        IReadOnlyList<CompositionIssue> issues = definition.AdmitRequiredCapabilities(
+            profile.MapBinding,
             resolvedMap,
             out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
         return new CapabilityAdmissionResult(issues, capabilityAdmissions);
