@@ -7,10 +7,9 @@ public sealed record FirmwareArtifactIdentity
 {
     internal FirmwareArtifactIdentity(string artifactId, string sha256, long lengthBytes)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+        ArtifactId = RequiredValue.NotBlank(artifactId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lengthBytes);
 
-        ArtifactId = artifactId;
         Sha256 = CanonicalSha256.Require(sha256, nameof(sha256));
         LengthBytes = lengthBytes;
     }

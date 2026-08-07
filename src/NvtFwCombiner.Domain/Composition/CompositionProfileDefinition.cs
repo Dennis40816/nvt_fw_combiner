@@ -38,12 +38,9 @@ internal sealed partial class CompositionProfileDefinition
             profileVersion,
             nameof(profileVersion));
         ArgumentNullException.ThrowIfNull(promotion);
-        if (!Enum.IsDefined(compositionKind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(compositionKind), compositionKind, "Unknown composition kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(compositionKind, "Unknown composition kind.");
 
-        if (icNumberInputMode is { } declaredIcNumberInputMode && !Enum.IsDefined(declaredIcNumberInputMode))
+        if (icNumberInputMode is { } declaredIcNumberInputMode && !ClosedEnum.IsDefined(declaredIcNumberInputMode))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(icNumberInputMode),

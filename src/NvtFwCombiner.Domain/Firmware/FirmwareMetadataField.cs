@@ -74,12 +74,9 @@ public sealed class FirmwareMetadataField
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
         }
-        if (!Enum.IsDefined(encoding))
-        {
-            throw new ArgumentOutOfRangeException(nameof(encoding), encoding, "Unknown metadata encoding.");
-        }
+        ClosedEnum.ThrowIfUndefined(encoding, "Unknown metadata encoding.");
 
-        if (byteOrder is { } selectedByteOrder && !Enum.IsDefined(selectedByteOrder))
+        if (byteOrder is { } selectedByteOrder && !ClosedEnum.IsDefined(selectedByteOrder))
         {
             throw new ArgumentOutOfRangeException(nameof(byteOrder), byteOrder, "Unknown metadata byte order.");
         }

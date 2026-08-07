@@ -52,17 +52,10 @@ public sealed record FirmwareMetadataReferenceTarget
         FirmwareMetadataReferenceTargetKind kind,
         string targetId)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(kind),
-                kind,
-                "Unknown metadata reference target kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown metadata reference target kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetId);
+        TargetId = RequiredValue.NotBlank(targetId);
         Kind = kind;
-        TargetId = targetId;
     }
 
     /// <summary>Closed semantic target kind.</summary>
@@ -93,8 +86,7 @@ public sealed record FirmwareMetadataNamedSpan
     /// <summary>Creates one checked named half-open span.</summary>
     public FirmwareMetadataNamedSpan(string spanId, ByteRange range)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(spanId);
-        SpanId = spanId;
+        SpanId = RequiredValue.NotBlank(spanId);
         Range = range;
     }
 
@@ -173,16 +165,9 @@ public sealed record FirmwareTpFlashHeaderStoredAddressSemantics
         string addressSpaceId,
         TpFlashHeaderStoredAddressBasis basis)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-        if (!Enum.IsDefined(basis))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(basis),
-                basis,
-                "Unknown TP Header stored-address basis.");
-        }
+        AddressSpaceId = RequiredValue.NotBlank(addressSpaceId);
+        ClosedEnum.ThrowIfUndefined(basis, "Unknown TP Header stored-address basis.");
 
-        AddressSpaceId = addressSpaceId;
         Basis = basis;
     }
 
@@ -205,25 +190,16 @@ public sealed record FirmwareTpFlashHeaderFieldSemantics
         int? logicalIndex = null,
         FirmwareTpFlashHeaderStoredAddressSemantics? storedAddress = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(spanId);
-        if (!Enum.IsDefined(subject))
-        {
-            throw new ArgumentOutOfRangeException(nameof(subject), subject, "Unknown TP Header field subject.");
-        }
-
-        if (!Enum.IsDefined(role))
-        {
-            throw new ArgumentOutOfRangeException(nameof(role), role, "Unknown TP Header field role.");
-        }
+        FieldId = RequiredValue.NotBlank(fieldId);
+        SpanId = RequiredValue.NotBlank(spanId);
+        ClosedEnum.ThrowIfUndefined(subject, "Unknown TP Header field subject.");
+        ClosedEnum.ThrowIfUndefined(role, "Unknown TP Header field role.");
 
         if (logicalIndex < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(logicalIndex), logicalIndex, "Logical index cannot be negative.");
         }
 
-        FieldId = fieldId;
-        SpanId = spanId;
         Subject = subject;
         Role = role;
         LogicalIndex = logicalIndex;
@@ -484,16 +460,9 @@ public sealed record FirmwareResolvedMetadataField
         FirmwareMetadataFieldApplicabilityState applicability,
         FirmwareMetadataValue? value = null)
     {
-        ArgumentNullException.ThrowIfNull(field);
-        if (!Enum.IsDefined(applicability))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(applicability),
-                applicability,
-                "Unknown metadata field applicability state.");
-        }
+        Field = RequiredValue.NotNull(field);
+        ClosedEnum.ThrowIfUndefined(applicability, "Unknown metadata field applicability state.");
 
-        Field = field;
         Applicability = applicability;
         Value = value;
     }

@@ -36,7 +36,7 @@ public sealed class FirmwareMapApplicability
             commonFirmwareCategoryIds ?? [],
             nameof(commonFirmwareCategoryIds),
             requireValue: false);
-        ArgumentNullException.ThrowIfNull(topologyRequirement);
+        TopologyRequirement = RequiredValue.NotNull(topologyRequirement);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
 
         _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
@@ -48,7 +48,6 @@ public sealed class FirmwareMapApplicability
         ModeIds = Array.AsReadOnly(_modeIds);
         CommonFirmwareCategoryIds = Array.AsReadOnly(_commonFirmwareCategoryIds);
         MetadataPredicates = Array.AsReadOnly(_metadataPredicates);
-        TopologyRequirement = topologyRequirement;
         CapacityBytes = capacityBytes;
     }
 

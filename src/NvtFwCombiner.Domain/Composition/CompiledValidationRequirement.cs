@@ -56,10 +56,8 @@ public sealed record CompiledValidationFieldReference
 {
     internal CompiledValidationFieldReference(string bindingId, string fieldId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        BindingId = bindingId;
-        FieldId = fieldId;
+        BindingId = RequiredValue.NotBlank(bindingId);
+        FieldId = RequiredValue.NotBlank(fieldId);
     }
 
     /// <summary>Stable profile metadata binding identifier.</summary>
@@ -83,10 +81,7 @@ public abstract record CompiledValidationScalarLiteral
 {
     private protected CompiledValidationScalarLiteral(CompiledValidationScalarLiteralKind kind)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown validation scalar literal kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown validation scalar literal kind.");
 
         Kind = kind;
     }
@@ -200,22 +195,13 @@ public abstract record ValidationRequirementDefinition
         CompiledValidationSeverity severity,
         string issueCode)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
-        if (!Enum.IsDefined(stage))
-        {
-            throw new ArgumentOutOfRangeException(nameof(stage), stage, "Unknown validation stage.");
-        }
+        RuleId = RequiredValue.NotBlank(ruleId);
+        IssueCode = RequiredValue.NotBlank(issueCode);
+        ClosedEnum.ThrowIfUndefined(stage, "Unknown validation stage.");
+        ClosedEnum.ThrowIfUndefined(severity, "Unknown validation severity.");
 
-        if (!Enum.IsDefined(severity))
-        {
-            throw new ArgumentOutOfRangeException(nameof(severity), severity, "Unknown validation severity.");
-        }
-
-        RuleId = ruleId;
         Stage = stage;
         Severity = severity;
-        IssueCode = issueCode;
     }
 
     /// <summary>Stable validation rule id.</summary>
@@ -242,7 +228,7 @@ public abstract record CompiledValidationRequirement : ValidationRequirementDefi
         CompiledValidationKind kind)
         : base(ruleId, stage, severity, issueCode)
     {
-        if (!Enum.IsDefined(kind))
+        if (!ClosedEnum.IsDefined(kind))
         {
             throw new ArgumentOutOfRangeException(nameof(kind), "Unknown compiled validation discriminator.");
         }
@@ -269,11 +255,8 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
         IEnumerable<CompiledValidationScalarLiteral> expectedValues)
         : base(ruleId, stage, severity, issueCode, CompiledValidationKind.MetadataValue)
     {
-        ArgumentNullException.ThrowIfNull(field);
-        if (!Enum.IsDefined(comparison))
-        {
-            throw new ArgumentOutOfRangeException(nameof(comparison), comparison, "Unknown metadata comparison.");
-        }
+        Field = RequiredValue.NotNull(field);
+        ClosedEnum.ThrowIfUndefined(comparison, "Unknown metadata comparison.");
 
         _expectedValues = ImmutableReferenceSnapshot.Create(
             expectedValues,
@@ -287,7 +270,6 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
         }
 
         Array.Sort(_expectedValues, CompareLiterals);
-        Field = field;
         Comparison = comparison;
         ExpectedValues = Array.AsReadOnly(_expectedValues);
     }
@@ -321,8 +303,7 @@ public sealed record CompiledPidSanityValidation : CompiledValidationRequirement
     internal CompiledPidSanityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference field)
         : base(ruleId, stage, severity, issueCode, CompiledValidationKind.PidSanity)
     {
-        ArgumentNullException.ThrowIfNull(field);
-        Field = field;
+        Field = RequiredValue.NotNull(field);
     }
 
     /// <summary>PID metadata field.</summary>
@@ -335,10 +316,8 @@ public sealed record CompiledMetadataEqualityValidation : CompiledValidationRequ
     internal CompiledMetadataEqualityValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference left, CompiledValidationFieldReference right)
         : base(ruleId, stage, severity, issueCode, CompiledValidationKind.MetadataEquality)
     {
-        ArgumentNullException.ThrowIfNull(left);
-        ArgumentNullException.ThrowIfNull(right);
-        Left = left;
-        Right = right;
+        Left = RequiredValue.NotNull(left);
+        Right = RequiredValue.NotNull(right);
     }
 
     /// <summary>First bound metadata field.</summary>
@@ -356,17 +335,16 @@ public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValid
     internal CompiledRejectMetadataBytePatternValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, CompiledValidationFieldReference field, IEnumerable<CompiledValidationRejectedBytePattern> rejectedPatterns)
         : base(ruleId, stage, severity, issueCode, CompiledValidationKind.RejectMetadataBytePattern)
     {
-        ArgumentNullException.ThrowIfNull(field);
+        Field = RequiredValue.NotNull(field);
         ArgumentNullException.ThrowIfNull(rejectedPatterns);
         _rejectedPatterns = [.. rejectedPatterns];
-        if (_rejectedPatterns.Length == 0 || _rejectedPatterns.Any(static value => !Enum.IsDefined(value)) ||
+        if (_rejectedPatterns.Length == 0 || _rejectedPatterns.Any(static value => !ClosedEnum.IsDefined(value)) ||
             _rejectedPatterns.Distinct().Count() != _rejectedPatterns.Length)
         {
             throw new ArgumentException("Rejected byte patterns are invalid.", nameof(rejectedPatterns));
         }
 
         Array.Sort(_rejectedPatterns);
-        Field = field;
         RejectedPatterns = Array.AsReadOnly(_rejectedPatterns);
     }
 
@@ -383,15 +361,13 @@ public sealed record CompiledViewByteAssertionValidation : CompiledValidationReq
     internal CompiledViewByteAssertionValidation(string ruleId, CompiledValidationStage stage, CompiledValidationSeverity severity, string issueCode, string viewId, CompiledValidationBytes expected, CompiledValidationBytes? mask = null)
         : base(ruleId, stage, severity, issueCode, CompiledValidationKind.ViewByteAssertion)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(viewId);
-        ArgumentNullException.ThrowIfNull(expected);
+        ViewId = RequiredValue.NotBlank(viewId);
+        Expected = RequiredValue.NotNull(expected);
         if (mask is not null && mask.Length != expected.Length)
         {
             throw new ArgumentException("Assertion masks must match expected byte length.", nameof(mask));
         }
 
-        ViewId = viewId;
-        Expected = expected;
         Mask = mask;
     }
 

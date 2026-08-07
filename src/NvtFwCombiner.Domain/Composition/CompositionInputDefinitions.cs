@@ -118,15 +118,8 @@ internal sealed class CompositionInputSlotDefinition
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
-        if (!Enum.IsDefined(artifactClass))
-        {
-            throw new ArgumentOutOfRangeException(nameof(artifactClass), artifactClass, "Unknown input artifact class.");
-        }
-
-        if (!Enum.IsDefined(cardinality))
-        {
-            throw new ArgumentOutOfRangeException(nameof(cardinality), cardinality, "Unknown input slot cardinality.");
-        }
+        ClosedEnum.ThrowIfUndefined(artifactClass, "Unknown input artifact class.");
+        ClosedEnum.ThrowIfUndefined(cardinality, "Unknown input slot cardinality.");
 
         ArgumentNullException.ThrowIfNull(lengthRequirement);
         ArgumentNullException.ThrowIfNull(normalization);

@@ -71,13 +71,7 @@ public sealed record CompiledOutputTokenRequirement
         string? metadataSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenId);
-        if (!Enum.IsDefined(sourceKind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(sourceKind),
-                sourceKind,
-                "Unknown output token source kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(sourceKind, "Unknown output token source kind.");
 
         bool isMetadataSource = sourceKind is
             CompiledOutputTokenSourceKind.DpcmiVersion or
@@ -94,13 +88,7 @@ public sealed record CompiledOutputTokenRequirement
                 nameof(metadataBindingId));
         }
 
-        if (!Enum.IsDefined(missingPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(missingPolicy),
-                missingPolicy,
-                "Unknown output token missing policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(missingPolicy, "Unknown output token missing policy.");
 
         if (missingPolicy == CompiledOutputTokenMissingPolicy.UsePlaceholder)
         {
@@ -202,21 +190,9 @@ public sealed class CompiledOutputNamingRequirement
             throw new ArgumentException("Output file-name templates must not contain path or control syntax.", nameof(fileNameTemplate));
         }
 
-        if (!Enum.IsDefined(invalidCharacterPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(invalidCharacterPolicy),
-                invalidCharacterPolicy,
-                "Unknown output invalid-character policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(invalidCharacterPolicy, "Unknown output invalid-character policy.");
 
-        if (!Enum.IsDefined(outputArtifactType))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(outputArtifactType),
-                outputArtifactType,
-                "Unknown compiled output artifact type.");
-        }
+        ClosedEnum.ThrowIfUndefined(outputArtifactType, "Unknown compiled output artifact type.");
 
         bool hasTypedRule = ruleId is not null;
         if (hasTypedRule)

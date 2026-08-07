@@ -37,17 +37,12 @@ public sealed record TopologySelection
         string sourceId)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chipCount);
-        ArgumentException.ThrowIfNullOrWhiteSpace(label);
-        if (!Enum.IsDefined(source))
-        {
-            throw new ArgumentOutOfRangeException(nameof(source), source, "Unknown topology selection source.");
-        }
+        Label = RequiredValue.NotBlank(label);
+        ClosedEnum.ThrowIfUndefined(source, "Unknown topology selection source.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceId);
+        SourceId = RequiredValue.NotBlank(sourceId);
         ChipCount = chipCount;
-        Label = label;
         Source = source;
-        SourceId = sourceId;
     }
 
     /// <summary>Selected positive chip count.</summary>

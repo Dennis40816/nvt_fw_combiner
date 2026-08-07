@@ -71,8 +71,7 @@ internal sealed record CompositionProfileView
     {
         ViewId = CanonicalPolicyValueRules.RequireCanonicalId(viewId, nameof(viewId));
         SpaceId = CanonicalPolicyValueRules.RequireCanonicalId(spaceId, nameof(spaceId));
-        ArgumentNullException.ThrowIfNull(selector);
-        Selector = selector;
+        Selector = RequiredValue.NotNull(selector);
     }
 
     internal string ViewId { get; }
@@ -171,7 +170,7 @@ internal sealed class CompositionProfileMetadataBinding
             throw new ArgumentException("Metadata bindings require a purpose.", nameof(purposes));
         }
 
-        if (_purposes.Any(static purpose => !Enum.IsDefined(purpose)))
+        if (_purposes.Any(static purpose => !ClosedEnum.IsDefined(purpose)))
         {
             throw new ArgumentOutOfRangeException(nameof(purposes), "Unknown metadata binding purpose.");
         }
@@ -219,10 +218,7 @@ internal sealed class CompositionProfileRegionAccess
         IEnumerable<string>? allowedSubregionIds = null)
     {
         RegionId = CanonicalPolicyValueRules.RequireCanonicalId(regionId, nameof(regionId));
-        if (!Enum.IsDefined(access))
-        {
-            throw new ArgumentOutOfRangeException(nameof(access), access, "Unknown region access kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(access, "Unknown region access kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         _allowedSubregionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(

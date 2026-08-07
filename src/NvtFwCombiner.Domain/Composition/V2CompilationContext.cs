@@ -25,23 +25,16 @@ public abstract class V2CompilationContext
         string memberId,
         string modeId)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown V2 compilation context kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown V2 compilation context kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
-        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
+        FamilyId = RequiredValue.NotBlank(familyId);
+        FamilyVersion = RequiredValue.NotBlank(familyVersion);
+        MemberId = RequiredValue.NotBlank(memberId);
+        ModeId = RequiredValue.NotBlank(modeId);
         _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
         Kind = kind;
-        FamilyId = familyId;
-        FamilyVersion = familyVersion;
         FamilyContentHash = familyContentHash;
-        MemberId = memberId;
-        ModeId = modeId;
     }
 
     /// <summary>Closed provenance context kind.</summary>

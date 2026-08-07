@@ -9,9 +9,8 @@ public sealed record FirmwareMetadataFieldSeriesMember
     public FirmwareMetadataFieldSeriesMember(int index, string fieldId)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
+        FieldId = RequiredValue.NotBlank(fieldId);
         Index = index;
-        FieldId = fieldId;
     }
 
     /// <summary>Owner-declared logical index.</summary>
@@ -74,7 +73,7 @@ public sealed class FirmwareMetadataFieldSeries
         IEnumerable<FirmwareMetadataFieldSeriesMember> members,
         IEnumerable<FirmwareMetadataFieldSeriesApplicability> applicability)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(seriesId);
+        SeriesId = RequiredValue.NotBlank(seriesId);
         _members = ImmutableReferenceSnapshot.Create(
             members,
             "Metadata field series cannot contain null members.");
@@ -117,7 +116,6 @@ public sealed class FirmwareMetadataFieldSeries
 
         Array.Sort(_applicability, static (left, right) =>
             left.ChipCount.CompareTo(right.ChipCount));
-        SeriesId = seriesId;
         Members = Array.AsReadOnly(_members);
         Applicability = Array.AsReadOnly(_applicability);
     }
@@ -162,7 +160,7 @@ public sealed class FirmwareMetadataFieldGroup
         IEnumerable<string> fieldIds,
         IEnumerable<string> seriesIds)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(groupId);
+        GroupId = RequiredValue.NotBlank(groupId);
         _fieldIds = SnapshotIds(fieldIds, nameof(fieldIds));
         _seriesIds = SnapshotIds(seriesIds, nameof(seriesIds));
         if (_fieldIds.Length == 0 && _seriesIds.Length == 0)
@@ -172,7 +170,6 @@ public sealed class FirmwareMetadataFieldGroup
                 nameof(fieldIds));
         }
 
-        GroupId = groupId;
         FieldIds = Array.AsReadOnly(_fieldIds);
         SeriesIds = Array.AsReadOnly(_seriesIds);
     }

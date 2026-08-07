@@ -44,10 +44,7 @@ public sealed class FirmwareMapResolutionPendingRequirement : IEquatable<Firmwar
         FirmwareMapResolutionPendingKind kind,
         string? artifactBindingId = null)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown map resolution pending kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown map resolution pending kind.");
 
         bool requiresArtifact = kind == FirmwareMapResolutionPendingKind.ArtifactMissing;
         if (requiresArtifact && string.IsNullOrWhiteSpace(artifactBindingId))
@@ -106,12 +103,9 @@ public sealed class FirmwareMapResolutionResult
         IEnumerable<FirmwareMapResolutionPendingRequirement> pendingRequirements,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap)
     {
-        if (!Enum.IsDefined(status))
-        {
-            throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown map resolution status.");
-        }
+        ClosedEnum.ThrowIfUndefined(status, "Unknown map resolution status.");
 
-        if (rejectionKind is { } knownRejectionKind && !Enum.IsDefined(knownRejectionKind))
+        if (rejectionKind is { } knownRejectionKind && !ClosedEnum.IsDefined(knownRejectionKind))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(rejectionKind),

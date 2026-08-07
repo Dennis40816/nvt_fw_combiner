@@ -59,10 +59,7 @@ public abstract record CompiledInputLengthRequirement : InputLengthRequirementDe
     /// <summary>Creates a checked closed length requirement kind.</summary>
     protected CompiledInputLengthRequirement(CompiledInputLengthRequirementKind kind)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown compiled input length requirement kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown compiled input length requirement kind.");
 
         Kind = kind;
     }
@@ -116,12 +113,10 @@ public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : C
             previous = value;
         }
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(shortInputIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
+        ShortInputIssueCode = RequiredValue.NotBlank(shortInputIssueCode);
+        UnexpectedOuterLengthIssueCode = RequiredValue.NotBlank(unexpectedOuterLengthIssueCode);
         RequiredEndExclusive = requiredEndExclusive;
         ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
-        ShortInputIssueCode = shortInputIssueCode;
-        UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
     }
 
     /// <summary>First unavailable byte that makes a shorter source blocking.</summary>
@@ -263,10 +258,7 @@ public abstract record CompiledInputNormalization
     /// <summary>Creates a checked closed normalization kind.</summary>
     protected CompiledInputNormalization(CompiledInputNormalizationKind kind)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown compiled input normalization kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown compiled input normalization kind.");
 
         Kind = kind;
     }
@@ -286,9 +278,8 @@ public sealed record CompiledPadShorterInputNormalization : CompiledInputNormali
     public CompiledPadShorterInputNormalization(byte fillByte, string evidenceRef)
         : base(CompiledInputNormalizationKind.PadShorter)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceRef);
+        EvidenceRef = RequiredValue.NotBlank(evidenceRef);
         FillByte = fillByte;
-        EvidenceRef = evidenceRef;
     }
 
     /// <summary>Byte appended to a shorter transient input.</summary>
@@ -305,10 +296,8 @@ public sealed record CompiledTruncateCtrlRamInputNormalization : CompiledInputNo
     public CompiledTruncateCtrlRamInputNormalization(string warningIssueCode, string evidenceRef)
         : base(CompiledInputNormalizationKind.TruncateCtrlRam)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(warningIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceRef);
-        WarningIssueCode = warningIssueCode;
-        EvidenceRef = evidenceRef;
+        WarningIssueCode = RequiredValue.NotBlank(warningIssueCode);
+        EvidenceRef = RequiredValue.NotBlank(evidenceRef);
     }
 
     /// <summary>Stable warning issue code emitted when truncation occurs.</summary>
@@ -410,18 +399,10 @@ public sealed class CompiledInputSpaceBinding
         string slotId,
         CompiledInputInstancePolicy instancePolicy)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
-        if (!Enum.IsDefined(instancePolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(instancePolicy),
-                instancePolicy,
-                "Unknown compiled input instance policy.");
-        }
+        AddressSpaceId = RequiredValue.NotBlank(addressSpaceId);
+        SlotId = RequiredValue.NotBlank(slotId);
+        ClosedEnum.ThrowIfUndefined(instancePolicy, "Unknown compiled input instance policy.");
 
-        AddressSpaceId = addressSpaceId;
-        SlotId = slotId;
         InstancePolicy = instancePolicy;
     }
 

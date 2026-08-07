@@ -26,9 +26,8 @@ public abstract record FirmwareMetadataLocator
         FirmwareMetadataLocatorKind kind,
         string allowedResultRegionId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(allowedResultRegionId);
+        AllowedResultRegionId = RequiredValue.NotBlank(allowedResultRegionId);
         Kind = kind;
-        AllowedResultRegionId = allowedResultRegionId;
     }
 
     /// <summary>Closed locator kind.</summary>
@@ -47,8 +46,7 @@ public sealed record FirmwareAbsoluteRangeLocator : FirmwareMetadataLocator
         string allowedResultRegionId)
         : base(FirmwareMetadataLocatorKind.AbsoluteRange, allowedResultRegionId)
     {
-        ArgumentNullException.ThrowIfNull(range);
-        Range = range;
+        Range = RequiredValue.NotNull(range);
     }
 
     /// <summary>Exact addressed structure range.</summary>
@@ -65,9 +63,8 @@ public sealed record FirmwareRegionRelativeLocator : FirmwareMetadataLocator
         string allowedResultRegionId)
         : base(FirmwareMetadataLocatorKind.RegionRelative, allowedResultRegionId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        RegionId = RequiredValue.NotBlank(regionId);
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        RegionId = regionId;
         Offset = offset;
     }
 
@@ -129,10 +126,7 @@ public sealed record FirmwareTerminalMarkerSelection : FirmwareMarkerSelection
         int expectedMatchCount)
         : base(FirmwareMarkerSelectionKind.TerminalMatch)
     {
-        if (!Enum.IsDefined(terminal))
-        {
-            throw new ArgumentOutOfRangeException(nameof(terminal), terminal, "Unknown marker terminal.");
-        }
+        ClosedEnum.ThrowIfUndefined(terminal, "Unknown marker terminal.");
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedMatchCount);
         Terminal = terminal;
@@ -158,8 +152,8 @@ public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
         string allowedResultRegionId)
         : base(FirmwareMetadataLocatorKind.MarkerRelative, allowedResultRegionId)
     {
-        ArgumentNullException.ThrowIfNull(searchRange);
-        ArgumentNullException.ThrowIfNull(selection);
+        SearchRange = RequiredValue.NotNull(searchRange);
+        Selection = RequiredValue.NotNull(selection);
         var marker = new FirmwareMetadataBytes(markerBytes);
         if (marker.Length > searchRange.Range.Length)
         {
@@ -175,9 +169,7 @@ public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
                 nameof(selection));
         }
 
-        SearchRange = searchRange;
         MarkerBytes = marker;
-        Selection = selection;
         ResultOffset = resultOffset;
     }
 
@@ -212,10 +204,9 @@ public sealed record FirmwareMetadataFieldSelectedBranch
                 "Metadata-selected branch minimum cannot exceed its maximum.");
         }
 
-        ArgumentNullException.ThrowIfNull(anchorRange);
+        AnchorRange = RequiredValue.NotNull(anchorRange);
         MinimumValue = minimumValue;
         MaximumValue = maximumValue;
-        AnchorRange = anchorRange;
     }
 
     /// <summary>Inclusive minimum prerequisite value.</summary>

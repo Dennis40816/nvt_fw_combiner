@@ -47,15 +47,13 @@ public sealed record FirmwareMetadataPrerequisite
         string structureId,
         string? fieldId = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        StructureId = RequiredValue.NotBlank(structureId);
         if (fieldId is not null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
+            _ = RequiredValue.NotBlank(fieldId);
         }
 
-        ArtifactBindingId = artifactBindingId;
-        StructureId = structureId;
         FieldId = fieldId;
     }
 
@@ -78,12 +76,9 @@ public sealed class FirmwareMetadataLocatorOutcome
         int? markerMatchCount = null,
         long? selectedMarkerStart = null)
     {
-        if (!Enum.IsDefined(locatorKind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(locatorKind), locatorKind, "Unknown metadata locator kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(locatorKind, "Unknown metadata locator kind.");
 
-        ArgumentNullException.ThrowIfNull(resolvedRange);
+        ResolvedRange = RequiredValue.NotNull(resolvedRange);
         bool isMarker = locatorKind == FirmwareMetadataLocatorKind.MarkerRelative;
         bool hasMarkerMatchCount = markerMatchCount is not null;
         bool hasSelectedMarkerStart = selectedMarkerStart is not null;
@@ -103,7 +98,6 @@ public sealed class FirmwareMetadataLocatorOutcome
         }
 
         LocatorKind = locatorKind;
-        ResolvedRange = resolvedRange;
         MarkerMatchCount = markerMatchCount;
         SelectedMarkerStart = selectedMarkerStart;
     }
@@ -221,12 +215,9 @@ public sealed class FirmwareMetadataStructureResolution
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
         ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        if (!Enum.IsDefined(status))
-        {
-            throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown structure resolution status.");
-        }
+        ClosedEnum.ThrowIfUndefined(status, "Unknown structure resolution status.");
 
-        if (failure is { } knownFailure && !Enum.IsDefined(knownFailure))
+        if (failure is { } knownFailure && !ClosedEnum.IsDefined(knownFailure))
         {
             throw new ArgumentOutOfRangeException(nameof(failure), failure, "Unknown structure resolution failure.");
         }

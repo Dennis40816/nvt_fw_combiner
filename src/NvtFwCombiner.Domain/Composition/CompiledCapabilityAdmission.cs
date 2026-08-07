@@ -9,8 +9,8 @@ public sealed class CompiledCapabilityAdmission
         string requiredCapabilityId,
         FirmwareMapFactBinding<FirmwareCapabilityFact> binding)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(requiredCapabilityId);
-        ArgumentNullException.ThrowIfNull(binding);
+        RequiredCapabilityId = RequiredValue.NotBlank(requiredCapabilityId);
+        Binding = RequiredValue.NotNull(binding);
         if (!StringComparer.Ordinal.Equals(requiredCapabilityId, binding.Value.CapabilityId) ||
             binding.Value.State != FirmwareCapabilityState.ConfirmedPresent ||
             binding.EffectiveKey.FactKind != FirmwareFactKind.Capability ||
@@ -21,8 +21,6 @@ public sealed class CompiledCapabilityAdmission
                 nameof(binding));
         }
 
-        RequiredCapabilityId = requiredCapabilityId;
-        Binding = binding;
     }
 
     /// <summary>Profile-required technical capability identifier proven present at map admission.</summary>

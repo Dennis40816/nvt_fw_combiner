@@ -8,13 +8,12 @@ public sealed record FirmwareAddressedRange
     /// <summary>Creates an addressed range without changing <paramref name="range"/> semantics.</summary>
     public FirmwareAddressedRange(string addressSpaceId, ByteRange range)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        AddressSpaceId = RequiredValue.NotBlank(addressSpaceId);
         if (range.Length <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(range), "Addressed firmware ranges must be non-empty.");
         }
 
-        AddressSpaceId = addressSpaceId;
         Range = range;
     }
 

@@ -9,13 +9,12 @@ public sealed class ExternalProcessorStagedSourceBinding
         ByteRange sourceRange,
         ByteRange firmwareRange)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceSpaceId);
+        SourceSpaceId = RequiredValue.NotBlank(sourceSpaceId);
         if (sourceRange.Length != firmwareRange.Length)
         {
             throw new ArgumentException("Staged source and firmware ranges must have the same length.", nameof(sourceRange));
         }
 
-        SourceSpaceId = sourceSpaceId;
         SourceRange = sourceRange;
         FirmwareRange = firmwareRange;
     }

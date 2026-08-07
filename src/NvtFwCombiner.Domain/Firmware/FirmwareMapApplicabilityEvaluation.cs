@@ -22,14 +22,11 @@ public sealed class FirmwareMapApplicabilityEvaluation : IEquatable<FirmwareMapA
         FirmwareApplicabilityResult result,
         IEnumerable<FirmwareMapPendingRequirementKind> pendingRequirements)
     {
-        if (!Enum.IsDefined(result))
-        {
-            throw new ArgumentOutOfRangeException(nameof(result), result, "Unknown applicability result.");
-        }
+        ClosedEnum.ThrowIfUndefined(result, "Unknown applicability result.");
 
         ArgumentNullException.ThrowIfNull(pendingRequirements);
         _pendingRequirements = [.. pendingRequirements];
-        if (_pendingRequirements.Any(static requirement => !Enum.IsDefined(requirement)))
+        if (_pendingRequirements.Any(static requirement => !ClosedEnum.IsDefined(requirement)))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(pendingRequirements),

@@ -112,9 +112,9 @@ public sealed record FirmwareRegion
             }
         }
 
-        EnsureDefined(owner, nameof(owner));
-        EnsureDefined(kind, nameof(kind));
-        EnsureDefined(writeConstraint, nameof(writeConstraint));
+        ClosedEnum.ThrowIfUndefined(owner, "Unknown firmware enum value.");
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown firmware enum value.");
+        ClosedEnum.ThrowIfUndefined(writeConstraint, "Unknown firmware enum value.");
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(alignment);
         if (range.Start % alignment != 0 || range.Length % alignment != 0)
         {
@@ -191,12 +191,4 @@ public sealed record FirmwareRegion
         }
     }
 
-    private static void EnsureDefined<TEnum>(TEnum value, string parameterName)
-        where TEnum : struct, Enum
-    {
-        if (!Enum.IsDefined(value))
-        {
-            throw new ArgumentOutOfRangeException(parameterName, value, "Unknown firmware enum value.");
-        }
-    }
 }

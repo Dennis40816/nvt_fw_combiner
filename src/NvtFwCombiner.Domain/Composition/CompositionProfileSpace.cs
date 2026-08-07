@@ -62,10 +62,7 @@ internal abstract record CompositionProfileSpace
     protected CompositionProfileSpace(string spaceId, CompositionProfileSpaceKind kind)
     {
         SpaceId = CanonicalPolicyValueRules.RequireCanonicalId(spaceId, nameof(spaceId));
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown profile space kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown profile space kind.");
 
         Kind = kind;
     }
@@ -85,13 +82,7 @@ internal sealed record InputArtifactProfileSpace : CompositionProfileSpace
         : base(spaceId, CompositionProfileSpaceKind.InputArtifact)
     {
         SlotId = CanonicalPolicyValueRules.RequireCanonicalId(slotId, nameof(slotId));
-        if (!Enum.IsDefined(instancePolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(instancePolicy),
-                instancePolicy,
-                "Unknown input-space instance policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(instancePolicy, "Unknown input-space instance policy.");
 
         InstancePolicy = instancePolicy;
     }
@@ -111,10 +102,8 @@ internal sealed record MutableCompositionProfileSpace : CompositionProfileSpace
         CompositionProfileInitializer initializer)
         : base(spaceId, ValidateMutableKind(kind))
     {
-        ArgumentNullException.ThrowIfNull(capacity);
-        ArgumentNullException.ThrowIfNull(initializer);
-        Capacity = capacity;
-        Initializer = initializer;
+        Capacity = RequiredValue.NotNull(capacity);
+        Initializer = RequiredValue.NotNull(initializer);
     }
 
     internal CompositionProfileCapacity Capacity { get; }

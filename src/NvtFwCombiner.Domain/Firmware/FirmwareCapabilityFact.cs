@@ -28,10 +28,7 @@ public sealed class FirmwareCapabilityFact : IFirmwareMapFact
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityFactId);
         ArgumentException.ThrowIfNullOrWhiteSpace(capabilityId);
-        if (!Enum.IsDefined(state))
-        {
-            throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown firmware capability state.");
-        }
+        ClosedEnum.ThrowIfUndefined(state, "Unknown firmware capability state.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
         ArgumentNullException.ThrowIfNull(evidenceRefs);

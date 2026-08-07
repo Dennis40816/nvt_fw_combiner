@@ -32,10 +32,7 @@ public sealed class FirmwareImageMap
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentNullException.ThrowIfNull(applicability);
-        if (!Enum.IsDefined(coveragePolicy))
-        {
-            throw new ArgumentOutOfRangeException(nameof(coveragePolicy), coveragePolicy, "Unknown map coverage policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(coveragePolicy, "Unknown map coverage policy.");
 
         _regionSetBindings = SnapshotBindings(
             regionSetBindings,
