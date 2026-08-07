@@ -106,20 +106,18 @@ public sealed record FirmwareRegion
         if (parentRegionId is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(parentRegionId);
-            if (StringComparer.Ordinal.Equals(regionId, parentRegionId))
-            {
-                throw new ArgumentException("A firmware region cannot be its own parent.", nameof(parentRegionId));
-            }
+            DomainInvariant.Reject(
+                StringComparer.Ordinal.Equals(regionId, parentRegionId),
+                "A firmware region cannot be its own parent.", nameof(parentRegionId));
         }
 
         ClosedEnum.ThrowIfUndefined(owner, "Unknown firmware enum value.");
         ClosedEnum.ThrowIfUndefined(kind, "Unknown firmware enum value.");
         ClosedEnum.ThrowIfUndefined(writeConstraint, "Unknown firmware enum value.");
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(alignment);
-        if (range.Start % alignment != 0 || range.Length % alignment != 0)
-        {
-            throw new ArgumentException("Firmware region start and length must satisfy alignment.", nameof(range));
-        }
+        DomainInvariant.Reject(
+            range.Start % alignment != 0 || range.Length % alignment != 0,
+            "Firmware region start and length must satisfy alignment.", nameof(range));
 
         ValidatePhysicalClassification(owner, kind, writeConstraint);
         RegionId = regionId;
@@ -157,38 +155,31 @@ public sealed record FirmwareRegion
         FirmwareRegionKind kind,
         FirmwareWriteConstraint writeConstraint)
     {
-        if (kind == FirmwareRegionKind.CtrlRam && owner != FirmwareRegionOwner.Tp)
-        {
-            throw new ArgumentException("CtrlRAM regions must be physically owned by TP.", nameof(owner));
-        }
+        DomainInvariant.Reject(
+            kind == FirmwareRegionKind.CtrlRam && owner != FirmwareRegionOwner.Tp,
+            "CtrlRAM regions must be physically owned by TP.", nameof(owner));
 
-        if (kind == FirmwareRegionKind.CustomerInformation && owner != FirmwareRegionOwner.Customer)
-        {
-            throw new ArgumentException(
-                "Customer-information regions must be physically owned by the customer.",
-                nameof(kind));
-        }
+        DomainInvariant.Reject(
+            kind == FirmwareRegionKind.CustomerInformation && owner != FirmwareRegionOwner.Customer,
+            "Customer-information regions must be physically owned by the customer.",
+            nameof(kind));
 
-        if (kind is FirmwareRegionKind.Reserved or FirmwareRegionKind.Unmapped &&
-            writeConstraint != FirmwareWriteConstraint.Forbidden)
-        {
-            throw new ArgumentException("Reserved and unmapped regions must be forbidden to write.", nameof(kind));
-        }
+        DomainInvariant.Reject(
+            kind is FirmwareRegionKind.Reserved or FirmwareRegionKind.Unmapped &&
+            writeConstraint != FirmwareWriteConstraint.Forbidden,
+            "Reserved and unmapped regions must be forbidden to write.", nameof(kind));
 
-        if (kind == FirmwareRegionKind.Reserved && owner != FirmwareRegionOwner.Reserved)
-        {
-            throw new ArgumentException("Reserved regions must use the reserved owner.", nameof(owner));
-        }
+        DomainInvariant.Reject(
+            kind == FirmwareRegionKind.Reserved && owner != FirmwareRegionOwner.Reserved,
+            "Reserved regions must use the reserved owner.", nameof(owner));
 
-        if (kind == FirmwareRegionKind.Unmapped && owner != FirmwareRegionOwner.Unknown)
-        {
-            throw new ArgumentException("Unmapped regions must use the unknown owner.", nameof(owner));
-        }
+        DomainInvariant.Reject(
+            kind == FirmwareRegionKind.Unmapped && owner != FirmwareRegionOwner.Unknown,
+            "Unmapped regions must use the unknown owner.", nameof(owner));
 
-        if (owner == FirmwareRegionOwner.Unknown && writeConstraint != FirmwareWriteConstraint.Forbidden)
-        {
-            throw new ArgumentException("Unknown ownership cannot grant write authority.", nameof(owner));
-        }
+        DomainInvariant.Reject(
+            owner == FirmwareRegionOwner.Unknown && writeConstraint != FirmwareWriteConstraint.Forbidden,
+            "Unknown ownership cannot grant write authority.", nameof(owner));
     }
 
 }

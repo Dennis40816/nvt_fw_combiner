@@ -146,10 +146,9 @@ public sealed class CompiledProfilePromotion
             "Promotion blockers must be non-null with ordinally unique ids.",
             StringComparer.Ordinal);
 
-        if (stage == CompiledProfilePromotionStage.Supported && _blockers.Length != 0)
-        {
-            throw new ArgumentException("Supported profiles cannot retain promotion blockers.", nameof(blockers));
-        }
+        DomainInvariant.Reject(
+            stage == CompiledProfilePromotionStage.Supported && _blockers.Length != 0,
+            "Supported profiles cannot retain promotion blockers.", nameof(blockers));
 
         Array.Sort(_blockers, static (left, right) =>
             StringComparer.Ordinal.Compare(left.BlockerId, right.BlockerId));
@@ -238,24 +237,20 @@ public sealed class V2CompilationProvenance
         foreach (CompiledCapabilityAdmission capability in _requiredCapabilities)
         {
             FirmwareMapFactBinding<FirmwareCapabilityFact> binding = capability.Binding;
-            if (context is not MapBoundV2CompilationContext mapContext ||
+            DomainInvariant.Reject(
+                context is not MapBoundV2CompilationContext mapContext ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, mapContext.ResolvedMap.MemberId) ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapContext.ResolvedMap.ImageMap.MapId) ||
-                binding.Applicability.Evaluate(mapContext.ResolvedMap) != FirmwareApplicabilityResult.Match)
-            {
-                throw new ArgumentException(
-                    "Required capability admissions must apply to the compiled resolved map.",
-                    nameof(requiredCapabilities));
-            }
+                binding.Applicability.Evaluate(mapContext.ResolvedMap) != FirmwareApplicabilityResult.Match,
+                "Required capability admissions must apply to the compiled resolved map.",
+                nameof(requiredCapabilities));
         }
 
-        if (context.Kind == V2CompilationContextKind.LogicalOutput &&
-            (_validationRequirements.Length != 0 || _requiredCapabilities.Length != 0))
-        {
-            throw new ArgumentException(
-                "Logical-output provenance cannot claim physical validation or capability admissions.",
-                nameof(context));
-        }
+        DomainInvariant.Reject(
+            context.Kind == V2CompilationContextKind.LogicalOutput &&
+            (_validationRequirements.Length != 0 || _requiredCapabilities.Length != 0),
+            "Logical-output provenance cannot claim physical validation or capability admissions.",
+            nameof(context));
 
         Bundle = bundle;
         ProfileEntry = profileEntry;
@@ -367,15 +362,13 @@ public sealed class V2CompiledCompositionDetails
         foreach (CompiledRegionAccessRequirement requirement in contract.Requirements)
         {
             ValidatePhysicalChain(requirement.GoverningRegionChain, regionsById, requirement.RegionId);
-            if (requirement.Access == CompiledRegionAccessKind.Parts &&
+            DomainInvariant.Reject(
+                requirement.Access == CompiledRegionAccessKind.Parts &&
                 requirement.AllowedSubregionIds.Any(subregionId =>
                     !regionsById.TryGetValue(subregionId, out FirmwareRegion? subregion) ||
-                    !StringComparer.Ordinal.Equals(subregion.ParentRegionId, requirement.RegionId)))
-            {
-                throw new ArgumentException(
-                    "Compiled parts access may name only direct children in the selected canonical map.",
-                    nameof(contract));
-            }
+                    !StringComparer.Ordinal.Equals(subregion.ParentRegionId, requirement.RegionId)),
+                "Compiled parts access may name only direct children in the selected canonical map.",
+                nameof(contract));
         }
 
         foreach (CompiledResolvedPhysicalView view in contract.ResolvedViews)
@@ -407,26 +400,22 @@ public sealed class V2CompiledCompositionDetails
         for (int index = 0; index < chain.Count; index++)
         {
             CompiledPhysicalRegionConstraint compiledRegion = chain[index];
-            if (!regionsById.TryGetValue(compiledRegion.RegionId, out FirmwareRegion? canonicalRegion) ||
+            DomainInvariant.Reject(
+                !regionsById.TryGetValue(compiledRegion.RegionId, out FirmwareRegion? canonicalRegion) ||
                 canonicalRegion.WriteConstraint != compiledRegion.WriteConstraint ||
                 canonicalRegion.Alignment != compiledRegion.Alignment ||
                 (index == 0 && canonicalRegion.ParentRegionId is not null) ||
-                (previous is not null && !StringComparer.Ordinal.Equals(canonicalRegion.ParentRegionId, previous.RegionId)))
-            {
-                throw new ArgumentException(
-                    "Compiled region access must retain an exact canonical physical ancestor chain.",
-                    nameof(chain));
-            }
+                (previous is not null && !StringComparer.Ordinal.Equals(canonicalRegion.ParentRegionId, previous.RegionId)),
+                "Compiled region access must retain an exact canonical physical ancestor chain.",
+                nameof(chain));
 
             previous = canonicalRegion;
         }
 
-        if (expectedTerminalRegionId is not null &&
-            (previous is null || !StringComparer.Ordinal.Equals(previous.RegionId, expectedTerminalRegionId)))
-        {
-            throw new ArgumentException(
-                "Compiled region access must terminate at its declared canonical region.",
-                nameof(expectedTerminalRegionId));
-        }
+        DomainInvariant.Reject(
+            expectedTerminalRegionId is not null &&
+            (previous is null || !StringComparer.Ordinal.Equals(previous.RegionId, expectedTerminalRegionId)),
+            "Compiled region access must terminate at its declared canonical region.",
+            nameof(expectedTerminalRegionId));
     }
 }

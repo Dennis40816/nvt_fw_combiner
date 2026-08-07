@@ -147,13 +147,11 @@ internal sealed class CompositionProfileMetadataBinding
         _targetReferences = ImmutableReferenceSnapshot.Create(
             targetReferences,
             "Metadata target references cannot contain null.");
-        if (_targetReferences.Length == 0 ||
-            _targetReferences.Distinct().Count() != _targetReferences.Length)
-        {
-            throw new ArgumentException(
-                "Metadata target references must be nonempty and unique.",
-                nameof(targetReferences));
-        }
+        DomainInvariant.Reject(
+            _targetReferences.Length == 0 ||
+            _targetReferences.Distinct().Count() != _targetReferences.Length,
+            "Metadata target references must be nonempty and unique.",
+            nameof(targetReferences));
 
         Array.Sort(_targetReferences, static (left, right) =>
         {
@@ -172,20 +170,16 @@ internal sealed class CompositionProfileMetadataBinding
 
         ArgumentNullException.ThrowIfNull(purposes);
         _purposes = [.. purposes];
-        if (_purposes.Length == 0)
-        {
-            throw new ArgumentException("Metadata bindings require a purpose.", nameof(purposes));
-        }
+        DomainInvariant.Reject(_purposes.Length == 0, "Metadata bindings require a purpose.", nameof(purposes));
 
         if (_purposes.Any(static purpose => !ClosedEnum.IsDefined(purpose)))
         {
             throw new ArgumentOutOfRangeException(nameof(purposes), "Unknown metadata binding purpose.");
         }
 
-        if (_purposes.Distinct().Count() != _purposes.Length)
-        {
-            throw new ArgumentException("Metadata binding purposes must be unique.", nameof(purposes));
-        }
+        DomainInvariant.Reject(
+            _purposes.Distinct().Count() != _purposes.Length,
+            "Metadata binding purposes must be unique.", nameof(purposes));
 
         Array.Sort(_purposes);
         _evidenceRefs = CanonicalPolicyValueRules.SnapshotCanonicalIds(
@@ -232,12 +226,10 @@ internal sealed class CompositionProfileRegionAccess
             allowedSubregionIds ?? [],
             nameof(allowedSubregionIds),
             requireValue: access == RegionAccessKind.Parts);
-        if (access != RegionAccessKind.Parts && _allowedSubregionIds.Length != 0)
-        {
-            throw new ArgumentException(
-                "Only parts access can declare allowed subregions.",
-                nameof(allowedSubregionIds));
-        }
+        DomainInvariant.Reject(
+            access != RegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
+            "Only parts access can declare allowed subregions.",
+            nameof(allowedSubregionIds));
 
         Access = access;
         Reason = reason;

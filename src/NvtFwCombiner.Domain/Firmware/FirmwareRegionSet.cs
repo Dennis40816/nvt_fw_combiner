@@ -55,13 +55,11 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
             StringComparer.Ordinal);
         Array.Sort(_regionInstances, static (left, right) =>
             StringComparer.Ordinal.Compare(left.InstanceId, right.InstanceId));
-        if (_regionInstances.Any(instance =>
-                !_regionTemplates.Any(template => ReferenceEquals(template, instance.Template))))
-        {
-            throw new ArgumentException(
-                "Every region instance must reference a template owned by the same region set.",
-                nameof(regionInstances));
-        }
+        DomainInvariant.Reject(
+            _regionInstances.Any(instance =>
+            !_regionTemplates.Any(template => ReferenceEquals(template, instance.Template))),
+            "Every region instance must reference a template owned by the same region set.",
+            nameof(regionInstances));
 
         _regions = Composition.ImmutableReferenceSnapshot.CreateUnique(
             regions.Concat(_regionInstances.SelectMany(static instance => instance.ExpandRegions())),

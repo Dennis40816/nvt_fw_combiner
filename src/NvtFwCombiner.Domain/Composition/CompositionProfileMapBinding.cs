@@ -34,12 +34,10 @@ internal sealed class CompositionProfileMapBinding
             optionalRegionIds ?? [],
             nameof(optionalRegionIds),
             requireValue: false);
-        if (_requiredRegionIds.Intersect(_optionalRegionIds, StringComparer.Ordinal).Any())
-        {
-            throw new ArgumentException(
-                "Required and optional map regions must be disjoint.",
-                nameof(optionalRegionIds));
-        }
+        DomainInvariant.Reject(
+            _requiredRegionIds.Intersect(_optionalRegionIds, StringComparer.Ordinal).Any(),
+            "Required and optional map regions must be disjoint.",
+            nameof(optionalRegionIds));
         _requiredMetadataStructureIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredMetadataStructureIds,
             nameof(requiredMetadataStructureIds),

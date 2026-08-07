@@ -81,26 +81,23 @@ public sealed class FirmwareDecodedMetadataStructure
             facts,
             "Decoded metadata structures cannot contain null facts.");
 
-        if (_facts.Any(fact =>
+        DomainInvariant.Reject(
+            _facts.Any(fact =>
             !StringComparer.Ordinal.Equals(fact.ArtifactBindingId, artifactBindingId) ||
-            !StringComparer.Ordinal.Equals(fact.MetadataStructureId, metadataStructureId)))
-        {
-            throw new ArgumentException("Decoded metadata fact identity must match its structure.", nameof(facts));
-        }
+            !StringComparer.Ordinal.Equals(fact.MetadataStructureId, metadataStructureId)),
+            "Decoded metadata fact identity must match its structure.", nameof(facts));
 
-        if (_facts.Select(static fact => fact.FieldId).Distinct(StringComparer.Ordinal).Count() != _facts.Length)
-        {
-            throw new ArgumentException("Decoded metadata field ids must be ordinally unique.", nameof(facts));
-        }
+        DomainInvariant.Reject(
+            _facts.Select(static fact => fact.FieldId).Distinct(StringComparer.Ordinal).Count() != _facts.Length,
+            "Decoded metadata field ids must be ordinally unique.", nameof(facts));
 
         _relations = Composition.ImmutableReferenceSnapshot.Create(
             relations ?? [],
             "Decoded metadata structures cannot contain null relations.");
-        if (_relations.Select(static relation => relation.RelationId)
-            .Distinct(StringComparer.Ordinal).Count() != _relations.Length)
-        {
-            throw new ArgumentException("Decoded metadata relation ids must be ordinally unique.", nameof(relations));
-        }
+        DomainInvariant.Reject(
+            _relations.Select(static relation => relation.RelationId)
+            .Distinct(StringComparer.Ordinal).Count() != _relations.Length,
+            "Decoded metadata relation ids must be ordinally unique.", nameof(relations));
 
         Facts = Array.AsReadOnly(_facts);
         Relations = Array.AsReadOnly(_relations);

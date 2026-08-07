@@ -26,14 +26,12 @@ public sealed class AddressSpace
         if (unexpectedInputLengthIssueCode is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedInputLengthIssueCode);
-            if (mutability != AddressSpaceMutability.Immutable ||
+            DomainInvariant.Reject(
+                mutability != AddressSpaceMutability.Immutable ||
                 inputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-                _expectedInputLengths.Length == 0)
-            {
-                throw new ArgumentException(
-                    "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
-                    nameof(unexpectedInputLengthIssueCode));
-            }
+                _expectedInputLengths.Length == 0,
+                "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
+                nameof(unexpectedInputLengthIssueCode));
         }
 
         AddressSpaceId = addressSpaceId;
@@ -81,10 +79,9 @@ public sealed class AddressSpace
             return [];
         }
 
-        if (allowedInputLengths.Count == 0)
-        {
-            throw new ArgumentException("Allowed input lengths cannot be empty when supplied.", nameof(allowedInputLengths));
-        }
+        DomainInvariant.Reject(
+            allowedInputLengths.Count == 0,
+            "Allowed input lengths cannot be empty when supplied.", nameof(allowedInputLengths));
 
         long[] normalized = [.. allowedInputLengths.Order().Distinct()];
         foreach (long allowedLength in normalized)
@@ -108,10 +105,9 @@ public sealed class AddressSpace
             return [];
         }
 
-        if (expectedInputLengths.Count == 0)
-        {
-            throw new ArgumentException("Expected input lengths cannot be empty when supplied.", nameof(expectedInputLengths));
-        }
+        DomainInvariant.Reject(
+            expectedInputLengths.Count == 0,
+            "Expected input lengths cannot be empty when supplied.", nameof(expectedInputLengths));
 
         long[] normalized = [.. expectedInputLengths.Order().Distinct()];
         foreach (long expectedLength in normalized)

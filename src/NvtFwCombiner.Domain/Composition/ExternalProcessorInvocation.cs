@@ -43,33 +43,27 @@ public sealed class ExternalProcessorInvocation
             stagedArtifactBindings ?? [],
             "External processor staged artifact bindings must be non-null with unique artifact ids.",
             parameterName: nameof(stagedArtifactBindings));
-        if (_allowedReadRanges.Length == 0)
-        {
-            throw new ArgumentException("External processor allowed read ranges must not be empty.", nameof(allowedReadRanges));
-        }
+        DomainInvariant.Reject(
+            _allowedReadRanges.Length == 0,
+            "External processor allowed read ranges must not be empty.", nameof(allowedReadRanges));
 
-        if (_allowedWriteRanges.Length == 0)
-        {
-            throw new ArgumentException("External processor allowed write ranges must not be empty.", nameof(allowedWriteRanges));
-        }
+        DomainInvariant.Reject(
+            _allowedWriteRanges.Length == 0,
+            "External processor allowed write ranges must not be empty.", nameof(allowedWriteRanges));
 
         foreach (ExternalProcessorWriteRangeSection section in _allowedWriteRangeSections)
         {
-            if (!_allowedWriteRanges.Any(range => range.Contains(section.Range)))
-            {
-                throw new ArgumentException(
-                    $"External processor write section '{section.SectionId}' must stay inside an allowed write range.",
-                    nameof(allowedWriteRangeSections));
-            }
+            DomainInvariant.Reject(
+                !_allowedWriteRanges.Any(range => range.Contains(section.Range)),
+                $"External processor write section '{section.SectionId}' must stay inside an allowed write range.",
+                nameof(allowedWriteRangeSections));
         }
 
-        if (artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
-            artifactBindings.Length)
-        {
-            throw new ArgumentException(
-                "External processor staged artifact bindings must be non-null with unique artifact ids.",
-                nameof(stagedArtifactBindings));
-        }
+        DomainInvariant.Reject(
+            artifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            artifactBindings.Length,
+            "External processor staged artifact bindings must be non-null with unique artifact ids.",
+            nameof(stagedArtifactBindings));
 
         _stagedArtifactBindings = [.. artifactBindings.OrderBy(binding => binding.ArtifactId, StringComparer.Ordinal)];
         ExternalProcessorOutputAssertion[] assertions = ImmutableReferenceSnapshot.Create(
@@ -84,12 +78,10 @@ public sealed class ExternalProcessorInvocation
         });
         for (int index = 1; index < assertions.Length; index++)
         {
-            if (assertions[index - 1].Range.Overlaps(assertions[index].Range))
-            {
-                throw new ArgumentException(
-                    "External processor output assertions must not overlap.",
-                    nameof(outputAssertions));
-            }
+            DomainInvariant.Reject(
+                assertions[index - 1].Range.Overlaps(assertions[index].Range),
+                "External processor output assertions must not overlap.",
+                nameof(outputAssertions));
         }
 
         OutputAssertions = Array.AsReadOnly(assertions);
@@ -133,12 +125,10 @@ public sealed class ExternalProcessorWriteRangeSection
         ByteRange? sourceRange = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sectionId);
-        if (sourceRange is { } source && source.Length != range.Length)
-        {
-            throw new ArgumentException(
-                "An external processor copy source range must have the same length as its destination range.",
-                nameof(sourceRange));
-        }
+        DomainInvariant.Reject(
+            sourceRange is { } source && source.Length != range.Length,
+            "An external processor copy source range must have the same length as its destination range.",
+            nameof(sourceRange));
 
         SectionId = sectionId.Trim();
         Range = range;

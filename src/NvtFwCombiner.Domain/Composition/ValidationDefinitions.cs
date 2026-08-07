@@ -51,24 +51,20 @@ internal static class CanonicalValidationDefinitionRules
             return;
         }
 
-        if (mask.Bytes.IndexOfAnyExcept((byte)0) < 0)
-        {
-            throw new ArgumentException("Assertion mask must contain a set bit.", nameof(assertion));
-        }
+        DomainInvariant.Reject(
+            mask.Bytes.IndexOfAnyExcept((byte)0) < 0,
+            "Assertion mask must contain a set bit.", nameof(assertion));
 
-        if (mask.Bytes.IndexOfAnyExcept(byte.MaxValue) < 0)
-        {
-            throw new ArgumentException("An all-FF assertion mask must use exact-match form.", nameof(assertion));
-        }
+        DomainInvariant.Reject(
+            mask.Bytes.IndexOfAnyExcept(byte.MaxValue) < 0,
+            "An all-FF assertion mask must use exact-match form.", nameof(assertion));
 
         for (int index = 0; index < mask.Length; index++)
         {
-            if ((assertion.Expected.Bytes[index] & ~mask.Bytes[index]) != 0)
-            {
-                throw new ArgumentException(
-                    "Assertion expected bits outside the mask must be zero.",
-                    nameof(assertion));
-            }
+            DomainInvariant.Reject(
+                (assertion.Expected.Bytes[index] & ~mask.Bytes[index]) != 0,
+                "Assertion expected bits outside the mask must be zero.",
+                nameof(assertion));
         }
     }
 }
@@ -84,12 +80,10 @@ internal sealed record SourceViewNonUniformValidationDefinition : ValidationRequ
         string viewId)
         : base(ruleId, stage, severity, issueCode)
     {
-        if (stage != CompiledValidationStage.InputLoad ||
-            severity != CompiledValidationSeverity.Warning)
-        {
-            throw new ArgumentException(
-                "Non-uniform region validation is restricted to warning-only input-load checks.");
-        }
+        DomainInvariant.Reject(
+            stage != CompiledValidationStage.InputLoad ||
+            severity != CompiledValidationSeverity.Warning,
+            "Non-uniform region validation is restricted to warning-only input-load checks.");
 
         _ = CanonicalPolicyValueRules.RequireCanonicalId(ruleId, nameof(ruleId));
         _ = CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(issueCode));

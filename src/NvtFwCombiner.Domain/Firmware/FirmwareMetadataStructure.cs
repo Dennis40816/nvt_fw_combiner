@@ -91,12 +91,10 @@ public sealed class FirmwareMetadataStructure
         switch (locator)
         {
             case FirmwareAbsoluteRangeLocator absolute:
-                if (absolute.Range.Range.Length != lengthBytes)
-                {
-                    throw new ArgumentException(
-                        "Absolute metadata locator length must equal its structure length.",
-                        nameof(locator));
-                }
+                DomainInvariant.Reject(
+                    absolute.Range.Range.Length != lengthBytes,
+                    "Absolute metadata locator length must equal its structure length.",
+                    nameof(locator));
 
                 break;
             case FirmwareRegionRelativeLocator relative:
@@ -104,13 +102,11 @@ public sealed class FirmwareMetadataStructure
                 break;
             case FirmwareMarkerRelativeLocator marker:
                 _ = checked(marker.ResultOffset + lengthBytes);
-                if (assertionCount == 0 &&
-                    marker.Selection.Kind != FirmwareMarkerSelectionKind.Unique)
-                {
-                    throw new ArgumentException(
-                        "Non-unique marker-relative metadata structures require an assertion.",
-                        nameof(locator));
-                }
+                DomainInvariant.Reject(
+                    assertionCount == 0 &&
+                    marker.Selection.Kind != FirmwareMarkerSelectionKind.Unique,
+                    "Non-unique marker-relative metadata structures require an assertion.",
+                    nameof(locator));
 
                 break;
             case FirmwareMetadataFieldSelectedLocator selected:

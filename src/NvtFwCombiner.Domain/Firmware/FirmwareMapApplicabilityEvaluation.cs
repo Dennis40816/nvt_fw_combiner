@@ -33,21 +33,17 @@ public sealed class FirmwareMapApplicabilityEvaluation : IEquatable<FirmwareMapA
                 "Unknown pending requirement kind.");
         }
 
-        if (_pendingRequirements.Distinct().Count() != _pendingRequirements.Length)
-        {
-            throw new ArgumentException(
-                "Pending applicability requirements must be unique.",
-                nameof(pendingRequirements));
-        }
+        DomainInvariant.Reject(
+            _pendingRequirements.Distinct().Count() != _pendingRequirements.Length,
+            "Pending applicability requirements must be unique.",
+            nameof(pendingRequirements));
 
         Array.Sort(_pendingRequirements);
         bool isPending = result == FirmwareApplicabilityResult.Pending;
-        if (isPending != (_pendingRequirements.Length != 0))
-        {
-            throw new ArgumentException(
-                "Only a pending applicability result may contain pending requirements.",
-                nameof(pendingRequirements));
-        }
+        DomainInvariant.Reject(
+            isPending != (_pendingRequirements.Length != 0),
+            "Only a pending applicability result may contain pending requirements.",
+            nameof(pendingRequirements));
 
         Result = result;
         PendingRequirements = Array.AsReadOnly(_pendingRequirements);

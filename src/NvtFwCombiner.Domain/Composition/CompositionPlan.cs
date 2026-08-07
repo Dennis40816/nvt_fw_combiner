@@ -74,21 +74,18 @@ public sealed partial class CompositionPlan
         Dictionary<string, AddressSpace> byId = new(StringComparer.Ordinal);
         foreach (AddressSpace addressSpace in addressSpaces)
         {
-            if (addressSpace.Mutability != AddressSpaceMutability.Immutable &&
+            DomainInvariant.Reject(
+                addressSpace.Mutability != AddressSpaceMutability.Immutable &&
                 (addressSpace.InputPaddingByte is not null ||
                     addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
                     addressSpace.AllowedInputLengths.Count > 0 ||
-                    addressSpace.ExpectedInputLengths.Count > 0))
-            {
-                throw new ArgumentException("Mutable address spaces cannot declare input size relaxation.", nameof(addressSpaces));
-            }
+                    addressSpace.ExpectedInputLengths.Count > 0),
+                "Mutable address spaces cannot declare input size relaxation.", nameof(addressSpaces));
 
-            if (!byId.TryAdd(addressSpace.AddressSpaceId, addressSpace))
-            {
-                throw new ArgumentException(
-                    $"Address space '{addressSpace.AddressSpaceId}' is declared more than once.",
-                    nameof(addressSpaces));
-            }
+            DomainInvariant.Reject(
+                !byId.TryAdd(addressSpace.AddressSpaceId, addressSpace),
+                $"Address space '{addressSpace.AddressSpaceId}' is declared more than once.",
+                nameof(addressSpaces));
         }
 
         return byId;
@@ -109,12 +106,10 @@ public sealed partial class CompositionPlan
         Dictionary<string, ImageInitialization> byTargetSpaceId = new(StringComparer.Ordinal);
         foreach (ImageInitialization initialization in ordered)
         {
-            if (!byTargetSpaceId.TryAdd(initialization.TargetSpaceId, initialization))
-            {
-                throw new ArgumentException(
-                    $"Address space '{initialization.TargetSpaceId}' has more than one initializer.",
-                    nameof(initializations));
-            }
+            DomainInvariant.Reject(
+                !byTargetSpaceId.TryAdd(initialization.TargetSpaceId, initialization),
+                $"Address space '{initialization.TargetSpaceId}' has more than one initializer.",
+                nameof(initializations));
         }
 
         return (ordered, byTargetSpaceId);

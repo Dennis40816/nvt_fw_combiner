@@ -6,10 +6,7 @@ public static class ByteDiff
     /// <summary>Returns contiguous changed ranges from <paramref name="before"/> to <paramref name="after"/>.</summary>
     public static IReadOnlyList<ByteRange> FindChangedRanges(ReadOnlySpan<byte> before, ReadOnlySpan<byte> after)
     {
-        if (before.Length != after.Length)
-        {
-            throw new ArgumentException("Buffers must have the same length.", nameof(after));
-        }
+        DomainInvariant.Reject(before.Length != after.Length, "Buffers must have the same length.", nameof(after));
 
         List<ByteRange> ranges = [];
         int index = 0;

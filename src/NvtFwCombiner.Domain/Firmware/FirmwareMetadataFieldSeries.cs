@@ -33,13 +33,11 @@ public sealed class FirmwareMetadataFieldSeriesApplicability
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chipCount);
         ArgumentNullException.ThrowIfNull(activeIndices);
         _activeIndices = [.. activeIndices];
-        if (_activeIndices.Any(static index => index < 0) ||
-            _activeIndices.Distinct().Count() != _activeIndices.Length)
-        {
-            throw new ArgumentException(
-                "Series active indices must be nonnegative and unique.",
-                nameof(activeIndices));
-        }
+        DomainInvariant.Reject(
+            _activeIndices.Any(static index => index < 0) ||
+            _activeIndices.Distinct().Count() != _activeIndices.Length,
+            "Series active indices must be nonnegative and unique.",
+            nameof(activeIndices));
 
         Array.Sort(_activeIndices);
         ChipCount = chipCount;
@@ -77,42 +75,34 @@ public sealed class FirmwareMetadataFieldSeries
         _members = ImmutableReferenceSnapshot.Create(
             members,
             "Metadata field series cannot contain null members.");
-        if (_members.Length == 0 ||
+        DomainInvariant.Reject(
+            _members.Length == 0 ||
             _members.Select(static member => member.Index).Distinct().Count() != _members.Length ||
             _members.Select(static member => member.FieldId)
-                .Distinct(StringComparer.Ordinal).Count() != _members.Length)
-        {
-            throw new ArgumentException(
-                "Metadata field series require unique logical indices and physical field references.",
-                nameof(members));
-        }
+                .Distinct(StringComparer.Ordinal).Count() != _members.Length,
+            "Metadata field series require unique logical indices and physical field references.",
+            nameof(members));
 
         Array.Sort(_members, static (left, right) => left.Index.CompareTo(right.Index));
         _applicability = ImmutableReferenceSnapshot.Create(
             applicability,
             "Metadata field series cannot contain null applicability rows.");
-        if (_applicability.Length == 0)
-        {
-            throw new ArgumentException(
-                "Metadata field series require at least one explicit IC Count row.",
-                nameof(applicability));
-        }
+        DomainInvariant.Reject(
+            _applicability.Length == 0,
+            "Metadata field series require at least one explicit IC Count row.",
+            nameof(applicability));
 
-        if (_applicability.Select(static row => row.ChipCount).Distinct().Count() !=
-            _applicability.Length)
-        {
-            throw new ArgumentException(
-                "Metadata field series IC Count rows must be unique.",
-                nameof(applicability));
-        }
+        DomainInvariant.Reject(
+            _applicability.Select(static row => row.ChipCount).Distinct().Count() !=
+            _applicability.Length,
+            "Metadata field series IC Count rows must be unique.",
+            nameof(applicability));
 
         HashSet<int> memberIndices = [.. _members.Select(static member => member.Index)];
-        if (_applicability.Any(row => row.ActiveIndices.Any(index => !memberIndices.Contains(index))))
-        {
-            throw new ArgumentException(
-                "Metadata field series applicability references an unknown logical index.",
-                nameof(applicability));
-        }
+        DomainInvariant.Reject(
+            _applicability.Any(row => row.ActiveIndices.Any(index => !memberIndices.Contains(index))),
+            "Metadata field series applicability references an unknown logical index.",
+            nameof(applicability));
 
         Array.Sort(_applicability, static (left, right) =>
             left.ChipCount.CompareTo(right.ChipCount));
@@ -163,12 +153,10 @@ public sealed class FirmwareMetadataFieldGroup
         GroupId = RequiredValue.NotBlank(groupId);
         _fieldIds = SnapshotIds(fieldIds, nameof(fieldIds));
         _seriesIds = SnapshotIds(seriesIds, nameof(seriesIds));
-        if (_fieldIds.Length == 0 && _seriesIds.Length == 0)
-        {
-            throw new ArgumentException(
-                "Metadata field groups require at least one field or series reference.",
-                nameof(fieldIds));
-        }
+        DomainInvariant.Reject(
+            _fieldIds.Length == 0 && _seriesIds.Length == 0,
+            "Metadata field groups require at least one field or series reference.",
+            nameof(fieldIds));
 
         FieldIds = Array.AsReadOnly(_fieldIds);
         SeriesIds = Array.AsReadOnly(_seriesIds);
@@ -187,13 +175,11 @@ public sealed class FirmwareMetadataFieldGroup
     {
         ArgumentNullException.ThrowIfNull(values);
         string[] snapshot = [.. values];
-        if (snapshot.Any(string.IsNullOrWhiteSpace) ||
-            snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException(
-                "Metadata group references must be nonblank and unique.",
-                parameterName);
-        }
+        DomainInvariant.Reject(
+            snapshot.Any(string.IsNullOrWhiteSpace) ||
+            snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length,
+            "Metadata group references must be nonblank and unique.",
+            parameterName);
 
         Array.Sort(snapshot, StringComparer.Ordinal);
         return snapshot;

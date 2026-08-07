@@ -49,54 +49,46 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateLogicalOutputShape()
     {
-        if (CompositionKind != CompositionKind.Merge ||
-            LayoutPolicy != LayoutPolicy.UserDefined ||
-            InputPolicy != InputPolicy.Extensible ||
-            _metadataBindings.Length != 0 ||
-            _regionAccessRules.Length != 0 ||
-            _operations.Length != 0 ||
-            _validations.Length != 0 ||
-            _processorStages.Length != 0 ||
-            _views.Length != 0)
-        {
-            throw new ArgumentException(
-                "Logical-output profiles are restricted to the General Merge declarative shape without physical-map declarations.");
-        }
+        DomainInvariant.Require(
+            CompositionKind == CompositionKind.Merge &&
+            LayoutPolicy == LayoutPolicy.UserDefined &&
+            InputPolicy == InputPolicy.Extensible &&
+            _metadataBindings.Length == 0 &&
+            _regionAccessRules.Length == 0 &&
+            _operations.Length == 0 &&
+            _validations.Length == 0 &&
+            _processorStages.Length == 0 &&
+            _views.Length == 0,
+            "Logical-output profiles are restricted to the General Merge declarative shape without physical-map declarations.");
 
         InputArtifactProfileSpace[] inputSpaces = [.. _spaces.OfType<InputArtifactProfileSpace>()];
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
-        if (_inputSlots.Length != 1 ||
-            inputSpaces.Length != 1 ||
-            inputSpaces[0].InstancePolicy != CompiledInputInstancePolicy.PerBinding ||
-            output.Capacity is not RuntimeRequestProfileCapacity ||
-            output.Initializer is not BlankProfileInitializer { FillByte: 0 } ||
-            _spaces.Length != 2)
-        {
-            throw new ArgumentException(
-                "Logical-output profiles require one per-binding input template and one zero-filled runtime-request output.");
-        }
+        DomainInvariant.Require(
+            _inputSlots.Length == 1 &&
+            inputSpaces.Length == 1 &&
+            inputSpaces[0].InstancePolicy == CompiledInputInstancePolicy.PerBinding &&
+            output.Capacity is RuntimeRequestProfileCapacity &&
+            output.Initializer is BlankProfileInitializer { FillByte: 0 } &&
+            _spaces.Length == 2,
+            "Logical-output profiles require one per-binding input template and one zero-filled runtime-request output.");
 
         CompositionInputSlotDefinition slot = _inputSlots[0];
-        if (!slot.Required ||
-            slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
-            slot.ArtifactClass != CompiledInputArtifactClass.Auxiliary ||
-            slot.Normalization is not CompiledNoInputNormalization ||
-            slot.LengthRequirement is not CompiledBoundedInputLengthRequirement
+        DomainInvariant.Require(
+            slot.Required &&
+            slot.Cardinality == CompiledInputSlotCardinality.OneOrMore &&
+            slot.ArtifactClass == CompiledInputArtifactClass.Auxiliary &&
+            slot.Normalization is CompiledNoInputNormalization &&
+            slot.LengthRequirement is CompiledBoundedInputLengthRequirement
             {
                 MinimumBytes: 1,
                 MaximumBytes: int.MaxValue,
-            } ||
-            !StringComparer.Ordinal.Equals(inputSpaces[0].SlotId, slot.SlotId))
-        {
-            throw new ArgumentException(
-                "Logical-output profiles require one unnormalized auxiliary one-or-more input slot bounded to the in-memory composition limit.");
-        }
-
-        if (Promotion.Stage >= CompiledProfilePromotionStage.Supported)
-        {
-            throw new ArgumentException("Logical-output profiles cannot be marked supported before runtime per-binding admission exists.");
-        }
+            } &&
+            StringComparer.Ordinal.Equals(inputSpaces[0].SlotId, slot.SlotId),
+            "Logical-output profiles require one unnormalized auxiliary one-or-more input slot bounded to the in-memory composition limit.");
+        DomainInvariant.Require(
+            Promotion.Stage < CompiledProfilePromotionStage.Supported,
+            "Logical-output profiles cannot be marked supported before runtime per-binding admission exists.");
     }
 
     private void ValidateRuntimeReferenceReplaceShape()
@@ -111,25 +103,22 @@ internal sealed partial class CompositionProfileDefinition
         bool fixedProcessorAuthoring = LayoutPolicy == LayoutPolicy.Fixed &&
             InputPolicy == InputPolicy.Fixed &&
             conditionalProcessor;
-        if (CompositionKind != CompositionKind.Replace ||
-            (!userDefinedAuthoring && !fixedProcessorAuthoring) ||
-            _metadataBindings.Length != 0 ||
-            _validations.Length != 0 ||
-            _regionAccessRules.Length == 0 ||
-            (!processorFree && !conditionalProcessor))
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace profiles require a closed user-defined source or fixed processor mapping shape.");
-        }
+        DomainInvariant.Require(
+            CompositionKind == CompositionKind.Replace &&
+            (userDefinedAuthoring || fixedProcessorAuthoring) &&
+            _metadataBindings.Length == 0 &&
+            _validations.Length == 0 &&
+            _regionAccessRules.Length != 0 &&
+            (processorFree || conditionalProcessor),
+            "Runtime reference-replace profiles require a closed user-defined source or fixed processor mapping shape.");
 
         InputArtifactProfileSpace[] inputs = [.. _spaces.OfType<InputArtifactProfileSpace>()];
-        if (_inputSlots.Length != 2 || inputs.Length != 2 || _spaces.Length != 3 ||
-            output.Capacity is not RuntimeRequestProfileCapacity ||
-            output.Initializer is not CloneProfileInitializer clone)
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace profiles require two immutable inputs and one runtime-capacity output cloned from the reference slot.");
-        }
+        DomainInvariant.Require(
+            _inputSlots.Length == 2 && inputs.Length == 2 && _spaces.Length == 3 &&
+            output.Capacity is RuntimeRequestProfileCapacity &&
+            output.Initializer is CloneProfileInitializer,
+            "Runtime reference-replace profiles require two immutable inputs and one runtime-capacity output cloned from the reference slot.");
+        var clone = (CloneProfileInitializer)output.Initializer;
 
         CompositionInputSlotDefinition? reference = _inputSlots.SingleOrDefault(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
@@ -150,33 +139,28 @@ internal sealed partial class CompositionProfileDefinition
                 ArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement,
                 Normalization: CompiledTruncateCtrlRamInputNormalization,
             });
-        if (reference is not
+        DomainInvariant.Require(
+            reference is
             {
                 Required: true,
                 ArtifactClass: CompiledInputArtifactClass.ReferenceImage,
                 Cardinality: CompiledInputSlotCardinality.ExactlyOne,
                 LengthRequirement: ResolvedMapCapacityInputLengthDefinition,
                 Normalization: CompiledNoInputNormalization,
-            } ||
-            source is not
+            } &&
+            source is
             {
                 Required: true,
                 Cardinality: CompiledInputSlotCardinality.OneOrMore,
                 LengthRequirement: CompiledBoundedInputLengthRequirement { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            } ||
-            !sourcePolicyIsValid ||
-            referenceSpace is not { InstancePolicy: CompiledInputInstancePolicy.Singleton } ||
-            sourceSpace is not { InstancePolicy: CompiledInputInstancePolicy.PerBinding })
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace profiles require one exact singleton reference and one typed per-binding source with its closed normalization policy.");
-        }
-
-        if (Promotion.Stage >= CompiledProfilePromotionStage.Supported)
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
-        }
+            } &&
+            sourcePolicyIsValid &&
+            referenceSpace is { InstancePolicy: CompiledInputInstancePolicy.Singleton } &&
+            sourceSpace is { InstancePolicy: CompiledInputInstancePolicy.PerBinding },
+            "Runtime reference-replace profiles require one exact singleton reference and one typed per-binding source with its closed normalization policy.");
+        DomainInvariant.Require(
+            Promotion.Stage < CompiledProfilePromotionStage.Supported,
+            "Runtime reference-replace profiles cannot be marked supported before runtime request routing and owner evidence are complete.");
     }
 
     private bool HasValidRuntimeReferenceProcessorShape(MutableCompositionProfileSpace output)
@@ -206,15 +190,12 @@ internal sealed partial class CompositionProfileDefinition
 
     private void ValidateIcNumberInputMode()
     {
-        if (CompositionKind == CompositionKind.Merge && IcNumberInputMode is not null)
-        {
-            throw new ArgumentException("Merge profiles cannot declare an IC-number input mode.");
-        }
-
-        if (CompositionKind == CompositionKind.Replace && IcNumberInputMode is null)
-        {
-            throw new ArgumentException("Replace profiles require an IC-number input mode.");
-        }
+        DomainInvariant.Require(
+            CompositionKind != CompositionKind.Merge || IcNumberInputMode is null,
+            "Merge profiles cannot declare an IC-number input mode.");
+        DomainInvariant.Require(
+            CompositionKind != CompositionKind.Replace || IcNumberInputMode is not null,
+            "Replace profiles require an IC-number input mode.");
     }
 
     private void ValidateOutputSpace()
@@ -224,48 +205,40 @@ internal sealed partial class CompositionProfileDefinition
             .. _spaces.OfType<MutableCompositionProfileSpace>()
                 .Where(static space => space.Kind == CompositionProfileSpaceKind.OutputImage),
         ];
-        if (outputs.Length != 1)
-        {
-            throw new ArgumentException("Profiles require exactly one output-image space.");
-        }
+        DomainInvariant.Require(outputs.Length == 1, "Profiles require exactly one output-image space.");
 
         bool initializerMatchesComposition = CompositionKind == CompositionKind.Merge
             ? outputs[0].Initializer is BlankProfileInitializer
             : outputs[0].Initializer is CloneProfileInitializer;
-        if (!initializerMatchesComposition)
-        {
-            throw new ArgumentException("The output initializer must match merge versus replace semantics.");
-        }
+        DomainInvariant.Require(
+            initializerMatchesComposition,
+            "The output initializer must match merge versus replace semantics.");
     }
 
     private void ValidateInputPolicy()
     {
         bool extractsDeclaredPrefix = _inputSlots.Any(static slot =>
             slot.LengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement);
-        if (extractsDeclaredPrefix && CompositionKind != CompositionKind.Merge)
-        {
-            throw new ArgumentException("Declared-prefix input authority requires Merge composition.");
-        }
+        DomainInvariant.Require(
+            !extractsDeclaredPrefix || CompositionKind == CompositionKind.Merge,
+            "Declared-prefix input authority requires Merge composition.");
 
         bool padsInput = _inputSlots.Any(static slot =>
             slot.Normalization is CompiledPadShorterInputNormalization);
-        if (padsInput &&
-            (CompositionKind != CompositionKind.Replace ||
-             _processorStages.Length != 0))
-        {
-            throw new ArgumentException("Short-input padding requires Replace composition without processor stages.");
-        }
+        DomainInvariant.Require(
+            !padsInput ||
+            (CompositionKind == CompositionKind.Replace && _processorStages.Length == 0),
+            "Short-input padding requires Replace composition without processor stages.");
 
         bool truncatesCtrlRam = _inputSlots.Any(static slot =>
             slot.Normalization is CompiledTruncateCtrlRamInputNormalization);
-        if (truncatesCtrlRam &&
-            (CompositionKind != CompositionKind.Replace ||
-             _inputSlots.Any(static slot =>
+        DomainInvariant.Require(
+            !truncatesCtrlRam ||
+            (CompositionKind == CompositionKind.Replace &&
+             !_inputSlots.Any(static slot =>
                  slot.Normalization is CompiledTruncateCtrlRamInputNormalization &&
-                 slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement)))
-        {
-            throw new ArgumentException("CtrlRAM truncation requires a typed CtrlRAM replacement source.");
-        }
+                 slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement)),
+            "CtrlRAM truncation requires a typed CtrlRAM replacement source.");
     }
 
     private void ValidateInputSelectionGroups(
@@ -280,17 +253,12 @@ internal sealed partial class CompositionProfileDefinition
                     slots,
                     memberSlotId,
                     "Input selection group references an unknown slot.");
-                if (slot.Required || slot.Cardinality != CompiledInputSlotCardinality.ZeroOrOne)
-                {
-                    throw new ArgumentException(
-                        "Input selection groups may reference only optional zero-or-one slots.");
-                }
-
-                if (!groupedSlotIds.Add(memberSlotId))
-                {
-                    throw new ArgumentException(
-                        "An input slot may belong to only one selection group.");
-                }
+                DomainInvariant.Require(
+                    !slot.Required && slot.Cardinality == CompiledInputSlotCardinality.ZeroOrOne,
+                    "Input selection groups may reference only optional zero-or-one slots.");
+                DomainInvariant.Require(
+                    groupedSlotIds.Add(memberSlotId),
+                    "An input slot may belong to only one selection group.");
             }
         }
     }
@@ -341,18 +309,15 @@ internal sealed partial class CompositionProfileDefinition
                         slots,
                         clone.SourceSlotId,
                         "Clone initializer references an unknown slot.");
-                    if (!sourceSlot.Required ||
-                        sourceSlot.Cardinality != CompiledInputSlotCardinality.ExactlyOne)
-                    {
-                        throw new ArgumentException("Clone initializer source slots must require exactly one artifact.");
-                    }
-
-                    if (space.Kind == CompositionProfileSpaceKind.OutputImage &&
-                        CompositionKind == CompositionKind.Replace &&
-                        sourceSlot.ArtifactClass != CompiledInputArtifactClass.ReferenceImage)
-                    {
-                        throw new ArgumentException("Replace output must clone a reference-image slot.");
-                    }
+                    DomainInvariant.Require(
+                        sourceSlot.Required &&
+                        sourceSlot.Cardinality == CompiledInputSlotCardinality.ExactlyOne,
+                        "Clone initializer source slots must require exactly one artifact.");
+                    DomainInvariant.Require(
+                        space.Kind != CompositionProfileSpaceKind.OutputImage ||
+                        CompositionKind != CompositionKind.Replace ||
+                        sourceSlot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage,
+                        "Replace output must clone a reference-image slot.");
 
                     _ = referencedSlotIds.Add(clone.SourceSlotId);
                     break;
@@ -363,10 +328,9 @@ internal sealed partial class CompositionProfileDefinition
             }
         }
 
-        if (_inputSlots.Any(slot => !referencedSlotIds.Contains(slot.SlotId)))
-        {
-            throw new ArgumentException("Every input slot must feed an input or clone space.");
-        }
+        DomainInvariant.Require(
+            _inputSlots.All(slot => referencedSlotIds.Contains(slot.SlotId)),
+            "Every input slot must feed an input or clone space.");
     }
 
     private void ValidateViews(IReadOnlyDictionary<string, CompositionProfileSpace> spaces)
@@ -374,13 +338,11 @@ internal sealed partial class CompositionProfileDefinition
         foreach (CompositionProfileView view in _views)
         {
             _ = RequireReference(spaces, view.SpaceId, "View references an unknown space.");
-            if (view.MapRegionId is { } regionId &&
-                !MapBinding.RequiredRegionIds.Contains(regionId, StringComparer.Ordinal) &&
-                !MapBinding.OptionalRegionIds.Contains(regionId, StringComparer.Ordinal))
-            {
-                throw new ArgumentException(
-                    "Map-region views must declare their region in mapBinding required or optional regions.");
-            }
+            DomainInvariant.Require(
+                view.MapRegionId is not { } regionId ||
+                MapBinding.RequiredRegionIds.Contains(regionId, StringComparer.Ordinal) ||
+                MapBinding.OptionalRegionIds.Contains(regionId, StringComparer.Ordinal),
+                "Map-region views must declare their region in mapBinding required or optional regions.");
         }
     }
 
@@ -389,23 +351,19 @@ internal sealed partial class CompositionProfileDefinition
         foreach (CompositionProfileMetadataBinding binding in _metadataBindings)
         {
             _ = RequireReference(spaces, binding.SpaceId, "Metadata binding references an unknown space.");
-            if (!MapBinding.RequiredMetadataStructureIds.Contains(binding.StructureId, StringComparer.Ordinal))
-            {
-                throw new ArgumentException(
-                    "Metadata bindings must declare their structure in mapBinding requirements.");
-            }
+            DomainInvariant.Require(
+                MapBinding.RequiredMetadataStructureIds.Contains(binding.StructureId, StringComparer.Ordinal),
+                "Metadata bindings must declare their structure in mapBinding requirements.");
         }
     }
 
     private void ValidateRegionAccess()
     {
-        if (_regionAccessRules.Any(rule =>
-                !MapBinding.RequiredRegionIds.Contains(rule.RegionId, StringComparer.Ordinal) &&
-                !MapBinding.OptionalRegionIds.Contains(rule.RegionId, StringComparer.Ordinal)))
-        {
-            throw new ArgumentException(
-                "Region access rules must declare their region in mapBinding required or optional regions.");
-        }
+        DomainInvariant.Require(
+            _regionAccessRules.All(rule =>
+                MapBinding.RequiredRegionIds.Contains(rule.RegionId, StringComparer.Ordinal) ||
+                MapBinding.OptionalRegionIds.Contains(rule.RegionId, StringComparer.Ordinal)),
+            "Region access rules must declare their region in mapBinding required or optional regions.");
     }
 
     private void ValidateOperations(
@@ -444,12 +402,11 @@ internal sealed partial class CompositionProfileDefinition
             }
         }
 
-        if (_processorStages.Any(stage => !_operations.Any(operation =>
+        DomainInvariant.Require(
+            _processorStages.All(stage => _operations.Any(operation =>
                 operation.Kind == CompositionOperationKind.RunExternalProcessor &&
-                StringComparer.Ordinal.Equals(operation.ProcessorStageId, stage.ProcessorStageId))))
-        {
-            throw new ArgumentException("Every processor stage must be invoked by an operation.");
-        }
+                StringComparer.Ordinal.Equals(operation.ProcessorStageId, stage.ProcessorStageId))),
+            "Every processor stage must be invoked by an operation.");
     }
 
     private void ValidateProcessors(
@@ -462,11 +419,10 @@ internal sealed partial class CompositionProfileDefinition
                 spaces,
                 processor.TargetSpaceId,
                 "Processor references an unknown target space.");
-            if (targetSpace.Kind == CompositionProfileSpaceKind.InputArtifact &&
-                processor is LegacyCombinerProfileProcessorStage)
-            {
-                throw new ArgumentException("Transform processors cannot target immutable input spaces.");
-            }
+            DomainInvariant.Require(
+                targetSpace.Kind != CompositionProfileSpaceKind.InputArtifact ||
+                processor is not LegacyCombinerProfileProcessorStage,
+                "Transform processors cannot target immutable input spaces.");
 
             foreach (string viewId in processor.AllowedReadViewIds.Concat(processor.AllowedWriteViewIds))
             {
@@ -550,10 +506,9 @@ internal sealed partial class CompositionProfileDefinition
             bindings,
             field.BindingId,
             "Validation references an unknown metadata binding.");
-        if (!binding.FieldIds.Contains(field.FieldId, StringComparer.Ordinal))
-        {
-            throw new ArgumentException("Validation references a field not selected by its metadata binding.");
-        }
+        DomainInvariant.Require(
+            binding.FieldIds.Contains(field.FieldId, StringComparer.Ordinal),
+            "Validation references a field not selected by its metadata binding.");
     }
 
     private static void RequireMutableTarget(
@@ -566,10 +521,9 @@ internal sealed partial class CompositionProfileDefinition
             targetViewId,
             "Operation references an unknown target view.");
         CompositionProfileSpace targetSpace = spaces[targetView.SpaceId];
-        if (targetSpace.Kind == CompositionProfileSpaceKind.InputArtifact)
-        {
-            throw new ArgumentException("Operations cannot target immutable input spaces.");
-        }
+        DomainInvariant.Require(
+            targetSpace.Kind != CompositionProfileSpaceKind.InputArtifact,
+            "Operations cannot target immutable input spaces.");
     }
 
     private static void RequireViewInSpace(
@@ -579,10 +533,9 @@ internal sealed partial class CompositionProfileDefinition
         string subject)
     {
         CompositionProfileView view = RequireReference(views, viewId, $"{subject} is unknown.");
-        if (!StringComparer.Ordinal.Equals(view.SpaceId, spaceId))
-        {
-            throw new ArgumentException($"{subject} must belong to processor target space '{spaceId}'.");
-        }
+        DomainInvariant.Require(
+            StringComparer.Ordinal.Equals(view.SpaceId, spaceId),
+            $"{subject} must belong to processor target space '{spaceId}'.");
     }
 
     private static TValue RequireReference<TValue>(

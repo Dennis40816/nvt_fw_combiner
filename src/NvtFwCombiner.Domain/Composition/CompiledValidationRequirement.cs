@@ -144,10 +144,7 @@ public sealed class CompiledValidationBytes : IEquatable<CompiledValidationBytes
 
     internal CompiledValidationBytes(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.IsEmpty)
-        {
-            throw new ArgumentException("Validation bytes cannot be empty.", nameof(bytes));
-        }
+        DomainInvariant.Reject(bytes.IsEmpty, "Validation bytes cannot be empty.", nameof(bytes));
 
         _bytes = bytes.ToArray();
         Hex = Convert.ToHexString(_bytes).ToLowerInvariant();
@@ -262,12 +259,11 @@ public sealed record CompiledMetadataValueValidation : CompiledValidationRequire
             expectedValues,
             "Metadata validation expected values are invalid.",
             requireValue: true);
-        if (_expectedValues.Distinct().Count() != _expectedValues.Length ||
+        DomainInvariant.Reject(
+            _expectedValues.Distinct().Count() != _expectedValues.Length ||
             (comparison is CompiledValidationMetadataComparison.Equal or CompiledValidationMetadataComparison.NotEqual &&
-             _expectedValues.Length != 1))
-        {
-            throw new ArgumentException("Metadata validation expected values are invalid.", nameof(expectedValues));
-        }
+             _expectedValues.Length != 1),
+            "Metadata validation expected values are invalid.", nameof(expectedValues));
 
         Array.Sort(_expectedValues, CompareLiterals);
         Comparison = comparison;
@@ -338,11 +334,10 @@ public sealed record CompiledRejectMetadataBytePatternValidation : CompiledValid
         Field = RequiredValue.NotNull(field);
         ArgumentNullException.ThrowIfNull(rejectedPatterns);
         _rejectedPatterns = [.. rejectedPatterns];
-        if (_rejectedPatterns.Length == 0 || _rejectedPatterns.Any(static value => !ClosedEnum.IsDefined(value)) ||
-            _rejectedPatterns.Distinct().Count() != _rejectedPatterns.Length)
-        {
-            throw new ArgumentException("Rejected byte patterns are invalid.", nameof(rejectedPatterns));
-        }
+        DomainInvariant.Reject(
+            _rejectedPatterns.Length == 0 || _rejectedPatterns.Any(static value => !ClosedEnum.IsDefined(value)) ||
+            _rejectedPatterns.Distinct().Count() != _rejectedPatterns.Length,
+            "Rejected byte patterns are invalid.", nameof(rejectedPatterns));
 
         Array.Sort(_rejectedPatterns);
         RejectedPatterns = Array.AsReadOnly(_rejectedPatterns);
@@ -363,10 +358,9 @@ public sealed record CompiledViewByteAssertionValidation : CompiledValidationReq
     {
         ViewId = RequiredValue.NotBlank(viewId);
         Expected = RequiredValue.NotNull(expected);
-        if (mask is not null && mask.Length != expected.Length)
-        {
-            throw new ArgumentException("Assertion masks must match expected byte length.", nameof(mask));
-        }
+        DomainInvariant.Reject(
+            mask is not null && mask.Length != expected.Length,
+            "Assertion masks must match expected byte length.", nameof(mask));
 
         Mask = mask;
     }

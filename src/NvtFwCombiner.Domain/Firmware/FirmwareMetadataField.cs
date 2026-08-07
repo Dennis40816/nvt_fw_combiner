@@ -198,29 +198,23 @@ public sealed class FirmwareMetadataField
         bool isInteger = encoding is FirmwareMetadataEncoding.UnsignedInteger or FirmwareMetadataEncoding.SignedInteger;
         if (!isInteger)
         {
-            if (byteOrder is not null || bitSlice is not null)
-            {
-                throw new ArgumentException("Byte and text metadata cannot declare numeric options.", nameof(encoding));
-            }
+            DomainInvariant.Reject(
+                byteOrder is not null || bitSlice is not null,
+                "Byte and text metadata cannot declare numeric options.", nameof(encoding));
 
             return;
         }
 
         ArgumentOutOfRangeException.ThrowIfGreaterThan(widthBytes, MaximumIntegerWidthBytes);
-        if (byteOrder is null)
-        {
-            throw new ArgumentException("Integer metadata requires explicit byte order.", nameof(byteOrder));
-        }
+        DomainInvariant.Reject(byteOrder is null, "Integer metadata requires explicit byte order.", nameof(byteOrder));
 
-        if (encoding == FirmwareMetadataEncoding.SignedInteger && bitSlice is not null)
-        {
-            throw new ArgumentException("Signed integer metadata cannot declare a bit slice.", nameof(bitSlice));
-        }
+        DomainInvariant.Reject(
+            encoding == FirmwareMetadataEncoding.SignedInteger && bitSlice is not null,
+            "Signed integer metadata cannot declare a bit slice.", nameof(bitSlice));
 
-        if (bitSlice is not null && bitSlice.EndExclusive > checked(widthBytes * 8))
-        {
-            throw new ArgumentException("Metadata bit slice exceeds its unsigned carrier.", nameof(bitSlice));
-        }
+        DomainInvariant.Reject(
+            bitSlice is not null && bitSlice.EndExclusive > checked(widthBytes * 8),
+            "Metadata bit slice exceeds its unsigned carrier.", nameof(bitSlice));
     }
 
     private static FirmwareMetadataValueKind ToValueKind(FirmwareMetadataEncoding encoding)

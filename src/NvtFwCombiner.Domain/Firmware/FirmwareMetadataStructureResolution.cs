@@ -82,10 +82,9 @@ public sealed class FirmwareMetadataLocatorOutcome
         bool isMarker = locatorKind == FirmwareMetadataLocatorKind.MarkerRelative;
         bool hasMarkerMatchCount = markerMatchCount is not null;
         bool hasSelectedMarkerStart = selectedMarkerStart is not null;
-        if (hasMarkerMatchCount != hasSelectedMarkerStart || isMarker != hasMarkerMatchCount)
-        {
-            throw new ArgumentException("Marker evidence must exist only for marker-relative outcomes.");
-        }
+        DomainInvariant.Reject(
+            hasMarkerMatchCount != hasSelectedMarkerStart || isMarker != hasMarkerMatchCount,
+            "Marker evidence must exist only for marker-relative outcomes.");
 
         if (markerMatchCount <= 0)
         {
@@ -133,23 +132,20 @@ public sealed class FirmwareResolvedMetadataStructure
         ArgumentNullException.ThrowIfNull(structureDefinition);
         ArgumentNullException.ThrowIfNull(locatorOutcome);
         ArgumentNullException.ThrowIfNull(decodedStructure);
-        if (!StringComparer.Ordinal.Equals(
+        DomainInvariant.Reject(
+            !StringComparer.Ordinal.Equals(
             artifactIdentity.ArtifactId,
-            decodedStructure.ArtifactBindingId))
-        {
-            throw new ArgumentException("Resolved artifact identity must match decoded structure binding.");
-        }
+            decodedStructure.ArtifactBindingId),
+            "Resolved artifact identity must match decoded structure binding.");
 
-        if (!StringComparer.Ordinal.Equals(
+        DomainInvariant.Reject(
+            !StringComparer.Ordinal.Equals(
                 structureDefinition.ArtifactBindingId,
                 decodedStructure.ArtifactBindingId) ||
             !StringComparer.Ordinal.Equals(
                 structureDefinition.StructureId,
-                decodedStructure.MetadataStructureId))
-        {
-            throw new ArgumentException(
-                "Resolved structure definition must match the decoded structure binding.");
-        }
+                decodedStructure.MetadataStructureId),
+            "Resolved structure definition must match the decoded structure binding.");
 
         var facts =
             decodedStructure.Facts.ToDictionary(
@@ -157,12 +153,10 @@ public sealed class FirmwareResolvedMetadataStructure
                 StringComparer.Ordinal);
         IReadOnlyList<FirmwareResolvedMetadataField> applicability =
             structureDefinition.Definition.ResolveFields(topology);
-        if (facts.Count != applicability.Count ||
-            applicability.Any(field => !facts.ContainsKey(field.Field.FieldId)))
-        {
-            throw new ArgumentException(
-                "Resolved field definitions must close over every decoded fact.");
-        }
+        DomainInvariant.Reject(
+            facts.Count != applicability.Count ||
+            applicability.Any(field => !facts.ContainsKey(field.Field.FieldId)),
+            "Resolved field definitions must close over every decoded fact.");
 
         _fields =
         [
@@ -223,52 +217,43 @@ public sealed class FirmwareMetadataStructureResolution
         }
 
         bool isResolved = status == FirmwareMetadataStructureResolutionStatus.Resolved;
-        if (isResolved && (failure is not null || resolved is null))
-        {
-            throw new ArgumentException("Resolved status requires only a resolved payload.");
-        }
+        DomainInvariant.Reject(
+            isResolved && (failure is not null || resolved is null),
+            "Resolved status requires only a resolved payload.");
 
-        if (!isResolved && (failure is null || resolved is not null))
-        {
-            throw new ArgumentException("Unresolved status requires only a failure reason.");
-        }
+        DomainInvariant.Reject(
+            !isResolved && (failure is null || resolved is not null),
+            "Unresolved status requires only a failure reason.");
 
-        if (status == FirmwareMetadataStructureResolutionStatus.Pending &&
+        DomainInvariant.Reject(
+            status == FirmwareMetadataStructureResolutionStatus.Pending &&
             (failure != FirmwareMetadataStructureResolutionFailure.MissingArtifact ||
-             prerequisite is null))
-        {
-            throw new ArgumentException(
-                "Pending structure resolution requires one exact missing prerequisite.");
-        }
+             prerequisite is null),
+            "Pending structure resolution requires one exact missing prerequisite.");
 
-        if (status == FirmwareMetadataStructureResolutionStatus.Rejected &&
-            failure == FirmwareMetadataStructureResolutionFailure.MissingArtifact)
-        {
-            throw new ArgumentException("A missing artifact is pending, not rejected.");
-        }
+        DomainInvariant.Reject(
+            status == FirmwareMetadataStructureResolutionStatus.Rejected &&
+            failure == FirmwareMetadataStructureResolutionFailure.MissingArtifact,
+            "A missing artifact is pending, not rejected.");
 
         bool isMarkerCardinalityRejection =
             status == FirmwareMetadataStructureResolutionStatus.Rejected &&
             failure == FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch;
-        if (observedMarkerMatchCount < 0 ||
-            isMarkerCardinalityRejection != (observedMarkerMatchCount is not null))
-        {
-            throw new ArgumentException(
-                "Marker-cardinality rejection requires its exact nonnegative observed match count, " +
-                "and no other outcome may carry one.");
-        }
+        DomainInvariant.Reject(
+            observedMarkerMatchCount < 0 ||
+            isMarkerCardinalityRejection != (observedMarkerMatchCount is not null),
+            "Marker-cardinality rejection requires its exact nonnegative observed match count, " +
+            "and no other outcome may carry one.");
 
         bool isPrerequisiteRejection =
             status == FirmwareMetadataStructureResolutionStatus.Rejected &&
             failure is
                 FirmwareMetadataStructureResolutionFailure.PrerequisiteRejected or
                 FirmwareMetadataStructureResolutionFailure.PrerequisiteValueUnsupported;
-        if (isPrerequisiteRejection != (prerequisite is not null) &&
-            status != FirmwareMetadataStructureResolutionStatus.Pending)
-        {
-            throw new ArgumentException(
-                "Only pending or prerequisite-rejected outcomes may carry prerequisite identity.");
-        }
+        DomainInvariant.Reject(
+            isPrerequisiteRejection != (prerequisite is not null) &&
+            status != FirmwareMetadataStructureResolutionStatus.Pending,
+            "Only pending or prerequisite-rejected outcomes may carry prerequisite identity.");
 
         MapId = mapId;
         ArtifactBindingId = artifactBindingId;

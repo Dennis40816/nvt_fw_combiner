@@ -11,10 +11,9 @@ public sealed class OperationProvenance
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(kind);
 
-        if (kind is not (BuiltInProfileKind or RuntimeGeneralMappingKind or SavedRuleKind))
-        {
-            throw new ArgumentException($"Unsupported operation provenance kind '{kind}'.", nameof(kind));
-        }
+        DomainInvariant.Reject(
+            kind is not (BuiltInProfileKind or RuntimeGeneralMappingKind or SavedRuleKind),
+            $"Unsupported operation provenance kind '{kind}'.", nameof(kind));
 
         if (kind is RuntimeGeneralMappingKind or SavedRuleKind)
         {

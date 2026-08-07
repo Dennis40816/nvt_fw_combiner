@@ -90,24 +90,20 @@ public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : C
         }
 
         ArgumentNullException.ThrowIfNull(expectedOuterLengths);
-        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
+        DomainInvariant.Reject(
+            expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths,
+            $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
+            nameof(expectedOuterLengths));
 
         _expectedOuterLengths = new long[expectedOuterLengths.Count];
         long previous = 0;
         for (int index = 0; index < expectedOuterLengths.Count; index++)
         {
             long value = expectedOuterLengths[index];
-            if (value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
+            DomainInvariant.Reject(
+                value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous),
+                "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
+                nameof(expectedOuterLengths));
 
             _expectedOuterLengths[index] = value;
             previous = value;
@@ -213,11 +209,9 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
         string? unexpectedOuterLengthIssueCode = null)
         : base(CompiledInputLengthRequirementKind.SourceViewCoverage)
     {
-        if ((expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null))
-        {
-            throw new ArgumentException(
-                "Expected outer lengths and their warning issue code must be declared together.");
-        }
+        DomainInvariant.Reject(
+            (expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null),
+            "Expected outer lengths and their warning issue code must be declared together.");
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
@@ -329,12 +323,10 @@ public sealed class CompiledInputSlotRequirement
                 ReferenceEquals(fixedRequirement, lengthRequirement),
             _ => false,
         };
-        if (!matchesDefinition)
-        {
-            throw new ArgumentException(
-                "Compiled input length must resolve the canonical slot definition.",
-                nameof(lengthRequirement));
-        }
+        DomainInvariant.Reject(
+            !matchesDefinition,
+            "Compiled input length must resolve the canonical slot definition.",
+            nameof(lengthRequirement));
 
         _definition = definition;
         Required = definition.Required || forceRequired;
@@ -427,14 +419,12 @@ public sealed class CompiledInputContract
             requireValue: false);
 
         var slotIds = _slots.Select(static slot => slot.SlotId).ToHashSet(StringComparer.Ordinal);
-        if (_spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||
+        DomainInvariant.Reject(
+            _spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||
             _slots.Any(slot => !_spaceBindings.Any(binding =>
-                StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId))))
-        {
-            throw new ArgumentException(
-                "Every input space binding must name one slot and every slot must bind one or more spaces.",
-                nameof(spaceBindings));
-        }
+                StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId))),
+            "Every input space binding must name one slot and every slot must bind one or more spaces.",
+            nameof(spaceBindings));
 
         Array.Sort(_slots, static (left, right) => StringComparer.Ordinal.Compare(left.SlotId, right.SlotId));
         Array.Sort(_spaceBindings, static (left, right) =>

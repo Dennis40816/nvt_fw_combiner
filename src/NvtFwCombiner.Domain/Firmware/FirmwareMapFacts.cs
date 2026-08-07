@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Closed kinds of physical or evidence-backed facts that may bind to one member/map.</summary>
@@ -54,60 +56,43 @@ public sealed record FirmwareMapFactKey
 }
 
 /// <summary>Applicability of one fact after the member identity is carried by its key.</summary>
-public sealed class FirmwareFactApplicability
+public sealed class FirmwareFactApplicability(
+    IEnumerable<string> modeIds,
+    TopologyRequirement topologyRequirement,
+    long capacityBytes,
+    IEnumerable<string>? commonFirmwareCategoryIds = null,
+    IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
 {
-    private readonly string[] _modeIds;
-    private readonly string[] _commonFirmwareCategoryIds;
-    private readonly FirmwareMetadataPredicate[] _metadataPredicates;
-
-    /// <summary>Creates one immutable non-member fact applicability shape.</summary>
-    public FirmwareFactApplicability(
-        IEnumerable<string> modeIds,
-        TopologyRequirement topologyRequirement,
-        long capacityBytes,
-        IEnumerable<string>? commonFirmwareCategoryIds = null,
-        IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
-    {
-        _modeIds = ImmutableStringSnapshot.Create(
+    /// <summary>Firmware modes accepted by this fact.</summary>
+    public IReadOnlyList<string> ModeIds { get; } = Array.AsReadOnly(
+        ImmutableStringSnapshot.Create(
             modeIds,
             nameof(modeIds),
             "At least one identifier is required.",
             "Identifiers cannot contain null or whitespace.",
-            "Identifiers must be ordinally unique.");
-        ArgumentNullException.ThrowIfNull(topologyRequirement);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
-        _commonFirmwareCategoryIds = ImmutableStringSnapshot.Create(
+            "Identifiers must be ordinally unique."));
+
+    /// <summary>Topology constraint accepted by this fact.</summary>
+    public TopologyRequirement TopologyRequirement { get; } = RequiredValue.NotNull(topologyRequirement);
+
+    /// <summary>Exact image capacity accepted by this fact.</summary>
+    public long CapacityBytes { get; } = RequiredValue.Positive(capacityBytes);
+
+    /// <summary>Common FW categories accepted by this fact; empty means category-independent.</summary>
+    public IReadOnlyList<string> CommonFirmwareCategoryIds { get; } = Array.AsReadOnly(
+        ImmutableStringSnapshot.Create(
             commonFirmwareCategoryIds ?? [],
             nameof(commonFirmwareCategoryIds),
             null,
             "Identifiers cannot contain null or whitespace.",
-            "Identifiers must be ordinally unique.");
-        _metadataPredicates = Composition.ImmutableReferenceSnapshot.Create(
-            metadataPredicates ?? [],
-            "Metadata predicates cannot contain null.",
-            parameterName: nameof(metadataPredicates));
-
-        ModeIds = Array.AsReadOnly(_modeIds);
-        TopologyRequirement = topologyRequirement;
-        CapacityBytes = capacityBytes;
-        CommonFirmwareCategoryIds = Array.AsReadOnly(_commonFirmwareCategoryIds);
-        MetadataPredicates = Array.AsReadOnly(_metadataPredicates);
-    }
-
-    /// <summary>Firmware modes accepted by this fact.</summary>
-    public IReadOnlyList<string> ModeIds { get; }
-
-    /// <summary>Topology constraint accepted by this fact.</summary>
-    public TopologyRequirement TopologyRequirement { get; }
-
-    /// <summary>Exact image capacity accepted by this fact.</summary>
-    public long CapacityBytes { get; }
-
-    /// <summary>Common FW categories accepted by this fact; empty means category-independent.</summary>
-    public IReadOnlyList<string> CommonFirmwareCategoryIds { get; }
+            "Identifiers must be ordinally unique."));
 
     /// <summary>Typed metadata predicates accepted by this fact.</summary>
-    public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates { get; }
+    public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates { get; } = Array.AsReadOnly(
+        Composition.ImmutableReferenceSnapshot.Create(
+            metadataPredicates ?? [],
+            "Metadata predicates cannot contain null.",
+            parameterName: nameof(metadataPredicates)));
 
     /// <summary>Copies the non-member portion of one canonical map applicability shape.</summary>
     public static FirmwareFactApplicability FromMap(FirmwareMapApplicability applicability)
@@ -186,114 +171,107 @@ public sealed class FirmwareFactApplicability
 }
 
 /// <summary>One target-to-source alias edge retained by immutable fact provenance.</summary>
-public sealed class FirmwareFactAliasHop
+public sealed class FirmwareFactAliasHop(
+    string aliasId,
+    FirmwareMapFactKey targetKey,
+    FirmwareMapFactKey sourceKey,
+    FirmwareFactApplicability applicability,
+    string reason,
+    IEnumerable<string> evidenceRefs)
 {
-    private readonly string[] _evidenceRefs;
-
-    /// <summary>Creates one checked alias edge.</summary>
-    public FirmwareFactAliasHop(
-        string aliasId,
-        FirmwareMapFactKey targetKey,
-        FirmwareMapFactKey sourceKey,
-        FirmwareFactApplicability applicability,
-        string reason,
-        IEnumerable<string> evidenceRefs)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(aliasId);
-        ArgumentNullException.ThrowIfNull(targetKey);
-        ArgumentNullException.ThrowIfNull(sourceKey);
-        ArgumentNullException.ThrowIfNull(applicability);
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        if (targetKey.FactKind != sourceKey.FactKind)
-        {
-            throw new ArgumentException("Alias source and target must have the same fact kind.", nameof(sourceKey));
-        }
-
-        if (targetKey == sourceKey)
-        {
-            throw new ArgumentException("An alias cannot point to the same fact key.", nameof(sourceKey));
-        }
-
-        _evidenceRefs = ImmutableStringSnapshot.Create(
-            evidenceRefs,
-            nameof(evidenceRefs),
-            "Alias evidence references must be non-empty values.",
-            "Alias evidence references must be non-empty values.",
-            "Alias evidence references must be ordinally unique.");
-        AliasId = aliasId;
-        TargetKey = targetKey;
-        SourceKey = sourceKey;
-        Applicability = applicability;
-        Reason = reason;
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
-    }
-
     /// <summary>Family-global alias identifier.</summary>
-    public string AliasId { get; }
+    public string AliasId { get; } = RequiredValue.NotBlank(aliasId);
 
     /// <summary>Effective fact identity receiving the alias.</summary>
-    public FirmwareMapFactKey TargetKey { get; }
+    public FirmwareMapFactKey TargetKey { get; } = RequiredValue.NotNull(targetKey);
 
     /// <summary>Fact identity supplying the alias value.</summary>
-    public FirmwareMapFactKey SourceKey { get; }
+    public FirmwareMapFactKey SourceKey { get; } = RequiredValue.NotNull(sourceKey);
 
     /// <summary>Requested non-member applicability for this alias edge.</summary>
-    public FirmwareFactApplicability Applicability { get; }
+    public FirmwareFactApplicability Applicability { get; } = RequiredValue.NotNull(applicability);
 
     /// <summary>Evidence-backed source explanation.</summary>
-    public string Reason { get; }
+    public string Reason { get; } = RequiredValue.NotBlank(reason);
 
     /// <summary>Alias-specific evidence references.</summary>
-    public IReadOnlyList<string> EvidenceRefs { get; }
+    public IReadOnlyList<string> EvidenceRefs { get; } = SnapshotEvidence(
+        targetKey,
+        sourceKey,
+        evidenceRefs);
 
+    private static ReadOnlyCollection<string> SnapshotEvidence(
+        FirmwareMapFactKey targetKey,
+        FirmwareMapFactKey sourceKey,
+        IEnumerable<string> evidenceRefs)
+    {
+        _ = targetKey.FactKind == sourceKey.FactKind
+            ? true
+            : throw new ArgumentException(
+                "Alias source and target must have the same fact kind.",
+                nameof(sourceKey));
+
+        return targetKey == sourceKey
+            ? throw new ArgumentException("An alias cannot point to the same fact key.", nameof(sourceKey))
+            : Array.AsReadOnly(ImmutableStringSnapshot.Create(
+                evidenceRefs,
+                nameof(evidenceRefs),
+                "Alias evidence references must be non-empty values.",
+                "Alias evidence references must be non-empty values.",
+                "Alias evidence references must be ordinally unique."));
+    }
 }
 
 /// <summary>Immutable effective-to-direct fact history used by reports and future fingerprints.</summary>
-public sealed class FirmwareFactProvenance
+public sealed class FirmwareFactProvenance(
+    FirmwareMapFactKey effectiveKey,
+    FirmwareMapFactKey directSourceKey,
+    IEnumerable<FirmwareFactAliasHop> aliasChain,
+    IEnumerable<string> directEvidenceRefs)
 {
-    private readonly FirmwareFactAliasHop[] _aliasChain;
-    private readonly string[] _directEvidenceRefs;
+    /// <summary>Fact identity visible to the target member/map.</summary>
+    public FirmwareMapFactKey EffectiveKey { get; } = RequiredValue.NotNull(effectiveKey);
 
-    /// <summary>Creates direct or aliased provenance with a contiguous target-to-source chain.</summary>
-    public FirmwareFactProvenance(
+    /// <summary>Terminal direct fact identity supplying the immutable value.</summary>
+    public FirmwareMapFactKey DirectSourceKey { get; } = RequireSameKind(
+        RequiredValue.NotNull(directSourceKey),
+        effectiveKey);
+
+    /// <summary>Ordered alias edges from effective target to direct source.</summary>
+    public IReadOnlyList<FirmwareFactAliasHop> AliasChain { get; } = SnapshotAliasChain(
+        effectiveKey,
+        directSourceKey,
+        aliasChain);
+
+    /// <summary>Evidence references owned by the terminal direct fact.</summary>
+    public IReadOnlyList<string> DirectEvidenceRefs { get; } = Array.AsReadOnly(
+        SnapshotDirectEvidenceRefs(directEvidenceRefs));
+
+    private static FirmwareMapFactKey RequireSameKind(
+        FirmwareMapFactKey directSourceKey,
+        FirmwareMapFactKey effectiveKey)
+    {
+        return effectiveKey.FactKind == directSourceKey.FactKind
+            ? directSourceKey
+            : throw new ArgumentException(
+                "Effective and direct source keys must have the same fact kind.",
+                nameof(directSourceKey));
+    }
+
+    private static ReadOnlyCollection<FirmwareFactAliasHop> SnapshotAliasChain(
         FirmwareMapFactKey effectiveKey,
         FirmwareMapFactKey directSourceKey,
-        IEnumerable<FirmwareFactAliasHop> aliasChain,
-        IEnumerable<string> directEvidenceRefs)
+        IEnumerable<FirmwareFactAliasHop> aliasChain)
     {
-        ArgumentNullException.ThrowIfNull(effectiveKey);
-        ArgumentNullException.ThrowIfNull(directSourceKey);
-        if (effectiveKey.FactKind != directSourceKey.FactKind)
-        {
-            throw new ArgumentException("Effective and direct source keys must have the same fact kind.", nameof(directSourceKey));
-        }
-
-        _aliasChain = Composition.ImmutableReferenceSnapshot.CreateUnique(
+        FirmwareFactAliasHop[] snapshot = Composition.ImmutableReferenceSnapshot.CreateUnique(
             aliasChain,
             static hop => hop.AliasId,
             "Alias chains cannot contain null.",
             "Alias chains cannot repeat an alias id.",
             StringComparer.Ordinal);
-
-        ValidateChain(effectiveKey, directSourceKey, _aliasChain);
-        _directEvidenceRefs = SnapshotDirectEvidenceRefs(directEvidenceRefs);
-        EffectiveKey = effectiveKey;
-        DirectSourceKey = directSourceKey;
-        AliasChain = Array.AsReadOnly(_aliasChain);
-        DirectEvidenceRefs = Array.AsReadOnly(_directEvidenceRefs);
+        ValidateChain(effectiveKey, directSourceKey, snapshot);
+        return Array.AsReadOnly(snapshot);
     }
-
-    /// <summary>Fact identity visible to the target member/map.</summary>
-    public FirmwareMapFactKey EffectiveKey { get; }
-
-    /// <summary>Terminal direct fact identity supplying the immutable value.</summary>
-    public FirmwareMapFactKey DirectSourceKey { get; }
-
-    /// <summary>Ordered alias edges from effective target to direct source.</summary>
-    public IReadOnlyList<FirmwareFactAliasHop> AliasChain { get; }
-
-    /// <summary>Evidence references owned by the terminal direct fact.</summary>
-    public IReadOnlyList<string> DirectEvidenceRefs { get; }
 
     private static void ValidateChain(
         FirmwareMapFactKey effectiveKey,
@@ -302,12 +280,10 @@ public sealed class FirmwareFactProvenance
     {
         if (aliasChain.Length == 0)
         {
-            if (effectiveKey != directSourceKey)
-            {
-                throw new ArgumentException(
-                    "Direct fact provenance requires equal effective and direct source keys.",
-                    nameof(directSourceKey));
-            }
+            DomainInvariant.Reject(
+                effectiveKey != directSourceKey,
+                "Direct fact provenance requires equal effective and direct source keys.",
+                nameof(directSourceKey));
 
             return;
         }
@@ -316,44 +292,36 @@ public sealed class FirmwareFactProvenance
         var visitedKeys = new HashSet<FirmwareMapFactKey> { effectiveKey };
         foreach (FirmwareFactAliasHop hop in aliasChain)
         {
-            if (hop.TargetKey != expectedTarget || hop.TargetKey.FactKind != effectiveKey.FactKind)
-            {
-                throw new ArgumentException(
-                    "Alias provenance hops must form a contiguous target-to-source chain.",
-                    nameof(aliasChain));
-            }
+            DomainInvariant.Reject(
+                hop.TargetKey != expectedTarget || hop.TargetKey.FactKind != effectiveKey.FactKind,
+                "Alias provenance hops must form a contiguous target-to-source chain.",
+                nameof(aliasChain));
 
-            if (!visitedKeys.Add(hop.SourceKey))
-            {
-                throw new ArgumentException(
-                    "Alias provenance chains cannot revisit a fact key.",
-                    nameof(aliasChain));
-            }
+            DomainInvariant.Reject(
+                !visitedKeys.Add(hop.SourceKey),
+                "Alias provenance chains cannot revisit a fact key.",
+                nameof(aliasChain));
 
             expectedTarget = hop.SourceKey;
         }
 
-        if (expectedTarget != directSourceKey)
-        {
-            throw new ArgumentException(
-                "Alias provenance must terminate at its declared direct source key.",
-                nameof(aliasChain));
-        }
+        DomainInvariant.Reject(
+            expectedTarget != directSourceKey,
+            "Alias provenance must terminate at its declared direct source key.",
+            nameof(aliasChain));
     }
 
     private static string[] SnapshotDirectEvidenceRefs(IEnumerable<string> evidenceRefs)
     {
         ArgumentNullException.ThrowIfNull(evidenceRefs);
         string[] snapshot = [.. evidenceRefs];
-        if (snapshot.Length == 0 || snapshot.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Direct evidence references must be non-empty values.", nameof(evidenceRefs));
-        }
+        DomainInvariant.Reject(
+            snapshot.Length == 0 || snapshot.Any(string.IsNullOrWhiteSpace),
+            "Direct evidence references must be non-empty values.", nameof(evidenceRefs));
 
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Direct evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
+        DomainInvariant.Reject(
+            snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length,
+            "Direct evidence references must be ordinally unique.", nameof(evidenceRefs));
 
         Array.Sort(snapshot, StringComparer.Ordinal);
         return snapshot;
@@ -361,71 +329,65 @@ public sealed class FirmwareFactProvenance
 }
 
 /// <summary>One immutable fact value bound to its effective and direct member/map identities.</summary>
-public sealed class FirmwareMapFactBinding<TFact>
+public sealed class FirmwareMapFactBinding<TFact>(
+    FirmwareMapFactKey effectiveKey,
+    FirmwareMapFactKey directSourceKey,
+    string canonicalFactId,
+    TFact value,
+    FirmwareFactApplicability applicability,
+    FirmwareFactProvenance provenance)
     where TFact : class, IFirmwareMapFact
 {
-    /// <summary>Creates one checked binding with value, applicability, and provenance kept together.</summary>
-    public FirmwareMapFactBinding(
+    /// <summary>Fact identity exposed by the effective target member/map.</summary>
+    public FirmwareMapFactKey EffectiveKey { get; } = RequiredValue.NotNull(effectiveKey);
+
+    /// <summary>Terminal direct fact identity supplying the immutable value.</summary>
+    public FirmwareMapFactKey DirectSourceKey { get; } = RequiredValue.NotNull(directSourceKey);
+
+    /// <summary>Physical fact identity that remains stable across aliases.</summary>
+    public string CanonicalFactId { get; } = RequiredValue.NotBlank(canonicalFactId);
+
+    /// <summary>Immutable canonical physical or capability value.</summary>
+    public TFact Value { get; } = RequiredValue.NotNull(value);
+
+    /// <summary>Applicability owned by this effective binding.</summary>
+    public FirmwareFactApplicability Applicability { get; } = RequiredValue.NotNull(applicability);
+
+    /// <summary>Effective-to-direct immutable evidence history.</summary>
+    public FirmwareFactProvenance Provenance { get; } = RequireValidProvenance(
+        RequiredValue.NotNull(provenance),
+        effectiveKey,
+        directSourceKey,
+        canonicalFactId,
+        value);
+
+    private static FirmwareFactProvenance RequireValidProvenance(
+        FirmwareFactProvenance provenance,
         FirmwareMapFactKey effectiveKey,
         FirmwareMapFactKey directSourceKey,
         string canonicalFactId,
-        TFact value,
-        FirmwareFactApplicability applicability,
-        FirmwareFactProvenance provenance)
+        TFact value)
     {
-        ArgumentNullException.ThrowIfNull(effectiveKey);
-        ArgumentNullException.ThrowIfNull(directSourceKey);
-        ArgumentException.ThrowIfNullOrWhiteSpace(canonicalFactId);
-        ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(applicability);
-        ArgumentNullException.ThrowIfNull(provenance);
-        if (!ClosedEnum.IsDefined(value.FactKind) ||
-            effectiveKey.FactKind != value.FactKind ||
-            directSourceKey.FactKind != value.FactKind)
-        {
-            throw new ArgumentException("Binding keys must match the immutable fact value kind.", nameof(effectiveKey));
-        }
-
-        if (!StringComparer.Ordinal.Equals(canonicalFactId, value.CanonicalFactId))
-        {
-            throw new ArgumentException("Canonical fact id must match the immutable fact value.", nameof(canonicalFactId));
-        }
-
-        if (!StringComparer.Ordinal.Equals(directSourceKey.FactId, canonicalFactId))
-        {
-            throw new ArgumentException(
+        _ = ClosedEnum.IsDefined(value.FactKind) &&
+            effectiveKey.FactKind == value.FactKind &&
+            directSourceKey.FactKind == value.FactKind
+            ? true
+            : throw new ArgumentException(
+                "Binding keys must match the immutable fact value kind.",
+                nameof(effectiveKey));
+        _ = StringComparer.Ordinal.Equals(canonicalFactId, value.CanonicalFactId)
+            ? true
+            : throw new ArgumentException(
+                "Canonical fact id must match the immutable fact value.",
+                nameof(canonicalFactId));
+        _ = StringComparer.Ordinal.Equals(directSourceKey.FactId, canonicalFactId)
+            ? true
+            : throw new ArgumentException(
                 "Direct source fact id must identify the immutable canonical fact value.",
                 nameof(directSourceKey));
-        }
 
-        if (provenance.EffectiveKey != effectiveKey || provenance.DirectSourceKey != directSourceKey)
-        {
-            throw new ArgumentException("Binding keys must match its immutable provenance.", nameof(provenance));
-        }
-
-        EffectiveKey = effectiveKey;
-        DirectSourceKey = directSourceKey;
-        CanonicalFactId = canonicalFactId;
-        Value = value;
-        Applicability = applicability;
-        Provenance = provenance;
+        return provenance.EffectiveKey == effectiveKey && provenance.DirectSourceKey == directSourceKey
+            ? provenance
+            : throw new ArgumentException("Binding keys must match its immutable provenance.", nameof(provenance));
     }
-
-    /// <summary>Fact identity exposed by the effective target member/map.</summary>
-    public FirmwareMapFactKey EffectiveKey { get; }
-
-    /// <summary>Terminal direct fact identity supplying the immutable value.</summary>
-    public FirmwareMapFactKey DirectSourceKey { get; }
-
-    /// <summary>Physical fact identity that remains stable across aliases.</summary>
-    public string CanonicalFactId { get; }
-
-    /// <summary>Immutable canonical physical or capability value.</summary>
-    public TFact Value { get; }
-
-    /// <summary>Applicability owned by this effective binding.</summary>
-    public FirmwareFactApplicability Applicability { get; }
-
-    /// <summary>Effective-to-direct immutable evidence history.</summary>
-    public FirmwareFactProvenance Provenance { get; }
 }

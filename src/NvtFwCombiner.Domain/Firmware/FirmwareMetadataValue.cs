@@ -24,10 +24,7 @@ public sealed class FirmwareMetadataBytes : IEquatable<FirmwareMetadataBytes>
     /// <summary>Creates an immutable non-empty byte value.</summary>
     public FirmwareMetadataBytes(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.IsEmpty)
-        {
-            throw new ArgumentException("Firmware metadata byte values cannot be empty.", nameof(bytes));
-        }
+        DomainInvariant.Reject(bytes.IsEmpty, "Firmware metadata byte values cannot be empty.", nameof(bytes));
 
         _bytes = bytes.ToArray();
         Hex = Convert.ToHexString(_bytes).ToLowerInvariant();

@@ -71,11 +71,9 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
         IReadOnlyList<long>? expectedOuterLengths = null,
         string? unexpectedOuterLengthIssueCode = null)
     {
-        if (expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null)
-        {
-            throw new ArgumentException(
-                "Expected outer lengths and their warning issue code must be declared together.");
-        }
+        DomainInvariant.Reject(
+            expectedOuterLengths is not null && unexpectedOuterLengthIssueCode is null,
+            "Expected outer lengths and their warning issue code must be declared together.");
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
@@ -172,19 +170,16 @@ internal sealed class CompositionInputSlotDefinition
     {
         ArgumentNullException.ThrowIfNull(acceptedExtensions);
         string[] snapshot = [.. acceptedExtensions];
-        if (snapshot.Length == 0 || snapshot.Any(static extension =>
-                extension.Length < 2 || extension[0] != '.' ||
-                extension.Skip(1).Any(static character => !char.IsAsciiLetterOrDigit(character))))
-        {
-            throw new ArgumentException(
-                "Accepted extensions must use canonical dot-prefixed alphanumeric form.",
-                nameof(acceptedExtensions));
-        }
+        DomainInvariant.Reject(
+            snapshot.Length == 0 || snapshot.Any(static extension =>
+            extension.Length < 2 || extension[0] != '.' ||
+            extension.Skip(1).Any(static character => !char.IsAsciiLetterOrDigit(character))),
+            "Accepted extensions must use canonical dot-prefixed alphanumeric form.",
+            nameof(acceptedExtensions));
 
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Accepted extensions must be ordinally unique.", nameof(acceptedExtensions));
-        }
+        DomainInvariant.Reject(
+            snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length,
+            "Accepted extensions must be ordinally unique.", nameof(acceptedExtensions));
 
         Array.Sort(snapshot, StringComparer.Ordinal);
         return snapshot;
@@ -235,75 +230,63 @@ internal sealed class CompositionInputSlotDefinition
         InputLengthRequirementDefinition lengthRequirement,
         CompiledInputNormalization normalization)
     {
-        if (artifactClass == CompiledInputArtifactClass.TpFirmware &&
+        DomainInvariant.Reject(
+            artifactClass == CompiledInputArtifactClass.TpFirmware &&
             (!IsApprovedTpLengthRequirement(lengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "TP firmware requires one approved unnormalized section or exact length rule.");
-        }
+             normalization.Kind != CompiledInputNormalizationKind.None),
+            "TP firmware requires one approved unnormalized section or exact length rule.");
 
-        if (lengthRequirement is CompiledTpMaximum256KInputLengthRequirement &&
-            artifactClass != CompiledInputArtifactClass.TpFirmware)
-        {
-            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
-        }
+        DomainInvariant.Reject(
+            lengthRequirement is CompiledTpMaximum256KInputLengthRequirement &&
+            artifactClass != CompiledInputArtifactClass.TpFirmware,
+            "The fixed 256 KiB rule is restricted to TP firmware.");
 
-        if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
+        DomainInvariant.Reject(
+            artifactClass == CompiledInputArtifactClass.DpFirmware &&
             lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
                 CompiledExactResolvedMapCapacityInputLengthRequirement or
                 CompiledDeclaredPrefixWithWarningInputLengthRequirement or
                 SourceViewCoverageInputLengthDefinition or
-                CompiledSourceViewCoverageInputLengthRequirement))
-        {
-            throw new ArgumentException("DP firmware requires an approved DP length rule.");
-        }
+                CompiledSourceViewCoverageInputLengthRequirement),
+            "DP firmware requires an approved DP length rule.");
 
-        if (artifactClass == CompiledInputArtifactClass.ReferenceImage &&
+        DomainInvariant.Reject(
+            artifactClass == CompiledInputArtifactClass.ReferenceImage &&
             (lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
                  CompiledExactResolvedMapCapacityInputLengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Reference images require exact map capacity without normalization.");
-        }
+             normalization.Kind != CompiledInputNormalizationKind.None),
+            "Reference images require exact map capacity without normalization.");
 
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
-            artifactClass != CompiledInputArtifactClass.DpFirmware)
-        {
-            throw new ArgumentException("Short-input padding is restricted to DP firmware.");
-        }
+        DomainInvariant.Reject(
+            normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
+            artifactClass != CompiledInputArtifactClass.DpFirmware,
+            "Short-input padding is restricted to DP firmware.");
 
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
+        DomainInvariant.Reject(
+            normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
             lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
-                CompiledExactResolvedMapCapacityInputLengthRequirement))
-        {
-            throw new ArgumentException("Short-input padding requires exact resolved-map capacity.");
-        }
+                CompiledExactResolvedMapCapacityInputLengthRequirement),
+            "Short-input padding requires exact resolved-map capacity.");
 
-        if (normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
-            artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
-        {
-            throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
-        }
+        DomainInvariant.Reject(
+            normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
+            artifactClass != CompiledInputArtifactClass.CtrlRamReplacement,
+            "CtrlRAM truncation requires a CtrlRAM replacement artifact.");
 
-        if (lengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
+        DomainInvariant.Reject(
+            lengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
-        }
+             normalization.Kind != CompiledInputNormalizationKind.None),
+            "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
 
-        if (lengthRequirement is SourceViewCoverageInputLengthDefinition or
+        DomainInvariant.Reject(
+            lengthRequirement is SourceViewCoverageInputLengthDefinition or
                 CompiledSourceViewCoverageInputLengthRequirement &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Source-view coverage is restricted to unnormalized immutable section sources.");
-        }
+             normalization.Kind != CompiledInputNormalizationKind.None),
+            "Source-view coverage is restricted to unnormalized immutable section sources.");
     }
 
     private static bool IsApprovedTpLengthRequirement(InputLengthRequirementDefinition lengthRequirement)
