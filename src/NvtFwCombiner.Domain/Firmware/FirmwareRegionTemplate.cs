@@ -83,22 +83,18 @@ public sealed class FirmwareRegionTemplate
             StringComparer.Ordinal);
         foreach (FirmwareRelativeRegion region in _regions)
         {
-            if (region.Range.EndExclusive > capacity)
-            {
-                throw new ArgumentException(
-                    $"Relative region '{region.RegionId}' exceeds template '{templateId}'.",
-                    nameof(regions));
-            }
+            DomainInvariant.Reject(
+                region.Range.EndExclusive > capacity,
+                $"Relative region '{region.RegionId}' exceeds template '{templateId}'.",
+                nameof(regions));
 
             if (region.ParentRegionId is { } parentId)
             {
-                if (!regionsById.TryGetValue(parentId, out FirmwareRelativeRegion? parent) ||
-                    !parent.Range.Contains(region.Range))
-                {
-                    throw new ArgumentException(
-                        $"Relative region '{region.RegionId}' requires one containing template-local parent.",
-                        nameof(regions));
-                }
+                DomainInvariant.Reject(
+                    !regionsById.TryGetValue(parentId, out FirmwareRelativeRegion? parent) ||
+                    !parent.Range.Contains(region.Range),
+                    $"Relative region '{region.RegionId}' requires one containing template-local parent.",
+                    nameof(regions));
             }
 
             ValidateParentChain(region, regionsById);
@@ -126,12 +122,10 @@ public sealed class FirmwareRegionTemplate
         var visited = new HashSet<string>(StringComparer.Ordinal);
         for (FirmwareRelativeRegion? current = start; current?.ParentRegionId is { } parentId;)
         {
-            if (!visited.Add(current.RegionId))
-            {
-                throw new ArgumentException(
-                    $"Relative region '{start.RegionId}' has a cyclic parent chain.",
-                    nameof(regionsById));
-            }
+            DomainInvariant.Reject(
+                !visited.Add(current.RegionId),
+                $"Relative region '{start.RegionId}' has a cyclic parent chain.",
+                nameof(regionsById));
 
             current = regionsById[parentId];
         }
@@ -178,14 +172,12 @@ public sealed class FirmwareRegionInstance
         [
             .. resolvedRegionIds.Keys.Order(StringComparer.Ordinal),
         ];
-        if (!expectedIds.SequenceEqual(actualIds, StringComparer.Ordinal) ||
+        DomainInvariant.Reject(
+            !expectedIds.SequenceEqual(actualIds, StringComparer.Ordinal) ||
             resolvedRegionIds.Values.Any(string.IsNullOrWhiteSpace) ||
-            resolvedRegionIds.Values.Distinct(StringComparer.Ordinal).Count() != resolvedRegionIds.Count)
-        {
-            throw new ArgumentException(
-                "A region instance requires exactly one resolved id for every template region.",
-                nameof(resolvedRegionIds));
-        }
+            resolvedRegionIds.Values.Distinct(StringComparer.Ordinal).Count() != resolvedRegionIds.Count,
+            "A region instance requires exactly one resolved id for every template region.",
+            nameof(resolvedRegionIds));
 
         _ = checked(baseOffset + template.Capacity);
         _resolvedRegionIds = new ReadOnlyDictionary<string, string>(

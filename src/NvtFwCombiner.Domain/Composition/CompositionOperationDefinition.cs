@@ -114,12 +114,10 @@ internal sealed class CompositionOperationDefinition
         }
 
         ArgumentNullException.ThrowIfNull(addendSource);
-        if (addendSource.Kind == ScalarTransformAddendSourceKind.Fixed != fixedAddend.HasValue)
-        {
-            throw new ArgumentException(
-                "Fixed scalar addends require one value; region-instance deltas must remain unresolved.",
-                nameof(fixedAddend));
-        }
+        DomainInvariant.Reject(
+            addendSource.Kind == ScalarTransformAddendSourceKind.Fixed != fixedAddend.HasValue,
+            "Fixed scalar addends require one value; region-instance deltas must remain unresolved.",
+            nameof(fixedAddend));
 
         if (addendSource.Kind == ScalarTransformAddendSourceKind.RegionInstanceDelta)
         {

@@ -11,12 +11,10 @@ public sealed partial class CompiledComposition
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(details);
-        if (details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
-        {
-            throw new ArgumentException(
-                "Only compilable v2 profiles may produce a complete composition plan.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            details.Provenance.Promotion.Stage < CompiledProfilePromotionStage.Compilable,
+            "Only compilable v2 profiles may produce a complete composition plan.",
+            nameof(details));
 
         ValidateIcNumberPolicy(details.CompositionKind, icNumberPolicy);
         ValidateV2InputRequirements(plan, details.CompositionKind, details.ExperienceId, details);
@@ -166,15 +164,13 @@ public sealed partial class CompiledComposition
     {
         ClosedEnum.ThrowIfUndefined(icNumberPolicy, "Unknown compiled IC-number policy.");
 
-        if (compositionKind == CompositionKind.Merge && icNumberPolicy != CompiledIcNumberPolicy.NotApplicable)
-        {
-            throw new ArgumentException("Merge compositions cannot accept IC-number input.", nameof(icNumberPolicy));
-        }
+        DomainInvariant.Reject(
+            compositionKind == CompositionKind.Merge && icNumberPolicy != CompiledIcNumberPolicy.NotApplicable,
+            "Merge compositions cannot accept IC-number input.", nameof(icNumberPolicy));
 
-        if (compositionKind == CompositionKind.Replace && icNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
-        {
-            throw new ArgumentException("Replace compositions require an IC-number input policy.", nameof(icNumberPolicy));
-        }
+        DomainInvariant.Reject(
+            compositionKind == CompositionKind.Replace && icNumberPolicy == CompiledIcNumberPolicy.NotApplicable,
+            "Replace compositions require an IC-number input policy.", nameof(icNumberPolicy));
     }
 
     private static void ValidateV2InputRequirements(
@@ -195,13 +191,11 @@ public sealed partial class CompiledComposition
             return;
         }
 
-        if (details.InputContract.SpaceBindings.Any(static binding =>
-                binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding))
-        {
-            throw new ArgumentException(
-                "Per-binding V2 inputs require the explicit runtime-reference-replace compilation context.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            details.InputContract.SpaceBindings.Any(static binding =>
+            binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding),
+            "Per-binding V2 inputs require the explicit runtime-reference-replace compilation context.",
+            nameof(details));
 
         var addressSpaces = plan.AddressSpaces.ToDictionary(
             static space => space.AddressSpaceId,
@@ -224,25 +218,22 @@ public sealed partial class CompiledComposition
         {
             CompiledInputSlotRequirement requirement = slots[binding.SlotId];
             string addressSpaceId = binding.AddressSpaceId;
-            if (binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
+            DomainInvariant.Reject(
+                binding.InstancePolicy != CompiledInputInstancePolicy.Singleton ||
                 !requirement.Required ||
                 requirement.Cardinality != CompiledInputSlotCardinality.ExactlyOne ||
                 requirement.Normalization is not (
                     CompiledNoInputNormalization or
                     CompiledPadShorterInputNormalization or
-                    CompiledTruncateCtrlRamInputNormalization))
-            {
-                throw new ArgumentException("Current V2 plan artifacts require singleton required inputs with no normalization, DP short-input padding, or CtrlRAM truncation.", nameof(details));
-            }
+                    CompiledTruncateCtrlRamInputNormalization),
+                "Current V2 plan artifacts require singleton required inputs with no normalization, DP short-input padding, or CtrlRAM truncation.", nameof(details));
 
-            if (!addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
+            DomainInvariant.Reject(
+                !addressSpaces.TryGetValue(addressSpaceId, out AddressSpace? addressSpace) ||
                 addressSpace.Mutability != AddressSpaceMutability.Immutable ||
-                !declaredAddressSpaceIds.Add(addressSpaceId))
-            {
-                throw new ArgumentException(
-                    "Every compiled input address space must exist once and be immutable.",
-                    nameof(details));
-            }
+                !declaredAddressSpaceIds.Add(addressSpaceId),
+                "Every compiled input address space must exist once and be immutable.",
+                nameof(details));
 
             switch (requirement.LengthRequirement)
             {
@@ -264,36 +255,30 @@ public sealed partial class CompiledComposition
 
                     break;
                 case CompiledTpMaximum256KInputLengthRequirement:
-                    if (addressSpace.Length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
+                    DomainInvariant.Reject(
+                        addressSpace.Length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
                         addressSpace.InputPaddingByte is not null ||
                         addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-                        addressSpace.AllowedInputLengths.Count != 0)
-                    {
-                        throw new ArgumentException(
-                            "TP maximum input requirements must extract their declared source span from any input within the 256 KiB limit.",
-                            nameof(details));
-                    }
+                        addressSpace.AllowedInputLengths.Count != 0,
+                        "TP maximum input requirements must extract their declared source span from any input within the 256 KiB limit.",
+                        nameof(details));
 
                     tpInputSpaces.Add(addressSpace);
                     break;
                 case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                    if (compositionKind != CompositionKind.Merge ||
-                        requirement.Normalization is not CompiledNoInputNormalization)
-                    {
-                        throw new ArgumentException(
-                            "Declared-prefix input requirements are restricted to unnormalized immutable Merge sources.",
-                            nameof(details));
-                    }
+                    DomainInvariant.Reject(
+                        compositionKind != CompositionKind.Merge ||
+                        requirement.Normalization is not CompiledNoInputNormalization,
+                        "Declared-prefix input requirements are restricted to unnormalized immutable Merge sources.",
+                        nameof(details));
 
                     declaredPrefixInputRequirements.Add((addressSpace, declaredPrefix));
                     break;
                 case CompiledSourceViewCoverageInputLengthRequirement sourceView:
-                    if (requirement.Normalization is not CompiledNoInputNormalization)
-                    {
-                        throw new ArgumentException(
-                            "Source-view coverage requires an unnormalized immutable section source.",
-                            nameof(details));
-                    }
+                    DomainInvariant.Reject(
+                        requirement.Normalization is not CompiledNoInputNormalization,
+                        "Source-view coverage requires an unnormalized immutable section source.",
+                        nameof(details));
 
                     sourceViewInputRequirements.Add((addressSpace, sourceView));
                     break;
@@ -304,22 +289,18 @@ public sealed partial class CompiledComposition
             }
         }
 
-        if (!immutableAddressSpaceIds.SequenceEqual(declaredAddressSpaceIds.Order(StringComparer.Ordinal), StringComparer.Ordinal))
-        {
-            throw new ArgumentException(
-                "Every immutable plan address space must belong to exactly one compiled input slot.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            !immutableAddressSpaceIds.SequenceEqual(declaredAddressSpaceIds.Order(StringComparer.Ordinal), StringComparer.Ordinal),
+            "Every immutable plan address space must belong to exactly one compiled input slot.",
+            nameof(details));
 
         foreach (CompiledResolvedPhysicalView view in details.RegionAccessContract.ResolvedViews)
         {
-            if (!addressSpaces.TryGetValue(view.AddressSpaceId, out AddressSpace? addressSpace) ||
-                !addressSpace.Contains(view.Range))
-            {
-                throw new ArgumentException(
-                    "Every resolved physical view must name an existing plan address space and remain within its bounds.",
-                    nameof(details));
-            }
+            DomainInvariant.Reject(
+                !addressSpaces.TryGetValue(view.AddressSpaceId, out AddressSpace? addressSpace) ||
+                !addressSpace.Contains(view.Range),
+                "Every resolved physical view must name an existing plan address space and remain within its bounds.",
+                nameof(details));
         }
 
         foreach (AddressSpace tpInputSpace in tpInputSpaces)
@@ -343,25 +324,22 @@ public sealed partial class CompiledComposition
         CompositionKind compositionKind,
         V2CompiledCompositionDetails details)
     {
-        if (compositionKind != CompositionKind.Merge ||
+        DomainInvariant.Reject(
+            compositionKind != CompositionKind.Merge ||
             plan.OutputInitialization.Kind != ImageInitializationKind.Blank ||
             details.RegionAccessContract.Requirements.Count != 0 ||
-            details.RegionAccessContract.ResolvedViews.Count != 0)
-        {
-            throw new ArgumentException(
-                "Logical-output V2 artifacts require a blank Merge output with no physical region access.",
-                nameof(details));
-        }
+            details.RegionAccessContract.ResolvedViews.Count != 0,
+            "Logical-output V2 artifacts require a blank Merge output with no physical region access.",
+            nameof(details));
 
-        if (details.InputContract.Slots.Count != 1 || details.InputContract.SpaceBindings.Count == 0)
-        {
-            throw new ArgumentException(
-                "Logical-output V2 artifacts require one slot bound to one or more concrete immutable spaces.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            details.InputContract.Slots.Count != 1 || details.InputContract.SpaceBindings.Count == 0,
+            "Logical-output V2 artifacts require one slot bound to one or more concrete immutable spaces.",
+            nameof(details));
 
         CompiledInputSlotRequirement slot = details.InputContract.Slots[0];
-        if (!slot.Required ||
+        DomainInvariant.Reject(
+            !slot.Required ||
             slot.ArtifactClass != CompiledInputArtifactClass.Auxiliary ||
             slot.Cardinality != CompiledInputSlotCardinality.OneOrMore ||
             slot.Normalization is not CompiledNoInputNormalization ||
@@ -369,12 +347,9 @@ public sealed partial class CompiledComposition
             {
                 MinimumBytes: 1,
                 MaximumBytes: int.MaxValue,
-            })
-        {
-            throw new ArgumentException(
-                "Logical-output V2 artifacts require one unnormalized auxiliary one-or-more slot bounded to Int32.MaxValue.",
-                nameof(details));
-        }
+            },
+            "Logical-output V2 artifacts require one unnormalized auxiliary one-or-more slot bounded to Int32.MaxValue.",
+            nameof(details));
 
         var addressSpaces = plan.AddressSpaces.ToDictionary(
             static space => space.AddressSpaceId,
@@ -392,16 +367,15 @@ public sealed partial class CompiledComposition
                 .Select(static binding => binding.AddressSpaceId)
                 .Order(StringComparer.Ordinal),
         ];
-        if (!immutableAddressSpaceIds.SequenceEqual(bindingAddressSpaceIds, StringComparer.Ordinal))
-        {
-            throw new ArgumentException(
-                "Logical-output V2 artifacts must bind every immutable plan space exactly once.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            !immutableAddressSpaceIds.SequenceEqual(bindingAddressSpaceIds, StringComparer.Ordinal),
+            "Logical-output V2 artifacts must bind every immutable plan space exactly once.",
+            nameof(details));
 
         foreach (CompiledInputSpaceBinding binding in details.InputContract.SpaceBindings)
         {
-            if (!StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId) ||
+            DomainInvariant.Reject(
+                !StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId) ||
                 binding.InstancePolicy != CompiledInputInstancePolicy.PerBinding ||
                 !addressSpaces.TryGetValue(binding.AddressSpaceId, out AddressSpace? addressSpace) ||
                 addressSpace.Mutability != AddressSpaceMutability.Immutable ||
@@ -409,12 +383,9 @@ public sealed partial class CompiledComposition
                 addressSpace.InputPaddingByte is not null ||
                 addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
                 addressSpace.AllowedInputLengths.Count != 0 ||
-                addressSpace.ExpectedInputLengths.Count != 0)
-            {
-                throw new ArgumentException(
-                    "Logical-output V2 bindings must be one-to-one unnormalized immutable in-memory input spaces.",
-                    nameof(details));
-            }
+                addressSpace.ExpectedInputLengths.Count != 0,
+                "Logical-output V2 bindings must be one-to-one unnormalized immutable in-memory input spaces.",
+                nameof(details));
         }
     }
 
@@ -426,26 +397,22 @@ public sealed partial class CompiledComposition
         CompiledExactResolvedMapCapacityInputLengthRequirement exact,
         AddressSpace addressSpace)
     {
-        if (exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
-            addressSpace.Length != exact.Bytes)
-        {
-            throw new ArgumentException(
-                "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
-                nameof(details));
-        }
+        DomainInvariant.Reject(
+            exact.Bytes != details.Provenance.ResolvedMap.CapacityBytes ||
+            addressSpace.Length != exact.Bytes,
+            "Exact resolved-map-capacity input requirements must agree with their immutable plan spaces.",
+            nameof(details));
 
         if (requirement.Normalization is CompiledNoInputNormalization)
         {
-            if (addressSpace.InputPaddingByte is not null ||
+            DomainInvariant.Reject(
+                addressSpace.InputPaddingByte is not null ||
                 addressSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
                 addressSpace.ExpectedInputLengths.Count != 0 ||
                 (addressSpace.AllowedInputLengths.Count != 0 &&
-                 !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes])))
-            {
-                throw new ArgumentException(
-                    "Unnormalized exact-map inputs must reject oversize bytes and accept only exact capacity when an alternate length is declared.",
-                    nameof(details));
-            }
+                 !addressSpace.AllowedInputLengths.SequenceEqual([exact.Bytes])),
+                "Unnormalized exact-map inputs must reject oversize bytes and accept only exact capacity when an alternate length is declared.",
+                nameof(details));
 
             return;
         }
@@ -494,14 +461,12 @@ public sealed partial class CompiledComposition
                 nameof(details));
         }
 
-        if (details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
+        DomainInvariant.Reject(
+            details.Provenance.Promotion.Stage != CompiledProfilePromotionStage.Supported ||
             details.Provenance.Promotion.Blockers.Count != 0 ||
-            !output.AllowsRuntimeExecution(compositionKind))
-        {
-            throw new ArgumentException(
-                "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its composition kind.",
-                nameof(details));
-        }
+            !output.AllowsRuntimeExecution(compositionKind),
+            "V2 runtime execution requires a supported, unblocked profile with a typed reject output renderer admitted for its composition kind.",
+            nameof(details));
     }
 
 }

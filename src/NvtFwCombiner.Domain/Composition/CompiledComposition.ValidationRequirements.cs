@@ -12,17 +12,15 @@ public sealed partial class CompiledComposition
         foreach (CompiledUniformInputRangeValidation validation in requirements.OfType<
                      CompiledUniformInputRangeValidation>())
         {
-            if (!addressSpaces.TryGetValue(
+            DomainInvariant.Reject(
+                !addressSpaces.TryGetValue(
                     validation.AddressSpaceId,
                     out AddressSpace? addressSpace) ||
                 addressSpace.Mutability != AddressSpaceMutability.Immutable ||
                 validation.Ranges.Any(range =>
-                    range.EndExclusive > addressSpace.Length))
-            {
-                throw new ArgumentException(
-                    $"Compiled validation rule '{validation.RuleId}' must inspect complete ranges inside one immutable input address space.",
-                    nameof(requirements));
-            }
+                    range.EndExclusive > addressSpace.Length),
+                $"Compiled validation rule '{validation.RuleId}' must inspect complete ranges inside one immutable input address space.",
+                nameof(requirements));
         }
     }
 }

@@ -46,7 +46,8 @@ public sealed partial class CompiledComposition
             ArtifactClass: CompiledInputArtifactClass.Auxiliary,
             Normalization: CompiledNoInputNormalization,
         };
-        if (details.InputContract.Slots.Count != 2 || referenceSlots.Length != 1 || sourceSlots.Length != 1 ||
+        DomainInvariant.Reject(
+            details.InputContract.Slots.Count != 2 || referenceSlots.Length != 1 || sourceSlots.Length != 1 ||
             referenceSlots[0] is not
             {
                 Required: true,
@@ -64,12 +65,9 @@ public sealed partial class CompiledComposition
                     MaximumBytes: int.MaxValue,
                 },
             } ||
-            !sourcePolicyIsValid)
-        {
-            throw new ArgumentException(
-                "Map-bound runtime reference-replace artifacts require one exact reference slot and one typed per-binding source with its closed normalization policy.",
-                nameof(details));
-        }
+            !sourcePolicyIsValid,
+            "Map-bound runtime reference-replace artifacts require one exact reference slot and one typed per-binding source with its closed normalization policy.",
+            nameof(details));
 
         CompiledInputSpaceBinding[] referenceBindings =
         [
@@ -81,17 +79,15 @@ public sealed partial class CompiledComposition
             .. details.InputContract.SpaceBindings.Where(binding =>
                 StringComparer.Ordinal.Equals(binding.SlotId, sourceSlots[0].SlotId)),
         ];
-        if (referenceBindings.Length != 1 || sourceBindings.Length == 0 ||
+        DomainInvariant.Reject(
+            referenceBindings.Length != 1 || sourceBindings.Length == 0 ||
             referenceBindings[0].InstancePolicy != CompiledInputInstancePolicy.Singleton ||
             sourceBindings.Any(static binding => binding.InstancePolicy != CompiledInputInstancePolicy.PerBinding) ||
             !StringComparer.Ordinal.Equals(
                 plan.OutputInitialization.ReferenceSpaceId,
-                referenceBindings[0].AddressSpaceId))
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace bindings must contain exactly one singleton output reference and one or more per-binding auxiliary sources.",
-                nameof(details));
-        }
+                referenceBindings[0].AddressSpaceId),
+            "Runtime reference-replace bindings must contain exactly one singleton output reference and one or more per-binding auxiliary sources.",
+            nameof(details));
 
         var spaces = plan.AddressSpaces.ToDictionary(static space => space.AddressSpaceId, StringComparer.Ordinal);
         string[] immutableAddressSpaceIds =
@@ -107,27 +103,23 @@ public sealed partial class CompiledComposition
                 .Select(static binding => binding.AddressSpaceId)
                 .Order(StringComparer.Ordinal),
         ];
-        if (!immutableAddressSpaceIds.SequenceEqual(bindingAddressSpaceIds, StringComparer.Ordinal) ||
+        DomainInvariant.Reject(
+            !immutableAddressSpaceIds.SequenceEqual(bindingAddressSpaceIds, StringComparer.Ordinal) ||
             plan.AddressSpaces.Count != bindingAddressSpaceIds.Length + 1 ||
-            plan.OutputInitialization.Capacity != details.Provenance.ResolvedMap.CapacityBytes)
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace artifacts must bind every immutable plan space once and declare only the reference-cloned output as mutable.",
-                nameof(details));
-        }
+            plan.OutputInitialization.Capacity != details.Provenance.ResolvedMap.CapacityBytes,
+            "Runtime reference-replace artifacts must bind every immutable plan space once and declare only the reference-cloned output as mutable.",
+            nameof(details));
 
-        if (!spaces.TryGetValue(referenceBindings[0].AddressSpaceId, out AddressSpace? referenceSpace) ||
+        DomainInvariant.Reject(
+            !spaces.TryGetValue(referenceBindings[0].AddressSpaceId, out AddressSpace? referenceSpace) ||
             referenceSpace.Mutability != AddressSpaceMutability.Immutable ||
             referenceSpace.Length != details.Provenance.ResolvedMap.CapacityBytes ||
             referenceSpace.InputPaddingByte is not null ||
             referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject ||
             referenceSpace.AllowedInputLengths.Count != 0 ||
-            referenceSpace.ExpectedInputLengths.Count != 0)
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace output must clone one exact unnormalized immutable resolved-map reference.",
-                nameof(details));
-        }
+            referenceSpace.ExpectedInputLengths.Count != 0,
+            "Runtime reference-replace output must clone one exact unnormalized immutable resolved-map reference.",
+            nameof(details));
 
         var sourceAddressSpaceIds = new HashSet<string>(StringComparer.Ordinal);
         InputOversizePolicy expectedSourceOversizePolicy = usesCtrlRamSource
@@ -135,19 +127,17 @@ public sealed partial class CompiledComposition
             : InputOversizePolicy.Reject;
         foreach (CompiledInputSpaceBinding sourceBinding in sourceBindings)
         {
-            if (!spaces.TryGetValue(sourceBinding.AddressSpaceId, out AddressSpace? sourceSpace) ||
+            DomainInvariant.Reject(
+                !spaces.TryGetValue(sourceBinding.AddressSpaceId, out AddressSpace? sourceSpace) ||
                 sourceSpace.Mutability != AddressSpaceMutability.Immutable ||
                 sourceSpace.Length is < 1 or > int.MaxValue ||
                 sourceSpace.InputPaddingByte is not null ||
                 sourceSpace.InputOversizePolicy != expectedSourceOversizePolicy ||
                 sourceSpace.AllowedInputLengths.Count != 0 ||
                 sourceSpace.ExpectedInputLengths.Count != 0 ||
-                !sourceAddressSpaceIds.Add(sourceBinding.AddressSpaceId))
-            {
-                throw new ArgumentException(
-                    "Runtime reference-replace source bindings must be unique immutable inputs with their typed normalization policy.",
-                    nameof(details));
-            }
+                !sourceAddressSpaceIds.Add(sourceBinding.AddressSpaceId),
+                "Runtime reference-replace source bindings must be unique immutable inputs with their typed normalization policy.",
+                nameof(details));
         }
 
         ValidateRuntimeReferenceReplaceViews(
@@ -158,18 +148,16 @@ public sealed partial class CompiledComposition
         CompositionOperation[] mappingOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.ReplaceRange)];
         CompositionOperation[] firmwareVersionOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.PatchScalar)];
         CompositionOperation[] processorOperations = [.. plan.OrderedOperations.Where(static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor)];
-        if (mappingOperations.Length == 0 ||
+        DomainInvariant.Reject(
+            mappingOperations.Length == 0 ||
             firmwareVersionOperations.Length + mappingOperations.Length + processorOperations.Length != plan.OrderedOperations.Count ||
             mappingOperations.Any(operation =>
                 operation.OverlapPolicy != OverlapPolicy.Reject ||
                 !StringComparer.Ordinal.Equals(operation.TargetSpaceId, plan.OutputSpaceId) ||
                 operation.SourceSpaceId is null ||
-                !sourceAddressSpaceIds.Contains(operation.SourceSpaceId)))
-        {
-            throw new ArgumentException(
-                "Runtime reference-replace plans require only reject-overlap ReplaceRange operations from declared sources into the output.",
-                nameof(plan));
-        }
+                !sourceAddressSpaceIds.Contains(operation.SourceSpaceId)),
+            "Runtime reference-replace plans require only reject-overlap ReplaceRange operations from declared sources into the output.",
+            nameof(plan));
 
         int versionValidationCount = details.Provenance.ValidationRequirements
             .Count(static requirement => requirement is CompiledFirmwareConfigBackupVersionValidation);
@@ -183,38 +171,32 @@ public sealed partial class CompiledComposition
                   operation.OverlapPolicy == OverlapPolicy.Reject &&
                   operation.TargetSpaceId == plan.OutputSpaceId &&
                   operation.Sequence < mappingOperations[0].Sequence);
-        if (!versionEditValid)
-        {
-            throw new ArgumentException(
-                "Runtime CtrlRAM TP-version edits require two early typed patches and one matching final validation.",
-                nameof(plan));
-        }
+        DomainInvariant.Reject(
+            !versionEditValid,
+            "Runtime CtrlRAM TP-version edits require two early typed patches and one matching final validation.",
+            nameof(plan));
 
-        if (usesCtrlRamSource && mappingOperations.Any(mapping =>
-                runtimeContext.ResolvedMap.ImageMap.Regions
-                    .Where(region => region.Range.Contains(mapping.TargetRange))
-                    .OrderBy(static region => region.Range.Length)
-                    .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
-                    .FirstOrDefault() is not
-                    {
-                        Owner: FirmwareRegionOwner.Tp,
-                        Kind: FirmwareRegionKind.CtrlRam,
-                    }))
-        {
-            throw new ArgumentException(
-                "CtrlRAM runtime reference-replace mappings must target canonical TP-owned CtrlRAM regions.",
-                nameof(plan));
-        }
+        DomainInvariant.Reject(
+            usesCtrlRamSource && mappingOperations.Any(mapping =>
+            runtimeContext.ResolvedMap.ImageMap.Regions
+                .Where(region => region.Range.Contains(mapping.TargetRange))
+                .OrderBy(static region => region.Range.Length)
+                .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
+                .FirstOrDefault() is not
+                {
+                    Owner: FirmwareRegionOwner.Tp,
+                    Kind: FirmwareRegionKind.CtrlRam,
+                }),
+            "CtrlRAM runtime reference-replace mappings must target canonical TP-owned CtrlRAM regions.",
+            nameof(plan));
 
         var referencedSourceAddressSpaceIds = mappingOperations
             .Select(static operation => operation.SourceSpaceId)
             .ToHashSet(StringComparer.Ordinal);
-        if (!referencedSourceAddressSpaceIds.SetEquals(sourceAddressSpaceIds))
-        {
-            throw new ArgumentException(
-                "Every runtime reference-replace source binding must participate in at least one operation.",
-                nameof(plan));
-        }
+        DomainInvariant.Reject(
+            !referencedSourceAddressSpaceIds.SetEquals(sourceAddressSpaceIds),
+            "Every runtime reference-replace source binding must participate in at least one operation.",
+            nameof(plan));
 
         ValidateRuntimeReferenceReplaceProcessor(
             plan,
@@ -233,7 +215,8 @@ public sealed partial class CompiledComposition
     {
         AddressSpace output = plan.AddressSpaces.Single(space =>
             StringComparer.Ordinal.Equals(space.AddressSpaceId, plan.OutputSpaceId));
-        if ((!runtimeContext.AllowsConditionalProcessor && resolvedViews.Count != 0) ||
+        DomainInvariant.Reject(
+            (!runtimeContext.AllowsConditionalProcessor && resolvedViews.Count != 0) ||
             (!runtimeContext.AllowsConditionalProcessor &&
              runtimeContext.ProcessorWriteViewIds.Count != 0) ||
             resolvedViews.Any(view =>
@@ -242,12 +225,9 @@ public sealed partial class CompiledComposition
             runtimeContext.ProcessorWriteViewIds.Any(writeViewId =>
                 !resolvedViews.Any(view => StringComparer.Ordinal.Equals(
                     view.ViewId,
-                    writeViewId))))
-        {
-            throw new ArgumentException(
-                "Runtime reference Replace processor views must be profile-owned physical ranges inside the cloned output image.",
-                nameof(resolvedViews));
-        }
+                    writeViewId))),
+            "Runtime reference Replace processor views must be profile-owned physical ranges inside the cloned output image.",
+            nameof(resolvedViews));
     }
 
     private static void ValidateRuntimeReferenceReplaceProcessor(
@@ -263,50 +243,42 @@ public sealed partial class CompiledComposition
             runtimeContext.ResolvedMap.ImageMap.Regions.Any(region =>
                 region.Owner == FirmwareRegionOwner.Tp &&
                 region.Range.Overlaps(mapping.TargetRange)));
-        if (processorOperations.Length != (touchesTp ? 1 : 0) ||
-            (touchesTp && !runtimeContext.AllowsConditionalProcessor))
-        {
-            throw new ArgumentException(
-                "Runtime reference Replace requires exactly one approved processor after TP mappings and no processor for mappings outside TP regions.",
-                nameof(processorOperations));
-        }
+        DomainInvariant.Reject(
+            processorOperations.Length != (touchesTp ? 1 : 0) ||
+            (touchesTp && !runtimeContext.AllowsConditionalProcessor),
+            "Runtime reference Replace requires exactly one approved processor after TP mappings and no processor for mappings outside TP regions.",
+            nameof(processorOperations));
 
         if (processorOperations.Length == 0)
         {
             return;
         }
 
-        if (runtimeContext.ProcessorWriteViewIds.Count == 0)
-        {
-            throw new ArgumentException(
-                "Runtime reference Replace processor authority requires exact profile write-view identities.",
-                nameof(processorOperations));
-        }
+        DomainInvariant.Reject(
+            runtimeContext.ProcessorWriteViewIds.Count == 0,
+            "Runtime reference Replace processor authority requires exact profile write-view identities.",
+            nameof(processorOperations));
 
         CompositionOperation processor = processorOperations[0];
         ExternalProcessorInvocation invocation = processor.ExternalProcessorInvocation!;
-        if (processor.Sequence != int.MaxValue ||
+        DomainInvariant.Reject(
+            processor.Sequence != int.MaxValue ||
             processor.OverlapPolicy != OverlapPolicy.ReplaceExisting ||
             !ReferenceEquals(processor, plan.OrderedOperations[^1]) ||
             !StringComparer.Ordinal.Equals(processor.TargetSpaceId, plan.OutputSpaceId) ||
             processor.TargetRange.Start != 0 ||
             invocation.StagedSourceBindings.Count != 0 ||
-            invocation.StagedArtifactBindings.Count != 0)
-        {
-            throw new ArgumentException(
-                "The runtime reference Replace processor must be the single final profile-owned output refresh with no staged source artifacts.",
-                nameof(processorOperations));
-        }
+            invocation.StagedArtifactBindings.Count != 0,
+            "The runtime reference Replace processor must be the single final profile-owned output refresh with no staged source artifacts.",
+            nameof(processorOperations));
 
-        if (!TryResolveFirmwareVersionBackupWrites(
-                runtimeContext.ResolvedMap,
-                firmwareVersionOperations,
-                out ByteRange[] firmwareVersionBackupWrites))
-        {
-            throw new ArgumentException(
-                "Runtime CtrlRAM TP-version edits must authorize only their resolved FWConfig Backup fields for postbuild propagation.",
-                nameof(firmwareVersionOperations));
-        }
+        DomainInvariant.Reject(
+            !TryResolveFirmwareVersionBackupWrites(
+            runtimeContext.ResolvedMap,
+            firmwareVersionOperations,
+            out ByteRange[] firmwareVersionBackupWrites),
+            "Runtime CtrlRAM TP-version edits must authorize only their resolved FWConfig Backup fields for postbuild propagation.",
+            nameof(firmwareVersionOperations));
 
         ByteRange[] processorRanges =
         [
@@ -324,15 +296,13 @@ public sealed partial class CompiledComposition
              invocation.AllowedWriteRanges
                  .Where(range => IsCanonicalCtrlRamRange(runtimeContext.ResolvedMap.ImageMap, range))
                  .All(range => mappingOperations.Any(mapping => mapping.TargetRange.Contains(range))));
-        if (resolvedViews.Count == 0 ||
+        DomainInvariant.Reject(
+            resolvedViews.Count == 0 ||
             !everyProcessorRangeHasProvenance ||
             !ctrlRamWritesMatchMappings ||
-            (!usesCtrlRamSource && resolvedViews.Any(view => !processorRanges.Contains(view.Range))))
-        {
-            throw new ArgumentException(
-                "Every runtime reference Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
-                nameof(resolvedViews));
-        }
+            (!usesCtrlRamSource && resolvedViews.Any(view => !processorRanges.Contains(view.Range))),
+            "Every runtime reference Replace processor target, read, and write range must retain profile-owned physical-view provenance.",
+            nameof(resolvedViews));
     }
 
     private static bool IsCanonicalCtrlRamRange(FirmwareImageMap map, ByteRange range)

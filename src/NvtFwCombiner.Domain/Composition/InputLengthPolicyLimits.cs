@@ -11,12 +11,10 @@ public static class InputLengthPolicyLimits
         string parameterName)
     {
         ArgumentNullException.ThrowIfNull(expectedOuterLengths, parameterName);
-        if (expectedOuterLengths.Count is 0 or > MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {MaximumExpectedInputLengths} values.",
-                parameterName);
-        }
+        DomainInvariant.Reject(
+            expectedOuterLengths.Count is 0 or > MaximumExpectedInputLengths,
+            $"Expected outer lengths must contain between 1 and {MaximumExpectedInputLengths} values.",
+            parameterName);
 
         long[] snapshot = [.. expectedOuterLengths];
         return snapshot.Where((value, index) => value <= 0 ||

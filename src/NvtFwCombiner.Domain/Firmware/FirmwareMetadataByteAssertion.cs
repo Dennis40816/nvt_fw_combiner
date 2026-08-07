@@ -48,15 +48,13 @@ public sealed class FirmwareMetadataByteAssertion
         ReadOnlySpan<byte> expectedBytes,
         ReadOnlySpan<byte> maskBytes)
     {
-        if (expectedBytes.IsEmpty)
-        {
-            throw new ArgumentException("Firmware metadata assertions cannot be empty.", nameof(expectedBytes));
-        }
+        DomainInvariant.Reject(
+            expectedBytes.IsEmpty,
+            "Firmware metadata assertions cannot be empty.", nameof(expectedBytes));
 
-        if (maskBytes.Length != expectedBytes.Length)
-        {
-            throw new ArgumentException("Firmware metadata assertion masks must match expected length.", nameof(maskBytes));
-        }
+        DomainInvariant.Reject(
+            maskBytes.Length != expectedBytes.Length,
+            "Firmware metadata assertion masks must match expected length.", nameof(maskBytes));
 
         bool hasSetBit = false;
         bool hasClearedBit = false;
@@ -65,12 +63,10 @@ public sealed class FirmwareMetadataByteAssertion
             byte mask = maskBytes[index];
             hasSetBit |= mask != 0;
             hasClearedBit |= mask != byte.MaxValue;
-            if ((expectedBytes[index] & ~mask) != 0)
-            {
-                throw new ArgumentException(
-                    "Firmware metadata assertion expected bits outside the mask must be zero.",
-                    nameof(expectedBytes));
-            }
+            DomainInvariant.Reject(
+                (expectedBytes[index] & ~mask) != 0,
+                "Firmware metadata assertion expected bits outside the mask must be zero.",
+                nameof(expectedBytes));
         }
 
         return !hasSetBit

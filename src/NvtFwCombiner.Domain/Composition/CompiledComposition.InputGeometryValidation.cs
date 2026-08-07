@@ -15,54 +15,48 @@ public sealed partial class CompiledComposition
             hasSourceView = true;
         }
 
-        if (!hasSourceView ||
+        DomainInvariant.Reject(
+            !hasSourceView ||
             maximumEndExclusive > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes ||
             addressSpace.Length != maximumEndExclusive ||
             addressSpace.InputPaddingByte is not null ||
             addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-            addressSpace.AllowedInputLengths.Count != 0)
-        {
-            throw new ArgumentException(
-                "TP maximum input requirements must extract the maximum resolved source span while accepting inputs through the 256 KiB limit.",
-                nameof(addressSpace));
-        }
+            addressSpace.AllowedInputLengths.Count != 0,
+            "TP maximum input requirements must extract the maximum resolved source span while accepting inputs through the 256 KiB limit.",
+            nameof(addressSpace));
     }
 
     private static void ValidateDeclaredPrefixInputGeometry(
         AddressSpace addressSpace,
         CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
     {
-        if (addressSpace.Length != requirement.RequiredEndExclusive ||
+        DomainInvariant.Reject(
+            addressSpace.Length != requirement.RequiredEndExclusive ||
             addressSpace.InputPaddingByte is not null ||
             addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
             addressSpace.AllowedInputLengths.Count != 0 ||
             !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedOuterLengths) ||
             !StringComparer.Ordinal.Equals(
                 addressSpace.UnexpectedInputLengthIssueCode,
-                requirement.UnexpectedOuterLengthIssueCode))
-        {
-            throw new ArgumentException(
-                "Declared-prefix input requirements must bind the exact execution prefix, outer-length expectations, extraction policy, and warning code.",
-                nameof(addressSpace));
-        }
+                requirement.UnexpectedOuterLengthIssueCode),
+            "Declared-prefix input requirements must bind the exact execution prefix, outer-length expectations, extraction policy, and warning code.",
+            nameof(addressSpace));
     }
 
     private static void ValidateSourceViewInputGeometry(
         AddressSpace addressSpace,
         CompiledSourceViewCoverageInputLengthRequirement requirement)
     {
-        if (addressSpace.InputPaddingByte is not null ||
+        DomainInvariant.Reject(
+            addressSpace.InputPaddingByte is not null ||
             addressSpace.InputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
             addressSpace.AllowedInputLengths.Count != 0 ||
             !addressSpace.ExpectedInputLengths.SequenceEqual(requirement.ExpectedOuterLengths) ||
             requirement.ExpectedOuterLengths.Any(length => length < addressSpace.Length) ||
             !StringComparer.Ordinal.Equals(
                 addressSpace.UnexpectedInputLengthIssueCode,
-                requirement.UnexpectedOuterLengthIssueCode))
-        {
-            throw new ArgumentException(
-                "Source-view coverage requirements must bind one compiler-derived source span, optional outer-length diagnostics, and declared-range extraction.",
-                nameof(addressSpace));
-        }
+                requirement.UnexpectedOuterLengthIssueCode),
+            "Source-view coverage requirements must bind one compiler-derived source span, optional outer-length diagnostics, and declared-range extraction.",
+            nameof(addressSpace));
     }
 }

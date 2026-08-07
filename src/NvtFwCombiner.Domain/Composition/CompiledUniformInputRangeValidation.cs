@@ -40,13 +40,11 @@ public sealed record CompiledUniformInputRangeValidation : CompiledValidationReq
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentNullException.ThrowIfNull(ranges);
         _ranges = [.. ranges];
-        if (_ranges.Length == 0 ||
-            _ranges.Distinct().Count() != _ranges.Length)
-        {
-            throw new ArgumentException(
-                "Uniform-input validation requires unique nonempty ranges.",
-                nameof(ranges));
-        }
+        DomainInvariant.Reject(
+            _ranges.Length == 0 ||
+            _ranges.Distinct().Count() != _ranges.Length,
+            "Uniform-input validation requires unique nonempty ranges.",
+            nameof(ranges));
 
         Array.Sort(_ranges, static (left, right) =>
         {
@@ -55,12 +53,10 @@ public sealed record CompiledUniformInputRangeValidation : CompiledValidationReq
         });
         for (int index = 1; index < _ranges.Length; index++)
         {
-            if (_ranges[index - 1].Overlaps(_ranges[index]))
-            {
-                throw new ArgumentException(
-                    "Uniform-input validation ranges must not overlap.",
-                    nameof(ranges));
-            }
+            DomainInvariant.Reject(
+                _ranges[index - 1].Overlaps(_ranges[index]),
+                "Uniform-input validation ranges must not overlap.",
+                nameof(ranges));
         }
 
         AddressSpaceId = addressSpaceId;

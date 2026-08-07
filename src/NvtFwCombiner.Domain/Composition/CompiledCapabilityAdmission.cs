@@ -11,15 +11,13 @@ public sealed class CompiledCapabilityAdmission
     {
         RequiredCapabilityId = RequiredValue.NotBlank(requiredCapabilityId);
         Binding = RequiredValue.NotNull(binding);
-        if (!StringComparer.Ordinal.Equals(requiredCapabilityId, binding.Value.CapabilityId) ||
+        DomainInvariant.Reject(
+            !StringComparer.Ordinal.Equals(requiredCapabilityId, binding.Value.CapabilityId) ||
             binding.Value.State != FirmwareCapabilityState.ConfirmedPresent ||
             binding.EffectiveKey.FactKind != FirmwareFactKind.Capability ||
-            binding.DirectSourceKey.FactKind != FirmwareFactKind.Capability)
-        {
-            throw new ArgumentException(
-                "Compiled capability admission requires one confirmed-present capability binding.",
-                nameof(binding));
-        }
+            binding.DirectSourceKey.FactKind != FirmwareFactKind.Capability,
+            "Compiled capability admission requires one confirmed-present capability binding.",
+            nameof(binding));
 
     }
 

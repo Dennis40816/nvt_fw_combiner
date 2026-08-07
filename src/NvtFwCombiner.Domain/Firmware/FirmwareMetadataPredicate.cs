@@ -47,16 +47,14 @@ public sealed class FirmwareMetadataPredicate
             "Metadata predicates require non-null expected values.",
             requireValue: true);
 
-        if (_expectedValues.Distinct().Count() != _expectedValues.Length)
-        {
-            throw new ArgumentException("Metadata predicate expected values must be unique.", nameof(expectedValues));
-        }
+        DomainInvariant.Reject(
+            _expectedValues.Distinct().Count() != _expectedValues.Length,
+            "Metadata predicate expected values must be unique.", nameof(expectedValues));
 
-        if (comparison is FirmwareMetadataPredicateOperator.Equal or FirmwareMetadataPredicateOperator.NotEqual &&
-            _expectedValues.Length != 1)
-        {
-            throw new ArgumentException("Equal and not-equal predicates require exactly one value.", nameof(expectedValues));
-        }
+        DomainInvariant.Reject(
+            comparison is FirmwareMetadataPredicateOperator.Equal or FirmwareMetadataPredicateOperator.NotEqual &&
+            _expectedValues.Length != 1,
+            "Equal and not-equal predicates require exactly one value.", nameof(expectedValues));
 
         MetadataStructureId = metadataStructureId;
         FieldId = fieldId;

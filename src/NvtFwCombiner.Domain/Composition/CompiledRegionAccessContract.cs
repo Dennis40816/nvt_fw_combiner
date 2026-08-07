@@ -66,13 +66,11 @@ public sealed class CompiledResolvedPhysicalView
             governingRegionChain,
             "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
             requireValue: true);
-        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _governingRegionChain.Length)
-        {
-            throw new ArgumentException(
-                "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
-                nameof(governingRegionChain));
-        }
+        DomainInvariant.Reject(
+            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+            _governingRegionChain.Length,
+            "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
+            nameof(governingRegionChain));
 
         ViewId = viewId;
         AddressSpaceId = addressSpaceId;
@@ -116,23 +114,20 @@ public sealed class CompiledRegionAccessRequirement
             access == CompiledRegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
-        if (access != CompiledRegionAccessKind.Parts && _allowedSubregionIds.Length != 0)
-        {
-            throw new ArgumentException("Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
-        }
+        DomainInvariant.Reject(
+            access != CompiledRegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
+            "Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
 
         _governingRegionChain = ImmutableReferenceSnapshot.Create(
             governingRegionChain,
             "Compiled region access requires one non-empty, non-repeating ancestor chain ending at the target region.",
             requireValue: true);
-        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+        DomainInvariant.Reject(
+            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
             _governingRegionChain.Length ||
-            !StringComparer.Ordinal.Equals(_governingRegionChain[^1].RegionId, regionId))
-        {
-            throw new ArgumentException(
-                "Compiled access rules require the complete root-to-declared-region physical chain.",
-                nameof(governingRegionChain));
-        }
+            !StringComparer.Ordinal.Equals(_governingRegionChain[^1].RegionId, regionId),
+            "Compiled access rules require the complete root-to-declared-region physical chain.",
+            nameof(governingRegionChain));
 
         RegionId = regionId;
         Access = access;

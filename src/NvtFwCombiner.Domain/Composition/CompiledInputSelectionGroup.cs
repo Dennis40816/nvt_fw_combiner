@@ -21,22 +21,18 @@ internal sealed class InputSelectionGroupDefinition
             _ = CanonicalPolicyValueRules.RequireCanonicalId(memberSlotId, nameof(memberSlotIds));
         }
 
-        if (_memberSlotIds.Length == 0 ||
-            _memberSlotIds.Distinct(StringComparer.Ordinal).Count() != _memberSlotIds.Length)
-        {
-            throw new ArgumentException(
-                "Selection-group member ids must be non-empty and ordinally unique.",
-                nameof(memberSlotIds));
-        }
+        DomainInvariant.Reject(
+            _memberSlotIds.Length == 0 ||
+            _memberSlotIds.Distinct(StringComparer.Ordinal).Count() != _memberSlotIds.Length,
+            "Selection-group member ids must be non-empty and ordinally unique.",
+            nameof(memberSlotIds));
 
-        if (minimumSelected < 0 ||
+        DomainInvariant.Reject(
+            minimumSelected < 0 ||
             maximumSelected < minimumSelected ||
-            maximumSelected > _memberSlotIds.Length)
-        {
-            throw new ArgumentException(
-                "Selection bounds must satisfy 0 <= minimum <= maximum <= member count.",
-                nameof(maximumSelected));
-        }
+            maximumSelected > _memberSlotIds.Length,
+            "Selection bounds must satisfy 0 <= minimum <= maximum <= member count.",
+            nameof(maximumSelected));
 
         Array.Sort(_memberSlotIds, StringComparer.Ordinal);
         MinimumSelected = minimumSelected;
@@ -100,25 +96,21 @@ public sealed class CompiledInputSelectionGroup
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
             ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-            if (!members.Contains(slotId) || applicable.Contains(slotId) || !reasons.TryAdd(slotId, reason))
-            {
-                throw new ArgumentException(
-                    "Not-applicable reasons may name only unique, non-applicable selection-group members.",
-                    nameof(notApplicableReasons));
-            }
+            DomainInvariant.Reject(
+                !members.Contains(slotId) || applicable.Contains(slotId) || !reasons.TryAdd(slotId, reason),
+                "Not-applicable reasons may name only unique, non-applicable selection-group members.",
+                nameof(notApplicableReasons));
         }
 
         _notApplicableReasons = new ReadOnlyDictionary<string, string>(reasons);
-        if (!applicable.IsSubsetOf(members) ||
+        DomainInvariant.Reject(
+            !applicable.IsSubsetOf(members) ||
             !_selectedSlotIds.All(applicable.Contains) ||
             maximumSelected < definition.MinimumSelected ||
             maximumSelected > applicable.Count ||
             _selectedSlotIds.Length < definition.MinimumSelected ||
-            _selectedSlotIds.Length > maximumSelected)
-        {
-            throw new ArgumentException(
-                "Compiled selection groups require valid member/applicability subsets and selected-count bounds.");
-        }
+            _selectedSlotIds.Length > maximumSelected,
+            "Compiled selection groups require valid member/applicability subsets and selected-count bounds.");
 
         _definition = definition;
         MaximumSelected = maximumSelected;
@@ -152,13 +144,11 @@ public sealed class CompiledInputSelectionGroup
     {
         ArgumentNullException.ThrowIfNull(values);
         string[] result = [.. values];
-        if (result.Any(string.IsNullOrWhiteSpace) ||
-            result.Distinct(StringComparer.Ordinal).Count() != result.Length)
-        {
-            throw new ArgumentException(
-                "Selection-group ids must be non-empty and ordinally unique.",
-                parameterName);
-        }
+        DomainInvariant.Reject(
+            result.Any(string.IsNullOrWhiteSpace) ||
+            result.Distinct(StringComparer.Ordinal).Count() != result.Length,
+            "Selection-group ids must be non-empty and ordinally unique.",
+            parameterName);
 
         Array.Sort(result, StringComparer.Ordinal);
         return result;

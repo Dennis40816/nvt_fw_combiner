@@ -155,19 +155,16 @@ public sealed record FirmwareMarkerRelativeLocator : FirmwareMetadataLocator
         SearchRange = RequiredValue.NotNull(searchRange);
         Selection = RequiredValue.NotNull(selection);
         var marker = new FirmwareMetadataBytes(markerBytes);
-        if (marker.Length > searchRange.Range.Length)
-        {
-            throw new ArgumentException("Metadata marker must fit its bounded search range.", nameof(markerBytes));
-        }
+        DomainInvariant.Reject(
+            marker.Length > searchRange.Range.Length,
+            "Metadata marker must fit its bounded search range.", nameof(markerBytes));
 
         long maximumMatchCount = checked(searchRange.Range.Length - marker.Length + 1);
-        if (selection is FirmwareTerminalMarkerSelection terminalSelection &&
-            terminalSelection.ExpectedMatchCount > maximumMatchCount)
-        {
-            throw new ArgumentException(
-                "Terminal marker count cannot exceed bounded candidate start positions.",
-                nameof(selection));
-        }
+        DomainInvariant.Reject(
+            selection is FirmwareTerminalMarkerSelection terminalSelection &&
+            terminalSelection.ExpectedMatchCount > maximumMatchCount,
+            "Terminal marker count cannot exceed bounded candidate start positions.",
+            nameof(selection));
 
         MarkerBytes = marker;
         ResultOffset = resultOffset;
@@ -198,11 +195,9 @@ public sealed record FirmwareMetadataFieldSelectedBranch
         ulong maximumValue,
         FirmwareAddressedRange anchorRange)
     {
-        if (minimumValue > maximumValue)
-        {
-            throw new ArgumentException(
-                "Metadata-selected branch minimum cannot exceed its maximum.");
-        }
+        DomainInvariant.Reject(
+            minimumValue > maximumValue,
+            "Metadata-selected branch minimum cannot exceed its maximum.");
 
         AnchorRange = RequiredValue.NotNull(anchorRange);
         MinimumValue = minimumValue;
@@ -250,12 +245,10 @@ public sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLoca
         _branches = Composition.ImmutableReferenceSnapshot.Create(
             branches,
             "Metadata-selected locators cannot contain null branches.");
-        if (_branches.Length == 0)
-        {
-            throw new ArgumentException(
-                "Metadata-selected locators require at least one branch.",
-                nameof(branches));
-        }
+        DomainInvariant.Reject(
+            _branches.Length == 0,
+            "Metadata-selected locators require at least one branch.",
+            nameof(branches));
 
         Array.Sort(_branches, static (left, right) =>
         {
@@ -266,13 +259,11 @@ public sealed record FirmwareMetadataFieldSelectedLocator : FirmwareMetadataLoca
         });
         for (int index = 1; index < _branches.Length; index++)
         {
-            if (_branches[index].MinimumValue <=
-                _branches[index - 1].MaximumValue)
-            {
-                throw new ArgumentException(
-                    "Metadata-selected locator branch intervals cannot overlap.",
-                    nameof(branches));
-            }
+            DomainInvariant.Reject(
+                _branches[index].MinimumValue <=
+                _branches[index - 1].MaximumValue,
+                "Metadata-selected locator branch intervals cannot overlap.",
+                nameof(branches));
         }
 
         PrerequisiteStructureId = prerequisiteStructureId;

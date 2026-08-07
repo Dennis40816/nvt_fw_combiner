@@ -94,10 +94,9 @@ internal static class FirmwareFactApplicabilityRelations
         foreach (IGrouping<(string StructureId, string FieldId), FirmwareMetadataPredicate> group in applicability.MetadataPredicates
                      .GroupBy(static predicate => (predicate.MetadataStructureId, predicate.FieldId)))
         {
-            if (!structuresById.TryGetValue(group.Key.StructureId, out FirmwareMetadataStructure? structure))
-            {
-                throw new ArgumentException($"Unknown metadata structure '{group.Key.StructureId}'.", nameof(structuresById));
-            }
+            DomainInvariant.Reject(
+                !structuresById.TryGetValue(group.Key.StructureId, out FirmwareMetadataStructure? structure),
+                $"Unknown metadata structure '{group.Key.StructureId}'.", nameof(structuresById));
 
             FirmwareMetadataField field = structure.Fields.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.FieldId, group.Key.FieldId)) ?? throw new ArgumentException(
@@ -194,12 +193,10 @@ internal static class FirmwareFactApplicabilityRelations
             _excluded = [];
             foreach (FirmwareMetadataPredicate predicate in predicates)
             {
-                if (predicate.ExpectedValues.Any(value => !field.CanRepresent(value)))
-                {
-                    throw new ArgumentException(
-                        $"Predicate value is not representable by '{field.FieldId}'.",
-                        nameof(predicates));
-                }
+                DomainInvariant.Reject(
+                    predicate.ExpectedValues.Any(value => !field.CanRepresent(value)),
+                    $"Predicate value is not representable by '{field.FieldId}'.",
+                    nameof(predicates));
 
                 switch (predicate.Comparison)
                 {

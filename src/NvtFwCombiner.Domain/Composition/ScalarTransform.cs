@@ -57,10 +57,9 @@ public sealed record ScalarTransformAddendSource
 
         if (kind == ScalarTransformAddendSourceKind.Fixed)
         {
-            if (sourceRegionInstanceId is not null || targetRegionInstanceId is not null)
-            {
-                throw new ArgumentException("Fixed scalar addends cannot name region instances.");
-            }
+            DomainInvariant.Reject(
+                sourceRegionInstanceId is not null || targetRegionInstanceId is not null,
+                "Fixed scalar addends cannot name region instances.");
         }
         else
         {
@@ -154,12 +153,10 @@ public sealed class ScalarTransform
             }
 
             BigInteger expectedAfter = expected + addend;
-            if (expectedAfter < BigInteger.Zero || expectedAfter > maximumValue)
-            {
-                throw new ArgumentException(
-                    "Expected scalar value and addend must not overflow the declared width.",
-                    nameof(addend));
-            }
+            DomainInvariant.Reject(
+                expectedAfter < BigInteger.Zero || expectedAfter > maximumValue,
+                "Expected scalar value and addend must not overflow the declared width.",
+                nameof(addend));
         }
 
         Width = width;

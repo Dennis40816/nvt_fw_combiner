@@ -66,10 +66,7 @@ internal sealed partial class CompositionProfileDefinition
             static space => space.SpaceId,
             nameof(spaces),
             requireValue: true);
-        if (_spaces.Length < 2)
-        {
-            throw new ArgumentException("Profiles require at least two address spaces.", nameof(spaces));
-        }
+        DomainInvariant.Reject(_spaces.Length < 2, "Profiles require at least two address spaces.", nameof(spaces));
 
         bool isRuntimeLowered = header.CompilationContextKind is
             V2CompilationContextKind.LogicalOutput or
@@ -94,10 +91,9 @@ internal sealed partial class CompositionProfileDefinition
             static operation => operation.OperationId,
             nameof(operations),
             requireValue: !isRuntimeLowered);
-        if (_operations.Select(static operation => operation.Sequence).Distinct().Count() != _operations.Length)
-        {
-            throw new ArgumentException("Operation sequences must be unique.", nameof(operations));
-        }
+        DomainInvariant.Reject(
+            _operations.Select(static operation => operation.Sequence).Distinct().Count() != _operations.Length,
+            "Operation sequences must be unique.", nameof(operations));
 
         Array.Sort(_operations, CompareOperations);
         _validations = SnapshotUnique(

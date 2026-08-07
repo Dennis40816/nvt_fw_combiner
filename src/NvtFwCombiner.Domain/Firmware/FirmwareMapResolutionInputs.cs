@@ -34,10 +34,7 @@ public sealed class FirmwareArtifactPayload
     public FirmwareArtifactPayload(string artifactId, ReadOnlySpan<byte> bytes)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
-        if (bytes.IsEmpty)
-        {
-            throw new ArgumentException("Firmware artifact payloads cannot be empty.", nameof(bytes));
-        }
+        DomainInvariant.Reject(bytes.IsEmpty, "Firmware artifact payloads cannot be empty.", nameof(bytes));
 
         _bytes = bytes.ToArray();
         string sha256 = Convert.ToHexString(SHA256.HashData(_bytes)).ToLowerInvariant();
@@ -75,12 +72,10 @@ public sealed class FirmwareMapResolutionInputs
         ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
         ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacityBytes);
-        if (requestedTopology is not null && requestedTopology.Source != TopologySelectionSource.Requested)
-        {
-            throw new ArgumentException(
-                "Map-resolution inputs may contain only caller-requested topology.",
-                nameof(requestedTopology));
-        }
+        DomainInvariant.Reject(
+            requestedTopology is not null && requestedTopology.Source != TopologySelectionSource.Requested,
+            "Map-resolution inputs may contain only caller-requested topology.",
+            nameof(requestedTopology));
 
         _artifacts = Composition.ImmutableReferenceSnapshot.CreateUnique(
             artifacts,

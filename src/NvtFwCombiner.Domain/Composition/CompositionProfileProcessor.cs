@@ -157,34 +157,29 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
             stagedSourceBindings,
             "Staged source bindings cannot contain null.");
 
-        if (_stagedSourceBindings.Distinct().Count() != _stagedSourceBindings.Length)
-        {
-            throw new ArgumentException("Staged source bindings must be unique.", nameof(stagedSourceBindings));
-        }
+        DomainInvariant.Reject(
+            _stagedSourceBindings.Distinct().Count() != _stagedSourceBindings.Length,
+            "Staged source bindings must be unique.", nameof(stagedSourceBindings));
 
         Array.Sort(_stagedSourceBindings, CompareBindings);
         _stagedArtifactBindings = ImmutableReferenceSnapshot.Create(
             stagedArtifactBindings,
             "Staged artifact bindings must be non-null with unique artifact ids.");
-        if (_stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
-            _stagedArtifactBindings.Length)
-        {
-            throw new ArgumentException(
-                "Staged artifact bindings must be non-null with unique artifact ids.",
-                nameof(stagedArtifactBindings));
-        }
+        DomainInvariant.Reject(
+            _stagedArtifactBindings.Select(static binding => binding.ArtifactId).Distinct(StringComparer.Ordinal).Count() !=
+            _stagedArtifactBindings.Length,
+            "Staged artifact bindings must be non-null with unique artifact ids.",
+            nameof(stagedArtifactBindings));
 
         Array.Sort(_stagedArtifactBindings, CompareArtifactBindings);
         _ = CanonicalPolicyValueRules.RequireCanonicalId(evidenceRef, nameof(evidenceRef));
         Purpose = purpose;
         IntegrityDisposition = integrityDisposition;
         TargetViewId = targetViewId;
-        if (targetViewId is not null && !AllowedReadViewIds.Contains(targetViewId, StringComparer.Ordinal))
-        {
-            throw new ArgumentException(
-                "The Legacy Combiner target view must be declared as readable because its complete bytes enter staging.",
-                nameof(targetViewId));
-        }
+        DomainInvariant.Reject(
+            targetViewId is not null && !AllowedReadViewIds.Contains(targetViewId, StringComparer.Ordinal),
+            "The Legacy Combiner target view must be declared as readable because its complete bytes enter staging.",
+            nameof(targetViewId));
 
         StagedSourceBindings = Array.AsReadOnly(_stagedSourceBindings);
         StagedArtifactBindings = Array.AsReadOnly(_stagedArtifactBindings);
@@ -219,19 +214,17 @@ internal sealed class LegacyCombinerProfileProcessorStage : CompositionProfilePr
         CompositionProfileProcessorPurpose purpose,
         CompositionProfileIntegrityDisposition integrityDisposition)
     {
-        if (integrityDisposition == CompositionProfileIntegrityDisposition.None &&
-            purpose != CompositionProfileProcessorPurpose.Relocation)
-        {
-            throw new ArgumentException("Integrity disposition none is restricted to relocation stages.");
-        }
+        DomainInvariant.Reject(
+            integrityDisposition == CompositionProfileIntegrityDisposition.None &&
+            purpose != CompositionProfileProcessorPurpose.Relocation,
+            "Integrity disposition none is restricted to relocation stages.");
 
-        if (purpose is CompositionProfileProcessorPurpose.Checksum or
+        DomainInvariant.Reject(
+            purpose is CompositionProfileProcessorPurpose.Checksum or
             CompositionProfileProcessorPurpose.Header or
             CompositionProfileProcessorPurpose.HeaderAndIntegrity &&
-            integrityDisposition != CompositionProfileIntegrityDisposition.RecalculateAndWrite)
-        {
-            throw new ArgumentException("Integrity processor purposes require recalculate-and-write.");
-        }
+            integrityDisposition != CompositionProfileIntegrityDisposition.RecalculateAndWrite,
+            "Integrity processor purposes require recalculate-and-write.");
     }
 
     private static int CompareBindings(

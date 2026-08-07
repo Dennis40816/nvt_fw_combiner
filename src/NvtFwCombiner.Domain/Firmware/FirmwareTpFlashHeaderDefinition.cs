@@ -263,11 +263,9 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
             static group => group.GroupId,
             nameof(fieldGroups),
             "TP Header field group");
-        if (_spans.Length == 0 || _fieldSemantics.Length == 0)
-        {
-            throw new ArgumentException(
-                "TP Flash Header definitions require named spans and field semantics.");
-        }
+        DomainInvariant.Reject(
+            _spans.Length == 0 || _fieldSemantics.Length == 0,
+            "TP Flash Header definitions require named spans and field semantics.");
 
         Array.Sort(_spans, static (left, right) =>
         {
@@ -310,48 +308,38 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
     {
         var fieldsById =
             fields.ToDictionary(static field => field.FieldId, StringComparer.Ordinal);
-        if (_fieldSemantics.Length != fields.Count ||
-            _fieldSemantics.Any(semantics => !fieldsById.ContainsKey(semantics.FieldId)))
-        {
-            throw new ArgumentException(
-                "TP Header field semantics must reference every physical field exactly once.");
-        }
+        DomainInvariant.Reject(
+            _fieldSemantics.Length != fields.Count ||
+            _fieldSemantics.Any(semantics => !fieldsById.ContainsKey(semantics.FieldId)),
+            "TP Header field semantics must reference every physical field exactly once.");
 
         Dictionary<string, FirmwareMetadataNamedSpan> spansById =
             _spans.ToDictionary(static span => span.SpanId, StringComparer.Ordinal);
-        if (_spans.Any(span => span.Range.EndExclusive > definitionLength))
-        {
-            throw new ArgumentException(
-                "TP Header named spans must remain inside the common structure length.");
-        }
+        DomainInvariant.Reject(
+            _spans.Any(span => span.Range.EndExclusive > definitionLength),
+            "TP Header named spans must remain inside the common structure length.");
 
         foreach (FirmwareTpFlashHeaderFieldSemantics semantics in _fieldSemantics)
         {
-            if (!spansById.TryGetValue(semantics.SpanId, out FirmwareMetadataNamedSpan? span) ||
-                !span.Range.Contains(fieldsById[semantics.FieldId].Range))
-            {
-                throw new ArgumentException(
-                    $"TP Header field '{semantics.FieldId}' is outside its named span.");
-            }
+            DomainInvariant.Reject(
+                !spansById.TryGetValue(semantics.SpanId, out FirmwareMetadataNamedSpan? span) ||
+                !span.Range.Contains(fieldsById[semantics.FieldId].Range),
+                $"TP Header field '{semantics.FieldId}' is outside its named span.");
 
             bool storesAddress = semantics.Role is
                 TpFlashHeaderFieldRole.DestinationAddress or
                 TpFlashHeaderFieldRole.TpBinStartAddress;
-            if (storesAddress != (semantics.StoredAddress is not null))
-            {
-                throw new ArgumentException(
-                    $"TP Header field '{semantics.FieldId}' stored-address semantics do not match its role.");
-            }
+            DomainInvariant.Reject(
+                storesAddress != (semantics.StoredAddress is not null),
+                $"TP Header field '{semantics.FieldId}' stored-address semantics do not match its role.");
 
-            if (semantics.StoredAddress is { } storedAddress &&
+            DomainInvariant.Reject(
+                semantics.StoredAddress is { } storedAddress &&
                 ((semantics.Role == TpFlashHeaderFieldRole.DestinationAddress &&
                   storedAddress.Basis != TpFlashHeaderStoredAddressBasis.Absolute) ||
                  (semantics.Role == TpFlashHeaderFieldRole.TpBinStartAddress &&
-                  storedAddress.Basis != TpFlashHeaderStoredAddressBasis.TpBinOffset)))
-            {
-                throw new ArgumentException(
-                    $"TP Header field '{semantics.FieldId}' uses an incompatible stored-address basis.");
-            }
+                  storedAddress.Basis != TpFlashHeaderStoredAddressBasis.TpBinOffset)),
+                $"TP Header field '{semantics.FieldId}' uses an incompatible stored-address basis.");
         }
 
         FirmwareMetadataField[] orderedFields = [.. fields];
@@ -359,11 +347,9 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
             FirmwareRangeOrdering.Compare(left.Range, right.Range));
         for (int index = 1; index < orderedFields.Length; index++)
         {
-            if (orderedFields[index - 1].Range.Overlaps(orderedFields[index].Range))
-            {
-                throw new ArgumentException(
-                    "TP Header physical fields cannot overlap.");
-            }
+            DomainInvariant.Reject(
+                orderedFields[index - 1].Range.Overlaps(orderedFields[index].Range),
+                "TP Header physical fields cannot overlap.");
         }
 
         HashSet<string> seriesFieldIds = new(StringComparer.Ordinal);
@@ -371,21 +357,17 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
         {
             foreach (FirmwareMetadataFieldSeriesMember member in series.Members)
             {
-                if (!fieldsById.ContainsKey(member.FieldId) ||
-                    !seriesFieldIds.Add(member.FieldId))
-                {
-                    throw new ArgumentException(
-                        $"TP Header series '{series.SeriesId}' has a dangling or repeated field reference.");
-                }
+                DomainInvariant.Reject(
+                    !fieldsById.ContainsKey(member.FieldId) ||
+                    !seriesFieldIds.Add(member.FieldId),
+                    $"TP Header series '{series.SeriesId}' has a dangling or repeated field reference.");
 
                 FirmwareTpFlashHeaderFieldSemantics semantics =
                     _fieldSemantics.Single(candidate =>
                         StringComparer.Ordinal.Equals(candidate.FieldId, member.FieldId));
-                if (semantics.LogicalIndex != member.Index)
-                {
-                    throw new ArgumentException(
-                        $"TP Header series '{series.SeriesId}' index does not match field semantics.");
-                }
+                DomainInvariant.Reject(
+                    semantics.LogicalIndex != member.Index,
+                    $"TP Header series '{series.SeriesId}' index does not match field semantics.");
             }
         }
 
@@ -393,23 +375,19 @@ public sealed class FirmwareTpFlashHeaderDefinition : FirmwareMetadataTypedDefin
             _fieldSeries.ToDictionary(static series => series.SeriesId, StringComparer.Ordinal);
         foreach (FirmwareMetadataFieldGroup group in _fieldGroups)
         {
-            if (group.FieldIds.Any(fieldId => !fieldsById.ContainsKey(fieldId)) ||
-                group.SeriesIds.Any(seriesId => !seriesById.ContainsKey(seriesId)))
-            {
-                throw new ArgumentException(
-                    $"TP Header group '{group.GroupId}' has a dangling reference.");
-            }
+            DomainInvariant.Reject(
+                group.FieldIds.Any(fieldId => !fieldsById.ContainsKey(fieldId)) ||
+                group.SeriesIds.Any(seriesId => !seriesById.ContainsKey(seriesId)),
+                $"TP Header group '{group.GroupId}' has a dangling reference.");
 
             HashSet<string> effectiveFields = [.. group.FieldIds];
             foreach (string seriesId in group.SeriesIds)
             {
                 foreach (FirmwareMetadataFieldSeriesMember member in seriesById[seriesId].Members)
                 {
-                    if (!effectiveFields.Add(member.FieldId))
-                    {
-                        throw new ArgumentException(
-                            $"TP Header group '{group.GroupId}' repeats an effective field.");
-                    }
+                    DomainInvariant.Reject(
+                        !effectiveFields.Add(member.FieldId),
+                        $"TP Header group '{group.GroupId}' repeats an effective field.");
                 }
             }
         }

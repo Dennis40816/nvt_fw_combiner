@@ -34,10 +34,7 @@ public static class DynamicCtrlRamReplacementIds
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         string[] parts = regionId.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
-        {
-            throw new ArgumentException("CtrlRAM region id must include a region token.", nameof(regionId));
-        }
+        DomainInvariant.Reject(parts.Length == 0, "CtrlRAM region id must include a region token.", nameof(regionId));
 
         string region = FormatRegionToken(parts[0]);
         string side = FormatSide(parts);

@@ -26,22 +26,18 @@ public sealed class FirmwareMetadataStructureDefinition
         _fields = Composition.ImmutableReferenceSnapshot.Create(
             fields,
             "Metadata definitions cannot contain null fields.");
-        if (_fields.Select(static field => field.FieldId)
-                .Distinct(StringComparer.Ordinal).Count() != _fields.Length)
-        {
-            throw new ArgumentException(
-                "Metadata field ids must be ordinally unique within a definition.",
-                nameof(fields));
-        }
+        DomainInvariant.Reject(
+            _fields.Select(static field => field.FieldId)
+            .Distinct(StringComparer.Ordinal).Count() != _fields.Length,
+            "Metadata field ids must be ordinally unique within a definition.",
+            nameof(fields));
 
         foreach (FirmwareMetadataField field in _fields)
         {
-            if (field.Range.EndExclusive > lengthBytes)
-            {
-                throw new ArgumentException(
-                    $"Metadata field '{field.FieldId}' exceeds definition '{definitionId}'.",
-                    nameof(fields));
-            }
+            DomainInvariant.Reject(
+                field.Range.EndExclusive > lengthBytes,
+                $"Metadata field '{field.FieldId}' exceeds definition '{definitionId}'.",
+                nameof(fields));
         }
 
         Array.Sort(_fields, CompareFields);
@@ -50,25 +46,21 @@ public sealed class FirmwareMetadataStructureDefinition
             "Metadata definitions cannot contain null assertions.");
         foreach (FirmwareMetadataByteAssertion assertion in _assertions)
         {
-            if (assertion.Range.EndExclusive > lengthBytes)
-            {
-                throw new ArgumentException(
-                    $"Metadata assertion {assertion.Range} exceeds definition '{definitionId}'.",
-                    nameof(assertions));
-            }
+            DomainInvariant.Reject(
+                assertion.Range.EndExclusive > lengthBytes,
+                $"Metadata assertion {assertion.Range} exceeds definition '{definitionId}'.",
+                nameof(assertions));
         }
 
         Array.Sort(_assertions, CompareAssertions);
         _relations = Composition.ImmutableReferenceSnapshot.Create(
             relations ?? [],
             "Metadata definitions cannot contain null relations.");
-        if (_relations.Select(static relation => relation.RelationId)
-                .Distinct(StringComparer.Ordinal).Count() != _relations.Length)
-        {
-            throw new ArgumentException(
-                "Metadata relation ids must be ordinally unique within a definition.",
-                nameof(relations));
-        }
+        DomainInvariant.Reject(
+            _relations.Select(static relation => relation.RelationId)
+            .Distinct(StringComparer.Ordinal).Count() != _relations.Length,
+            "Metadata relation ids must be ordinally unique within a definition.",
+            nameof(relations));
 
         ValidateRelations(_fields, _relations);
         Array.Sort(_relations, static (left, right) =>
@@ -285,17 +277,15 @@ public sealed class FirmwareMetadataStructureDefinition
                     nameof(relations));
             }
 
-            if (relation.Kind == FirmwareMetadataFieldRelationKind.BitwiseComplement &&
+            DomainInvariant.Reject(
+                relation.Kind == FirmwareMetadataFieldRelationKind.BitwiseComplement &&
                 (source.Encoding != FirmwareMetadataEncoding.UnsignedInteger ||
                  related.Encoding != FirmwareMetadataEncoding.UnsignedInteger ||
                  source.BitSlice is not null ||
                  related.BitSlice is not null ||
-                 source.WidthBytes != related.WidthBytes))
-            {
-                throw new ArgumentException(
-                    $"Metadata relation '{relation.RelationId}' requires unsliced equal-width unsigned fields.",
-                    nameof(relations));
-            }
+                 source.WidthBytes != related.WidthBytes),
+                $"Metadata relation '{relation.RelationId}' requires unsliced equal-width unsigned fields.",
+                nameof(relations));
         }
     }
 

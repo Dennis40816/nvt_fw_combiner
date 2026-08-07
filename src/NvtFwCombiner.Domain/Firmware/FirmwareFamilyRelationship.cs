@@ -43,29 +43,23 @@ public sealed class FirmwareSharedFactReference
 
         ArgumentException.ThrowIfNullOrWhiteSpace(factId);
         bool isRegion = kind == FirmwareSharedFactKind.Region;
-        if (isRegion != (region is not null) ||
-            isRegion == (metadataDefinition is not null))
-        {
-            throw new ArgumentException(
-                "A shared firmware fact reference requires exactly the typed value selected by its kind.",
-                nameof(kind));
-        }
+        DomainInvariant.Reject(
+            isRegion != (region is not null) ||
+            isRegion == (metadataDefinition is not null),
+            "A shared firmware fact reference requires exactly the typed value selected by its kind.",
+            nameof(kind));
 
-        if (region is not null &&
-            !StringComparer.Ordinal.Equals(factId, region.RegionId))
-        {
-            throw new ArgumentException(
-                "Shared region fact id must match the canonical region.",
-                nameof(factId));
-        }
+        DomainInvariant.Reject(
+            region is not null &&
+            !StringComparer.Ordinal.Equals(factId, region.RegionId),
+            "Shared region fact id must match the canonical region.",
+            nameof(factId));
 
-        if (metadataDefinition is not null &&
-            !StringComparer.Ordinal.Equals(factId, metadataDefinition.DefinitionId))
-        {
-            throw new ArgumentException(
-                "Shared metadata-definition fact id must match the canonical definition.",
-                nameof(factId));
-        }
+        DomainInvariant.Reject(
+            metadataDefinition is not null &&
+            !StringComparer.Ordinal.Equals(factId, metadataDefinition.DefinitionId),
+            "Shared metadata-definition fact id must match the canonical definition.",
+            nameof(factId));
 
         Kind = kind;
         FactId = factId;
@@ -134,12 +128,10 @@ public abstract class FirmwareFamilyRelationship
             requiredMessage: null,
             invalidValueMessage: "Family relationship members cannot contain null or whitespace.",
             duplicateMessage: "Family relationship members must be ordinally unique.");
-        if (_memberIds.Length < 2)
-        {
-            throw new ArgumentException(
-                "Family relationships require at least two distinct members.",
-                nameof(memberIds));
-        }
+        DomainInvariant.Reject(
+            _memberIds.Length < 2,
+            "Family relationships require at least two distinct members.",
+            nameof(memberIds));
 
         _evidenceRefs = ImmutableStringSnapshot.Create(
             evidenceRefs,
@@ -214,33 +206,27 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
             "Shared-fact applicability map ids must be ordinally unique.",
             StringComparer.Ordinal,
             requireValue: false);
-        if (_applicableMaps.Length == 0)
-        {
-            throw new ArgumentException(
-                "Shared-fact relationships require at least one applicable map.",
-                nameof(applicableMaps));
-        }
+        DomainInvariant.Reject(
+            _applicableMaps.Length == 0,
+            "Shared-fact relationships require at least one applicable map.",
+            nameof(applicableMaps));
 
         _sharedFactReferences = Composition.ImmutableReferenceSnapshot.Create(
             sharedFactReferences,
             "Shared-fact relationships cannot contain null references.",
             parameterName: nameof(sharedFactReferences));
-        if (_sharedFactReferences.Length == 0)
-        {
-            throw new ArgumentException(
-                "Shared-fact relationships require at least one typed fact reference.",
-                nameof(sharedFactReferences));
-        }
+        DomainInvariant.Reject(
+            _sharedFactReferences.Length == 0,
+            "Shared-fact relationships require at least one typed fact reference.",
+            nameof(sharedFactReferences));
 
-        if (_sharedFactReferences
+        DomainInvariant.Reject(
+            _sharedFactReferences
             .Select(static reference => (reference.Kind, reference.FactId))
             .Distinct()
-            .Count() != _sharedFactReferences.Length)
-        {
-            throw new ArgumentException(
-                "Shared-fact relationship references must be unique by kind and fact id.",
-                nameof(sharedFactReferences));
-        }
+            .Count() != _sharedFactReferences.Length,
+            "Shared-fact relationship references must be unique by kind and fact id.",
+            nameof(sharedFactReferences));
 
         ValidateMemberCoverage(_applicableMaps, MemberIds);
         ValidateCanonicalReferenceIdentity(_applicableMaps, _sharedFactReferences);
@@ -267,22 +253,18 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
         IReadOnlyList<string> memberIds)
     {
         var relationshipMembers = new HashSet<string>(memberIds, StringComparer.Ordinal);
-        if (applicableMaps.Any(map =>
-                map.Applicability.MemberIds.Any(memberId =>
-                    !relationshipMembers.Contains(memberId))))
-        {
-            throw new ArgumentException(
-                "Shared-fact applicability maps cannot admit members outside the relationship.",
-                nameof(applicableMaps));
-        }
+        DomainInvariant.Reject(
+            applicableMaps.Any(map =>
+            map.Applicability.MemberIds.Any(memberId =>
+                !relationshipMembers.Contains(memberId))),
+            "Shared-fact applicability maps cannot admit members outside the relationship.",
+            nameof(applicableMaps));
 
-        if (memberIds.Any(memberId => applicableMaps.All(map =>
-                !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal))))
-        {
-            throw new ArgumentException(
-                "Shared-fact applicability maps must cover every relationship member.",
-                nameof(applicableMaps));
-        }
+        DomainInvariant.Reject(
+            memberIds.Any(memberId => applicableMaps.All(map =>
+            !map.Applicability.MemberIds.Contains(memberId, StringComparer.Ordinal))),
+            "Shared-fact applicability maps must cover every relationship member.",
+            nameof(applicableMaps));
     }
 
     private static void ValidateCanonicalReferenceIdentity(
@@ -305,13 +287,10 @@ public sealed class SharedFactRelationship : FirmwareFamilyRelationship
                         HasExactMetadataDefinition(map, reference),
                     _ => false,
                 };
-                if (!isCanonical)
-                {
-                    throw new ArgumentException(
-                        $"Shared fact '{reference.Kind}:{reference.FactId}' must reuse one exact " +
-                        $"canonical value on applicable map '{map.MapId}'.",
-                        nameof(sharedFactReferences));
-                }
+                DomainInvariant.Reject(
+                    !isCanonical,
+                    $"Shared fact '{reference.Kind}:{reference.FactId}' must reuse one exact canonical value on applicable map '{map.MapId}'.",
+                    nameof(sharedFactReferences));
             }
         }
     }

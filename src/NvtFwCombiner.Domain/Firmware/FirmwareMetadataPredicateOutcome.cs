@@ -12,12 +12,10 @@ public sealed class FirmwareMetadataPredicateOutcome
         ClosedEnum.ThrowIfUndefined(result, "Unknown predicate result.");
 
         bool isMissing = result == FirmwarePredicateResult.Missing;
-        if (isMissing != (actualValue is null))
-        {
-            throw new ArgumentException(
-                "Only a missing predicate outcome may omit the actual value.",
-                nameof(actualValue));
-        }
+        DomainInvariant.Reject(
+            isMissing != (actualValue is null),
+            "Only a missing predicate outcome may omit the actual value.",
+            nameof(actualValue));
 
         Result = result;
         ActualValue = actualValue;

@@ -47,19 +47,15 @@ public sealed class FirmwareMapResolutionPendingRequirement : IEquatable<Firmwar
         ClosedEnum.ThrowIfUndefined(kind, "Unknown map resolution pending kind.");
 
         bool requiresArtifact = kind == FirmwareMapResolutionPendingKind.ArtifactMissing;
-        if (requiresArtifact && string.IsNullOrWhiteSpace(artifactBindingId))
-        {
-            throw new ArgumentException(
-                "Missing-artifact requirements must identify one artifact binding.",
-                nameof(artifactBindingId));
-        }
+        DomainInvariant.Reject(
+            requiresArtifact && string.IsNullOrWhiteSpace(artifactBindingId),
+            "Missing-artifact requirements must identify one artifact binding.",
+            nameof(artifactBindingId));
 
-        if (!requiresArtifact && artifactBindingId is not null)
-        {
-            throw new ArgumentException(
-                "Only missing-artifact requirements may identify one artifact binding.",
-                nameof(artifactBindingId));
-        }
+        DomainInvariant.Reject(
+            !requiresArtifact && artifactBindingId is not null,
+            "Only missing-artifact requirements may identify one artifact binding.",
+            nameof(artifactBindingId));
 
         Kind = kind;
         ArtifactBindingId = artifactBindingId;
@@ -117,12 +113,10 @@ public sealed class FirmwareMapResolutionResult
             pendingRequirements,
             "Pending map-resolution requirements cannot contain null.");
 
-        if (_pendingRequirements.Distinct().Count() != _pendingRequirements.Length)
-        {
-            throw new ArgumentException(
-                "Pending map-resolution requirements must be unique.",
-                nameof(pendingRequirements));
-        }
+        DomainInvariant.Reject(
+            _pendingRequirements.Distinct().Count() != _pendingRequirements.Length,
+            "Pending map-resolution requirements must be unique.",
+            nameof(pendingRequirements));
 
         Array.Sort(_pendingRequirements, static (left, right) =>
         {
@@ -134,15 +128,14 @@ public sealed class FirmwareMapResolutionResult
         bool isPending = status == FirmwareMapResolutionStatus.Pending;
         bool isRejected = status == FirmwareMapResolutionStatus.Rejected;
         bool isUnique = status == FirmwareMapResolutionStatus.Unique;
-        if (isPending != (_pendingRequirements.Length != 0) ||
+        DomainInvariant.Reject(
+            isPending != (_pendingRequirements.Length != 0) ||
             isRejected != (rejectionKind is not null) ||
             isUnique != (resolvedMap is not null) ||
             (isPending && (rejectionKind is not null || resolvedMap is not null)) ||
             (isRejected && (resolvedMap is not null || _pendingRequirements.Length != 0)) ||
-            (isUnique && (rejectionKind is not null || _pendingRequirements.Length != 0)))
-        {
-            throw new ArgumentException("Map resolution status payloads are inconsistent.");
-        }
+            (isUnique && (rejectionKind is not null || _pendingRequirements.Length != 0)),
+            "Map resolution status payloads are inconsistent.");
 
         Status = status;
         RejectionKind = rejectionKind;
@@ -213,18 +206,16 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes,
             IEnumerable<FirmwareMetadataStructure>? expectedMetadataStructures = null)
         {
-            if (!ReferenceEquals(constructionToken, ResolvedMapConstructionToken))
-            {
-                throw new ArgumentException("Resolved maps may be constructed only by their owning family resolver.", nameof(constructionToken));
-            }
+            DomainInvariant.Reject(
+                !ReferenceEquals(constructionToken, ResolvedMapConstructionToken),
+                "Resolved maps may be constructed only by their owning family resolver.", nameof(constructionToken));
 
             ArgumentNullException.ThrowIfNull(definition);
             ArgumentNullException.ThrowIfNull(inputs);
             ArgumentNullException.ThrowIfNull(imageMap);
-            if (!definition.ImageMaps.Any(candidate => ReferenceEquals(candidate, imageMap)))
-            {
-                throw new ArgumentException("The selected image map must belong to the normalized family definition.", nameof(imageMap));
-            }
+            DomainInvariant.Reject(
+                !definition.ImageMaps.Any(candidate => ReferenceEquals(candidate, imageMap)),
+                "The selected image map must belong to the normalized family definition.", nameof(imageMap));
 
             ValidateStaticSelection(imageMap, inputs);
             _artifactIdentities = SnapshotArtifactIdentities(inputs.Artifacts.Select(static artifact => artifact.Identity));
@@ -330,7 +321,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             Dictionary<string, FirmwareMetadataStructure> expectedById = expectedStructures.ToDictionary(
                 static structure => structure.StructureId,
                 StringComparer.Ordinal);
-            if (snapshot.Length != expectedStructures.Length ||
+            DomainInvariant.Reject(
+                snapshot.Length != expectedStructures.Length ||
                 snapshot.Any(structure =>
                     !StringComparer.Ordinal.Equals(structure.MapId, imageMap.MapId) ||
                     !expectedById.TryGetValue(structure.DecodedStructure.MetadataStructureId, out FirmwareMetadataStructure? expected) ||
@@ -348,12 +340,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                             structure.DecodedStructure.ArtifactBindingId) &&
                         identity == structure.ArtifactIdentity)) ||
                 snapshot.Select(static structure => structure.DecodedStructure.MetadataStructureId)
-                    .Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-            {
-                throw new ArgumentException(
-                    "Resolved maps may retain only unique successful metadata outcomes bound to selected identities.",
-                    nameof(resolvedMetadataStructures));
-            }
+                    .Distinct(StringComparer.Ordinal).Count() != snapshot.Length,
+                "Resolved maps may retain only unique successful metadata outcomes bound to selected identities.",
+                nameof(resolvedMetadataStructures));
 
             Array.Sort(snapshot, static (left, right) =>
                 StringComparer.Ordinal.Compare(
@@ -401,16 +390,15 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         private static void ValidateStaticSelection(FirmwareImageMap imageMap, FirmwareMapResolutionInputs inputs)
         {
-            if (!imageMap.Applicability.MemberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
+            DomainInvariant.Reject(
+                !imageMap.Applicability.MemberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
                 !imageMap.Applicability.ModeIds.Contains(inputs.ModeId, StringComparer.Ordinal) ||
                 imageMap.CapacityBytes != inputs.CapacityBytes ||
                 (imageMap.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.None &&
                  (inputs.RequestedTopology is null ||
                   !imageMap.Applicability.TopologyRequirement.Matches(inputs.RequestedTopology))) ||
-                imageMap.Applicability.CommonFirmwareCategoryIds.Count != 0)
-            {
-                throw new ArgumentException("Resolved map selection does not satisfy all closed static applicability.");
-            }
+                imageMap.Applicability.CommonFirmwareCategoryIds.Count != 0,
+                "Resolved map selection does not satisfy all closed static applicability.");
         }
 
         private static bool HasExactDecodedFields(
