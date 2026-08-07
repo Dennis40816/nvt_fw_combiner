@@ -125,7 +125,6 @@ internal static partial class CompositionProfileNormalizer
         IReadOnlyList<TDocument> documents,
         string path,
         Func<TDocument, string, TValue> normalize)
-        where TDocument : class
     {
         var values = new TValue[documents.Count];
         for (int index = 0; index < documents.Count; index++)

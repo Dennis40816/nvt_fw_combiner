@@ -11,17 +11,14 @@ internal static partial class CompositionProfileNormalizer
         string path = "promotion")
     {
         IReadOnlyList<CompositionProfilePromotionBlockerDocument> blockerDocuments = document.Blockers;
-        var blockers = new CompiledProfilePromotionBlocker[blockerDocuments.Count];
-        for (int index = 0; index < blockerDocuments.Count; index++)
-        {
-            CompositionProfilePromotionBlockerDocument blocker = blockerDocuments[index];
-            string blockerPath = $"{path}.blockers[{index}]";
-            blockers[index] = Wrap(blockerPath, () => new CompiledProfilePromotionBlocker(
+        CompiledProfilePromotionBlocker[] blockers = NormalizeList(
+            blockerDocuments,
+            $"{path}.blockers",
+            (blocker, blockerPath) => Wrap(blockerPath, () => new CompiledProfilePromotionBlocker(
                 blocker.BlockerId,
                 NormalizeBlockerKind(blocker.Kind, $"{blockerPath}.kind"),
                 blocker.Reason,
-                blocker.EvidenceRefs));
-        }
+                blocker.EvidenceRefs)));
 
         return Wrap(path, () => new CompiledProfilePromotion(
             NormalizePromotionStage(document.Stage, $"{path}.stage"),

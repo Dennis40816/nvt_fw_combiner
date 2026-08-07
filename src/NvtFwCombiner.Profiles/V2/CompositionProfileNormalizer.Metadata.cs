@@ -11,13 +11,10 @@ internal static partial class CompositionProfileNormalizer
         string path = "metadataBindings[0]")
     {
         IReadOnlyList<string> purposeDocuments = document.Purposes;
-        var purposes = new CompositionProfileMetadataPurpose[purposeDocuments.Count];
-        for (int index = 0; index < purposeDocuments.Count; index++)
-        {
-            purposes[index] = NormalizeMetadataPurpose(
-                purposeDocuments[index],
-                $"{path}.purposes[{index}]");
-        }
+        CompositionProfileMetadataPurpose[] purposes = NormalizeList(
+            purposeDocuments,
+            $"{path}.purposes",
+            NormalizeMetadataPurpose);
 
         bool hasTypedTargets = document.TargetReferences is not null;
         FirmwareMetadataReferenceTarget[] targets;
@@ -26,13 +23,10 @@ internal static partial class CompositionProfileNormalizer
         {
             IReadOnlyList<CompositionProfileMetadataTargetReferenceDocument> targetDocuments =
                 document.TargetReferences!;
-            targets = new FirmwareMetadataReferenceTarget[targetDocuments.Count];
-            for (int index = 0; index < targetDocuments.Count; index++)
-            {
-                targets[index] = NormalizeMetadataTarget(
-                    targetDocuments[index],
-                    $"{path}.targetReferences[{index}]");
-            }
+            targets = NormalizeList(
+                targetDocuments,
+                $"{path}.targetReferences",
+                NormalizeMetadataTarget);
 
             evidenceRefs = document.EvidenceRefs!;
         }
