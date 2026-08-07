@@ -254,8 +254,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         /// <summary>Trusted source-family identifier.</summary>
         public string FamilyId { get; }
 
-        /// <summary>Owner-declared typed family relationships from the exact normalized definition.</summary>
-        public IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
+        internal IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
 
         /// <summary>Trusted source-family version.</summary>
         public string FamilyVersion { get; }

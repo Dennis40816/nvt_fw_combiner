@@ -284,8 +284,7 @@ public sealed class V2CompilationProvenance
     /// <summary>Complete closed validation stages retained for future runtime admission.</summary>
     public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
 
-    /// <summary>Exact admitted confirmed-present capability bindings in canonical profile requirement order.</summary>
-    public IReadOnlyList<CompiledCapabilityAdmission> RequiredCapabilities { get; }
+    internal IReadOnlyList<CompiledCapabilityAdmission> RequiredCapabilities { get; }
 }
 
 /// <summary>Single typed v2 artifact payload that keeps provenance and unrendered naming requirements paired.</summary>
@@ -392,18 +391,17 @@ public sealed class V2CompiledCompositionDetails
     }
 
     private static void ValidatePhysicalChain(
-        IReadOnlyList<CompiledPhysicalRegionConstraint> chain,
+        IReadOnlyList<FirmwareRegion> chain,
         Dictionary<string, FirmwareRegion> regionsById,
         string? expectedTerminalRegionId)
     {
         FirmwareRegion? previous = null;
         for (int index = 0; index < chain.Count; index++)
         {
-            CompiledPhysicalRegionConstraint compiledRegion = chain[index];
+            FirmwareRegion compiledRegion = chain[index];
             DomainInvariant.Reject(
                 !regionsById.TryGetValue(compiledRegion.RegionId, out FirmwareRegion? canonicalRegion) ||
-                canonicalRegion.WriteConstraint != compiledRegion.WriteConstraint ||
-                canonicalRegion.Alignment != compiledRegion.Alignment ||
+                !ReferenceEquals(canonicalRegion, compiledRegion) ||
                 (index == 0 && canonicalRegion.ParentRegionId is not null) ||
                 (previous is not null && !StringComparer.Ordinal.Equals(canonicalRegion.ParentRegionId, previous.RegionId)),
                 "Compiled region access must retain an exact canonical physical ancestor chain.",

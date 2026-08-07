@@ -22,7 +22,7 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
-        if (profile.CompilationContextKind != V2CompilationContextKind.LogicalOutput)
+        if (profile.Header.CompilationContextKind != V2CompilationContextKind.LogicalOutput)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -88,9 +88,9 @@ internal static partial class V2CompositionPlanCompiler
             bundleIdentity,
             profileEntry.EntryIdentity,
             new LogicalOutputV2CompilationContext(
-                profile.FamilyId,
-                profile.FamilyVersion,
-                profile.FamilyContentHash,
+                profile.Header.FamilyId,
+                profile.Header.FamilyVersion,
+                profile.Header.FamilyContentHash,
                 memberId),
             plan,
             [MapLogicalInputSlot(inputSlot)],

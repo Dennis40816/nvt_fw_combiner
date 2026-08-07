@@ -21,7 +21,9 @@ public sealed class CompositionProfileV2OutputNormalizerTests
         Assert.False(reject.AllowOverride);
         Assert.True(replace.AllowOverride);
         Assert.Equal("{original-name}_{version}.bin", replace.FileNameTemplate);
-        Assert.Equal(["original-name", "version"], replace.RequiredTokenIds);
+        Assert.Equal(
+            ["original-name", "version"],
+            replace.TokenRequirements.Select(static requirement => requirement.TokenId));
     }
 
     /// <summary>Verifies unknown policy tokens fail at their exact discriminator path.</summary>

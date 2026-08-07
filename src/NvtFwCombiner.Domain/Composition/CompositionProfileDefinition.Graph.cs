@@ -23,13 +23,13 @@ internal sealed partial class CompositionProfileDefinition
         ValidateInputPolicy();
         ValidateInputSelectionGroups(slots);
         ValidateSpaces(slots);
-        if (CompilationContextKind == V2CompilationContextKind.LogicalOutput)
+        if (Header.CompilationContextKind == V2CompilationContextKind.LogicalOutput)
         {
             ValidateLogicalOutputShape();
             return;
         }
 
-        if (CompilationContextKind == V2CompilationContextKind.RuntimeReferenceReplace)
+        if (Header.CompilationContextKind == V2CompilationContextKind.RuntimeReferenceReplace)
         {
             ValidateRuntimeReferenceReplaceShape();
             ValidateViews(spaces);
@@ -51,8 +51,8 @@ internal sealed partial class CompositionProfileDefinition
     {
         DomainInvariant.Require(
             CompositionKind == CompositionKind.Merge &&
-            LayoutPolicy == LayoutPolicy.UserDefined &&
-            InputPolicy == InputPolicy.Extensible &&
+            Header.LayoutPolicy == LayoutPolicy.UserDefined &&
+            Header.InputPolicy == InputPolicy.Extensible &&
             _metadataBindings.Length == 0 &&
             _regionAccessRules.Length == 0 &&
             _operations.Length == 0 &&
@@ -96,12 +96,12 @@ internal sealed partial class CompositionProfileDefinition
         MutableCompositionProfileSpace output = _spaces.OfType<MutableCompositionProfileSpace>().Single(space =>
             space.Kind == CompositionProfileSpaceKind.OutputImage);
         bool processorFree = _views.Length == 0 && _operations.Length == 0 && _processorStages.Length == 0;
-        bool conditionalProcessor = AllowsConditionalProcessor &&
+        bool conditionalProcessor = Header.AllowsConditionalProcessor &&
             HasValidRuntimeReferenceProcessorShape(output);
-        bool userDefinedAuthoring = LayoutPolicy == LayoutPolicy.UserDefined &&
-            InputPolicy == InputPolicy.Extensible;
-        bool fixedProcessorAuthoring = LayoutPolicy == LayoutPolicy.Fixed &&
-            InputPolicy == InputPolicy.Fixed &&
+        bool userDefinedAuthoring = Header.LayoutPolicy == LayoutPolicy.UserDefined &&
+            Header.InputPolicy == InputPolicy.Extensible;
+        bool fixedProcessorAuthoring = Header.LayoutPolicy == LayoutPolicy.Fixed &&
+            Header.InputPolicy == InputPolicy.Fixed &&
             conditionalProcessor;
         DomainInvariant.Require(
             CompositionKind == CompositionKind.Replace &&

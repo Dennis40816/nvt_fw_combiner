@@ -390,7 +390,7 @@ internal static partial class V2CompositionPlanCompiler
                 rule.Access,
                 rule.Reason,
                 rule.AllowedSubregionIds,
-                ToCompiledRegionChain(governingRegionChain));
+                governingRegionChain);
             requirements.Add(requirement);
             resolvedRules.Add(rule.RegionId, new ResolvedRegionAccessRule(region, requirement));
         }
@@ -402,7 +402,7 @@ internal static partial class V2CompositionPlanCompiler
                 entry.Key,
                 entry.Value.SpaceId,
                 entry.Value.Range,
-                ToCompiledRegionChain(entry.Value.GoverningRegionChain)))];
+                entry.Value.GoverningRegionChain))];
         return new LoweredRegionAccess(
             new CompiledRegionAccessContract(requirements, resolvedViews),
             resolvedRules,
@@ -635,15 +635,6 @@ internal static partial class V2CompositionPlanCompiler
             RegionAccessDenied,
             $"Operation '{operationId}' {detail}.",
             operationId));
-    }
-
-    private static CompiledPhysicalRegionConstraint[] ToCompiledRegionChain(
-        IEnumerable<FirmwareRegion> governingRegionChain)
-    {
-        return [.. governingRegionChain.Select(static region => new CompiledPhysicalRegionConstraint(
-            region.RegionId,
-            region.WriteConstraint,
-            region.Alignment))];
     }
 
     private sealed record ResolvedView(

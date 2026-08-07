@@ -3,10 +3,8 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Firmware;
 
-/// <summary>One physical region whose range is relative to a named instance base.</summary>
-public sealed record FirmwareRelativeRegion
+internal sealed record FirmwareRelativeRegion
 {
-    /// <summary>Creates one checked instance-relative physical region.</summary>
     public FirmwareRelativeRegion(
         string regionId,
         string? parentRegionId,
@@ -33,25 +31,18 @@ public sealed record FirmwareRelativeRegion
         Alignment = validated.Alignment;
     }
 
-    /// <summary>Template-local region identifier.</summary>
     public string RegionId { get; }
 
-    /// <summary>Optional template-local parent identifier.</summary>
     public string? ParentRegionId { get; }
 
-    /// <summary>Physical byte owner.</summary>
     public FirmwareRegionOwner Owner { get; }
 
-    /// <summary>Physical region kind.</summary>
     public FirmwareRegionKind Kind { get; }
 
-    /// <summary>Half-open range relative to the template instance base.</summary>
     public ByteRange Range { get; }
 
-    /// <summary>Non-relaxable physical write constraint.</summary>
     public FirmwareWriteConstraint WriteConstraint { get; }
 
-    /// <summary>Required start and length alignment.</summary>
     public int Alignment { get; }
 }
 
@@ -59,11 +50,10 @@ public sealed record FirmwareRelativeRegion
 /// One canonical instance-relative region definition that may be placed more
 /// than once without repeating its internal firmware geometry.
 /// </summary>
-public sealed class FirmwareRegionTemplate
+internal sealed class FirmwareRegionTemplate
 {
     private readonly FirmwareRelativeRegion[] _regions;
 
-    /// <summary>Creates one checked relative region definition.</summary>
     public FirmwareRegionTemplate(
         string templateId,
         long capacity,
@@ -106,13 +96,10 @@ public sealed class FirmwareRegionTemplate
         Regions = Array.AsReadOnly(_regions);
     }
 
-    /// <summary>Stable template identifier.</summary>
     public string TemplateId { get; }
 
-    /// <summary>Exact instance-relative template capacity.</summary>
     public long Capacity { get; }
 
-    /// <summary>Relative regions in deterministic range order.</summary>
     public IReadOnlyList<FirmwareRelativeRegion> Regions { get; }
 
     private static void ValidateParentChain(
@@ -140,12 +127,10 @@ public sealed class FirmwareRegionTemplate
     }
 }
 
-/// <summary>One placement of a canonical relative-region template.</summary>
-public sealed class FirmwareRegionInstance
+internal sealed class FirmwareRegionInstance
 {
     private readonly ReadOnlyDictionary<string, string> _resolvedRegionIds;
 
-    /// <summary>Creates one checked template placement and its stable resolved ids.</summary>
     public FirmwareRegionInstance(
         string instanceId,
         FirmwareRegionTemplate template,
@@ -189,19 +174,14 @@ public sealed class FirmwareRegionInstance
         ResolvedRegionIds = _resolvedRegionIds;
     }
 
-    /// <summary>Stable placement identifier.</summary>
     public string InstanceId { get; }
 
-    /// <summary>Exact canonical relative definition used by this placement.</summary>
     public FirmwareRegionTemplate Template { get; }
 
-    /// <summary>Absolute base in the owning region-set address space.</summary>
     public long BaseOffset { get; }
 
-    /// <summary>Optional external parent applied to template-root regions.</summary>
     public string? ParentRegionId { get; }
 
-    /// <summary>Template-local to map-resolved region id bindings.</summary>
     public IReadOnlyDictionary<string, string> ResolvedRegionIds { get; }
 
     internal FirmwareRegion[] ExpandRegions()

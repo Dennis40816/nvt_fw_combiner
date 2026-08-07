@@ -233,7 +233,6 @@ public sealed class CompiledOutputNamingRequirement
         FileNameTemplate = fileNameTemplate;
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
-        RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
         RuleId = ruleId;
         OutputArtifactType = outputArtifactType;
         RendererKind = ResolveRendererKind(
@@ -259,9 +258,6 @@ public sealed class CompiledOutputNamingRequirement
 
     /// <summary>Closed policy for invalid rendered filename characters.</summary>
     public CompiledOutputInvalidCharacterPolicy InvalidCharacterPolicy { get; }
-
-    /// <summary>Profile tokens required before a future runtime may render this template.</summary>
-    public IReadOnlyList<string> RequiredTokenIds { get; }
 
     /// <summary>Stable profile-declared rule id, or null for legacy schemas.</summary>
     public string? RuleId { get; }

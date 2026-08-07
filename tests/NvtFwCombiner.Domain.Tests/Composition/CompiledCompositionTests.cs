@@ -259,9 +259,6 @@ public sealed partial class CompiledCompositionTests
                 Assert.NotEqual(
                     baseline.CompilationFingerprint,
                     variant.CompilationFingerprint);
-                Assert.NotEqual(
-                    baseline.IntegrityFingerprint,
-                    variant.IntegrityFingerprint);
             });
     }
 

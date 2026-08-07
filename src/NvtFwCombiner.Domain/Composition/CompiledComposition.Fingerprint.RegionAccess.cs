@@ -1,4 +1,5 @@
 using System.Text;
+using NvtFwCombiner.Domain.Firmware;
 using static NvtFwCombiner.Domain.Firmware.FirmwareFingerprintWriter;
 
 namespace NvtFwCombiner.Domain.Composition;
@@ -36,12 +37,12 @@ public sealed partial class CompiledComposition
     private static void AppendPhysicalRegionChain(
         StringBuilder builder,
         string prefix,
-        IReadOnlyList<CompiledPhysicalRegionConstraint> regionChain)
+        IReadOnlyList<FirmwareRegion> regionChain)
     {
         AppendInteger(builder, $"{prefix}.count", regionChain.Count);
         for (int index = 0; index < regionChain.Count; index++)
         {
-            CompiledPhysicalRegionConstraint region = regionChain[index];
+            FirmwareRegion region = regionChain[index];
             string itemPrefix = FormattableString.Invariant($"{prefix}.{index}");
             AppendField(builder, $"{itemPrefix}.region-id", region.RegionId);
             AppendEnum(builder, $"{itemPrefix}.write-constraint", region.WriteConstraint);

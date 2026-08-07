@@ -16,7 +16,6 @@ public sealed partial class CompiledComposition
         IcNumberPolicy = icNumberPolicy;
         Eligibility = eligibility;
         V2Details = details;
-        IntegrityFingerprint = CalculateIntegrityFingerprint(plan);
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
 
@@ -28,7 +27,6 @@ public sealed partial class CompiledComposition
         IcNumberPolicy = source.IcNumberPolicy;
         Eligibility = source.Eligibility;
         V2Details = source.V2Details;
-        IntegrityFingerprint = source.IntegrityFingerprint;
         CapabilityFingerprint = capabilityFingerprint;
         CompilationFingerprint = CalculateCompilationFingerprint(this);
     }
@@ -103,12 +101,6 @@ public sealed partial class CompiledComposition
 
     /// <summary>Reviewed capability definition chained into this canonical compilation; null before catalog binding.</summary>
     public string? CapabilityFingerprint { get; }
-
-    /// <summary>
-    /// Canonical lowercase SHA-256 over profile-declared external processors and
-    /// host-side scalar relocation operations; null when neither is present.
-    /// </summary>
-    public string? IntegrityFingerprint { get; }
 
     /// <summary>Returns the immutable canonical artifact whose compilation identity references one reviewed capability.</summary>
     public CompiledComposition BindCapabilityFingerprint(

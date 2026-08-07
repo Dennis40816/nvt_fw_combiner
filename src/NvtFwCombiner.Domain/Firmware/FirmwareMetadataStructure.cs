@@ -65,9 +65,6 @@ public sealed class FirmwareMetadataStructure
     /// <summary>Fields in deterministic structure-relative range order.</summary>
     public IReadOnlyList<FirmwareMetadataField> Fields => Definition.Fields;
 
-    /// <summary>Assertions in deterministic structure-relative range order.</summary>
-    public IReadOnlyList<FirmwareMetadataByteAssertion> Assertions => Definition.Assertions;
-
     /// <summary>Typed validation relations in deterministic relation-id order.</summary>
     public IReadOnlyList<FirmwareMetadataFieldRelation> Relations => Definition.Relations;
 

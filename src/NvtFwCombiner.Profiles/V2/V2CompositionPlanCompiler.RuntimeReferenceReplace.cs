@@ -60,7 +60,7 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
-        if (profile.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
+        if (profile.Header.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -235,7 +235,7 @@ internal static partial class V2CompositionPlanCompiler
             profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
-                profile.AllowsConditionalProcessor,
+                profile.Header.AllowsConditionalProcessor,
                 processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
@@ -354,7 +354,7 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(profile);
         referenceSlotId = string.Empty;
         allowsTopologyDisambiguation = false;
-        if (profile.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
+        if (profile.Header.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return false;
         }

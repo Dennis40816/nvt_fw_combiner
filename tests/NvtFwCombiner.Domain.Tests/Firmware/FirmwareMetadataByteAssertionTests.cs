@@ -15,7 +15,6 @@ public sealed class FirmwareMetadataByteAssertionTests
         var assertion = FirmwareMetadataByteAssertion.Exact(4, source);
         source[0] = 0xFF;
 
-        Assert.True(assertion.IsExact);
         Assert.Equal(new ByteRange(4, 2), assertion.Range);
         Assert.Equal("1234", assertion.ExpectedBytes.Hex);
         Assert.Equal("ffff", assertion.MaskBytes.Hex);
@@ -39,7 +38,6 @@ public sealed class FirmwareMetadataByteAssertionTests
         expected[0] = 0;
         mask[0] = 0;
 
-        Assert.False(assertion.IsExact);
         Assert.Equal("1004", assertion.ExpectedBytes.Hex);
         Assert.Equal("f00f", assertion.MaskBytes.Hex);
         Assert.True(assertion.Matches([0x1F, 0xA4]));

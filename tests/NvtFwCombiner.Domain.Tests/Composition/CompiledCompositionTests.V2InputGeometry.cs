@@ -163,6 +163,9 @@ public sealed partial class CompiledCompositionTests
         long outputCapacity,
         IReadOnlyList<ByteRange> sourceRanges)
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
                 [CompiledInputSlotTestFactory.Create(
@@ -175,10 +178,11 @@ public sealed partial class CompiledCompositionTests
                     new CompiledTpMaximum256KInputLengthRequirement(),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "tp-slot", CompiledInputInstancePolicy.Singleton)]),
-            regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
+            regionAccessContract: CreateTpRegionAccessContract(
+                sourceRanges,
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
             plan: CreateTpPlan(sourceLength, outputCapacity));
     }
 
@@ -189,6 +193,9 @@ public sealed partial class CompiledCompositionTests
         const long sourceLength = 8;
         const long outputCapacity = 16;
         IReadOnlyList<long> expected = expectedInputLengths ?? [outputCapacity];
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
                 [CompiledInputSlotTestFactory.Create(
@@ -203,10 +210,9 @@ public sealed partial class CompiledCompositionTests
                 [new CompiledInputSpaceBinding("input", "dp-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(
                 [new ByteRange(0, sourceLength)],
-                new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
             plan: new CompositionPlan(
                 ImageInitialization.Blank("output-image", outputCapacity, 0),
                 [
@@ -238,6 +244,9 @@ public sealed partial class CompiledCompositionTests
     {
         expectedOuterLengths ??= [requiredEndExclusive];
         long outputCapacity = Math.Max(requiredEndExclusive, 16);
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
                 [CompiledInputSlotTestFactory.Create(
@@ -256,10 +265,9 @@ public sealed partial class CompiledCompositionTests
                 [new CompiledInputSpaceBinding("input", "source-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(
                 [new ByteRange(0, 1)],
-                new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
             plan: new CompositionPlan(
                 ImageInitialization.Blank("output-image", outputCapacity, 0),
                 [
@@ -286,6 +294,10 @@ public sealed partial class CompiledCompositionTests
     private static CompiledComposition CreateDpReplaceComposition()
     {
         const long capacity = 16;
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            capacity,
+            "dp-replace");
         var contract = new CompiledInputContract(
             [
                 CompiledInputSlotTestFactory.Create(
@@ -337,12 +349,9 @@ public sealed partial class CompiledCompositionTests
                 new ByteRange(0, 4),
                 OverlapPolicy.Reject,
                 "replace synthetic DP bytes")]);
-        CompiledPhysicalRegionConstraint[] chain =
+        FirmwareRegion[] chain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.Forbidden,
-                alignment: 1),
+            resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root"),
         ];
         var regionAccess = new CompiledRegionAccessContract(
             [],
@@ -366,10 +375,7 @@ public sealed partial class CompiledCompositionTests
         return CreateV2(
             inputContract: contract,
             regionAccessContract: regionAccess,
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                capacity,
-                "dp-replace"),
+            resolvedMap: resolvedMap,
             plan: plan,
             compositionKind: CompositionKind.Replace,
             modeId: "dp-replace",
@@ -404,14 +410,12 @@ public sealed partial class CompiledCompositionTests
 
     private static CompiledRegionAccessContract CreateTpRegionAccessContract(
         IReadOnlyList<ByteRange> sourceRanges,
-        ByteRange outputRange)
+        ByteRange outputRange,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
     {
-        CompiledPhysicalRegionConstraint[] chain =
+        FirmwareRegion[] chain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.Forbidden,
-                alignment: 1),
+            resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root"),
         ];
         CompiledResolvedPhysicalView[] views =
         [

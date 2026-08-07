@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -141,7 +142,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 (assertion.Range, Bytes: Convert.ToHexString(assertion.ExpectedBytes.Span))));
     }
 
-    private static string RegionChain(IEnumerable<CompiledPhysicalRegionConstraint> chain)
+    private static string RegionChain(IEnumerable<FirmwareRegion> chain)
     {
         return string.Join("|", chain.Select(static region =>
             $"{region.RegionId}:{region.WriteConstraint}:{region.Alignment}"));
