@@ -233,7 +233,7 @@ internal sealed class CompositionInputSlotDefinition
         DomainInvariant.Reject(
             artifactClass == CompiledInputArtifactClass.TpFirmware &&
             (!IsApprovedTpLengthRequirement(lengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None),
+             normalization is not CompiledNoInputNormalization),
             "TP firmware requires one approved unnormalized section or exact length rule.");
 
         DomainInvariant.Reject(
@@ -254,22 +254,22 @@ internal sealed class CompositionInputSlotDefinition
             artifactClass == CompiledInputArtifactClass.ReferenceImage &&
             (lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
                  CompiledExactResolvedMapCapacityInputLengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None),
+             normalization is not CompiledNoInputNormalization),
             "Reference images require exact map capacity without normalization.");
 
         DomainInvariant.Reject(
-            normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
+            normalization is CompiledPadShorterInputNormalization &&
             artifactClass != CompiledInputArtifactClass.DpFirmware,
             "Short-input padding is restricted to DP firmware.");
 
         DomainInvariant.Reject(
-            normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
+            normalization is CompiledPadShorterInputNormalization &&
             lengthRequirement is not (ResolvedMapCapacityInputLengthDefinition or
                 CompiledExactResolvedMapCapacityInputLengthRequirement),
             "Short-input padding requires exact resolved-map capacity.");
 
         DomainInvariant.Reject(
-            normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
+            normalization is CompiledTruncateCtrlRamInputNormalization &&
             artifactClass != CompiledInputArtifactClass.CtrlRamReplacement,
             "CtrlRAM truncation requires a CtrlRAM replacement artifact.");
 
@@ -277,7 +277,7 @@ internal sealed class CompositionInputSlotDefinition
             lengthRequirement is CompiledDeclaredPrefixWithWarningInputLengthRequirement &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None),
+             normalization is not CompiledNoInputNormalization),
             "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
 
         DomainInvariant.Reject(
@@ -285,7 +285,7 @@ internal sealed class CompositionInputSlotDefinition
                 CompiledSourceViewCoverageInputLengthRequirement &&
             (artifactClass is CompiledInputArtifactClass.ReferenceImage or
                 CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None),
+             normalization is not CompiledNoInputNormalization),
             "Source-view coverage is restricted to unnormalized immutable section sources.");
     }
 

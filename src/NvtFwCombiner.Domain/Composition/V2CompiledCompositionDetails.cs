@@ -247,7 +247,7 @@ public sealed class V2CompilationProvenance
         }
 
         DomainInvariant.Reject(
-            context.Kind == V2CompilationContextKind.LogicalOutput &&
+            context is LogicalOutputV2CompilationContext &&
             (_validationRequirements.Length != 0 || _requiredCapabilities.Length != 0),
             "Logical-output provenance cannot claim physical validation or capability admissions.",
             nameof(context));
@@ -363,7 +363,7 @@ public sealed class V2CompiledCompositionDetails
         {
             ValidatePhysicalChain(requirement.GoverningRegionChain, regionsById, requirement.RegionId);
             DomainInvariant.Reject(
-                requirement.Access == CompiledRegionAccessKind.Parts &&
+                requirement.Access == RegionAccessKind.Parts &&
                 requirement.AllowedSubregionIds.Any(subregionId =>
                     !regionsById.TryGetValue(subregionId, out FirmwareRegion? subregion) ||
                     !StringComparer.Ordinal.Equals(subregion.ParentRegionId, requirement.RegionId)),

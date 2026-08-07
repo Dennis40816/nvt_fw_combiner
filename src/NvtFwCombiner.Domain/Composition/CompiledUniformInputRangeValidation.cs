@@ -34,8 +34,7 @@ public sealed record CompiledUniformInputRangeValidation : CompiledValidationReq
             ruleId,
             CompiledValidationStage.InputLoad,
             severity,
-            issueCode,
-            CompiledValidationKind.RejectUniformInputRanges)
+            issueCode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentNullException.ThrowIfNull(ranges);

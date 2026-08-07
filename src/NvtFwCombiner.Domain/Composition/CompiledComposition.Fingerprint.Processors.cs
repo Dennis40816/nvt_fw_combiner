@@ -10,7 +10,7 @@ public sealed partial class CompiledComposition
         RuntimeReferenceReplaceV2CompilationContext context,
         bool capabilityBound)
     {
-        AppendEnum(builder, "compilation-context", context.Kind);
+        AppendInteger(builder, "compilation-context", 2);
         if (context.AllowsConditionalProcessor)
         {
             AppendInteger(

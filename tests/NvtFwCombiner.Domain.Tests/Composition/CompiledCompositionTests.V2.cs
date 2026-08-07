@@ -285,18 +285,18 @@ public sealed partial class CompiledCompositionTests
     public void V2FingerprintBindsRegionAccessAndPhysicalViewProvenance()
     {
         CompiledComposition readOnly = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.ReadOnly,
+            RegionAccessKind.ReadOnly,
             "Source bytes are inspectable only."));
         CompiledComposition hidden = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Hidden,
+            RegionAccessKind.Hidden,
             "Source bytes are inspectable only."));
         CompiledComposition changedReason = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.ReadOnly,
+            RegionAccessKind.ReadOnly,
             "Source bytes require a different review rule."));
 
         CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details.RegionAccessContract.Requirements);
         Assert.Equal("root", access.RegionId);
-        Assert.Equal(CompiledRegionAccessKind.ReadOnly, access.Access);
+        Assert.Equal(RegionAccessKind.ReadOnly, access.Access);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
         Assert.Equal(["input", "output"], readOnly.V2Details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
         Assert.NotEqual(readOnly.CompilationFingerprint, hidden.CompilationFingerprint);
@@ -308,11 +308,11 @@ public sealed partial class CompiledCompositionTests
     public void V2RegionAccessContractRejectsMapMismatches()
     {
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Whole,
+            RegionAccessKind.Whole,
             "Incorrect physical constraint.",
             writeConstraint: FirmwareWriteConstraint.WholeRegion)));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Parts,
+            RegionAccessKind.Parts,
             "Unknown child.",
             allowedSubregionIds: ["missing-child"])));
     }
@@ -547,7 +547,7 @@ public sealed partial class CompiledCompositionTests
     }
 
     private static CompiledRegionAccessContract CreateRegionAccessContract(
-        CompiledRegionAccessKind access,
+        RegionAccessKind access,
         string reason,
         FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.Forbidden,
         IReadOnlyList<string>? allowedSubregionIds = null)

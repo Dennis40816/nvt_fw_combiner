@@ -36,8 +36,7 @@ public sealed record CompiledFirmwareConfigBackupVersionValidation : CompiledVal
             ruleId,
             CompiledValidationStage.FinalOutput,
             CompiledValidationSeverity.Error,
-            mismatchIssueCode,
-            CompiledValidationKind.FirmwareConfigBackupVersion)
+            mismatchIssueCode)
     {
         InvalidIssueCode = RequiredValue.NotBlank(invalidIssueCode);
         FirmwareVersion = firmwareVersion;

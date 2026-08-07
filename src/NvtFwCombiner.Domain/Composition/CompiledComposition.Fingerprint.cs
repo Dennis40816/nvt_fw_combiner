@@ -382,7 +382,19 @@ public sealed partial class CompiledComposition
             AppendEnum(builder, $"{prefix}.stage", requirement.Stage);
             AppendEnum(builder, $"{prefix}.severity", requirement.Severity);
             AppendField(builder, $"{prefix}.issue-code", requirement.IssueCode);
-            AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+            AppendInteger(builder, $"{prefix}.kind", requirement switch
+            {
+                CompiledMetadataValueValidation => 0,
+                CompiledPidSanityValidation => 1,
+                CompiledMetadataEqualityValidation => 2,
+                CompiledRejectMetadataBytePatternValidation => 3,
+                CompiledViewByteAssertionValidation => 4,
+                CompiledFirmwareConfigBackupVersionValidation => 5,
+                CompiledFirmwareConfigBackupPlacementAuthorityValidation => 6,
+                CompiledFirmwareConfigBackupExpectedAddressValidation => 7,
+                CompiledUniformInputRangeValidation => 8,
+                _ => throw new InvalidOperationException("Unknown compiled validation kind."),
+            });
             switch (requirement)
             {
                 case CompiledMetadataValueValidation metadata:
@@ -507,7 +519,16 @@ public sealed partial class CompiledComposition
         string prefix,
         CompiledInputLengthRequirement requirement)
     {
-        AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+        AppendInteger(builder, $"{prefix}.kind", requirement switch
+        {
+            CompiledExactBytesInputLengthRequirement => 0,
+            CompiledExactResolvedMapCapacityInputLengthRequirement => 1,
+            CompiledBoundedInputLengthRequirement => 2,
+            CompiledTpMaximum256KInputLengthRequirement => 4,
+            CompiledDeclaredPrefixWithWarningInputLengthRequirement => 5,
+            CompiledSourceViewCoverageInputLengthRequirement => 6,
+            _ => throw new InvalidOperationException("Unknown compiled input length requirement."),
+        });
         switch (requirement)
         {
             case CompiledExactBytesInputLengthRequirement exact:
@@ -556,7 +577,13 @@ public sealed partial class CompiledComposition
         string prefix,
         CompiledInputNormalization normalization)
     {
-        AppendEnum(builder, $"{prefix}.kind", normalization.Kind);
+        AppendInteger(builder, $"{prefix}.kind", normalization switch
+        {
+            CompiledNoInputNormalization => 0,
+            CompiledPadShorterInputNormalization => 1,
+            CompiledTruncateCtrlRamInputNormalization => 2,
+            _ => throw new InvalidOperationException("Unknown compiled input normalization."),
+        });
         switch (normalization)
         {
             case CompiledNoInputNormalization:
@@ -618,7 +645,12 @@ public sealed partial class CompiledComposition
         {
             CompiledValidationScalarLiteral value = values[index];
             string valuePrefix = FormattableString.Invariant($"{prefix}.{index}");
-            AppendEnum(builder, $"{valuePrefix}.kind", value.Kind);
+            AppendInteger(builder, $"{valuePrefix}.kind", value switch
+            {
+                CompiledValidationIntegerLiteral => 0,
+                CompiledValidationTextLiteral => 1,
+                _ => throw new InvalidOperationException("Unknown compiled validation literal kind."),
+            });
             switch (value)
             {
                 case CompiledValidationIntegerLiteral integer:

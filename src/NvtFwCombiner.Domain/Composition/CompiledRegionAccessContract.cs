@@ -2,25 +2,6 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>Closed profile access vocabulary retained independently from Profiles normalization types.</summary>
-public enum CompiledRegionAccessKind
-{
-    /// <summary>The region is not authorable.</summary>
-    Hidden,
-
-    /// <summary>The region is inspectable but never writable.</summary>
-    ReadOnly,
-
-    /// <summary>Only one exact whole-region target is authorable.</summary>
-    Whole,
-
-    /// <summary>Only explicitly named direct child regions are authorable.</summary>
-    Parts,
-
-    /// <summary>Checked, aligned subranges are authorable.</summary>
-    ExplicitRange,
-}
-
 /// <summary>One resolved physical constraint retained without duplicating its map range.</summary>
 public sealed class CompiledPhysicalRegionConstraint
 {
@@ -99,7 +80,7 @@ public sealed class CompiledRegionAccessRequirement
 
     internal CompiledRegionAccessRequirement(
         string regionId,
-        CompiledRegionAccessKind access,
+        RegionAccessKind access,
         string reason,
         IEnumerable<string> allowedSubregionIds,
         IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
@@ -111,11 +92,11 @@ public sealed class CompiledRegionAccessRequirement
         _allowedSubregionIds = ImmutableStringSnapshot.Create(
             allowedSubregionIds,
             nameof(allowedSubregionIds),
-            access == CompiledRegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
+            access == RegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
         DomainInvariant.Reject(
-            access != CompiledRegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
+            access != RegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
             "Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
 
         _governingRegionChain = ImmutableReferenceSnapshot.Create(
@@ -140,12 +121,12 @@ public sealed class CompiledRegionAccessRequirement
     public string RegionId { get; }
 
     /// <summary>Closed authoring access mode.</summary>
-    public CompiledRegionAccessKind Access { get; }
+    public RegionAccessKind Access { get; }
 
     /// <summary>Profile-owned reason retained for report and approval evidence.</summary>
     public string Reason { get; }
 
-    /// <summary>Canonical direct child regions allowed only for <see cref="CompiledRegionAccessKind.Parts"/>.</summary>
+    /// <summary>Canonical direct child regions allowed only for <see cref="RegionAccessKind.Parts"/>.</summary>
     public IReadOnlyList<string> AllowedSubregionIds { get; }
 
     /// <summary>Physical ancestor chain that governed this profile declaration.</summary>
