@@ -266,6 +266,10 @@ public sealed class CompiledFirmwareArtifactClassifierTests
             validations,
             []);
         var details = new V2CompiledCompositionDetails(
+            "classification-profile",
+            "1.0.0",
+            ExperienceIds.StandardMerge,
+            CompositionKind.Merge,
             provenance,
             inputContract,
             new CompiledRegionAccessContract([], []),
@@ -274,12 +278,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                 allowOverride: true,
                 CompiledOutputInvalidCharacterPolicy.Reject,
                 []));
-        var identity = new V2CompiledCompositionIdentity(
-            "classification-profile",
-            "1.0.0",
-            ExperienceIds.StandardMerge,
-            CompositionKind.Merge,
-            details);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 16, 0),
             [
@@ -320,7 +318,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
 
         return CompiledComposition.CreateV2RuntimeExecutable(
             plan,
-            identity,
+            details,
             CompiledIcNumberPolicy.NotApplicable);
     }
 

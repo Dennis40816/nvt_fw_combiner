@@ -261,19 +261,17 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             source.InputContract.SpaceBindings,
             selectionGroups: []);
         var details = new V2CompiledCompositionDetails(
-            source.Provenance,
-            inputContract,
-            source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        var identity = new V2CompiledCompositionIdentity(
             composition.ProfileId,
             composition.ProfileVersion,
             composition.ExperienceId,
             composition.CompositionKind,
-            details);
+            source.Provenance,
+            inputContract,
+            source.RegionAccessContract,
+            source.OutputNamingRequirement);
         return CompiledComposition.CreateV2RuntimeExecutable(
             composition.Plan,
-            identity,
+            details,
             composition.IcNumberPolicy);
     }
 
@@ -298,19 +296,17 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             provenance.ValidationRequirements,
             provenance.RequiredCapabilities);
         var details = new V2CompiledCompositionDetails(
-            changedProvenance,
-            source.InputContract,
-            source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        var identity = new V2CompiledCompositionIdentity(
             composition.ProfileId,
             composition.ProfileVersion,
             composition.ExperienceId,
             composition.CompositionKind,
-            details);
+            changedProvenance,
+            source.InputContract,
+            source.RegionAccessContract,
+            source.OutputNamingRequirement);
         return CompiledComposition.CreateV2(
             composition.Plan,
-            identity,
+            details,
             composition.IcNumberPolicy);
     }
 }

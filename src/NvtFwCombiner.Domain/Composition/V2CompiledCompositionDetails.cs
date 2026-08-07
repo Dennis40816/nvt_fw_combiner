@@ -310,11 +310,26 @@ public sealed class V2CompilationProvenance
 public sealed class V2CompiledCompositionDetails
 {
     internal V2CompiledCompositionDetails(
+        string profileId,
+        string profileVersion,
+        string experienceId,
+        CompositionKind compositionKind,
         V2CompilationProvenance provenance,
         CompiledInputContract inputContract,
         CompiledRegionAccessContract regionAccessContract,
         CompiledOutputNamingRequirement outputNamingRequirement)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
+        ArgumentException.ThrowIfNullOrWhiteSpace(experienceId);
+        if (!Enum.IsDefined(compositionKind))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(compositionKind),
+                compositionKind,
+                "Unknown composition kind.");
+        }
+
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(regionAccessContract);
@@ -329,11 +344,27 @@ public sealed class V2CompiledCompositionDetails
                 "Logical-output V2 details cannot retain physical region access.",
                 nameof(regionAccessContract));
         }
+        ProfileId = profileId;
+        ProfileVersion = profileVersion;
+        ExperienceId = experienceId;
+        CompositionKind = compositionKind;
         Provenance = provenance;
         InputContract = inputContract;
         RegionAccessContract = regionAccessContract;
         OutputNamingRequirement = outputNamingRequirement;
     }
+
+    /// <summary>Stable profile id.</summary>
+    public string ProfileId { get; }
+
+    /// <summary>Profile content version.</summary>
+    public string ProfileVersion { get; }
+
+    /// <summary>Experience id declared by the profile.</summary>
+    public string ExperienceId { get; }
+
+    /// <summary>Merge or Replace composition kind.</summary>
+    public CompositionKind CompositionKind { get; }
 
     /// <summary>Resolved bundle, map, promotion, evidence, and validation provenance.</summary>
     public V2CompilationProvenance Provenance { get; }
@@ -417,41 +448,4 @@ public sealed class V2CompiledCompositionDetails
                 nameof(expectedTerminalRegionId));
         }
     }
-}
-
-/// <summary>Immutable profile-bundle-v2 identity used only by the Profiles compiler to mint a compiled artifact.</summary>
-internal sealed class V2CompiledCompositionIdentity
-{
-    internal V2CompiledCompositionIdentity(
-        string profileId,
-        string profileVersion,
-        string experienceId,
-        CompositionKind compositionKind,
-        V2CompiledCompositionDetails details)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
-        ArgumentException.ThrowIfNullOrWhiteSpace(experienceId);
-        if (!Enum.IsDefined(compositionKind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(compositionKind), compositionKind, "Unknown composition kind.");
-        }
-
-        ArgumentNullException.ThrowIfNull(details);
-        ProfileId = profileId;
-        ProfileVersion = profileVersion;
-        ExperienceId = experienceId;
-        CompositionKind = compositionKind;
-        Details = details;
-    }
-
-    internal string ProfileId { get; }
-
-    internal string ProfileVersion { get; }
-
-    internal string ExperienceId { get; }
-
-    internal CompositionKind CompositionKind { get; }
-
-    internal V2CompiledCompositionDetails Details { get; }
 }

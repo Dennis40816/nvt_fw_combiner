@@ -526,20 +526,19 @@ public sealed partial class CompositionRunRequestV2Tests
                         writeChain),
                 ]
                 : []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "runtime-reference-profile",
             "1.0.0",
             experienceId,
             CompositionKind.Replace,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                regionAccess,
-                new CompiledOutputNamingRequirement(
-                    "runtime-reference.bin",
-                    allowOverride: false,
-                    CompiledOutputInvalidCharacterPolicy.Reject,
-                    [])));
+            provenance,
+            inputContract,
+            regionAccess,
+            new CompiledOutputNamingRequirement(
+                "runtime-reference.bin",
+                allowOverride: false,
+                CompiledOutputInvalidCharacterPolicy.Reject,
+                []));
         AddressSpace[] spaces = includeAuxiliarySource
             ?
             [
@@ -603,7 +602,7 @@ public sealed partial class CompositionRunRequestV2Tests
             [.. mappingOperations, .. processorOperations]);
         return CompiledComposition.CreateV2(
             plan,
-            identity,
+            details,
             CompiledIcNumberPolicy.SingleSelector);
 
         static IReadOnlyList<ExternalProcessorWriteRangeSection>

@@ -490,16 +490,15 @@ public sealed partial class CompositionOutputNameResolverTests
                     CompiledInputInstancePolicy.Singleton),
             ]);
         CompiledOutputNamingRequirement output = NormalFlashCodeOutput();
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "output-naming-profile",
             "1.0.0",
             "standard-merge",
             CompositionKind.Merge,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                new CompiledRegionAccessContract([], []),
-                output));
+            provenance,
+            inputContract,
+            new CompiledRegionAccessContract([], []),
+            output);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output", CapacityBytes, 0),
             [
@@ -526,7 +525,7 @@ public sealed partial class CompositionOutputNameResolverTests
             ]);
         return CompiledComposition.CreateV2RuntimeExecutable(
             plan,
-            identity,
+            details,
             CompiledIcNumberPolicy.NotApplicable);
     }
 
