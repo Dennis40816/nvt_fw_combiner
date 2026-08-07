@@ -64,8 +64,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             ],
             composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
 
-        V2CompositionPlanCompileResult wrongCapacity = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult wrongCapacity = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             profileId,
             "0.4.0",
             icId,
@@ -147,8 +146,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
     /// <inheritdoc/>
     private static CompiledComposition CompileProfile(string icId, string profileId)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             profileId,
             "0.4.0",
             icId,

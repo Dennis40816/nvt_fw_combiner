@@ -157,8 +157,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 
     private static CompiledComposition CompileSupportedProfile(string icId, int capacity)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             $"nt{icId[2..]}-dp-replace-dp-perspective",
             "0.8.0",
             icId,

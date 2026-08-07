@@ -31,19 +31,12 @@ public sealed class FirmwareCapabilityFact : IFirmwareMapFact
         ClosedEnum.ThrowIfUndefined(state, "Unknown firmware capability state.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        _evidenceRefs = [.. evidenceRefs];
-        if (_evidenceRefs.Length == 0 || _evidenceRefs.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new ArgumentException("Capability evidence references must be non-empty values.", nameof(evidenceRefs));
-        }
-
-        if (_evidenceRefs.Distinct(StringComparer.Ordinal).Count() != _evidenceRefs.Length)
-        {
-            throw new ArgumentException("Capability evidence references must be ordinally unique.", nameof(evidenceRefs));
-        }
-
-        Array.Sort(_evidenceRefs, StringComparer.Ordinal);
+        _evidenceRefs = ImmutableStringSnapshot.Create(
+            evidenceRefs,
+            nameof(evidenceRefs),
+            "Capability evidence references must be non-empty values.",
+            "Capability evidence references must be non-empty values.",
+            "Capability evidence references must be ordinally unique.");
         CapabilityFactId = capabilityFactId;
         CapabilityId = capabilityId;
         State = state;

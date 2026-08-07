@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -124,10 +125,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         return new TrustedProfileBundleCatalogSource(
             ManifestHash,
-            "bundle",
-            "1.0.0",
-            bundleContentHash,
-            "release-binding",
+            new ProfileBundleIdentity("bundle", "1.0.0", bundleContentHash, "release-binding"),
             families,
             profiles);
     }

@@ -1,4 +1,5 @@
 using NvtFwCombiner.Infrastructure.Bundles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 using NvtFwCombiner.Profiles.V2;
 
@@ -14,10 +15,11 @@ internal static class TrustedProfileBundleCatalogProjection
         ArgumentNullException.ThrowIfNull(projection);
         return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
             projection.ManifestSha256,
-            projection.BundleId,
-            projection.BundleVersion,
-            projection.BundleContentHash,
-            projection.TrustAnchorBindingId,
+            new ProfileBundleIdentity(
+                projection.BundleId,
+                projection.BundleVersion,
+                projection.BundleContentHash,
+                projection.TrustAnchorBindingId),
             projection.Families.Select(static family => new TrustedFirmwareFamilyJsonSource(
                 CopyIdentity(family.Identity),
                 family.Document)),

@@ -89,9 +89,13 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.DoesNotContain("ExperienceIds.", compilerSources, StringComparison.Ordinal);
         string trustedCompiler = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/TrustedV2CompositionCompiler.cs");
-        Assert.Equal(1, CountOccurrences(trustedCompiler, "ExperienceIds."));
-        Assert.Contains("ExperienceIds.GeneralReplace", trustedCompiler, StringComparison.Ordinal);
+            "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalog.Compilation.cs");
+        string compilationSources = string.Join(
+            Environment.NewLine,
+            compilerSources,
+            trustedCompiler);
+        Assert.DoesNotContain("ExperienceIds.", trustedCompiler, StringComparison.Ordinal);
+        Assert.DoesNotContain("TrustedV2CompositionCompiler", trustedCompiler, StringComparison.Ordinal);
         foreach (string workflowLiteral in new[]
                  {
                      "\"standard-merge\"",
@@ -102,8 +106,21 @@ public sealed partial class RepositoryBoundaryTests
                      "\"general-replace\"",
                  })
         {
-            Assert.DoesNotContain(workflowLiteral, compilerSources, StringComparison.Ordinal);
+            Assert.DoesNotContain(workflowLiteral, compilationSources, StringComparison.Ordinal);
         }
+        Assert.Empty(CompiledIcIdentityRegex().Matches(compilationSources));
+
+        string profileSources = ReadProfileSources();
+        int planConstructionCount = CompositionPlanConstructionRegex().Count(compilerSources);
+        int detailsConstructionCount = CompiledDetailsConstructionRegex().Count(compilerSources);
+        Assert.NotEqual(0, planConstructionCount);
+        Assert.NotEqual(0, detailsConstructionCount);
+        Assert.Equal(
+            planConstructionCount,
+            CompositionPlanConstructionRegex().Count(profileSources));
+        Assert.Equal(
+            detailsConstructionCount,
+            CompiledDetailsConstructionRegex().Count(profileSources));
 
         Assert.Equal(1, CountOccurrences(compilerSources, ".ExperienceId"));
         Assert.Equal(0, CountOccurrences(compilerSources, ".ModeId"));
@@ -126,6 +143,55 @@ public sealed partial class RepositoryBoundaryTests
             compilerSources,
             StringComparison.Ordinal);
     }
+
+    /// <summary>Locks trusted compilation and bundle identity to their existing catalog owners.</summary>
+    [Fact]
+    public void TrustedCatalogDoesNotReintroduceCompilerOrBundleIdentityFacades()
+    {
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "TrustedV2CompositionCompiler.cs")));
+
+        string source = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalogSource.cs");
+        _ = Assert.Single(BundleIdentityParameterRegex().Matches(source));
+        Assert.Empty(LooseBundleIdentityParameterRegex().Matches(source));
+        Assert.Empty(CatalogSourceConstructionRegex().Matches(ReadProfileSources()));
+        _ = Assert.Single(CatalogSourceConstructionRegex().Matches(ReadBootstrapSources()));
+    }
+
+    [GeneratedRegex(
+        @"\bnew\s+CompositionPlan\s*\(",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex CompositionPlanConstructionRegex();
+
+    [GeneratedRegex(
+        @"\bnew\s+V2CompiledCompositionDetails\s*\(",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex CompiledDetailsConstructionRegex();
+
+    [GeneratedRegex(
+        @"\bProfileBundleIdentity\s+bundleIdentity\b",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex BundleIdentityParameterRegex();
+
+    [GeneratedRegex(
+        @"\bstring\s+(?:bundleId|bundleVersion|bundleContentHash|trustAnchorBindingId)\s*,",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex LooseBundleIdentityParameterRegex();
+
+    [GeneratedRegex(
+        @"\bNT\d{5}\b",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex CompiledIcIdentityRegex();
+
+    [GeneratedRegex(
+        @"\bnew\s+TrustedProfileBundleCatalogSource\s*\(",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
+    private static partial Regex CatalogSourceConstructionRegex();
 
     [GeneratedRegex(
         @"(?m)^\s*internal\s+(?:(?:sealed|abstract|partial)\s+)*(?:class|record)\s+\w*(?:ProfileDefinition|CompositionDefinition)\b",

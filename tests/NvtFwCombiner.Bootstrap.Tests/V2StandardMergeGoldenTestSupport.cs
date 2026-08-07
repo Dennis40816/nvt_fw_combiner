@@ -60,8 +60,7 @@ internal static class V2StandardMergeGoldenTestSupport
         long? requestedMapCapacity = null,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult compilation = catalog.Compile(
             profileId,
             profileVersion,
             icId,

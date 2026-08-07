@@ -97,8 +97,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
     public void CandidateProfileRejectsHiddenTopologySelection()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
             "0.3.0",
             "NT51951",
@@ -168,8 +167,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
 
     private static CompiledComposition CompileCandidate(TempWorkspace workspace)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
             "0.3.0",
             "NT51951",

@@ -474,8 +474,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             chipCount == 1 ? "single" : "cascade",
             TopologySelectionSource.Requested,
             "number-selector");
-        V2CompositionPlanCompileResult compile = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult compile = catalog.CompileRuntimeReferenceReplace(
             profileId,
             profileVersion,
             icId,

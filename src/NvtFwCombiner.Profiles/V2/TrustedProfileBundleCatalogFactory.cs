@@ -58,11 +58,6 @@ internal static class TrustedProfileBundleCatalogFactory
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(source);
-        ProfileBundleIdentity bundleIdentity = new(
-            source.BundleId,
-            source.BundleVersion,
-            source.BundleContentHash,
-            source.TrustAnchorBindingId);
         ValidateUniqueSourceEntryIds(source);
         TrustedFirmwareFamilyCatalogEntry[] families = NormalizeFamilies(
             source.Families,
@@ -70,7 +65,7 @@ internal static class TrustedProfileBundleCatalogFactory
         ValidateUniqueFamilyIdentities(families);
         TrustedCompositionProfileCatalogEntry[] profiles = NormalizeProfiles(source.Profiles, families);
         ValidateUniqueProfileIdentities(profiles);
-        return new TrustedProfileBundleCatalog(bundleIdentity, source.ManifestSha256, families, profiles);
+        return new TrustedProfileBundleCatalog(source.BundleIdentity, source.ManifestSha256, families, profiles);
     }
 
     private static void ValidateUniqueSourceEntryIds(TrustedProfileBundleCatalogSource source)

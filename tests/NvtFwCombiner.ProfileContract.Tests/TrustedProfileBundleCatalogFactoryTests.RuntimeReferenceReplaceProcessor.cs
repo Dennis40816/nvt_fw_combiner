@@ -13,8 +13,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceGeneralReplaceRejectsResolutionArtifact()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: false),
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: false).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -43,8 +42,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new ByteRange(0, 2),
                 new ByteRange(8, 2))]);
 
-        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult valid = catalog.CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -52,8 +50,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             requestedTopology: null,
             [new FirmwareArtifactPayload("base", new byte[16])],
             request);
-        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult rejected = catalog.CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -73,15 +70,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceCompilesShortSourceForSelectedTopology()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
                 experienceId: ExperienceIds.CtrlRamReplace,
                 mapDefinitions:
                 [
                     new RuntimeReferenceReplaceMapDocument("single-map", 16, "single"),
                     new RuntimeReferenceReplaceMapDocument("cascade-map", 16, "cascade"),
-                ]),
+                ]).CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -135,11 +131,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             sourceLength: 2,
             mappings:
             [RuntimeReferenceReplaceMapping("replace-tp-prefix", 10, new ByteRange(0, 2), new ByteRange(8, 2))]);
-        V2CompositionPlanCompileResult ctrlRamResult = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult ctrlRamResult = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
                 experienceId: ExperienceIds.CtrlRamReplace,
-                mapDefinitions: maps),
+                mapDefinitions: maps).CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -147,12 +142,11 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             topology,
             [new FirmwareArtifactPayload("base", new byte[16])],
             request);
-        V2CompositionPlanCompileResult alternateResult = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult alternateResult = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
                 experienceId: ExperienceIds.GeneralReplace,
                 mapDefinitions: maps,
-                usesCtrlRamSemantics: true),
+                usesCtrlRamSemantics: true).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -203,8 +197,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new ByteRange(8, 2)),
         ];
         V2CompositionPlanCompileResult baseline =
-            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-                catalog,
+catalog.CompileRuntimeReferenceReplace(
                 "runtime-ctrlram-replace",
                 "1.0.0",
                 LogicalTestMemberId,
@@ -212,8 +205,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 topology,
                 new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
         V2CompositionPlanCompileResult classified =
-            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-                catalog,
+catalog.CompileRuntimeReferenceReplace(
                 "runtime-ctrlram-replace",
                 "1.0.0",
                 LogicalTestMemberId,
@@ -250,10 +242,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceRejectsDpTarget()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                experienceId: ExperienceIds.CtrlRamReplace),
+                experienceId: ExperienceIds.CtrlRamReplace).CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -286,8 +277,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceGeneralReplaceRejectsExplicitTopology()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: true),
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: true).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -411,10 +401,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceRejectsProcessorWriteOutsidePhysicalAuthority()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                headerWriteConstraint: "forbidden"),
+                headerWriteConstraint: "forbidden").CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -430,10 +419,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceRejectsProcessorWritesExposedToAuthoring()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                headerAccess: "explicit-range"),
+                headerAccess: "explicit-range").CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -449,8 +437,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         V2RuntimeReferenceReplaceCompileRequest request,
         bool includeProcessor = true)
     {
-        return TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor),
+        return CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,

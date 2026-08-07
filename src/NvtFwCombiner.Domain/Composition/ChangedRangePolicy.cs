@@ -1,15 +1,9 @@
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Validates that observed byte changes remain inside declared write authority.</summary>
-public sealed class ChangedRangePolicy
+public sealed class ChangedRangePolicy(IEnumerable<ByteRange> allowedWrites)
 {
-    private readonly RangeSet _allowedWrites;
-
-    /// <summary>Creates a policy from profile-declared allowed write ranges.</summary>
-    public ChangedRangePolicy(IEnumerable<ByteRange> allowedWrites)
-    {
-        _allowedWrites = new RangeSet(allowedWrites);
-    }
+    private readonly RangeSet _allowedWrites = new(allowedWrites);
 
     /// <summary>Returns a deterministic verdict for observed changed ranges.</summary>
     public ChangedRangeVerdict Evaluate(IEnumerable<ByteRange> changedRanges)
@@ -22,22 +16,17 @@ public sealed class ChangedRangePolicy
 }
 
 /// <summary>Result of validating observed changes against declared write ranges.</summary>
-public sealed class ChangedRangeVerdict
+public sealed class ChangedRangeVerdict(
+    bool isAllowed,
+    IReadOnlyList<ByteRange> observedRanges,
+    IReadOnlyList<ByteRange> violatingRanges)
 {
-    /// <summary>Creates a verdict from observed ranges and policy violations.</summary>
-    public ChangedRangeVerdict(bool isAllowed, IReadOnlyList<ByteRange> observedRanges, IReadOnlyList<ByteRange> violatingRanges)
-    {
-        IsAllowed = isAllowed;
-        ObservedRanges = observedRanges;
-        ViolatingRanges = violatingRanges;
-    }
-
     /// <summary>True when every observed range is fully covered by declared write authority.</summary>
-    public bool IsAllowed { get; }
+    public bool IsAllowed { get; } = isAllowed;
 
     /// <summary>Observed changed ranges in deterministic order.</summary>
-    public IReadOnlyList<ByteRange> ObservedRanges { get; }
+    public IReadOnlyList<ByteRange> ObservedRanges { get; } = observedRanges;
 
     /// <summary>Observed ranges that are outside declared write authority.</summary>
-    public IReadOnlyList<ByteRange> ViolatingRanges { get; }
+    public IReadOnlyList<ByteRange> ViolatingRanges { get; } = violatingRanges;
 }

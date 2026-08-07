@@ -15,8 +15,7 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
     [Fact]
     public async Task CompilerLoweredRuntimeReferenceCandidateRunsThroughSharedApplicationEngine()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceCatalog(),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceCatalog().CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             "NT00001",
@@ -103,10 +102,11 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
         using var profileDocument = JsonDocument.Parse(profileJson);
         return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
             RuntimeReferenceManifestHash,
-            "runtime-reference-bundle",
-            "1.0.0",
-            RuntimeReferenceBundleHash,
-            "runtime-reference-release",
+            new ProfileBundleIdentity(
+                "runtime-reference-bundle",
+                "1.0.0",
+                RuntimeReferenceBundleHash,
+                "runtime-reference-release"),
             [new TrustedFirmwareFamilyJsonSource(
                 new TrustedProfileBundleCatalogEntryIdentity(
                     "family-entry",
