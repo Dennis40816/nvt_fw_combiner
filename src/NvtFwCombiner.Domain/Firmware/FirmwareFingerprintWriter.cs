@@ -5,15 +5,24 @@ namespace NvtFwCombiner.Domain.Firmware;
 
 internal static class FirmwareFingerprintWriter
 {
+    internal static void AppendList<T>(
+        StringBuilder builder,
+        string prefix,
+        IReadOnlyList<T> values,
+        Action<StringBuilder, string, T> appendItem)
+    {
+        AppendInteger(builder, $"{prefix}.count", values.Count);
+        for (int index = 0; index < values.Count; index++)
+        {
+            appendItem(builder, FormattableString.Invariant($"{prefix}.{index}"), values[index]);
+        }
+    }
+
     internal static void AppendFactProvenance(
         StringBuilder builder,
         IReadOnlyList<FirmwareFactProvenance> provenance)
     {
-        AppendInteger(builder, "fact-provenance.count", provenance.Count);
-        for (int index = 0; index < provenance.Count; index++)
-        {
-            AppendFactProvenance(builder, FormattableString.Invariant($"fact-provenance.{index}"), provenance[index]);
-        }
+        AppendList(builder, "fact-provenance", provenance, AppendFactProvenance);
     }
 
     internal static void AppendFactProvenance(
@@ -23,20 +32,22 @@ internal static class FirmwareFingerprintWriter
     {
         AppendFactKey(builder, $"{prefix}.effective-key", provenance.EffectiveKey);
         AppendFactKey(builder, $"{prefix}.direct-source-key", provenance.DirectSourceKey);
-        AppendInteger(builder, $"{prefix}.alias.count", provenance.AliasChain.Count);
-        for (int index = 0; index < provenance.AliasChain.Count; index++)
-        {
-            FirmwareFactAliasHop alias = provenance.AliasChain[index];
-            string aliasPrefix = FormattableString.Invariant($"{prefix}.alias.{index}");
-            AppendField(builder, $"{aliasPrefix}.id", alias.AliasId);
-            AppendFactKey(builder, $"{aliasPrefix}.target-key", alias.TargetKey);
-            AppendFactKey(builder, $"{aliasPrefix}.source-key", alias.SourceKey);
-            AppendFactApplicability(builder, $"{aliasPrefix}.applicability", alias.Applicability);
-            AppendField(builder, $"{aliasPrefix}.reason", alias.Reason);
-            AppendStringList(builder, $"{aliasPrefix}.evidence", alias.EvidenceRefs);
-        }
+        AppendList(builder, $"{prefix}.alias", provenance.AliasChain, AppendFactAlias);
 
         AppendStringList(builder, $"{prefix}.direct-evidence", provenance.DirectEvidenceRefs);
+    }
+
+    private static void AppendFactAlias(
+        StringBuilder builder,
+        string prefix,
+        FirmwareFactAliasHop alias)
+    {
+        AppendField(builder, $"{prefix}.id", alias.AliasId);
+        AppendFactKey(builder, $"{prefix}.target-key", alias.TargetKey);
+        AppendFactKey(builder, $"{prefix}.source-key", alias.SourceKey);
+        AppendFactApplicability(builder, $"{prefix}.applicability", alias.Applicability);
+        AppendField(builder, $"{prefix}.reason", alias.Reason);
+        AppendStringList(builder, $"{prefix}.evidence", alias.EvidenceRefs);
     }
 
     internal static void AppendFactKey(StringBuilder builder, string prefix, FirmwareMapFactKey key)
@@ -66,16 +77,13 @@ internal static class FirmwareFingerprintWriter
     {
         FirmwareMetadataPredicate[] ordered = [.. predicates];
         Array.Sort(ordered, ComparePredicates);
-        AppendInteger(builder, $"{prefix}.count", ordered.Length);
-        for (int index = 0; index < ordered.Length; index++)
+        AppendList(builder, prefix, ordered, static (target, predicatePrefix, predicate) =>
         {
-            FirmwareMetadataPredicate predicate = ordered[index];
-            string predicatePrefix = FormattableString.Invariant($"{prefix}.{index}");
-            AppendField(builder, $"{predicatePrefix}.structure-id", predicate.MetadataStructureId);
-            AppendField(builder, $"{predicatePrefix}.field-id", predicate.FieldId);
-            AppendEnum(builder, $"{predicatePrefix}.comparison", predicate.Comparison);
-            AppendMetadataValueList(builder, $"{predicatePrefix}.expected", predicate.ExpectedValues);
-        }
+            AppendField(target, $"{predicatePrefix}.structure-id", predicate.MetadataStructureId);
+            AppendField(target, $"{predicatePrefix}.field-id", predicate.FieldId);
+            AppendEnum(target, $"{predicatePrefix}.comparison", predicate.Comparison);
+            AppendMetadataValueList(target, $"{predicatePrefix}.expected", predicate.ExpectedValues);
+        });
     }
 
     internal static void AppendMetadataValueList(
@@ -85,11 +93,7 @@ internal static class FirmwareFingerprintWriter
     {
         FirmwareMetadataValue[] ordered = [.. values];
         Array.Sort(ordered, CompareMetadataValues);
-        AppendInteger(builder, $"{prefix}.count", ordered.Length);
-        for (int index = 0; index < ordered.Length; index++)
-        {
-            AppendMetadataValue(builder, FormattableString.Invariant($"{prefix}.{index}"), ordered[index]);
-        }
+        AppendList(builder, prefix, ordered, AppendMetadataValue);
     }
 
     internal static void AppendNullableMetadataValue(
@@ -128,11 +132,7 @@ internal static class FirmwareFingerprintWriter
 
     internal static void AppendStringList(StringBuilder builder, string prefix, IReadOnlyList<string> values)
     {
-        AppendInteger(builder, $"{prefix}.count", values.Count);
-        for (int index = 0; index < values.Count; index++)
-        {
-            AppendField(builder, FormattableString.Invariant($"{prefix}.{index}"), values[index]);
-        }
+        AppendList(builder, prefix, values, AppendField);
     }
 
     internal static void AppendNullableInteger(StringBuilder builder, string fieldName, long? value)

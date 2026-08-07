@@ -144,7 +144,6 @@ public sealed class FirmwareMetadataPredicateTests
         Assert.Equal(FirmwareMetadataValue.FromUnsignedInteger(1), noMatch.ActualValue);
         Assert.Equal(FirmwarePredicateResult.Missing, missing.Result);
         Assert.Null(missing.ActualValue);
-        Assert.Empty(typeof(FirmwareMetadataPredicateOutcome).GetConstructors());
     }
 
     /// <summary>Verifies identical field ids remain distinct across metadata structures.</summary>

@@ -14,21 +14,21 @@ public sealed class FirmwareRegionTemplateTests
             "ab-bank",
             0x40000,
             [
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "bank",
                     null,
                     FirmwareRegionOwner.System,
                     FirmwareRegionKind.Image,
                     new ByteRange(0, 0x40000),
                     FirmwareWriteConstraint.ExplicitRange),
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "dpcmi",
                     "bank",
                     FirmwareRegionOwner.Dp,
                     FirmwareRegionKind.Command,
                     new ByteRange(0x401A, 3),
                     FirmwareWriteConstraint.ExplicitRange),
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "tp-code",
                     "bank",
                     FirmwareRegionOwner.Tp,
@@ -96,14 +96,14 @@ public sealed class FirmwareRegionTemplateTests
             "ab-bank",
             0x40000,
             [
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "bank",
                     null,
                     FirmwareRegionOwner.System,
                     FirmwareRegionKind.Image,
                     new ByteRange(0, 0x40000),
                     FirmwareWriteConstraint.ExplicitRange),
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "tp-code",
                     "bank",
                     FirmwareRegionOwner.Tp,
@@ -126,6 +126,31 @@ public sealed class FirmwareRegionTemplateTests
         Assert.Contains("exactly one resolved id", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Verifies caller dictionary comparison cannot relax canonical ordinal region identity.</summary>
+    [Fact]
+    public void InstanceRequiresOrdinalResolvedRegionIds()
+    {
+        var template = new FirmwareRegionTemplate(
+            "bank-template",
+            16,
+            [
+                new FirmwareRegion(
+                    "bank",
+                    null,
+                    FirmwareRegionOwner.System,
+                    FirmwareRegionKind.Image,
+                    new ByteRange(0, 16),
+                    FirmwareWriteConstraint.ExplicitRange),
+            ]);
+        var caseInsensitiveIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BANK"] = "resolved-bank",
+        };
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            new FirmwareRegionInstance("bank", template, 0, null, caseInsensitiveIds));
+    }
+
     /// <summary>Verifies resolved-id bindings are copied and exposed through an immutable wrapper.</summary>
     [Fact]
     public void InstanceSnapshotsResolvedIdsWithoutExposingMutableDictionary()
@@ -134,7 +159,7 @@ public sealed class FirmwareRegionTemplateTests
             "ab-bank",
             16,
             [
-                new FirmwareRelativeRegion(
+                new FirmwareRegion(
                     "bank",
                     null,
                     FirmwareRegionOwner.System,

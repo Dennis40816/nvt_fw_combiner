@@ -3,61 +3,18 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Domain.Firmware;
 
-internal sealed record FirmwareRelativeRegion
-{
-    public FirmwareRelativeRegion(
-        string regionId,
-        string? parentRegionId,
-        FirmwareRegionOwner owner,
-        FirmwareRegionKind kind,
-        ByteRange range,
-        FirmwareWriteConstraint writeConstraint,
-        int alignment = 1)
-    {
-        var validated = new FirmwareRegion(
-            regionId,
-            parentRegionId,
-            owner,
-            kind,
-            range,
-            writeConstraint,
-            alignment);
-        RegionId = validated.RegionId;
-        ParentRegionId = validated.ParentRegionId;
-        Owner = validated.Owner;
-        Kind = validated.Kind;
-        Range = validated.Range;
-        WriteConstraint = validated.WriteConstraint;
-        Alignment = validated.Alignment;
-    }
-
-    public string RegionId { get; }
-
-    public string? ParentRegionId { get; }
-
-    public FirmwareRegionOwner Owner { get; }
-
-    public FirmwareRegionKind Kind { get; }
-
-    public ByteRange Range { get; }
-
-    public FirmwareWriteConstraint WriteConstraint { get; }
-
-    public int Alignment { get; }
-}
-
 /// <summary>
 /// One canonical instance-relative region definition that may be placed more
 /// than once without repeating its internal firmware geometry.
 /// </summary>
 internal sealed class FirmwareRegionTemplate
 {
-    private readonly FirmwareRelativeRegion[] _regions;
+    private readonly FirmwareRegion[] _regions;
 
     public FirmwareRegionTemplate(
         string templateId,
         long capacity,
-        IEnumerable<FirmwareRelativeRegion> regions)
+        IEnumerable<FirmwareRegion> regions)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(templateId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
@@ -68,10 +25,10 @@ internal sealed class FirmwareRegionTemplate
             "Firmware region ids must be ordinally unique within a template.",
             StringComparer.Ordinal,
             requireValue: true);
-        Dictionary<string, FirmwareRelativeRegion> regionsById = _regions.ToDictionary(
+        Dictionary<string, FirmwareRegion> regionsById = _regions.ToDictionary(
             static region => region.RegionId,
             StringComparer.Ordinal);
-        foreach (FirmwareRelativeRegion region in _regions)
+        foreach (FirmwareRegion region in _regions)
         {
             DomainInvariant.Reject(
                 region.Range.EndExclusive > capacity,
@@ -81,16 +38,21 @@ internal sealed class FirmwareRegionTemplate
             if (region.ParentRegionId is { } parentId)
             {
                 DomainInvariant.Reject(
-                    !regionsById.TryGetValue(parentId, out FirmwareRelativeRegion? parent) ||
+                    !regionsById.TryGetValue(parentId, out FirmwareRegion? parent) ||
                     !parent.Range.Contains(region.Range),
                     $"Relative region '{region.RegionId}' requires one containing template-local parent.",
                     nameof(regions));
             }
 
-            ValidateParentChain(region, regionsById);
         }
 
-        Array.Sort(_regions, CompareRegions);
+        _ = AcyclicDependencyGraph.Sort(
+            _regions,
+            region => region.ParentRegionId is { } parentId ? [regionsById[parentId]] : [],
+            (region, _) => new ArgumentException(
+                $"Relative region '{region.RegionId}' has a cyclic parent chain.",
+                nameof(regions)));
+        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         TemplateId = templateId;
         Capacity = capacity;
         Regions = Array.AsReadOnly(_regions);
@@ -100,31 +62,8 @@ internal sealed class FirmwareRegionTemplate
 
     public long Capacity { get; }
 
-    public IReadOnlyList<FirmwareRelativeRegion> Regions { get; }
+    public IReadOnlyList<FirmwareRegion> Regions { get; }
 
-    private static void ValidateParentChain(
-        FirmwareRelativeRegion start,
-        Dictionary<string, FirmwareRelativeRegion> regionsById)
-    {
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        for (FirmwareRelativeRegion? current = start; current?.ParentRegionId is { } parentId;)
-        {
-            DomainInvariant.Reject(
-                !visited.Add(current.RegionId),
-                $"Relative region '{start.RegionId}' has a cyclic parent chain.",
-                nameof(regionsById));
-
-            current = regionsById[parentId];
-        }
-    }
-
-    private static int CompareRegions(FirmwareRelativeRegion left, FirmwareRelativeRegion right)
-    {
-        int range = FirmwareRangeOrdering.Compare(left.Range, right.Range);
-        return range != 0
-            ? range
-            : StringComparer.Ordinal.Compare(left.RegionId, right.RegionId);
-    }
 }
 
 internal sealed class FirmwareRegionInstance
@@ -147,18 +86,10 @@ internal sealed class FirmwareRegionInstance
         }
 
         ArgumentNullException.ThrowIfNull(resolvedRegionIds);
-        string[] expectedIds =
-        [
-            .. template.Regions
-                .Select(static region => region.RegionId)
-                .Order(StringComparer.Ordinal),
-        ];
-        string[] actualIds =
-        [
-            .. resolvedRegionIds.Keys.Order(StringComparer.Ordinal),
-        ];
+        var resolvedIds = resolvedRegionIds.Keys.ToHashSet(StringComparer.Ordinal);
         DomainInvariant.Reject(
-            !expectedIds.SequenceEqual(actualIds, StringComparer.Ordinal) ||
+            resolvedIds.Count != template.Regions.Count ||
+            template.Regions.Any(region => !resolvedIds.Contains(region.RegionId)) ||
             resolvedRegionIds.Values.Any(string.IsNullOrWhiteSpace) ||
             resolvedRegionIds.Values.Distinct(StringComparer.Ordinal).Count() != resolvedRegionIds.Count,
             "A region instance requires exactly one resolved id for every template region.",

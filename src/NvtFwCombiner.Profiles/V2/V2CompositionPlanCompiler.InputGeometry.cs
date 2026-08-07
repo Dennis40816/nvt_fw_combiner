@@ -275,7 +275,7 @@ internal static partial class V2CompositionPlanCompiler
                         return false;
                     }
 
-                    FirmwareRelativeRegion? relativeRegion = instance.Template.Regions.SingleOrDefault(candidate =>
+                    FirmwareRegion? relativeRegion = instance.Template.Regions.SingleOrDefault(candidate =>
                         StringComparer.Ordinal.Equals(
                             candidate.RegionId,
                             templateSelector.TemplateRegionId));

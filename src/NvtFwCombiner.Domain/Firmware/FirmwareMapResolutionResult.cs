@@ -23,24 +23,16 @@ public enum FirmwareMapResolutionRejectionKind
     AmbiguousMaps,
 }
 
-/// <summary>Closed resolver-owned reason why a viable candidate cannot yet become unique.</summary>
-public enum FirmwareMapResolutionPendingKind
+internal enum FirmwareMapResolutionPendingKind
 {
-    /// <summary>A candidate requires an explicit topology selection that was not supplied.</summary>
     RequestedTopologyMissing,
-
-    /// <summary>A candidate-scoped structure requires one artifact binding that was not supplied.</summary>
     ArtifactMissing,
-
-    /// <summary>A candidate requires Common FW category derivation whose closed contract is unavailable.</summary>
     CommonFirmwareCategoryDerivationUnavailable,
 }
 
-/// <summary>One immutable resolver-owned requirement that prevents unique map selection.</summary>
-public sealed class FirmwareMapResolutionPendingRequirement : IEquatable<FirmwareMapResolutionPendingRequirement>
+internal sealed record FirmwareMapResolutionPendingRequirement
 {
-    /// <summary>Creates one checked pending requirement.</summary>
-    public FirmwareMapResolutionPendingRequirement(
+    internal FirmwareMapResolutionPendingRequirement(
         FirmwareMapResolutionPendingKind kind,
         string? artifactBindingId = null)
     {
@@ -61,31 +53,10 @@ public sealed class FirmwareMapResolutionPendingRequirement : IEquatable<Firmwar
         ArtifactBindingId = artifactBindingId;
     }
 
-    /// <summary>Closed missing requirement kind.</summary>
-    public FirmwareMapResolutionPendingKind Kind { get; }
+    internal FirmwareMapResolutionPendingKind Kind { get; }
 
-    /// <summary>Required artifact binding for missing-artifact requirements; otherwise null.</summary>
-    public string? ArtifactBindingId { get; }
+    internal string? ArtifactBindingId { get; }
 
-    /// <inheritdoc />
-    public bool Equals(FirmwareMapResolutionPendingRequirement? other)
-    {
-        return other is not null &&
-            Kind == other.Kind &&
-            StringComparer.Ordinal.Equals(ArtifactBindingId, other.ArtifactBindingId);
-    }
-
-    /// <inheritdoc />
-    public override bool Equals(object? obj)
-    {
-        return Equals(obj as FirmwareMapResolutionPendingRequirement);
-    }
-
-    /// <inheritdoc />
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Kind, StringComparer.Ordinal.GetHashCode(ArtifactBindingId ?? string.Empty));
-    }
 }
 
 /// <summary>Immutable public result of canonical map selection without retaining source payload bytes.</summary>
@@ -149,8 +120,7 @@ public sealed class FirmwareMapResolutionResult
     /// <summary>Rejection reason when selection was rejected; otherwise null.</summary>
     public FirmwareMapResolutionRejectionKind? RejectionKind { get; }
 
-    /// <summary>Resolver-owned missing requirements when selection is pending; otherwise empty.</summary>
-    public IReadOnlyList<FirmwareMapResolutionPendingRequirement> PendingRequirements { get; }
+    internal IReadOnlyList<FirmwareMapResolutionPendingRequirement> PendingRequirements { get; }
 
     /// <summary>Exactly one payload-free resolved map when status is unique; otherwise null.</summary>
     public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? ResolvedMap { get; }
@@ -283,8 +253,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         /// <summary>Successful candidate-scoped metadata locator and decode outcomes.</summary>
         public IReadOnlyList<FirmwareResolvedMetadataStructure> ResolvedMetadataStructures { get; }
 
-        /// <summary>Successful typed applicability predicate outcomes in declared map order.</summary>
-        public IReadOnlyList<FirmwareMetadataPredicateOutcome> PredicateOutcomes { get; }
+        internal IReadOnlyList<FirmwareMetadataPredicateOutcome> PredicateOutcomes { get; }
 
         /// <summary>Selected member/map physical fact provenance in deterministic key order.</summary>
         public IReadOnlyList<FirmwareFactProvenance> FactProvenance { get; }

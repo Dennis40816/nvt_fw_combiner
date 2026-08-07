@@ -55,44 +55,76 @@ public sealed record FirmwareMapFactKey
     public string FactId { get; }
 }
 
-/// <summary>Applicability of one fact after the member identity is carried by its key.</summary>
-public sealed class FirmwareFactApplicability(
+internal sealed class FirmwareApplicabilityScope(
     IEnumerable<string> modeIds,
     TopologyRequirement topologyRequirement,
     long capacityBytes,
-    IEnumerable<string>? commonFirmwareCategoryIds = null,
-    IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
+    IEnumerable<string>? commonFirmwareCategoryIds,
+    IEnumerable<FirmwareMetadataPredicate>? metadataPredicates,
+    string invalidIdentifierMessage)
 {
-    /// <summary>Firmware modes accepted by this fact.</summary>
-    public IReadOnlyList<string> ModeIds { get; } = Array.AsReadOnly(
-        ImmutableStringSnapshot.Create(
-            modeIds,
-            nameof(modeIds),
-            "At least one identifier is required.",
-            "Identifiers cannot contain null or whitespace.",
-            "Identifiers must be ordinally unique."));
+    internal IReadOnlyList<string> ModeIds { get; } = Array.AsReadOnly(ImmutableStringSnapshot.Create(
+        modeIds,
+        nameof(modeIds),
+        "At least one identifier is required.",
+        invalidIdentifierMessage,
+        "Identifiers must be ordinally unique."));
 
-    /// <summary>Topology constraint accepted by this fact.</summary>
-    public TopologyRequirement TopologyRequirement { get; } = RequiredValue.NotNull(topologyRequirement);
+    internal TopologyRequirement TopologyRequirement { get; } = RequiredValue.NotNull(topologyRequirement);
 
-    /// <summary>Exact image capacity accepted by this fact.</summary>
-    public long CapacityBytes { get; } = RequiredValue.Positive(capacityBytes);
+    internal long CapacityBytes { get; } = RequiredValue.Positive(capacityBytes);
 
-    /// <summary>Common FW categories accepted by this fact; empty means category-independent.</summary>
-    public IReadOnlyList<string> CommonFirmwareCategoryIds { get; } = Array.AsReadOnly(
+    internal IReadOnlyList<string> CommonFirmwareCategoryIds { get; } = Array.AsReadOnly(
         ImmutableStringSnapshot.Create(
             commonFirmwareCategoryIds ?? [],
             nameof(commonFirmwareCategoryIds),
             null,
-            "Identifiers cannot contain null or whitespace.",
+            invalidIdentifierMessage,
             "Identifiers must be ordinally unique."));
 
-    /// <summary>Typed metadata predicates accepted by this fact.</summary>
-    public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates { get; } = Array.AsReadOnly(
+    internal IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates { get; } = Array.AsReadOnly(
         Composition.ImmutableReferenceSnapshot.Create(
             metadataPredicates ?? [],
             "Metadata predicates cannot contain null.",
             parameterName: nameof(metadataPredicates)));
+}
+
+/// <summary>Applicability of one fact after the member identity is carried by its key.</summary>
+public sealed class FirmwareFactApplicability
+{
+    private readonly FirmwareApplicabilityScope _scope;
+
+    /// <summary>Creates one immutable member-independent firmware-fact scope.</summary>
+    public FirmwareFactApplicability(
+        IEnumerable<string> modeIds,
+        TopologyRequirement topologyRequirement,
+        long capacityBytes,
+        IEnumerable<string>? commonFirmwareCategoryIds = null,
+        IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
+    {
+        _scope = new FirmwareApplicabilityScope(
+            modeIds,
+            topologyRequirement,
+            capacityBytes,
+            commonFirmwareCategoryIds,
+            metadataPredicates,
+            "Identifiers cannot contain null or whitespace.");
+    }
+
+    /// <summary>Firmware modes accepted by this fact.</summary>
+    public IReadOnlyList<string> ModeIds => _scope.ModeIds;
+
+    /// <summary>Topology constraint accepted by this fact.</summary>
+    public TopologyRequirement TopologyRequirement => _scope.TopologyRequirement;
+
+    /// <summary>Exact image capacity accepted by this fact.</summary>
+    public long CapacityBytes => _scope.CapacityBytes;
+
+    /// <summary>Common FW categories accepted by this fact; empty means category-independent.</summary>
+    public IReadOnlyList<string> CommonFirmwareCategoryIds => _scope.CommonFirmwareCategoryIds;
+
+    /// <summary>Typed metadata predicates accepted by this fact.</summary>
+    public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates => _scope.MetadataPredicates;
 
     /// <summary>Copies the non-member portion of one canonical map applicability shape.</summary>
     public static FirmwareFactApplicability FromMap(FirmwareMapApplicability applicability)

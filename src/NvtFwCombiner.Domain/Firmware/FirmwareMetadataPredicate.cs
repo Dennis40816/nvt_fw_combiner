@@ -75,7 +75,7 @@ public sealed class FirmwareMetadataPredicate
     public IReadOnlyList<FirmwareMetadataValue> ExpectedValues { get; }
 
     /// <summary>Evaluates fields already scoped to <see cref="MetadataStructureId"/>.</summary>
-    public FirmwareMetadataPredicateOutcome Evaluate(
+    internal FirmwareMetadataPredicateOutcome Evaluate(
         IReadOnlyDictionary<string, FirmwareMetadataValue> scopedFields)
     {
         ArgumentNullException.ThrowIfNull(scopedFields);
@@ -89,34 +89,18 @@ public sealed class FirmwareMetadataPredicate
     private FirmwareMetadataValue? FindExactField(
         IReadOnlyDictionary<string, FirmwareMetadataValue> scopedFields)
     {
-        foreach (KeyValuePair<string, FirmwareMetadataValue> field in scopedFields)
-        {
-            if (StringComparer.Ordinal.Equals(field.Key, FieldId))
-            {
-                return field.Value;
-            }
-        }
-
-        return null;
+        return scopedFields.FirstOrDefault(field => StringComparer.Ordinal.Equals(field.Key, FieldId)).Value;
     }
 
     private FirmwarePredicateResult Compare(FirmwareMetadataValue actual)
     {
-        return Comparison switch
+        bool matches = Comparison switch
         {
-            FirmwareMetadataPredicateOperator.Equal =>
-                actual == _expectedValues[0]
-                    ? FirmwarePredicateResult.Match
-                    : FirmwarePredicateResult.NoMatch,
-            FirmwareMetadataPredicateOperator.NotEqual =>
-                actual != _expectedValues[0]
-                    ? FirmwarePredicateResult.Match
-                    : FirmwarePredicateResult.NoMatch,
-            FirmwareMetadataPredicateOperator.OneOf =>
-                _expectedValues.Contains(actual)
-                    ? FirmwarePredicateResult.Match
-                    : FirmwarePredicateResult.NoMatch,
+            FirmwareMetadataPredicateOperator.Equal => actual == _expectedValues[0],
+            FirmwareMetadataPredicateOperator.NotEqual => actual != _expectedValues[0],
+            FirmwareMetadataPredicateOperator.OneOf => _expectedValues.Contains(actual),
             _ => throw new InvalidOperationException("Unknown metadata comparison."),
         };
+        return matches ? FirmwarePredicateResult.Match : FirmwarePredicateResult.NoMatch;
     }
 }
