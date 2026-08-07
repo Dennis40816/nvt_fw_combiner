@@ -22,8 +22,9 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal(CompiledProfilePromotionStage.Known, definition.Promotion.Stage);
         Assert.Equal(ExperienceIds.StandardMerge, definition.Header.ExperienceId);
         Assert.Equal("standard-map", Assert.Single(definition.MapBinding.MapIds));
-        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(
+        SourceViewCoverageInputLengthDefinition tpMaximum = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
             Assert.Single(definition.InputSlots).LengthRequirement);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, tpMaximum.MaximumBytes);
         Assert.Equal(2, definition.Spaces.Count);
         Assert.Equal(2, definition.Views.Count);
         Assert.Equal(CompositionOperationKind.CopyRange, Assert.Single(definition.Operations).Kind);

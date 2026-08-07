@@ -502,8 +502,8 @@ public sealed partial class CompiledComposition
             CompiledExactBytesInputLengthRequirement => 0,
             CompiledExactResolvedMapCapacityInputLengthRequirement => 1,
             CompiledBoundedInputLengthRequirement => 2,
-            CompiledTpMaximum256KInputLengthRequirement => 4,
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement => 5,
+            CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: not null } => 4,
+            CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: not null } => 5,
             CompiledSourceViewCoverageInputLengthRequirement => 6,
             _ => throw new InvalidOperationException("Unknown compiled input length requirement."),
         });
@@ -519,14 +519,17 @@ public sealed partial class CompiledComposition
                 AppendInteger(builder, $"{prefix}.minimum-bytes", bounded.MinimumBytes);
                 AppendInteger(builder, $"{prefix}.maximum-bytes", bounded.MaximumBytes);
                 break;
-            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                AppendInteger(builder, $"{prefix}.required-end-exclusive", declaredPrefix.RequiredEndExclusive);
-                AppendIntegerList(builder, $"{prefix}.expected-outer-length", declaredPrefix.ExpectedOuterLengths);
-                AppendField(builder, $"{prefix}.short-input-issue-code", declaredPrefix.ShortInputIssueCode);
+            case CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: { } requiredEnd } sourceView:
+                AppendInteger(builder, $"{prefix}.required-end-exclusive", requiredEnd);
+                AppendIntegerList(builder, $"{prefix}.expected-outer-length", sourceView.ExpectedOuterLengths);
+                AppendField(builder, $"{prefix}.short-input-issue-code", sourceView.ShortInputIssueCode!);
                 AppendField(
                     builder,
                     $"{prefix}.unexpected-outer-length-issue-code",
-                    declaredPrefix.UnexpectedOuterLengthIssueCode);
+                    sourceView.UnexpectedOuterLengthIssueCode!);
+                break;
+            case CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: { } maximumBytes }:
+                AppendInteger(builder, $"{prefix}.maximum-bytes", maximumBytes);
                 break;
             case CompiledSourceViewCoverageInputLengthRequirement sourceView:
                 AppendIntegerList(
@@ -540,10 +543,6 @@ public sealed partial class CompiledComposition
                         $"{prefix}.unexpected-outer-length-issue-code",
                         unexpectedOuterLengthIssueCode);
                 }
-
-                break;
-            case CompiledTpMaximum256KInputLengthRequirement:
-                AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
                 break;
             default:
                 throw new InvalidOperationException("Unknown compiled input length requirement.");

@@ -145,19 +145,16 @@ internal static class WorkbenchAbMergeInputProjection
     {
         return requirement switch
         {
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix =>
-                (declaredPrefix.RequiredEndExclusive, declaredPrefix.ExpectedOuterLengths),
             CompiledExactBytesInputLengthRequirement exact =>
                 (exact.Bytes, [exact.Bytes]),
             CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
                 (exact.Bytes, [exact.Bytes]),
             CompiledSourceViewCoverageInputLengthRequirement sourceView =>
-                (composition.Plan.AddressSpaces.Single(candidate =>
+                (sourceView.RequiredEndExclusive ?? composition.Plan.AddressSpaces.Single(candidate =>
                         StringComparer.Ordinal.Equals(candidate.AddressSpaceId, addressSpaceId)).Length,
                     sourceView.ExpectedOuterLengths),
             _ => throw new InvalidOperationException(
                 $"Supported AB input '{addressSpaceId}' has no displayable length contract."),
         };
     }
-
 }

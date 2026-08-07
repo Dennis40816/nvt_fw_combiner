@@ -22,18 +22,6 @@ internal static partial class V2CompositionPlanCompiler
                 inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
                 expectedInputLengths: ResolveSourceViewExpectedOuterLengths(sourceView, resolvedMapCapacity),
                 unexpectedInputLengthIssueCode: sourceView.UnexpectedOuterLengthIssueCode),
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                expectedInputLengths: declaredPrefix.ExpectedOuterLengths,
-                unexpectedInputLengthIssueCode: declaredPrefix.UnexpectedOuterLengthIssueCode),
-            CompiledTpMaximum256KInputLengthRequirement => new AddressSpace(
-                addressSpaceId,
-                length,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
             CompiledExactBytesInputLengthRequirement when slot.Normalization is CompiledTruncateCtrlRamInputNormalization => new AddressSpace(
                 addressSpaceId,
                 length,
@@ -65,9 +53,7 @@ internal static partial class V2CompositionPlanCompiler
     private static bool IsCurrentInputLengthRequirementSupported(CompositionInputSlotDefinition slot)
     {
         return slot.LengthRequirement is ResolvedMapCapacityInputLengthDefinition or
-            SourceViewCoverageInputLengthDefinition or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement or
-            CompiledTpMaximum256KInputLengthRequirement ||
+            SourceViewCoverageInputLengthDefinition ||
             (slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
              slot.LengthRequirement is CompiledExactBytesInputLengthRequirement { Bytes: <= 262144 }) ||
             (slot.ArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement &&
@@ -92,25 +78,16 @@ internal static partial class V2CompositionPlanCompiler
             case ResolvedMapCapacityInputLengthDefinition:
                 length = resolvedMap.CapacityBytes;
                 return true;
-            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                length = declaredPrefix.RequiredEndExclusive;
+            case SourceViewCoverageInputLengthDefinition { RequiredEndExclusive: { } requiredEndExclusive }:
+                length = requiredEndExclusive;
                 return true;
-            case SourceViewCoverageInputLengthDefinition:
+            case SourceViewCoverageInputLengthDefinition sourceView:
                 return TryResolveSourceViewSpan(
                     profile,
                     family,
                     input,
                     resolvedMap,
-                    enforceTpMaximum: false,
-                    issues,
-                    out length);
-            case CompiledTpMaximum256KInputLengthRequirement:
-                return TryResolveSourceViewSpan(
-                    profile,
-                    family,
-                    input,
-                    resolvedMap,
-                    enforceTpMaximum: true,
+                    sourceView.MaximumBytes,
                     issues,
                     out length);
             default:
@@ -123,7 +100,7 @@ internal static partial class V2CompositionPlanCompiler
         FirmwareFamilyResolutionDefinition family,
         InputArtifactProfileSpace input,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        bool enforceTpMaximum,
+        long? maximumBytes,
         List<CompositionIssue> issues,
         out long length)
     {
@@ -132,16 +109,15 @@ internal static partial class V2CompositionPlanCompiler
                 family,
                 input,
                 resolvedMap,
-                enforceTpMaximum ? "TP" : "Section",
-                enforceTpMaximum ? "exact plan" : "source-view coverage",
+                maximumBytes is null ? "Section" : "TP",
+                maximumBytes is null ? "source-view coverage" : "exact plan",
                 issues,
                 out length))
         {
             return false;
         }
 
-        if (enforceTpMaximum &&
-            length > CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)
+        if (maximumBytes is { } maximum && length > maximum)
         {
             issues.Add(new CompositionIssue(
                 InvalidInputGeometry,

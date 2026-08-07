@@ -94,9 +94,14 @@ public static class CompiledInputArtifactInspectionService
                 truncation,
                 addressSpace,
                 sourceBytes)
-            : slot.LengthRequirement is CompiledSourceViewCoverageInputLengthRequirement sourceView
-                ? InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes)
-                : Inspect(details.InputContract, addressSpaceId, sourceBytes);
+            : slot.LengthRequirement switch
+            {
+                CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: not null } sourceView =>
+                    InspectDeclaredPrefix(binding, slot, sourceView, sourceBytes),
+                CompiledSourceViewCoverageInputLengthRequirement sourceView =>
+                    InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes),
+                _ => Inspect(details.InputContract, addressSpaceId, sourceBytes),
+            };
         return ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
     }
 
@@ -110,8 +115,8 @@ public static class CompiledInputArtifactInspectionService
             ResolveBinding(inputContract, addressSpaceId);
         return slot.LengthRequirement switch
         {
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement =>
-                InspectDeclaredPrefix(inputContract, addressSpaceId, sourceBytes),
+            CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: not null } sourceView =>
+                InspectDeclaredPrefix(binding, slot, sourceView, sourceBytes),
             CompiledExactBytesInputLengthRequirement exact =>
                 InspectExact(binding, slot, exact.Bytes, sourceBytes),
             CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
@@ -126,32 +131,19 @@ public static class CompiledInputArtifactInspectionService
         };
     }
 
-    /// <summary>Creates one deterministic diagnostic from a compiled declared-prefix requirement.</summary>
-    public static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
-        CompiledInputContract inputContract,
-        string addressSpaceId,
+    private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        CompiledSourceViewCoverageInputLengthRequirement requirement,
         ReadOnlyMemory<byte> sourceBytes)
     {
-        ArgumentNullException.ThrowIfNull(inputContract);
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-
-        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
-            ResolveBinding(inputContract, addressSpaceId);
-        if (slot.LengthRequirement is not CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
-        {
-            throw new ArgumentException(
-                $"Compiled input address space '{addressSpaceId}' does not use declared-prefix inspection.",
-                nameof(addressSpaceId));
-        }
-
         InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
             new DeclaredPrefixInputInspectionPolicy(
-                requirement.RequiredEndExclusive,
+                requirement.RequiredEndExclusive!.Value,
                 requirement.ExpectedOuterLengths,
-                requirement.ShortInputIssueCode,
-                requirement.UnexpectedOuterLengthIssueCode),
+                requirement.ShortInputIssueCode!,
+                requirement.UnexpectedOuterLengthIssueCode!),
             sourceBytes);
-
         return Project(binding, slot, inspection);
     }
 
@@ -291,7 +283,8 @@ public static class CompiledInputArtifactInspectionService
     {
         string actualSha256 = Convert.ToHexStringLower(SHA256.HashData(sourceBytes.Span));
         long requiredEndExclusive = addressSpace.Length;
-        if (sourceBytes.Length < requiredEndExclusive)
+        bool tooLong = requirement.MaximumBytes is { } maximumBytes && sourceBytes.Length > maximumBytes;
+        if (sourceBytes.Length < requiredEndExclusive || tooLong)
         {
             return new CompiledInputArtifactInspectionResult(
                 binding.AddressSpaceId,
@@ -304,7 +297,9 @@ public static class CompiledInputArtifactInspectionService
                 AcceptedSnapshotSha256: null,
                 IgnoredTrailingRange: null,
                 CompiledInputArtifactInspectionSeverity.Blocking,
-                CompositionIssueCodes.InputSourceViewIncomplete,
+                tooLong
+                    ? CompositionIssueCodes.InputAddressSpaceLengthMismatch
+                    : CompositionIssueCodes.InputSourceViewIncomplete,
                 BlocksBuild: true,
                 CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
         }

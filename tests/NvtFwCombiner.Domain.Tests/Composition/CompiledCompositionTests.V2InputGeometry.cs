@@ -30,12 +30,12 @@ public sealed partial class CompiledCompositionTests
     public void V2PlanArtifactAcceptsTpInputAtExact256KiBBoundary()
     {
         CompiledComposition composition = CreateTpComposition(
-            sourceLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-            outputCapacity: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-            sourceRanges: [new ByteRange(0, CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)]);
+            sourceLength: InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            outputCapacity: InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            sourceRanges: [new ByteRange(0, InputLengthPolicyLimits.MaximumTpFirmwareBytes)]);
 
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
-        Assert.Equal(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes, input.Length);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, input.Length);
     }
 
     /// <summary>Verifies source-view coverage retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
@@ -70,8 +70,8 @@ public sealed partial class CompiledCompositionTests
             unexpectedOuterLengthIssueCode: "INPUT_OUTER_SIZE");
 
         AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
-        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(
+        CompiledSourceViewCoverageInputLengthRequirement requirement = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(
                 Assert.Single(baseline.V2Details.InputContract.Slots).LengthRequirement);
         Assert.Equal(new ByteRange(0, 8), new ByteRange(0, input.Length));
         Assert.Null(input.InputPaddingByte);
@@ -92,21 +92,21 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void DeclaredPrefixRequirementRejectsInvalidBoundaries()
     {
-        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            8,
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [7],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            8,
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 8,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [16, 8],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            (long)int.MaxValue + 1,
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 8,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [(long)int.MaxValue + 1],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: (long)int.MaxValue + 1,
+            shortInputIssueCode: "INPUT_SHORT"));
     }
 
     /// <summary>Source-view diagnostics are immutable, paired, ordered, and optional.</summary>
@@ -133,6 +133,16 @@ public sealed partial class CompiledCompositionTests
             new CompiledSourceViewCoverageInputLengthRequirement([0], "INPUT_OUTER_LENGTH"));
         _ = Assert.Throws<ArgumentException>(() =>
             new CompiledSourceViewCoverageInputLengthRequirement([16, 8], "INPUT_OUTER_LENGTH"));
+    }
+
+    /// <summary>A maximum-only compatibility requirement cannot hide diagnostics from its fingerprint.</summary>
+    [Fact]
+    public void SourceViewMaximumRejectsAdditionalCoveragePolicy()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
+            [8],
+            "INPUT_OUTER_LENGTH",
+            maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes));
     }
 
     /// <summary>Verifies a V2 Replace artifact can use an exact reference clone and one declared padded DP source.</summary>
@@ -175,7 +185,8 @@ public sealed partial class CompiledCompositionTests
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledTpMaximum256KInputLengthRequirement(),
+                    new CompiledSourceViewCoverageInputLengthRequirement(
+                        maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "tp-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(
@@ -256,11 +267,11 @@ public sealed partial class CompiledCompositionTests
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                        requiredEndExclusive,
+                    new CompiledSourceViewCoverageInputLengthRequirement(
                         expectedOuterLengths,
-                        shortInputIssueCode,
-                        unexpectedOuterLengthIssueCode),
+                        unexpectedOuterLengthIssueCode,
+                        requiredEndExclusive,
+                        shortInputIssueCode),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "source-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(

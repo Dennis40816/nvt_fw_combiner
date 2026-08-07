@@ -78,10 +78,11 @@ public sealed partial class CompiledCompositionTests
             [".bin"], new CompiledSourceViewCoverageInputLengthRequirement([12, 16], "DP_SIZE"), new CompiledNoInputNormalization());
         CompiledInputSlotRequirement tp = CompiledInputSlotTestFactory.Create(
             "tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization());
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization());
         CompiledInputSlotRequirement exactTp = CompiledInputSlotTestFactory.Create(
             "tp-exact", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledExactBytesInputLengthRequirement(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
+            [".bin"], new CompiledExactBytesInputLengthRequirement(InputLengthPolicyLimits.MaximumTpFirmwareBytes),
             new CompiledNoInputNormalization());
         CompiledInputSlotRequirement padded = CompiledInputSlotTestFactory.Create(
             "dp-padded", "dp", CompiledInputArtifactClass.DpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
@@ -100,11 +101,13 @@ public sealed partial class CompiledCompositionTests
             Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(sourceView.LengthRequirement);
         Assert.Equal("DP_SIZE", sourceViewLength.UnexpectedOuterLengthIssueCode);
         Assert.Equal([12L, 16L], sourceViewLength.ExpectedOuterLengths);
-        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(tp.LengthRequirement);
         Assert.Equal(
-            CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(tp.LengthRequirement).MaximumBytes);
+        Assert.Equal(
+            InputLengthPolicyLimits.MaximumTpFirmwareBytes,
             Assert.IsType<CompiledExactBytesInputLengthRequirement>(exactTp.LengthRequirement).Bytes);
-        Assert.Equal(262144, CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
+        Assert.Equal(262144, InputLengthPolicyLimits.MaximumTpFirmwareBytes);
         Assert.Equal((byte)0xFF, Assert.IsType<CompiledPadShorterInputNormalization>(padded.Normalization).FillByte);
         Assert.Equal(
             "CTRLRAM_TRUNCATED",
@@ -112,14 +115,14 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledExactBytesInputLengthRequirement(
-                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1), new CompiledNoInputNormalization()));
+                InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1), new CompiledNoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-tp-prefix", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
-                [CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement(
+                [InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1],
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1,
+                shortInputIssueCode: "INPUT_SHORT"),
             new CompiledNoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-pad", "reference", CompiledInputArtifactClass.ReferenceImage, true,
@@ -134,11 +137,13 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-aux-tp", "aux", CompiledInputArtifactClass.Auxiliary, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
+            new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization()));
         _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-ctrlram-tp", "ctrlram", CompiledInputArtifactClass.CtrlRamReplacement, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
+            new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization()));
     }
 
     /// <summary>Verifies complete typed input and capability admission policy participates in V2 compilation identity.</summary>

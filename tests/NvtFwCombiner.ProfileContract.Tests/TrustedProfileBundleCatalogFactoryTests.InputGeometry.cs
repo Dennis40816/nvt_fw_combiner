@@ -22,7 +22,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
         Assert.Equal(CompiledInputArtifactClass.TpFirmware, slot.ArtifactClass);
-        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(slot.LengthRequirement);
+        CompiledSourceViewCoverageInputLengthRequirement tpMaximum = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, tpMaximum.MaximumBytes);
         CompositionOperation operation = Assert.Single(composition.Plan.OrderedOperations);
         Assert.Equal(new ByteRange(0, 12), operation.SourceRange);
         Assert.Equal(new ByteRange(0, 12), operation.TargetRange);
@@ -205,8 +207,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
-        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(slot.LengthRequirement);
+        CompiledSourceViewCoverageInputLengthRequirement requirement = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement);
 
         Assert.Equal(role, slot.Role);
         Assert.Equal(requiredEndExclusive, input.Length);
