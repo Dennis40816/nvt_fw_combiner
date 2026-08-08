@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using Json.Schema;
 
@@ -66,6 +67,19 @@ internal static class ProfileBundleSchemaValidator
         OutputFormat = OutputFormat.Flag,
         RequireFormatValidation = true,
     };
+
+    internal static JsonSchema LoadEmbeddedSchema(
+        Type assemblyMarker,
+        string resourceName,
+        string schemaId,
+        string missingResourceMessage)
+    {
+        Assembly assembly = assemblyMarker.Assembly;
+        using Stream stream = assembly.GetManifestResourceStream(resourceName) ??
+            throw new InvalidOperationException(missingResourceMessage);
+        using var document = JsonDocument.Parse(stream);
+        return ParseSchema(resourceName, schemaId, document.RootElement);
+    }
 
     internal static JsonSchema ParseSchema(string schemaPath, string schemaId, JsonElement root)
     {

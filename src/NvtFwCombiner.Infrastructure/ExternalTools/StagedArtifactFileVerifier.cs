@@ -58,3 +58,23 @@ internal static class StagedArtifactFileVerifier
         }
     }
 }
+
+internal static class ExternalStagingDirectory
+{
+    internal static void TryDelete(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+}

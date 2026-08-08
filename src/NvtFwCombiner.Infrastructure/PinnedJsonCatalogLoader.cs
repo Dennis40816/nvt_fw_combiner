@@ -53,28 +53,6 @@ internal static class PinnedJsonCatalogLoader
         }
     }
 
-    /// <summary>Loads one hash-pinned catalog through generated JSON metadata.</summary>
-    internal static T Load<T>(
-        ReadOnlySpan<byte> bytes,
-        string expectedSha256,
-        string catalogName,
-        string emptyMessage,
-        JsonTypeInfo<T> typeInfo)
-        where T : class
-    {
-        ArgumentNullException.ThrowIfNull(typeInfo);
-        VerifyHash(bytes, expectedSha256, catalogName);
-        try
-        {
-            return JsonSerializer.Deserialize(bytes, typeInfo) ??
-                throw new InvalidDataException(emptyMessage);
-        }
-        catch (JsonException exception)
-        {
-            throw new InvalidDataException($"{catalogName} JSON is invalid.", exception);
-        }
-    }
-
     private static void VerifyHash(
         ReadOnlySpan<byte> bytes,
         string expectedSha256,

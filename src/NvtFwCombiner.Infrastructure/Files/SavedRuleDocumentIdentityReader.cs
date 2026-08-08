@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Contracts;
 
 namespace NvtFwCombiner.Infrastructure.Files;
@@ -23,10 +24,12 @@ public sealed class SavedRuleDocumentIdentityReader :
 
         try
         {
-            using var document = JsonDocument.Parse(documentBytes);
+            using JsonDocument document = StrictJsonDocumentReader.Parse(
+                documentBytes,
+                documentBytes.Length,
+                maximumDepth: 64);
             JsonElement root = document.RootElement;
-            if (!HasUniqueProperties(root) ||
-                !SavedCompositionRuleV2Schema.IsValid(root))
+            if (!SavedCompositionRuleV2Schema.IsValid(root))
             {
                 return null;
             }
@@ -54,28 +57,4 @@ public sealed class SavedRuleDocumentIdentityReader :
         }
     }
 
-    private static bool HasUniqueProperties(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Array)
-        {
-            return element.EnumerateArray().All(HasUniqueProperties);
-        }
-
-        if (element.ValueKind != JsonValueKind.Object)
-        {
-            return true;
-        }
-
-        HashSet<string> names = new(StringComparer.Ordinal);
-        foreach (JsonProperty property in element.EnumerateObject())
-        {
-            if (!names.Add(property.Name) ||
-                !HasUniqueProperties(property.Value))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 }

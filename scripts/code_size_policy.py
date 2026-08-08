@@ -93,11 +93,11 @@ DEFAULT_LIMITS = CodeSizeLimits(
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_506,
     },
     runtime_production_baseline=45_214,
-    runtime_production_ratchet=69_038,
+    runtime_production_ratchet=68_922,
     domain_profiles_ratchet=20_287,
     application_ratchet=23_071,
     bootstrap_cli_ratchet=18_651,
-    infrastructure_contracts_worker_ratchet=7_029,
+    infrastructure_contracts_worker_ratchet=6_913,
 )
 
 
