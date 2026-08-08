@@ -290,36 +290,6 @@ public sealed class CapabilityActionReadinessTests
         Assert.True(result.Build.IsAvailable);
     }
 
-    /// <summary>Only ready and not-applicable dependency entries make the exact snapshot ready.</summary>
-    [Theory]
-    [InlineData(ResolvedChildReadiness.Ready, true)]
-    [InlineData(ResolvedChildReadiness.NotApplicable, true)]
-    [InlineData(ResolvedChildReadiness.PendingInput, false)]
-    [InlineData(ResolvedChildReadiness.Blocked, false)]
-    public void RuntimeSnapshotReadinessUsesClosedDependencyStates(
-        ResolvedChildReadiness readiness,
-        bool expected)
-    {
-        RuntimeDependencyEntry entry = readiness switch
-        {
-            ResolvedChildReadiness.Ready =>
-                RuntimeDependencyEntry.Ready("processor", "tool"),
-            ResolvedChildReadiness.NotApplicable =>
-                new RuntimeDependencyEntry("processor", "tool", readiness),
-            ResolvedChildReadiness.PendingInput =>
-                new RuntimeDependencyEntry("processor", "tool", readiness),
-            ResolvedChildReadiness.Blocked =>
-                RuntimeDependencyEntry.Blocked(
-                    "processor",
-                    "tool",
-                    "runtime.blocked",
-                    "The runtime dependency is blocked."),
-            _ => throw new ArgumentOutOfRangeException(nameof(readiness)),
-        };
-
-        Assert.Equal(expected, Runtime(entry).IsReady);
-    }
-
     /// <summary>Only the four accepted child readiness values are part of the public contract.</summary>
     [Fact]
     public void ChildReadinessVocabularyRemainsClosed()

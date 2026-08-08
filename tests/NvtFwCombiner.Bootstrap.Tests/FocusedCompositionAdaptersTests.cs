@@ -82,7 +82,7 @@ public sealed class FocusedCompositionAdaptersTests
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes.ToArray(), []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes.ToArray(), [], []));
         }
     }
 
@@ -417,7 +417,7 @@ public sealed class FocusedCompositionAdaptersTests
             output[backupStart + FirmwareConfigLayout.FirmwareVersionOffset] = 0x27;
             output[backupStart + FirmwareConfigLayout.FirmwareVersionBarOffset] = 0xD8;
             output[backupStart + FirmwareConfigLayout.FirmwareSubVersionOffset] = 0x04;
-            return ExternalProcessorResult.Success(output, []);
+            return ExternalProcessorResult.Success(output, [], []);
         });
 
         WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(

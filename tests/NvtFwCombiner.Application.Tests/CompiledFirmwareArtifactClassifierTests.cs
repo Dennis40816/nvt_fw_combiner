@@ -127,11 +127,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         CompiledComposition composition = Composition();
         _ = Assert.Throws<ArgumentException>(() =>
             CompiledInputArtifactInspectionService.Inspect(
-                composition.V2Details.InputContract,
-                "dp-input",
-                new byte[4]));
-        _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.Inspect(
                 composition,
                 "missing-input",
                 new byte[4]));

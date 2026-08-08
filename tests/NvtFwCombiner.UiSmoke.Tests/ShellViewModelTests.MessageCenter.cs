@@ -55,7 +55,7 @@ public sealed partial class ShellViewModelTests
             CapabilityActionReadinessIssueCodes.InputPending,
             viewModel.Replace.PrimaryBuildBlocker?.Code);
         Assert.Empty(viewModel.Reports.ReportHistoryEntries);
-        Assert.Contains(diagnostics.Transitions, transition =>
+        Assert.Contains(diagnostics.CreateBundle().Transitions, transition =>
             transition.ResolvedCodes.Contains(
                 SystemDiagnosticCodes.CapabilityCatalogUnavailable,
                 StringComparer.Ordinal));

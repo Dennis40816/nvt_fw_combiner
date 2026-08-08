@@ -102,16 +102,43 @@ public sealed class GeneralMappingDraftStateTests
         Assert.Equal(AuthoringMappingIssueCodes.MappingInvalid, state.Issue!.Code);
     }
 
+    /// <summary>Inline sources cannot acquire file-only selection or inspection state.</summary>
+    [Fact]
+    public void InlineMappingRowsRejectFileRebinding()
+    {
+        var row = new GeneralMappingDraftRow(
+            "inline",
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.HexOverwrite("AABB"),
+            new ByteRange(0, 2),
+            CompositionAddressSpaceIds.OutputImage,
+            new ByteRange(0, 2),
+            OverlapPolicy.Reject,
+            alignment: 1,
+            "Inline overwrite mapping.");
+
+        InvalidOperationException inspection = Assert.Throws<InvalidOperationException>(() =>
+            row.WithAcceptedFileStamp(FileStamp.FromBytes([0xAA, 0xBB])));
+        InvalidOperationException selection = Assert.Throws<InvalidOperationException>(() =>
+            row.RebindSelectedFile("source.bin"));
+
+        Assert.Equal(
+            "Only file-backed General sources can accept a content stamp.",
+            inspection.Message);
+        Assert.Equal(
+            "Only file-backed General sources can be rebound.",
+            selection.Message);
+    }
+
     /// <summary>Hexadecimal and decimal authoring text produce one half-open range.</summary>
     [Theory]
-    [InlineData("0x10", "0x20", 0x10, 0x20, 0x2F)]
-    [InlineData("16", "32", 0x10, 0x20, 0x2F)]
-    public void RangeCodecUsesStartAndLengthAndDerivesInclusiveEnd(
+    [InlineData("0x10", "0x20", 0x10, 0x20)]
+    [InlineData("16", "32", 0x10, 0x20)]
+    public void RangeCodecUsesStartAndLength(
         string start,
         string length,
         long expectedStart,
-        long expectedLength,
-        long expectedEndInclusive)
+        long expectedLength)
     {
         bool parsed = AuthoringByteRangeCodec.TryParseStartAndLength(
             start,
@@ -123,7 +150,7 @@ public sealed class GeneralMappingDraftStateTests
         Assert.Null(issue);
         Assert.Equal(expectedStart, range.Start);
         Assert.Equal(expectedLength, range.Length);
-        Assert.Equal(expectedEndInclusive, AuthoringByteRangeCodec.GetEndInclusive(range));
+        Assert.Equal(expectedStart + expectedLength, range.EndExclusive);
         Assert.Equal("0x10", AuthoringByteRangeCodec.FormatHex(range.Start));
     }
 

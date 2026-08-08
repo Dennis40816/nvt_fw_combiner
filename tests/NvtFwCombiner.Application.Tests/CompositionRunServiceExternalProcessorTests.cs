@@ -123,7 +123,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task FirmwareConfigBackupFinalOutputValidationRejectsMissingNvtMarker()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var service = new CompositionRunService(
             CreateFirmwareConfigBackupArtifactReader(),
             new FakeClock([FirstTimestamp, SecondTimestamp]),
@@ -147,7 +147,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task AutomaticBuildDoesNotCommitOutputThatFailsFinalValidation()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
             CreateFirmwareConfigBackupArtifactReader(),
@@ -203,7 +203,7 @@ public sealed partial class CompositionRunServiceTests
             Assert.Equal([0xAA, 0xBB], stagedSource.Bytes.ToArray());
             byte[] output = request.InputBytes.ToArray();
             stagedSource.Bytes.CopyTo(output.AsMemory((int)stagedSource.FirmwareRange.Start));
-            return ExternalProcessorResult.Success(output, [stagedSource.FirmwareRange]);
+            return ExternalProcessorResult.Success(output, [stagedSource.FirmwareRange], []);
         });
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
@@ -236,7 +236,7 @@ public sealed partial class CompositionRunServiceTests
             output[3] = 0x7E;
             return ExternalProcessorResult.Success(
                 output,
-                [stagedSource.FirmwareRange, new ByteRange(3, 1)]);
+                [stagedSource.FirmwareRange, new ByteRange(3, 1)], []);
         });
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
@@ -295,7 +295,7 @@ public sealed partial class CompositionRunServiceTests
         {
             byte[] output = request.InputBytes.ToArray();
             output[3] = 0x7E;
-            return ExternalProcessorResult.Success(output, [new ByteRange(3, 1)]);
+            return ExternalProcessorResult.Success(output, [new ByteRange(3, 1)], []);
         });
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
@@ -362,7 +362,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task PreviewTokenChangesWhenStagedSourceBindingChanges()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
             {
@@ -389,7 +389,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task PreviewTokenChangesWhenWriteSectionProvenanceChanges()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
             {

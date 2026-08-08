@@ -13,10 +13,10 @@ public sealed class ExternalProcessorResultTests
         const int byteCount = 1024 * 1024;
         byte[] callerBytes = new byte[byteCount];
         callerBytes[0] = 0x10;
-        _ = ExternalProcessorResult.Success(new byte[] { 0x01 }, []);
+        _ = ExternalProcessorResult.Success(new byte[] { 0x01 }, [], []);
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        var result = ExternalProcessorResult.Success(callerBytes, []);
+        var result = ExternalProcessorResult.Success(callerBytes, [], []);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         Assert.True(MemoryMarshal.TryGetArray(result.OutputBytes, out ArraySegment<byte> resultBytes));

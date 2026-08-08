@@ -5,27 +5,6 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>Application-level preview or build result with report summary.</summary>
 public sealed class CompositionRunResult
 {
-
-    /// <summary>Creates a run result.</summary>
-    public CompositionRunResult(
-        CompositionExecutionStatus status,
-        byte[] outputBytes,
-        CompositionRunReport report,
-        string? committedOutputId,
-        string? previewToken = null)
-        : this(
-            status,
-            ClonePublicOutputBytes(outputBytes),
-            report,
-            committedOutputId,
-            previewToken,
-            inspectionOutputSpaceId: null,
-            inspectionReferenceSpaceId: null,
-            inspectionReferenceBytes: null,
-            inspectionOutputBytes: null)
-    {
-    }
-
     internal CompositionRunResult(
         CompositionExecutionStatus status,
         ReadOnlyMemory<byte> immutableOutputBytes,
@@ -84,9 +63,4 @@ public sealed class CompositionRunResult
     /// <summary>Deterministic token returned by preview and required before build commit.</summary>
     public string? PreviewToken { get; }
 
-    private static ReadOnlyMemory<byte> ClonePublicOutputBytes(byte[] outputBytes)
-    {
-        ArgumentNullException.ThrowIfNull(outputBytes);
-        return outputBytes.ToArray();
-    }
 }

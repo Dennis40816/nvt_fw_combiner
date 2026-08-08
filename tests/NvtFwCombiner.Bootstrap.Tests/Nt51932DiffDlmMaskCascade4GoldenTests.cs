@@ -562,7 +562,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 
@@ -575,7 +575,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 
@@ -616,7 +616,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
                 changedRanges.Add(new ByteRange(replacementMarkerStart, NvtMarker.Length));
             }
 
-            return ValueTask.FromResult(ExternalProcessorResult.Success(output, changedRanges));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(output, changedRanges, []));
         }
     }
 
@@ -630,7 +630,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             output[mutationOffset] ^= 0x01;
             return ValueTask.FromResult(ExternalProcessorResult.Success(
                 output,
-                [new ByteRange(mutationOffset, 1)]));
+                [new ByteRange(mutationOffset, 1)], []));
         }
     }
 }

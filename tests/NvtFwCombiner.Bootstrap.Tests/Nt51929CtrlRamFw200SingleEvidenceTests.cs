@@ -561,7 +561,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 

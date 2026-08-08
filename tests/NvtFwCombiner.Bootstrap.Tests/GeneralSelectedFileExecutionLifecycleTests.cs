@@ -30,7 +30,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "Unbound content snapshot test."),
         ]);
 
-        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
         Assert.NotNull(CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
             session,
@@ -66,7 +66,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "mapping-1", sourcePath, "0x0", "0x0", "0x4"),
         ];
         GeneralMergeDraftState pending = GeneralTestDraftFactory.CreateMergeDraft("0x10", inputs);
-        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
         ActiveSessionSnapshot acceptedSession = await AcceptGeneralMergeSessionAsync(
             session, "NT51950", pending, "mapping-1", sourcePath, expectedLength: 4);
@@ -175,7 +175,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "0x2"),
         ];
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(inputs);
-        AuthoringSessionState session = ReplaceAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
         ActiveSessionSnapshot acceptedSession = await AcceptGeneralReplaceSessionAsync(
             session, "NT51926", "single", 0x40000, basePath, pending,
@@ -271,7 +271,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
                     "mapping-2", secondPath, "0x0", "0x2", "0x2"),
             ]);
-        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
 
         _ = await AcceptGeneralMergeSessionAsync(
@@ -318,7 +318,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "mapping-2", GeneralMappingSourceKind.FileArtifact,
                 secondPath, "0x3E022", "0x2"),
         ]);
-        AuthoringSessionState session = ReplaceAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
 
         _ = await AcceptGeneralReplaceSessionAsync(
@@ -381,7 +381,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
                 "0x2",
                 FileStamp.FromBytes(File.ReadAllBytes(sourcePath))),
         ]);
-        AuthoringSessionState session = ReplaceAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
         _ = await AcceptGeneralReplaceSessionAsync(
             session,

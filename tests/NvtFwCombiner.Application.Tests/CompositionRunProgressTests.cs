@@ -72,7 +72,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task MultipleExternalOperationsPublishOneProcessorPhase()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var service = new CompositionRunService(
             new FakeArtifactReader(new Dictionary<string, byte[]>
             {
@@ -165,7 +165,7 @@ public sealed partial class CompositionRunServiceTests
     public async Task FinalValidationFailureLeavesCommitIncomplete()
     {
         var processor = new FakeExternalProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         var writer = new FakeOutputWriter();
         var service = new CompositionRunService(
             CreateFirmwareConfigBackupArtifactReader(),

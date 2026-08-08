@@ -124,7 +124,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("PreviewOrBuildAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunAsync", root, StringComparison.Ordinal);
         Assert.Contains("_outputBytes = [.. outputBytes];", domainResult, StringComparison.Ordinal);
-        Assert.Contains("ClonePublicOutputBytes(outputBytes)", runResult, StringComparison.Ordinal);
+        Assert.Contains("internal CompositionRunResult(", runResult, StringComparison.Ordinal);
+        Assert.DoesNotContain("ClonePublicOutputBytes", runResult, StringComparison.Ordinal);
         Assert.Contains("OutputBytes = immutableOutputBytes;", runResult, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputBytes = outputBytes.ToArray();", runResult, StringComparison.Ordinal);
         Assert.DoesNotContain("TransformExternalProcessorAsync", root, StringComparison.Ordinal);
@@ -251,5 +252,46 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("finalOutputAccepted && outputDifferencesAccepted", root, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateOutputDifferences(request", reports, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateOutputDifferenceIssues(outputDifferences)", reports, StringComparison.Ordinal);
+    }
+
+    /// <summary>Authoring state keeps only the canonical session and mapping transitions.</summary>
+    [Fact]
+    public void AuthoringConvenienceFacadesStayCollapsed()
+    {
+        string mergeSessions = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/MergeAuthoringSessionSet.cs");
+        string replaceSessions = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/ReplaceAuthoringSessionSet.cs");
+        string rangeCodec = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/AuthoringByteRangeCodec.cs");
+        string mappingDraft = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralMappingDraftState.cs");
+        string mergeDraft = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralMergeDraftState.cs");
+
+        Assert.Equal(0, CountOccurrences(mergeSessions, "ForWorkflow("));
+        Assert.Equal(0, CountOccurrences(replaceSessions, "ForWorkflow("));
+        Assert.Equal(0, CountOccurrences(mergeSessions, "CreateEphemeral("));
+        Assert.Equal(0, CountOccurrences(replaceSessions, "CreateEphemeral("));
+        Assert.Contains(
+            "StandardMerge = new AuthoringSessionState(ExperienceIds.StandardMerge);",
+            mergeSessions,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "DpReplace = new AuthoringSessionState(ExperienceIds.DpReplace);",
+            replaceSessions,
+            StringComparison.Ordinal);
+        Assert.Equal(0, CountOccurrences(rangeCodec, "GetEndInclusive("));
+        Assert.Equal(1, CountOccurrences(mappingDraft, "WithAcceptedFileStamp("));
+        Assert.Equal(1, CountOccurrences(mappingDraft, "RebindSelectedFile("));
+        Assert.Equal(1, CountOccurrences(mergeDraft, "bool HasSameValue("));
+        Assert.Contains(
+            "Equals(OutputInitializer, merge.OutputInitializer)",
+            mergeDraft,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Mappings.HasSameValue(merge.Mappings)",
+            mergeDraft,
+            StringComparison.Ordinal);
     }
 }

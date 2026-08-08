@@ -13,6 +13,13 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   Exact descending total and slice ratchets, slice-sum closure, anti-relocation,
   architecture, firmware, evidence, and release gates remain mandatory; #197
   verifies those retained gates without activating a numeric target mode.
+- Application Core Convergence (#231) removes 585 nonblank runtime lines by
+  collapsing private input-inspection mirrors into the compiled-contract
+  service and deleting test-only authoring, Hex Editor, diagnostics, readiness,
+  FlashMap, composition, and external-tool compatibility facades. The
+  Application ratchet falls from 23,656 to 23,071 and the runtime ratchet from
+  69,623 to 69,038 without changing downstream production code, firmware
+  semantics, Preview/Build identity, reports, output naming, or UI/CLI behavior.
 
 ## [0.10.2] - 2026-08-04
 

@@ -30,14 +30,6 @@ public sealed class ExternalCombinerInvocationProfile
                 nameof(argumentTemplate));
         }
 
-        IReadOnlyList<string> templateErrors = ExternalCombinerStagingTokens.FindArgumentTemplateErrors(argumentTemplateSnapshot);
-        if (templateErrors.Count > 0)
-        {
-            throw new ArgumentException(
-                $"External Combiner invocation declares an invalid argument template: {string.Join(" ", templateErrors)}",
-                nameof(argumentTemplate));
-        }
-
         ArgumentTemplate = Array.AsReadOnly(argumentTemplateSnapshot);
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -37,25 +36,6 @@ public sealed class CompositionRunResultOwnershipTests
         Assert.Equal(0x5A, result.OutputBytes.Span[0]);
         Assert.Equal(0xFF, result.OutputBytes.Span[^1]);
         Assert.InRange(allocated, 0, ((long)OutputByteCount * 2) + 32_768);
-    }
-
-    /// <summary>The public result constructor still isolates bytes supplied by an arbitrary caller.</summary>
-    [Fact]
-    public async Task PublicConstructorCopiesCallerOutputBytes()
-    {
-        CompositionRunResult template = await PreviewAsync(outputByteCount: 1);
-        byte[] callerBytes = [0x10, 0x20, 0x30, 0x40];
-
-        var result = new CompositionRunResult(
-            CompositionExecutionStatus.Succeeded,
-            callerBytes,
-            template.Report,
-            committedOutputId: null);
-
-        Assert.True(MemoryMarshal.TryGetArray(result.OutputBytes, out ArraySegment<byte> resultBytes));
-        Assert.NotSame(callerBytes, resultBytes.Array);
-        callerBytes[0] = 0xFF;
-        Assert.Equal(0x10, result.OutputBytes.Span[0]);
     }
 
     private static ValueTask<CompositionRunResult> PreviewAsync(int outputByteCount)

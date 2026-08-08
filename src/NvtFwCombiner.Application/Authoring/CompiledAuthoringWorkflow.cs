@@ -113,7 +113,7 @@ public sealed class CompiledAuthoringWorkflowService
         }
 
         long? prerequisiteLength = discovery.CompilationPrerequisiteSlotId is { } prerequisiteSlot
-            ? acceptedFileStamps[prerequisiteSlot].Length
+            ? acceptedFileStamps[prerequisiteSlot].AcceptedLength
             : null;
         CompiledAuthoringWorkflowResolution exact = retained is null
             ? _resolver.ResolveExact(icId, prerequisiteLength, selectedSlotIds)
