@@ -11,7 +11,10 @@ public sealed partial class RepositoryBoundaryTests
         string deliveryRoadmap = ReadText("docs/architecture/v0.9.15-0.9.17-roadmap.md");
         string nfcRoadmap = ReadText("docs/architecture/nfc_roadmap.md");
         string normalizedNfcRoadmap = nfcRoadmap.ReplaceLineEndings(" ");
+        string spec = ReadText("SPEC.md");
+        string sizeAdr = ReadText("docs/adr/0021-code-size-ratchet-and-convergence.md");
         string dependencyPlan = ReadText("docs/governance/0.10.x-ticket-dependency-plan.md");
+        string[] coreAuthorities = [spec, sizeAdr, dependencyPlan];
 
         Assert.Contains("Status: historical execution and release evidence", roadmap, StringComparison.Ordinal);
         Assert.Contains("Status: historical release-planning evidence", deliveryRoadmap, StringComparison.Ordinal);
@@ -61,6 +64,45 @@ public sealed partial class RepositoryBoundaryTests
             "GitHub issues and PRs are the sole live\nexecution-state records.",
             dependencyPlan,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "## Canonical Core completion amendment — 2026-08-08",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        foreach (string authority in coreAuthorities)
+        {
+            string normalizedAuthority = string.Join(
+                ' ',
+                authority.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            Assert.Contains(
+                "with a proportionate implementation, verification, and evidence cost and a net-negative result is completed",
+                normalizedAuthority,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "total implementation, verification, and evidence cost is disproportionate to its maintenance benefit",
+                normalizedAuthority,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "only as a #230-owned same-PR exception",
+                normalizedAuthority,
+                StringComparison.Ordinal);
+        }
+        foreach (string authority in new[] { spec, sizeAdr })
+        {
+            string normalizedAuthority = string.Join(
+                ' ',
+                authority.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            Assert.Contains(
+                "broad #231 implementation begins only after #230 closes and the owner separately approves its intake",
+                normalizedAuthority,
+                StringComparison.Ordinal);
+        }
+        string normalizedDependencyPlan = string.Join(
+            ' ',
+            dependencyPlan.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains(
+            "#231 and #232 may execute in parallel only after the owner separately approves implementation intake for each",
+            normalizedDependencyPlan,
+            StringComparison.Ordinal);
         Assert.Contains("| 0 | Canonical pilot | #173 | Deliver the NT51929 Standard Merge canonical capability tracer | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 0 | Headless retirement | #221 | Retire NT51920/NT51925/NT51930/NT51931 production capabilities | — |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 4 | Headless data | #177 | Migrate remaining admitted metadata family bindings | #174, #175, #176, #221 |", dependencyPlan, StringComparison.Ordinal);
@@ -68,11 +110,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("| 6 | Headless firmware | #187 | Migrate admitted legacy TP Header families | #186, #221, #259, and matching #177 family slice |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 16 | Deferred UI | #214 | Deliver Message Center and System Information diagnostics | #173, #185, #208 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 18 | Core convergence | #230 | Converge Domain + Profiles to one canonical firmware model | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 18 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #259 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 19 | Core convergence | #231 | Converge Application on capability-centered use cases | #195, #196, #259, #230 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 19 | Core convergence | #232 | Converge Infrastructure, Contracts, and CRC worker protocol ownership | #195, #196, #230 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 20 | Core convergence | #233 | Converge Bootstrap + CLI to wiring-only composition | #195, #196, #230, #231, #232 |", dependencyPlan, StringComparison.Ordinal);
-        Assert.Contains("| 21 | Core convergence | #229 | Complete Canonical Core Convergence under the hard production-size gate | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains("| 21 | Core convergence | #229 | Complete evidence-backed Canonical Core Convergence | #230, #231, #232, #233 |", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains("| 22 | Integration | #197 | Close the 0.10.x integration gate and allocate releases | #171, #172, #229 |", dependencyPlan, StringComparison.Ordinal);
+        Assert.Contains(
+            "## Pre-Core production-growth allocation (historical; superseded 2026-08-08)",
+            dependencyPlan,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("four-slice hard gate", dependencyPlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("#197's hard 44,000-line integration gate", dependencyPlan, StringComparison.Ordinal);
         Assert.Contains(
             "Live completion and dependency-ready frontier state are queried from GitHub;",
             dependencyPlan,

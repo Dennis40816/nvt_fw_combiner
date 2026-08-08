@@ -1134,11 +1134,11 @@ to each `0.10.x` version.
 54. As a migration reviewer, I want every characterized behavior classified
     before it becomes a parity gate, so that known defects are not preserved as
     compatibility contracts and uncertain firmware behavior is not guessed.
-55. As a repository owner, I want non-UI/test production code reduced below
-    the formal 45,214-line `v0.9.16` baseline, with a 43,000-line engineering
-    allocation and 44,000-line hard final gate, so that duplicated owners and
-    compatibility paths are actually deleted rather than reorganized into
-    equally large replacement modules.
+55. As a repository owner, I want every Core slice to exhaust its reviewed,
+    evidence-backed deletion ledger under exact descending ratchets, so that
+    duplicated owners and compatibility paths are actually deleted rather than
+    reorganized into equally large replacement modules or retained to chase an
+    unsupported numeric forecast.
 56. As an NT51928 operator, I want one Standard Merge and one DP Replace
     capability to resolve either the shared `0x40000` no-LDC form or the
     `0x80000` LDC form, so container differences do not create duplicate
@@ -1913,49 +1913,52 @@ after the grill closes so issues do not become a competing draft specification.
     replacement owner. `EvidenceRequired` remains fail-closed and cannot
     authorize a firmware change. `ApprovedChange` records the accepted old/new
     behavior and tests the new contract.
-21. The non-UI/test production-code measurement, frozen baseline, revised
-    below-baseline target, and anti-gaming constraints are owned by
+21. The non-UI/test production-code measurement, frozen baseline, exact
+    descending ratchets, and anti-gaming constraints are owned by
     [`ADR 0021`](docs/adr/0021-code-size-ratchet-and-convergence.md).
     Ticket #171 must make that exact measurement executable through the existing
-    canonical verifier. The resulting 44,000-line limit is a hard final
-    `0.10.x` integration gate, not an aspirational report. Every migration slice
-    records its production delta and deletes superseded ownership when its
-    caller/evidence gate permits. After Workbench/parallel-catalog deletion and
-    legacy-runtime retirement, a dedicated Canonical Core Convergence phase
-    owns explicit layer budgets and remaining simplification through four
-    independently reviewable slices: Domain + Profiles, Application, Bootstrap
-    + CLI, and Infrastructure + Contracts + CRC worker. Each slice declares its
-    caller inventory, deletion list, tests, measured delta, and final budget;
-    shared registries/schemas have one writer, and no slice mixes in new product
-    functionality or UI layout work. Their hard caps are 18,000, 12,000,
-    7,500, and 5,500 lines respectively, for 43,000 allocated lines. The
-    remaining 1,000 lines are an unallocated integration reserve. Capacity
-    does not move between slices without owner-approved architecture review,
-    and no reallocation may raise the 44,000 final gate. Ticket #197 remains
-    blocked until the umbrella reaches that gate without weakening behavior,
-    architecture, firmware, security, coverage, or release evidence.
-    Owner decision on 2026-08-06 records exact head
-    `d444040403dcea796636ee11839ee9c251de5c19`: Domain + Profiles
-    24,953 -> 18,000 (6,953 remaining), Application 23,671 -> 12,000
-    (11,671), Bootstrap + CLI 18,670 -> 7,500 (11,170), and
-    Infrastructure + Contracts + CRC worker 7,031 -> 5,500 (1,531).
-    The allocated total is 74,325 -> 43,000 (31,325); reaching the
-    44,000-line hard gate requires at least 30,325 lines of total reduction.
-    The canonical verifier freezes exact descending ratchets at total 74,325
-    and the four measured slice values above. A Core PR must lower every
-    affected ratchet in the same commit, so cross-slice relocation cannot pass.
-    The four slices must sum exactly to runtime total; an unallocated runtime
-    source root fails rather than creating a fifth ownership bucket.
-    Owner amendment on 2026-08-06 permits #230 and #231 to interleave only when
-    an Application caller is the last blocker to deleting a named Domain +
-    Profiles compatibility surface. The caller migration and zero-caller
-    deletion land in the same PR; no measured slice may grow, and both the
-    deleted-owner ratchet and runtime total must fall. The exception adds no
-    Application semantic mirror, UI or Bootstrap behavior, cap reallocation,
-    or migration-only PR that keeps the superseded surface alive.
-    Final-cap enforcement remains explicitly inactive while convergence is
-    incomplete; #197 activates it in the same verifier and then fails either a
-    total above 44,000 or any slice above its approved cap.
+    canonical verifier. Every migration slice records its production delta and
+    deletes superseded ownership when its caller/evidence gate permits. After
+    Workbench/parallel-catalog deletion and legacy-runtime retirement, a
+    dedicated Canonical Core Convergence phase owns remaining simplification
+    through four independently reviewable slices: Domain + Profiles,
+    Application, Bootstrap + CLI, and Infrastructure + Contracts + CRC worker.
+    Each slice declares a line-addressed caller/deletion ledger, tests,
+    disposition for every retained candidate, and exact measured delta; shared
+    registries/schemas have one writer, and no slice mixes in new product
+    functionality or UI layout work. A Core PR must lower every affected
+    ratchet and the runtime total in the same commit, so cross-slice relocation
+    cannot pass. The four slices must sum exactly to runtime total; an
+    unallocated runtime source root fails rather than creating a fifth
+    ownership bucket.
+    Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
+    18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
+    planning history after the merged #230 checkpoint at `ad672900` showed that
+    no compatible, evidence-backed deletion ledger could close the remaining
+    numeric gap. Every mutually compatible, evidence-backed, in-scope candidate
+    with a proportionate implementation, verification, and evidence cost and a
+    net-negative result is completed. A safe candidate is not skipped solely
+    because its individual reduction is small. An unimplemented de minimis
+    candidate must show that its total implementation, verification, and
+    evidence cost is disproportionate to its maintenance benefit. Every other
+    retained candidate is explicitly classified as a durable contract, another
+    ticket's authority, or evidence/R3 blocked; a cross-scope disposition names
+    its owning layer and existing issue when one exists. A slice completes only
+    when no unclassified or still-eligible candidate remains and its full
+    behavioral, golden, architecture, and measurement evidence passes.
+    Owner amendment on 2026-08-06 permits a bounded Application caller
+    migration before #230 closes only as a #230-owned same-PR exception when
+    that caller is the last blocker to deleting a named Domain + Profiles
+    compatibility surface. The caller migration and zero-caller deletion land
+    in the same PR; no measured slice may grow, and both the deleted-owner
+    ratchet and runtime total must fall. This exception is not independent #231
+    execution; broad #231 implementation begins only after #230 closes and the
+    owner separately approves its intake. The exception adds no Application
+    semantic mirror, UI or Bootstrap behavior, cap reallocation, or
+    migration-only PR that keeps the superseded surface alive.
+    #197 verifies completed slice ledgers, latest exact ratchets, slice-sum
+    integrity, and all existing integration/release gates. It does not activate
+    a separate numeric final-target mode.
     Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
     is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
     Core-entry ratchets, cumulative positive counted growth is capped at 2,000
@@ -1968,8 +1971,8 @@ after the grill closes so issues do not become a competing draft specification.
     counted runtime lines. This consumes no reusable allowance, does not refill
     after deletion, and does not authorize any other pre-Core growth. #254 is
     the immediate next implementation ticket and records the superseded
-    General/Saved Rule reduction. The 44,000 final gate and 1,000-line
-    integration reserve remain unchanged.
+    General/Saved Rule reduction. Those dated limits remain measurement history;
+    the 2026-08-08 amendment supersedes them as completion gates.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
     firmware/route migration may temporarily grow only when a golden,
@@ -2075,13 +2078,13 @@ after the grill closes so issues do not become a competing draft specification.
     feature PRs merge to a non-default integration branch, the merge checklist
     explicitly updates/closes the issue and records the PR rather than relying
     on `Closes #N`.
-30. Final layer caps do not prematurely block prerequisite migration. The Core
-    Convergence entry change, after Workbench/parallel-catalog and legacy
-    runtime deletion, freezes the measured baseline for all four slices and
-    enables exact descending slice ratchets through `scripts/verify.py`. Every
-    Core PR lowers each affected slice ratchet and the total; moving equivalent
-    logic between slices cannot pass. Final integration enforces both four
-    maximum caps and total 44,000 through that same verifier, with no second
+30. The Core Convergence entry change, after Workbench/parallel-catalog and
+    legacy runtime deletion, freezes the measured baseline for all four slices
+    and enables exact descending slice ratchets through `scripts/verify.py`.
+    Every Core PR lowers each affected slice ratchet and the total; moving
+    equivalent logic between slices cannot pass. Final integration enforces the
+    latest exact ratchets, slice-sum integrity, completed candidate ledgers,
+    and existing release gates through that same verifier, with no second
     command or CI entry point.
 31. Documentation convergence removes boilerplate XML summaries that merely
     restate names and repeated comments on forwarding constructors/properties,
@@ -2146,8 +2149,8 @@ approved specification and consistency grill
   -> allocate the dependency-ready frontier to the next 0.10.x release
   -> implement, review, verify, record production delta, and delete old ownership slice by slice
   -> delete Workbench/parallel catalogs and retire the legacy runtime
-  -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
-  -> pass the 44,000-line #197 integration gate
+  -> complete four independently reviewable Canonical Core Convergence candidate ledgers under exact ratchets
+  -> pass the #197 integration, evidence, and release gates
 ```
 
 Owner decision on 2026-08-04 allocates the reviewed state through #254 to
@@ -2155,7 +2158,8 @@ Owner decision on 2026-08-04 allocates the reviewed state through #254 to
 viewport, and first General/Saved Rule compatibility deletion form a stable,
 support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
-refactor and hard 44,000-line gate are complete. `v0.10.4` then performs a
+refactor, reviewed residual ledgers, and exact ratchet gates are complete.
+`v0.10.4` then performs a
 fresh simplification/ownership audit of that result; `v0.10.5` owns performance
 work that unifies every preload behind one observable, cancellable, bounded,
 and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
@@ -2211,13 +2215,14 @@ owner.
 Prerequisite vertical slices can establish the canonical runtime while leaving
 duplicate DTOs, validators, workflow services, fingerprints, caches, processor
 wrappers, Workbench projections, and implementation-shaped tests behind. That
-would preserve the current maintenance burden and miss the hard 44,000-line
-non-UI/test production gate even if every feature still works.
+would preserve the current maintenance burden even if every feature still
+works or a planning number appears improved.
 
 Canonical Core Convergence must therefore delete superseded ownership after the
 headless, Workbench, and legacy-runtime migrations; retain one semantic and
 execution path; preserve all accepted behavior and firmware evidence; and make
-the final code-size constraint executable through the existing verifier.
+exact descending ratchets plus the reviewed candidate-ledger completion
+contract executable through the existing verifier and ticket evidence.
 
 #### Necessary user stories
 
@@ -2236,9 +2241,10 @@ the final code-size constraint executable through the existing verifier.
    differential seams removed only after stable behavioral, golden, mutation,
    and architecture evidence replaces them.
 6. As the repository owner, I want the four Core slices and total production
-   metric to ratchet downward to the approved caps, so the required reduction
-   below the formal pre-refactor baseline is verified rather than presented as
-   a reorganized duplicate architecture.
+   metric to ratchet downward while every compatible, evidence-backed deletion
+   candidate is exhausted or explicitly dispositioned, so improvement is
+   verified rather than presented as a reorganized duplicate architecture or
+   an unsupported forecast.
 
 #### Scope and explicit non-goals
 
@@ -2265,8 +2271,9 @@ security, coverage, accessibility, or human-review gates.
   Preview/Build, report retrieval, readiness, and stale-result policy.
 - Infrastructure owns trust/document loading and one staged processor host with
   protocol-family adapters; Bootstrap owns wiring; UI and CLI are consumers.
-- ADR 0021 owns measurement, slice caps, reserve, anti-gaming, and ratchet
-  policy. `scripts/verify.py` remains the only verification entry point.
+- ADR 0021 owns measurement, exact slice/total ratchets, candidate completion,
+  and anti-gaming policy. `scripts/verify.py` remains the only verification
+  entry point.
 
 #### Functional and failure requirements
 
@@ -2281,10 +2288,11 @@ parse, resolution, inspection, compilation/engine execution, and processor
 stages no more than once at their declared identity seam.
 
 Unknown or unvalidated definitions, stale identity, missing processor
-authority, cache-key ambiguity, duplicate exact-route ownership, or a slice
-that fails to lower both its own and total metric fails closed. Cache disable or
-clear must only cause canonical recomputation and must not change bytes,
-readiness, diagnostics, evidence, publication, or support.
+authority, cache-key ambiguity, duplicate exact-route ownership, an
+unclassified eligible deletion candidate, or a slice that fails to lower both
+its own and total metric fails closed. Cache disable or clear must only cause
+canonical recomputation and must not change bytes, readiness, diagnostics,
+evidence, publication, or support.
 
 #### Compatibility, firmware, support, security, and release impact
 
@@ -2302,7 +2310,9 @@ Release gates remain unchanged and downstream of convergence.
 
 Each slice records its entry measurement, callers, deletion list, affected
 semantic owners, narrow tests, architecture checks, production delta, and final
-measurement. Durable evidence covers fixed golden bytes/hashes, exact mutation
+measurement. Its residual ledger gives every retained candidate a reviewed
+durable-contract, later-ticket, evidence/R3, or disproportionate-risk/cost
+disposition. Durable evidence covers fixed golden bytes/hashes, exact mutation
 ranges, operation traces, typed failures, UI/CLI observable behavior,
 cross-language fingerprint vectors, validation-boundary tests, stale/cache
 tests, deterministic work counts, bounded allocations, dependency direction,
@@ -2312,10 +2322,12 @@ mandatory at the risk level declared by the affected authority.
 
 #### Open decisions and remaining gates
 
-No architecture or terminology decision remains open from this grill.
-`$to-tickets` synchronized umbrella #229 and ownership-bounded slices #230-#233,
-including Core-entry ratchets and the #197 dependency, on 2026-07-28. Each
-ticket remains outside implementation intake until the owner separately
-approves its exact scope for `ready-for-agent`. Route-specific R3 golden or
-firmware-owner evidence remains an implementation gate, not an unresolved
-architecture decision.
+No architecture or terminology decision remains open from this grill. Owner
+amendment on 2026-08-08 replaced the disproven numeric completion caps with the
+maximum-practical, evidence-backed candidate-ledger contract while retaining
+all exact ratchets and anti-gaming rules. `$to-tickets` synchronizes umbrella
+#229, ownership-bounded slices #230-#233, and the #197 dependency to that
+amendment. Each ticket remains outside implementation intake until the owner
+separately approves its exact scope for `ready-for-agent`. Route-specific R3
+golden or firmware-owner evidence remains an implementation gate, not an
+unresolved architecture decision.

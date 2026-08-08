@@ -6,11 +6,13 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ### Changed
 
-- Owner-approved code-size convergence now uses a 43,000-line engineering
-  allocation and 44,000-line hard final gate, both below the formal 45,214-line
-  `v0.9.16` baseline. The canonical verifier freezes exact descending ratchets
-  for all four ownership slices; #197 activates their final caps and the total
-  hard gate through the same verification path.
+- Owner amendment on 2026-08-08 retires the former fixed total and four-slice
+  targets as completion gates. Canonical Core Convergence now completes every
+  identified behavior-compatible, evidence-backed, proportionate net-negative
+  candidate and records each residual in a reviewed line-addressed ledger.
+  Exact descending total and slice ratchets, slice-sum closure, anti-relocation,
+  architecture, firmware, evidence, and release gates remain mandatory; #197
+  verifies those retained gates without activating a numeric target mode.
 
 ## [0.10.2] - 2026-08-04
 

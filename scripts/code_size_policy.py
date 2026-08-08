@@ -44,17 +44,11 @@ class CodeSizeLimits:
     partial_type_exact_ratchets: dict[str, int]
     partial_type_named_maximums: dict[str, int] = field(default_factory=dict)
     runtime_production_baseline: int | None = None
-    runtime_production_target: int | None = None
     runtime_production_ratchet: int | None = None
     domain_profiles_ratchet: int | None = None
-    domain_profiles_target: int | None = None
     application_ratchet: int | None = None
-    application_target: int | None = None
     bootstrap_cli_ratchet: int | None = None
-    bootstrap_cli_target: int | None = None
     infrastructure_contracts_worker_ratchet: int | None = None
-    infrastructure_contracts_worker_target: int | None = None
-    enforce_final_targets: bool = False
 
 
 @dataclass(frozen=True)
@@ -99,16 +93,11 @@ DEFAULT_LIMITS = CodeSizeLimits(
         "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_506,
     },
     runtime_production_baseline=45_214,
-    runtime_production_target=44_000,
     runtime_production_ratchet=69_730,
     domain_profiles_ratchet=20_392,
-    domain_profiles_target=18_000,
     application_ratchet=23_656,
-    application_target=12_000,
     bootstrap_cli_ratchet=18_653,
-    bootstrap_cli_target=7_500,
     infrastructure_contracts_worker_ratchet=7_029,
-    infrastructure_contracts_worker_target=5_500,
 )
 
 
@@ -326,15 +315,13 @@ def _review_slice_metric(
     file_count: int,
     actual: int,
     ratchet: int | None,
-    target: int | None,
     findings: list[str],
 ) -> None:
     if ratchet is None:
         return
-    target_text = f"; final target <= {target}" if target is not None else ""
     findings.append(
         f"{label} metric: {file_count} files / {actual} nonblank lines "
-        f"(ratchet {ratchet}{target_text})"
+        f"(ratchet {ratchet})"
     )
     _review_exact_ratchet(f"{label} slice", actual, ratchet, findings)
 
@@ -364,14 +351,11 @@ def review_code_size_policy(
         delta = (
             snapshot.runtime_production_nonblank - limits.runtime_production_baseline
         )
-        target = limits.runtime_production_target
-        target_text = f"; final target <= {target}" if target is not None else ""
         findings.append(
             "runtime production metric: "
             f"{snapshot.runtime_production_files} files / "
             f"{snapshot.runtime_production_nonblank} nonblank lines "
-            f"(baseline {limits.runtime_production_baseline}, delta {delta:+d}"
-            f"{target_text})"
+            f"(baseline {limits.runtime_production_baseline}, delta {delta:+d})"
         )
 
     if limits.runtime_production_ratchet is not None:
@@ -382,34 +366,30 @@ def review_code_size_policy(
             findings,
         )
 
-    for label, file_count, actual, ratchet, target in (
+    for label, file_count, actual, ratchet in (
         (
             "Domain + Profiles",
             snapshot.domain_profiles_files,
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
-            limits.domain_profiles_target,
         ),
         (
             "Application",
             snapshot.application_files,
             snapshot.application_nonblank,
             limits.application_ratchet,
-            limits.application_target,
         ),
         (
             "Bootstrap + CLI",
             snapshot.bootstrap_cli_files,
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
-            limits.bootstrap_cli_target,
         ),
         (
             "Infrastructure + Contracts + CRC worker",
             snapshot.infrastructure_contracts_worker_files,
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
-            limits.infrastructure_contracts_worker_target,
         ),
     ):
         _review_slice_metric(
@@ -417,7 +397,6 @@ def review_code_size_policy(
             file_count,
             actual,
             ratchet,
-            target,
             findings,
         )
     aggregates = {aggregate.name: aggregate for aggregate in snapshot.partial_types}
@@ -453,7 +432,7 @@ def validate_code_size_policy(
     root: Path,
     limits: CodeSizeLimits = DEFAULT_LIMITS,
 ) -> list[str]:
-    """Fail closed on Core ratchet drift and activated final-target violations."""
+    """Fail closed on Core ratchet drift and cross-slice relocation."""
 
     snapshot = measure_code_size(root)
     errors: list[str] = []
@@ -462,52 +441,41 @@ def validate_code_size_policy(
             "runtime production",
             snapshot.runtime_production_nonblank,
             limits.runtime_production_ratchet,
-            limits.runtime_production_target,
         ),
         (
             "Domain + Profiles slice",
             snapshot.domain_profiles_nonblank,
             limits.domain_profiles_ratchet,
-            limits.domain_profiles_target,
         ),
         (
             "Application slice",
             snapshot.application_nonblank,
             limits.application_ratchet,
-            limits.application_target,
         ),
         (
             "Bootstrap + CLI slice",
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
-            limits.bootstrap_cli_target,
         ),
         (
             "Infrastructure + Contracts + CRC worker slice",
             snapshot.infrastructure_contracts_worker_nonblank,
             limits.infrastructure_contracts_worker_ratchet,
-            limits.infrastructure_contracts_worker_target,
         ),
     )
     slices = metrics[1:]
-    if all(ratchet is not None for _, _, ratchet, _ in slices):
-        allocated = sum(actual for _, actual, _, _ in slices)
+    if all(ratchet is not None for _, _, ratchet in slices):
+        allocated = sum(actual for _, actual, _ in slices)
         if allocated != snapshot.runtime_production_nonblank:
             errors.append(
                 "code-size runtime slice allocation mismatch: "
                 f"{allocated} != total {snapshot.runtime_production_nonblank}"
             )
-    for label, actual, ratchet, _ in metrics:
+    for label, actual, ratchet in metrics:
         if ratchet is not None and actual > ratchet:
             errors.append(f"code-size {label} grew: {actual} > ratchet {ratchet}")
         elif ratchet is not None and actual < ratchet:
             errors.append(
                 f"code-size {label} improved: lower ratchet {ratchet} to {actual}"
             )
-    if limits.enforce_final_targets:
-        for label, actual, _, target in metrics:
-            if target is not None and actual > target:
-                errors.append(
-                    f"code-size {label} exceeded final target: {actual} > {target}"
-                )
     return errors
