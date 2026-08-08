@@ -171,22 +171,11 @@ internal static partial class V2CompositionPlanCompiler
         foreach (CompositionProfileMetadataBinding binding in profile.MetadataBindings.Where(binding =>
                      StringComparer.Ordinal.Equals(binding.SpaceId, input.SpaceId)))
         {
-            if (!family.TryResolveStructure(
-                    resolvedMap.ImageMap.MapId,
-                    binding.StructureId,
-                    out FirmwareMetadataStructure? structure) ||
-                structure is null)
-            {
-                issues.Add(new CompositionIssue(
-                    InvalidInputGeometry,
-                    $"{inputKind} input space '{input.SpaceId}' cannot resolve metadata binding " +
-                    $"'{binding.BindingId}': the selected structure is unavailable.",
-                    binding.BindingId));
-                length = 0;
-                return false;
-            }
-
-            long metadataEnd = family.GetMaximumMetadataReadEnd(resolvedMap, structure);
+            _ = family.TryResolveStructure(
+                resolvedMap.ImageMap.MapId,
+                binding.StructureId,
+                out FirmwareMetadataStructure? structure);
+            long metadataEnd = family.GetMaximumMetadataReadEnd(resolvedMap, structure!);
             maximumEndExclusive = Math.Max(maximumEndExclusive, metadataEnd);
             hasRead = true;
         }
@@ -266,7 +255,6 @@ internal static partial class V2CompositionPlanCompiler
                     if (!TryResolveRegionInstance(
                             resolvedMap,
                             templateSelector.RegionInstanceId,
-                            out _,
                             out FirmwareRegionInstance? instance,
                             out string? instanceError) ||
                         instance is null)
@@ -279,13 +267,7 @@ internal static partial class V2CompositionPlanCompiler
                         StringComparer.Ordinal.Equals(
                             candidate.RegionId,
                             templateSelector.TemplateRegionId));
-                    if (relativeRegion is null ||
-                        !instance.ResolvedRegionIds.TryGetValue(
-                            templateSelector.TemplateRegionId,
-                            out string? resolvedRegionId) ||
-                        !resolvedMap.ImageMap.Regions.Any(candidate => StringComparer.Ordinal.Equals(
-                            candidate.RegionId,
-                            resolvedRegionId)))
+                    if (relativeRegion is null)
                     {
                         error = $"View '{view.ViewId}' names unknown template region " +
                             $"'{templateSelector.TemplateRegionId}' in instance " +
@@ -310,25 +292,17 @@ internal static partial class V2CompositionPlanCompiler
     private static bool TryResolveRegionInstance(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         string instanceId,
-        out FirmwareRegionSet? regionSet,
         out FirmwareRegionInstance? instance,
         out string? error)
     {
-        (
-            FirmwareRegionSet RegionSet,
-            FirmwareRegionInstance Instance
-        )[] matches =
+        FirmwareRegionInstance[] matches =
         [
             .. resolvedMap.ImageMap.RegionSets
-                .SelectMany(candidateSet => candidateSet.RegionInstances.Select(candidateInstance =>
-                    (RegionSet: candidateSet, Instance: candidateInstance)))
-                .Where(candidate => StringComparer.Ordinal.Equals(
-                    candidate.Instance.InstanceId,
-                    instanceId)),
+                .SelectMany(static candidateSet => candidateSet.RegionInstances)
+                .Where(candidate => StringComparer.Ordinal.Equals(candidate.InstanceId, instanceId)),
         ];
         if (matches.Length == 0)
         {
-            regionSet = null;
             instance = null;
             error = $"unknown region instance '{instanceId}'";
             return false;
@@ -336,23 +310,12 @@ internal static partial class V2CompositionPlanCompiler
 
         if (matches.Length != 1)
         {
-            regionSet = null;
             instance = null;
             error = $"ambiguous region instance '{instanceId}'";
             return false;
         }
 
-        (regionSet, instance) = matches[0];
-        if (!StringComparer.Ordinal.Equals(
-                regionSet.AddressSpaceId,
-                resolvedMap.ImageMap.AddressSpaceId))
-        {
-            regionSet = null;
-            instance = null;
-            error = $"region instance '{instanceId}' with an incompatible address space";
-            return false;
-        }
-
+        instance = matches[0];
         error = null;
         return true;
     }

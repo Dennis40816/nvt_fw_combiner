@@ -170,26 +170,6 @@ public sealed class V2CompilationProvenance
     private readonly CompiledValidationRequirement[] _validationRequirements;
     private readonly CompiledCapabilityAdmission[] _requiredCapabilities;
 
-    /// <summary>Creates map-bound provenance through the closed resolved-map context.</summary>
-    internal V2CompilationProvenance(
-        ProfileBundleIdentity bundle,
-        ProfileBundleEntryIdentity profileEntry,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        CompiledProfilePromotion promotion,
-        IEnumerable<string> profileEvidenceRefs,
-        IEnumerable<CompiledValidationRequirement> validationRequirements,
-        IEnumerable<CompiledCapabilityAdmission> requiredCapabilities)
-        : this(
-            bundle,
-            profileEntry,
-            new ResolvedMapV2CompilationContext(resolvedMap),
-            promotion,
-            profileEvidenceRefs,
-            validationRequirements,
-            requiredCapabilities)
-    {
-    }
-
     internal V2CompilationProvenance(
         ProfileBundleIdentity bundle,
         ProfileBundleEntryIdentity profileEntry,

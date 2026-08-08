@@ -18,9 +18,9 @@ internal static partial class V2CompositionPlanCompiler
     {
         var operations = new List<CompositionOperation>();
         string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
-            ? AssertOutputSpace(profile).Initializer is CloneProfileInitializer clone
-                ? ResolveCloneReferenceSourceSpaceId(profile, clone)
-                : null
+            ? ResolveCloneReferenceSourceSpaceId(
+                profile,
+                (CloneProfileInitializer)AssertOutputSpace(profile).Initializer)
             : null;
         foreach (CompositionOperationDefinition operation in profile.Operations)
         {
@@ -543,10 +543,8 @@ internal static partial class V2CompositionPlanCompiler
                 if (!TryResolveRegionInstance(
                         resolvedMap,
                         operation.AddendSource.SourceRegionInstanceId!,
-                        out FirmwareRegionSet? sourceSet,
                         out FirmwareRegionInstance? source,
                         out error) ||
-                    sourceSet is null ||
                     source is null)
                 {
                     addend = default;
@@ -557,10 +555,8 @@ internal static partial class V2CompositionPlanCompiler
                 if (!TryResolveRegionInstance(
                         resolvedMap,
                         operation.AddendSource.TargetRegionInstanceId!,
-                        out FirmwareRegionSet? targetSet,
                         out FirmwareRegionInstance? target,
                         out error) ||
-                    targetSet is null ||
                     target is null)
                 {
                     addend = default;
@@ -574,15 +570,6 @@ internal static partial class V2CompositionPlanCompiler
                     addendSource = null;
                     error = $"region instances '{operation.AddendSource.SourceRegionInstanceId}' and " +
                         $"'{operation.AddendSource.TargetRegionInstanceId}' do not reference the same canonical template";
-                    return false;
-                }
-
-                if (!StringComparer.Ordinal.Equals(sourceSet.AddressSpaceId, targetSet.AddressSpaceId))
-                {
-                    addend = default;
-                    addendSource = null;
-                    error = $"region instances '{operation.AddendSource.SourceRegionInstanceId}' and " +
-                        $"'{operation.AddendSource.TargetRegionInstanceId}' use incompatible address spaces";
                     return false;
                 }
 

@@ -95,7 +95,7 @@ public sealed class CompositionProfileV2SpaceTests
             CompositionProfileMetadataPurpose.Version,
             CompositionProfileMetadataPurpose.Validation,
         };
-        var binding = new CompositionProfileMetadataBinding(
+        CompositionProfileMetadataBinding binding = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
@@ -104,23 +104,25 @@ public sealed class CompositionProfileV2SpaceTests
         fieldIds.Clear();
         purposes.Clear();
 
-        Assert.Equal(["version-major", "version-minor"], binding.FieldIds);
+        Assert.Equal(
+            ["version-major", "version-minor"],
+            CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(
             [CompositionProfileMetadataPurpose.Validation, CompositionProfileMetadataPurpose.Version],
             binding.Purposes);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
             [],
             [CompositionProfileMetadataPurpose.Validation]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
             ["version-major"],
             []));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",

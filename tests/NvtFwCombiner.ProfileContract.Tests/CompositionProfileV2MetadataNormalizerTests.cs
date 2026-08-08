@@ -35,7 +35,7 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
 
         CompositionProfileMetadataBinding binding = CompositionProfileNormalizer.NormalizeMetadataBinding(document);
 
-        Assert.Equal(["chip-number", "pid"], binding.FieldIds);
+        Assert.Equal(["chip-number", "pid"], CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(Enum.GetValues<CompositionProfileMetadataPurpose>(), binding.Purposes);
     }
 
@@ -85,7 +85,7 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
             ],
             binding.TargetReferences.Select(static target =>
                 (target.Kind, target.TargetId)));
-        Assert.Empty(binding.FieldIds);
+        Assert.Empty(CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(["owner-type-ab-header-table"], binding.EvidenceRefs);
         Assert.DoesNotContain(
             binding.GetType().GetProperties(),
@@ -118,7 +118,7 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
                 target.Kind));
         Assert.Equal(
             binding.TargetReferences.Select(static target => target.TargetId),
-            binding.FieldIds);
+            CompositionProfileV2DefinitionTestData.FieldIds(binding));
     }
 
     /// <summary>Verifies an unknown purpose token retains its source path.</summary>

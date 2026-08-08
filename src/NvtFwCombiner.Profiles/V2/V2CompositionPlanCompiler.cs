@@ -211,16 +211,9 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         CloneProfileInitializer clone)
     {
-        InputArtifactProfileSpace inputSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        CompositionInputSlotDefinition slot = profile.InputSlots.Single(candidate =>
-            StringComparer.Ordinal.Equals(candidate.SlotId, clone.SourceSlotId));
-        return slot.ArtifactClass == CompiledInputArtifactClass.ReferenceImage &&
-            slot.LengthRequirement is ResolvedMapCapacityInputLengthDefinition &&
-            slot.Normalization is CompiledNoInputNormalization
-            ? inputSpace.SpaceId
-            : throw new InvalidOperationException(
-                "Validated Replace lowering requires its clone source to be one exact unnormalized reference-image input.");
+        return profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
+            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId))
+            .SpaceId;
     }
 
     private static bool IsReplacePayloadInputSource(
@@ -400,14 +393,10 @@ internal static partial class V2CompositionPlanCompiler
                 }
             }
 
-            if (!TryResolveGoverningRegionChain(region.Range, regionsById, out FirmwareRegion[] governingRegionChain))
-            {
-                issues.Add(new CompositionIssue(
-                    InvalidRegionAccess,
-                    $"Region access rule '{rule.RegionId}' does not resolve to one canonical physical region chain.",
-                    rule.RegionId));
-                continue;
-            }
+            _ = TryResolveGoverningRegionChain(
+                region.Range,
+                regionsById,
+                out FirmwareRegion[] governingRegionChain);
 
             var requirement = new CompiledRegionAccessRequirement(
                 rule.RegionId,

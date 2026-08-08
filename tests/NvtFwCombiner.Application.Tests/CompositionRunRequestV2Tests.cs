@@ -470,7 +470,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new ProfileBundleEntryIdentity(
                 "profile-entry",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             promotion,
             ["profile-evidence"],
             [],

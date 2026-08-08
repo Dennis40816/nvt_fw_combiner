@@ -124,7 +124,8 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             FamilyHash,
             [map],
             [],
-            [binding]);
+            [binding],
+            []);
 
         FirmwareMapFactBinding<FirmwareCapabilityFact> stored = Assert.Single(definition.CapabilityBindings);
         Assert.Same(value, stored.Value);
@@ -144,7 +145,10 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             exactMatch: false);
         Assert.True(view.IsReadOnly);
         Assert.DoesNotContain(
-            typeof(FirmwareFamilyResolutionDefinition).GetConstructors(),
+            typeof(FirmwareFamilyResolutionDefinition).GetConstructors(
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic),
             constructor => constructor.GetParameters().Length == 6);
     }
 

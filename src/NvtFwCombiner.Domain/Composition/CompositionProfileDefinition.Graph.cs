@@ -1,3 +1,5 @@
+using NvtFwCombiner.Domain.Firmware;
+
 namespace NvtFwCombiner.Domain.Composition;
 
 internal sealed partial class CompositionProfileDefinition
@@ -507,7 +509,9 @@ internal sealed partial class CompositionProfileDefinition
             field.BindingId,
             "Validation references an unknown metadata binding.");
         DomainInvariant.Require(
-            binding.FieldIds.Contains(field.FieldId, StringComparer.Ordinal),
+            binding.TargetReferences.Any(target =>
+                target.Kind == FirmwareMetadataReferenceTargetKind.Field &&
+                StringComparer.Ordinal.Equals(target.TargetId, field.FieldId)),
             "Validation references a field not selected by its metadata binding.");
     }
 

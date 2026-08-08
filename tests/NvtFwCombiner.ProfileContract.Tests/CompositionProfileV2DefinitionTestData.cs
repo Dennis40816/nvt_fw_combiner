@@ -1,4 +1,5 @@
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -51,7 +52,7 @@ internal static class CompositionProfileV2DefinitionTestData
                     "output",
                     new SpaceRangeViewSelector(new ByteRange(0, 16))),
             ],
-            [new CompositionProfileMetadataBinding(
+            [CreateMetadataBinding(
                 "fwconfig", "source", "firmware-config", ["pid"],
                 [CompositionProfileMetadataPurpose.Validation])],
             [new CompositionProfileRegionAccess(
@@ -160,6 +161,34 @@ internal static class CompositionProfileV2DefinitionTestData
             regionIds ?? ["dp-code"],
             structureIds ?? ["firmware-config"],
             []);
+    }
+
+    internal static CompositionProfileMetadataBinding CreateMetadataBinding(
+        string bindingId,
+        string spaceId,
+        string structureId,
+        IEnumerable<string> fieldIds,
+        IEnumerable<CompositionProfileMetadataPurpose> purposes)
+    {
+        return new CompositionProfileMetadataBinding(
+            bindingId,
+            spaceId,
+            structureId,
+            fieldIds.Select(static fieldId => new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Field,
+                fieldId)),
+            purposes,
+            []);
+    }
+
+    internal static IReadOnlyList<string> FieldIds(CompositionProfileMetadataBinding binding)
+    {
+        return
+        [
+            .. binding.TargetReferences
+                .Where(static target => target.Kind == FirmwareMetadataReferenceTargetKind.Field)
+                .Select(static target => target.TargetId),
+        ];
     }
 
     internal static CompositionInputSlotDefinition TpSlot()

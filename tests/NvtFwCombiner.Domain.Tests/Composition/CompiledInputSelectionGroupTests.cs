@@ -17,7 +17,7 @@ public sealed class CompiledInputSelectionGroupTests
             ["ldc-input"] = "Reference length does not include LDC",
         };
 
-        var group = new CompiledInputSelectionGroup(
+        CompiledInputSelectionGroup group = CreateGroup(
             "dp-replacement-selection",
             members,
             applicable,
@@ -50,7 +50,7 @@ public sealed class CompiledInputSelectionGroupTests
     public void RejectsMissingGroupId(string groupId)
     {
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 groupId,
                 ["slot"],
                 ["slot"],
@@ -64,9 +64,9 @@ public sealed class CompiledInputSelectionGroupTests
     public void RejectsInvalidGroupIdsWithExactExceptionTypes()
     {
         _ = Assert.Throws<ArgumentNullException>(() =>
-            new CompiledInputSelectionGroup(null!, ["slot"], ["slot"], ["slot"], 1, 1));
+            CreateGroup(null!, ["slot"], ["slot"], ["slot"], 1, 1));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup("Group", ["slot"], ["slot"], ["slot"], 1, 1));
+            CreateGroup("Group", ["slot"], ["slot"], ["slot"], 1, 1));
     }
 
     /// <summary>Canonical members must exist and remain ordinally unique.</summary>
@@ -74,7 +74,7 @@ public sealed class CompiledInputSelectionGroupTests
     public void RejectsMissingEmptyOrDuplicateMemberIds()
     {
         _ = Assert.Throws<ArgumentNullException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 null!,
                 [],
@@ -82,7 +82,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 0,
                 maximumSelected: 0));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 [],
                 [],
@@ -90,7 +90,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 0,
                 maximumSelected: 0));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot", "slot"],
                 ["slot"],
@@ -98,7 +98,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 1,
                 maximumSelected: 1));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot", " "],
                 ["slot"],
@@ -112,7 +112,7 @@ public sealed class CompiledInputSelectionGroupTests
     public void RejectsInvalidApplicabilityAndSelectionSubsets()
     {
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot"],
                 ["other"],
@@ -120,7 +120,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 0,
                 maximumSelected: 1));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot", "other"],
                 ["slot"],
@@ -134,7 +134,7 @@ public sealed class CompiledInputSelectionGroupTests
     public void RejectsInvalidSelectedCountBounds()
     {
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot"],
                 ["slot"],
@@ -142,7 +142,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: -1,
                 maximumSelected: 0));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot"],
                 ["slot"],
@@ -150,7 +150,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 1,
                 maximumSelected: 0));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot"],
                 ["slot"],
@@ -158,7 +158,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 0,
                 maximumSelected: 2));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot"],
                 ["slot"],
@@ -166,7 +166,7 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 1,
                 maximumSelected: 1));
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot", "other"],
                 ["slot", "other"],
@@ -191,7 +191,7 @@ public sealed class CompiledInputSelectionGroupTests
         };
 
         _ = Assert.Throws<ArgumentException>(() =>
-            new CompiledInputSelectionGroup(
+            CreateGroup(
                 "group",
                 ["slot", "ldc"],
                 ["slot"],
@@ -199,5 +199,26 @@ public sealed class CompiledInputSelectionGroupTests
                 minimumSelected: 1,
                 maximumSelected: 1,
                 reasons));
+    }
+
+    private static CompiledInputSelectionGroup CreateGroup(
+        string groupId,
+        IEnumerable<string> memberSlotIds,
+        IEnumerable<string> applicableMemberSlotIds,
+        IEnumerable<string> selectedSlotIds,
+        int minimumSelected,
+        int maximumSelected,
+        IReadOnlyDictionary<string, string>? notApplicableReasons = null)
+    {
+        return new CompiledInputSelectionGroup(
+            new InputSelectionGroupDefinition(
+                groupId,
+                memberSlotIds,
+                minimumSelected,
+                maximumSelected),
+            applicableMemberSlotIds,
+            selectedSlotIds,
+            maximumSelected,
+            notApplicableReasons);
     }
 }

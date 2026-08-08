@@ -260,7 +260,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
             new ProfileBundleEntryIdentity(
                 "profile-entry",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["profile-evidence"],
             validations,

@@ -58,27 +58,6 @@ public sealed class CompiledInputSelectionGroup
     private readonly IReadOnlyDictionary<string, string> _notApplicableReasons;
 
     internal CompiledInputSelectionGroup(
-        string groupId,
-        IEnumerable<string> memberSlotIds,
-        IEnumerable<string> applicableMemberSlotIds,
-        IEnumerable<string> selectedSlotIds,
-        int minimumSelected,
-        int maximumSelected,
-        IReadOnlyDictionary<string, string>? notApplicableReasons = null)
-        : this(
-            new InputSelectionGroupDefinition(
-                groupId,
-                memberSlotIds,
-                minimumSelected,
-                maximumSelected),
-            applicableMemberSlotIds,
-            selectedSlotIds,
-            maximumSelected,
-            notApplicableReasons)
-    {
-    }
-
-    internal CompiledInputSelectionGroup(
         InputSelectionGroupDefinition definition,
         IEnumerable<string> applicableMemberSlotIds,
         IEnumerable<string> selectedSlotIds,

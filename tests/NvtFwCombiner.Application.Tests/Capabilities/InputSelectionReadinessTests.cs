@@ -127,11 +127,13 @@ public sealed class InputSelectionReadinessTests
     private static CompiledInputSelectionGroup CreateNoLdcGroup()
     {
         return new CompiledInputSelectionGroup(
-            "dp-replacement-selection",
-            [InitialCode, Ldc],
+            new InputSelectionGroupDefinition(
+                "dp-replacement-selection",
+                [InitialCode, Ldc],
+                minimumSelected: 1,
+                maximumSelected: 2),
             [InitialCode],
             [InitialCode],
-            minimumSelected: 1,
             maximumSelected: 1,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -142,11 +144,13 @@ public sealed class InputSelectionReadinessTests
     private static CompiledInputSelectionGroup CreateLdcGroup()
     {
         return new CompiledInputSelectionGroup(
-            "dp-replacement-selection",
-            [InitialCode, Ldc],
+            new InputSelectionGroupDefinition(
+                "dp-replacement-selection",
+                [InitialCode, Ldc],
+                minimumSelected: 1,
+                maximumSelected: 2),
             [InitialCode, Ldc],
             [InitialCode],
-            minimumSelected: 1,
             maximumSelected: 2);
     }
 

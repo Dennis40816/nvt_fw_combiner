@@ -462,7 +462,8 @@ public sealed class FirmwareMapResolutionTests
             FamilyHash,
             [map],
             [],
-            [binding]);
+            [binding],
+            []);
 
         FirmwareMapResolutionResult result = definition.ResolveMap(Inputs([]));
 

@@ -163,8 +163,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             inputs,
             map,
             resolvedStructures,
-            predicateOutcomes,
-            metadataStructures));
+            predicateOutcomes));
     }
 
     private System.Collections.ObjectModel.ReadOnlyCollection<FirmwareMetadataStructure>
