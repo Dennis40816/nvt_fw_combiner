@@ -120,6 +120,7 @@ public sealed class FirmwareResolvedMetadataStructure
     private readonly FirmwareResolvedMetadataField[] _fields;
 
     internal FirmwareResolvedMetadataStructure(
+        object constructionToken,
         string mapId,
         FirmwareArtifactIdentity artifactIdentity,
         FirmwareMetadataStructure structureDefinition,
@@ -127,36 +128,19 @@ public sealed class FirmwareResolvedMetadataStructure
         FirmwareMetadataLocatorOutcome locatorOutcome,
         FirmwareDecodedMetadataStructure decodedStructure)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
-        ArgumentNullException.ThrowIfNull(artifactIdentity);
-        ArgumentNullException.ThrowIfNull(structureDefinition);
-        ArgumentNullException.ThrowIfNull(locatorOutcome);
-        ArgumentNullException.ThrowIfNull(decodedStructure);
-        DomainInvariant.Reject(
-            !StringComparer.Ordinal.Equals(
-            artifactIdentity.ArtifactId,
-            decodedStructure.ArtifactBindingId),
-            "Resolved artifact identity must match decoded structure binding.");
-
-        DomainInvariant.Reject(
-            !StringComparer.Ordinal.Equals(
-                structureDefinition.ArtifactBindingId,
-                decodedStructure.ArtifactBindingId) ||
-            !StringComparer.Ordinal.Equals(
-                structureDefinition.StructureId,
-                decodedStructure.MetadataStructureId),
-            "Resolved structure definition must match the decoded structure binding.");
+        FirmwareFamilyResolutionDefinition.RequireMetadataResolutionConstructionToken(constructionToken);
+        MapId = RequiredValue.NotBlank(mapId);
+        ArtifactIdentity = RequiredValue.NotNull(artifactIdentity);
+        StructureDefinition = RequiredValue.NotNull(structureDefinition);
+        LocatorOutcome = RequiredValue.NotNull(locatorOutcome);
+        DecodedStructure = RequiredValue.NotNull(decodedStructure);
 
         var facts =
-            decodedStructure.Facts.ToDictionary(
+            DecodedStructure.Facts.ToDictionary(
                 static fact => fact.FieldId,
                 StringComparer.Ordinal);
         IReadOnlyList<FirmwareResolvedMetadataField> applicability =
-            structureDefinition.Definition.ResolveFields(topology);
-        DomainInvariant.Reject(
-            facts.Count != applicability.Count ||
-            applicability.Any(field => !facts.ContainsKey(field.Field.FieldId)),
-            "Resolved field definitions must close over every decoded fact.");
+            StructureDefinition.Definition.ResolveFields(topology);
 
         _fields =
         [
@@ -166,11 +150,6 @@ public sealed class FirmwareResolvedMetadataStructure
                     field.Applicability,
                     facts[field.Field.FieldId].Value)),
         ];
-        MapId = mapId;
-        ArtifactIdentity = artifactIdentity;
-        StructureDefinition = structureDefinition;
-        LocatorOutcome = locatorOutcome;
-        DecodedStructure = decodedStructure;
         Fields = Array.AsReadOnly(_fields);
     }
 
@@ -197,67 +176,18 @@ public sealed class FirmwareResolvedMetadataStructure
 public sealed class FirmwareMetadataStructureResolution
 {
     private FirmwareMetadataStructureResolution(
+        object constructionToken,
         string mapId,
-        string artifactBindingId,
-        string metadataStructureId,
+        FirmwareMetadataStructure structureDefinition,
         FirmwareMetadataStructureResolutionStatus status,
         FirmwareMetadataStructureResolutionFailure? failure,
         FirmwareResolvedMetadataStructure? resolved,
         int? observedMarkerMatchCount,
         FirmwareMetadataPrerequisite? prerequisite)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        ClosedEnum.ThrowIfUndefined(status, "Unknown structure resolution status.");
-
-        if (failure is { } knownFailure && !ClosedEnum.IsDefined(knownFailure))
-        {
-            throw new ArgumentOutOfRangeException(nameof(failure), failure, "Unknown structure resolution failure.");
-        }
-
-        bool isResolved = status == FirmwareMetadataStructureResolutionStatus.Resolved;
-        DomainInvariant.Reject(
-            isResolved && (failure is not null || resolved is null),
-            "Resolved status requires only a resolved payload.");
-
-        DomainInvariant.Reject(
-            !isResolved && (failure is null || resolved is not null),
-            "Unresolved status requires only a failure reason.");
-
-        DomainInvariant.Reject(
-            status == FirmwareMetadataStructureResolutionStatus.Pending &&
-            (failure != FirmwareMetadataStructureResolutionFailure.MissingArtifact ||
-             prerequisite is null),
-            "Pending structure resolution requires one exact missing prerequisite.");
-
-        DomainInvariant.Reject(
-            status == FirmwareMetadataStructureResolutionStatus.Rejected &&
-            failure == FirmwareMetadataStructureResolutionFailure.MissingArtifact,
-            "A missing artifact is pending, not rejected.");
-
-        bool isMarkerCardinalityRejection =
-            status == FirmwareMetadataStructureResolutionStatus.Rejected &&
-            failure == FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch;
-        DomainInvariant.Reject(
-            observedMarkerMatchCount < 0 ||
-            isMarkerCardinalityRejection != (observedMarkerMatchCount is not null),
-            "Marker-cardinality rejection requires its exact nonnegative observed match count, " +
-            "and no other outcome may carry one.");
-
-        bool isPrerequisiteRejection =
-            status == FirmwareMetadataStructureResolutionStatus.Rejected &&
-            failure is
-                FirmwareMetadataStructureResolutionFailure.PrerequisiteRejected or
-                FirmwareMetadataStructureResolutionFailure.PrerequisiteValueUnsupported;
-        DomainInvariant.Reject(
-            isPrerequisiteRejection != (prerequisite is not null) &&
-            status != FirmwareMetadataStructureResolutionStatus.Pending,
-            "Only pending or prerequisite-rejected outcomes may carry prerequisite identity.");
-
-        MapId = mapId;
-        ArtifactBindingId = artifactBindingId;
-        MetadataStructureId = metadataStructureId;
+        FirmwareFamilyResolutionDefinition.RequireMetadataResolutionConstructionToken(constructionToken);
+        MapId = RequiredValue.NotBlank(mapId);
+        StructureDefinition = RequiredValue.NotNull(structureDefinition);
         Status = status;
         Failure = failure;
         Resolved = resolved;
@@ -269,10 +199,12 @@ public sealed class FirmwareMetadataStructureResolution
     public string MapId { get; }
 
     /// <summary>Exact required artifact binding identifier.</summary>
-    public string ArtifactBindingId { get; }
+    public string ArtifactBindingId => StructureDefinition.ArtifactBindingId;
 
     /// <summary>Candidate-selected metadata structure identifier.</summary>
-    public string MetadataStructureId { get; }
+    public string MetadataStructureId => StructureDefinition.StructureId;
+
+    internal FirmwareMetadataStructure StructureDefinition { get; }
 
     /// <summary>Closed evaluation state.</summary>
     public FirmwareMetadataStructureResolutionStatus Status { get; }
@@ -290,13 +222,14 @@ public sealed class FirmwareMetadataStructureResolution
     public FirmwareMetadataPrerequisite? Prerequisite { get; }
 
     internal static FirmwareMetadataStructureResolution Pending(
+        object constructionToken,
         string mapId,
         FirmwareMetadataStructure structure)
     {
         return new FirmwareMetadataStructureResolution(
+            constructionToken,
             mapId,
-            structure.ArtifactBindingId,
-            structure.StructureId,
+            structure,
             FirmwareMetadataStructureResolutionStatus.Pending,
             FirmwareMetadataStructureResolutionFailure.MissingArtifact,
             resolved: null,
@@ -307,15 +240,16 @@ public sealed class FirmwareMetadataStructureResolution
     }
 
     internal static FirmwareMetadataStructureResolution PendingForPrerequisite(
+        object constructionToken,
         string mapId,
         FirmwareMetadataStructure structure,
         FirmwareMetadataPrerequisite prerequisite)
     {
         ArgumentNullException.ThrowIfNull(prerequisite);
         return new FirmwareMetadataStructureResolution(
+            constructionToken,
             mapId,
-            structure.ArtifactBindingId,
-            structure.StructureId,
+            structure,
             FirmwareMetadataStructureResolutionStatus.Pending,
             FirmwareMetadataStructureResolutionFailure.MissingArtifact,
             resolved: null,
@@ -324,6 +258,7 @@ public sealed class FirmwareMetadataStructureResolution
     }
 
     internal static FirmwareMetadataStructureResolution Rejected(
+        object constructionToken,
         string mapId,
         FirmwareMetadataStructure structure,
         FirmwareMetadataStructureResolutionFailure failure,
@@ -331,9 +266,9 @@ public sealed class FirmwareMetadataStructureResolution
         FirmwareMetadataPrerequisite? prerequisite = null)
     {
         return new FirmwareMetadataStructureResolution(
+            constructionToken,
             mapId,
-            structure.ArtifactBindingId,
-            structure.StructureId,
+            structure,
             FirmwareMetadataStructureResolutionStatus.Rejected,
             failure,
             resolved: null,
@@ -342,13 +277,14 @@ public sealed class FirmwareMetadataStructureResolution
     }
 
     internal static FirmwareMetadataStructureResolution Success(
+        object constructionToken,
         FirmwareResolvedMetadataStructure resolved)
     {
         ArgumentNullException.ThrowIfNull(resolved);
         return new FirmwareMetadataStructureResolution(
+            constructionToken,
             resolved.MapId,
-            resolved.DecodedStructure.ArtifactBindingId,
-            resolved.DecodedStructure.MetadataStructureId,
+            resolved.StructureDefinition,
             FirmwareMetadataStructureResolutionStatus.Resolved,
             failure: null,
             resolved,

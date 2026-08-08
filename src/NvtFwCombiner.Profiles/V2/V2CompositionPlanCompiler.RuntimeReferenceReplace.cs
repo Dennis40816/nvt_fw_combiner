@@ -29,7 +29,7 @@ internal static partial class V2CompositionPlanCompiler
                 profileEntry,
                 resolutionInputs,
                 out FirmwareMapResolutionResult? mapResolution,
-                out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+                out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
                 out issues))
         {
             return false;
@@ -49,7 +49,7 @@ internal static partial class V2CompositionPlanCompiler
         ProfileBundleIdentity bundleIdentity,
         TrustedCompositionProfileCatalogEntry profileEntry,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
         V2RuntimeReferenceReplaceCompileRequest request)
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);

@@ -27,6 +27,11 @@ public sealed partial class CompiledCompositionTests
         [
             "NvtFwCombiner.Domain.Composition.RangeSet",
             "NvtFwCombiner.Domain.Firmware.FirmwareRelativeRegion",
+            "NvtFwCombiner.Domain.Firmware.FirmwareMapApplicabilityEvaluation",
+            "NvtFwCombiner.Domain.Firmware.FirmwareMapPendingRequirementKind",
+            "NvtFwCombiner.Domain.Firmware.FirmwareMapResolutionPendingKind",
+            "NvtFwCombiner.Domain.Firmware.FirmwareMapResolutionPendingRequirement",
+            "NvtFwCombiner.Domain.Composition.CompiledCapabilityAdmission",
         ];
         Assert.All(
             removedTypes,
@@ -40,14 +45,10 @@ public sealed partial class CompiledCompositionTests
 
         Type[] internalTypes =
         [
-            typeof(CompiledCapabilityAdmission),
             typeof(FirmwareCapabilityFact),
             typeof(FirmwareCapabilityState),
             typeof(FirmwareFamilyRelationship),
             typeof(FirmwareSharedFactReference),
-            typeof(FirmwareMapApplicabilityEvaluation),
-            typeof(FirmwareMapResolutionPendingKind),
-            typeof(FirmwareMapResolutionPendingRequirement),
             typeof(FirmwareMetadataPredicateOutcome),
             typeof(FirmwareRegionTemplate),
             typeof(FirmwareRegionInstance),

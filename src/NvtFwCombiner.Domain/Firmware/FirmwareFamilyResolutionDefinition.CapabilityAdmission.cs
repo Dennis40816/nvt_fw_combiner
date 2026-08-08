@@ -8,12 +8,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     internal IReadOnlyList<CompositionIssue> AdmitRequiredCapabilities(
         CompositionProfileMapBinding profileBinding,
         ResolvedFirmwareImageMap resolvedMap,
-        out IReadOnlyList<CompiledCapabilityAdmission> admissions)
+        out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admissions)
     {
         ArgumentNullException.ThrowIfNull(profileBinding);
         ArgumentNullException.ThrowIfNull(resolvedMap);
 
-        List<CompiledCapabilityAdmission> admitted = [];
+        List<FirmwareMapFactBinding<FirmwareCapabilityFact>> admitted = [];
         List<CompositionIssue> issues = [];
         foreach (string capabilityId in profileBinding.RequiredCapabilityIds)
         {
@@ -37,7 +37,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 switch (capability.Value.State)
                 {
                     case FirmwareCapabilityState.ConfirmedPresent:
-                        admitted.Add(new CompiledCapabilityAdmission(capabilityId, capability));
+                        admitted.Add(capability);
                         continue;
                     case FirmwareCapabilityState.ConfirmedAbsent:
                         AddIssue("profile.v2.map.required-capability-absent", "is confirmed absent");

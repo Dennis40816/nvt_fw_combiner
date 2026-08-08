@@ -23,51 +23,12 @@ public enum FirmwareMapResolutionRejectionKind
     AmbiguousMaps,
 }
 
-internal enum FirmwareMapResolutionPendingKind
-{
-    RequestedTopologyMissing,
-    ArtifactMissing,
-    CommonFirmwareCategoryDerivationUnavailable,
-}
-
-internal sealed record FirmwareMapResolutionPendingRequirement
-{
-    internal FirmwareMapResolutionPendingRequirement(
-        FirmwareMapResolutionPendingKind kind,
-        string? artifactBindingId = null)
-    {
-        ClosedEnum.ThrowIfUndefined(kind, "Unknown map resolution pending kind.");
-
-        bool requiresArtifact = kind == FirmwareMapResolutionPendingKind.ArtifactMissing;
-        DomainInvariant.Reject(
-            requiresArtifact && string.IsNullOrWhiteSpace(artifactBindingId),
-            "Missing-artifact requirements must identify one artifact binding.",
-            nameof(artifactBindingId));
-
-        DomainInvariant.Reject(
-            !requiresArtifact && artifactBindingId is not null,
-            "Only missing-artifact requirements may identify one artifact binding.",
-            nameof(artifactBindingId));
-
-        Kind = kind;
-        ArtifactBindingId = artifactBindingId;
-    }
-
-    internal FirmwareMapResolutionPendingKind Kind { get; }
-
-    internal string? ArtifactBindingId { get; }
-
-}
-
 /// <summary>Immutable public result of canonical map selection without retaining source payload bytes.</summary>
 public sealed class FirmwareMapResolutionResult
 {
-    private readonly FirmwareMapResolutionPendingRequirement[] _pendingRequirements;
-
     private FirmwareMapResolutionResult(
         FirmwareMapResolutionStatus status,
         FirmwareMapResolutionRejectionKind? rejectionKind,
-        IEnumerable<FirmwareMapResolutionPendingRequirement> pendingRequirements,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? resolvedMap)
     {
         ClosedEnum.ThrowIfUndefined(status, "Unknown map resolution status.");
@@ -80,37 +41,19 @@ public sealed class FirmwareMapResolutionResult
                 "Unknown map resolution rejection kind.");
         }
 
-        _pendingRequirements = Composition.ImmutableReferenceSnapshot.Create(
-            pendingRequirements,
-            "Pending map-resolution requirements cannot contain null.");
-
-        DomainInvariant.Reject(
-            _pendingRequirements.Distinct().Count() != _pendingRequirements.Length,
-            "Pending map-resolution requirements must be unique.",
-            nameof(pendingRequirements));
-
-        Array.Sort(_pendingRequirements, static (left, right) =>
-        {
-            int kind = left.Kind.CompareTo(right.Kind);
-            return kind != 0
-                ? kind
-                : StringComparer.Ordinal.Compare(left.ArtifactBindingId, right.ArtifactBindingId);
-        });
         bool isPending = status == FirmwareMapResolutionStatus.Pending;
         bool isRejected = status == FirmwareMapResolutionStatus.Rejected;
         bool isUnique = status == FirmwareMapResolutionStatus.Unique;
         DomainInvariant.Reject(
-            isPending != (_pendingRequirements.Length != 0) ||
             isRejected != (rejectionKind is not null) ||
             isUnique != (resolvedMap is not null) ||
             (isPending && (rejectionKind is not null || resolvedMap is not null)) ||
-            (isRejected && (resolvedMap is not null || _pendingRequirements.Length != 0)) ||
-            (isUnique && (rejectionKind is not null || _pendingRequirements.Length != 0)),
+            (isRejected && resolvedMap is not null) ||
+            (isUnique && rejectionKind is not null),
             "Map resolution status payloads are inconsistent.");
 
         Status = status;
         RejectionKind = rejectionKind;
-        PendingRequirements = Array.AsReadOnly(_pendingRequirements);
         ResolvedMap = resolvedMap;
     }
 
@@ -120,18 +63,14 @@ public sealed class FirmwareMapResolutionResult
     /// <summary>Rejection reason when selection was rejected; otherwise null.</summary>
     public FirmwareMapResolutionRejectionKind? RejectionKind { get; }
 
-    internal IReadOnlyList<FirmwareMapResolutionPendingRequirement> PendingRequirements { get; }
-
     /// <summary>Exactly one payload-free resolved map when status is unique; otherwise null.</summary>
     public FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap? ResolvedMap { get; }
 
-    internal static FirmwareMapResolutionResult Pending(
-        IEnumerable<FirmwareMapResolutionPendingRequirement> pendingRequirements)
+    internal static FirmwareMapResolutionResult Pending()
     {
         return new FirmwareMapResolutionResult(
             FirmwareMapResolutionStatus.Pending,
             rejectionKind: null,
-            pendingRequirements,
             resolvedMap: null);
     }
 
@@ -140,7 +79,6 @@ public sealed class FirmwareMapResolutionResult
         return new FirmwareMapResolutionResult(
             FirmwareMapResolutionStatus.Rejected,
             rejectionKind,
-            [],
             resolvedMap: null);
     }
 
@@ -150,7 +88,6 @@ public sealed class FirmwareMapResolutionResult
         return new FirmwareMapResolutionResult(
             FirmwareMapResolutionStatus.Unique,
             rejectionKind: null,
-            [],
             resolvedMap);
     }
 }

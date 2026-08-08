@@ -18,9 +18,19 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("class AdmittedCapabilityEvidence", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileMapAdmissionValidator", profiles, StringComparison.Ordinal);
         Assert.Contains("AdmitRequiredCapabilities", domain, StringComparison.Ordinal);
-        Assert.Contains("out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions", preparation, StringComparison.Ordinal);
+        const string canonicalCapabilityBindingList =
+            "IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>>";
+        Assert.Contains(
+            $"out {canonicalCapabilityBindingList} capabilityAdmissions",
+            preparation,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"out {canonicalCapabilityBindingList} admittedCapabilities",
+            preparation,
+            StringComparison.Ordinal);
         Assert.Contains(".AdmitRequiredCapabilities(", preparation, StringComparison.Ordinal);
-        Assert.DoesNotContain("new CompiledCapabilityAdmission", lowering, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledCapabilityAdmission", preparation, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompiledCapabilityAdmission", lowering, StringComparison.Ordinal);
     }
 
     /// <summary>Static trusted profile/map facts are admitted once by the catalog, not re-derived per compilation.</summary>

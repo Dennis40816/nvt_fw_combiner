@@ -20,7 +20,7 @@ internal static partial class V2CompositionPlanCompiler
                 profileEntry,
                 resolutionInputs,
                 out FirmwareMapResolutionResult? mapResolution,
-                out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+                out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
                 out issues))
         {
             return false;
@@ -135,7 +135,7 @@ internal static partial class V2CompositionPlanCompiler
         IEnumerable<CompiledInputSlotRequirement> inputSlots,
         IEnumerable<CompiledInputSpaceBinding> inputBindings,
         CompiledRegionAccessContract regionAccess,
-        IEnumerable<CompiledCapabilityAdmission>? capabilityAdmissions = null,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>>? capabilityAdmissions = null,
         bool runtimeExecutable = false,
         IEnumerable<CompiledValidationRequirement>? additionalValidationRequirements = null,
         IEnumerable<CompiledInputSelectionGroup>? inputSelectionGroups = null)

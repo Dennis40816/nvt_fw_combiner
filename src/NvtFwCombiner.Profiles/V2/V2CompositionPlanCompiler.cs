@@ -75,7 +75,7 @@ internal static partial class V2CompositionPlanCompiler
         ProfileBundleIdentity bundleIdentity,
         TrustedCompositionProfileCatalogEntry profileEntry,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);

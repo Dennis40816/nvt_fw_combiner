@@ -351,14 +351,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         V2CompositionPlanCompileResult result = Compile(preparation);
 
-        CompiledCapabilityAdmission capability = Assert.Single(
+        FirmwareMapFactBinding<FirmwareCapabilityFact> capability = Assert.Single(
             Assert.IsType<V2CompiledCompositionDetails>(result.CompiledComposition!.V2Details)
                 .Provenance.RequiredCapabilities);
-        Assert.Equal("ab-code", capability.RequiredCapabilityId);
-        Assert.Same(Assert.Single(preparation.CapabilityAdmissions).Binding, capability.Binding);
-        Assert.Equal("NT00001", capability.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", capability.Binding.EffectiveKey.MapId);
-        Assert.Empty(capability.Binding.Provenance.AliasChain);
+        Assert.Equal("ab-code", capability.Value.CapabilityId);
+        Assert.Same(Assert.Single(preparation.CapabilityAdmissions), capability);
+        Assert.Equal("NT00001", capability.EffectiveKey.MemberId);
+        Assert.Equal("map", capability.EffectiveKey.MapId);
+        Assert.Empty(capability.Provenance.AliasChain);
     }
 
     /// <summary>Verifies fact-scoped capability aliases retain their effective-to-direct chain through plan lowering.</summary>
@@ -371,17 +371,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
         V2CompositionPlanCompileResult result = Compile(preparation);
 
-        CompiledCapabilityAdmission capability = Assert.Single(
+        FirmwareMapFactBinding<FirmwareCapabilityFact> capability = Assert.Single(
             Assert.IsType<V2CompiledCompositionDetails>(result.CompiledComposition!.V2Details)
                 .Provenance.RequiredCapabilities);
-        Assert.Equal("NT00001", capability.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", capability.Binding.EffectiveKey.MapId);
-        Assert.Equal("NT00002", capability.Binding.DirectSourceKey.MemberId);
-        Assert.Equal("source-map", capability.Binding.DirectSourceKey.MapId);
+        Assert.Equal("NT00001", capability.EffectiveKey.MemberId);
+        Assert.Equal("map", capability.EffectiveKey.MapId);
+        Assert.Equal("NT00002", capability.DirectSourceKey.MemberId);
+        Assert.Equal("source-map", capability.DirectSourceKey.MapId);
         Assert.Equal(
             ["target-capability-to-source"],
-            capability.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
-        Assert.Same(Assert.Single(preparation.CapabilityAdmissions).Binding, capability.Binding);
+            capability.Provenance.AliasChain.Select(static alias => alias.AliasId));
+        Assert.Same(Assert.Single(preparation.CapabilityAdmissions), capability);
     }
 
     private static PreparedProfile PrepareSupportedBlankCopy(

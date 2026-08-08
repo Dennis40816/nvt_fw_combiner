@@ -10,76 +10,23 @@ public sealed class FirmwareMapResolutionResultTests
 {
     private const string FamilyHash = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 
-    /// <summary>Verifies pending requirements are typed, immutable values with exact artifact scope only when needed.</summary>
-    [Fact]
-    public void PendingRequirementRequiresArtifactOnlyForMissingArtifact()
-    {
-        var artifact = new FirmwareMapResolutionPendingRequirement(
-            FirmwareMapResolutionPendingKind.ArtifactMissing,
-            "tp-firmware");
-        var topology = new FirmwareMapResolutionPendingRequirement(
-            FirmwareMapResolutionPendingKind.RequestedTopologyMissing);
-
-        Assert.Equal("tp-firmware", artifact.ArtifactBindingId);
-        Assert.Null(topology.ArtifactBindingId);
-        Assert.Equal(artifact, new FirmwareMapResolutionPendingRequirement(
-            FirmwareMapResolutionPendingKind.ArtifactMissing,
-            "tp-firmware"));
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapResolutionPendingRequirement(
-            FirmwareMapResolutionPendingKind.ArtifactMissing));
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapResolutionPendingRequirement(
-            FirmwareMapResolutionPendingKind.RequestedTopologyMissing,
-            "tp-firmware"));
-    }
-
     /// <summary>Verifies pending and rejected results cannot expose a selected map or raw candidate state.</summary>
     [Fact]
     public void ResultUsesClosedStatusPayloads()
     {
-        var pending = FirmwareMapResolutionResult.Pending(
-        [
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "z-artifact"),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.RequestedTopologyMissing),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "a-artifact"),
-        ]);
+        var pending = FirmwareMapResolutionResult.Pending();
         var rejected = FirmwareMapResolutionResult.Rejected(
             FirmwareMapResolutionRejectionKind.AmbiguousMaps);
 
         Assert.Equal(FirmwareMapResolutionStatus.Pending, pending.Status);
         Assert.Null(pending.RejectionKind);
         Assert.Null(pending.ResolvedMap);
-        Assert.Equal(
-        [
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.RequestedTopologyMissing),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "a-artifact"),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "z-artifact"),
-        ],
-            pending.PendingRequirements);
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, rejected.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, rejected.RejectionKind);
-        Assert.Empty(rejected.PendingRequirements);
         Assert.Null(rejected.ResolvedMap);
         Assert.Equal(
             FirmwareMapResolutionRejectionKind.NoMatchingMap,
             FirmwareMapResolutionResult.Rejected(FirmwareMapResolutionRejectionKind.NoMatchingMap).RejectionKind);
-        _ = Assert.Throws<ArgumentException>(() => FirmwareMapResolutionResult.Pending([]));
-        _ = Assert.Throws<ArgumentException>(() => FirmwareMapResolutionResult.Pending(
-        [
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.RequestedTopologyMissing),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.RequestedTopologyMissing),
-        ]));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => FirmwareMapResolutionResult.Rejected(
             (FirmwareMapResolutionRejectionKind)999));
         Assert.Empty(typeof(FirmwareMapResolutionResult).GetConstructors());
@@ -156,12 +103,19 @@ public sealed class FirmwareMapResolutionResultTests
         Assert.Contains(aliasOne.FactProvenance, static provenance => provenance.AliasChain.Count == 1);
     }
 
-    /// <summary>Verifies maps missing a topology or Common FW derivation cannot become unique.</summary>
+    /// <summary>Verifies topology selection transitions pending to unique while unavailable Common FW remains pending.</summary>
     [Fact]
     public void ResolveMapKeepsIncompleteStaticApplicabilityPending()
     {
         FirmwareMapResolutionResult topologyPending = Definition(Map(
             topologyRequirement: TopologyRequirement.RequireSingleChip())).ResolveMap(Inputs());
+        FirmwareMapResolutionResult topologyUnique = Definition(Map(
+            topologyRequirement: TopologyRequirement.RequireSingleChip())).ResolveMap(Inputs(
+            requestedTopology: new TopologySelection(
+                1,
+                "single",
+                TopologySelectionSource.Requested,
+                "compile-request")));
         FirmwareMapResolutionResult categoryPending = Definition(Map(
             commonFirmwareCategoryIds: ["common"])).ResolveMap(Inputs());
         FirmwareMapResolutionResult topologyMismatch = Definition(Map(
@@ -173,15 +127,9 @@ public sealed class FirmwareMapResolutionResultTests
                 "compile-request")));
 
         Assert.Equal(FirmwareMapResolutionStatus.Pending, topologyPending.Status);
-        Assert.Equal(
-            [new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.RequestedTopologyMissing)],
-            topologyPending.PendingRequirements);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, topologyUnique.Status);
+        Assert.NotNull(topologyUnique.ResolvedMap);
         Assert.Equal(FirmwareMapResolutionStatus.Pending, categoryPending.Status);
-        Assert.Equal(
-            [new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.CommonFirmwareCategoryDerivationUnavailable)],
-            categoryPending.PendingRequirements);
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, topologyMismatch.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.NoMatchingMap, topologyMismatch.RejectionKind);
     }
@@ -277,20 +225,15 @@ public sealed class FirmwareMapResolutionResultTests
         var source = new FirmwareMapFactKey("NT00001", "map", FirmwareFactKind.RegionSet, "physical");
         var provenance = new FirmwareFactProvenance(
             target,
-            source,
+            regionSet,
             [new FirmwareFactAliasHop(
                 "physical-alias",
                 target,
                 source,
                 FirmwareFactApplicability.FromMap(applicability),
                 "Synthetic physical fact inheritance.",
-                [aliasEvidence])],
-            regionSet.EvidenceRefs);
+                [aliasEvidence])]);
         var binding = new FirmwareMapFactBinding<FirmwareRegionSet>(
-            target,
-            source,
-            regionSet.CanonicalFactId,
-            regionSet,
             FirmwareFactApplicability.FromMap(applicability),
             provenance);
 

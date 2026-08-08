@@ -414,12 +414,8 @@ public sealed class FirmwareFamilyRelationshipTests
             TopologyRequirement.NoTopologyConstraint(),
             16);
         return new FirmwareMapFactBinding<TFact>(
-            key,
-            key,
-            value.CanonicalFactId,
-            value,
             applicability,
-            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+            new FirmwareFactProvenance(key, value, []));
     }
 
     private static FirmwareMapFactBinding<TFact> AliasedBinding<TFact>(
@@ -443,11 +439,7 @@ public sealed class FirmwareFamilyRelationshipTests
             "Synthetic alias.",
             ["alias-evidence"]);
         return new FirmwareMapFactBinding<TFact>(
-            target,
-            source,
-            value.CanonicalFactId,
-            value,
             applicability,
-            new FirmwareFactProvenance(target, source, [hop], value.EvidenceRefs));
+            new FirmwareFactProvenance(target, value, [hop]));
     }
 }

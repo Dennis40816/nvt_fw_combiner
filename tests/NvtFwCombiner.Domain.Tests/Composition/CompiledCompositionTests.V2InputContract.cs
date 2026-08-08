@@ -160,9 +160,10 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, roleVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, capabilityVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, aliasVariant.CompilationFingerprint);
-        CompiledCapabilityAdmission aliased = Assert.Single(aliasVariant.V2Details.Provenance.RequiredCapabilities);
-        Assert.Equal("source-member", aliased.Binding.DirectSourceKey.MemberId);
-        Assert.Equal(["capability-alias"], aliased.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
+        FirmwareMapFactBinding<FirmwareCapabilityFact> aliased = Assert.Single(
+            aliasVariant.V2Details.Provenance.RequiredCapabilities);
+        Assert.Equal("source-member", aliased.DirectSourceKey.MemberId);
+        Assert.Equal(["capability-alias"], aliased.Provenance.AliasChain.Select(static alias => alias.AliasId));
     }
 
     /// <summary>Verifies independently variable admitted capability and alias-provenance fields bind V2 identity.</summary>
@@ -187,13 +188,10 @@ public sealed partial class CompiledCompositionTests
         Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
     }
 
-    /// <summary>Verifies capability admission cannot be forged with a mismatched id, state, or resolved-map target.</summary>
+    /// <summary>Verifies capability admission rejects a non-present state or mismatched resolved-map target.</summary>
     [Fact]
     public void V2CapabilityAdmissionFailsClosedForInvalidEvidence()
     {
-        CompiledCapabilityAdmission direct = DirectCapabilityAdmission("direct reason");
-        _ = Assert.Throws<ArgumentException>(() => new CompiledCapabilityAdmission("different", direct.Binding));
-
         FirmwareMapFactBinding<FirmwareCapabilityFact> wrongTarget = Binding(
             "different-member",
             "map",
@@ -205,7 +203,7 @@ public sealed partial class CompiledCompositionTests
                 "reason",
                 ["evidence"]));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            requiredCapabilities: [new CompiledCapabilityAdmission("ab-code", wrongTarget)]));
+            requiredCapabilities: [wrongTarget]));
         FirmwareMapFactBinding<FirmwareCapabilityFact> absent = Binding(
             "NT-SYNTHETIC",
             "map",
@@ -216,7 +214,7 @@ public sealed partial class CompiledCompositionTests
                 FirmwareCapabilityState.ConfirmedAbsent,
                 "reason",
                 ["evidence"]));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledCapabilityAdmission("ab-code", absent));
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(requiredCapabilities: [absent]));
     }
 
     private static CompiledInputSlotRequirement Slot(string slotId, string role)
@@ -239,7 +237,7 @@ public sealed partial class CompiledCompositionTests
             [new CompiledInputSpaceBinding("input", "input-slot", CompiledInputInstancePolicy.Singleton)]);
     }
 
-    private static CompiledCapabilityAdmission DirectCapabilityAdmission(string reason)
+    private static FirmwareMapFactBinding<FirmwareCapabilityFact> DirectCapabilityAdmission(string reason)
     {
         var capability = new FirmwareCapabilityFact(
             "capability-fact",
@@ -247,12 +245,10 @@ public sealed partial class CompiledCompositionTests
             FirmwareCapabilityState.ConfirmedPresent,
             reason,
             ["capability-evidence"]);
-        return new CompiledCapabilityAdmission(
-            "ab-code",
-            Binding("NT-SYNTHETIC", "map", "capability-fact", capability));
+        return Binding("NT-SYNTHETIC", "map", "capability-fact", capability);
     }
 
-    private static CompiledCapabilityAdmission AliasedCapabilityAdmission(
+    private static FirmwareMapFactBinding<FirmwareCapabilityFact> AliasedCapabilityAdmission(
         string requiredCapabilityId = "ab-code",
         string capabilityReason = "source reason",
         IReadOnlyList<string>? capabilityEvidenceRefs = null,
@@ -283,15 +279,9 @@ public sealed partial class CompiledCompositionTests
             applicability,
             aliasReason,
             aliasEvidenceRefs ?? ["alias-evidence"]);
-        return new CompiledCapabilityAdmission(
-            requiredCapabilityId,
-            new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-                target,
-                source,
-                sourceFactId,
-                capability,
-                applicability,
-                new FirmwareFactProvenance(target, source, [alias], capability.EvidenceRefs)));
+        return new FirmwareMapFactBinding<FirmwareCapabilityFact>(
+            applicability,
+            new FirmwareFactProvenance(target, capability, [alias]));
     }
 
     private static FirmwareMapFactBinding<FirmwareCapabilityFact> Binding(
@@ -306,11 +296,7 @@ public sealed partial class CompiledCompositionTests
             TopologyRequirement.NoTopologyConstraint(),
             4);
         return new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            capabilityFactId,
-            capability,
             applicability,
-            new FirmwareFactProvenance(key, key, [], capability.EvidenceRefs));
+            new FirmwareFactProvenance(key, capability, []));
     }
 }
