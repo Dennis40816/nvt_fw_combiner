@@ -92,8 +92,6 @@ public enum CompiledProfilePromotionBlockerKind
 /// <summary>One immutable promotion blocker and its evidence references.</summary>
 public sealed class CompiledProfilePromotionBlocker
 {
-    private readonly string[] _evidenceRefs;
-
     internal CompiledProfilePromotionBlocker(
         string blockerId,
         CompiledProfilePromotionBlockerKind kind,
@@ -104,14 +102,14 @@ public sealed class CompiledProfilePromotionBlocker
         ClosedEnum.ThrowIfUndefined(kind, "Unknown profile promotion blocker kind.");
 
         Reason = RequiredValue.NotBlank(reason);
-        _evidenceRefs = ImmutableStringSnapshot.Create(
+        string[] evidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
         Kind = kind;
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     /// <summary>Stable blocker identifier.</summary>
@@ -166,7 +164,6 @@ public sealed class CompiledProfilePromotion
 /// <summary>Immutable provenance retained by one profile-bundle-v2 compiled composition.</summary>
 public sealed class V2CompilationProvenance
 {
-    private readonly string[] _profileEvidenceRefs;
     private readonly CompiledValidationRequirement[] _validationRequirements;
     private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _requiredCapabilities;
 
@@ -183,7 +180,7 @@ public sealed class V2CompilationProvenance
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(promotion);
-        _profileEvidenceRefs = ImmutableStringSnapshot.Create(
+        string[] profileEvidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             profileEvidenceRefs,
             nameof(profileEvidenceRefs),
             "Identifiers must be non-empty values.",
@@ -236,7 +233,7 @@ public sealed class V2CompilationProvenance
         ProfileEntry = profileEntry;
         Context = context;
         Promotion = promotion;
-        ProfileEvidenceRefs = Array.AsReadOnly(_profileEvidenceRefs);
+        ProfileEvidenceRefs = Array.AsReadOnly(profileEvidenceRefsSnapshot);
         ValidationRequirements = Array.AsReadOnly(_validationRequirements);
         RequiredCapabilities = Array.AsReadOnly(_requiredCapabilities);
     }

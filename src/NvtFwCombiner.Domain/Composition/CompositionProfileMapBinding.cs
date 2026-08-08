@@ -3,12 +3,6 @@ namespace NvtFwCombiner.Domain.Composition;
 /// <summary>Immutable trusted-family identity and canonical fact requirements.</summary>
 internal sealed class CompositionProfileMapBinding
 {
-    private readonly string[] _mapIds;
-    private readonly string[] _requiredRegionIds;
-    private readonly string[] _optionalRegionIds;
-    private readonly string[] _requiredMetadataStructureIds;
-    private readonly string[] _requiredCapabilityIds;
-
     internal CompositionProfileMapBinding(
         string familyId,
         string familyVersion,
@@ -25,34 +19,34 @@ internal sealed class CompositionProfileMapBinding
             nameof(familyVersion));
         _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
-        _mapIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(mapIds, nameof(mapIds), requireValue: true);
-        _requiredRegionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] mapIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(mapIds, nameof(mapIds), requireValue: true);
+        string[] requiredRegionIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredRegionIds,
             nameof(requiredRegionIds),
             requireValue: true);
-        _optionalRegionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] optionalRegionIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             optionalRegionIds ?? [],
             nameof(optionalRegionIds),
             requireValue: false);
         DomainInvariant.Reject(
-            _requiredRegionIds.Intersect(_optionalRegionIds, StringComparer.Ordinal).Any(),
+            requiredRegionIdsSnapshot.Intersect(optionalRegionIdsSnapshot, StringComparer.Ordinal).Any(),
             "Required and optional map regions must be disjoint.",
             nameof(optionalRegionIds));
-        _requiredMetadataStructureIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] requiredMetadataStructureIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredMetadataStructureIds,
             nameof(requiredMetadataStructureIds),
             requireValue: false);
-        _requiredCapabilityIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] requiredCapabilityIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             requiredCapabilityIds,
             nameof(requiredCapabilityIds),
             requireValue: false);
 
         FamilyContentHash = familyContentHash;
-        MapIds = Array.AsReadOnly(_mapIds);
-        RequiredRegionIds = Array.AsReadOnly(_requiredRegionIds);
-        OptionalRegionIds = Array.AsReadOnly(_optionalRegionIds);
-        RequiredMetadataStructureIds = Array.AsReadOnly(_requiredMetadataStructureIds);
-        RequiredCapabilityIds = Array.AsReadOnly(_requiredCapabilityIds);
+        MapIds = Array.AsReadOnly(mapIdsSnapshot);
+        RequiredRegionIds = Array.AsReadOnly(requiredRegionIdsSnapshot);
+        OptionalRegionIds = Array.AsReadOnly(optionalRegionIdsSnapshot);
+        RequiredMetadataStructureIds = Array.AsReadOnly(requiredMetadataStructureIdsSnapshot);
+        RequiredCapabilityIds = Array.AsReadOnly(requiredCapabilityIdsSnapshot);
     }
 
     internal string FamilyId { get; }

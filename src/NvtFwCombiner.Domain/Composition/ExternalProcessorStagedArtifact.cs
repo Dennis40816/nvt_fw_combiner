@@ -11,7 +11,7 @@ public sealed class ExternalProcessorStagedArtifact
     {
     }
 
-    private ExternalProcessorStagedArtifact(string artifactId, byte[] ownedBytes)
+    internal ExternalProcessorStagedArtifact(string artifactId, byte[] ownedBytes)
     {
         ValidateArtifactId(artifactId, nameof(artifactId));
         ArgumentNullException.ThrowIfNull(ownedBytes);
@@ -26,11 +26,6 @@ public sealed class ExternalProcessorStagedArtifact
 
     /// <summary>Cloned bytes written only into the host-created staging directory.</summary>
     public ReadOnlyMemory<byte> Bytes => _bytes;
-
-    internal static ExternalProcessorStagedArtifact FromOwnedBytes(string artifactId, byte[] ownedBytes)
-    {
-        return new ExternalProcessorStagedArtifact(artifactId, ownedBytes);
-    }
 
     private static byte[] ClonePublicBytes(string artifactId, ReadOnlyMemory<byte> bytes)
     {

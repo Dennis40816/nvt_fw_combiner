@@ -260,8 +260,9 @@ equivalent cross-slice relocation fails on the receiving slice. The four slice
 measurements must also sum exactly to the runtime total, so a new unallocated
 runtime project fails rather than becoming a fifth ownership bucket.
 
-Owner amendment, 2026-08-08: after merged #230 checkpoint `ad672900`, the
-repository measures 69,730 runtime lines and 20,392 Domain + Profiles lines.
+Owner amendment, 2026-08-08: at the audited #230 entry checkpoint
+`3451d945`, the repository measured 69,730 runtime lines and 20,392 Domain +
+Profiles lines.
 A line-addressed, caller-resolved audit found only 160–182 lines of immediately
 safe Domain + Profiles reduction and an evidence-backed R2 upper bound of
 234–292 lines. The earlier 18,000 slice cap and 44,000 total gate therefore

@@ -338,12 +338,17 @@ public sealed partial class RepositoryBoundaryTests
             "V2",
             "TrustedV2CompositionCompiler.cs")));
 
-        string source = ReadText(
-            "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalogSource.cs");
-        _ = Assert.Single(BundleIdentityParameterRegex().Matches(source));
-        Assert.Empty(LooseBundleIdentityParameterRegex().Matches(source));
-        Assert.Empty(CatalogSourceConstructionRegex().Matches(ReadProfileSources()));
-        _ = Assert.Single(CatalogSourceConstructionRegex().Matches(ReadBootstrapSources()));
+        string factory = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalogFactory.cs");
+        string profiles = ReadProfileSources();
+        string bootstrap = ReadBootstrapSources();
+        _ = Assert.Single(BundleIdentityParameterRegex().Matches(factory));
+        Assert.Empty(LooseBundleIdentityParameterRegex().Matches(factory));
+        Assert.DoesNotContain("TrustedProfileBundleCatalogSource", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("TrustedFirmwareFamilyJsonSource", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("TrustedCompositionProfileJsonSource", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("TrustedProfileBundleCatalogSource", bootstrap, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(bootstrap, "TrustedProfileBundleCatalogFactory.Create("));
     }
 
     [GeneratedRegex(
@@ -370,11 +375,6 @@ public sealed partial class RepositoryBoundaryTests
         @"\bNT\d{5}\b",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex CompiledIcIdentityRegex();
-
-    [GeneratedRegex(
-        @"\bnew\s+TrustedProfileBundleCatalogSource\s*\(",
-        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
-    private static partial Regex CatalogSourceConstructionRegex();
 
     [GeneratedRegex(
         @"(?m)^\s*internal\s+(?:(?:sealed|abstract|partial)\s+)*(?:class|record)\s+\w*(?:ProfileDefinition|CompositionDefinition)\b",

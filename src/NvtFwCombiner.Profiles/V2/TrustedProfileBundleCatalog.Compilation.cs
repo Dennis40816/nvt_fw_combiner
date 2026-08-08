@@ -138,7 +138,7 @@ internal sealed partial class TrustedProfileBundleCatalog
                 "The selected trusted V2 profile must identify a canonical image map for the requested runtime reference-replace capacity and topology.");
         }
 
-        bool isAdmitted = V2CompositionPlanCompiler.TryCompileRuntimeReferenceReplaceAdmitted(
+        bool isPrepared = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             this,
             profileEntry,
             new FirmwareMapResolutionInputs(
@@ -147,11 +147,11 @@ internal sealed partial class TrustedProfileBundleCatalog
                 referenceBindings[0].ExactLengthBytes,
                 requestedTopology,
                 artifactSnapshots),
-            request,
-            out V2CompositionPlanCompileResult? compilation,
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
+            out _,
             out IReadOnlyList<CompositionIssue> preparationIssues);
-        return isAdmitted
-            ? compilation!
+        return isPrepared
+            ? V2CompositionPlanCompiler.CompileRuntimeReferenceReplacePrepared(preparation!, request)
             : Failed(
                 preparationIssues,
                 PreparationNotAdmitted,
@@ -244,7 +244,7 @@ internal sealed partial class TrustedProfileBundleCatalog
                     : "The selected trusted V2 profile must identify exactly one canonical image map for the requested capacity.");
         }
 
-        bool isAdmitted = V2CompositionPlanCompiler.TryCompileAdmitted(
+        bool isPrepared = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             this,
             selectedProfile,
             new FirmwareMapResolutionInputs(
@@ -253,11 +253,11 @@ internal sealed partial class TrustedProfileBundleCatalog
                 mapCandidates[0].CapacityBytes,
                 requestedTopology,
                 resolutionArtifacts),
-            selectedInputSlotIds,
-            out V2CompositionPlanCompileResult? compilation,
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
+            out _,
             out IReadOnlyList<CompositionIssue> preparationIssues);
-        return isAdmitted
-            ? compilation!
+        return isPrepared
+            ? V2CompositionPlanCompiler.CompilePrepared(preparation!, selectedInputSlotIds)
             : Failed(
                 preparationIssues,
                 PreparationNotAdmitted,

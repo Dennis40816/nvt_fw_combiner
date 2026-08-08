@@ -9,59 +9,81 @@ internal static class V2CompositionPreparationService
 {
     private const string SelectionStale = "profile.v2.selection.stale";
 
-    /// <summary>Resolves and admits one exact catalog entry without mirroring the Domain map outcome.</summary>
-    internal static bool TryPrepare(
-        TrustedProfileBundleCatalog catalog,
-        TrustedCompositionProfileCatalogEntry selectedProfile,
-        FirmwareMapResolutionInputs resolutionInputs,
-        [NotNullWhen(true)] out FirmwareMapResolutionResult? mapResolution,
-        out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
-        out IReadOnlyList<CompositionIssue> issues)
+    /// <summary>Unforgeable exact catalog selection, resolved map, and capability admission.</summary>
+    internal sealed class PreparedCompilation
     {
-        ArgumentNullException.ThrowIfNull(catalog);
-        ArgumentNullException.ThrowIfNull(selectedProfile);
-        ArgumentNullException.ThrowIfNull(resolutionInputs);
-        mapResolution = null;
-        capabilityAdmissions = [];
-        issues = [];
-        if (!catalog.OwnsProfile(selectedProfile))
+        private PreparedCompilation(
+            ProfileBundleIdentity bundleIdentity,
+            TrustedCompositionProfileCatalogEntry profileEntry,
+            FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+            IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions)
         {
-            issues =
-            [
-                new CompositionIssue(
-                    SelectionStale,
-                    "The selected trusted profile no longer belongs to this catalog."),
-            ];
-            return false;
+            (BundleIdentity, ProfileEntry, ResolvedMap, CapabilityAdmissions) =
+            (bundleIdentity, profileEntry, resolvedMap, capabilityAdmissions);
         }
 
-        var profileMapIds = selectedProfile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
-        var deferredInspectionStructureIds = selectedProfile.Profile.MetadataBindings
-            .Select(static binding => binding.StructureId)
-            .ToHashSet(StringComparer.Ordinal);
-        var requiredMetadataStructureIds =
-            selectedProfile.Profile.MapBinding.RequiredMetadataStructureIds
-                .Where(structureId => !deferredInspectionStructureIds.Contains(structureId))
+        internal ProfileBundleIdentity BundleIdentity { get; }
+        internal TrustedCompositionProfileCatalogEntry ProfileEntry { get; }
+        internal FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap { get; }
+        internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions { get; }
+
+        internal static bool TryCreate(
+            TrustedProfileBundleCatalog catalog,
+            TrustedCompositionProfileCatalogEntry selectedProfile,
+            FirmwareMapResolutionInputs resolutionInputs,
+            [NotNullWhen(true)] out PreparedCompilation? preparation,
+            out FirmwareMapResolutionResult? mapResolution,
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            ArgumentNullException.ThrowIfNull(catalog);
+            ArgumentNullException.ThrowIfNull(selectedProfile);
+            ArgumentNullException.ThrowIfNull(resolutionInputs);
+            preparation = null;
+            mapResolution = null;
+            issues = [];
+            if (!catalog.OwnsProfile(selectedProfile))
+            {
+                issues =
+                [
+                    new CompositionIssue(
+                        SelectionStale,
+                        "The selected trusted profile no longer belongs to this catalog."),
+                ];
+                return false;
+            }
+
+            var profileMapIds = selectedProfile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
+            var deferredInspectionStructureIds = selectedProfile.Profile.MetadataBindings
+                .Select(static binding => binding.StructureId)
                 .ToHashSet(StringComparer.Ordinal);
-        mapResolution = selectedProfile.Family.Family.ResolveMapWithinForProfile(
-            resolutionInputs,
-            profileMapIds,
-            requiredMetadataStructureIds);
-        if (mapResolution.Status != FirmwareMapResolutionStatus.Unique)
-        {
-            return false;
-        }
+            var requiredMetadataStructureIds =
+                selectedProfile.Profile.MapBinding.RequiredMetadataStructureIds
+                    .Where(structureId => !deferredInspectionStructureIds.Contains(structureId))
+                    .ToHashSet(StringComparer.Ordinal);
+            mapResolution = selectedProfile.Family.Family.ResolveMapWithinForProfile(
+                resolutionInputs,
+                profileMapIds,
+                requiredMetadataStructureIds);
+            if (mapResolution.Status != FirmwareMapResolutionStatus.Unique)
+            {
+                return false;
+            }
 
-        issues = selectedProfile.Family.Family.AdmitRequiredCapabilities(
-            selectedProfile.Profile.MapBinding,
-            mapResolution.ResolvedMap!,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admittedCapabilities);
-        if (issues.Count != 0)
-        {
-            return false;
-        }
+            issues = selectedProfile.Family.Family.AdmitRequiredCapabilities(
+                selectedProfile.Profile.MapBinding,
+                mapResolution.ResolvedMap!,
+                out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admittedCapabilities);
+            if (issues.Count != 0)
+            {
+                return false;
+            }
 
-        capabilityAdmissions = admittedCapabilities;
-        return true;
+            preparation = new PreparedCompilation(
+                catalog.BundleIdentity,
+                selectedProfile,
+                mapResolution.ResolvedMap!,
+                admittedCapabilities);
+            return true;
+        }
     }
 }

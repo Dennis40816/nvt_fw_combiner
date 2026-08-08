@@ -18,9 +18,9 @@ public sealed class FirmwareMetadataFieldRelation(
     public string RelationId { get; } = RequiredValue.NotBlank(relationId);
 
     /// <summary>Closed relation kind.</summary>
-    public FirmwareMetadataFieldRelationKind Kind { get; } = ClosedEnum.Require(
-        kind,
-        "Unknown metadata field relation kind.");
+    public FirmwareMetadataFieldRelationKind Kind { get; } = ClosedEnum.IsDefined(kind)
+        ? kind
+        : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata field relation kind.");
 
     /// <summary>Canonical source-field identifier.</summary>
     public string SourceFieldId { get; } = RequiredValue.NotBlank(sourceFieldId);

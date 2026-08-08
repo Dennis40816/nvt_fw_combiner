@@ -129,8 +129,6 @@ internal sealed record SourceViewCoverageInputLengthDefinition : InputLengthRequ
 /// <summary>Domain-owned canonical input-slot definition before map-dependent lowering.</summary>
 internal sealed class CompositionInputSlotDefinition
 {
-    private readonly string[] _acceptedExtensions;
-
     internal CompositionInputSlotDefinition(
         string slotId,
         string role,
@@ -156,7 +154,7 @@ internal sealed class CompositionInputSlotDefinition
             ValidateCanonicalPolicy(lengthRequirement, normalization);
         }
 
-        _acceptedExtensions = SnapshotExtensions(acceptedExtensions);
+        string[] acceptedExtensionsSnapshot = SnapshotExtensions(acceptedExtensions);
         if (notApplicableReason is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(notApplicableReason);
@@ -171,7 +169,7 @@ internal sealed class CompositionInputSlotDefinition
         ArtifactClass = artifactClass;
         Required = required;
         Cardinality = cardinality;
-        AcceptedExtensions = Array.AsReadOnly(_acceptedExtensions);
+        AcceptedExtensions = Array.AsReadOnly(acceptedExtensionsSnapshot);
         LengthRequirement = lengthRequirement;
         Normalization = normalization;
         NotApplicableReason = notApplicableReason;

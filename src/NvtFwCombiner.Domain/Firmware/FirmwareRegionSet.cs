@@ -3,10 +3,8 @@ namespace NvtFwCombiner.Domain.Firmware;
 /// <summary>Immutable evidence-backed group of physical regions in one address space.</summary>
 public sealed class FirmwareRegionSet : IFirmwareMapFact
 {
-    private readonly FirmwareRegion[] _regions;
     private readonly FirmwareRegionTemplate[] _regionTemplates;
     private readonly FirmwareRegionInstance[] _regionInstances;
-    private readonly string[] _evidenceRefs;
 
     /// <summary>Creates a region set without resolving cross-set parent references.</summary>
     public FirmwareRegionSet(
@@ -57,7 +55,7 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
             "Every region instance must reference a template owned by the same region set.",
             nameof(regionInstances));
 
-        _regions = Composition.ImmutableReferenceSnapshot.CreateUnique(
+        FirmwareRegion[] regionsSnapshot = Composition.ImmutableReferenceSnapshot.CreateUnique(
             regions.Concat(_regionInstances.SelectMany(static instance => instance.ExpandRegions())),
             static region => region.RegionId,
             "Firmware region sets require non-null regions.",
@@ -65,8 +63,8 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
             StringComparer.Ordinal,
             requireValue: true);
 
-        Array.Sort(_regions, FirmwareRangeOrdering.Compare);
-        _evidenceRefs = ImmutableStringSnapshot.Create(
+        Array.Sort(regionsSnapshot, FirmwareRangeOrdering.Compare);
+        string[] evidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             "Firmware region sets require evidence.",
@@ -75,10 +73,10 @@ public sealed class FirmwareRegionSet : IFirmwareMapFact
 
         RegionSetId = regionSetId;
         AddressSpaceId = addressSpaceId;
-        Regions = Array.AsReadOnly(_regions);
+        Regions = Array.AsReadOnly(regionsSnapshot);
         RegionTemplates = Array.AsReadOnly(_regionTemplates);
         RegionInstances = Array.AsReadOnly(_regionInstances);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     /// <summary>Stable physical fact-set identifier.</summary>

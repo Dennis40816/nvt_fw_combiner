@@ -53,9 +53,7 @@ internal sealed class InputSelectionGroupDefinition
 public sealed class CompiledInputSelectionGroup
 {
     private readonly InputSelectionGroupDefinition _definition;
-    private readonly string[] _applicableMemberSlotIds;
     private readonly string[] _selectedSlotIds;
-    private readonly IReadOnlyDictionary<string, string> _notApplicableReasons;
 
     internal CompiledInputSelectionGroup(
         InputSelectionGroupDefinition definition,
@@ -65,10 +63,10 @@ public sealed class CompiledInputSelectionGroup
         IReadOnlyDictionary<string, string>? notApplicableReasons = null)
     {
         ArgumentNullException.ThrowIfNull(definition);
-        _applicableMemberSlotIds = SnapshotIds(applicableMemberSlotIds, nameof(applicableMemberSlotIds));
+        string[] applicableMemberSlotIdsSnapshot = SnapshotIds(applicableMemberSlotIds, nameof(applicableMemberSlotIds));
         _selectedSlotIds = SnapshotIds(selectedSlotIds, nameof(selectedSlotIds));
         var members = definition.MemberSlotIds.ToHashSet(StringComparer.Ordinal);
-        HashSet<string> applicable = _applicableMemberSlotIds.ToHashSet(StringComparer.Ordinal);
+        HashSet<string> applicable = applicableMemberSlotIdsSnapshot.ToHashSet(StringComparer.Ordinal);
         var reasons = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach ((string slotId, string reason) in notApplicableReasons ??
                      new Dictionary<string, string>(StringComparer.Ordinal))
@@ -81,7 +79,7 @@ public sealed class CompiledInputSelectionGroup
                 nameof(notApplicableReasons));
         }
 
-        _notApplicableReasons = new ReadOnlyDictionary<string, string>(reasons);
+        var notApplicableReasonsSnapshot = new ReadOnlyDictionary<string, string>(reasons);
         DomainInvariant.Reject(
             !applicable.IsSubsetOf(members) ||
             !_selectedSlotIds.All(applicable.Contains) ||
@@ -93,9 +91,9 @@ public sealed class CompiledInputSelectionGroup
 
         _definition = definition;
         MaximumSelected = maximumSelected;
-        ApplicableMemberSlotIds = Array.AsReadOnly(_applicableMemberSlotIds);
+        ApplicableMemberSlotIds = Array.AsReadOnly(applicableMemberSlotIdsSnapshot);
         SelectedSlotIds = Array.AsReadOnly(_selectedSlotIds);
-        NotApplicableReasons = _notApplicableReasons;
+        NotApplicableReasons = notApplicableReasonsSnapshot;
     }
 
     /// <summary>Stable profile-owned selection-group id.</summary>

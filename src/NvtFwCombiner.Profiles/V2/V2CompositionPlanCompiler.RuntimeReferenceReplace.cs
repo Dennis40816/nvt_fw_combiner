@@ -14,49 +14,17 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
     private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
 
-    /// <summary>Atomically admits and lowers one exact catalog-owned runtime reference Replace request.</summary>
-    internal static bool TryCompileRuntimeReferenceReplaceAdmitted(
-        TrustedProfileBundleCatalog catalog,
-        TrustedCompositionProfileCatalogEntry profileEntry,
-        FirmwareMapResolutionInputs resolutionInputs,
-        V2RuntimeReferenceReplaceCompileRequest request,
-        out V2CompositionPlanCompileResult? compilation,
-        out IReadOnlyList<CompositionIssue> issues)
-    {
-        compilation = null;
-        if (!V2CompositionPreparationService.TryPrepare(
-                catalog,
-                profileEntry,
-                resolutionInputs,
-                out FirmwareMapResolutionResult? mapResolution,
-                out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
-                out issues))
-        {
-            return false;
-        }
-
-        compilation = CompileRuntimeReferenceReplaceAdmittedCore(
-            catalog.BundleIdentity,
-            profileEntry,
-            mapResolution!.ResolvedMap!,
-            capabilityAdmissions,
-            request);
-        return true;
-    }
-
-    /// <summary>Lowers one admitted map-bound runtime reference Replace request through the shared plan algebra.</summary>
-    private static V2CompositionPlanCompileResult CompileRuntimeReferenceReplaceAdmittedCore(
-        ProfileBundleIdentity bundleIdentity,
-        TrustedCompositionProfileCatalogEntry profileEntry,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
+    /// <summary>Lowers one catalog-prepared runtime reference Replace request through the shared plan algebra.</summary>
+    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplacePrepared(
+        V2CompositionPreparationService.PreparedCompilation preparation,
         V2RuntimeReferenceReplaceCompileRequest request)
     {
-        ArgumentNullException.ThrowIfNull(bundleIdentity);
-        ArgumentNullException.ThrowIfNull(profileEntry);
-        ArgumentNullException.ThrowIfNull(resolvedMap);
-        ArgumentNullException.ThrowIfNull(capabilityAdmissions);
+        ArgumentNullException.ThrowIfNull(preparation);
         ArgumentNullException.ThrowIfNull(request);
+        TrustedCompositionProfileCatalogEntry profileEntry = preparation.ProfileEntry;
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.ResolvedMap;
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions =
+            preparation.CapabilityAdmissions;
         CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
@@ -222,7 +190,7 @@ internal static partial class V2CompositionPlanCompiler
             ];
         return Succeed(
             profile,
-            bundleIdentity,
+            preparation.BundleIdentity,
             profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,

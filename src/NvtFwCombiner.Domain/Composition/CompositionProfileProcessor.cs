@@ -21,9 +21,6 @@ internal enum CompositionProfileIntegrityDisposition
 /// <summary>Base value for one closed normalized processor stage.</summary>
 internal abstract class CompositionProfileProcessorStage
 {
-    private readonly string[] _allowedReadViewIds;
-    private readonly string[] _allowedWriteViewIds;
-
     protected CompositionProfileProcessorStage(
         string processorStageId,
         string targetSpaceId,
@@ -34,17 +31,17 @@ internal abstract class CompositionProfileProcessorStage
             processorStageId,
             nameof(processorStageId));
         TargetSpaceId = CanonicalPolicyValueRules.RequireCanonicalId(targetSpaceId, nameof(targetSpaceId));
-        _allowedReadViewIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] allowedReadViewIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedReadViewIds,
             nameof(allowedReadViewIds),
             requireValue: true);
-        _allowedWriteViewIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] allowedWriteViewIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedWriteViewIds,
             nameof(allowedWriteViewIds),
             requireValue: false);
 
-        AllowedReadViewIds = Array.AsReadOnly(_allowedReadViewIds);
-        AllowedWriteViewIds = Array.AsReadOnly(_allowedWriteViewIds);
+        AllowedReadViewIds = Array.AsReadOnly(allowedReadViewIdsSnapshot);
+        AllowedWriteViewIds = Array.AsReadOnly(allowedWriteViewIdsSnapshot);
     }
 
     internal string ProcessorStageId { get; }

@@ -29,7 +29,7 @@ public sealed partial class RepositoryBoundaryTests
             "ReferenceEquals(constructionToken, ResolvedMapConstructionToken)",
             StringComparison.Ordinal);
         int firstResolverPayloadUse = result.IndexOf(
-            "_artifactIdentities =",
+            "FirmwareArtifactIdentity[] artifactIdentitiesSnapshot =",
             StringComparison.Ordinal);
 
         Assert.Contains("internal ResolvedFirmwareImageMap(", result, StringComparison.Ordinal);

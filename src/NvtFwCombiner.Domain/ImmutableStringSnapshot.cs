@@ -22,16 +22,6 @@ internal static class ClosedEnum
             throw new ArgumentOutOfRangeException(parameterName, value, message);
         }
     }
-
-    internal static T Require<T>(
-        T value,
-        string message,
-        [CallerArgumentExpression(nameof(value))] string? parameterName = null)
-        where T : struct, Enum
-    {
-        ThrowIfUndefined(value, message, parameterName);
-        return value;
-    }
 }
 
 internal static class RequiredValue

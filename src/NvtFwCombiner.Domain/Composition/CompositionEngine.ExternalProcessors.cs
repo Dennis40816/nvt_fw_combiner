@@ -106,7 +106,7 @@ public static partial class CompositionEngine
         {
             byte[] sourceBuffer = input[binding.SourceSpaceId];
             byte[] sourceBytes = ReadSlice(sourceBuffer, binding.SourceRange);
-            stagedSources.Add(ExternalProcessorStagedSource.FromOwnedBytes(binding.FirmwareRange, sourceBytes));
+            stagedSources.Add(new ExternalProcessorStagedSource(binding.FirmwareRange, sourceBytes));
         }
 
         return stagedSources;
@@ -129,7 +129,7 @@ public static partial class CompositionEngine
             byte[] sourceBuffer = mutableBuffers.TryGetValue(binding.SourceSpaceId, out byte[]? mutableSource)
                 ? mutableSource
                 : input[binding.SourceSpaceId];
-            stagedArtifacts.Add(ExternalProcessorStagedArtifact.FromOwnedBytes(
+            stagedArtifacts.Add(new ExternalProcessorStagedArtifact(
                 binding.ArtifactId,
                 ReadSlice(sourceBuffer, binding.SourceRange)));
         }

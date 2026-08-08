@@ -13,8 +13,8 @@ public sealed partial class CompositionPlan
         IEnumerable<AddressSpace> addressSpaces,
         IEnumerable<CompositionOperation> operations)
         : this(
-            [RequireInitialization(initialization)],
-            RequireInitialization(initialization).TargetSpaceId,
+            [initialization],
+            initialization?.TargetSpaceId ?? throw new ArgumentNullException(nameof(initialization)),
             addressSpaces,
             operations)
     {
@@ -113,11 +113,6 @@ public sealed partial class CompositionPlan
         }
 
         return (ordered, byTargetSpaceId);
-    }
-
-    private static ImageInitialization RequireInitialization(ImageInitialization? initialization)
-    {
-        return initialization ?? throw new ArgumentNullException(nameof(initialization));
     }
 
 }

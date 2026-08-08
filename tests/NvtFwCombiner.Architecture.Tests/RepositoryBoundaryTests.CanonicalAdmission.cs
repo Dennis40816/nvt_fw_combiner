@@ -21,7 +21,7 @@ public sealed partial class RepositoryBoundaryTests
         const string canonicalCapabilityBindingList =
             "IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>>";
         Assert.Contains(
-            $"out {canonicalCapabilityBindingList} capabilityAdmissions",
+            $"internal {canonicalCapabilityBindingList} CapabilityAdmissions",
             preparation,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -89,6 +89,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("AcyclicDependencyGraph.Sort", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("DependencyVisitState", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("DependencyFrame", profiles, StringComparison.Ordinal);
+        Assert.DoesNotContain("CapabilityDirect", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("ParentVisitState", domain, StringComparison.Ordinal);
     }
 }

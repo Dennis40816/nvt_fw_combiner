@@ -99,11 +99,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>One uniquely selected canonical map with only immutable identities and decoded outcomes.</summary>
     public sealed partial class ResolvedFirmwareImageMap
     {
-        private readonly FirmwareArtifactIdentity[] _artifactIdentities;
-        private readonly FirmwareResolvedMetadataStructure[] _resolvedMetadataStructures;
-        private readonly FirmwareMetadataPredicateOutcome[] _predicateOutcomes;
-        private readonly FirmwareFactProvenance[] _factProvenance;
-
         internal ResolvedFirmwareImageMap(
             object constructionToken,
             FirmwareFamilyResolutionDefinition definition,
@@ -117,14 +112,14 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 "Resolved maps may be constructed only by their owning family resolver.",
                 nameof(constructionToken));
 
-            _artifactIdentities = [.. inputs.Artifacts.Select(static artifact => artifact.Identity)];
-            _resolvedMetadataStructures = [.. resolvedMetadataStructures];
-            Array.Sort(_resolvedMetadataStructures, static (left, right) =>
+            FirmwareArtifactIdentity[] artifactIdentitiesSnapshot = [.. inputs.Artifacts.Select(static artifact => artifact.Identity)];
+            FirmwareResolvedMetadataStructure[] resolvedMetadataStructuresSnapshot = [.. resolvedMetadataStructures];
+            Array.Sort(resolvedMetadataStructuresSnapshot, static (left, right) =>
                 StringComparer.Ordinal.Compare(
                     left.DecodedStructure.MetadataStructureId,
                     right.DecodedStructure.MetadataStructureId));
-            _predicateOutcomes = [.. predicateOutcomes];
-            _factProvenance = SnapshotFactProvenance(imageMap, inputs.MemberId);
+            FirmwareMetadataPredicateOutcome[] predicateOutcomesSnapshot = [.. predicateOutcomes];
+            FirmwareFactProvenance[] factProvenanceSnapshot = SnapshotFactProvenance(imageMap, inputs.MemberId);
 
             FamilyId = definition.FamilyId;
             FamilyVersion = definition.FamilyVersion;
@@ -135,10 +130,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             ModeId = inputs.ModeId;
             CapacityBytes = inputs.CapacityBytes;
             TopologySelection = inputs.RequestedTopology;
-            ArtifactIdentities = Array.AsReadOnly(_artifactIdentities);
-            ResolvedMetadataStructures = Array.AsReadOnly(_resolvedMetadataStructures);
-            PredicateOutcomes = Array.AsReadOnly(_predicateOutcomes);
-            FactProvenance = Array.AsReadOnly(_factProvenance);
+            ArtifactIdentities = Array.AsReadOnly(artifactIdentitiesSnapshot);
+            ResolvedMetadataStructures = Array.AsReadOnly(resolvedMetadataStructuresSnapshot);
+            PredicateOutcomes = Array.AsReadOnly(predicateOutcomesSnapshot);
+            FactProvenance = Array.AsReadOnly(factProvenanceSnapshot);
             ResolutionFingerprint = CalculateResolutionFingerprint(this);
         }
 
