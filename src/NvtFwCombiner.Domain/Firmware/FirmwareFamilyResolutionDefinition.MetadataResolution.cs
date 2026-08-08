@@ -5,6 +5,16 @@ namespace NvtFwCombiner.Domain.Firmware;
 
 public sealed partial class FirmwareFamilyResolutionDefinition
 {
+    private static readonly object MetadataResolutionConstructionToken = new();
+
+    internal static void RequireMetadataResolutionConstructionToken(object constructionToken)
+    {
+        DomainInvariant.Reject(
+            !ReferenceEquals(constructionToken, MetadataResolutionConstructionToken),
+            "Metadata outcomes may be constructed only by the owning family resolver.",
+            nameof(constructionToken));
+    }
+
     /// <summary>Evaluates one map-selected metadata structure against the exact bound artifact.</summary>
     public FirmwareMetadataStructureResolution ResolveMetadataStructure(
         string mapId,
@@ -38,7 +48,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             StringComparer.Ordinal.Equals(candidate.ArtifactId, structure.ArtifactBindingId));
         if (artifact is null)
         {
-            return FirmwareMetadataStructureResolution.Pending(map.MapId, structure);
+            return FirmwareMetadataStructureResolution.Pending(
+                MetadataResolutionConstructionToken,
+                map.MapId,
+                structure);
         }
 
         if (structure.Locator is FirmwareMetadataFieldSelectedLocator selected)
@@ -60,6 +73,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             out int? observedMarkerMatchCount))
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 failure,
@@ -73,11 +87,14 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             artifact.Bytes.Slice(start, length),
             out FirmwareDecodedMetadataStructure? decoded)
             ? FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed)
             : FirmwareMetadataStructureResolution.Success(
+            MetadataResolutionConstructionToken,
             new FirmwareResolvedMetadataStructure(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 artifact.Identity,
                 structure,
@@ -111,6 +128,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         if (prerequisiteResolution.Status == FirmwareMetadataStructureResolutionStatus.Pending)
         {
             return FirmwareMetadataStructureResolution.PendingForPrerequisite(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 prerequisite);
@@ -119,6 +137,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         if (prerequisiteResolution.Status == FirmwareMetadataStructureResolutionStatus.Rejected)
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.PrerequisiteRejected,
@@ -132,6 +151,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             !locator.TrySelect(selectedValue, out FirmwareMetadataFieldSelectedBranch? branch))
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.PrerequisiteValueUnsupported,
@@ -142,6 +162,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         if (resultStart < branch.AnchorRange.Range.Start)
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.ResolvedRangeOutOfBounds);
@@ -154,6 +175,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             !ArtifactContains(artifact, resolvedRange))
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.ResolvedRangeOutOfBounds);
@@ -166,6 +188,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             out FirmwareDecodedMetadataStructure? decoded))
         {
             return FirmwareMetadataStructureResolution.Rejected(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 structure,
                 FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed);
@@ -175,7 +198,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareMetadataLocatorKind.MetadataFieldSelected,
             new FirmwareAddressedRange(map.AddressSpaceId, resolvedRange));
         return FirmwareMetadataStructureResolution.Success(
+            MetadataResolutionConstructionToken,
             new FirmwareResolvedMetadataStructure(
+                MetadataResolutionConstructionToken,
                 map.MapId,
                 artifact.Identity,
                 structure,

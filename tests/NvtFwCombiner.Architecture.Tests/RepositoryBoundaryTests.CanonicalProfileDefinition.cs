@@ -125,11 +125,15 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void RawProfileAdmissionVocabularyRemainsInternal()
     {
-        string capabilitySources = string.Join(
-            Environment.NewLine,
-            ReadText("src/NvtFwCombiner.Domain/Composition/CompiledCapabilityAdmission.cs"),
-            ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareCapabilityFact.cs"));
-        Assert.DoesNotContain("public sealed class CompiledCapabilityAdmission", capabilitySources, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Domain",
+            "Composition",
+            "CompiledCapabilityAdmission.cs")));
+        Assert.DoesNotContain("CompiledCapabilityAdmission", ReadDomainSources(), StringComparison.Ordinal);
+        string capabilitySources = ReadText(
+            "src/NvtFwCombiner.Domain/Firmware/FirmwareCapabilityFact.cs");
         Assert.DoesNotContain("public enum FirmwareCapabilityState", capabilitySources, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed class FirmwareCapabilityFact", capabilitySources, StringComparison.Ordinal);
 

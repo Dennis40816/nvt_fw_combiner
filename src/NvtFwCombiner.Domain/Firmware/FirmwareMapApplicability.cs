@@ -60,46 +60,4 @@ public sealed class FirmwareMapApplicability
     /// <summary>Required decoded metadata predicates.</summary>
     public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates => _scope.MetadataPredicates;
 
-    /// <summary>Evaluates known selection facts and reports every unresolved requirement.</summary>
-    internal FirmwareMapApplicabilityEvaluation Evaluate(FirmwareMapResolutionInputs inputs)
-    {
-        ArgumentNullException.ThrowIfNull(inputs);
-        if (!MemberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
-            !ModeIds.Contains(inputs.ModeId, StringComparer.Ordinal) ||
-            inputs.CapacityBytes != CapacityBytes)
-        {
-            return FirmwareMapApplicabilityEvaluation.NoMatch();
-        }
-
-        List<FirmwareMapPendingRequirementKind> pendingRequirements = [];
-        if (TopologyRequirement.Kind != TopologyRequirementKind.None)
-        {
-            if (inputs.RequestedTopology is null)
-            {
-                pendingRequirements.Add(FirmwareMapPendingRequirementKind.RequestedTopologyMissing);
-            }
-            else if (!TopologyRequirement.Matches(inputs.RequestedTopology))
-            {
-                return FirmwareMapApplicabilityEvaluation.NoMatch();
-            }
-        }
-
-        if (CommonFirmwareCategoryIds.Count != 0)
-        {
-            pendingRequirements.Add(
-                FirmwareMapPendingRequirementKind.CommonFirmwareCategoryDerivationUnavailable);
-        }
-
-        // Metadata facts become comparable only after the candidate map scopes their
-        // artifact and metadata structure during locator resolution.
-        if (MetadataPredicates.Count != 0)
-        {
-            pendingRequirements.Add(FirmwareMapPendingRequirementKind.MetadataResolutionRequired);
-        }
-
-        return pendingRequirements.Count == 0
-            ? FirmwareMapApplicabilityEvaluation.Match()
-            : FirmwareMapApplicabilityEvaluation.Pending(pendingRequirements);
-    }
-
 }

@@ -439,18 +439,9 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 alias.Document.Reason,
                 alias.Document.EvidenceRefs)),
         ];
-        var provenance = new FirmwareFactProvenance(
-            resolved.EffectiveKey,
-            resolved.DirectSourceKey,
-            hops,
-            resolved.Value.EvidenceRefs);
         return new FirmwareMapFactBinding<TFact>(
-            resolved.EffectiveKey,
-            resolved.DirectSourceKey,
-            resolved.Value.CanonicalFactId,
-            resolved.Value,
             applicability,
-            provenance);
+            new FirmwareFactProvenance(resolved.EffectiveKey, resolved.Value, hops));
     }
 
 }

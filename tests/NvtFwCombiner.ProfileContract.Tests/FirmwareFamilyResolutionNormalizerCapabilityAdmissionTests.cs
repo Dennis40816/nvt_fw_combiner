@@ -22,11 +22,11 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             definition,
             resolvedMap);
 
-        CompiledCapabilityAdmission evidence = Assert.Single(result.CapabilityAdmissions);
-        Assert.Equal("ab-code", evidence.RequiredCapabilityId);
-        Assert.Equal("NT00001", evidence.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", evidence.Binding.EffectiveKey.MapId);
-        Assert.Empty(evidence.Binding.Provenance.AliasChain);
+        FirmwareMapFactBinding<FirmwareCapabilityFact> evidence = Assert.Single(result.CapabilityAdmissions);
+        Assert.Equal("ab-code", evidence.Value.CapabilityId);
+        Assert.Equal("NT00001", evidence.EffectiveKey.MemberId);
+        Assert.Equal("map", evidence.EffectiveKey.MapId);
+        Assert.Empty(evidence.Provenance.AliasChain);
         Assert.Empty(result.Issues);
     }
 
@@ -83,14 +83,14 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             definition,
             resolvedMap);
 
-        CompiledCapabilityAdmission evidence = Assert.Single(result.CapabilityAdmissions);
-        Assert.Equal("NT00001", evidence.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", evidence.Binding.EffectiveKey.MapId);
-        Assert.Equal("NT00002", evidence.Binding.DirectSourceKey.MemberId);
-        Assert.Equal("source-map", evidence.Binding.DirectSourceKey.MapId);
+        FirmwareMapFactBinding<FirmwareCapabilityFact> evidence = Assert.Single(result.CapabilityAdmissions);
+        Assert.Equal("NT00001", evidence.EffectiveKey.MemberId);
+        Assert.Equal("map", evidence.EffectiveKey.MapId);
+        Assert.Equal("NT00002", evidence.DirectSourceKey.MemberId);
+        Assert.Equal("source-map", evidence.DirectSourceKey.MapId);
         Assert.Equal(
             ["target-capability-to-source"],
-            evidence.Binding.Provenance.AliasChain.Select(static hop => hop.AliasId));
+            evidence.Provenance.AliasChain.Select(static hop => hop.AliasId));
         Assert.Empty(result.Issues);
     }
 
@@ -268,13 +268,13 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         IReadOnlyList<CompositionIssue> issues = definition.AdmitRequiredCapabilities(
             profile.MapBinding,
             resolvedMap,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions);
         return new CapabilityAdmissionResult(issues, capabilityAdmissions);
     }
 
     private sealed record CapabilityAdmissionResult(
         IReadOnlyList<CompositionIssue> Issues,
-        IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions)
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions)
     {
         internal bool IsAdmitted => Issues.Count == 0;
     }

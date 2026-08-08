@@ -108,15 +108,11 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             ["capability-evidence"]);
         FirmwareMapFactKey key = new("NT00001", "plain-map", FirmwareFactKind.Capability, "ab-code-evidence");
         var binding = new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            value.CanonicalFactId,
-            value,
             new FirmwareFactApplicability(
                 ["standard"],
                 TopologyRequirement.NoTopologyConstraint(),
                 16),
-            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+            new FirmwareFactProvenance(key, value, []));
 
         var definition = new FirmwareFamilyResolutionDefinition(
             "synthetic-family",

@@ -480,7 +480,7 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<string>? requiredOutputTokenIds = null,
         IEnumerable<string>? profileEvidenceRefs = null,
         IEnumerable<CompiledValidationRequirement>? validationRequirements = null,
-        IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>>? requiredCapabilities = null,
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
         CompiledOutputNamingRequirement? outputNaming = null,

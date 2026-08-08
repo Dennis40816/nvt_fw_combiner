@@ -561,16 +561,15 @@ public sealed partial class CompiledComposition
 
     private static void AppendCapabilityAdmissions(
         StringBuilder builder,
-        IReadOnlyList<CompiledCapabilityAdmission> admissions)
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admissions)
     {
         AppendInteger(builder, "capability-admission.count", admissions.Count);
         for (int index = 0; index < admissions.Count; index++)
         {
-            CompiledCapabilityAdmission admission = admissions[index];
-            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = admission.Binding;
+            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = admissions[index];
             FirmwareCapabilityFact capability = binding.Value;
             string prefix = FormattableString.Invariant($"capability-admission.{index}");
-            AppendField(builder, $"{prefix}.required-capability-id", admission.RequiredCapabilityId);
+            AppendField(builder, $"{prefix}.required-capability-id", capability.CapabilityId);
             AppendFactKey(builder, $"{prefix}.effective-key", binding.EffectiveKey);
             AppendFactKey(builder, $"{prefix}.direct-source-key", binding.DirectSourceKey);
             AppendField(builder, $"{prefix}.canonical-fact-id", binding.CanonicalFactId);

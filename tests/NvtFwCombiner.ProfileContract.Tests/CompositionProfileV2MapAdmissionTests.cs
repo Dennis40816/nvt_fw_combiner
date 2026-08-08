@@ -174,7 +174,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
         IReadOnlyList<CompositionIssue> issues = context.Family.AdmitRequiredCapabilities(
             profile.MapBinding,
             context.ResolvedMap,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions);
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions);
         return new AdmissionResult(issues, capabilityAdmissions);
     }
 
@@ -391,12 +391,8 @@ public sealed class CompositionProfileV2MapAdmissionTests
             factApplicability,
             "Synthetic canonical fact inheritance.",
             ["alias-evidence"]);
-        var provenance = new FirmwareFactProvenance(target, source, [hop], value.EvidenceRefs);
+        var provenance = new FirmwareFactProvenance(target, value, [hop]);
         return new FirmwareMapFactBinding<TFact>(
-            target,
-            source,
-            value.CanonicalFactId,
-            value,
             factApplicability,
             provenance);
     }
@@ -407,7 +403,7 @@ public sealed class CompositionProfileV2MapAdmissionTests
 
     private sealed record AdmissionResult(
         IReadOnlyList<CompositionIssue> Issues,
-        IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions)
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions)
     {
         internal bool IsAdmitted => Issues.Count == 0;
     }

@@ -6,6 +6,14 @@ namespace NvtFwCombiner.Domain.Tests.Firmware;
 /// <summary>Tests immutable member/map fact identities, bindings, and provenance.</summary>
 public sealed class FirmwareMapFactsTests
 {
+    /// <summary>Verifies normalized fact provenance and bindings cannot be forged through public constructors.</summary>
+    [Fact]
+    public void NormalizedFactResultsExposeNoPublicConstructors()
+    {
+        Assert.Empty(typeof(FirmwareFactProvenance).GetConstructors());
+        Assert.Empty(typeof(FirmwareMapFactBinding<FirmwareRegionSet>).GetConstructors());
+    }
+
     /// <summary>Verifies map-scoped capability evidence is immutable and remains a non-executable fact value.</summary>
     [Fact]
     public void CapabilityFactCreatesImmutableEvidenceValue()
@@ -54,68 +62,47 @@ public sealed class FirmwareMapFactsTests
         FirmwareMapFactKey effective = new("NT00001", "map-a", FirmwareFactKind.RegionSet, "regions");
         FirmwareMapFactKey intermediate = new("NT00002", "map-b", FirmwareFactKind.RegionSet, "regions");
         FirmwareMapFactKey direct = new("NT00003", "map-c", FirmwareFactKind.RegionSet, "regions");
-        string[] directEvidence = ["z", "a"];
+        FirmwareRegionSet directFact = RegionSet();
         FirmwareFactAliasHop first = Hop("alias-a", effective, intermediate);
         FirmwareFactAliasHop second = Hop("alias-b", intermediate, direct);
 
-        FirmwareFactProvenance provenance = new(effective, direct, [first, second], directEvidence);
-        directEvidence[0] = "changed";
+        FirmwareFactProvenance provenance = new(effective, directFact, [first, second]);
 
         Assert.Equal(["alias-a", "alias-b"], provenance.AliasChain.Select(static hop => hop.AliasId));
-        Assert.Equal(["a", "z"], provenance.DirectEvidenceRefs);
+        Assert.Equal(direct, provenance.DirectSourceKey);
+        Assert.Equal(["region-evidence"], provenance.DirectEvidenceRefs);
+        Assert.Same(directFact, provenance.DirectFact);
         _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
             effective,
-            direct,
-            [second, first],
-            ["direct"]));
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
-            effective,
-            direct,
-            [first],
-            ["direct"]));
+            directFact,
+            [second, first]));
         FirmwareFactAliasHop cycleBack = Hop("alias-cycle", intermediate, effective);
         FirmwareFactAliasHop leaveCycle = Hop("alias-leave", effective, direct);
         _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
             effective,
-            direct,
-            [first, cycleBack, leaveCycle],
-            ["direct"]));
+            directFact,
+            [first, cycleBack, leaveCycle]));
     }
 
-    /// <summary>Verifies keys and binding values cannot disagree about fact kind, physical identity, or provenance.</summary>
+    /// <summary>Verifies canonical provenance rejects a mismatched kind, physical identity, or binding value type.</summary>
     [Fact]
-    public void BindingRejectsMismatchedKindCanonicalIdAndProvenance()
+    public void ProvenanceRejectsMismatchedKindCanonicalIdAndBindingValueType()
     {
         FirmwareRegionSet regionSet = RegionSet();
         FirmwareMapFactKey effective = new("NT00001", "map", FirmwareFactKind.RegionSet, "regions");
-        FirmwareFactProvenance provenance = new(effective, effective, [], ["region-evidence"]);
         FirmwareFactApplicability applicability = Applicability();
 
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareRegionSet>(
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
             new FirmwareMapFactKey("NT00001", "map", FirmwareFactKind.MetadataSet, "regions"),
-            effective,
-            "regions",
             regionSet,
-            applicability,
-            provenance));
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareRegionSet>(
-            effective,
-            effective,
-            "different",
+            []));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
+            new FirmwareMapFactKey("NT00001", "map", FirmwareFactKind.RegionSet, "different"),
             regionSet,
+            []));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareMetadataSet>(
             applicability,
-            provenance));
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareRegionSet>(
-            effective,
-            effective,
-            "regions",
-            regionSet,
-            applicability,
-            new FirmwareFactProvenance(
-                new FirmwareMapFactKey("NT00002", "map", FirmwareFactKind.RegionSet, "regions"),
-                new FirmwareMapFactKey("NT00002", "map", FirmwareFactKind.RegionSet, "regions"),
-                [],
-                ["region-evidence"])));
+            new FirmwareFactProvenance(effective, regionSet, [])));
     }
 
     /// <summary>Verifies a direct-source fact id always identifies the immutable canonical value.</summary>
@@ -123,27 +110,20 @@ public sealed class FirmwareMapFactsTests
     public void BindingRejectsDirectSourceIdentityDifferentFromCanonicalValue()
     {
         FirmwareRegionSet regionSet = RegionSet();
-        FirmwareFactApplicability applicability = Applicability();
         FirmwareMapFactKey wrongDirect = new("NT00001", "map", FirmwareFactKind.RegionSet, "wrong-source");
 
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareRegionSet>(
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
             wrongDirect,
-            wrongDirect,
-            regionSet.CanonicalFactId,
             regionSet,
-            applicability,
-            new FirmwareFactProvenance(wrongDirect, wrongDirect, [], regionSet.EvidenceRefs)));
+            []));
 
         FirmwareMapFactKey effective = new("NT00001", "map", FirmwareFactKind.RegionSet, "target-regions");
         FirmwareMapFactKey aliasedWrongDirect = new("NT00002", "source-map", FirmwareFactKind.RegionSet, "wrong-source");
         FirmwareFactAliasHop hop = Hop("alias", effective, aliasedWrongDirect);
-        _ = Assert.Throws<ArgumentException>(() => new FirmwareMapFactBinding<FirmwareRegionSet>(
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareFactProvenance(
             effective,
-            aliasedWrongDirect,
-            regionSet.CanonicalFactId,
             regionSet,
-            applicability,
-            new FirmwareFactProvenance(effective, aliasedWrongDirect, [hop], regionSet.EvidenceRefs)));
+            [hop]));
     }
 
     /// <summary>Verifies alias-free map construction creates one direct binding per member and fact reference.</summary>
@@ -253,12 +233,8 @@ public sealed class FirmwareMapFactsTests
         FirmwareFactApplicability mapShape = Applicability();
         FirmwareFactAliasHop mismatchedHop = Hop("alias", effective, direct, Applicability(modeIds: ["ab"]));
         FirmwareMapFactBinding<FirmwareRegionSet> binding = new(
-            effective,
-            direct,
-            "regions",
-            regionSet,
             mapShape,
-            new FirmwareFactProvenance(effective, direct, [mismatchedHop], regionSet.EvidenceRefs));
+            new FirmwareFactProvenance(effective, regionSet, [mismatchedHop]));
 
         _ = Assert.Throws<ArgumentException>(() => new FirmwareImageMap(
             "map",
@@ -279,12 +255,8 @@ public sealed class FirmwareMapFactsTests
     {
         FirmwareMapFactKey key = new(memberId, mapId, value.FactKind, value.CanonicalFactId);
         return new FirmwareMapFactBinding<TFact>(
-            key,
-            key,
-            value.CanonicalFactId,
-            value,
             applicability ?? Applicability(),
-            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+            new FirmwareFactProvenance(key, value, []));
     }
 
     private static FirmwareFactAliasHop Hop(

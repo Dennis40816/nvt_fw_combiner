@@ -21,7 +21,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.Equal("profile-entry", selection.EntryIdentity.EntryId);
@@ -63,7 +63,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             unowned,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
@@ -96,7 +96,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
@@ -105,7 +105,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.selection.stale", Assert.Single(issues).Code);
     }
 
-    /// <summary>Verifies a topology prerequisite remains the Domain resolver's typed pending outcome.</summary>
+    /// <summary>Verifies a topology prerequisite remains the Domain resolver's closed pending outcome.</summary>
     [Fact]
     public void PreparationPreservesPendingMapTopologyRequirement()
     {
@@ -121,15 +121,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
         Assert.Equal(FirmwareMapResolutionStatus.Pending, resolution.Status);
-        Assert.Equal(
-            FirmwareMapResolutionPendingKind.RequestedTopologyMissing,
-            Assert.Single(resolution.PendingRequirements).Kind);
+        Assert.Null(resolution.ResolvedMap);
         Assert.Empty(capabilityAdmissions);
         Assert.Empty(issues);
     }
@@ -160,7 +158,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.True(admitted);
@@ -186,14 +184,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
-        FirmwareMapResolutionPendingRequirement requirement = Assert.Single(
-            Assert.IsType<FirmwareMapResolutionResult>(mapResolution).PendingRequirements);
-        Assert.Equal(FirmwareMapResolutionPendingKind.ArtifactMissing, requirement.Kind);
-        Assert.Equal("tp-firmware", requirement.ArtifactBindingId);
+        FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
+        Assert.Equal(FirmwareMapResolutionStatus.Pending, resolution.Status);
+        Assert.Null(resolution.ResolvedMap);
         Assert.Empty(capabilityAdmissions);
         Assert.Empty(issues);
     }
@@ -210,7 +207,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(capacityBytes: 17),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
@@ -237,7 +234,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             Inputs(),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
@@ -441,7 +438,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection,
             inputs,
             out _,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(
             admitted,
@@ -478,7 +475,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog Catalog,
         TrustedCompositionProfileCatalogEntry ProfileEntry,
         FirmwareMapResolutionInputs Inputs,
-        IReadOnlyList<CompiledCapabilityAdmission> CapabilityAdmissions);
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions);
 
     private static FirmwareMapResolutionInputs Inputs(
         long capacityBytes = 16,

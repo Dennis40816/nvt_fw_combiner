@@ -168,7 +168,7 @@ public sealed class V2CompilationProvenance
 {
     private readonly string[] _profileEvidenceRefs;
     private readonly CompiledValidationRequirement[] _validationRequirements;
-    private readonly CompiledCapabilityAdmission[] _requiredCapabilities;
+    private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _requiredCapabilities;
 
     internal V2CompilationProvenance(
         ProfileBundleIdentity bundle,
@@ -177,7 +177,7 @@ public sealed class V2CompilationProvenance
         CompiledProfilePromotion promotion,
         IEnumerable<string> profileEvidenceRefs,
         IEnumerable<CompiledValidationRequirement> validationRequirements,
-        IEnumerable<CompiledCapabilityAdmission> requiredCapabilities)
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> requiredCapabilities)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         ArgumentNullException.ThrowIfNull(profileEntry);
@@ -206,19 +206,19 @@ public sealed class V2CompilationProvenance
 
         _requiredCapabilities = ImmutableReferenceSnapshot.CreateUnique(
             requiredCapabilities,
-            static capability => capability.RequiredCapabilityId,
+            static binding => binding.Value.CapabilityId,
             "Required capability admissions must be non-null with ordinally unique capability ids.",
             "Required capability admissions must be non-null with ordinally unique capability ids.",
             StringComparer.Ordinal);
 
         Array.Sort(_requiredCapabilities, static (left, right) => StringComparer.Ordinal.Compare(
-            left.RequiredCapabilityId,
-            right.RequiredCapabilityId));
-        foreach (CompiledCapabilityAdmission capability in _requiredCapabilities)
+            left.Value.CapabilityId,
+            right.Value.CapabilityId));
+        foreach (FirmwareMapFactBinding<FirmwareCapabilityFact> binding in _requiredCapabilities)
         {
-            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = capability.Binding;
             DomainInvariant.Reject(
                 context is not MapBoundV2CompilationContext mapContext ||
+                binding.Value.State != FirmwareCapabilityState.ConfirmedPresent ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MemberId, mapContext.ResolvedMap.MemberId) ||
                 !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapContext.ResolvedMap.ImageMap.MapId) ||
                 binding.Applicability.Evaluate(mapContext.ResolvedMap) != FirmwareApplicabilityResult.Match,
@@ -264,7 +264,7 @@ public sealed class V2CompilationProvenance
     /// <summary>Complete closed validation stages retained for future runtime admission.</summary>
     public IReadOnlyList<CompiledValidationRequirement> ValidationRequirements { get; }
 
-    internal IReadOnlyList<CompiledCapabilityAdmission> RequiredCapabilities { get; }
+    internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> RequiredCapabilities { get; }
 }
 
 /// <summary>Single typed v2 artifact payload that keeps provenance and unrendered naming requirements paired.</summary>

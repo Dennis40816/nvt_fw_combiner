@@ -140,7 +140,7 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
             selection,
             new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, []),
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> preparationIssues);
 
         Assert.True(admitted);

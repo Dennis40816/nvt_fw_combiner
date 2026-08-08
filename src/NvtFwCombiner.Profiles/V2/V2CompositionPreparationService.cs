@@ -15,7 +15,7 @@ internal static class V2CompositionPreparationService
         TrustedCompositionProfileCatalogEntry selectedProfile,
         FirmwareMapResolutionInputs resolutionInputs,
         [NotNullWhen(true)] out FirmwareMapResolutionResult? mapResolution,
-        out IReadOnlyList<CompiledCapabilityAdmission> capabilityAdmissions,
+        out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
         out IReadOnlyList<CompositionIssue> issues)
     {
         ArgumentNullException.ThrowIfNull(catalog);
@@ -55,7 +55,7 @@ internal static class V2CompositionPreparationService
         issues = selectedProfile.Family.Family.AdmitRequiredCapabilities(
             selectedProfile.Profile.MapBinding,
             mapResolution.ResolvedMap!,
-            out IReadOnlyList<CompiledCapabilityAdmission> admittedCapabilities);
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admittedCapabilities);
         if (issues.Count != 0)
         {
             return false;
