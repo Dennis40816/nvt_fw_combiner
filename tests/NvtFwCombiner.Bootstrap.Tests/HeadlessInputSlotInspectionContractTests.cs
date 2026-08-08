@@ -146,6 +146,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
             "NT51928",
             baseCapacity: null,
             ["initial-code-replacement"],
+            new AuthoringRevision(1),
             out InputSelectionReadinessSnapshot? readiness,
             out IReadOnlyList<CompositionIssue> readinessIssues);
         Assert.True(resolved, FormatIssues(readinessIssues));

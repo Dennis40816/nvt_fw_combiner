@@ -156,7 +156,7 @@ public sealed class FocusedCompositionAdaptersTests
     [Fact]
     public void FirmwareContextSuggestionUsesVerifiedNvtBackupAndApprovedBranch()
     {
-        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion(
+        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
             "NT51926",
             GoldenArtifactPath("51926", "expected-output"));
 
@@ -178,7 +178,7 @@ public sealed class FocusedCompositionAdaptersTests
         bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
         string path = workspace.Write("fwconfig-mismatch.bin", bytes);
 
-        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion(
+        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
             "NT51926",
             path);
 
@@ -203,12 +203,12 @@ public sealed class FocusedCompositionAdaptersTests
         string path = workspace.Write("fw200-single.bin", bytes);
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion("NT51926", path));
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", path));
 
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal("2.0.0", suggestion.CommonFwVersion);
         WorkbenchFirmwareContextSuggestion nt51928Suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion("NT51928", path));
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51928", path));
         Assert.Equal("NT51928", nt51928Suggestion.IcId);
         Assert.Equal("single", nt51928Suggestion.NumberToken);
         Assert.Equal("2.0.0", nt51928Suggestion.CommonFwVersion);
@@ -221,10 +221,10 @@ public sealed class FocusedCompositionAdaptersTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-missing-metadata");
         string missing = workspace.PathFor("missing.bin");
 
-        Assert.Null(FirmwareInspectionAdapter.TryReadDpVersionMetadata("NT51950", missing));
-        Assert.Null(FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata("NT51950", missing));
+        Assert.Null(FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51950", missing));
+        Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51950", missing));
         Assert.Null(FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata("NT51926", missing));
-        Assert.Null(FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion("NT51926", missing));
+        Assert.Null(FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", missing));
     }
 
     /// <summary>Uses the selected TP NVT FWConfig ChipNumber to resolve NT51950's 1IC CMI location.</summary>
@@ -234,10 +234,10 @@ public sealed class FocusedCompositionAdaptersTests
         string dpPath = GoldenArtifactPath("51950", "dp-input", "dp-256k");
         string tpPath = GoldenArtifactPath("51950", "tp-input", "dp-256k");
 
-        Assert.Null(FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata("NT51950", dpPath));
+        Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51950", dpPath));
 
         WorkbenchCmiDpCodeMetadata metadata = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
-            FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
+            FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
                 "NT51950",
                 dpPath,
                 tpPath));

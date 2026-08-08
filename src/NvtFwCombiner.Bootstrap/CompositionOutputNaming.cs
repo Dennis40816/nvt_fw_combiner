@@ -8,21 +8,6 @@ public static partial class CompositionOutputNaming
 {
     private const string UnknownVersionToken = "xxxx";
 
-    /// <summary>Creates the suggested FlashCode output file name from selected firmware metadata.</summary>
-    public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileName(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates,
-        DateOnly? date = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(candidates);
-
-        string normalizedIc = IcIdentifier.Normalize(icId);
-        string dpVersion = FindDpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
-        string tpVersion = FindTpVersionToken(normalizedIc, candidates) ?? UnknownVersionToken;
-        return CreateOutputFileNameSuggestion(normalizedIc, dpVersion, tpVersion, date);
-    }
-
     /// <summary>Creates the same suggestion from immutable inspection DTOs without reading firmware files.</summary>
     public static WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileNameFromInspections(
         string icId,
@@ -146,62 +131,4 @@ public static partial class CompositionOutputNaming
         };
     }
 
-    private static string? FindDpVersionToken(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
-    {
-        WorkbenchOutputNameCandidateKind sourceKind = candidates.Any(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Dp)
-            ? WorkbenchOutputNameCandidateKind.Dp : WorkbenchOutputNameCandidateKind.Base;
-        string? cmiTpPath = candidates
-            .Where(static candidate => candidate.Kind is WorkbenchOutputNameCandidateKind.Tp or WorkbenchOutputNameCandidateKind.Base)
-            .OrderBy(static candidate => candidate.Kind == WorkbenchOutputNameCandidateKind.Tp ? 0 : 1)
-            .Select(static candidate => candidate.Path)
-            .FirstOrDefault(static path => !string.IsNullOrWhiteSpace(path));
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.Where(candidate => candidate.Kind == sourceKind))
-        {
-            if (string.IsNullOrWhiteSpace(candidate.Path))
-            {
-                continue;
-            }
-
-            WorkbenchDpVersionMetadata? metadata = FirmwareInspectionAdapter.TryReadDpVersionMetadata(icId, candidate.Path);
-            if (metadata is WorkbenchDpVersionMetadata value &&
-                !string.IsNullOrWhiteSpace(value.VersionToken))
-            {
-                return value.VersionToken;
-            }
-
-            WorkbenchCmiDpCodeMetadata? cmiMetadata = FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
-                icId,
-                candidate.Path,
-                candidate.Kind == WorkbenchOutputNameCandidateKind.Base ? candidate.Path : cmiTpPath);
-            if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi)
-            {
-                return cmi.VersionToken;
-            }
-        }
-
-        return null;
-    }
-
-    private static string? FindTpVersionToken(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameCandidate> candidates)
-    {
-        foreach (WorkbenchOutputNameCandidate candidate in candidates.OrderBy(static candidate => OutputNameCandidateOrder(candidate.Kind)))
-        {
-            if (string.IsNullOrWhiteSpace(candidate.Path))
-            {
-                continue;
-            }
-
-            WorkbenchFirmwareConfigMetadata? metadata = FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(icId, candidate.Path);
-            if (metadata is { IsFirmwareVersionBarValid: true })
-            {
-                return FormattableString.Invariant($"{metadata.FirmwareVersion:X2}{metadata.FirmwareSubVersion:X2}");
-            }
-        }
-
-        return null;
-    }
 }

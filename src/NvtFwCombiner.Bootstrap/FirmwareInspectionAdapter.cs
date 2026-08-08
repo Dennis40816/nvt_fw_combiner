@@ -19,16 +19,6 @@ public static partial class FirmwareInspectionAdapter
     private static readonly ConcurrentDictionary<string, Lazy<CompiledComposition[]>>
         s_artifactClassificationCompositions = new(StringComparer.Ordinal);
 
-    /// <summary>Reads each selected image once and projects all shell firmware metadata from that snapshot.</summary>
-    public static WorkbenchFirmwareInspection InspectFirmware(
-        string icId,
-        string path,
-        string? tpPath = null,
-        WorkbenchCtrlRamInspectionRequest? ctrlRamRequest = null)
-    {
-        return InspectFirmware(icId, path, tpPath, ctrlRamRequest, TryReadFirmwareImage);
-    }
-
     /// <summary>Reads every distinct selected path once and returns named immutable projections.</summary>
     public static IReadOnlyList<WorkbenchFirmwareInspectionResult> InspectFirmwareBatch(
         string icId,
@@ -227,19 +217,6 @@ public static partial class FirmwareInspectionAdapter
         return CreateCtrlRamInspectionDisplay(icId, number, postbuildProfile);
     }
 
-    private static WorkbenchDpVersionMetadata? ReadDpVersionMetadata(string icId, byte[] image)
-    {
-        return ReadDpMetadata(icId, image, tpImage: null).Version;
-    }
-
-    private static WorkbenchCmiDpCodeMetadata? ReadCmiDpCodeMetadata(
-        string icId,
-        byte[] image,
-        byte[]? tpImage)
-    {
-        return ReadDpMetadata(icId, image, tpImage).Cmi;
-    }
-
     private static (
         WorkbenchDpVersionMetadata? Version,
         WorkbenchCmiDpCodeMetadata? Cmi)
@@ -397,19 +374,6 @@ public static partial class FirmwareInspectionAdapter
                 postbuildProfile?.DisplayCategory,
                 firmwareConfig.Hardware)
             : null;
-    }
-
-    private static WorkbenchFirmwareContextSuggestion? ReadFirmwareContextSuggestion(
-        string icId,
-        ReadOnlySpan<byte> image)
-    {
-        FirmwareConfigMetadata? firmwareConfig = TryReadFirmwareConfigMetadataFromImage(
-            icId,
-            image,
-            out FirmwareConfigMetadata metadata)
-                ? metadata
-                : null;
-        return ReadFirmwareContextSuggestion(icId, firmwareConfig);
     }
 
     private static WorkbenchFirmwareContextSuggestion? ReadFirmwareContextSuggestion(

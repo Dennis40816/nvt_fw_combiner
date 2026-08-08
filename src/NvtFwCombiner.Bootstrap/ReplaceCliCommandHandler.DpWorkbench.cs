@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
@@ -77,6 +78,7 @@ internal static partial class ReplaceCliCommandHandler
                     icId,
                     baseCapacity,
                     selectedInputSlotIds,
+                    new AuthoringRevision(1),
                     out InputSelectionReadinessSnapshot? readiness,
                     out _) &&
                 !readiness!.CanBuild)

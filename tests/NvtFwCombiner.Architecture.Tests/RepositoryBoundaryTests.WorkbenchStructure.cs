@@ -310,8 +310,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("BuiltInPostbuildProfileCatalog.GetProfiles", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", catalog, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatch", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("WorkbenchDpVersionMetadata", workbenchModels, StringComparison.Ordinal);
         Assert.Contains("WorkbenchCmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
@@ -358,7 +359,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("ReadDpVersionMetadata(icId, image)", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("ReadDpMetadata(", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("TryReadCanonicalDpcmi", firmwareInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
@@ -366,9 +367,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("GetCtrlRamRegions", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);
-        Assert.Contains("FindDpVersionToken", outputNaming, StringComparison.Ordinal);
-        Assert.Contains("FindTpVersionToken", outputNaming, StringComparison.Ordinal);
+        Assert.Contains("CreateFlashCodeOutputFileNameFromInspections", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("FindDpVersionToken", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("FindTpVersionToken", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputMainAbsoluteAddress", outputNaming, StringComparison.Ordinal);
         Assert.DoesNotContain("InputRelativeOffset", outputNaming, StringComparison.Ordinal);

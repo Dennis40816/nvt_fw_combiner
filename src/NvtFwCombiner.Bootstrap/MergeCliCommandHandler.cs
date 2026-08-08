@@ -1,6 +1,4 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Domain.Composition;
-
 namespace NvtFwCombiner.Bootstrap;
 
 internal static partial class MergeCliCommandHandler
@@ -9,18 +7,11 @@ internal static partial class MergeCliCommandHandler
     private const int CompositionFailed = 1;
     private const int UsageError = 64;
     internal static async Task<int> RunAsync(
-        string command,
         string[] args,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
-        if (command != ExperienceIds.GeneralMerge)
-        {
-            await error.WriteLineAsync($"error: unknown merge command '{command}'").ConfigureAwait(false);
-            return UsageError;
-        }
-
         if (args.Length == 0 || args[0] is "--help")
         {
             await WriteUsageAsync(output).ConfigureAwait(false);

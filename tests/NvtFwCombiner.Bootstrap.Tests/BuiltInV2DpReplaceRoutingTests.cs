@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -154,12 +155,14 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             "NT51928",
             referenceCapacity,
             [selectedSlotId],
+            new AuthoringRevision(7),
             out InputSelectionReadinessSnapshot? readiness,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.True(resolved);
         Assert.Empty(issues);
-        InputSelectionMemberReadiness member = Assert.Single(readiness!.Groups)
+        Assert.Equal(new AuthoringRevision(7), readiness!.AuthoringRevision);
+        InputSelectionMemberReadiness member = Assert.Single(readiness.Groups)
             .Members.Single(candidate => candidate.SlotId == inspectedSlotId);
         Assert.Equal(
             Enum.Parse<ResolvedChildReadiness>(expectedReadiness),

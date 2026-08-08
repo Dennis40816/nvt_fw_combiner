@@ -36,6 +36,7 @@ public static partial class CompositionExecutionAdapter
                 icId,
                 context!.Capacity,
                 selectedInputSlotIds,
+                acceptedSession?.AuthoringRevision ?? new AuthoringRevision(1),
                 out InputSelectionReadinessSnapshot? selectionReadiness,
                 out IReadOnlyList<CompositionIssue> selectionIssues))
         {
