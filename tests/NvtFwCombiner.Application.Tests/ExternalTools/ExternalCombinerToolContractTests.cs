@@ -1,3 +1,4 @@
+using System.Reflection;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -7,6 +8,48 @@ namespace NvtFwCombiner.Application.Tests.ExternalTools;
 /// <summary>Executable tests for external combiner tool manifest and registry contracts.</summary>
 public sealed class ExternalCombinerToolContractTests
 {
+    /// <summary>Preserves the manifest's exact public constructor, values, and reference semantics.</summary>
+    [Fact]
+    public void ManifestTransportPreservesPublicShapeAndReferenceIdentity()
+    {
+        ConstructorInfo constructor = Assert.Single(typeof(ExternalCombinerToolManifest).GetConstructors());
+        var expectedParameters = new (Type Type, string Name)[]
+        {
+            (typeof(string), "schemaVersion"),
+            (typeof(string), "toolBindingId"),
+            (typeof(string), "toolId"),
+            (typeof(string), "toolVersion"),
+            (typeof(string), "displayName"),
+            (typeof(string), "platform"),
+            (typeof(string), "executableName"),
+            (typeof(string), "sha256"),
+            (typeof(string), "adapterId"),
+            (typeof(string), "inputMode"),
+            (typeof(IReadOnlyList<string>), "argumentTemplate"),
+            (typeof(string), "workingDirectoryPolicy"),
+            (typeof(int), "timeoutSeconds"),
+            (typeof(IReadOnlyList<string>), "allowedExtraOutputFiles"),
+        };
+        string[] argumentTemplate = ["--input", "{staging.workBin}"];
+        string[] allowedExtraOutputFiles = ["tool.log"];
+
+        Assert.Equal(
+            expectedParameters,
+            constructor.GetParameters().Select(static parameter =>
+                (parameter.ParameterType, parameter.Name!)));
+        ExternalCombinerToolManifest manifest = ValidManifest(
+            argumentTemplate: argumentTemplate,
+            allowedExtraOutputFiles: allowedExtraOutputFiles);
+        ExternalCombinerToolManifest equivalent = ValidManifest(
+            argumentTemplate: argumentTemplate,
+            allowedExtraOutputFiles: allowedExtraOutputFiles);
+
+        Assert.Same(argumentTemplate, manifest.ArgumentTemplate);
+        Assert.Same(allowedExtraOutputFiles, manifest.AllowedExtraOutputFiles);
+        Assert.NotSame(manifest, equivalent);
+        Assert.NotEqual(manifest, equivalent);
+    }
+
     /// <summary>Rejects executable names that would escape the approved tool package.</summary>
     [Fact]
     public void ManifestValidatorRejectsPathTraversalExecutableNames()

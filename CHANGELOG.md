@@ -20,6 +20,15 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   Application ratchet falls from 23,656 to 23,071 and the runtime ratchet from
   69,623 to 69,038 without changing downstream production code, firmware
   semantics, Preview/Build identity, reports, output naming, or UI/CLI behavior.
+- Infrastructure, Contracts, and CRC worker Core Convergence (#232) removes
+  another 116 nonblank runtime lines by deleting unused pinned-loader surface,
+  reusing strict JSON/schema and staging-cleanup owners, compacting immutable
+  transport wrappers, and simplifying the package-only CRC worker protocol
+  implementation. The slice ratchet falls from 7,029 to 6,913 and the runtime
+  ratchet from 69,038 to 68,922. Exact raw-byte trust, manifest/schema bytes,
+  process isolation, staged mutation checks, CRC-32/MPEG-2 results, protocol
+  success payloads, exit codes, and firmware behavior remain unchanged; worker
+  error messages now honor the existing 512-character schema bound.
 
 ## [0.10.2] - 2026-08-04
 

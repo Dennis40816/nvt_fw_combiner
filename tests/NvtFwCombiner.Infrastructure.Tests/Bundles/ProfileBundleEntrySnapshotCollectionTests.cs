@@ -24,7 +24,9 @@ public sealed class ProfileBundleEntrySnapshotCollectionTests
         File.WriteAllText(workspace.PathFor("profiles/profile.json"), /*lang=json,strict*/ "{\"changed\":true}");
 
         Assert.Same(manifest, collection.Manifest);
-        Assert.Equal(schemaBytes.Length + profileBytes.Length, collection.TotalEntryBytes);
+        Assert.Equal(
+            schemaBytes.Length + profileBytes.Length,
+            collection.Entries.Sum(static entry => entry.FileSnapshot.Length));
         Assert.Equal(["profile", "schema"], collection.Entries.Select(static entry => entry.Entry.EntryId));
         ProfileBundleEntrySnapshot profile = Assert.Single(
             collection.Entries,

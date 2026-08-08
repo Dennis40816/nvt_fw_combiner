@@ -3,60 +3,42 @@ using System.Text.Json;
 namespace NvtFwCombiner.Infrastructure.Bundles;
 
 /// <summary>Exact immutable identity of one schema-validated canonical document entry.</summary>
-internal sealed class TrustedProfileBundleDocumentIdentity
+internal sealed class TrustedProfileBundleDocumentIdentity(ProfileBundleEntry entry)
 {
-    internal TrustedProfileBundleDocumentIdentity(ProfileBundleEntry entry)
-    {
-        ArgumentNullException.ThrowIfNull(entry);
-        EntryId = entry.EntryId;
-        Path = entry.Path;
-        SchemaId = entry.SchemaId;
-        ContentHash = entry.ContentHash;
-    }
+    private ProfileBundleEntry Entry { get; } =
+        entry ?? throw new ArgumentNullException(nameof(entry));
 
-    internal string EntryId { get; }
+    internal string EntryId => Entry.EntryId;
 
-    internal string Path { get; }
+    internal string Path => Entry.Path;
 
-    internal string SchemaId { get; }
+    internal string SchemaId => Entry.SchemaId;
 
-    internal string ContentHash { get; }
+    internal string ContentHash => Entry.ContentHash;
 }
 
 /// <summary>One hash-verified firmware-family document from a trusted bundle snapshot.</summary>
-internal sealed class TrustedFirmwareFamilyDocumentEntry
+internal sealed class TrustedFirmwareFamilyDocumentEntry(
+    TrustedProfileBundleDocumentIdentity identity,
+    JsonElement document)
 {
-    internal TrustedFirmwareFamilyDocumentEntry(
-        TrustedProfileBundleDocumentIdentity identity,
-        JsonElement document)
-    {
-        ArgumentNullException.ThrowIfNull(identity);
-        Identity = identity;
-        Document = document;
-    }
-
-    internal TrustedProfileBundleDocumentIdentity Identity { get; }
+    internal TrustedProfileBundleDocumentIdentity Identity { get; } =
+        identity ?? throw new ArgumentNullException(nameof(identity));
 
     /// <summary>Immutable canonical JSON tree whose DTO compatibility was verified from the captured snapshot.</summary>
-    internal JsonElement Document { get; }
+    internal JsonElement Document { get; } = document;
 }
 
 /// <summary>One hash-verified composition-profile document from a trusted bundle snapshot.</summary>
-internal sealed class TrustedCompositionProfileDocumentEntry
+internal sealed class TrustedCompositionProfileDocumentEntry(
+    TrustedProfileBundleDocumentIdentity identity,
+    JsonElement document)
 {
-    internal TrustedCompositionProfileDocumentEntry(
-        TrustedProfileBundleDocumentIdentity identity,
-        JsonElement document)
-    {
-        ArgumentNullException.ThrowIfNull(identity);
-        Identity = identity;
-        Document = document;
-    }
-
-    internal TrustedProfileBundleDocumentIdentity Identity { get; }
+    internal TrustedProfileBundleDocumentIdentity Identity { get; } =
+        identity ?? throw new ArgumentNullException(nameof(identity));
 
     /// <summary>Immutable canonical JSON tree whose DTO compatibility was verified from the captured snapshot.</summary>
-    internal JsonElement Document { get; }
+    internal JsonElement Document { get; } = document;
 }
 
 /// <summary>
@@ -70,9 +52,6 @@ internal sealed class TrustedProfileBundleDocumentProjection
 
     internal const string CompositionProfileSchemaId =
         "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json";
-
-    private readonly TrustedFirmwareFamilyDocumentEntry[] _families;
-    private readonly TrustedCompositionProfileDocumentEntry[] _profiles;
 
     internal TrustedProfileBundleDocumentProjection(
         string manifestSha256,
@@ -119,11 +98,11 @@ internal sealed class TrustedProfileBundleDocumentProjection
             }
         }
 
-        _families = [.. families];
-        _profiles = [.. profiles];
-        Array.Sort(_families, static (left, right) =>
+        TrustedFirmwareFamilyDocumentEntry[] familySnapshot = [.. families];
+        TrustedCompositionProfileDocumentEntry[] profileSnapshot = [.. profiles];
+        Array.Sort(familySnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.Identity.EntryId, right.Identity.EntryId));
-        Array.Sort(_profiles, static (left, right) =>
+        Array.Sort(profileSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.Identity.EntryId, right.Identity.EntryId));
 
         ManifestSha256 = manifestSha256;
@@ -131,8 +110,8 @@ internal sealed class TrustedProfileBundleDocumentProjection
         BundleVersion = manifest.BundleVersion;
         BundleContentHash = manifest.ContentHash;
         TrustAnchorBindingId = manifest.TrustAnchorBindingId;
-        Families = Array.AsReadOnly(_families);
-        Profiles = Array.AsReadOnly(_profiles);
+        Families = Array.AsReadOnly(familySnapshot);
+        Profiles = Array.AsReadOnly(profileSnapshot);
     }
 
     internal string ManifestSha256 { get; }

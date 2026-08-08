@@ -42,8 +42,6 @@ internal sealed record ProfileBundlePackageTrustEntry(
 /// <summary>Immutable versioned package trust material.</summary>
 internal sealed class ProfileBundlePackageTrustIndex
 {
-    private readonly ProfileBundlePackageTrustEntry[] _bundles;
-
     internal ProfileBundlePackageTrustIndex(
         string schemaVersion,
         string trustIndexId,
@@ -56,22 +54,22 @@ internal sealed class ProfileBundlePackageTrustIndex
         ArgumentException.ThrowIfNullOrWhiteSpace(trustIndexVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
         ArgumentNullException.ThrowIfNull(bundles);
-        _bundles = [.. bundles];
-        if (_bundles.Length == 0 || _bundles.Any(static bundle => bundle is null))
+        ProfileBundlePackageTrustEntry[] bundleSnapshot = [.. bundles];
+        if (bundleSnapshot.Length == 0 || bundleSnapshot.Any(static bundle => bundle is null))
         {
             throw new ArgumentException("A package trust index requires non-null bundle entries.", nameof(bundles));
         }
 
-        if (_bundles.Select(static bundle => bundle.BundleDirectory)
+        if (bundleSnapshot.Select(static bundle => bundle.BundleDirectory)
             .Distinct(StringComparer.Ordinal)
-            .Count() != _bundles.Length)
+            .Count() != bundleSnapshot.Length)
         {
             throw new InvalidDataException("Package trust-index bundle directories must be unique.");
         }
 
         ProfileBundleRuntimeRegistration[] registrations =
         [
-            .. _bundles.SelectMany(static bundle => bundle.RuntimeRegistrations),
+            .. bundleSnapshot.SelectMany(static bundle => bundle.RuntimeRegistrations),
         ];
         if (registrations.Select(CreateRegistrationKey)
             .Distinct(StringComparer.Ordinal)
@@ -81,7 +79,7 @@ internal sealed class ProfileBundlePackageTrustIndex
         }
         ProfileBundleMetadataProviderFamily[] metadataProviders =
         [
-            .. _bundles.SelectMany(static bundle => bundle.MetadataProviderFamilies),
+            .. bundleSnapshot.SelectMany(static bundle => bundle.MetadataProviderFamilies),
         ];
         if (metadataProviders
                 .Select(static provider => $"{provider.FamilyId}\n{provider.FamilyVersion}")
@@ -92,13 +90,13 @@ internal sealed class ProfileBundlePackageTrustIndex
                 "Package trust-index metadata provider families must be unique.");
         }
 
-        Array.Sort(_bundles, static (left, right) =>
+        Array.Sort(bundleSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.BundleDirectory, right.BundleDirectory));
         SchemaVersion = schemaVersion;
         TrustIndexId = trustIndexId;
         TrustIndexVersion = trustIndexVersion;
         TrustAnchorBindingId = trustAnchorBindingId;
-        Bundles = Array.AsReadOnly(_bundles);
+        Bundles = Array.AsReadOnly(bundleSnapshot);
     }
 
     internal string SchemaVersion { get; }

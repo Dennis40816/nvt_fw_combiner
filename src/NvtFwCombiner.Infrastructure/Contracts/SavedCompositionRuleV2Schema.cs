@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using Json.Schema;
 using NvtFwCombiner.Infrastructure.Bundles;
@@ -17,7 +16,12 @@ internal static class SavedCompositionRuleV2Schema
     private const string ResourceName =
         "NvtFwCombiner.Infrastructure.Contracts.Schemas.saved-composition-rule-v2.schema.json";
 
-    private static readonly Lazy<JsonSchema> LazySchema = new(LoadSchema);
+    private static readonly Lazy<JsonSchema> LazySchema = new(() =>
+        ProfileBundleSchemaValidator.LoadEmbeddedSchema(
+            typeof(SavedCompositionRuleV2Schema),
+            ResourceName,
+            SchemaId,
+            $"Embedded Saved Composition Rule schema resource '{ResourceName}' is missing."));
 
     internal static bool IsValid(JsonElement document)
     {
@@ -26,16 +30,4 @@ internal static class SavedCompositionRuleV2Schema
             document);
     }
 
-    private static JsonSchema LoadSchema()
-    {
-        Assembly assembly = typeof(SavedCompositionRuleV2Schema).Assembly;
-        using Stream stream = assembly.GetManifestResourceStream(ResourceName) ??
-            throw new InvalidOperationException(
-                $"Embedded Saved Composition Rule schema resource '{ResourceName}' is missing.");
-        using var document = JsonDocument.Parse(stream);
-        return ProfileBundleSchemaValidator.ParseSchema(
-            ResourceName,
-            SchemaId,
-            document.RootElement);
-    }
 }

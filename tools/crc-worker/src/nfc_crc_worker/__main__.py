@@ -1,10 +1,7 @@
 """One-shot stdin/stdout entry point for the NFC CRC worker."""
 
-from __future__ import annotations
-
 import json
 import sys
-from typing import NoReturn
 
 from . import __version__
 from .crc import crc32_mpeg2
@@ -17,14 +14,7 @@ _CRC32_MPEG2_CHECK_VALUE = 0x0376E6E7
 
 def _write_response(document: dict[str, object]) -> None:
     encoded = json.dumps(document, ensure_ascii=True, separators=(",", ":"))
-    sys.stdout.write(encoded)
-    sys.stdout.write("\n")
-    sys.stdout.flush()
-
-
-def _fail(error: WorkerError) -> NoReturn:
-    _write_response(error_response(error, __version__))
-    raise SystemExit(int(error.exit_code))
+    print(encoded, flush=True)
 
 
 def _self_test() -> None:
@@ -69,7 +59,8 @@ def main() -> int:
         _write_response(success_response(request, value, __version__))
         return int(ExitCode.SUCCESS)
     except WorkerError as error:
-        _fail(error)
+        _write_response(error_response(error, __version__))
+        raise SystemExit(int(error.exit_code)) from None
 
 
 if __name__ == "__main__":  # pragma: no cover - exercised by process tests
