@@ -42,7 +42,7 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(new AuthoringRevision(3), dp.AuthoringRevision);
         Assert.Equal("dp-input", dp.SlotIdentity.DefinitionId);
         Assert.Equal("dp-input.bin", dp.SlotIdentity.SelectedPath);
-        Assert.Equal(Capacity, dp.SlotIdentity.FileStamp!.Value.Length);
+        Assert.Equal(Capacity, dp.SlotIdentity.FileStamp!.Value.AcceptedLength);
         Assert.All(
             snapshot.PendingItems,
             static item =>

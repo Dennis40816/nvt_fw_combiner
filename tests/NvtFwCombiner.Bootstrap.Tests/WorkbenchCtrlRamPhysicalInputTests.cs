@@ -147,7 +147,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             AssertMappedBytes(request, nfBytes, 0x0000, 0x1F800, 0x0010);
             AssertMappedBytes(request, nfBytes, 0x1F90, 0x1F810, 0x0FC0);
             AssertMappedBytes(request, nfBytes, 0x0000, 0x28800, 0x0FD0);
-            return ExternalProcessorResult.Success(request.InputBytes, []);
+            return ExternalProcessorResult.Success(request.InputBytes, [], []);
         });
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
@@ -180,7 +180,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         byte[] nfBytes = [.. Enumerable.Range(0, 0x2F50).Select(index => unchecked((byte)((index * 37) + 11)))];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = basePath,
@@ -222,7 +222,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
             [WorkbenchSlotIds.ReplaceBase] = basePath,
@@ -258,7 +258,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string basePath = workspace.Write("base.bin", new byte[0x40000]);
         string nfPath = workspace.Write("NF_Ctrlram.bin", [0x10]);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
 
         WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
             "NT51927",

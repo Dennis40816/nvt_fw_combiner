@@ -229,9 +229,14 @@ public sealed partial class CompositionRunService
                 ]);
             return new CompositionRunResult(
                 previewRequired.Status,
-                [],
+                ReadOnlyMemory<byte>.Empty,
                 failedReport,
-                committedOutputId: null);
+                committedOutputId: null,
+                previewToken: null,
+                inspectionOutputSpaceId: null,
+                inspectionReferenceSpaceId: null,
+                inspectionReferenceBytes: null,
+                inspectionOutputBytes: null);
         }
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);

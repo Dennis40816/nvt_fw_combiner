@@ -27,7 +27,7 @@ public sealed class SystemInformationServiceTests
         Assert.False(refreshed.IsBuildBlocked);
         Assert.Empty(refreshed.ActiveDiagnostics);
         Assert.Equal(1, catalog.ReloadCount);
-        Assert.Contains(service.Transitions, transition =>
+        Assert.Contains(service.CreateBundle().Transitions, transition =>
             transition.ResolvedCodes.Contains(
                 SystemDiagnosticCodes.CapabilityCatalogUnavailable,
                 StringComparer.Ordinal));
@@ -132,7 +132,7 @@ public sealed class SystemInformationServiceTests
         _ = service.Refresh(true, TestContext.Current.CancellationToken);
         SystemDiagnosticsBundle bundle = service.CreateBundle();
 
-        Assert.Equal(2, service.Transitions.Count);
+        Assert.Equal(2, bundle.Transitions.Count);
         Assert.Equal(SystemDiagnosticsBundle.CurrentSchemaVersion, bundle.SchemaVersion);
         Assert.DoesNotContain(
             typeof(SystemDiagnosticsBundle).GetProperties(),

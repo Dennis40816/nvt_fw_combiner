@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -338,22 +339,22 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Fact]
     public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
     {
-        IReadOnlyList<IcNumberChoice> nt51932 = IcNumberChoicePolicy.GetNumberSelectionChoices(
+        IReadOnlyList<CapabilityNumberChoice> nt51932 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"));
-        IReadOnlyList<IcNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
+        IReadOnlyList<CapabilityNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51927"));
 
         Assert.Equal(
             [
-                new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("cascade_2to8", "2–8 IC"),
+                new CapabilityNumberChoice("single", "1 IC"),
+                new CapabilityNumberChoice("cascade_2to8", "2–8 IC"),
             ],
             nt51932);
         Assert.Equal(
             [
-                new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("2", "2 IC"),
-                new IcNumberChoice("3", "3 IC"),
+                new CapabilityNumberChoice("single", "1 IC"),
+                new CapabilityNumberChoice("2", "2 IC"),
+                new CapabilityNumberChoice("3", "3 IC"),
             ],
             nt51927);
     }

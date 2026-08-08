@@ -68,24 +68,22 @@ public static class MemoryLayoutProjector
                 initialization,
                 slotsBySpace,
                 statesById);
-        IReadOnlyList<MemoryLayoutSegment> beforeSnapshot = Array.AsReadOnly(before);
-        IReadOnlyList<MemoryLayoutSegment> afterSnapshot = compiledOverlay is null
-            ? beforeSnapshot
-            : Array.AsReadOnly(
-                ApplyOperations(
-                    primaryRegions,
-                    map.AddressSpaceId,
-                    composition,
-                    slotsBySpace,
-                    statesById));
+        MemoryLayoutSegment[] after = compiledOverlay is null
+            ? before
+            : ApplyOperations(
+                primaryRegions,
+                map.AddressSpaceId,
+                composition,
+                slotsBySpace,
+                statesById);
 
         return new MemoryLayoutSnapshot(
             capability,
             authoring,
             map,
             resolvedMap.CapacityBytes,
-            beforeSnapshot,
-            afterSnapshot,
+            before,
+            after,
             pendingItems);
     }
 
@@ -211,7 +209,7 @@ public static class MemoryLayoutProjector
                     readiness,
                     prerequisite,
                     nextAction,
-                    state.FileStamp?.Length,
+                    state.FileStamp?.AcceptedLength,
                     severity,
                     state.BlockingIssue is null
                         ? null

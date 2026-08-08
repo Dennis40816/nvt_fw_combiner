@@ -92,13 +92,13 @@ public sealed class RawBinaryEditorSessionTests
         _ = session.Load([0x11, 0x22, 0x33]);
         Assert.True(session.InsertZeroBefore("0x1").Succeeded);
 
-        RawBinaryEditorViewport viewport = session.CreateViewport("0x0");
+        RawBinaryEditorViewport viewport = session.CreatePage(0, maximumRows: 1);
         RawBinaryEditorViewportRow row = Assert.Single(viewport.Rows);
 
         Assert.Equal((byte)0x11, row.Bytes[0].CurrentValue);
         Assert.Equal((byte)0x11, row.Bytes[0].OriginalValue);
         Assert.Equal((byte)0x00, row.Bytes[1].CurrentValue);
-        Assert.False(row.Bytes[1].HasOriginalValue);
+        Assert.Null(row.Bytes[1].OriginalAddress);
         Assert.False(row.Bytes[1].IsDataChanged);
         Assert.True(row.Bytes[1].IsChanged);
         Assert.Equal((byte)0x22, row.Bytes[2].CurrentValue);
@@ -110,8 +110,7 @@ public sealed class RawBinaryEditorSessionTests
         Assert.Equal((byte)0x33, row.Bytes[3].CurrentValue);
         Assert.Equal(2, row.Bytes[3].OriginalAddress);
         Assert.Null(row.Bytes[3].OriginalValueAtAddress);
-        Assert.False(row.Bytes[3].HasOriginalValueAtAddress);
-        Assert.True(row.HasChanges);
+        Assert.Contains(row.Bytes, static value => value.IsChanged);
     }
 
     /// <summary>Keeps one structural block after deletion even when shifted byte values happen to match by address.</summary>
@@ -252,15 +251,6 @@ public sealed class RawBinaryEditorSessionTests
         Assert.Equal(
             RawBinaryEditorIssueCode.AddressOutOfRange,
             session.DeleteByte("0x1").Issue?.Code);
-        Assert.Equal(
-            RawBinaryEditorIssueCode.InvalidAddress,
-            session.CreateViewport("bad").Issue?.Code);
-        Assert.Equal(
-            RawBinaryEditorIssueCode.InvalidAddress,
-            session.CreateViewport("10").Issue?.Code);
-        Assert.Equal(
-            RawBinaryEditorIssueCode.InvalidAddress,
-            session.CreateViewport("0X0").Issue?.Code);
     }
 
     /// <summary>Finds printable ASCII in the memory buffer and wraps only after the requested starting point.</summary>
@@ -270,9 +260,9 @@ public sealed class RawBinaryEditorSessionTests
         var session = new RawBinaryEditorSession();
         _ = session.Load("NVT first NVT second"u8);
 
-        RawBinaryEditorSearchResult first = session.FindAscii("NVT", 0, TestContext.Current.CancellationToken);
-        RawBinaryEditorSearchResult second = session.FindAscii("NVT", first.Address + 1, TestContext.Current.CancellationToken);
-        RawBinaryEditorSearchResult wrapped = session.FindAscii("NVT", second.Address + 1, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult first = FindAscii(session, "NVT", 0, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult second = FindAscii(session, "NVT", first.Address + 1, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult wrapped = FindAscii(session, "NVT", second.Address + 1, TestContext.Current.CancellationToken);
 
         Assert.True(first.Succeeded);
         Assert.Equal(0, first.Address);
@@ -286,10 +276,10 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(wrapped.Wrapped);
         Assert.Equal(
             RawBinaryEditorIssueCode.InvalidAsciiText,
-            session.FindAscii("測試", 0, TestContext.Current.CancellationToken).Issue?.Code);
+            FindAscii(session, "測試", 0, TestContext.Current.CancellationToken).Issue?.Code);
         Assert.Equal(
             RawBinaryEditorIssueCode.AsciiTextNotFound,
-            session.FindAscii("missing", 0, TestContext.Current.CancellationToken).Issue?.Code);
+            FindAscii(session, "missing", 0, TestContext.Current.CancellationToken).Issue?.Code);
     }
 
     /// <summary>Wraps from the document start when the next-search offset is exactly at EOF.</summary>
@@ -299,7 +289,7 @@ public sealed class RawBinaryEditorSessionTests
         var session = new RawBinaryEditorSession();
         _ = session.Load([0x00, (byte)'T']);
 
-        RawBinaryEditorSearchResult result = session.FindAscii("T", 2, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult result = FindAscii(session, "T", 2, TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Address);
@@ -313,7 +303,7 @@ public sealed class RawBinaryEditorSessionTests
         var session = new RawBinaryEditorSession();
         _ = session.Load(Enumerable.Repeat((byte)'A', 8192).ToArray());
 
-        RawBinaryEditorSearchResult result = session.FindAscii("A", 7000, TestContext.Current.CancellationToken);
+        RawBinaryEditorSearchResult result = FindAscii(session, "A", 7000, TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded);
         Assert.Equal(8192, result.TotalMatchCount);
@@ -335,7 +325,7 @@ public sealed class RawBinaryEditorSessionTests
 
         _ = Assert.Throws<OperationCanceledException>(() =>
         {
-            _ = session.FindAscii("NVT", 0, cancellation.Token);
+            _ = FindAscii(session, "NVT", 0, cancellation.Token);
         });
         _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
         {
@@ -572,5 +562,15 @@ public sealed class RawBinaryEditorSessionTests
         Assert.True(result.State.HasUnsavedChanges);
         TestContext.Current.TestOutputHelper?.WriteLine(
             $"RAW_EDITOR_INSERT bytes={byteCount} elapsedMs={timer.Elapsed.TotalMilliseconds:F3}");
+    }
+
+    private static RawBinaryEditorSearchResult FindAscii(
+        RawBinaryEditorSession session,
+        string text,
+        long startOffset,
+        CancellationToken cancellationToken)
+    {
+        Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
+        return RawBinaryEditorSearch.Find(bytes, session.State, text, startOffset, cancellationToken);
     }
 }

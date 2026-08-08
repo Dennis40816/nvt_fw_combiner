@@ -451,7 +451,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             CancellationToken cancellationToken)
         {
             CallCount++;
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 
@@ -465,7 +465,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             output[mutationOffset] ^= 0x01;
             return ValueTask.FromResult(ExternalProcessorResult.Success(
                 output,
-                [new ByteRange(mutationOffset, 1)]));
+                [new ByteRange(mutationOffset, 1)], []));
         }
     }
 }

@@ -41,12 +41,9 @@ public sealed class ReplaceAuthoringSessionSetTests
     public void ReplaceModesRestoreOnlyTheirOwnSlotsDraftReadinessAndResults()
     {
         var sessions = new ReplaceAuthoringSessionSet();
-        AuthoringSessionState dp = sessions.ForWorkflow(
-            ExperienceIds.DpReplace);
-        AuthoringSessionState ctrlRam = sessions.ForWorkflow(
-            ExperienceIds.CtrlRamReplace);
-        AuthoringSessionState general = sessions.ForWorkflow(
-            ExperienceIds.GeneralReplace);
+        AuthoringSessionState dp = sessions.DpReplace;
+        AuthoringSessionState ctrlRam = sessions.CtrlRamReplace;
+        AuthoringSessionState general = sessions.GeneralReplace;
 
         _ = Activate(
             dp,
@@ -113,13 +110,9 @@ public sealed class ReplaceAuthoringSessionSetTests
             AuthoringDerivedResultKind.Preview,
             "general-preview");
 
-        Assert.Same(dp, sessions.ForWorkflow(ExperienceIds.DpReplace));
-        Assert.Same(
-            ctrlRam,
-            sessions.ForWorkflow(ExperienceIds.CtrlRamReplace));
-        Assert.Same(
-            general,
-            sessions.ForWorkflow(ExperienceIds.GeneralReplace));
+        Assert.Same(dp, sessions.DpReplace);
+        Assert.Same(ctrlRam, sessions.CtrlRamReplace);
+        Assert.Same(general, sessions.GeneralReplace);
         Assert.Equal(@"C:\firmware\dp.bin", SelectedPath(dp, "dp"));
         Assert.Empty(dp.CurrentSnapshot!.DerivedPublications);
         Assert.Equal(
@@ -283,9 +276,8 @@ public sealed class ReplaceAuthoringSessionSetTests
                 "reference",
                 "ctrlram-master"));
         var desktopSessions = new ReplaceAuthoringSessionSet();
-        AuthoringSessionState desktop = desktopSessions.ForWorkflow(
-            ExperienceIds.CtrlRamReplace);
-        AuthoringSessionState cli = ReplaceAuthoringSessionSet.CreateEphemeral(
+        AuthoringSessionState desktop = desktopSessions.CtrlRamReplace;
+        var cli = new AuthoringSessionState(
             ExperienceIds.CtrlRamReplace);
         _ = Activate(desktop, catalog);
         _ = Activate(cli, catalog);
@@ -324,19 +316,6 @@ public sealed class ReplaceAuthoringSessionSetTests
             @"C:\firmware\ctrlram.bin",
             SelectedPath(cli, "ctrlram-master"));
         Assert.Empty(cli.CurrentSnapshot!.DerivedPublications);
-    }
-
-    /// <summary>The fixed Replace set rejects Merge workflows and arbitrary session growth.</summary>
-    [Fact]
-    public void ReplaceSessionSetRejectsMergeWorkflows()
-    {
-        var sessions = new ReplaceAuthoringSessionSet();
-
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            sessions.ForWorkflow(ExperienceIds.StandardMerge));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            ReplaceAuthoringSessionSet.CreateEphemeral(
-                ExperienceIds.GeneralMerge));
     }
 
     private static string? SelectedPath(

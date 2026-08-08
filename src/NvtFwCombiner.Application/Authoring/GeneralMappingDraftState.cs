@@ -161,24 +161,6 @@ public sealed record GeneralMappingSource
             value,
             acceptedFileStamp: null);
     }
-
-    /// <summary>Returns the same selected reference bound to accepted bytes.</summary>
-    public GeneralMappingSource WithAcceptedFileStamp(FileStamp fileStamp)
-    {
-        return Kind == GeneralMappingSourceKind.FileArtifact
-            ? File(Reference, fileStamp)
-            : throw new InvalidOperationException(
-                "Only file-backed General sources can accept a content stamp.");
-    }
-
-    /// <summary>Returns a newly selected file reference pending inspection.</summary>
-    public GeneralMappingSource RebindSelectedFile(string selectedPath)
-    {
-        return Kind == GeneralMappingSourceKind.FileArtifact
-            ? File(selectedPath)
-            : throw new InvalidOperationException(
-                "Only file-backed General sources can be rebound.");
-    }
 }
 
 /// <summary>
@@ -347,7 +329,10 @@ public sealed record GeneralMappingDraftRow
         return new GeneralMappingDraftRow(
             MappingId,
             OperationKind,
-            Source.WithAcceptedFileStamp(fileStamp),
+            Source.Kind == GeneralMappingSourceKind.FileArtifact
+                ? GeneralMappingSource.File(Source.Reference, fileStamp)
+                : throw new InvalidOperationException(
+                    "Only file-backed General sources can accept a content stamp."),
             SourceRange,
             TargetAddressSpaceId,
             TargetRange,
@@ -365,7 +350,10 @@ public sealed record GeneralMappingDraftRow
         return new GeneralMappingDraftRow(
             MappingId,
             OperationKind,
-            Source.RebindSelectedFile(selectedPath),
+            Source.Kind == GeneralMappingSourceKind.FileArtifact
+                ? GeneralMappingSource.File(selectedPath)
+                : throw new InvalidOperationException(
+                    "Only file-backed General sources can be rebound."),
             SourceRange,
             TargetAddressSpaceId,
             TargetRange,

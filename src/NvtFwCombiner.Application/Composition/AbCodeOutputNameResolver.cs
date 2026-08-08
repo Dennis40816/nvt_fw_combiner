@@ -14,11 +14,6 @@ internal static class AbCodeOutputNameResolver
         DateTimeOffset startedAtUtc)
     {
         CompiledOutputNamingRequirement output = request.CompiledComposition.V2Details.OutputNamingRequirement;
-        if (output?.RendererKind != CompiledOutputNameRendererKind.AbCodeV1)
-        {
-            return OutputNameResolution.Static(request.OutputFileName);
-        }
-
         TokenResolution dpA = ReadDpToken(
             request,
             output,

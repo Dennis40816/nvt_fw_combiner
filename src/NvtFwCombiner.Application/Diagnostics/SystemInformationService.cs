@@ -9,9 +9,6 @@ public interface ISystemInformationService
     /// <summary>Latest immutable observation.</summary>
     SystemInformationSnapshot Current { get; }
 
-    /// <summary>Bounded activation/resolution transitions for this process session.</summary>
-    IReadOnlyList<SystemDiagnosticTransition> Transitions { get; }
-
     /// <summary>Reprobes runtime state and optionally reloads the canonical catalog first.</summary>
     SystemInformationSnapshot Refresh(bool reloadCatalog, CancellationToken cancellationToken);
 
@@ -63,18 +60,6 @@ public sealed class SystemInformationService : ISystemInformationService
             lock (_gate)
             {
                 return _current;
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    public IReadOnlyList<SystemDiagnosticTransition> Transitions
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return Array.AsReadOnly([.. _transitions]);
             }
         }
     }

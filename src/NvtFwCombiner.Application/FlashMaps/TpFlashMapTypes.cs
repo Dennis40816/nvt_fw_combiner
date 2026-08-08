@@ -83,8 +83,6 @@ public sealed class TpFlashMapRegion
     /// <summary>Additional row tags such as diff, slave, or preserve.</summary>
     public IReadOnlyList<string> Tags { get; }
 
-    /// <summary>True when the region is hidden for single-chip selections.</summary>
-    public bool IsHiddenInSingle => Visibility != TpFlashMapRegionVisibility.Always;
 }
 
 /// <summary>TP Overview flash-map profile for one selectable IC id.</summary>

@@ -99,4 +99,59 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("CtrlRamReplace", headless, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", headless, StringComparison.Ordinal);
     }
+
+    /// <summary>Application audit-B compatibility aliases and private inspection mirrors stay retired.</summary>
+    [Fact]
+    public void ApplicationAuditBCompatibilitySurfacesStayRetired()
+    {
+        string inputInspectionRoot = Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "InputInspection");
+        string inspectionService = ReadText(
+                "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs")
+            .ReplaceLineEndings("\n");
+        string readiness = ReadText(
+            "src/NvtFwCombiner.Application/Capabilities/InputSelectionReadiness.cs");
+        string numberPolicy = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/IcNumberChoicePolicy.cs");
+        string runtimeReadiness = ReadText(
+            "src/NvtFwCombiner.Application/ExternalTools/RuntimeDependencyReadiness.cs");
+        string fileStamp = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/FileStamp.cs");
+        string workflow = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
+        string memoryLayout = ReadText(
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
+        string versionPlan = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/FirmwareConfigVersionWritePlan.cs");
+        string flashMapTypes = ReadText(
+            "src/NvtFwCombiner.Application/FlashMaps/TpFlashMapTypes.cs");
+
+        Assert.False(File.Exists(Path.Combine(inputInspectionRoot, "InputArtifactInspection.cs")));
+        Assert.False(File.Exists(Path.Combine(inputInspectionRoot, "DeclaredPrefixInputInspector.cs")));
+        Assert.False(File.Exists(Path.Combine(inputInspectionRoot, "DeclaredPrefixInputInspectionPolicy.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "FlashMaps",
+            "IcNumberChoice.cs")));
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                inspectionService,
+                "public static CompiledInputArtifactInspectionResult Inspect("));
+        Assert.DoesNotContain("ProjectMetadataDependency", readiness, StringComparison.Ordinal);
+        Assert.Contains("CapabilityNumberChoice", numberPolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("record IcNumberChoice", numberPolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool IsReady", runtimeReadiness, StringComparison.Ordinal);
+        Assert.DoesNotContain("public long Length", fileStamp, StringComparison.Ordinal);
+        Assert.Contains("acceptedFileStamps[prerequisiteSlot].AcceptedLength", workflow, StringComparison.Ordinal);
+        Assert.Contains("state.FileStamp?.AcceptedLength", memoryLayout, StringComparison.Ordinal);
+        Assert.DoesNotContain("SourceFirmwareVersionAndBarBytes", versionPlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("SourceFirmwareSubVersionBytes", versionPlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsHiddenInSingle", flashMapTypes, StringComparison.Ordinal);
+    }
 }

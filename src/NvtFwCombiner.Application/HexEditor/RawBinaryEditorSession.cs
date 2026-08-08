@@ -10,8 +10,6 @@ namespace NvtFwCombiner.Application.HexEditor;
 public sealed partial class RawBinaryEditorSession
 {
     private const int BytesPerRow = 16;
-    private const int ViewportRowCount = 32;
-    private const int ViewportContextRows = 4;
     private const int InsertedOriginalOffset = -1;
 
     /// <summary>Maximum zero-filled bytes accepted by one bounded insert operation.</summary>
@@ -60,39 +58,6 @@ public sealed partial class RawBinaryEditorSession
         return GetState();
     }
 
-    /// <summary>Builds a bounded viewport around a user-entered offset without rereading the source file.</summary>
-    public RawBinaryEditorViewport CreateViewport(string requestedAddress)
-    {
-        ArgumentNullException.ThrowIfNull(requestedAddress);
-        return !TryRequireDocument(out RawBinaryEditorIssue? issue)
-            ? CreateViewportFailure(issue!)
-            : TryParseAddress(requestedAddress, out long requested)
-            ? CreateViewport(requested)
-            : CreateViewportFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.InvalidAddress));
-    }
-
-    /// <summary>Builds a bounded viewport around one checked working-buffer offset.</summary>
-    public RawBinaryEditorViewport CreateViewport(long requestedAddress)
-    {
-        if (!TryRequireDocument(out RawBinaryEditorIssue? issue))
-        {
-            return CreateViewportFailure(issue!);
-        }
-
-        if (_working!.Count == 0 || requestedAddress < 0 || requestedAddress >= _working.Count)
-        {
-            return CreateViewportFailure(new RawBinaryEditorIssue(RawBinaryEditorIssueCode.AddressOutOfRange));
-        }
-
-        int requested = checked((int)requestedAddress);
-        int requestedRow = requested - (requested % BytesPerRow);
-        int contextualStart = Math.Max(0, requestedRow - (ViewportContextRows * BytesPerRow));
-        int finalRowStart = (_working.Count - 1) / BytesPerRow * BytesPerRow;
-        int start = Math.Min(contextualStart, finalRowStart);
-        int length = Math.Min(_working.Count - start, BytesPerRow * ViewportRowCount);
-        return CreateViewportWindow(start, length);
-    }
-
     /// <summary>Builds one aligned bounded page from the in-memory work buffer without any source-file read.</summary>
     public RawBinaryEditorViewport CreatePage(long requestedAddress, int maximumRows)
     {
@@ -115,32 +80,6 @@ public sealed partial class RawBinaryEditorSession
         int start = requested - (requested % BytesPerRow);
         int length = Math.Min(_working.Count - start, checked(maximumRows * BytesPerRow));
         return CreateViewportWindow(start, length);
-    }
-
-    /// <summary>
-    /// Finds printable ASCII text in the current work buffer. The search starts at the requested
-    /// offset and wraps once, so repeated searches can cycle through every matching occurrence.
-    /// </summary>
-    public RawBinaryEditorSearchResult FindAscii(string text, long startOffset)
-    {
-        return FindAscii(text, startOffset, CancellationToken.None);
-    }
-
-    /// <summary>Finds printable ASCII text while honoring host-requested cancellation.</summary>
-    public RawBinaryEditorSearchResult FindAscii(
-        string text,
-        long startOffset,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-        return !TryRequireDocument(out RawBinaryEditorIssue? issue)
-            ? SearchFailure(issue!)
-            : RawBinaryEditorSearch.Find(
-                _working!.ToArray(),
-                GetState(),
-                text,
-                startOffset,
-                cancellationToken);
     }
 
     private RawBinaryEditorViewport CreateViewportWindow(int start, int length)
@@ -595,11 +534,6 @@ public sealed partial class RawBinaryEditorSession
     private RawBinaryEditorOperationResult Success()
     {
         return new RawBinaryEditorOperationResult(GetState());
-    }
-
-    private RawBinaryEditorSearchResult SearchFailure(RawBinaryEditorIssue issue)
-    {
-        return new RawBinaryEditorSearchResult(GetState(), [], Issue: issue);
     }
 
     private RawBinaryEditorOperationResult Failure(RawBinaryEditorIssue issue)

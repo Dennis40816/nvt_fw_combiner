@@ -39,14 +39,6 @@ public sealed class ExternalProcessorResult
     /// <summary>Completed external process calls with the exact expanded argv passed to the runner.</summary>
     public IReadOnlyList<ExternalProcessInvocation> ExecutedCommands => _executedCommands;
 
-    /// <summary>Creates a successful transform result.</summary>
-    public static ExternalProcessorResult Success(
-        ReadOnlyMemory<byte> outputBytes,
-        IReadOnlyList<ByteRange> changedRanges)
-    {
-        return Success(outputBytes, changedRanges, []);
-    }
-
     /// <summary>Creates a successful transform result with completed process audit evidence.</summary>
     public static ExternalProcessorResult Success(
         ReadOnlyMemory<byte> outputBytes,

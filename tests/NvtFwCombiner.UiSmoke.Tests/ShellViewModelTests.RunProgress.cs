@@ -346,7 +346,7 @@ public sealed partial class ShellViewModelTests
         GeneralMergeDraftState draft = CanonicalAuthoringAdapter.CreateGeneralMergeDraft(
             initializer!,
             mappingsDraft!);
-        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
         AuthoringSlotInspectionStartResult started =
             CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(

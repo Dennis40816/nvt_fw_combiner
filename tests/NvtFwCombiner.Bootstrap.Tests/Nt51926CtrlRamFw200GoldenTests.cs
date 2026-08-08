@@ -435,7 +435,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 

@@ -224,7 +224,6 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
             generation: 1,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.IsReady);
         Assert.Empty(result.Entries);
         Assert.False(Directory.Exists(stagingRoot));
     }

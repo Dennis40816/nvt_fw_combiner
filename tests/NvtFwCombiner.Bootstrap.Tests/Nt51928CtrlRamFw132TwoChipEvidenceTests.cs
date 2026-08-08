@@ -276,7 +276,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 
