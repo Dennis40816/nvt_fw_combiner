@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from dataclasses import replace
 from pathlib import Path
 
 from scripts.code_size_policy import (
@@ -31,14 +30,20 @@ class CodeSizePolicyTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
-    def test_default_targets_match_the_owner_approved_convergence_gate(self) -> None:
+    def test_default_policy_reports_ratchets_without_final_targets(self) -> None:
         findings = review_code_size_policy(self.root)
 
-        self.assertTrue(any("final target <= 44000" in finding for finding in findings))
-        self.assertTrue(any("final target <= 18000" in finding for finding in findings))
-        self.assertTrue(any("final target <= 12000" in finding for finding in findings))
-        self.assertTrue(any("final target <= 7500" in finding for finding in findings))
-        self.assertTrue(any("final target <= 5500" in finding for finding in findings))
+        self.assertTrue(any("runtime production metric" in finding for finding in findings))
+        self.assertTrue(any("Domain + Profiles metric" in finding for finding in findings))
+        self.assertTrue(any("Application metric" in finding for finding in findings))
+        self.assertTrue(any("Bootstrap + CLI metric" in finding for finding in findings))
+        self.assertTrue(
+            any(
+                "Infrastructure + Contracts + CRC worker metric" in finding
+                for finding in findings
+            )
+        )
+        self.assertFalse(any("final target" in finding for finding in findings))
 
     def limits(
         self,
@@ -49,17 +54,11 @@ class CodeSizePolicyTests(unittest.TestCase):
         exact_partials: dict[str, int] | None = None,
         named_partial_maximums: dict[str, int] | None = None,
         runtime_baseline: int | None = None,
-        runtime_target: int | None = None,
         runtime_ratchet: int | None = None,
         domain_profiles_ratchet: int | None = None,
-        domain_profiles_target: int | None = None,
         application_ratchet: int | None = None,
-        application_target: int | None = None,
         bootstrap_cli_ratchet: int | None = None,
-        bootstrap_cli_target: int | None = None,
         infrastructure_contracts_worker_ratchet: int | None = None,
-        infrastructure_contracts_worker_target: int | None = None,
-        enforce_final_targets: bool = False,
     ) -> CodeSizeLimits:
         return CodeSizeLimits(
             production_nonblank=production,
@@ -68,21 +67,13 @@ class CodeSizePolicyTests(unittest.TestCase):
             partial_type_exact_ratchets=exact_partials or {},
             partial_type_named_maximums=named_partial_maximums or {},
             runtime_production_baseline=runtime_baseline,
-            runtime_production_target=runtime_target,
             runtime_production_ratchet=runtime_ratchet,
             domain_profiles_ratchet=domain_profiles_ratchet,
-            domain_profiles_target=domain_profiles_target,
             application_ratchet=application_ratchet,
-            application_target=application_target,
             bootstrap_cli_ratchet=bootstrap_cli_ratchet,
-            bootstrap_cli_target=bootstrap_cli_target,
             infrastructure_contracts_worker_ratchet=(
                 infrastructure_contracts_worker_ratchet
             ),
-            infrastructure_contracts_worker_target=(
-                infrastructure_contracts_worker_target
-            ),
-            enforce_final_targets=enforce_final_targets,
         )
 
     def review(self, limits: CodeSizeLimits) -> list[str]:
@@ -241,16 +232,14 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.write("tools/crc-worker/src/__pycache__/cached.py", "ignored\n")
 
         snapshot = measure_code_size(self.root)
-        findings = self.review(
-            self.limits(production=5, runtime_baseline=4, runtime_target=2)
-        )
+        findings = self.review(self.limits(production=5, runtime_baseline=4))
 
         self.assertEqual(2, snapshot.runtime_production_files)
         self.assertEqual(4, snapshot.runtime_production_nonblank)
         self.assertTrue(
             any(
                 "runtime production metric: 2 files / 4 nonblank lines "
-                "(baseline 4, delta +0; final target <= 2)" in finding
+                "(baseline 4, delta +0)" in finding
                 for finding in findings
             )
         )
@@ -291,7 +280,6 @@ class CodeSizePolicyTests(unittest.TestCase):
             production=6,
             runtime_ratchet=5,
             domain_profiles_ratchet=4,
-            domain_profiles_target=2,
         )
 
         self.assertEqual(2, snapshot.domain_profiles_files)
@@ -320,7 +308,7 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "Domain + Profiles metric: 2 files / 5 nonblank lines "
-                "(ratchet 4; final target <= 2)" in finding
+                "(ratchet 4)" in finding
                 for finding in review_code_size_policy(self.root, limits)
             )
         )
@@ -352,40 +340,6 @@ class CodeSizePolicyTests(unittest.TestCase):
                 "code-size Bootstrap + CLI slice improved: lower ratchet 1 to 0",
             ],
             validate_code_size_policy(self.root, limits),
-        )
-
-    def test_final_gate_activation_enforces_total_and_all_slice_caps(self) -> None:
-        self.write("src/NvtFwCombiner.Domain/Domain.cs", "one\ntwo\n")
-        self.write("src/NvtFwCombiner.Application/App.cs", "one\ntwo\n")
-        self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "one\ntwo\n")
-        self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "one\ntwo\n")
-        limits = self.limits(
-            production=8,
-            runtime_target=7,
-            runtime_ratchet=8,
-            domain_profiles_ratchet=2,
-            domain_profiles_target=1,
-            application_ratchet=2,
-            application_target=1,
-            bootstrap_cli_ratchet=2,
-            bootstrap_cli_target=1,
-            infrastructure_contracts_worker_ratchet=2,
-            infrastructure_contracts_worker_target=1,
-        )
-
-        self.assertEqual([], validate_code_size_policy(self.root, limits))
-        self.assertEqual(
-            [
-                "code-size runtime production exceeded final target: 8 > 7",
-                "code-size Domain + Profiles slice exceeded final target: 2 > 1",
-                "code-size Application slice exceeded final target: 2 > 1",
-                "code-size Bootstrap + CLI slice exceeded final target: 2 > 1",
-                "code-size Infrastructure + Contracts + CRC worker slice exceeded final target: 2 > 1",
-            ],
-            validate_code_size_policy(
-                self.root,
-                replace(limits, enforce_final_targets=True),
-            ),
         )
 
     def test_complete_slice_ratchets_reject_unallocated_runtime_source(self) -> None:

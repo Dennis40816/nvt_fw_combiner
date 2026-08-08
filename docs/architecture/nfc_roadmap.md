@@ -1,6 +1,6 @@
 # NFC Roadmap
 
-Status: active owner roadmap, amended 2026-07-25.
+Status: active owner roadmap, amended 2026-08-08.
 
 This file owns future milestone order and release boundaries only. It does not
 repeat product requirements, architecture decisions, firmware facts, skill
@@ -16,7 +16,8 @@ Canonical detail lives in:
 - the [`0.10.x maintainability design`](0.10.x-maintainability-working-design.md)
   and its linked continuations for architecture reasoning;
 - [`ADR 0021`](../adr/0021-code-size-ratchet-and-convergence.md) for the
-  production-code measurement and target;
+  production-code measurement, exact descending ratchets, and reviewed
+  candidate-ledger completion contract;
 - the [`agent skill inventory`](../governance/agent-skill-inventory.md) and
   [`routing contract`](../governance/agent-skill-routing.md) for adopted
   workflow skills; and
@@ -54,7 +55,8 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    compatibility deletion through #254 as a support-neutral stable checkpoint.
 3. `v0.10.3` completes the remaining approved refactoring graph through #197,
    including deferred UI, Workbench/parallel-catalog deletion, all four Core
-   Convergence slices, and the hard 44,000-line gate.
+   Convergence slices, reviewed line-addressed residual ledgers, and exact
+   descending total and slice ratchets.
 4. `v0.10.4` re-measures that result and audits whether any ownership or code
    can be removed or expressed more simply without weakening evidence.
 5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
@@ -64,11 +66,13 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    network/share, and release-policy contract remains deferred to a later owner
    specification discussion, so no implementation ticket is created yet.
 
-The complete refactoring release `v0.10.3` is downstream of #197 and all applicable
-architecture, firmware-owner, golden, package, clean-Windows, protected-CI, and
-release-owner gates. No roadmap entry may waive those gates or move, overwrite,
-or redefine an existing stable tag or asset. The later audit, performance, and
-update-experience releases do not reopen #197 or weaken its retained gate.
+The complete refactoring release `v0.10.3` is downstream of #197 and all
+applicable architecture, firmware-owner, golden, package, clean-Windows,
+protected-CI, and release-owner gates. The former fixed total and slice targets
+are dated planning benchmarks, not release gates. No roadmap entry may waive
+the retained gates or move, overwrite, or redefine an existing stable tag or
+asset. The later audit, performance, and update-experience releases do not
+reopen #197 or weaken its retained gate.
 
 ## `0.11.0`: AB certification and family evidence
 
