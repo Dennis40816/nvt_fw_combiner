@@ -79,9 +79,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         using var profileDocument = JsonDocument.Parse(profileJson);
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
-                [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())])));
+                [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]));
 
         Assert.Equal("profile-bundle.catalog.logical-member-missing", exception.Code);
         Assert.Equal("logical-profile-entry", exception.EntryId);
@@ -355,9 +355,9 @@ catalog.CompileLogicalOutput(
         string familyHash = Hash(familyJson);
         string profileJson = LogicalOutputProfileJson(familyHash, promotionStage: promotionStage);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(Source(
+        return CreateCatalogFromSources(
             [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
-            [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]));
+            [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]);
     }
 
     private static V2LogicalOutputCompileRequest LogicalRequest(

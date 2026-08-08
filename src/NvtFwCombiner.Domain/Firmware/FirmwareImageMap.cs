@@ -14,9 +14,7 @@ public sealed class FirmwareImageMap
 {
     private readonly FirmwareMapFactBinding<FirmwareRegionSet>[] _regionSetBindings;
     private readonly FirmwareMapFactBinding<FirmwareMetadataSet>[] _metadataSetBindings;
-    private readonly FirmwareRegionSet[] _regionSets;
     private readonly FirmwareRegion[] _regions;
-    private readonly string[] _evidenceRefs;
 
     /// <summary>Creates a checked physical image map from member-scoped immutable fact bindings.</summary>
     internal FirmwareImageMap(
@@ -50,8 +48,8 @@ public sealed class FirmwareImageMap
         ValidateBindingCoverage(_metadataSetBindings, applicability.MemberIds, FirmwareFactKind.MetadataSet);
         ValidateCanonicalValueIdentity(_regionSetBindings);
         ValidateCanonicalValueIdentity(_metadataSetBindings);
-        _regionSets = DeriveCanonicalValues(_regionSetBindings, addressSpaceId);
-        _regions = [.. _regionSets.SelectMany(static set => set.Regions)];
+        FirmwareRegionSet[] regionSetsSnapshot = DeriveCanonicalValues(_regionSetBindings, addressSpaceId);
+        _regions = [.. regionSetsSnapshot.SelectMany(static set => set.Regions)];
         DomainInvariant.Reject(
             _regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
             _regions.Length,
@@ -60,7 +58,7 @@ public sealed class FirmwareImageMap
 
         Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
-        _evidenceRefs = ImmutableStringSnapshot.Create(
+        string[] evidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             "At least one identifier is required.",
@@ -73,9 +71,9 @@ public sealed class FirmwareImageMap
         CoveragePolicy = coveragePolicy;
         RegionSetBindings = Array.AsReadOnly(_regionSetBindings);
         MetadataSetBindings = Array.AsReadOnly(_metadataSetBindings);
-        RegionSets = Array.AsReadOnly(_regionSets);
+        RegionSets = Array.AsReadOnly(regionSetsSnapshot);
         Regions = Array.AsReadOnly(_regions);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     /// <summary>Stable canonical image-map identifier.</summary>

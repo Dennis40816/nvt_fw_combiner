@@ -13,19 +13,17 @@ internal static class TrustedProfileBundleCatalogProjection
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
         ArgumentNullException.ThrowIfNull(projection);
-        return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
+        return TrustedProfileBundleCatalogFactory.Create(
             projection.ManifestSha256,
             new ProfileBundleIdentity(
                 projection.BundleId,
                 projection.BundleVersion,
                 projection.BundleContentHash,
                 projection.TrustAnchorBindingId),
-            projection.Families.Select(static family => new TrustedFirmwareFamilyJsonSource(
-                CopyIdentity(family.Identity),
-                family.Document)),
-            projection.Profiles.Select(static profile => new TrustedCompositionProfileJsonSource(
-                CopyIdentity(profile.Identity),
-                profile.Document))),
+            projection.Families.Select(static family =>
+                (CopyIdentity(family.Identity), family.Document)),
+            projection.Profiles.Select(static profile =>
+                (CopyIdentity(profile.Identity), profile.Document)),
             metadataDefinitionResolver);
     }
 

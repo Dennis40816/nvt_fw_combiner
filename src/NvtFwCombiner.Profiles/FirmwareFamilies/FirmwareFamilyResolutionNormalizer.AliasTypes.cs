@@ -25,10 +25,6 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         IReadOnlyList<AliasDeclaration> AliasChain)
         where TFact : class, IFirmwareMapFact;
 
-    private sealed record CapabilityDirect(
-        FirmwareCapabilityFact Value,
-        FirmwareFactApplicability Applicability);
-
     private sealed class FactAliasResolver<TFact>
         where TFact : class, IFirmwareMapFact
     {

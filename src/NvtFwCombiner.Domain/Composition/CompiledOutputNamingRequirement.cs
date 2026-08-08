@@ -155,7 +155,6 @@ public sealed class CompiledOutputNamingRequirement
     private static readonly char[] WindowsInvalidFileNameCharacters = ['<', '>', '"', '|', '?', '*'];
 
     private readonly string[] _requiredTokenIds;
-    private readonly CompiledOutputTokenRequirement[] _tokenRequirements;
 
     internal CompiledOutputNamingRequirement(
         string fileNameTemplate,
@@ -241,13 +240,13 @@ public sealed class CompiledOutputNamingRequirement
             _requiredTokenIds,
             ruleId,
             outputArtifactType);
-        _tokenRequirements = tokenRequirements is null
+        CompiledOutputTokenRequirement[] tokenRequirementsSnapshot = tokenRequirements is null
             ? CreateLegacyTokenRequirements(RendererKind, _requiredTokenIds)
             : ValidateTypedTokenRequirements(
                 RendererKind,
                 _requiredTokenIds,
                 tokenRequirements);
-        TokenRequirements = Array.AsReadOnly(_tokenRequirements);
+        TokenRequirements = Array.AsReadOnly(tokenRequirementsSnapshot);
     }
 
     /// <summary>Unrendered profile filename template.</summary>

@@ -25,9 +25,9 @@ internal sealed class FirmwareCapabilityFact(
 
     public string CapabilityId { get; } = RequiredValue.NotBlank(capabilityId);
 
-    public FirmwareCapabilityState State { get; } = ClosedEnum.Require(
-        state,
-        "Unknown firmware capability state.");
+    public FirmwareCapabilityState State { get; } = ClosedEnum.IsDefined(state)
+        ? state
+        : throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown firmware capability state.");
 
     public string Reason { get; } = RequiredValue.NotBlank(reason);
 

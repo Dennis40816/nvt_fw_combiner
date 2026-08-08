@@ -32,12 +32,12 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains(
             "byte[] sourceBytes = ReadSlice(sourceBuffer, binding.SourceRange);\n"
-                + "            stagedSources.Add(ExternalProcessorStagedSource.FromOwnedBytes("
+                + "            stagedSources.Add(new ExternalProcessorStagedSource("
                 + "binding.FirmwareRange, sourceBytes));",
             normalizedEngine,
             StringComparison.Ordinal);
         Assert.Contains(
-            "stagedArtifacts.Add(ExternalProcessorStagedArtifact.FromOwnedBytes(\n"
+            "stagedArtifacts.Add(new ExternalProcessorStagedArtifact(\n"
                 + "                binding.ArtifactId,\n"
                 + "                ReadSlice(sourceBuffer, binding.SourceRange)));",
             normalizedEngine,

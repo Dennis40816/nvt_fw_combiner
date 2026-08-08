@@ -87,22 +87,20 @@ public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationConte
 /// <summary>Context for the closed map-bound runtime reference-replace candidate shape.</summary>
 public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2CompilationContext
 {
-    private readonly string[] _processorWriteViewIds;
-
     internal RuntimeReferenceReplaceV2CompilationContext(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool allowsConditionalProcessor,
         IEnumerable<string>? processorWriteViewIds = null)
         : base(resolvedMap)
     {
-        _processorWriteViewIds = ImmutableStringSnapshot.Create(
+        string[] processorWriteViewIdsSnapshot = ImmutableStringSnapshot.Create(
             processorWriteViewIds ?? [],
             nameof(processorWriteViewIds),
             requiredMessage: null,
             "Runtime-reference processor write-view ids must be non-empty.",
             "Runtime-reference processor write-view ids must be ordinally unique.");
         AllowsConditionalProcessor = allowsConditionalProcessor;
-        ProcessorWriteViewIds = Array.AsReadOnly(_processorWriteViewIds);
+        ProcessorWriteViewIds = Array.AsReadOnly(processorWriteViewIdsSnapshot);
     }
 
     /// <summary>Whether the trusted profile contract can append one mapping-triggered processor stage.</summary>

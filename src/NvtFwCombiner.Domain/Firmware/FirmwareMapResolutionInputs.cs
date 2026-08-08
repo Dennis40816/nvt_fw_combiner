@@ -56,8 +56,6 @@ public sealed class FirmwareArtifactPayload
 /// <summary>Single public atomic run-input boundary for firmware-map resolution.</summary>
 public sealed class FirmwareMapResolutionInputs
 {
-    private readonly FirmwareArtifactPayload[] _artifacts;
-
     /// <summary>Creates immutable resolution inputs from requested selections and zero or more artifact bytes.</summary>
     public FirmwareMapResolutionInputs(
         string memberId,
@@ -74,21 +72,21 @@ public sealed class FirmwareMapResolutionInputs
             "Map-resolution inputs may contain only caller-requested topology.",
             nameof(requestedTopology));
 
-        _artifacts = Composition.ImmutableReferenceSnapshot.CreateUnique(
+        FirmwareArtifactPayload[] artifactsSnapshot = Composition.ImmutableReferenceSnapshot.CreateUnique(
             artifacts,
             static artifact => artifact.ArtifactId,
             "Resolution artifacts cannot contain null.",
             "Resolution artifact ids must be ordinally unique.",
             StringComparer.Ordinal);
 
-        Array.Sort(_artifacts, static (left, right) =>
+        Array.Sort(artifactsSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
 
         MemberId = memberId;
         ModeId = modeId;
         CapacityBytes = capacityBytes;
         RequestedTopology = requestedTopology;
-        Artifacts = Array.AsReadOnly(_artifacts);
+        Artifacts = Array.AsReadOnly(artifactsSnapshot);
     }
 
     /// <summary>Selected IC member id.</summary>

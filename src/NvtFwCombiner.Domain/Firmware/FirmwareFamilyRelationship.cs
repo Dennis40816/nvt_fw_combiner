@@ -105,9 +105,6 @@ internal sealed class FirmwareSharedFactReference
 /// <summary>Common immutable identity, membership, reason, and evidence for one family relationship.</summary>
 internal abstract class FirmwareFamilyRelationship
 {
-    private readonly string[] _memberIds;
-    private readonly string[] _evidenceRefs;
-
     protected FirmwareFamilyRelationship(
         string relationshipId,
         IEnumerable<string> memberIds,
@@ -117,18 +114,18 @@ internal abstract class FirmwareFamilyRelationship
         ArgumentException.ThrowIfNullOrWhiteSpace(relationshipId);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
-        _memberIds = ImmutableStringSnapshot.Create(
+        string[] memberIdsSnapshot = ImmutableStringSnapshot.Create(
             memberIds,
             nameof(memberIds),
             requiredMessage: null,
             invalidValueMessage: "Family relationship members cannot contain null or whitespace.",
             duplicateMessage: "Family relationship members must be ordinally unique.");
         DomainInvariant.Reject(
-            _memberIds.Length < 2,
+            memberIdsSnapshot.Length < 2,
             "Family relationships require at least two distinct members.",
             nameof(memberIds));
 
-        _evidenceRefs = ImmutableStringSnapshot.Create(
+        string[] evidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             requiredMessage: "Family relationships require evidence references.",
@@ -137,8 +134,8 @@ internal abstract class FirmwareFamilyRelationship
 
         RelationshipId = relationshipId;
         Reason = reason;
-        MemberIds = Array.AsReadOnly(_memberIds);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        MemberIds = Array.AsReadOnly(memberIdsSnapshot);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     public string RelationshipId { get; }

@@ -111,7 +111,6 @@ internal sealed class CompositionProfileMetadataBinding
 {
     private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
     private readonly CompositionProfileMetadataPurpose[] _purposes;
-    private readonly string[] _evidenceRefs;
 
     internal CompositionProfileMetadataBinding(
         string bindingId,
@@ -154,13 +153,13 @@ internal sealed class CompositionProfileMetadataBinding
             "Metadata binding purposes must be unique.", nameof(purposes));
 
         Array.Sort(_purposes);
-        _evidenceRefs = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] evidenceRefsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             evidenceRefs,
             nameof(evidenceRefs),
             requireValue: false);
         TargetReferences = Array.AsReadOnly(_targetReferences);
         Purposes = Array.AsReadOnly(_purposes);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     internal string BindingId { get; }
@@ -179,8 +178,6 @@ internal sealed class CompositionProfileMetadataBinding
 /// <summary>One deny-by-default authoring access rule for a canonical map region.</summary>
 internal sealed class CompositionProfileRegionAccess
 {
-    private readonly string[] _allowedSubregionIds;
-
     internal CompositionProfileRegionAccess(
         string regionId,
         RegionAccessKind access,
@@ -191,18 +188,18 @@ internal sealed class CompositionProfileRegionAccess
         ClosedEnum.ThrowIfUndefined(access, "Unknown region access kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _allowedSubregionIds = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] allowedSubregionIdsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             allowedSubregionIds ?? [],
             nameof(allowedSubregionIds),
             requireValue: access == RegionAccessKind.Parts);
         DomainInvariant.Reject(
-            access != RegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
+            access != RegionAccessKind.Parts && allowedSubregionIdsSnapshot.Length != 0,
             "Only parts access can declare allowed subregions.",
             nameof(allowedSubregionIds));
 
         Access = access;
         Reason = reason;
-        AllowedSubregionIds = Array.AsReadOnly(_allowedSubregionIds);
+        AllowedSubregionIds = Array.AsReadOnly(allowedSubregionIdsSnapshot);
     }
 
     internal string RegionId { get; }

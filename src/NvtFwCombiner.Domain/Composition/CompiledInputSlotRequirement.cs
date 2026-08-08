@@ -302,7 +302,6 @@ public sealed class CompiledInputContract
 {
     private readonly CompiledInputSlotRequirement[] _slots;
     private readonly CompiledInputSpaceBinding[] _spaceBindings;
-    private readonly CompiledInputSelectionGroup[] _selectionGroups;
 
     internal CompiledInputContract(
         IEnumerable<CompiledInputSlotRequirement> slots,
@@ -323,7 +322,7 @@ public sealed class CompiledInputContract
             "Input space bindings must be non-null, non-empty, and unique by address space.",
             StringComparer.Ordinal,
             requireValue: true);
-        _selectionGroups = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledInputSelectionGroup[] selectionGroupsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             selectionGroups ?? [],
             static group => group.GroupId,
             "Input selection groups must be non-null and ordinally unique.",
@@ -345,11 +344,11 @@ public sealed class CompiledInputContract
             int space = StringComparer.Ordinal.Compare(left.AddressSpaceId, right.AddressSpaceId);
             return space != 0 ? space : StringComparer.Ordinal.Compare(left.SlotId, right.SlotId);
         });
-        Array.Sort(_selectionGroups, static (left, right) =>
+        Array.Sort(selectionGroupsSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.GroupId, right.GroupId));
         Slots = Array.AsReadOnly(_slots);
         SpaceBindings = Array.AsReadOnly(_spaceBindings);
-        SelectionGroups = Array.AsReadOnly(_selectionGroups);
+        SelectionGroups = Array.AsReadOnly(selectionGroupsSnapshot);
     }
 
     /// <summary>Canonical slot declarations by ordinal slot id.</summary>

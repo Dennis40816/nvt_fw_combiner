@@ -135,18 +135,19 @@ public sealed class TrustedProfileBundleCatalogProjectionTests
         TrustedCompositionProfileCatalogEntry selection = Assert.IsType<TrustedCompositionProfileCatalogEntry>(
             catalog.SelectProfile("profile", "1.0.0", out IReadOnlyList<CompositionIssue> selectionIssues));
         Assert.Empty(selectionIssues);
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             new FirmwareMapResolutionInputs("NT00001", "standard", 16, requestedTopology: null, []),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> preparationIssues);
 
         Assert.True(admitted);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, mapResolution?.Status);
         Assert.Equal("map", mapResolution?.ResolvedMap?.ImageMap.MapId);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Empty(Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation)
+            .CapabilityAdmissions);
         Assert.Empty(preparationIssues);
         V2CompositionPlanCompileResult compilation = catalog.Compile(
             "profile",

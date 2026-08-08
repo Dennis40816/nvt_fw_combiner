@@ -48,7 +48,6 @@ public sealed class CompiledResolvedPhysicalView
 /// <summary>One profile-owned access rule resolved against the selected canonical physical map.</summary>
 public sealed class CompiledRegionAccessRequirement
 {
-    private readonly string[] _allowedSubregionIds;
     private readonly FirmwareRegion[] _governingRegionChain;
 
     internal CompiledRegionAccessRequirement(
@@ -62,14 +61,14 @@ public sealed class CompiledRegionAccessRequirement
         ClosedEnum.ThrowIfUndefined(access, "Unknown compiled region access kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _allowedSubregionIds = ImmutableStringSnapshot.Create(
+        string[] allowedSubregionIdsSnapshot = ImmutableStringSnapshot.Create(
             allowedSubregionIds,
             nameof(allowedSubregionIds),
             access == RegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
         DomainInvariant.Reject(
-            access != RegionAccessKind.Parts && _allowedSubregionIds.Length != 0,
+            access != RegionAccessKind.Parts && allowedSubregionIdsSnapshot.Length != 0,
             "Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
 
         _governingRegionChain = ImmutableReferenceSnapshot.Create(
@@ -86,7 +85,7 @@ public sealed class CompiledRegionAccessRequirement
         RegionId = regionId;
         Access = access;
         Reason = reason;
-        AllowedSubregionIds = Array.AsReadOnly(_allowedSubregionIds);
+        AllowedSubregionIds = Array.AsReadOnly(allowedSubregionIdsSnapshot);
         GoverningRegionChain = Array.AsReadOnly(_governingRegionChain);
     }
 
@@ -109,30 +108,27 @@ public sealed class CompiledRegionAccessRequirement
 /// <summary>Complete immutable V2 region-access policy and logical-to-physical view provenance.</summary>
 public sealed class CompiledRegionAccessContract
 {
-    private readonly CompiledRegionAccessRequirement[] _requirements;
-    private readonly CompiledResolvedPhysicalView[] _resolvedViews;
-
     internal CompiledRegionAccessContract(
         IEnumerable<CompiledRegionAccessRequirement> requirements,
         IEnumerable<CompiledResolvedPhysicalView> resolvedViews)
     {
-        _requirements = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledRegionAccessRequirement[] requirementsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             requirements,
             static requirement => requirement.RegionId,
             "Compiled region access requirements must be non-null with ordinally unique region ids.",
             "Compiled region access requirements must be non-null with ordinally unique region ids.",
             StringComparer.Ordinal);
-        _resolvedViews = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledResolvedPhysicalView[] resolvedViewsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             resolvedViews,
             static view => view.ViewId,
             "Compiled resolved views must be non-null with ordinally unique view ids.",
             "Compiled resolved views must be non-null with ordinally unique view ids.",
             StringComparer.Ordinal);
 
-        Array.Sort(_requirements, static (left, right) => StringComparer.Ordinal.Compare(left.RegionId, right.RegionId));
-        Array.Sort(_resolvedViews, static (left, right) => StringComparer.Ordinal.Compare(left.ViewId, right.ViewId));
-        Requirements = Array.AsReadOnly(_requirements);
-        ResolvedViews = Array.AsReadOnly(_resolvedViews);
+        Array.Sort(requirementsSnapshot, static (left, right) => StringComparer.Ordinal.Compare(left.RegionId, right.RegionId));
+        Array.Sort(resolvedViewsSnapshot, static (left, right) => StringComparer.Ordinal.Compare(left.ViewId, right.ViewId));
+        Requirements = Array.AsReadOnly(requirementsSnapshot);
+        ResolvedViews = Array.AsReadOnly(resolvedViewsSnapshot);
     }
 
     /// <summary>Complete profile-owned access rules resolved against canonical physical constraints.</summary>

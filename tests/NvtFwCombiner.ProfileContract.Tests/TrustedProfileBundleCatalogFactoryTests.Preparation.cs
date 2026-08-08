@@ -16,12 +16,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog();
 
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.Equal("profile-entry", selection.EntryIdentity.EntryId);
@@ -30,7 +30,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.True(admitted);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, mapResolution?.Status);
         Assert.Equal("map", mapResolution?.ResolvedMap?.ImageMap.MapId);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Empty(Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation)
+            .CapabilityAdmissions);
         Assert.Empty(issues);
     }
 
@@ -58,29 +59,18 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             selection.Profile,
             selection.Family);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             unowned,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         Assert.Null(mapResolution);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Equal("profile.v2.selection.stale", Assert.Single(issues).Code);
-
-        bool compiled = V2CompositionPlanCompiler.TryCompileAdmitted(
-            catalog,
-            unowned,
-            Inputs(),
-            selectedInputSlotIds: null,
-            out V2CompositionPlanCompileResult? compilation,
-            out IReadOnlyList<CompositionIssue> compilationIssues);
-        Assert.False(compiled);
-        Assert.Null(compilation);
-        Assert.Equal("profile.v2.selection.stale", Assert.Single(compilationIssues).Code);
     }
 
     /// <summary>Verifies an entry from one trusted catalog cannot be reused against another catalog.</summary>
@@ -91,17 +81,17 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedCompositionProfileCatalogEntry selection = Select(source);
         TrustedProfileBundleCatalog current = CreateCatalog(bundleContentHash: new('c', 64));
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             current,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         Assert.Null(mapResolution);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Equal("profile.v2.selection.stale", Assert.Single(issues).Code);
     }
 
@@ -116,19 +106,19 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson: familyJson);
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
         Assert.Equal(FirmwareMapResolutionStatus.Pending, resolution.Status);
         Assert.Null(resolution.ResolvedMap);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Empty(issues);
     }
 
@@ -153,17 +143,18 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.True(admitted);
         Assert.Equal(FirmwareMapResolutionStatus.Unique, mapResolution?.Status);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Empty(Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation)
+            .CapabilityAdmissions);
         Assert.Empty(issues);
     }
 
@@ -179,19 +170,19 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
         Assert.Equal(FirmwareMapResolutionStatus.Pending, resolution.Status);
         Assert.Null(resolution.ResolvedMap);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Empty(issues);
     }
 
@@ -202,19 +193,19 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog();
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(capacityBytes: 17),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, resolution.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.NoMatchingMap, resolution.RejectionKind);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Empty(issues);
     }
 
@@ -229,18 +220,18 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profile.ToJsonString());
         TrustedCompositionProfileCatalogEntry selection = Select(catalog);
 
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             Inputs(),
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(admitted);
         FirmwareMapResolutionResult resolution = Assert.IsType<FirmwareMapResolutionResult>(mapResolution);
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, resolution.RejectionKind);
-        Assert.Empty(capabilityAdmissions);
+        Assert.Null(preparation);
         Assert.Empty(issues);
     }
 
@@ -266,21 +257,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void AtomicCompilationRejectsIncompleteCapabilityAdmission()
     {
         string familyJson = FamilyJsonWithRootWriteConstraint("whole-region");
-        string profileJson = ProfileRequiringCapability(SupportedProfileJson(Hash(familyJson)));
+        string profileJson = ProfileRequiringCapability(SupportedProfileJson(Hash(familyJson))).Replace(
+            "\"experienceId\": \"display-merge\"",
+            "\"experienceId\": \"standard\"",
+            StringComparison.Ordinal);
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
+        V2CompositionPlanCompileResult compilation = catalog.Compile(
+            "profile",
+            "1.0.0",
+            "NT00001",
+            "standard");
 
-        bool compiled = V2CompositionPlanCompiler.TryCompileAdmitted(
-            catalog,
-            selection,
-            Inputs(),
-            selectedInputSlotIds: null,
-            out V2CompositionPlanCompileResult? compilation,
-            out IReadOnlyList<CompositionIssue> issues);
-
-        Assert.False(compiled);
-        Assert.Null(compilation);
-        Assert.Equal("profile.v2.map.required-capability-missing", Assert.Single(issues).Code);
+        Assert.Null(compilation.CompiledComposition);
+        Assert.Equal(
+            "profile.v2.map.required-capability-missing",
+            Assert.Single(compilation.Issues).Code);
     }
 
     /// <summary>Verifies the Profiles-owned compiler facade resolves the exact canonical map and rejects a mismatched experience.</summary>
@@ -412,10 +403,10 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         familyJson ??= TrustedV2BundleTestDocuments.FamilyJson();
         string familyHash = Hash(familyJson);
         profileJson ??= TrustedV2BundleTestDocuments.ProfileJson(familyHash);
-        return TrustedProfileBundleCatalogFactory.Create(Source(
+        return CreateCatalogFromSources(
             [Family("family-entry", familyHash, Parse(familyJson))],
             [Profile("profile-entry", Hash(profileJson), Parse(profileJson))],
-            bundleContentHash));
+            bundleContentHash);
     }
 
     private static TrustedCompositionProfileCatalogEntry Select(TrustedProfileBundleCatalog catalog)
@@ -433,12 +424,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         TrustedCompositionProfileCatalogEntry selection,
         FirmwareMapResolutionInputs inputs)
     {
-        bool admitted = V2CompositionPreparationService.TryPrepare(
+        bool admitted = V2CompositionPreparationService.PreparedCompilation.TryCreate(
             catalog,
             selection,
             inputs,
+            out V2CompositionPreparationService.PreparedCompilation? preparation,
             out _,
-            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(
             admitted,
@@ -446,36 +437,24 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 Environment.NewLine,
                 issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
         return new PreparedProfile(
-            catalog,
-            selection,
-            inputs,
-            capabilityAdmissions);
+            Assert.IsType<V2CompositionPreparationService.PreparedCompilation>(preparation));
     }
 
     private static V2CompositionPlanCompileResult Compile(
         PreparedProfile preparation,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
-        bool admitted = V2CompositionPlanCompiler.TryCompileAdmitted(
-            preparation.Catalog,
-            preparation.ProfileEntry,
-            preparation.Inputs,
-            selectedInputSlotIds,
-            out V2CompositionPlanCompileResult? compilation,
-            out IReadOnlyList<CompositionIssue> issues);
-        Assert.True(
-            admitted,
-            string.Join(
-                Environment.NewLine,
-                issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
-        return Assert.IsType<V2CompositionPlanCompileResult>(compilation);
+        return V2CompositionPlanCompiler.CompilePrepared(
+            preparation.Compilation,
+            selectedInputSlotIds);
     }
 
     private sealed record PreparedProfile(
-        TrustedProfileBundleCatalog Catalog,
-        TrustedCompositionProfileCatalogEntry ProfileEntry,
-        FirmwareMapResolutionInputs Inputs,
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions);
+        V2CompositionPreparationService.PreparedCompilation Compilation)
+    {
+        internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions =>
+            Compilation.CapabilityAdmissions;
+    }
 
     private static FirmwareMapResolutionInputs Inputs(
         long capacityBytes = 16,

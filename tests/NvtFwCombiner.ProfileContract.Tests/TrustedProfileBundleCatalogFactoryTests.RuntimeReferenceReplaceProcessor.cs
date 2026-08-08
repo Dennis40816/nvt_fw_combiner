@@ -524,9 +524,9 @@ catalog.CompileRuntimeReferenceReplace(
             usesCtrlRamSemantics);
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(Source(
+        return CreateCatalogFromSources(
             [Family("family-entry", familyHash, familyDocument.RootElement.Clone())],
-            [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]));
+            [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]);
     }
 
     private static string ConditionalRuntimeReferenceReplaceFamilyJson(

@@ -100,27 +100,27 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
             maps.Select(static map => map.MapId));
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
+        return TrustedProfileBundleCatalogFactory.Create(
             RuntimeReferenceManifestHash,
             new ProfileBundleIdentity(
                 "runtime-reference-bundle",
                 "1.0.0",
                 RuntimeReferenceBundleHash,
                 "runtime-reference-release"),
-            [new TrustedFirmwareFamilyJsonSource(
+            [(
                 new TrustedProfileBundleCatalogEntryIdentity(
                     "family-entry",
                     "families/family-entry.json",
                     RuntimeReferenceFamilySchemaId,
                     familyHash),
                 familyDocument.RootElement.Clone())],
-            [new TrustedCompositionProfileJsonSource(
+            [(
                 new TrustedProfileBundleCatalogEntryIdentity(
                     "runtime-reference-profile",
                     "profiles/runtime-reference-profile.json",
                     RuntimeReferenceProfileSchemaId,
                     HashRuntimeReferenceDocument(profileJson)),
-                profileDocument.RootElement.Clone())]));
+                profileDocument.RootElement.Clone())]);
     }
 
     private static string HashRuntimeReferenceDocument(string document)

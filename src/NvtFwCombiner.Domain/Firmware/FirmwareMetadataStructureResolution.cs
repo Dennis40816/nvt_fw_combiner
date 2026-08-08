@@ -117,8 +117,6 @@ public sealed class FirmwareMetadataLocatorOutcome
 /// <summary>Immutable successful locator and typed-decode payload with no source bytes.</summary>
 public sealed class FirmwareResolvedMetadataStructure
 {
-    private readonly FirmwareResolvedMetadataField[] _fields;
-
     internal FirmwareResolvedMetadataStructure(
         object constructionToken,
         string mapId,
@@ -142,7 +140,7 @@ public sealed class FirmwareResolvedMetadataStructure
         IReadOnlyList<FirmwareResolvedMetadataField> applicability =
             StructureDefinition.Definition.ResolveFields(topology);
 
-        _fields =
+        FirmwareResolvedMetadataField[] fieldsSnapshot =
         [
             .. applicability.Select(field =>
                 new FirmwareResolvedMetadataField(
@@ -150,7 +148,7 @@ public sealed class FirmwareResolvedMetadataStructure
                     field.Applicability,
                     facts[field.Field.FieldId].Value)),
         ];
-        Fields = Array.AsReadOnly(_fields);
+        Fields = Array.AsReadOnly(fieldsSnapshot);
     }
 
     /// <summary>Candidate image map that scoped this metadata structure.</summary>

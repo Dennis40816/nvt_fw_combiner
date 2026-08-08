@@ -12,7 +12,6 @@ internal sealed partial class CompositionProfileDefinition
     private readonly CompositionOperationDefinition[] _operations;
     private readonly ValidationRequirementDefinition[] _validations;
     private readonly CompositionProfileProcessorStage[] _processorStages;
-    private readonly string[] _evidenceRefs;
 
     internal CompositionProfileDefinition(
         string profileId,
@@ -106,7 +105,7 @@ internal sealed partial class CompositionProfileDefinition
             static processor => processor.ProcessorStageId,
             nameof(processorStages),
             requireValue: false);
-        _evidenceRefs = CanonicalPolicyValueRules.SnapshotCanonicalIds(
+        string[] evidenceRefsSnapshot = CanonicalPolicyValueRules.SnapshotCanonicalIds(
             evidenceRefs,
             nameof(evidenceRefs),
             requireValue: true);
@@ -125,7 +124,7 @@ internal sealed partial class CompositionProfileDefinition
         Validations = Array.AsReadOnly(_validations);
         ProcessorStages = Array.AsReadOnly(_processorStages);
         Output = output;
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
 
         ValidateReferenceGraph();
     }

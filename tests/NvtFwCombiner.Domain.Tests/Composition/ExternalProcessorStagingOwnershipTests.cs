@@ -45,8 +45,12 @@ public sealed class ExternalProcessorStagingOwnershipTests
     {
         byte[] artifactCaller = [0x10, 0x20];
         byte[] sourceCaller = [0x30, 0x40];
-        var artifact = new ExternalProcessorStagedArtifact("artifact", artifactCaller);
-        var source = new ExternalProcessorStagedSource(new ByteRange(0, 2), sourceCaller);
+        var artifact = new ExternalProcessorStagedArtifact(
+            "artifact",
+            new ReadOnlyMemory<byte>(artifactCaller));
+        var source = new ExternalProcessorStagedSource(
+            new ByteRange(0, 2),
+            new ReadOnlyMemory<byte>(sourceCaller));
 
         artifactCaller.AsSpan().Fill(0xFF);
         sourceCaller.AsSpan().Fill(0xEE);
@@ -68,16 +72,14 @@ public sealed class ExternalProcessorStagingOwnershipTests
         Assert.Equal("bytes", sourceIssue.ParamName);
     }
 
-    /// <summary>Internal factories adopt only arrays freshly created by the engine.</summary>
+    /// <summary>Internal constructors adopt only arrays freshly created by the engine.</summary>
     [Fact]
-    public void OwnedFactoriesRetainEngineCreatedArrays()
+    public void InternalConstructorsRetainEngineCreatedArrays()
     {
         byte[] artifactBytes = [0x10, 0x20];
         byte[] sourceBytes = [0x30, 0x40];
-        var artifact =
-            ExternalProcessorStagedArtifact.FromOwnedBytes("artifact", artifactBytes);
-        var source =
-            ExternalProcessorStagedSource.FromOwnedBytes(new ByteRange(0, 2), sourceBytes);
+        var artifact = new ExternalProcessorStagedArtifact("artifact", artifactBytes);
+        var source = new ExternalProcessorStagedSource(new ByteRange(0, 2), sourceBytes);
 
         Assert.True(MemoryMarshal.TryGetArray(artifact.Bytes, out ArraySegment<byte> artifactBacking));
         Assert.True(MemoryMarshal.TryGetArray(source.Bytes, out ArraySegment<byte> sourceBacking));

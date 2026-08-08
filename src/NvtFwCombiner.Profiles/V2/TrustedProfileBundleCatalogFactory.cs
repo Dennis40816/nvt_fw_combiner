@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
@@ -52,28 +53,55 @@ internal static class TrustedProfileBundleCatalogFactory
     private const string ProfileMetadataTargetMissing = "profile-bundle.catalog.profile-metadata-target-missing";
     private const string LogicalProfileMemberMissing = "profile-bundle.catalog.logical-member-missing";
 
-    /// <summary>Normalizes one complete trusted source atomically without map resolution or plan compilation.</summary>
+    /// <summary>Snapshots and normalizes one complete trusted bundle without map resolution or plan compilation.</summary>
     internal static TrustedProfileBundleCatalog Create(
-        TrustedProfileBundleCatalogSource source,
+        string manifestSha256,
+        ProfileBundleIdentity bundleIdentity,
+        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> families,
+        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> profiles,
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver = null)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        ValidateUniqueSourceEntryIds(source);
-        TrustedFirmwareFamilyCatalogEntry[] families = NormalizeFamilies(
-            source.Families,
+        _ = CanonicalSha256.Require(manifestSha256, nameof(manifestSha256));
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] familySources =
+            SnapshotSources(families, nameof(families));
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] profileSources =
+            SnapshotSources(profiles, nameof(profiles));
+        ValidateUniqueSourceEntryIds(familySources, profileSources);
+        TrustedFirmwareFamilyCatalogEntry[] normalizedFamilies = NormalizeFamilies(
+            familySources,
             metadataDefinitionResolver);
-        ValidateUniqueFamilyIdentities(families);
-        TrustedCompositionProfileCatalogEntry[] profiles = NormalizeProfiles(source.Profiles, families);
-        ValidateUniqueProfileIdentities(profiles);
-        return new TrustedProfileBundleCatalog(source.BundleIdentity, source.ManifestSha256, families, profiles);
+        ValidateUniqueFamilyIdentities(normalizedFamilies);
+        TrustedCompositionProfileCatalogEntry[] normalizedProfiles = NormalizeProfiles(
+            profileSources,
+            normalizedFamilies);
+        ValidateUniqueProfileIdentities(normalizedProfiles);
+        return new TrustedProfileBundleCatalog(
+            bundleIdentity,
+            manifestSha256,
+            normalizedFamilies,
+            normalizedProfiles);
     }
 
-    private static void ValidateUniqueSourceEntryIds(TrustedProfileBundleCatalogSource source)
+    private static (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] SnapshotSources(
+        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> sources,
+        string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(sources, parameterName);
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] snapshot = [.. sources];
+        return snapshot.Any(static source => source.Identity is null)
+            ? throw new ArgumentException("Trusted bundle sources cannot contain null values.", parameterName)
+            : snapshot;
+    }
+
+    private static void ValidateUniqueSourceEntryIds(
+        IReadOnlyList<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> families,
+        IReadOnlyList<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> profiles)
     {
         TrustedProfileBundleCatalogEntryIdentity[] identities =
         [
-            .. source.Families.Select(static family => family.Identity),
-            .. source.Profiles.Select(static profile => profile.Identity),
+            .. families.Select(static family => family.Identity),
+            .. profiles.Select(static profile => profile.Identity),
         ];
         foreach (IGrouping<string, TrustedProfileBundleCatalogEntryIdentity> group in identities
                      .GroupBy(static identity => identity.EntryId, StringComparer.Ordinal)
@@ -91,16 +119,15 @@ internal static class TrustedProfileBundleCatalogFactory
     }
 
     private static TrustedFirmwareFamilyCatalogEntry[] NormalizeFamilies(
-        IReadOnlyList<TrustedFirmwareFamilyJsonSource> sources,
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] ordered,
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
-        TrustedFirmwareFamilyJsonSource[] ordered = [.. sources];
         Array.Sort(ordered, static (left, right) =>
             StringComparer.Ordinal.Compare(left.Identity.EntryId, right.Identity.EntryId));
         var families = new TrustedFirmwareFamilyCatalogEntry[ordered.Length];
         for (int index = 0; index < ordered.Length; index++)
         {
-            TrustedFirmwareFamilyJsonSource source = ordered[index];
+            (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) source = ordered[index];
             FirmwareFamilyDocument document = DeserializeFamily(source);
             try
             {
@@ -147,16 +174,15 @@ internal static class TrustedProfileBundleCatalogFactory
     }
 
     private static TrustedCompositionProfileCatalogEntry[] NormalizeProfiles(
-        IReadOnlyList<TrustedCompositionProfileJsonSource> sources,
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)[] ordered,
         IReadOnlyList<TrustedFirmwareFamilyCatalogEntry> families)
     {
-        TrustedCompositionProfileJsonSource[] ordered = [.. sources];
         Array.Sort(ordered, static (left, right) =>
             StringComparer.Ordinal.Compare(left.Identity.EntryId, right.Identity.EntryId));
         var profiles = new TrustedCompositionProfileCatalogEntry[ordered.Length];
         for (int index = 0; index < ordered.Length; index++)
         {
-            TrustedCompositionProfileJsonSource source = ordered[index];
+            (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) source = ordered[index];
             CompositionProfileDefinition profile = DeserializeAndNormalizeProfile(source);
             TrustedFirmwareFamilyCatalogEntry family = FindBoundFamily(profile, families, source.Identity);
             switch (profile.Header.CompilationContextKind)
@@ -198,7 +224,8 @@ internal static class TrustedProfileBundleCatalogFactory
         }
     }
 
-    private static FirmwareFamilyDocument DeserializeFamily(TrustedFirmwareFamilyJsonSource source)
+    private static FirmwareFamilyDocument DeserializeFamily(
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) source)
     {
         try
         {
@@ -216,7 +243,7 @@ internal static class TrustedProfileBundleCatalogFactory
     }
 
     private static CompositionProfileDefinition DeserializeAndNormalizeProfile(
-        TrustedCompositionProfileJsonSource source)
+        (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) source)
     {
         try
         {

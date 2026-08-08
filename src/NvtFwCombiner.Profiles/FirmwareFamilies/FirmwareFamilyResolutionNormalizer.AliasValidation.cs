@@ -14,7 +14,8 @@ internal static partial class FirmwareFamilyResolutionNormalizer
         Dictionary<string, FirmwareMapApplicability> mapApplicabilities,
         Dictionary<FirmwareMapFactKey, FirmwareFactApplicability> aliasApplicabilities)
     {
-        var direct = new Dictionary<FirmwareMapFactKey, CapabilityDirect>();
+        var direct = new Dictionary<FirmwareMapFactKey,
+            (FirmwareCapabilityFact Value, FirmwareFactApplicability Applicability)>();
         for (int index = 0; index < documents.Count; index++)
         {
             FirmwareCapabilityFactDocument document = documents[index];
@@ -57,7 +58,7 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 document.MapId,
                 FirmwareFactKind.Capability,
                 document.CapabilityFactId);
-            if (!direct.TryAdd(key, new CapabilityDirect(value, applicability)))
+            if (!direct.TryAdd(key, (Value: value, Applicability: applicability)))
             {
                 throw Error(path, $"Duplicate direct capability fact '{DescribeKey(key)}'.");
             }
