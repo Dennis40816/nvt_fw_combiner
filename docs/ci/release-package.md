@@ -82,8 +82,8 @@ semantic change.
 `release.yml` is always dispatched from the exact current protected `main`
 workflow definition. It accepts one exact reviewed release-branch head plus the
 final merged PR that produced it. The product source is normally `main`; the
-explicitly approved independent maintenance pairs `0.9.17` / `0.9.17` and
-`0.9.18` / `0.9.18` may publish without merging their product commits to
+explicitly approved independent maintenance pairs `0.9.17` / `0.9.17`,
+`0.9.18` / `0.9.18`, and `0.9.19` / `0.9.19` may publish without merging their product commits to
 `main`. A read-only candidate
 job proves that the workflow authority, selected branch head, checkout,
 requested SHA, final PR merge commit/base, reviewed PR-head tree, current-head

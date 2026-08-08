@@ -12,6 +12,7 @@ on:
           - main
           - 0.9.17
           - 0.9.18
+          - 0.9.19
       commit:
         description: Exact reviewed release-branch head (40-character lowercase SHA)
         required: true
@@ -77,7 +78,7 @@ jobs:
           if ($env:NFC_OWNER_SELF_APPROVAL_EXCEPTION -notin @('true', 'false')) {
             throw 'The owner self-approval exception input is invalid.'
           }
-          if ($env:NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18')) {
+          if ($env:NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')) {
             throw 'The release source branch is not approved.'
           }
           if ($env:NFC_WORKFLOW_REF -ne 'refs/heads/main') {
@@ -129,6 +130,7 @@ jobs:
           $approvedMaintenanceVersions = @{
             '0.9.17' = '0.9.17'
             '0.9.18' = '0.9.18'
+            '0.9.19' = '0.9.19'
           }
           if ($env:NFC_SOURCE_BRANCH -ne 'main' -and
               $approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version) {

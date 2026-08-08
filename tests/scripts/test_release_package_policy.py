@@ -424,12 +424,14 @@ class ReleasePackagePolicyTests(unittest.TestCase):
         self.assertIn("source_branch:", release_workflow)
         self.assertIn("- 0.9.17", release_workflow)
         self.assertIn("- 0.9.18", release_workflow)
+        self.assertIn("- 0.9.19", release_workflow)
         self.assertIn(
-            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18')",
+            "NFC_RELEASE_SOURCE_BRANCH -notin @('main', '0.9.17', '0.9.18', '0.9.19')",
             release_workflow,
         )
         self.assertIn("'0.9.17' = '0.9.17'", release_workflow)
         self.assertIn("'0.9.18' = '0.9.18'", release_workflow)
+        self.assertIn("'0.9.19' = '0.9.19'", release_workflow)
         self.assertIn(
             "$approvedMaintenanceVersions[$env:NFC_SOURCE_BRANCH] -ne $version",
             release_workflow,
