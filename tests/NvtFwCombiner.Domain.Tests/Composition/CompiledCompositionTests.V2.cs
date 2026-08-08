@@ -504,7 +504,7 @@ public sealed partial class CompiledCompositionTests
         var provenance = new V2CompilationProvenance(
             bundle,
             entry,
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             promotion ?? new CompiledProfilePromotion(CompiledProfilePromotionStage.Compilable, []),
             profileEvidenceRefs ?? ["profile-evidence"],
             validationRequirements ?? [],

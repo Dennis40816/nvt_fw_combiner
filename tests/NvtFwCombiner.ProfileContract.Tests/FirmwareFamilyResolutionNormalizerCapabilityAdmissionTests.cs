@@ -244,7 +244,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             ],
             MetadataBindings =
             [
-                new CompositionProfileMetadataBinding(
+                CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
                     "fwconfig",
                     "source",
                     "config",

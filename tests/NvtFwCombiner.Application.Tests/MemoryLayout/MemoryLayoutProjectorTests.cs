@@ -334,7 +334,7 @@ public sealed partial class MemoryLayoutProjectorTests
             new ProfileBundleEntryIdentity(
                 $"profile-{workflowId}",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["test-evidence"],
             [],

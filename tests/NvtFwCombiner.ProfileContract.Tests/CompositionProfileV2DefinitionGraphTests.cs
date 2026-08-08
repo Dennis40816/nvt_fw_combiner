@@ -72,7 +72,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
                 MapBinding = CompositionProfileV2DefinitionTestData.MapBinding(structureIds: ["other"]),
             }));
 
-        var unknownSpace = new CompositionProfileMetadataBinding(
+        CompositionProfileMetadataBinding unknownSpace = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "fwconfig",
             "unknown-space",
             "firmware-config",

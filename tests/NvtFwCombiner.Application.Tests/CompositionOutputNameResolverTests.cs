@@ -464,7 +464,7 @@ public sealed partial class CompositionOutputNameResolverTests
             new ProfileBundleEntryIdentity(
                 "output-naming-profile-entry",
                 new string('e', 64)),
-            first.Definition.ResolvedMap,
+            new ResolvedMapV2CompilationContext(first.Definition.ResolvedMap),
             new CompiledProfilePromotion(
                 CompiledProfilePromotionStage.Supported,
                 []),

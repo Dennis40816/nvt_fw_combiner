@@ -109,29 +109,9 @@ internal enum CompositionProfileMetadataPurpose
 /// <summary>One canonical metadata structure and selected fields bound to a profile space.</summary>
 internal sealed class CompositionProfileMetadataBinding
 {
-    private readonly string[] _fieldIds;
     private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
     private readonly CompositionProfileMetadataPurpose[] _purposes;
     private readonly string[] _evidenceRefs;
-
-    internal CompositionProfileMetadataBinding(
-        string bindingId,
-        string spaceId,
-        string structureId,
-        IEnumerable<string> fieldIds,
-        IEnumerable<CompositionProfileMetadataPurpose> purposes)
-        : this(
-            bindingId,
-            spaceId,
-            structureId,
-            fieldIds.Select(static fieldId =>
-                new FirmwareMetadataReferenceTarget(
-                    FirmwareMetadataReferenceTargetKind.Field,
-                    fieldId)),
-            purposes,
-            [])
-    {
-    }
 
     internal CompositionProfileMetadataBinding(
         string bindingId,
@@ -160,14 +140,6 @@ internal sealed class CompositionProfileMetadataBinding
                 ? kind
                 : StringComparer.Ordinal.Compare(left.TargetId, right.TargetId);
         });
-        _fieldIds =
-        [
-            .. _targetReferences
-                .Where(static target =>
-                    target.Kind == FirmwareMetadataReferenceTargetKind.Field)
-                .Select(static target => target.TargetId),
-        ];
-
         ArgumentNullException.ThrowIfNull(purposes);
         _purposes = [.. purposes];
         DomainInvariant.Reject(_purposes.Length == 0, "Metadata bindings require a purpose.", nameof(purposes));
@@ -187,7 +159,6 @@ internal sealed class CompositionProfileMetadataBinding
             nameof(evidenceRefs),
             requireValue: false);
         TargetReferences = Array.AsReadOnly(_targetReferences);
-        FieldIds = Array.AsReadOnly(_fieldIds);
         Purposes = Array.AsReadOnly(_purposes);
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
@@ -199,8 +170,6 @@ internal sealed class CompositionProfileMetadataBinding
     internal string StructureId { get; }
 
     internal IReadOnlyList<FirmwareMetadataReferenceTarget> TargetReferences { get; }
-
-    internal IReadOnlyList<string> FieldIds { get; }
 
     internal IReadOnlyList<CompositionProfileMetadataPurpose> Purposes { get; }
 

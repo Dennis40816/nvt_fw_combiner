@@ -28,17 +28,17 @@ public sealed partial class RepositoryBoundaryTests
         int tokenGuard = result.IndexOf(
             "ReferenceEquals(constructionToken, ResolvedMapConstructionToken)",
             StringComparison.Ordinal);
-        int firstMetadataConsumption = result.IndexOf(
-            "ArgumentNullException.ThrowIfNull(definition)",
+        int firstResolverPayloadUse = result.IndexOf(
+            "_artifactIdentities =",
             StringComparison.Ordinal);
 
-        Assert.Contains("private static readonly object ResolvedMapConstructionToken", result, StringComparison.Ordinal);
         Assert.Contains("internal ResolvedFirmwareImageMap(", result, StringComparison.Ordinal);
+        Assert.Contains("private static readonly object ResolvedMapConstructionToken", result, StringComparison.Ordinal);
         Assert.Contains("ReferenceEquals(constructionToken, ResolvedMapConstructionToken)", result, StringComparison.Ordinal);
         Assert.DoesNotContain("internal static ResolvedFirmwareImageMap Create", result, StringComparison.Ordinal);
         Assert.Contains("new ResolvedFirmwareImageMap(", resolver, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(domain, "new ResolvedFirmwareImageMap("));
-        Assert.True(tokenGuard >= 0 && tokenGuard < firstMetadataConsumption);
+        Assert.True(tokenGuard >= 0 && tokenGuard < firstResolverPayloadUse);
         Assert.DoesNotContain("new ResolvedFirmwareImageMap(", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("new ResolvedFirmwareImageMap(", bootstrap, StringComparison.Ordinal);
     }

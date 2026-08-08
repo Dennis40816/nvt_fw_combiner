@@ -124,12 +124,6 @@ internal static partial class V2CompositionPlanCompiler
             truncatesCtrlRamSources &&
             resolvedMap.TopologySelection is { ChipCount: >= 2 } &&
             resolvedMap.CapacityBytes >= postbuildPolicy.DeclaredProcessorAuthority.EndExclusive &&
-            postbuildPolicy.DeclaredProcessorAuthority.Contains(
-                postbuildPolicy.ResolvedProcessorAuthority) &&
-            postbuildPolicy.ResolvedProcessorAuthority.Contains(
-                new ByteRange(
-                    postbuildPolicy.ExpectedFirmwareConfigBackupStart,
-                    postbuildPolicy.FirmwareConfigBackupLength)) &&
             mappingOperations.All(mapping =>
                 !mapping.TargetRange.Overlaps(postbuildPolicy.ResolvedProcessorAuthority)) &&
             processorOperations.Length == 1 &&

@@ -150,7 +150,7 @@ public sealed class CompositionProfileV2OutputNormalizerTests
             ? CompositionProfileMetadataPurpose.OutputNaming
             : CompositionProfileMetadataPurpose.Validation;
         CompositionProfileMetadataBinding[] bindings = OutputBindings();
-        bindings[0] = new CompositionProfileMetadataBinding(
+        bindings[0] = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "dp-inspection",
             "tp-source",
             structureId,
@@ -198,13 +198,13 @@ public sealed class CompositionProfileV2OutputNormalizerTests
     {
         return
         [
-            new CompositionProfileMetadataBinding(
+            CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
                 "dp-inspection",
                 "tp-source",
                 "dpcmi",
                 ["version"],
                 [CompositionProfileMetadataPurpose.OutputNaming]),
-            new CompositionProfileMetadataBinding(
+            CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
                 "tp-inspection",
                 "tp-source",
                 "firmware-config-general-parameters",

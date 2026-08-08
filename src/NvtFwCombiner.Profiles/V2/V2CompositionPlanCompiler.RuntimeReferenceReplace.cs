@@ -5,7 +5,6 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string RuntimeReferenceProfileShapeInvalid = "profile.v2.runtime-reference-replace.profile-shape-invalid";
     private const string RuntimeReferenceBindingInvalid = "profile.v2.runtime-reference-replace.binding-invalid";
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
     private const string RuntimeReferenceSourceOutOfBounds = "profile.v2.runtime-reference-replace.source-out-of-bounds";
@@ -60,17 +59,9 @@ internal static partial class V2CompositionPlanCompiler
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
-        if (profile.Header.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
-        {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(
-                    RuntimeReferenceProfileShapeInvalid,
-                    "The admitted profile is not a closed map-bound runtime reference-replace shape.")]);
-        }
-
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
         Dictionary<string, V2ExplicitMappingInputBinding> bindings =
-            ValidateRuntimeReferenceReplaceBindings(shape, resolvedMap, request, issues);
+            ValidateRuntimeReferenceReplaceBindings(shape, request, issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -311,12 +302,6 @@ internal static partial class V2CompositionPlanCompiler
         out ByteRange[] postbuildWriteRanges)
     {
         postbuildWriteRanges = [];
-        if (!sourceRegion.Range.Contains(edit.SourceFirmwareVersionAndBarRange) ||
-            !sourceRegion.Range.Contains(edit.SourceFirmwareSubVersionRange))
-        {
-            return false;
-        }
-
         long versionOffset = checked(edit.SourceFirmwareVersionAndBarRange.Start - sourceRegion.Range.Start);
         long subVersionOffset = checked(edit.SourceFirmwareSubVersionRange.Start - sourceRegion.Range.Start);
         ByteRange[] candidates =
@@ -384,7 +369,6 @@ internal static partial class V2CompositionPlanCompiler
 
     private static Dictionary<string, V2ExplicitMappingInputBinding> ValidateRuntimeReferenceReplaceBindings(
         RuntimeReferenceReplaceProfileShape shape,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
         List<CompositionIssue> issues)
     {
@@ -400,9 +384,7 @@ internal static partial class V2CompositionPlanCompiler
                 !StringComparer.Ordinal.Equals(binding.BindingId, shape.Output.SpaceId) &&
                 (isReference || isSource) &&
                 binding.ExactLengthBytes > 0 &&
-                (isReference
-                    ? binding.ExactLengthBytes == resolvedMap.CapacityBytes
-                    : binding.ExactLengthBytes <= int.MaxValue) &&
+                (isReference || binding.ExactLengthBytes <= int.MaxValue) &&
                 bindings.TryAdd(binding.BindingId, binding);
             if (!valid)
             {

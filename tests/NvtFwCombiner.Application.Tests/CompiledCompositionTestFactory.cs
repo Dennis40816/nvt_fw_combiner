@@ -44,7 +44,7 @@ internal static class CompiledCompositionTestFactory
             new ProfileBundleEntryIdentity(
                 "application-test-profile",
                 SyntheticSha256),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["application-test-evidence"],
             validationRequirements ?? [],

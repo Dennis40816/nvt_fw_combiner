@@ -19,26 +19,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         string familyContentHash,
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets)
-        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [])
-    {
-    }
-
-    /// <summary>Creates one normalized family after Profiles has validated map-bound capability semantics.</summary>
-    internal FirmwareFamilyResolutionDefinition(
-        string familyId,
-        string familyVersion,
-        string familyContentHash,
-        IEnumerable<FirmwareImageMap> imageMaps,
-        IEnumerable<FirmwareMetadataSet> metadataSets,
-        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings)
-        : this(
-            familyId,
-            familyVersion,
-            familyContentHash,
-            imageMaps,
-            metadataSets,
-            capabilityBindings,
-            [])
+        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [], [])
     {
     }
 

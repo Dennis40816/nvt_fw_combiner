@@ -173,36 +173,20 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareMapResolutionInputs inputs,
             FirmwareImageMap imageMap,
             IEnumerable<FirmwareResolvedMetadataStructure> resolvedMetadataStructures,
-            IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes,
-            IEnumerable<FirmwareMetadataStructure>? expectedMetadataStructures = null)
+            IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes)
         {
             DomainInvariant.Reject(
                 !ReferenceEquals(constructionToken, ResolvedMapConstructionToken),
-                "Resolved maps may be constructed only by their owning family resolver.", nameof(constructionToken));
+                "Resolved maps may be constructed only by their owning family resolver.",
+                nameof(constructionToken));
 
-            ArgumentNullException.ThrowIfNull(definition);
-            ArgumentNullException.ThrowIfNull(inputs);
-            ArgumentNullException.ThrowIfNull(imageMap);
-            DomainInvariant.Reject(
-                !definition.ImageMaps.Any(candidate => ReferenceEquals(candidate, imageMap)),
-                "The selected image map must belong to the normalized family definition.", nameof(imageMap));
-
-            ValidateStaticSelection(imageMap, inputs);
-            _artifactIdentities = SnapshotArtifactIdentities(inputs.Artifacts.Select(static artifact => artifact.Identity));
-            FirmwareMetadataStructure[] expectedStructures =
-            [
-                .. expectedMetadataStructures ??
-                   definition.GetStructuresForMap(imageMap.MapId),
-            ];
-            _resolvedMetadataStructures = SnapshotMetadataStructures(
-                resolvedMetadataStructures,
-                imageMap,
-                expectedStructures,
-                _artifactIdentities);
-            _predicateOutcomes = SnapshotPredicateOutcomes(
-                predicateOutcomes,
-                imageMap,
-                _resolvedMetadataStructures);
+            _artifactIdentities = [.. inputs.Artifacts.Select(static artifact => artifact.Identity)];
+            _resolvedMetadataStructures = [.. resolvedMetadataStructures];
+            Array.Sort(_resolvedMetadataStructures, static (left, right) =>
+                StringComparer.Ordinal.Compare(
+                    left.DecodedStructure.MetadataStructureId,
+                    right.DecodedStructure.MetadataStructureId));
+            _predicateOutcomes = [.. predicateOutcomes];
             _factProvenance = SnapshotFactProvenance(imageMap, inputs.MemberId);
 
             FamilyId = definition.FamilyId;
@@ -261,86 +245,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         /// <summary>Canonical lowercase SHA-256 over the resolved physical map and resolver-owned outcomes.</summary>
         public string ResolutionFingerprint { get; }
 
-        private static FirmwareArtifactIdentity[] SnapshotArtifactIdentities(
-            IEnumerable<FirmwareArtifactIdentity> artifactIdentities)
-        {
-            FirmwareArtifactIdentity[] snapshot = Composition.ImmutableReferenceSnapshot.CreateUnique(
-                artifactIdentities,
-                static identity => identity.ArtifactId,
-                "Resolved artifact identities must be non-null and ordinally unique.",
-                "Resolved artifact identities must be non-null and ordinally unique.",
-                StringComparer.Ordinal);
-
-            Array.Sort(snapshot, static (left, right) =>
-                StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
-            return snapshot;
-        }
-
-        private static FirmwareResolvedMetadataStructure[] SnapshotMetadataStructures(
-            IEnumerable<FirmwareResolvedMetadataStructure> resolvedMetadataStructures,
-            FirmwareImageMap imageMap,
-            FirmwareMetadataStructure[] expectedStructures,
-            IReadOnlyList<FirmwareArtifactIdentity> artifactIdentities)
-        {
-            ArgumentNullException.ThrowIfNull(expectedStructures);
-            FirmwareResolvedMetadataStructure[] snapshot = Composition.ImmutableReferenceSnapshot.Create(
-                resolvedMetadataStructures,
-                "Resolved maps may retain only unique successful metadata outcomes bound to selected identities.");
-            Dictionary<string, FirmwareMetadataStructure> expectedById = expectedStructures.ToDictionary(
-                static structure => structure.StructureId,
-                StringComparer.Ordinal);
-            DomainInvariant.Reject(
-                snapshot.Length != expectedStructures.Length ||
-                snapshot.Any(structure =>
-                    !StringComparer.Ordinal.Equals(structure.MapId, imageMap.MapId) ||
-                    !expectedById.TryGetValue(structure.DecodedStructure.MetadataStructureId, out FirmwareMetadataStructure? expected) ||
-                    !StringComparer.Ordinal.Equals(
-                        structure.DecodedStructure.ArtifactBindingId,
-                        expected.ArtifactBindingId) ||
-                    !HasExactDecodedFields(structure.DecodedStructure, expected) ||
-                    !StringComparer.Ordinal.Equals(
-                        structure.LocatorOutcome.ResolvedRange.AddressSpaceId,
-                        imageMap.AddressSpaceId) ||
-                    structure.LocatorOutcome.ResolvedRange.Range.EndExclusive > imageMap.CapacityBytes ||
-                    !artifactIdentities.Any(identity =>
-                        StringComparer.Ordinal.Equals(
-                            identity.ArtifactId,
-                            structure.DecodedStructure.ArtifactBindingId) &&
-                        identity == structure.ArtifactIdentity)) ||
-                snapshot.Select(static structure => structure.DecodedStructure.MetadataStructureId)
-                    .Distinct(StringComparer.Ordinal).Count() != snapshot.Length,
-                "Resolved maps may retain only unique successful metadata outcomes bound to selected identities.",
-                nameof(resolvedMetadataStructures));
-
-            Array.Sort(snapshot, static (left, right) =>
-                StringComparer.Ordinal.Compare(
-                    left.DecodedStructure.MetadataStructureId,
-                    right.DecodedStructure.MetadataStructureId));
-            return snapshot;
-        }
-
-        private static FirmwareMetadataPredicateOutcome[] SnapshotPredicateOutcomes(
-            IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes,
-            FirmwareImageMap imageMap,
-            IReadOnlyList<FirmwareResolvedMetadataStructure> resolvedMetadataStructures)
-        {
-            ArgumentNullException.ThrowIfNull(predicateOutcomes);
-            FirmwareMetadataPredicateOutcome[] snapshot = [.. predicateOutcomes];
-            var structuresById = resolvedMetadataStructures.ToDictionary(
-                static structure => structure.DecodedStructure.MetadataStructureId,
-                StringComparer.Ordinal);
-            return snapshot.Length != imageMap.Applicability.MetadataPredicates.Count ||
-                snapshot.Any(static outcome => outcome is null || outcome.Result != FirmwarePredicateResult.Match) ||
-                snapshot.Where((outcome, index) => !ReferenceEquals(
-                    outcome.Predicate,
-                    imageMap.Applicability.MetadataPredicates[index])).Any() ||
-                snapshot.Any(outcome => !MatchesRetainedDecodedValue(outcome, structuresById))
-                ? throw new ArgumentException(
-                    "Resolved maps require one successful outcome for every declared metadata predicate.",
-                    nameof(predicateOutcomes))
-                : snapshot;
-        }
-
         private static FirmwareFactProvenance[] SnapshotFactProvenance(FirmwareImageMap imageMap, string memberId)
         {
             FirmwareFactProvenance[] snapshot =
@@ -354,47 +258,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             ];
             Array.Sort(snapshot, static (left, right) => CompareFactKeys(left.EffectiveKey, right.EffectiveKey));
             return snapshot;
-        }
-
-        private static void ValidateStaticSelection(FirmwareImageMap imageMap, FirmwareMapResolutionInputs inputs)
-        {
-            DomainInvariant.Reject(
-                !imageMap.Applicability.MemberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
-                !imageMap.Applicability.ModeIds.Contains(inputs.ModeId, StringComparer.Ordinal) ||
-                imageMap.CapacityBytes != inputs.CapacityBytes ||
-                (imageMap.Applicability.TopologyRequirement.Kind != TopologyRequirementKind.None &&
-                 (inputs.RequestedTopology is null ||
-                  !imageMap.Applicability.TopologyRequirement.Matches(inputs.RequestedTopology))) ||
-                imageMap.Applicability.CommonFirmwareCategoryIds.Count != 0,
-                "Resolved map selection does not satisfy all closed static applicability.");
-        }
-
-        private static bool HasExactDecodedFields(
-            FirmwareDecodedMetadataStructure decoded,
-            FirmwareMetadataStructure expected)
-        {
-            return decoded.Facts.Count == expected.Fields.Count &&
-                decoded.Facts.Zip(expected.Fields).All(pair =>
-                    StringComparer.Ordinal.Equals(pair.First.FieldId, pair.Second.FieldId) &&
-                    pair.Second.CanRepresent(pair.First.Value));
-        }
-
-        private static bool MatchesRetainedDecodedValue(
-            FirmwareMetadataPredicateOutcome outcome,
-            Dictionary<string, FirmwareResolvedMetadataStructure> structuresById)
-        {
-            if (!structuresById.TryGetValue(outcome.Predicate.MetadataStructureId, out FirmwareResolvedMetadataStructure? structure))
-            {
-                return false;
-            }
-
-            var fields = structure.DecodedStructure.Facts.ToDictionary(
-                static fact => fact.FieldId,
-                static fact => fact.Value,
-                StringComparer.Ordinal);
-            FirmwareMetadataPredicateOutcome expected = outcome.Predicate.Evaluate(fields);
-            return expected.Result == FirmwarePredicateResult.Match &&
-                outcome.ActualValue == expected.ActualValue;
         }
 
         private static int CompareFactKeys(FirmwareMapFactKey left, FirmwareMapFactKey right)
