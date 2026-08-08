@@ -1,8 +1,23 @@
 # Repository Verification Report
 
-Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.18 NT51928 compatibility candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
+Status: historical seed-preparation report for the 2026-06-25 bootstrap baseline, updated for the 0.9.19 Light-theme safety candidate. Current verification evidence is produced by the canonical `python scripts/verify.py --structure-only` and `python scripts/verify.py --all` commands.
 
-Specification package version: `0.9.18`
+Specification package version: `0.9.19`
+
+## 0.9.19 Light-theme safety candidate
+
+The `0.9.19` candidate starts from official stable `v0.9.18`, peeled to
+`d627e8dcd25b88c3506a6bc50300f1e3b471e40f`. The desktop theme selector,
+new-install default, missing/corrupt preference fallback, and persisted
+System/Dark normalization all resolve to Light while Dark presentation remains
+incomplete. The preference schema is unchanged, and no firmware, profile,
+processor, CLI, or support behavior changes.
+
+Focused UI regressions cover the Light-only choice and every default/recovery
+path. Canonical exact-head verification, independent review, protected CI,
+maintenance-branch release admission, candidate package verification,
+protected promotion, downloaded-asset verification, and release-owner approval
+remain required before publication.
 
 ## 0.9.18 NT51928 optional-input compatibility candidate
 

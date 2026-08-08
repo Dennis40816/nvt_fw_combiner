@@ -37,6 +37,7 @@ commit.
 - `v0.9.16` — exceptional CRC/header-authority hot-fix from official `v0.9.15`: classify owner-approved CRC write windows, correct Replace/AB UI state and coverage, skip DP metadata inspection for TP firmware, and add the owner-approved NT51929 single Normal CtrlRAM golden. The former NT51950 AB certification assignment moved to the active `0.11.0` evidence track.
 - `v0.9.17` — NT51951 AB Code golden-certification closure milestone: establish independent direct evidence for its selector-free plan without borrowing NT51950 evidence or promoting support automatically.
 - `v0.9.18` — focused NT51928 compatibility hot-fix: make Standard Merge LDC optional with an isolated 256 KiB no-LDC route, and make DP Replace Initial Code/LDC independently selectable with at least one replacement while preserving all unselected Reference bytes. Family/evidence-model unification remains on the later 0.10.x architecture track.
+- `v0.9.19` — emergency presentation-only hot-fix: temporarily expose and apply only Light theme so incomplete Dark/system-following presentation cannot make the desktop unreadable. Firmware behavior and support truth remain unchanged.
 
 The active closure goal, completed-milestone audit, and the exact scope fence
 for `v0.9.3` through `v0.9.10` are maintained in
@@ -70,6 +71,7 @@ for `v0.9.3` through `v0.9.10` are maintained in
 - `0.9.16` starts only from the official reviewed `v0.9.15` release tag. It owns only the exceptional CRC/header-authority, Replace/AB UI correctness, TP inspection, and NT51929 golden hot-fix; it does not certify an AB route or absorb the former NT51950 AB certification assignment.
 - `0.9.17` starts only from the official reviewed `v0.9.16` release tag. It owns independent NT51951 AB direct-golden and firmware-owner certification closure; it cannot derive any byte rule or certification from NT51950.
 - `0.9.18` starts only from the official reviewed `v0.9.17` release tag. It owns only the NT51928 optional-LDC Standard Merge correction and independent Initial Code/LDC DP Replace selection; it does not absorb the later family/evidence-model refactor or any other 0.10.x work.
+- `0.9.19` starts only from the official reviewed `v0.9.18` release tag. It owns only the temporary Light-theme lock and related preference regressions; it does not redesign Dark mode or change firmware/runtime authority.
 
 The authoritative `0.9.15`–`0.9.18` scope, delivery-to-review contract, candidate admission ledger, and family/evidence foundation live in the single [v0.9.15–v0.9.18 Delivery and Family Roadmap](../architecture/v0.9.15-0.9.17-roadmap.md).
 
@@ -127,6 +129,7 @@ Current execution priority: normal Merge and normal Replace for DP Replace and C
 | `v0.9.16` | Exceptional CRC/header-authority hot-fix | Classify owner-approved CRC write windows, correct Replace/AB UI behavior and TP inspection, and lock the NT51929 single Normal CtrlRAM golden; former NT51950 AB certification work moved to `0.11.0`. |
 | `v0.9.17` | NT51951 AB golden-certification closure | Establish independent direct evidence for its selector-free plan; do not copy NT51950 memory, command, or certification evidence. |
 | `v0.9.18` | NT51928 optional-part compatibility hot-fix | Permit Standard Merge without LDC and DP Replace with Initial Code, LDC, or both; preserve unselected Reference bytes and retain support-neutral status. |
+| `v0.9.19` | Light-theme safety hot-fix | Temporarily expose and apply only Light theme while Dark presentation remains incomplete; retain preference-schema and firmware compatibility. |
 | `v1.0.0` | stable | Signed-off support matrix. |
 
 ## First-sample `v1.0.0` release gate
@@ -181,6 +184,7 @@ v0.9.15         AB function open, input/output usability, and review automation
 v0.9.16         exceptional CRC/header-authority and UI-correctness hot-fix
 v0.9.17         NT51951 AB golden-certification closure
 v0.9.18         NT51928 optional-LDC and DP Replace input correction
+v0.9.19         temporary Light-theme safety lock
 v1.0.0          stable
 ```
 
