@@ -1,6 +1,6 @@
 # ADR 0033: Promote stable releases through one protected CI workflow
 
-- Status: Accepted; amended 2026-07-28 for independent `v0.9.17` and `v0.9.18` maintenance publication
+- Status: Accepted; amended 2026-08-08 for independent `v0.9.17` through `v0.9.19` maintenance publication
 - Date: 2026-07-22
 - Owners: Product owner, release owner, security/repository owner
 
@@ -44,7 +44,8 @@ The promotion run is always dispatched from the exact current protected `main`
 SHA. The product source is normally that same SHA. An explicitly
 owner-approved maintenance branch/version pair may instead provide the product
 source without merging its commits to `main`; the approved pairs are branch
-`0.9.17` with `VERSION=0.9.17` and branch `0.9.18` with `VERSION=0.9.18`.
+`0.9.17` with `VERSION=0.9.17`, branch `0.9.18` with `VERSION=0.9.18`, and
+branch `0.9.19` with `VERSION=0.9.19`.
 Before any tag exists,
 the workflow:
 
