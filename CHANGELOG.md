@@ -6,6 +6,44 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
+## [0.9.19] - 2026-08-08
+
+### Summary
+
+This emergency UI hot-fix keeps the desktop application on the readable Light
+theme while Dark and system-following presentation remain incomplete. It does
+not change firmware composition, supported ICs, profiles, CRC, Postbuild, or
+package authority.
+
+### Fixes
+
+#### Temporarily lock the desktop theme to Light
+
+- Before → After: a new or recovered installation followed the operating-system theme and could render the incomplete Dark presentation; the available theme choice and all default/fallback preference paths now resolve to Light.
+- Affected: desktop startup and Settings for every workflow and IC. CLI and firmware output are unaffected.
+- Support status: presentation-only and support-neutral.
+- Compatibility: existing preference files keep the same schema and are not deleted. Persisted `System` or `Dark` values are treated as unavailable and fall back to Light when loaded; they may be restored as choices in a later release after Dark presentation is complete.
+- Verification: focused ViewModel and preference-store regressions cover new-install defaults, missing/corrupt settings, invalid values, and previously persisted System/Dark values.
+- Limitations: this release intentionally does not repair or expose Dark mode.
+
+### Security
+
+- No firmware maps, byte ranges, processor authority, external tools, file permissions, or network behavior change.
+
+### Known issues
+
+- System-following and Dark theme choices remain unavailable until the Dark palette and all shared controls receive complete visual validation.
+
+### Upgrade and rollback
+
+- Upgrade by replacing the complete previous portable folder with `NvtFwCombiner-v0.9.19-win-x64`; do not merge package contents into an older installation.
+- Saved reports and firmware outputs require no migration. Roll back by restoring the untouched `v0.9.18` portable folder; that version may again follow a Dark system theme.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes `NvtFwCombiner-v0.9.19-win-x64.zip`, its SPDX SBOM, provenance, candidate manifest, and outer SHA-256 list. GitHub also provides tag-derived source ZIP and TAR.GZ downloads.
+- Verify the outer checksum list and provenance source identity before distribution. The Windows x64 package is self-contained and does not require a separately installed .NET or Python runtime.
+
 ## [0.9.18] - 2026-07-28
 
 ### Summary

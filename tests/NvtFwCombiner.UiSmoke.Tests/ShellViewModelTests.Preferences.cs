@@ -8,6 +8,23 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>New and recovered shells stay readable while dark-mode styling remains incomplete.</summary>
+    [Fact]
+    public void ShellDefaultsToLightTheme()
+    {
+        Assert.Equal("Light", ShellPreferenceSnapshot.Default.Theme);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+
+        Assert.Equal(["Light"], viewModel.ThemeChoices);
+        Assert.Equal("Light", viewModel.SelectedTheme);
+
+        viewModel.LoadShellPreferences(new ShellPreferenceSnapshot("System", "English"));
+        Assert.Equal("Light", viewModel.SelectedTheme);
+
+        viewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Dark", "English"));
+        Assert.Equal("Light", viewModel.SelectedTheme);
+    }
+
     /// <summary>The factory language initializes the matching persisted selector without a second relocalization pass.</summary>
     [Fact]
     public void ShellFactoryInitialLanguageAndSelectorStayAligned()
@@ -57,13 +74,15 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
         restoredViewModel.LoadShellPreferences(loaded);
 
-        Assert.Equal("Dark", restoredViewModel.SelectedTheme);
+        Assert.Equal("Light", restoredViewModel.SelectedTheme);
         Assert.Equal("Traditional Chinese", restoredViewModel.SelectedLanguage);
         Assert.True(restoredViewModel.IsReducedMotionEnabled);
         Assert.True(restoredViewModel.CompositionProgress.IsReducedMotionEnabled);
         Assert.False(restoredViewModel.CompositionProgress.ShouldAnimateActiveStep);
         Assert.Equal("設定", restoredViewModel.SettingsPreview.Title);
-        Assert.Equal(preferences, restoredViewModel.ExportShellPreferences());
+        Assert.Equal(
+            new ShellPreferenceSnapshot("Light", "Traditional Chinese", true),
+            restoredViewModel.ExportShellPreferences());
 
         File.WriteAllText(preferencesPath, "{not valid json");
 
@@ -86,7 +105,7 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel defaultViewModel = ShellViewModelFactory.Create();
         defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Blue", "Klingon"));
 
-        Assert.Equal("System", defaultViewModel.SelectedTheme);
+        Assert.Equal("Light", defaultViewModel.SelectedTheme);
         Assert.Equal("English", defaultViewModel.SelectedLanguage);
         Assert.False(defaultViewModel.IsReducedMotionEnabled);
     }

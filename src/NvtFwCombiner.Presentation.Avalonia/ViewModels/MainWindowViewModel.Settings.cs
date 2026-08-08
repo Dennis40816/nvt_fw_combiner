@@ -15,9 +15,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Gets theme choices for the settings surface.</summary>
     public IReadOnlyList<string> ThemeChoices { get; } =
     [
-        "System",
         "Light",
-        "Dark",
     ];
 
     /// <summary>Gets language choices for the settings surface.</summary>
@@ -29,7 +27,7 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets or sets the selected UI theme preference.</summary>
     [ObservableProperty]
-    public partial string SelectedTheme { get; set; } = "System";
+    public partial string SelectedTheme { get; set; } = "Light";
 
     /// <summary>Gets or sets the selected language preference.</summary>
     [ObservableProperty]

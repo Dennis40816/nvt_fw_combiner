@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.9.18 NT51928 compatibility candidate; publication is controlled by a protected maintenance-release workflow`
-> 文件版本：`0.9.18`
-> 基準日期：`2026-07-28`
+> 文件狀態：`0.9.19 Light-theme safety hot-fix candidate; publication is controlled by a protected maintenance-release workflow`
+> 文件版本：`0.9.19`
+> 基準日期：`2026-08-08`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -29,6 +29,14 @@
 本 baseline 不宣稱任何 IC 已達 production parity。Exact legacy `combiner.exe` version, invocation, fields, order, read ranges, write ranges, and golden evidence are supplied by the owner later. Codex must not infer CRC/header behavior from reference names alone.
 
 ## 0.1 Current owner priority
+
+`0.9.19` is an emergency presentation-only hot-fix derived only from official
+`v0.9.18`, peeled to `d627e8dcd25b88c3506a6bc50300f1e3b471e40f`.
+Until Dark presentation is complete, the desktop exposes only the Light theme;
+new, missing, corrupt, invalid, and previously persisted System/Dark preference
+states resolve to Light without changing the preference schema. Firmware
+composition, IC/workflow availability, profiles, ranges, CRC, Postbuild,
+external tools, CLI behavior, and prior release tags/assets are unchanged.
 
 `0.9.17` is a compatibility hot-fix source derived from official `v0.9.16` peeled commit `462590e8b993b8e42d088bc07377571a4bb9f25d`. For NT51919/NT51929/NT51932 Cascade DiffDLM Replace, each active slave record contributes only its `0x0B90` DLM prefix; its `0x0870` Diff NF tail and every inactive record remain Reference-owned. NT51950/NT51951 use the owner-declared decimal `2320 + 2800` split for the current two-IC mask contract. A selected mask route requires an exact IC Count, validates fixed header/record geometry and every active DLM slice, snapshots the complete physical input for report identity, and rejects independent Cascade `NF_Ctrlram.bin` bindings without removing the internal Postbuild NF stage. NT51917/NT51923/NT51926/NT51927/NT51928 full-artifact DiffDLM replacement, Single routes, and Cascade runs without a selected DiffDLM retain their existing behavior. NT51920/NT51925/NT51930/NT51931 are hidden from user-facing selectors only; their 0.9.x implementation remains for compatibility. Owner-supplied NT51932 four-IC evidence is direct byte-level proof for the 929-like family; NT51950/NT51951 geometry tests do not claim a direct product golden or support promotion. Publication is permitted only after independent exact-head review, firmware-owner approval, protected CI, package verification, and release-owner approval; prior stable tags/assets are immutable.
 

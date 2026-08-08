@@ -54,9 +54,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
         Assert.Equal("13 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
-        Assert.Equal(["System", "Light", "Dark"], viewModel.ThemeChoices);
+        Assert.Equal(["Light"], viewModel.ThemeChoices);
 
-        viewModel.SelectedTheme = "Dark";
+        viewModel.SelectedTheme = "Light";
         viewModel.SelectedLanguage = "Traditional Chinese";
 
         Assert.Equal("設定", viewModel.SettingsPreview.Title);

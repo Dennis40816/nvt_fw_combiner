@@ -278,13 +278,8 @@ public sealed partial class MainWindow : Window, IDisposable
         }
     }
 
-    private void ApplyThemePreference(string selectedTheme)
+    private void ApplyThemePreference(string _)
     {
-        RequestedThemeVariant = selectedTheme switch
-        {
-            "Light" => ThemeVariant.Light,
-            "Dark" => ThemeVariant.Dark,
-            _ => ThemeVariant.Default,
-        };
+        RequestedThemeVariant = ThemeVariant.Light;
     }
 }
