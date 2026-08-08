@@ -31,13 +31,14 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
 
         Task completed = await Task.WhenAny(wait, timeout, cancellation.Task).ConfigureAwait(false);
         timeoutSource.Cancel();
-        if (completed != wait)
+        bool cancellationRequested = cancellationToken.IsCancellationRequested;
+        if (completed != wait || cancellationRequested)
         {
             TryKill(process);
             await WaitForExitAfterKillAsync(wait).ConfigureAwait(false);
             string standardOutput = await stdout.ConfigureAwait(false);
             string standardError = await stderr.ConfigureAwait(false);
-            if (completed == cancellation.Task)
+            if (cancellationRequested)
             {
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -75,10 +76,7 @@ public sealed class SystemExternalProcessRunner : IExternalProcessRunner
     {
         try
         {
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-            }
+            process.Kill(entireProcessTree: true);
         }
         catch (InvalidOperationException)
         {
