@@ -15,7 +15,7 @@ theme while Dark and system-following presentation remain incomplete. It does
 not change firmware composition, supported ICs, profiles, CRC, Postbuild, or
 package authority.
 
-### Fixes
+### Product changes
 
 #### Temporarily lock the desktop theme to Light
 
