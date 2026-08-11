@@ -44,11 +44,11 @@ public sealed class CanonicalSupportMatrixHostTests
             () => catalog.Warm(TestContext.Current.CancellationToken),
             TestContext.Current.CancellationToken);
 
-        Assert.True(source.LoadStarted.Wait(
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken));
         try
         {
+            await source.LoadStarted.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
             Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Run(
                 catalog.Query,
                 TestContext.Current.CancellationToken);
@@ -63,9 +63,11 @@ public sealed class CanonicalSupportMatrixHostTests
         finally
         {
             source.AllowLoad.Set();
+#pragma warning disable xUnit1051 // Cleanup must observe the worker after test cancellation.
+            await warm.WaitAsync(TimeSpan.FromSeconds(5));
+#pragma warning restore xUnit1051
         }
 
-        await warm;
         Assert.Equal(CanonicalSupportMatrixCatalogState.Current, catalog.Query().State);
     }
 
@@ -181,20 +183,20 @@ public sealed class CanonicalSupportMatrixHostTests
         ICanonicalCapabilityCatalogSource,
         IDisposable
     {
-        internal ManualResetEventSlim LoadStarted { get; } = new(false);
+        internal TaskCompletionSource LoadStarted { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         internal ManualResetEventSlim AllowLoad { get; } = new(false);
 
         public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
         {
-            LoadStarted.Set();
+            _ = LoadStarted.TrySetResult();
             AllowLoad.Wait(cancellationToken);
             return CapabilityCatalogLoadResult.Success(candidate);
         }
 
         public void Dispose()
         {
-            LoadStarted.Dispose();
             AllowLoad.Dispose();
         }
     }

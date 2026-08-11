@@ -353,12 +353,13 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-stale-result");
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
-        using var searchStarted = new ManualResetEventSlim();
+        var searchStarted = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         using var releaseSearch = new ManualResetEventSlim();
         var editor = new RawBinaryEditorSession();
         var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
-            searchStarted.Set();
+            _ = searchStarted.TrySetResult();
             releaseSearch.Wait(cancellationToken);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
@@ -371,13 +372,33 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
             "A",
             0,
             TestContext.Current.CancellationToken);
-        Assert.True(
-            searchStarted.Wait(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken),
-            "Background search did not start.");
-        RawBinaryEditorOperationResult edit = editor.OverwriteByte("0x0", "42");
-        releaseSearch.Set();
+        RawBinaryEditorOperationResult edit;
+        OperationCanceledException? searchCancellation = null;
+        try
+        {
+            await searchStarted.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
+            edit = editor.OverwriteByte("0x0", "42");
+        }
+        finally
+        {
+            releaseSearch.Set();
+            try
+            {
+#pragma warning disable xUnit1051 // Cleanup must distinguish worker cancellation from test cancellation.
+                _ = await search.WaitAsync(
+                    TimeSpan.FromSeconds(5));
+#pragma warning restore xUnit1051
+            }
+            catch (OperationCanceledException exception)
+            {
+                searchCancellation = exception;
+            }
+        }
 
         Assert.True(edit.Succeeded);
-        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await search);
+        Assert.NotNull(searchCancellation);
+        Assert.True(search.IsCanceled);
     }
 }
