@@ -30,6 +30,17 @@ protected CI, deterministic Windows x64 packaging, release-owner approval,
 five-asset verification, visible clean-Windows smoke, and downloaded-package
 smoke before `v0.10.3` publication.
 
+Integration PR #354 merged reviewed `0.10.x` head
+`b99ffff480a3b0c14aa8a6f28fc418c066431026` into protected `main` as
+`9ad1b02eff0f13317db8f0a8e78d1ffc74f36927`; the precomputed and merged tree
+both equal `89ef80bbf5c9e70c2b512d71627b5043ba07fbd6`. PR merge-ref CI run
+`31446543768` and protected-main CI run `31447003029` passed policy/Polytail,
+Python/worker, and .NET build/test gates without retry. The main-only difference
+from the reviewed `0.10.x` tree is the already-reviewed v0.9.19 maintenance
+release-policy admission. This report-only closure changes no runtime source,
+profile, schema, expected golden value, or package payload; its exact reviewed
+main merge commit becomes the stable release-workflow source.
+
 ## 0.10.2 canonical desktop-adoption release candidate
 
 The candidate advances the stable line from `v0.10.1` through reviewed PRs
