@@ -5,9 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
-using Avalonia.Media;
 using Avalonia.Styling;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.Behaviors;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -252,68 +250,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(ToolTip.GetIsOpen(control));
     }
 
-    /// <summary>Loads the application resource tree and resolves every shared visual token.</summary>
-    [Fact]
-    public void ThemeTokensResolveFromTheApplicationResourceTree()
-    {
-        var app = new App();
-        app.Initialize();
-
-        foreach (string key in ReadThemeTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<SolidColorBrush>(resource);
-        }
-
-        foreach (string key in ReadThemeShadowTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<BoxShadows>(resource);
-        }
-
-        foreach (string key in ReadThemeCornerRadiusTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<CornerRadius>(resource);
-        }
-
-        foreach (string key in ReadThemeSpacingTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<double>(resource);
-        }
-
-        foreach (string key in ReadThemeFontSizeTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<double>(resource);
-        }
-
-        foreach (string key in ReadThemeFontFamilyTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
-        {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<FontFamily>(resource);
-        }
-    }
-
     /// <summary>Maintains the compact Utility card hierarchy while keeping the full raw-editor warning on hover.</summary>
     [Fact]
     public void HomeUtilityCardUsesOneLineSummaryAndHoverDetail()
@@ -516,38 +452,38 @@ public sealed partial class XamlControlStyleContractTests
             .Select(File.ReadAllText);
     }
 
-    private static Match[] ReadThemeTokenDefinitions()
+    internal static Match[] ReadThemeTokenDefinitions()
     {
         return [.. ThemeTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
     }
 
-    private static Match[] ReadThemeShadowTokenDefinitions()
+    internal static Match[] ReadThemeShadowTokenDefinitions()
     {
         return [.. ThemeShadowTokenDefinitionPattern.Matches(ReadPresentationFile("Styles/ThemeTokens.axaml")).Cast<Match>()];
     }
 
-    private static Match[] ReadThemeCornerRadiusTokenDefinitions()
+    internal static Match[] ReadThemeCornerRadiusTokenDefinitions()
     {
         return [.. ThemeCornerRadiusTokenDefinitionPattern
             .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
             .Cast<Match>()];
     }
 
-    private static Match[] ReadThemeFontFamilyTokenDefinitions()
+    internal static Match[] ReadThemeFontFamilyTokenDefinitions()
     {
         return [.. ThemeFontFamilyTokenDefinitionPattern
             .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
             .Cast<Match>()];
     }
 
-    private static Match[] ReadThemeSpacingTokenDefinitions()
+    internal static Match[] ReadThemeSpacingTokenDefinitions()
     {
         return [.. ThemeSpacingTokenDefinitionPattern
             .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))
             .Cast<Match>()];
     }
 
-    private static Match[] ReadThemeFontSizeTokenDefinitions()
+    internal static Match[] ReadThemeFontSizeTokenDefinitions()
     {
         return [.. ThemeFontSizeTokenDefinitionPattern
             .Matches(ReadPresentationFile("Styles/ThemeTokens.axaml"))

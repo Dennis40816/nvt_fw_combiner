@@ -5,7 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class GeneralWorkflowTests
 {
     /// <summary>General Merge command state and Memory Layout consume the same canonical admission result.</summary>
     [Fact]

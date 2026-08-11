@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class CtrlRamWorkflowTests
 {
     /// <summary>Verified context requires confirmation and reuses the one worker snapshot after switching Number.</summary>
     [Fact]

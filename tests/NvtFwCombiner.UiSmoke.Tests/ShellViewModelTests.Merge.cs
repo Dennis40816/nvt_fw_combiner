@@ -8,7 +8,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class MergeWorkflowTests
 {
     /// <summary>The unavailable AB readiness hint directs the user to declared routes without duplicating catalog facts.</summary>
     [Fact]
@@ -643,20 +643,6 @@ public sealed partial class ShellViewModelTests
         cases.Add("51928");
         cases.Add("51950");
         return cases;
-    }
-
-    private static void WriteUiAbCmi(
-        byte[] image,
-        int bankStart,
-        byte major,
-        byte minor,
-        ushort jira)
-    {
-        const int register16Offset = 0x401A;
-        int start = checked(bankStart + register16Offset);
-        image[start] = checked((byte)(jira & 0xFF));
-        image[start + 1] = major;
-        image[start + 2] = checked((byte)((minor << 4) | ((jira >> 8) & 0x0F)));
     }
 
     private static byte[] CreateUiAbTpImage(

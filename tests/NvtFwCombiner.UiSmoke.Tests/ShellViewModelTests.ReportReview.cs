@@ -2,7 +2,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Verifies reports stay behind an explicit action until opened.</summary>
     [Fact]

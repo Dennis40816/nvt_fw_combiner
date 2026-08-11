@@ -4,7 +4,8 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+/// <summary>DP Replace workflow and perspective smoke coverage.</summary>
+public sealed partial class DpReplaceWorkflowTests
 {
     /// <summary>Verifies Replace keeps the same visual-first coverage model as Merge.</summary>
     [Fact]

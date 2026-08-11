@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Verifies report history can reopen earlier reports without adding a new run.</summary>
     [Fact]

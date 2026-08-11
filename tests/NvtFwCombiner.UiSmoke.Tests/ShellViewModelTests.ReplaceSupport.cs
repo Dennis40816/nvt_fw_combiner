@@ -2,7 +2,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class DpReplaceWorkflowTests
 {
     /// <summary>Canonical evidence status does not disable an evidence-gated authoring flow.</summary>
     [Fact]

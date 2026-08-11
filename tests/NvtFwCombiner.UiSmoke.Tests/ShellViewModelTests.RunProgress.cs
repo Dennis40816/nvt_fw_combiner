@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class RunAndHexEditorTests
 {
     /// <summary>The run lifecycle yields before invoking blocking work and keeps that work off the caller thread.</summary>
     [Fact]

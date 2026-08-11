@@ -4,7 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class CtrlRamExternalGoldenTests
 {
     /// <summary>Verifies an exact V2 CtrlRAM Replace build commits a real postbuild output file.</summary>
     [Fact]
