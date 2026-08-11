@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class ProfileBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Firmware-family Profiles lowering consumes only the trusted schema-owned shape.</summary>
     [Fact]

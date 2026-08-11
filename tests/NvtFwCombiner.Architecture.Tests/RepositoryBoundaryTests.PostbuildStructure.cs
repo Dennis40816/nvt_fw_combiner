@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Verifies Postbuild command facts live in one hash-pinned data catalog, not static C# rows.</summary>
     [Fact]

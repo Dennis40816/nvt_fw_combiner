@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Verifies the retired pre-bundle compiler cannot remain as an alternate runtime authority.</summary>
     [Fact]

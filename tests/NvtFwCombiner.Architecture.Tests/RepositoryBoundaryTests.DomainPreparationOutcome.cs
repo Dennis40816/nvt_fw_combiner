@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Preparation reuses the Domain map outcome instead of restoring a Profiles status/result mirror.</summary>
     [Fact]

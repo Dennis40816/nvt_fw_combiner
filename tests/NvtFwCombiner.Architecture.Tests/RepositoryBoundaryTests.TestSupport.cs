@@ -3,16 +3,14 @@ using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-public abstract partial class RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
-    private protected static readonly DirectoryInfo Root = LocateRepositoryRoot();
-
-    private protected static string[] ReadStandardMergeIcIds()
+    private static string[] ReadStandardMergeIcIds()
     {
         return ReadPackageRegistrationIcIds("standard-merge");
     }
 
-    private protected static string[] ReadCtrlRamPostbuildIcIds()
+    private static string[] ReadCtrlRamPostbuildIcIds()
     {
         string source = ReadPostbuildCatalogPartials();
         return
@@ -25,7 +23,7 @@ public abstract partial class RepositoryBoundaryTestBase
         ];
     }
 
-    private protected static string[] ReadAbMergeIcIds()
+    private static string[] ReadAbMergeIcIds()
     {
         return ReadPackageRegistrationIcIds("ab-merge");
     }
@@ -51,13 +49,13 @@ public abstract partial class RepositoryBoundaryTestBase
     [GeneratedRegex(@"""icId""\s*:\s*""NT(?<ic>\d{5})""")]
     private static partial Regex CtrlRamPostbuildProfileRegex();
 
-    private protected static string ReadText(string relativePath)
+    private static string ReadText(string relativePath)
     {
         string fullPath = Path.Combine(Root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
         return File.ReadAllText(fullPath);
     }
 
-    private protected static string ReadViewModelPartials()
+    private static string ReadViewModelPartials()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -71,7 +69,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadPresentationSources(params string[] excludedFileNames)
+    private static string ReadPresentationSources(params string[] excludedFileNames)
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -87,7 +85,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadBootstrapSources()
+    private static string ReadBootstrapSources()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -100,7 +98,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadInfrastructureCompositionSources()
+    private static string ReadInfrastructureCompositionSources()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -114,7 +112,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadBootstrapTestSources()
+    private static string ReadBootstrapTestSources()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -127,7 +125,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadProductionSources()
+    private static string ReadProductionSources()
     {
         string directory = Path.Combine(Root.FullName, "src");
         string binSegment = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
@@ -141,7 +139,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadProfileSources()
+    private static string ReadProfileSources()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -154,7 +152,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static string ReadDomainSources()
+    private static string ReadDomainSources()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -167,7 +165,7 @@ public abstract partial class RepositoryBoundaryTestBase
                 .Select(File.ReadAllText));
     }
 
-    private protected static int CountOccurrences(string text, string value)
+    private static int CountOccurrences(string text, string value)
     {
         int count = 0;
         int index = 0;
@@ -180,7 +178,7 @@ public abstract partial class RepositoryBoundaryTestBase
         return count;
     }
 
-    private protected static string[] ReadMarkdownBullets(string relativePath, string heading)
+    private static string[] ReadMarkdownBullets(string relativePath, string heading)
     {
         string[] lines = ReadLines(relativePath);
         int start = Array.FindIndex(lines, line => string.Equals(line.Trim(), heading, StringComparison.Ordinal));
@@ -204,7 +202,7 @@ public abstract partial class RepositoryBoundaryTestBase
         ];
     }
 
-    private protected static string[] ReadPlanningResourceRows(string title)
+    private static string[] ReadPlanningResourceRows(string title)
     {
         string resources = ReadShellTextResourcesPartials();
         int titleIndex = resources.IndexOf($"\"{title}\",", StringComparison.Ordinal);
@@ -226,7 +224,7 @@ public abstract partial class RepositoryBoundaryTestBase
             ];
     }
 
-    private protected static string ReadShellTextResourcesPartials()
+    private static string ReadShellTextResourcesPartials()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -245,12 +243,12 @@ public abstract partial class RepositoryBoundaryTestBase
         return ReadText("profiles/built-in/ctrlram-postbuild-v2/catalog.json");
     }
 
-    private protected static string ReadFlashMapCatalogPartials()
+    private static string ReadFlashMapCatalogPartials()
     {
         return ReadText("profiles/built-in/ctrlram-postbuild-v2/flash-map.json");
     }
 
-    private protected static (int Line, string[] Cells) FindMarkdownTableRow(string relativePath, string firstCell)
+    private static (int Line, string[] Cells) FindMarkdownTableRow(string relativePath, string firstCell)
     {
         string[] lines = ReadLines(relativePath);
         for (int i = 0; i < lines.Length; i++)
@@ -270,7 +268,7 @@ public abstract partial class RepositoryBoundaryTestBase
         throw new InvalidOperationException($"Could not find markdown row starting with '{firstCell}'.");
     }
 
-    private protected static string[] ReadLines(string relativePath)
+    private static string[] ReadLines(string relativePath)
     {
         string fullPath = Path.Combine(Root.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
         return File.ReadAllLines(fullPath);

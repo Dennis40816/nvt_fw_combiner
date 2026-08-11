@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Slot and context refreshes cannot synchronously inspect firmware from Presentation.</summary>
     [Fact]

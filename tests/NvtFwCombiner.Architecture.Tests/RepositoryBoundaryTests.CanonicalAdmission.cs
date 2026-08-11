@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Canonical composition admission and identity boundary checks.</summary>
-public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Map preparation retains Domain capability admission without a Profiles mirror graph.</summary>
     [Fact]

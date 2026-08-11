@@ -3,8 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Profile, schema, and closed-vocabulary boundary checks.</summary>
-public sealed partial class ProfileBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Domain closed-enum admission has one reusable validation owner.</summary>
     [Fact]

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Locks all owner-approved NT51928 non-NB CtrlRAM V2 plans without a public profile registration.</summary>
     [Fact]

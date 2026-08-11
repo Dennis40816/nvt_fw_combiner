@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Profile headers retain canonical Domain vocabulary without Profiles-only wrapper objects.</summary>
     [Fact]

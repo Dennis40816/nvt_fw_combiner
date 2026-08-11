@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class BootstrapCliBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Keeps startup diagnostics opt-in, Presentation-local, and firmware-neutral.</summary>
     [Fact]

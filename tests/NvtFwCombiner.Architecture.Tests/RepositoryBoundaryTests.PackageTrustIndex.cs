@@ -6,21 +6,7 @@ using System.Text.Json.Nodes;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Serializes repository boundary checks while leaving project-dependency checks independent.</summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Naming",
-    "CA1711:Identifiers should not have incorrect suffix",
-    Justification = "This type defines an xUnit test collection.")]
-[CollectionDefinition(Name)]
-public sealed class ArchitectureBoundaryCollection
-{
-    /// <summary>The xUnit collection name used by repository boundary checks.</summary>
-    public const string Name = nameof(ArchitectureBoundaryCollection);
-}
-
-/// <summary>Package trust-index checks that invoke the repository MSBuild target.</summary>
-[Collection(ArchitectureBoundaryCollection.Name)]
-public sealed partial class PackageTrustIndexBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>MSBuild materialization rejects authority fields and paths outside the normative index.</summary>
     [Theory]

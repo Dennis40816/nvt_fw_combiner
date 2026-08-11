@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Presentation, localization, and shell-surface boundary checks.</summary>
-public sealed partial class PresentationBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>Verifies shell copy is routed through bilingual text resources.</summary>
     [Fact]

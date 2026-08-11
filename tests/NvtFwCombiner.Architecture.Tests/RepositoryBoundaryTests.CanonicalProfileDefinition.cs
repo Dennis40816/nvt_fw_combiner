@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>The normalized profile aggregate and its semantic values are Domain-owned.</summary>
     [Fact]

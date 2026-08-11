@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>The Application catalog owns reload, lazy publication, and typed queries without a Bootstrap lifecycle host.</summary>
     [Fact]

@@ -1,7 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Retirement and single-execution-path boundary checks.</summary>
-public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
+public sealed partial class RepositoryBoundaryTests
 {
     /// <summary>DP Replace slot identity is normalized by the shared Application authoring use case.</summary>
     [Fact]
