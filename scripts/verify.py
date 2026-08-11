@@ -711,6 +711,7 @@ def run_with_log(
     environment: dict[str, str] | None = None,
 ) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
+    log_path.unlink(missing_ok=True)
     _run_to_logs(
         command,
         log_paths=(log_path,),
@@ -983,53 +984,41 @@ def verify_dotnet(log_path: Path | None = None) -> None:
             "--verify-no-changes",
             "--no-restore",
         ],
+        [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [
             dotnet,
             "test",
             str(SOLUTION),
             "-c",
             "Release",
-            "--no-restore",
+            "--no-build",
             "--collect:XPlat Code Coverage",
             "--results-directory",
             str(coverage_directory),
             "--",
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
         ],
-        [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         # The full solution test command already runs CtrlRAM UI smoke tests. Keep the
         # fixture gate here for manifest and payload-hash validation only.
         [sys.executable, str(CTRL_RAM_REPLACE_FIXTURE_VERIFIER), "--skip-public-smoke"],
     )
     build_log = os.environ.get("NFC_DOTNET_BUILD_LOG")
-    build_log_path = Path(build_log) if build_log else None
-    if build_log_path is not None:
-        # The compiling test and completeness build share one ordered failure artifact.
-        build_log_path.unlink(missing_ok=True)
-    deferred_test_failure: subprocess.CalledProcessError | None = None
     try:
         for command in commands:
-            if deferred_test_failure is not None and command[1] != "build":
-                raise deferred_test_failure
-            try:
-                if build_log_path is not None and command[1] in {"test", "build"}:
-                    if log_path is None:
-                        run_with_log(command, build_log_path, environment=environment)
-                    else:
-                        run(
-                            command,
-                            environment=environment,
-                            log_path=log_path,
-                            mirror_log_path=build_log_path,
-                        )
+            if build_log and len(command) > 1 and command[1] == "build":
+                build_log_path = Path(build_log)
+                build_log_path.unlink(missing_ok=True)
+                if log_path is None:
+                    run_with_log(command, build_log_path, environment=environment)
                 else:
-                    run(command, environment=environment, log_path=log_path)
-            except subprocess.CalledProcessError as error:
-                if command[1] != "test":
-                    raise
-                deferred_test_failure = error
-        if deferred_test_failure is not None:
-            raise deferred_test_failure
+                    run(
+                        command,
+                        environment=environment,
+                        log_path=log_path,
+                        mirror_log_path=build_log_path,
+                    )
+            else:
+                run(command, environment=environment, log_path=log_path)
         verify_coverage("dotnet", coverage_directory)
     finally:
         # Avalonia/Roslyn may start compiler servers even with node reuse disabled.

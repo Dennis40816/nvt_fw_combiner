@@ -1294,7 +1294,7 @@ def validate_workflows(errors: list[str]) -> None:
     required_dotnet_coverage_markers = (
         '            "test",',
         "            str(SOLUTION),",
-        '            "--no-restore",\n            "--collect:XPlat Code Coverage",',
+        '            "--no-build",',
         '"--collect:XPlat Code Coverage",',
         '"--results-directory",',
     )

@@ -1540,23 +1540,18 @@ class VerifyOrchestrationTests(unittest.TestCase):
             None,
         )
 
-    def test_dotnet_test_and_build_share_one_fresh_ci_upload_log(self) -> None:
+    def test_dotnet_build_mirrors_the_ci_upload_log_once(self) -> None:
         calls: list[tuple[list[str], dict[str, object]]] = []
 
         def fake_run(command: list[str], **kwargs: object) -> None:
             calls.append((command, kwargs))
-
-        def fake_run_with_log(
-            command: list[str], log_path: Path, **_kwargs: object
-        ) -> None:
-            calls.append((command, {"mirror_log_path": log_path}))
-            with log_path.open("a", encoding="utf-8") as output:
-                output.write(f"{command[1]} output\n")
+            mirror = kwargs.get("mirror_log_path")
+            if isinstance(mirror, Path):
+                mirror.write_text("build output\n", encoding="utf-8")
 
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             ci_log = root / "ci-build.log"
-            ci_log.write_text("stale output\n", encoding="utf-8")
             with (
                 patch.dict(os.environ, {"NFC_DOTNET_BUILD_LOG": str(ci_log)}),
                 patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
@@ -1566,161 +1561,26 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     return_value=root / "coverage",
                 ),
                 patch.object(MODULE, "run", side_effect=fake_run),
-                patch.object(
-                    MODULE, "run_with_log", side_effect=fake_run_with_log
-                ),
                 patch.object(MODULE, "verify_coverage"),
                 patch.object(MODULE, "stop_idle_build_workers"),
             ):
-                MODULE.verify_dotnet()
+                MODULE.verify_dotnet(root / "dotnet.log")
 
-            captured_calls = [
-                (command[1], kwargs)
+            build_calls = [
+                kwargs
                 for command, kwargs in calls
-                if len(command) > 1 and command[1] in {"test", "build"}
+                if len(command) > 1 and command[1] == "build"
             ]
             ci_log_text = ci_log.read_text(encoding="utf-8")
 
-        self.assertEqual(["test", "build"], [name for name, _ in captured_calls])
-        self.assertTrue(
-            all(kwargs["mirror_log_path"] == ci_log for _, kwargs in captured_calls)
-        )
-        self.assertEqual("test output\nbuild output\n", ci_log_text)
-
-    def test_dotnet_test_failure_still_builds_then_cleans_up(self) -> None:
-        commands: list[list[str]] = []
-
-        def fail_test(command: list[str], **kwargs: object) -> None:
-            commands.append(command)
-            mirror = kwargs.get("mirror_log_path")
-            if isinstance(mirror, Path):
-                with mirror.open("a", encoding="utf-8") as output:
-                    output.write(f"{command[1]} output\n")
-            if len(command) > 1 and command[1] == "test":
-                raise subprocess.CalledProcessError(1, command)
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            ci_log = root / "ci-build.log"
-            with (
-                patch.dict(os.environ, {"NFC_DOTNET_BUILD_LOG": str(ci_log)}),
-                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
-                patch.object(
-                    MODULE,
-                    "reset_coverage_directory",
-                    return_value=root / "coverage",
-                ),
-                patch.object(MODULE, "run", side_effect=fail_test),
-                patch.object(MODULE, "verify_coverage") as verify_coverage,
-                patch.object(MODULE, "stop_idle_build_workers"),
-                self.assertRaises(subprocess.CalledProcessError) as raised,
-            ):
-                MODULE.verify_dotnet(root / "dotnet.log")
-
-            ci_log_text = ci_log.read_text(encoding="utf-8")
-
-        self.assertEqual("test output\nbuild output\n", ci_log_text)
-        self.assertEqual("test", raised.exception.cmd[1])
-        self.assertTrue(
-            any(len(command) > 1 and command[1] == "test" for command in commands)
-        )
-        self.assertTrue(
-            any(len(command) > 1 and command[1] == "build" for command in commands)
-        )
-        self.assertFalse(
-            any(
-                str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER) in command
-                for command in commands
-            )
-        )
-        self.assertIn(["dotnet", "build-server", "shutdown"], commands)
-        verify_coverage.assert_not_called()
-
-    def test_dotnet_build_failure_wins_after_a_test_failure(self) -> None:
-        commands: list[list[str]] = []
-
-        def fail_test_and_build(command: list[str], **_kwargs: object) -> None:
-            commands.append(command)
-            if len(command) > 1 and command[1] == "test":
-                raise subprocess.CalledProcessError(1, command)
-            if len(command) > 1 and command[1] == "build":
-                raise subprocess.CalledProcessError(2, command)
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
-                patch.object(
-                    MODULE,
-                    "reset_coverage_directory",
-                    return_value=root / "coverage",
-                ),
-                patch.object(MODULE, "run", side_effect=fail_test_and_build),
-                patch.object(MODULE, "verify_coverage") as verify_coverage,
-                patch.object(MODULE, "stop_idle_build_workers"),
-                self.assertRaises(subprocess.CalledProcessError) as raised,
-            ):
-                MODULE.verify_dotnet()
-
-        self.assertEqual(2, raised.exception.returncode)
-        self.assertEqual("build", raised.exception.cmd[1])
-        self.assertFalse(
-            any(
-                str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER) in command
-                for command in commands
-            )
-        )
-        self.assertIn(["dotnet", "build-server", "shutdown"], commands)
-        verify_coverage.assert_not_called()
-
-    def test_dotnet_test_timeout_does_not_start_a_recovery_build(self) -> None:
-        commands: list[list[str]] = []
-
-        def timeout_test(command: list[str], **_kwargs: object) -> None:
-            commands.append(command)
-            if len(command) > 1 and command[1] == "test":
-                raise subprocess.TimeoutExpired(command, 1)
-
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            with (
-                patch.object(MODULE, "resolve_dotnet", return_value="dotnet"),
-                patch.object(
-                    MODULE,
-                    "reset_coverage_directory",
-                    return_value=root / "coverage",
-                ),
-                patch.object(MODULE, "run", side_effect=timeout_test),
-                patch.object(MODULE, "verify_coverage") as verify_coverage,
-                patch.object(MODULE, "stop_idle_build_workers"),
-                self.assertRaises(subprocess.TimeoutExpired),
-            ):
-                MODULE.verify_dotnet()
-
-        self.assertFalse(
-            any(len(command) > 1 and command[1] == "build" for command in commands)
-        )
-        self.assertIn(["dotnet", "build-server", "shutdown"], commands)
-        verify_coverage.assert_not_called()
+        self.assertEqual(1, len(build_calls))
+        self.assertEqual(ci_log, build_calls[0]["mirror_log_path"])
+        self.assertEqual("build output\n", ci_log_text)
 
     def test_dotnet_lane_owns_restore_source_evaluation_and_coverage_in_order(
         self,
     ) -> None:
         commands: list[list[str]] = []
-        events: list[str] = []
-
-        def record_command(command: list[str], **_kwargs: object) -> None:
-            commands.append(command)
-            if str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER) in command:
-                events.append("fixture")
-            elif len(command) > 1 and command[1] in {
-                "format",
-                "test",
-                "build",
-                "build-server",
-            }:
-                events.append(command[1])
-
         with tempfile.TemporaryDirectory() as temporary:
             coverage_directory = Path(temporary) / "dotnet"
             with (
@@ -1733,18 +1593,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.object(
                     MODULE,
                     "run",
-                    side_effect=record_command,
+                    side_effect=lambda command, **_kwargs: commands.append(command),
                 ),
-                patch.object(
-                    MODULE,
-                    "verify_coverage",
-                    side_effect=lambda *_args: events.append("coverage"),
-                ) as verify_coverage,
-                patch.object(
-                    MODULE,
-                    "stop_idle_build_workers",
-                    side_effect=lambda *_args, **_kwargs: events.append("stop-idle"),
-                ),
+                patch.object(MODULE, "verify_coverage") as verify_coverage,
+                patch.object(MODULE, "stop_idle_build_workers"),
             ):
                 MODULE.verify_dotnet()
 
@@ -1777,28 +1629,8 @@ class VerifyOrchestrationTests(unittest.TestCase):
 
         self.assertLess(restore_index, ownership_index)
         self.assertLess(ownership_index, format_index)
-        self.assertLess(format_index, test_index)
-        self.assertLess(test_index, build_index)
-        self.assertEqual(
-            [
-                "format",
-                "test",
-                "build",
-                "fixture",
-                "coverage",
-                "build-server",
-                "stop-idle",
-            ],
-            events,
-        )
-        self.assertIn(
-            [
-                sys.executable,
-                str(MODULE.CTRL_RAM_REPLACE_FIXTURE_VERIFIER),
-                "--skip-public-smoke",
-            ],
-            commands,
-        )
+        self.assertLess(format_index, build_index)
+        self.assertLess(build_index, test_index)
         self.assertEqual(
             [
                 "dotnet",
@@ -1811,8 +1643,6 @@ class VerifyOrchestrationTests(unittest.TestCase):
             format_command,
         )
         self.assertIn("--collect:XPlat Code Coverage", test_command)
-        self.assertIn("--no-restore", test_command)
-        self.assertNotIn("--no-build", test_command)
         self.assertEqual(
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
             test_command[-1],

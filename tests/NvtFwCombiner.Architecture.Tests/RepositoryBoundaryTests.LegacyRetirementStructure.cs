@@ -107,8 +107,7 @@ public sealed partial class RepositoryBoundaryTests
     private static void AssertNoProductionText(string token)
     {
         Assert.DoesNotContain(
-            Directory.EnumerateFiles(Path.Combine(Root.FullName, "src"), "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj")),
+            Directory.EnumerateFiles(Path.Combine(Root.FullName, "src"), "*.cs", SearchOption.AllDirectories),
             path => File.ReadAllText(path).Contains(token, StringComparison.Ordinal));
     }
 
@@ -121,7 +120,6 @@ public sealed partial class RepositoryBoundaryTests
         string[] actualCallers =
         [
             .. Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Where(path => File.ReadAllText(path).Contains(authorityName, StringComparison.Ordinal))
                 .Select(path => Path.GetRelativePath(Root.FullName, path).Replace('\\', '/'))
                 .Where(path => !path.StartsWith(definitionPathPrefix, StringComparison.Ordinal))

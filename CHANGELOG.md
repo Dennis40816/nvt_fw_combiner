@@ -28,10 +28,7 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - The required .NET check keeps one canonical verifier path while moving
   style/analyzer enforcement to its existing warnings-as-errors Release build
   and batching 15 package-trust counterfactuals through one bounded MSBuild
-  host. After the first candidate missed the five-minute gate, the solution
-  test now owns the initial Release build and is followed by a complete
-  incremental solution build, preserving Desktop, diagnostic, coverage, and
-  golden authority while allowing build/test work to overlap.
+  host. Test identities, diagnostics, coverage, and golden gates remain exact.
 
 ## [0.10.3] - 2026-08-11
 

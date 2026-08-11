@@ -80,7 +80,6 @@ public sealed partial class RepositoryBoundaryTests
             Directory.GetFiles(directory, "*.*", SearchOption.AllDirectories)
                 .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) ||
                                path.EndsWith(".axaml", StringComparison.Ordinal))
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Where(path => !excludedFileNames.Contains(Path.GetFileName(path), StringComparer.Ordinal))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
@@ -95,7 +94,6 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
@@ -123,7 +121,6 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
@@ -151,7 +148,6 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }
@@ -165,7 +161,6 @@ public sealed partial class RepositoryBoundaryTests
         return string.Join(
             Environment.NewLine,
             Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
     }

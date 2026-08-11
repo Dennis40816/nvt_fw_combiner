@@ -13,7 +13,6 @@ public sealed partial class RepositoryBoundaryTests
         string[] inspectorOwners =
         [
             .. Directory.EnumerateFiles(applicationRoot, "*.cs", SearchOption.AllDirectories)
-                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Where(path => File.ReadAllText(path).Contains(
                     "public static class CompiledInputArtifactInspectionService",
                     StringComparison.Ordinal)),
