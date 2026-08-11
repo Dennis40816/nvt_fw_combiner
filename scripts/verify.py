@@ -976,7 +976,14 @@ def verify_dotnet(log_path: Path | None = None) -> None:
             "scripts/validate_repository.py",
             "--evaluated-source-ownership-only",
         ],
-        [dotnet, "format", str(SOLUTION), "--verify-no-changes", "--no-restore"],
+        [
+            dotnet,
+            "format",
+            str(SOLUTION),
+            "whitespace",
+            "--verify-no-changes",
+            "--no-restore",
+        ],
         [dotnet, "build", str(SOLUTION), "-c", "Release", "--no-restore"],
         [
             dotnet,

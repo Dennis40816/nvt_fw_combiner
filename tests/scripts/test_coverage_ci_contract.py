@@ -65,6 +65,20 @@ class CoverageCiContractTests(unittest.TestCase):
             dotnet_lane.index('"--evaluated-source-ownership-only"'),
         )
 
+    def test_release_build_owns_style_and_analyzer_diagnostics(self) -> None:
+        build_props = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
+        editor_config = (ROOT / ".editorconfig").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>",
+            build_props,
+        )
+        self.assertIn(
+            "<TreatWarningsAsErrors>true</TreatWarningsAsErrors>", build_props
+        )
+        self.assertIn("<AnalysisLevel>latest-recommended</AnalysisLevel>", build_props)
+        self.assertIn("dotnet_analyzer_diagnostic.severity = warning", editor_config)
+
     def test_ci_retains_short_lived_real_coverage_evidence(self) -> None:
         workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 

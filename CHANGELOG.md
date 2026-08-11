@@ -25,6 +25,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - Recorded a read-only next-stage TEST parallelization plan. It first isolates
   Bootstrap/UI/Architecture shared state and mega-classes, then considers a
   bounded project scheduler only when same-SHA timing proves a material gain.
+- The required .NET check keeps one canonical verifier path while moving
+  style/analyzer enforcement to its existing warnings-as-errors Release build
+  and batching 15 package-trust counterfactuals through one bounded MSBuild
+  host. Test identities, diagnostics, coverage, and golden gates remain exact.
 
 ## [0.10.3] - 2026-08-11
 

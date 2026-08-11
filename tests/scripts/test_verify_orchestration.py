@@ -1608,15 +1608,40 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 "--evaluated-source-ownership-only",
             ]
         )
+        build_index = commands.index(
+            [
+                "dotnet",
+                "build",
+                str(MODULE.SOLUTION),
+                "-c",
+                "Release",
+                "--no-restore",
+            ]
+        )
         format_index = next(
             index
             for index, command in enumerate(commands)
             if len(command) > 1 and command[1] == "format"
         )
+        format_command = commands[format_index]
         test_command = next(command for command in commands if "test" in command)
+        test_index = commands.index(test_command)
 
         self.assertLess(restore_index, ownership_index)
         self.assertLess(ownership_index, format_index)
+        self.assertLess(format_index, build_index)
+        self.assertLess(build_index, test_index)
+        self.assertEqual(
+            [
+                "dotnet",
+                "format",
+                str(MODULE.SOLUTION),
+                "whitespace",
+                "--verify-no-changes",
+                "--no-restore",
+            ],
+            format_command,
+        )
         self.assertIn("--collect:XPlat Code Coverage", test_command)
         self.assertEqual(
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
