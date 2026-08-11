@@ -48,8 +48,9 @@ public sealed partial class ReportReviewViewModel
         string? outputArtifactPath,
         CompositionRunInspectionSnapshot? inspectionSnapshot,
         ShellLanguage language,
-        CancellationToken cancellationToken) =>
-        ReportReviewTypedProjector.Project(
+        CancellationToken cancellationToken)
+    {
+        return ReportReviewTypedProjector.Project(
             report,
             suppressOutput,
             sourceName,
@@ -57,6 +58,7 @@ public sealed partial class ReportReviewViewModel
             inspectionSnapshot,
             language,
             cancellationToken);
+    }
 
     internal static ReportReviewViewModel FromJsonCancellable(
         string json,

@@ -73,15 +73,6 @@ internal static class BuiltInPostbuildProfileCatalog
         ];
     }
 
-    internal static bool TryGetDefaultProfile(
-        string icId,
-        out LegacyCombinerPostbuildProfile? postbuildProfile)
-    {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetProfiles(icId);
-        postbuildProfile = profiles.Count == 0 ? null : profiles[0];
-        return postbuildProfile is not null;
-    }
-
     internal static bool TrySelectProfileForCommonFwVersion(
         string icId,
         string? commonFwVersion,

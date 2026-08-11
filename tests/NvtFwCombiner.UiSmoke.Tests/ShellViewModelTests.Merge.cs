@@ -249,14 +249,13 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
-        string suggestedOutputName = await viewModel.Merge.ResolveMergeOutputFileNameForSaveAsync(
-            TestContext.Current.CancellationToken);
+        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
+            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
+        string suggestedOutputName = initialPreparation.SuggestedFileName;
         Assert.Matches(
             "^NT51929_FlashCode_A_D0605T8100_B_D0708T8203_[0-9]{8}\\.bin$",
             suggestedOutputName);
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
-        MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
-            await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
         CompositionAdditionalDeliveryPlan initialAFlashCodePlan = Assert.IsType<CompositionAdditionalDeliveryPlan>(
             initialPreparation.AFlashCodePlan);
 

@@ -4,6 +4,28 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
+### Changed
+
+- Live run reports now reach the desktop as the typed Application report while
+  durable/imported/history reports retain the compatible JSON path. This
+  removes the in-process JSON serialize/parse round trip without changing the
+  report wire format or persisted replay evidence.
+- Firmware file identity, immutable bytes, and current-file stability checks
+  now come from the Application inspection port backed by Infrastructure; the
+  desktop no longer owns a second SHA-256/file-stability implementation.
+- Removed zero-production-caller CtrlRAM planning, Standard Merge selector,
+  CLI report writer, startup, AB save/delivery, Hex Diff lookup, processor
+  shortcut, and default-postbuild-profile compatibility paths. Existing
+  workflow execution, naming, report, processor, and golden behavior remain on
+  their canonical owners.
+- The `v0.10.4` audit measures 96,212 full production lines and 67,238 counted
+  runtime lines. Relative to `v0.10.3`, full source is +168 for the typed
+  report/replay UI path while counted runtime is -195; exact slice ratchets are
+  20,619 / 29,383 / 3,307 / 13,929.
+- Recorded a read-only next-stage TEST parallelization plan. It first isolates
+  Bootstrap/UI/Architecture shared state and mega-classes, then considers a
+  bounded project scheduler only when same-SHA timing proves a material gain.
+
 ## [0.10.3] - 2026-08-11
 
 ### Summary

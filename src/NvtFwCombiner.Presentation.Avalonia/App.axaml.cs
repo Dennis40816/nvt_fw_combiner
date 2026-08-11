@@ -14,15 +14,6 @@ public sealed partial class App : global::Avalonia.Application
 
     internal static PresentationHostServices? HostServices { get; private set; }
 
-    /// <summary>Sets UI startup state before the framework creates the main window.</summary>
-    internal static void SetStartupOptions(UiLaunchOptions startupOptions)
-    {
-        SetStartup(
-            HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
-            startupOptions,
-            StartupTraceSession.Disabled);
-    }
-
     /// <summary>Sets the dependency graph, UI startup state, and opt-in trace before framework initialization.</summary>
     internal static void SetStartup(
         PresentationHostServices hostServices,

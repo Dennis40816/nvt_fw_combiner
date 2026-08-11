@@ -27,8 +27,10 @@ public sealed partial class ShellViewModelTests
             "0.10.3-test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
 
@@ -76,8 +78,10 @@ public sealed partial class ShellViewModelTests
             "0.10.3-test",
             ShellLanguage.ChineseTraditional,
             PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
         viewModel.MessageCenter.OpenCommand.Execute(null);
@@ -140,7 +144,7 @@ public sealed partial class ShellViewModelTests
                 new CapabilityCatalogIssue("catalog.reload.failed", "private", null)));
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
+            ReadBuiltInFirmwareInspectionBatch);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -213,7 +217,7 @@ public sealed partial class ShellViewModelTests
         using var catalog = new BlockingReloadCatalog();
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
+            ReadBuiltInFirmwareInspectionBatch);
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
@@ -256,8 +260,10 @@ public sealed partial class ShellViewModelTests
             "0.10.3-test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            static (_, _) => [],
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                metadataReader: static (_, _) => null,
+                batchReader: static (_, _) => []),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
 
@@ -314,10 +320,21 @@ public sealed partial class ShellViewModelTests
             "0.10.3-test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("0.10.3-test"),
-            static (_, _) => null,
-            firmwareInspectionReader,
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: firmwareInspectionReader),
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+    }
+
+    private static IReadOnlyList<FirmwareInspectionSnapshotResult> ReadBuiltInFirmwareInspectionBatch(
+        string icId,
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
+    {
+        return BuiltInFirmwareInspection.InspectFirmwareBatch(
+            (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+            icId,
+            inputs);
     }
 
     private static CanonicalSupportMatrixQueryResult Result(

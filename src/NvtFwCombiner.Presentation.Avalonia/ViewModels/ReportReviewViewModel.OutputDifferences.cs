@@ -596,7 +596,12 @@ public sealed partial class ReportReviewViewModel
         return new FormattedHexPreview(builder.ToString(), byteCount, IsComplete: true);
     }
 
-    internal sealed class OutputDifferenceProjection
+    internal sealed class OutputDifferenceProjection(
+        MemoizedIndexedReadOnlyList<ReportLineViewModel> rows,
+        IReadOnlyList<ReportDifferenceGroupViewModel> groups,
+        IReadOnlyList<ReportDifferenceSummaryRowViewModel> summaryRows,
+        int acceptedCount,
+        ReportHexDiffSource hexDiffSource)
     {
         internal static OutputDifferenceProjection Empty { get; } = new(
             new MemoizedIndexedReadOnlyList<ReportLineViewModel>(
@@ -607,42 +612,32 @@ public sealed partial class ReportReviewViewModel
             acceptedCount: 0,
             ReportHexDiffSource.Empty);
 
-        internal OutputDifferenceProjection(
-            MemoizedIndexedReadOnlyList<ReportLineViewModel> rows,
-            IReadOnlyList<ReportDifferenceGroupViewModel> groups,
-            IReadOnlyList<ReportDifferenceSummaryRowViewModel> summaryRows,
-            int acceptedCount,
-            ReportHexDiffSource hexDiffSource)
-        {
-            ArgumentNullException.ThrowIfNull(rows);
-            ArgumentNullException.ThrowIfNull(groups);
-            ArgumentNullException.ThrowIfNull(summaryRows);
-            ArgumentNullException.ThrowIfNull(hexDiffSource);
-            ArgumentOutOfRangeException.ThrowIfNegative(acceptedCount);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(acceptedCount, rows.Count);
+        internal MemoizedIndexedReadOnlyList<ReportLineViewModel> Rows { get; } =
+            rows ?? throw new ArgumentNullException(nameof(rows));
 
-            Rows = rows;
-            Groups = groups;
-            SummaryRows = summaryRows;
-            AcceptedCount = acceptedCount;
-            HexDiffSource = hexDiffSource;
-        }
+        internal IReadOnlyList<ReportDifferenceGroupViewModel> Groups { get; } =
+            groups ?? throw new ArgumentNullException(nameof(groups));
 
-        internal MemoizedIndexedReadOnlyList<ReportLineViewModel> Rows { get; }
+        internal IReadOnlyList<ReportDifferenceSummaryRowViewModel> SummaryRows { get; } =
+            summaryRows ?? throw new ArgumentNullException(nameof(summaryRows));
 
-        internal IReadOnlyList<ReportDifferenceGroupViewModel> Groups { get; }
+        internal ReportHexDiffSource HexDiffSource { get; } =
+            hexDiffSource ?? throw new ArgumentNullException(nameof(hexDiffSource));
 
-        internal IReadOnlyList<ReportDifferenceSummaryRowViewModel> SummaryRows { get; }
+        internal int AcceptedCount { get; } = RequireAcceptedCount(acceptedCount, rows.Count);
 
         internal int Count => Rows.Count;
-
-        internal int AcceptedCount { get; }
 
         internal bool HasReviewRequired => AcceptedCount != Count;
 
         internal int MaterializedCount => Rows.MaterializedCount;
 
-        internal ReportHexDiffSource HexDiffSource { get; }
+        private static int RequireAcceptedCount(int value, int rowCount)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value, nameof(acceptedCount));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, rowCount, nameof(acceptedCount));
+            return value;
+        }
     }
 
     private sealed class DifferenceGroupBuilder(string sectionLabel)

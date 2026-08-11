@@ -118,16 +118,17 @@ public sealed partial class ShellViewModelTests
             "test",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("test"),
-            static (_, _) => null,
-            (icId, inputs) =>
-            {
-                _ = readerEntered.TrySetResult();
-                releaseReader.Task.GetAwaiter().GetResult();
-                return BuiltInFirmwareInspection.InspectFirmwareBatch(
-                    (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
-                    icId,
-                    inputs);
-            });
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: (icId, inputs) =>
+                {
+                    _ = readerEntered.TrySetResult();
+                    releaseReader.Task.GetAwaiter().GetResult();
+                    return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                        (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                        icId,
+                        inputs);
+                }));
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>

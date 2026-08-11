@@ -439,8 +439,7 @@ public sealed partial class ShellViewModelTests
             "test-app",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("test-app"),
-            static (_, _) => null,
-            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch,
+            TestHost.FirmwareInspectionExperience,
             fileRevealService);
     }
 

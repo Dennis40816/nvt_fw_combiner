@@ -654,13 +654,14 @@ public sealed partial class ShellViewModelTests
             "test-app",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("test-app"),
-            static (_, _) => null,
-            (icId, inputs) =>
-            [
-                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
-                    input.InspectionId,
-                    reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
-            ]);
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: (icId, inputs) =>
+                [
+                    .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
+                        input.InspectionId,
+                        reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
+                ]));
     }
 
     private static MainWindowViewModel CreateBatchInspectionViewModel(
@@ -674,8 +675,9 @@ public sealed partial class ShellViewModelTests
             "test-app",
             ShellLanguage.English,
             PresentationTestHost.CreateServices("test-app"),
-            static (_, _) => null,
-            reader);
+            new DelegatingFirmwareInspection(
+                TestHost.FirmwareInspectionExperience,
+                batchReader: reader));
     }
 
     private static FirmwareInspectionSnapshot DpInspection(string versionToken)

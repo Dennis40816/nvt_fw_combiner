@@ -46,20 +46,6 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             throw new ArgumentNullException(nameof(ctrlRamAuthoring));
     }
 
-    public FirmwareConfigMetadataSnapshot? TryReadFirmwareConfigMetadata(
-        string icId,
-        string path)
-    {
-        return TryReadFirmwareConfigMetadata(_projection, icId, path);
-    }
-
-    public IReadOnlyList<FirmwareInspectionSnapshotResult> InspectFirmwareBatch(
-        string icId,
-        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
-    {
-        return InspectFirmwareBatch(this, icId, inputs);
-    }
-
     public CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
         string icId,
         string numberToken,

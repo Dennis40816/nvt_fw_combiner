@@ -361,6 +361,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("MutationPage", bindings, StringComparison.Ordinal);
         Assert.Contains("IssuePage", bindings, StringComparison.Ordinal);
         Assert.Contains("MemoizedIndexedReadOnlyList<ReportLineViewModel>", parser, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal OutputDifferenceProjection(", parser, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", indexedRows, StringComparison.Ordinal);
         Assert.Contains("Utf8JsonReader", differenceJson, StringComparison.Ordinal);
         Assert.Contains("JsonValueSlice", differenceJson, StringComparison.Ordinal);

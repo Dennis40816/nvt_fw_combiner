@@ -375,7 +375,9 @@ public sealed partial class ShellViewModelTests
                 "test-app",
                 ShellLanguage.English,
                 PresentationTestHost.CreateServices("test-app"),
-                firmwareConfigMetadataReader);
+                new DelegatingFirmwareInspection(
+                    TestHost.FirmwareInspectionExperience,
+                    metadataReader: firmwareConfigMetadataReader));
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);

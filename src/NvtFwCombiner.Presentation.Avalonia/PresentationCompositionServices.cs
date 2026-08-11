@@ -57,4 +57,22 @@ public sealed class PresentationCompositionServices
 
     /// <summary>Preview and build execution.</summary>
     public ICompositionExecution Execution { get; }
+
+    internal PresentationCompositionServices WithFirmwareInspection(
+        IFirmwareInspection firmwareInspection)
+    {
+        ArgumentNullException.ThrowIfNull(firmwareInspection);
+        return ReferenceEquals(FirmwareInspection, firmwareInspection)
+            ? this
+            : new PresentationCompositionServices(
+                Capabilities,
+                StandardMergeAuthoring,
+                AbMergeAuthoring,
+                DpReplaceAuthoring,
+                GeneralAuthoring,
+                CtrlRamAuthoring,
+                firmwareInspection,
+                OutputNaming,
+                Execution);
+    }
 }
