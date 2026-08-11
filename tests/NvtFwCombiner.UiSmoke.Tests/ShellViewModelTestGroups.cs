@@ -95,6 +95,15 @@ internal static class UiExternalGoldenCollection
 [CollectionDefinition(UiExternalGoldenCollection.Name)]
 public sealed class UiExternalGoldenCollectionDefinition;
 
+internal static class UiAvaloniaRuntimeCollection
+{
+    internal const string Name = "UiAvaloniaRuntime";
+}
+
+/// <summary>Serializes Avalonia control construction while leaving pure ViewModel tests parallel.</summary>
+[CollectionDefinition(UiAvaloniaRuntimeCollection.Name)]
+public sealed class UiAvaloniaRuntimeCollectionDefinition;
+
 internal static class UiProcessWideObservationCollection
 {
     internal const string Name = "UiProcessWideObservation";

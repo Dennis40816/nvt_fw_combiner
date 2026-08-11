@@ -1,9 +1,10 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
 /// <summary>Shared repository-source helpers for focused architecture boundary suites.</summary>
+[Collection(ArchitectureBoundaryCollection.Name)]
 public abstract partial class RepositoryBoundaryTestBase
 {
-    private protected static void AssertArchitectureBoundaryTestsAreDecomposedForParallelExecution()
+    private protected static void AssertArchitectureBoundaryTestsUseReviewedSerialTopology()
     {
         string directory = Path.Combine(
             Root.FullName,
@@ -63,6 +64,11 @@ public abstract partial class RepositoryBoundaryTestBase
             boundaryTypes,
             static type =>
             {
+                Xunit.v3.ICollectionAttribute collection = Assert.Single(
+                    type.GetCustomAttributes(inherit: true)
+                        .OfType<Xunit.v3.ICollectionAttribute>());
+                Assert.Equal(ArchitectureBoundaryCollection.Name, collection.Name);
+
                 int methodCount = type.GetMethods().Count(static method =>
                     method.IsDefined(typeof(FactAttribute), inherit: true) ||
                     method.IsDefined(typeof(TheoryAttribute), inherit: true));
@@ -70,6 +76,9 @@ public abstract partial class RepositoryBoundaryTestBase
                     methodCount <= 35,
                     $"{type.Name} declares {methodCount} test methods; the limit is 35.");
             });
+        Assert.Empty(
+            typeof(ProjectDependencyTests).GetCustomAttributes(inherit: true)
+                .OfType<Xunit.v3.ICollectionAttribute>());
 
         string[] processOwners =
         [
@@ -85,7 +94,7 @@ public abstract partial class RepositoryBoundaryTestBase
             boundaryFiles,
             static file => file.Name == "RepositoryBoundaryTests.PackageTrustIndex.cs").Source;
         Assert.Contains(
-            "[Collection(ArchitectureMsBuildCollection.Name)]",
+            "[Collection(ArchitectureBoundaryCollection.Name)]",
             packageTrust,
             StringComparison.Ordinal);
         Assert.Contains("[CollectionDefinition(Name)]", packageTrust, StringComparison.Ordinal);
@@ -127,6 +136,54 @@ public abstract partial class RepositoryBoundaryTestBase
         Assert.DoesNotContain(
             "BootstrapTestHost.Services.CreateSystemInformationService(",
             sources,
+            StringComparison.Ordinal);
+
+        string dpReplaceSupport = File.ReadAllText(Path.Combine(
+            directory,
+            "DpReplaceTestSupport.cs"));
+        Assert.DoesNotContain("BootstrapTestHost", dpReplaceSupport, StringComparison.Ordinal);
+    }
+
+    private protected static void AssertUiRuntimeControlConstructionIsSerialized()
+    {
+        string directory = Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.UiSmoke.Tests");
+        string runtimeAttribute = "[Collection(UiAvaloniaRuntimeCollection.Name)]";
+        foreach (string fileName in new[]
+                 {
+                     "XamlControlStyleContractTests.cs",
+                     "SpaciousPanelTests.cs",
+                     "ReportHexDiffViewportAdapterTests.cs",
+                 })
+        {
+            Assert.Contains(
+                runtimeAttribute,
+                File.ReadAllText(Path.Combine(directory, fileName)),
+                StringComparison.Ordinal);
+        }
+
+        string groups = File.ReadAllText(Path.Combine(directory, "ShellViewModelTestGroups.cs"));
+        int runtimeDefinitionStart = groups.IndexOf(
+            "[CollectionDefinition(UiAvaloniaRuntimeCollection.Name)]",
+            StringComparison.Ordinal);
+        int processWideStart = groups.IndexOf(
+            "internal static class UiProcessWideObservationCollection",
+            StringComparison.Ordinal);
+        Assert.True(runtimeDefinitionStart >= 0);
+        Assert.True(processWideStart > runtimeDefinitionStart);
+        Assert.DoesNotContain(
+            "DisableParallelization",
+            groups[runtimeDefinitionStart..processWideStart],
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[Collection(UiProcessWideObservationCollection.Name)]",
+            File.ReadAllText(Path.Combine(directory, "AvaloniaApplicationResourceTests.cs")),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[Collection(UiProcessWideObservationCollection.Name)]",
+            groups,
             StringComparison.Ordinal);
     }
 }

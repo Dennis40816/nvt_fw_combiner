@@ -14,6 +14,7 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Regression coverage for shared Avalonia visual-control contracts.</summary>
+[Collection(UiAvaloniaRuntimeCollection.Name)]
 public sealed partial class XamlControlStyleContractTests
 {
     private static readonly Regex ThemeTokenDefinitionPattern = ThemeTokenDefinitionRegex();
