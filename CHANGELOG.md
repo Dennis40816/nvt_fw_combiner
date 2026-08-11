@@ -29,6 +29,15 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   process isolation, staged mutation checks, CRC-32/MPEG-2 results, protocol
   success payloads, exit codes, and firmware behavior remain unchanged; worker
   error messages now honor the existing 512-character schema bound.
+- Bootstrap and CLI convergence (#233) removes 155 nonblank runtime lines by
+  deleting test-only path-reread inspection/naming facades, collapsing
+  redundant CLI dispatch, and retiring the last revision-zero DP readiness
+  bridge. The Bootstrap + CLI ratchet falls from 18,651 to 18,496 and the
+  runtime ratchet from 68,922 to 68,767. Accepted-session execution,
+  report JSON, CLI exit behavior, output naming, firmware bytes, processor
+  behavior, and all existing golden contracts remain unchanged. The retained
+  catalog, memory, report, planning, and port-forwarding owners are documented
+  as cross-layer blockers rather than claimed as completed wiring-only state.
 
 ## [0.10.2] - 2026-08-04
 

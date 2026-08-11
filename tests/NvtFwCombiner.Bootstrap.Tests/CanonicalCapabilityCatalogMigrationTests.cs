@@ -472,15 +472,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         string dpPath = workspace.Write("replacement-dp.bin", dp);
 
         WorkbenchDpVersionMetadata? version =
-            FirmwareInspectionAdapter.TryReadDpVersionMetadata(
+            FirmwareInspectionTestSupport.TryReadDpVersionMetadata(
                 "NT51929",
                 dpPath);
         WorkbenchCmiDpCodeMetadata? cmi =
-            FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
+            FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
                 "NT51929",
                 dpPath);
         WorkbenchOutputFileNameSuggestion outputName =
-            CompositionOutputNaming.CreateFlashCodeOutputFileName(
+            OutputNamingTestSupport.CreateFlashCodeOutputFileName(
                 "NT51929",
                 [new WorkbenchOutputNameCandidate(
                     WorkbenchOutputNameCandidateKind.Dp,
@@ -515,10 +515,10 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "nvt-fw-combiner-canonical-dpcmi-truncated");
         string path = workspace.Write("truncated-dp.bin", truncated);
 
-        Assert.Null(FirmwareInspectionAdapter.TryReadDpVersionMetadata(
+        Assert.Null(FirmwareInspectionTestSupport.TryReadDpVersionMetadata(
             "NT51929",
             path));
-        Assert.Null(FirmwareInspectionAdapter.TryReadCmiDpCodeMetadata(
+        Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
             "NT51929",
             path));
     }

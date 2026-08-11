@@ -8,7 +8,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string bootstrapSource = ReadBootstrapSources();
         string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
-        string abCliRouter = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.AbMerge.cs");
+        string abCliRouter = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.cs");
         string abCliHandler = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeCliCommandHandler.cs");
         string runner = ReadText("src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.cs");
         int cliCalls = CountOccurrences(cli, ".PreviewOrBuildAsync(");

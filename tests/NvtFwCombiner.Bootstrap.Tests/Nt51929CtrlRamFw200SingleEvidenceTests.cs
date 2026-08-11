@@ -60,7 +60,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         Assert.Equal(0x4703, metadata.ProjectId);
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion(icId, outputPath));
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(icId, outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);

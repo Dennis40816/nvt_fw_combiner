@@ -14,9 +14,6 @@ public static partial class CliApplication
             [CompositionAddressSpaceIds.DpInput] = "--dp",
             [CompositionAddressSpaceIds.TpInput] = "--tp",
             [CompositionAddressSpaceIds.LdcInput] = "--ldc",
-            [CompositionAddressSpaceIds.DpAbInput] = "--dp-ab",
-            [CompositionAddressSpaceIds.TpAInput] = "--tp-a",
-            [CompositionAddressSpaceIds.TpBInput] = "--tp-b",
         };
 
     private static async Task<int> RunStandardMergeAsync(

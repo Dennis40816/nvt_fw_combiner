@@ -104,6 +104,7 @@ public static partial class CanonicalCapabilityProjection
         string icId,
         long? baseCapacity,
         IReadOnlyCollection<string> selectedInputSlotIds,
+        AuthoringRevision authoringRevision,
         out InputSelectionReadinessSnapshot? readiness,
         out IReadOnlyList<CompositionIssue> issues)
     {
@@ -141,7 +142,7 @@ public static partial class CanonicalCapabilityProjection
         V2CompiledCompositionDetails details = composition.V2Details;
 
         readiness = InputSelectionReadinessResolver.Resolve(
-            new AuthoringRevision(0),
+            authoringRevision,
             details.InputContract.SelectionGroups,
             selectedInputSlotIds,
             baseCapacity is null ? CompositionAddressSpaceIds.ReferenceBase : null);

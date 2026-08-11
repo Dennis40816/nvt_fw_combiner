@@ -283,7 +283,14 @@ public sealed partial class ShellViewModelTests
         string tpPath = workspace.Write("tp.bin", [0x01]);
         MainWindowViewModel viewModel = CreateInspectionViewModel((icId, path, dependentTpPath, request) =>
             string.Equals(path, basePath, StringComparison.Ordinal)
-                ? FirmwareInspectionAdapter.InspectFirmware(icId, path, dependentTpPath, request)
+                ? FirmwareInspectionAdapter.InspectFirmwareBatch(
+                    icId,
+                    [new WorkbenchFirmwareInspectionInput(
+                        "single",
+                        path,
+                        dependentTpPath,
+                        request)])
+                    .Single().Inspection
                 : new WorkbenchFirmwareInspection(
                     null,
                     null,

@@ -5,39 +5,6 @@ namespace NvtFwCombiner.Bootstrap;
 
 public static partial class FirmwareInspectionAdapter
 {
-    /// <summary>Reads canonical DPCMI version metadata from a selected DP payload.</summary>
-    public static WorkbenchDpVersionMetadata? TryReadDpVersionMetadata(string icId, string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        byte[]? image = TryReadFirmwareImage(path);
-        return image is null ? null : ReadDpVersionMetadata(icId, image);
-    }
-
-    /// <summary>Reads CMI DP Jira and major/minor facts without making unobserved DP sizes a build blocker.</summary>
-    public static WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata(
-        string icId,
-        string path,
-        string? tpPath = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        byte[]? image = TryReadFirmwareImage(path);
-        if (image is null)
-        {
-            return null;
-        }
-
-        byte[]? tpImage = string.IsNullOrWhiteSpace(tpPath)
-            ? null
-            : string.Equals(path, tpPath, StringComparison.Ordinal)
-                ? null
-                : TryReadFirmwareImage(tpPath);
-        return ReadCmiDpCodeMetadata(icId, image, tpImage);
-    }
-
     /// <summary>Reads FWConfig display metadata from the canonical NVT-located Backup in a selected firmware image.</summary>
     public static WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path)
     {
@@ -46,19 +13,6 @@ public static partial class FirmwareInspectionAdapter
 
         byte[]? image = TryReadFirmwareImage(path);
         return image is null ? null : ReadFirmwareConfigMetadata(icId, image);
-    }
-
-    /// <summary>
-    /// Returns an auto-applicable IC-number selection only when the canonical NVT Backup is unique
-    /// and its chip number resolves to one approved postbuild branch token.
-    /// </summary>
-    public static WorkbenchFirmwareContextSuggestion? TryReadFirmwareContextSuggestion(string icId, string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        byte[]? image = TryReadFirmwareImage(path);
-        return image is null ? null : ReadFirmwareContextSuggestion(icId, image);
     }
 
     internal static bool TryReadBaseCommonFwVersion(

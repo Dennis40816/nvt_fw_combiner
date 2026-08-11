@@ -49,10 +49,9 @@ public static partial class CliApplication
                 "profiles" => await RunProfilesAsync(args[1..], output, error).ConfigureAwait(false),
                 ExperienceIds.StandardMerge => await RunStandardMergeAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
-                ExperienceIds.AbMerge => await RunAbMergeAsync(args[1..], output, error, cancellationToken)
+                ExperienceIds.AbMerge => await AbMergeCliCommandHandler.RunAsync(args[1..], output, error, cancellationToken)
                     .ConfigureAwait(false),
                 ExperienceIds.GeneralMerge => await MergeCliCommandHandler.RunAsync(
-                        args[0],
                         args[1..],
                         output,
                         error,

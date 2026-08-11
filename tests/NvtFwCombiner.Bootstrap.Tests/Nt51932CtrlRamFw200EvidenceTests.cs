@@ -57,7 +57,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
         Assert.Equal(0x5601, metadata.ProjectId);
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion("NT51932", outputPath));
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51932", outputPath));
         Assert.Equal(WorkbenchIcNumberTokens.CascadeTwoToEight, suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);

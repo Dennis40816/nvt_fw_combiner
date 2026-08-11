@@ -34,7 +34,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         OwnerCase evidence = ReadOwnerCase();
 
         Assert.Equal(Capacity, evidence.Expected.Bytes.Length);
-        WorkbenchFirmwareInspection inspection = FirmwareInspectionAdapter.InspectFirmware(
+        WorkbenchFirmwareInspection inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             evidence.Expected.Path,
             tpPath: null,
@@ -83,7 +83,7 @@ public sealed class Nt51950CtrlRamFw200EvidenceTests
         Assert.Equal(0x4A06, metadata.ProjectId);
 
         WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            FirmwareInspectionAdapter.TryReadFirmwareContextSuggestion("NT51950", outputPath));
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51950", outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);

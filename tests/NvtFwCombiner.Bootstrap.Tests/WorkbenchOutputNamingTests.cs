@@ -81,7 +81,7 @@ public sealed class WorkbenchOutputNamingTests
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
 
-        WorkbenchOutputFileNameSuggestion suggestion = CompositionOutputNaming.CreateFlashCodeOutputFileName(
+        WorkbenchOutputFileNameSuggestion suggestion = OutputNamingTestSupport.CreateFlashCodeOutputFileName(
             "51926",
             [
                 new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
@@ -105,7 +105,7 @@ public sealed class WorkbenchOutputNamingTests
         string tpPath = GoldenArtifactPath("51926", "tp-input");
         DateOnly date = new(2026, 7, 8);
         WorkbenchOutputFileNameSuggestion pathBacked =
-            CompositionOutputNaming.CreateFlashCodeOutputFileName(
+            OutputNamingTestSupport.CreateFlashCodeOutputFileName(
                 "51926",
                 [
                     new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
@@ -118,10 +118,10 @@ public sealed class WorkbenchOutputNamingTests
                 [
                     new WorkbenchOutputNameInspectionCandidate(
                         WorkbenchOutputNameCandidateKind.Dp,
-                        FirmwareInspectionAdapter.InspectFirmware("51926", dpPath)),
+                        FirmwareInspectionTestSupport.InspectFirmware("51926", dpPath)),
                     new WorkbenchOutputNameInspectionCandidate(
                         WorkbenchOutputNameCandidateKind.Tp,
-                        FirmwareInspectionAdapter.InspectFirmware("51926", tpPath)),
+                        FirmwareInspectionTestSupport.InspectFirmware("51926", tpPath)),
                 ],
                 date);
 
@@ -135,14 +135,14 @@ public sealed class WorkbenchOutputNamingTests
         string dpPath = GoldenArtifactPath("51950", "dp-input");
         string tpPath = GoldenArtifactPath("51950", "tp-input");
         DateOnly date = new(2026, 7, 20);
-        WorkbenchOutputFileNameSuggestion pathBacked = CompositionOutputNaming.CreateFlashCodeOutputFileName(
+        WorkbenchOutputFileNameSuggestion pathBacked = OutputNamingTestSupport.CreateFlashCodeOutputFileName(
             "NT51950",
             [
                 new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath),
                 new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Tp, tpPath),
             ],
             date);
-        WorkbenchFirmwareInspection dpInspection = FirmwareInspectionAdapter.InspectFirmware(
+        WorkbenchFirmwareInspection dpInspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             dpPath,
             tpPath);
@@ -164,7 +164,7 @@ public sealed class WorkbenchOutputNamingTests
     {
         string dpPath = GoldenArtifactPath("51951", "dp-input");
 
-        WorkbenchOutputFileNameSuggestion suggestion = CompositionOutputNaming.CreateFlashCodeOutputFileName(
+        WorkbenchOutputFileNameSuggestion suggestion = OutputNamingTestSupport.CreateFlashCodeOutputFileName(
             "NT51951",
             [new WorkbenchOutputNameCandidate(WorkbenchOutputNameCandidateKind.Dp, dpPath)],
             new DateOnly(2026, 7, 20));
@@ -215,7 +215,7 @@ public sealed class WorkbenchOutputNamingTests
                 ],
                 date);
         WorkbenchOutputFileNameSuggestion pathBackedCtrlRam =
-            CompositionOutputNaming.CreateFlashCodeOutputFileName(
+            OutputNamingTestSupport.CreateFlashCodeOutputFileName(
                 "NT51926",
                 [
                     new WorkbenchOutputNameCandidate(
@@ -323,7 +323,7 @@ public sealed class WorkbenchOutputNamingTests
     [Fact]
     public void FlashCodeOutputNameUsesUnknownTokensWhenMetadataIsMissing()
     {
-        WorkbenchOutputFileNameSuggestion suggestion = CompositionOutputNaming.CreateFlashCodeOutputFileName(
+        WorkbenchOutputFileNameSuggestion suggestion = OutputNamingTestSupport.CreateFlashCodeOutputFileName(
             "NT51950",
             [],
             new DateOnly(2026, 7, 8));
@@ -400,7 +400,7 @@ public sealed class WorkbenchOutputNamingTests
     [Fact]
     public void Nt51950TpFirmwareGoldenUsesTpFwCtrlRamName()
     {
-        WorkbenchFirmwareInspection inspection = FirmwareInspectionAdapter.InspectFirmware(
+        WorkbenchFirmwareInspection inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             GoldenArtifactPath("51950", "tp-input"));
 
@@ -424,7 +424,7 @@ public sealed class WorkbenchOutputNamingTests
             .EnumerateArray()
             .Single(static artifact =>
                 string.Equals(artifact.GetProperty("role").GetString(), "expected", StringComparison.Ordinal));
-        WorkbenchFirmwareInspection inspection = FirmwareInspectionAdapter.InspectFirmware(
+        WorkbenchFirmwareInspection inspection = FirmwareInspectionTestSupport.InspectFirmware(
             icId,
             CanonicalGoldenTestData.ArtifactPath(expected));
         return CompositionOutputNaming.CreateFlashCodeOutputFileNameFromInspections(
