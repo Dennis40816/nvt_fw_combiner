@@ -1,7 +1,7 @@
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.ExternalTools;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -12,14 +12,14 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void IcCatalogProjectionPreservesSelectableRowsAndChoices()
     {
-        IReadOnlyList<string> icIds = WorkbenchCompositionService.GetSupportedIcIds();
+        IReadOnlyList<string> icIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
 
         Assert.Equal(10, icIds.Count);
-        Assert.Equal(IcSupportCatalog.IcIds, icIds);
-        Assert.Equal("NT51950", WorkbenchCompositionService.GetDefaultIcId());
+        Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
+        Assert.Equal("NT51950", BootstrapTestHost.Canonical.Projection.DefaultIcId);
         Assert.Equal(
-            WorkbenchCompositionService.GetNumberSelectionChoices("NT51926"),
-            WorkbenchCompositionService.GetNumberSelectionChoices("51926"));
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51926"),
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("51926"));
         foreach (string icId in icIds)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
@@ -27,7 +27,7 @@ public sealed class WorkbenchCatalogProjectionTests
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
-                WorkbenchCompositionService.GetNumberSelectionChoices(icId).Select(static choice => (
+                BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices(icId).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)));
         }
@@ -37,22 +37,24 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void CatalogProjectionsRejectMutation()
     {
-        IReadOnlyList<string> supportedIcIds = WorkbenchCompositionService.GetSupportedIcIds();
-        IReadOnlyList<WorkbenchIcNumberChoice> numberChoices =
-            WorkbenchCompositionService.GetNumberSelectionChoices("NT51950");
+        IReadOnlyList<string> supportedIcIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
+        IReadOnlyList<CapabilityNumberChoice> numberChoices =
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51950");
         string originalIcId = supportedIcIds[0];
-        WorkbenchIcNumberChoice originalNumberChoice = numberChoices[0];
+        CapabilityNumberChoice originalNumberChoice = numberChoices[0];
 
         var mutableIcIds = (IList<string>)supportedIcIds;
-        var mutableNumberChoices = (IList<WorkbenchIcNumberChoice>)numberChoices;
+        var mutableNumberChoices = (IList<CapabilityNumberChoice>)numberChoices;
         Assert.True(mutableIcIds.IsReadOnly);
         Assert.True(mutableNumberChoices.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mutableIcIds[0] = "NT00000");
         _ = Assert.Throws<NotSupportedException>(() =>
-            mutableNumberChoices[0] = new WorkbenchIcNumberChoice("invalid", "Invalid"));
+            mutableNumberChoices[0] = new CapabilityNumberChoice("invalid", "Invalid"));
 
-        Assert.Equal(originalIcId, WorkbenchCompositionService.GetSupportedIcIds()[0]);
-        Assert.Equal(originalNumberChoice, WorkbenchCompositionService.GetNumberSelectionChoices("NT51950")[0]);
+        Assert.Equal(originalIcId, BootstrapTestHost.Canonical.Projection.GetIcIds()[0]);
+        Assert.Equal(
+            originalNumberChoice,
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51950")[0]);
     }
 
     /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
@@ -63,12 +65,12 @@ public sealed class WorkbenchCatalogProjectionTests
     [InlineData("NT51931")]
     public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)
     {
-        Assert.DoesNotContain(icId, WorkbenchCompositionService.GetSupportedIcIds());
+        Assert.DoesNotContain(icId, BootstrapTestHost.Canonical.Projection.GetIcIds());
         Assert.DoesNotContain(
-            WorkbenchCompositionService.GetStandardMergeProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
         Assert.DoesNotContain(
-            WorkbenchCompositionService.GetReplaceProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
     }
 
@@ -76,20 +78,23 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void ProfileSummariesExcludeSyntheticCompilerFixtures()
     {
-        IReadOnlyList<WorkbenchProfileSummary> standardSummaries = WorkbenchCompositionService.GetStandardMergeProfileSummaries();
-        IReadOnlyList<WorkbenchProfileSummary> replaceSummaries = WorkbenchCompositionService.GetReplaceProfileSummaries();
+        IReadOnlyList<CapabilityProfileSummary> standardSummaries =
+            BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries();
+        IReadOnlyList<CapabilityProfileSummary> replaceSummaries =
+            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
         AssertV2DpReplaceProfileSummaries(replaceSummaries);
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
-        WorkbenchSettingsSnapshot settings = WorkbenchCompositionService.GetSettingsSnapshot();
+        CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
         Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(10, settings.DpReplaceProfileCount);
         Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
     }
 
-    private static void AssertStandardMergeProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    private static void AssertStandardMergeProfileSummaries(
+        IReadOnlyList<CapabilityProfileSummary> summaries)
     {
         Assert.Equal(
             [
@@ -98,11 +103,11 @@ public sealed class WorkbenchCatalogProjectionTests
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in summaries)
+        foreach (CapabilityProfileSummary summary in summaries)
         {
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
             Assert.True(
-                WorkbenchCompositionService.TryCompileStandardMerge(
+                BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
                     summary.IcId,
                     dpLength,
                     out CompiledComposition? composition,
@@ -111,15 +116,16 @@ public sealed class WorkbenchCatalogProjectionTests
 
             Assert.True(summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
-            Assert.Equal(composition.ProfileId, summary.ProfileId);
-            Assert.Equal(composition.CompositionKind, summary.CompositionKind);
+            Assert.Equal(composition.V2Details.ProfileId, summary.ProfileId);
+            Assert.Equal(composition.V2Details.CompositionKind, summary.CompositionKind);
             Assert.Equal(composition.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(composition.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(composition.IcNumberPolicy, summary.IcNumberPolicy);
+            Assert.Equal(composition.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
+            Assert.Equal(composition.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
         }
     }
 
-    private static void AssertV2DpReplaceProfileSummaries(IReadOnlyList<WorkbenchProfileSummary> summaries)
+    private static void AssertV2DpReplaceProfileSummaries(
+        IReadOnlyList<CapabilityProfileSummary> summaries)
     {
         Assert.Equal(
             [
@@ -128,11 +134,11 @@ public sealed class WorkbenchCatalogProjectionTests
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
 
-        foreach (WorkbenchProfileSummary summary in summaries)
+        foreach (CapabilityProfileSummary summary in summaries)
         {
             long baseCapacity = summary.IcId == "NT51928" ? 0x80000 : 0x40000;
             Assert.True(
-                WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+                BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
                     summary.IcId,
                     baseCapacity,
                     out CompiledComposition? composition,
@@ -142,11 +148,11 @@ public sealed class WorkbenchCatalogProjectionTests
             CompiledComposition artifact = Assert.IsType<CompiledComposition>(composition);
             Assert.True(summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
-            Assert.Equal(artifact.ProfileId, summary.ProfileId);
-            Assert.Equal(artifact.CompositionKind, summary.CompositionKind);
+            Assert.Equal(artifact.V2Details.ProfileId, summary.ProfileId);
+            Assert.Equal(artifact.V2Details.CompositionKind, summary.CompositionKind);
             Assert.Equal(artifact.Plan.RequiredInputAddressSpaceIds, summary.RequiredInputAddressSpaceIds);
-            Assert.Equal(artifact.DefaultOutputFileName, summary.DefaultOutputFileName);
-            Assert.Equal(artifact.IcNumberPolicy, summary.IcNumberPolicy);
+            Assert.Equal(artifact.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
+            Assert.Equal(artifact.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -36,18 +35,6 @@ public sealed partial class MainWindowViewModel
     private void WorkflowReplaceModeChanged()
     {
         WorkflowSession.ReplaceModeChanged();
-    }
-
-    private string CreateWorkflowFlashCodeOutputFileName(IEnumerable<FirmwareSlotViewModel> candidateSlots)
-    {
-        return WorkflowSession.CreateFlashCodeOutputFileName(candidateSlots);
-    }
-
-    private string CreateWorkflowCtrlRamOutputFileName(
-        IEnumerable<FirmwareSlotViewModel> candidateSlots,
-        WorkbenchCtrlRamFirmwareVersionEdit? edit)
-    {
-        return WorkflowSession.CreateCtrlRamReplaceOutputFileName(candidateSlots, edit);
     }
 
     private void ApplyWorkflowContext(WorkflowSessionPresentationViewModel.WorkflowContextSelection selection)

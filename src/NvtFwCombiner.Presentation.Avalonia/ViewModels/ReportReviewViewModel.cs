@@ -1,5 +1,3 @@
-using NvtFwCombiner.Application.Composition;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Readable UI projection of a CLI/application run report JSON file.</summary>

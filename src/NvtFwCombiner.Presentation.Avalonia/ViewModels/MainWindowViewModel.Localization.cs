@@ -15,6 +15,7 @@ public sealed partial class MainWindowViewModel
 
         LoadedHexEditorWorkspace?.ApplyTextResources(Text);
         RunSession.ApplyLanguageChanged(language);
+        MessageCenter.ApplyLanguageChanged();
 
         if (!notify)
         {

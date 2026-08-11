@@ -1,5 +1,4 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -16,9 +15,9 @@ public sealed class CompositionProfileV2DefinitionTests
             CompositionProfileV2DefinitionTestData.ValidReplaceParts());
 
         Assert.Equal(CompositionKind.Merge, merge.CompositionKind);
-        Assert.Equal(CompositionProfileInitializerKind.Blank, Output(merge).Initializer.Kind);
+        _ = Assert.IsType<BlankProfileInitializer>(Output(merge).Initializer);
         Assert.Equal(CompositionKind.Replace, replace.CompositionKind);
-        Assert.Equal(CompositionProfileInitializerKind.Clone, Output(replace).Initializer.Kind);
+        _ = Assert.IsType<CloneProfileInitializer>(Output(replace).Initializer);
         Assert.Equal("synthetic-family", merge.MapBinding.FamilyId);
         Assert.Equal("{original-name}_merged.bin", merge.Output.FileNameTemplate);
     }
@@ -29,9 +28,9 @@ public sealed class CompositionProfileV2DefinitionTests
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
         var slots = parts.InputSlots.ToList();
-        var operations = new List<CompositionProfileOperation>
+        var operations = new List<CompositionOperationDefinition>
         {
-            new FillRangeProfileOperation(
+            CompositionOperationDefinition.FillRange(
                 "fill-target", 2, OverlapPolicy.ReplaceExisting, "Fill target.", "target-view", 0xFF),
             parts.Operations[0],
         };
@@ -64,7 +63,7 @@ public sealed class CompositionProfileV2DefinitionTests
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { InputSlots = [parts.InputSlots[0], parts.InputSlots[0]] }));
 
-        var duplicateSequence = new FillRangeProfileOperation(
+        var duplicateSequence = CompositionOperationDefinition.FillRange(
             "fill-target", 0, OverlapPolicy.ReplaceExisting, "Fill target.", "target-view", 0xFF);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], duplicateSequence] }));
@@ -107,15 +106,15 @@ public sealed class CompositionProfileV2DefinitionTests
     public void DefinitionRejectsInvalidCloneSourceSlots()
     {
         CompositionProfileV2DefinitionParts replace = CompositionProfileV2DefinitionTestData.ValidReplaceParts();
-        var optionalReference = new CompositionProfileInputSlot(
+        var optionalReference = new CompositionInputSlotDefinition(
             "reference-input",
             "reference",
-            CompositionProfileArtifactClass.ReferenceImage,
+            CompiledInputArtifactClass.ReferenceImage,
             required: false,
-            CompositionProfileSlotCardinality.ZeroOrOne,
+            CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
-            new NoInputNormalization());
+            new ResolvedMapCapacityInputLengthDefinition(),
+            new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [replace.InputSlots[0], optionalReference] }));
 
@@ -134,44 +133,44 @@ public sealed class CompositionProfileV2DefinitionTests
     public void DefinitionEnforcesProfileLevelInputNormalizationPolicy()
     {
         CompositionProfileV2DefinitionParts merge = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var paddedDp = new CompositionProfileInputSlot(
+        var paddedDp = new CompositionInputSlotDefinition(
             "tp-input",
             "dp",
-            CompositionProfileArtifactClass.DpFirmware,
+            CompiledInputArtifactClass.DpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
-            new PadShorterInputNormalization(0xFF, "padding-evidence"));
+            new ResolvedMapCapacityInputLengthDefinition(),
+            new CompiledPadShorterInputNormalization(0xFF, "padding-evidence"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             merge with { InputSlots = [paddedDp] }));
 
         CompositionProfileV2DefinitionParts replace = CompositionProfileV2DefinitionTestData.ValidReplaceParts();
-        var truncated = new CompositionProfileInputSlot(
+        var truncatedCtrlRam = new CompositionInputSlotDefinition(
             "tp-input",
             "ctrlram",
-            CompositionProfileArtifactClass.CtrlRamReplacement,
+            CompiledInputArtifactClass.CtrlRamReplacement,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new BoundedLengthRule(1, 16),
-            new TruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence"));
-        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
-            replace with { InputSlots = [truncated, replace.InputSlots[1]] }));
+            new CompiledBoundedInputLengthRequirement(1, 16),
+            new CompiledTruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "truncation-evidence"));
+        _ = CompositionProfileV2DefinitionTestData.Create(
+            replace with { InputSlots = [truncatedCtrlRam, replace.InputSlots[1]] });
 
-        var declaredPrefix = new CompositionProfileInputSlot(
+        var declaredPrefix = new CompositionInputSlotDefinition(
             "tp-input",
             "tp",
-            CompositionProfileArtifactClass.TpFirmware,
+            CompiledInputArtifactClass.TpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new DeclaredPrefixWithWarningLengthRule(
-                16,
+            new SourceViewCoverageInputLengthDefinition(
                 [16],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
-            new NoInputNormalization());
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: 16,
+                shortInputIssueCode: "INPUT_SHORT"),
+            new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             replace with { InputSlots = [declaredPrefix, replace.InputSlots[1]] }));
     }

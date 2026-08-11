@@ -30,9 +30,6 @@ public readonly record struct FileStamp
     /// <summary>Accepted byte length.</summary>
     public long AcceptedLength { get; }
 
-    /// <summary>Compatibility alias for consumers that already use length.</summary>
-    public long Length => AcceptedLength;
-
     /// <summary>Lowercase SHA-256 of the accepted complete file bytes.</summary>
     public string Sha256 { get; }
 

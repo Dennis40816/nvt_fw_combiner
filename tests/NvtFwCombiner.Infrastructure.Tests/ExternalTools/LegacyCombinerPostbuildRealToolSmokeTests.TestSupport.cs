@@ -65,7 +65,8 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             postReplacementBytes,
             expectedChangedRanges,
             selection,
-            stagedSources);
+            stagedSources,
+            protocolPlan: profile.ResolvePlan(selection).ProtocolPlan);
 
         ExternalProcessorResult result = await processor.TransformAsync(request, cancellationToken).ConfigureAwait(false);
         Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));

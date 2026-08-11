@@ -1,5 +1,4 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
@@ -15,7 +14,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
         using JsonDocument manifestDocument = CanonicalGoldenTestData.LoadDirectWorkflowManifest("standard-merge");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-golden");
 
-        var admittedIcIds = WorkbenchCompositionService.GetSupportedIcIds()
+        var admittedIcIds = GoldenTestHost.Services.CompositionCapabilityExperience.GetIcIds()
             .ToHashSet(StringComparer.Ordinal);
         JsonElement[] goldenCases =
         [
@@ -54,14 +53,14 @@ public sealed class StandardMergeWorkbenchGoldenTests
             slotPaths[input.Name] = copiedPath;
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult result = await GoldenTestHost.RunStandardMergeAsync(
                 $"NT{aliasIc}",
                 slotPaths,
                 build: true,
                 CancellationToken.None);
 
         string outputPath = result.CommittedOutputId ?? result.OutputFileName;
-        Assert.True(result.Succeeded, result.Status);
+        Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(
             File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
@@ -98,7 +97,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
             slotPaths[input.Name] = copiedPath;
         }
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult result = await GoldenTestHost.RunStandardMergeAsync(
                 $"NT{ic}",
                 slotPaths,
                 build: true,
@@ -106,7 +105,7 @@ public sealed class StandardMergeWorkbenchGoldenTests
             .ConfigureAwait(false);
 
         string outputPath = result.CommittedOutputId ?? result.OutputFileName;
-        Assert.True(result.Succeeded, result.Status);
+        Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.True(File.Exists(outputPath), outputPath);
         Assert.Equal(
             File.ReadAllBytes(RepositoryPaths.ManifestPath(goldenRoot, goldenCase.GetProperty("expectedOutput"))),
@@ -117,9 +116,9 @@ public sealed class StandardMergeWorkbenchGoldenTests
         }
     }
 
-    private static void VerifyNt51929CanonicalTrace(WorkbenchRunResult result)
+    private static void VerifyNt51929CanonicalTrace(CompositionRunResult result)
     {
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = report.RootElement;
         JsonElement[] inputs = [.. root.GetProperty("Inputs").EnumerateArray()];
         JsonElement[] operations = [.. root.GetProperty("Operations").EnumerateArray()];

@@ -52,11 +52,11 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         var compiledGroups = new List<CompiledInputSelectionGroup>();
-        foreach (CompositionProfileInputSelectionGroup group in profile.InputSelectionGroups)
+        foreach (InputSelectionGroupDefinition group in profile.InputSelectionGroups)
         {
             string[] applicable =
             [
-                .. group.MemberSlotIds.Where(slotId => IsSlotApplicable(profile, slotId, regions)),
+                .. group.MemberSlotIds.Where(slotId => profile.IsInputSlotApplicable(slotId, regions)),
             ];
             string[] selected = requested is null
                 ? [.. applicable.Take(group.MinimumSelected)]
@@ -93,11 +93,9 @@ internal static partial class V2CompositionPlanCompiler
 
             activeSlotIds.UnionWith(selected);
             compiledGroups.Add(new CompiledInputSelectionGroup(
-                group.GroupId,
-                group.MemberSlotIds,
+                group,
                 applicable,
                 selected,
-                group.MinimumSelected,
                 maximumSelected,
                 notApplicableReasons));
         }
@@ -123,25 +121,25 @@ internal static partial class V2CompositionPlanCompiler
             .Select(static operation => operation.OperationId)
             .ToHashSet(StringComparer.Ordinal);
         var activeViewIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CompositionProfileOperation operation in profile.Operations.Where(operation =>
+        foreach (CompositionOperationDefinition operation in profile.Operations.Where(operation =>
                      activeOperationIds.Contains(operation.OperationId)))
         {
             AddReferencedViews(operation, activeViewIds);
         }
 
-        foreach (NonUniformRegionProfileValidation validation in profile.Validations
-                     .OfType<NonUniformRegionProfileValidation>())
+        foreach (SourceViewNonUniformValidationDefinition validation in profile.Validations
+                     .OfType<SourceViewNonUniformValidationDefinition>())
         {
             CompositionProfileView view = views[validation.ViewId];
             if (!inactiveInputSpaces.Contains(view.SpaceId) &&
-                ViewRegionExists(view, regions))
+                (view.MapRegionId is not string regionId || regions.Contains(regionId)))
             {
                 _ = activeViewIds.Add(validation.ViewId);
             }
         }
 
         var activeRegionIds = activeViewIds
-            .Select(viewId => TryGetViewRegionId(views[viewId]))
+            .Select(viewId => views[viewId].MapRegionId)
             .Where(static regionId => regionId is not null)
             .Select(static regionId => regionId!)
             .ToHashSet(StringComparer.Ordinal);
@@ -153,85 +151,45 @@ internal static partial class V2CompositionPlanCompiler
             compiledGroups);
     }
 
-    private static bool IsSlotApplicable(
-        CompositionProfileDefinition profile,
-        string slotId,
-        IReadOnlySet<string> availableRegionIds)
-    {
-        string[] spaceIds =
-        [
-            .. profile.Spaces
-                .OfType<InputArtifactProfileSpace>()
-                .Where(space => StringComparer.Ordinal.Equals(space.SlotId, slotId))
-                .Select(static space => space.SpaceId),
-        ];
-        return profile.Views
-            .Where(view => spaceIds.Contains(view.SpaceId, StringComparer.Ordinal))
-            .All(view => ViewRegionExists(view, availableRegionIds));
-    }
-
-    private static bool ViewRegionExists(
-        CompositionProfileView view,
-        IReadOnlySet<string> availableRegionIds)
-    {
-        string? regionId = TryGetViewRegionId(view);
-        return regionId is null || availableRegionIds.Contains(regionId);
-    }
-
-    private static string? TryGetViewRegionId(CompositionProfileView view)
-    {
-        return view.Selector switch
-        {
-            MapRegionViewSelector region => region.RegionId,
-            MapRegionSliceViewSelector slice => slice.RegionId,
-            _ => null,
-        };
-    }
-
     private static bool ReferencesInactiveInput(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         Dictionary<string, CompositionProfileView> views,
         HashSet<string> inactiveInputSpaces)
     {
-        return operation switch
+        return operation.Kind switch
         {
-            CopyOrReplaceProfileOperation copy =>
-                inactiveInputSpaces.Contains(views[copy.SourceViewId].SpaceId) ||
-                inactiveInputSpaces.Contains(views[copy.TargetViewId].SpaceId),
-            FillRangeProfileOperation fill => inactiveInputSpaces.Contains(views[fill.TargetViewId].SpaceId),
-            PatchScalarProfileOperation patch => inactiveInputSpaces.Contains(views[patch.TargetViewId].SpaceId),
-            TransformScalarProfileOperation transform =>
-                inactiveInputSpaces.Contains(views[transform.SourceViewId].SpaceId) ||
-                inactiveInputSpaces.Contains(views[transform.TargetViewId].SpaceId),
-            RunProcessorProfileOperation => false,
-            _ => throw new InvalidOperationException("Unknown profile operation shape."),
+            CompositionOperationKind.CopyRange or
+            CompositionOperationKind.ReplaceRange or
+            CompositionOperationKind.TransformScalar =>
+                inactiveInputSpaces.Contains(views[operation.SourceViewId].SpaceId) ||
+                inactiveInputSpaces.Contains(views[operation.TargetViewId].SpaceId),
+            CompositionOperationKind.FillRange or
+            CompositionOperationKind.PatchScalar => inactiveInputSpaces.Contains(views[operation.TargetViewId].SpaceId),
+            CompositionOperationKind.RunExternalProcessor => false,
+            _ => throw new InvalidOperationException("Unknown canonical operation kind."),
         };
     }
 
     private static void AddReferencedViews(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         HashSet<string> viewIds)
     {
-        switch (operation)
+        switch (operation.Kind)
         {
-            case CopyOrReplaceProfileOperation copy:
-                _ = viewIds.Add(copy.SourceViewId);
-                _ = viewIds.Add(copy.TargetViewId);
+            case CompositionOperationKind.CopyRange:
+            case CompositionOperationKind.ReplaceRange:
+            case CompositionOperationKind.TransformScalar:
+                _ = viewIds.Add(operation.SourceViewId);
+                _ = viewIds.Add(operation.TargetViewId);
                 break;
-            case FillRangeProfileOperation fill:
-                _ = viewIds.Add(fill.TargetViewId);
+            case CompositionOperationKind.FillRange:
+            case CompositionOperationKind.PatchScalar:
+                _ = viewIds.Add(operation.TargetViewId);
                 break;
-            case PatchScalarProfileOperation patch:
-                _ = viewIds.Add(patch.TargetViewId);
-                break;
-            case TransformScalarProfileOperation transform:
-                _ = viewIds.Add(transform.SourceViewId);
-                _ = viewIds.Add(transform.TargetViewId);
-                break;
-            case RunProcessorProfileOperation:
+            case CompositionOperationKind.RunExternalProcessor:
                 break;
             default:
-                throw new InvalidOperationException("Unknown profile operation shape.");
+                throw new InvalidOperationException("Unknown canonical operation kind.");
         }
     }
 
@@ -242,7 +200,7 @@ internal static partial class V2CompositionPlanCompiler
         return
         [
             .. profile.Validations
-                .OfType<NonUniformRegionProfileValidation>()
+                .OfType<SourceViewNonUniformValidationDefinition>()
                 .Where(validation => views.ContainsKey(validation.ViewId))
                 .Select(validation =>
                 {

@@ -311,11 +311,6 @@ public sealed class RuntimeDependencyReadinessSnapshot
     /// <summary>Per-dependency results in deterministic order.</summary>
     public IReadOnlyList<RuntimeDependencyEntry> Entries { get; }
 
-    /// <summary>True when every declared dependency is ready or not applicable.</summary>
-    public bool IsReady => Entries.All(static entry =>
-        entry.Readiness is ResolvedChildReadiness.Ready or
-            ResolvedChildReadiness.NotApplicable);
-
     internal bool Matches(
         CapabilityAdmissionSnapshot admission,
         long currentGeneration)

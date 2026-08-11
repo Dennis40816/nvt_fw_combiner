@@ -7,14 +7,15 @@ internal static partial class V2CompositionPlanCompiler
 {
     private static CompositionOperation[] NarrowRuntimeReferenceProcessorAuthority(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool narrowsCtrlRamProcessorAuthority,
         IReadOnlyList<CompositionOperation> mappingOperations,
         IReadOnlyList<ByteRange> postbuildFirmwareVersionWrites,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy,
         IReadOnlyList<ExternalProcessorWriteRangeSection> postbuildWriteRangeSections,
+        ExternalProcessorProtocolPlan? processorProtocolPlan,
         CompositionOperation[] processorOperations)
     {
-        if (!StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) ||
-            processorOperations.Length == 0)
+        if (!narrowsCtrlRamProcessorAuthority || processorOperations.Length == 0)
         {
             return [.. processorOperations];
         }
@@ -40,7 +41,7 @@ internal static partial class V2CompositionPlanCompiler
             {
                 nonCtrlRam =
                 [
-                    .. nonCtrlRam.SelectMany(range => Subtract(range, ctrlRamRange)),
+                    .. nonCtrlRam.SelectMany(range => range.Subtract([ctrlRamRange])),
                 ];
             }
 
@@ -57,7 +58,7 @@ internal static partial class V2CompositionPlanCompiler
             allowedWrites =
             [
                 .. allowedWrites.SelectMany(range =>
-                    Subtract(range, postbuildPolicy.ResolvedProcessorAuthority)),
+                    range.Subtract([postbuildPolicy.ResolvedProcessorAuthority])),
             ];
             allowedWrites.Add(postbuildPolicy.ResolvedProcessorAuthority);
         }
@@ -78,7 +79,8 @@ internal static partial class V2CompositionPlanCompiler
                     resolvedAllowedWrites.Any(range => range.Contains(section.Range)))
                 .DistinctBy(section => (section.SectionId, section.Range, section.SourceRange)),
             declared.StagedArtifactBindings,
-            declared.OutputAssertions);
+            declared.OutputAssertions,
+            processorProtocolPlan ?? declared.ProtocolPlan);
         return
         [
             CompositionOperation.RunExternalProcessor(
@@ -95,8 +97,9 @@ internal static partial class V2CompositionPlanCompiler
 
     private static void ValidatePostbuildPolicy(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool truncatesCtrlRamSources,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy,
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings,
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings,
         IReadOnlyList<CompositionOperation> mappingOperations,
         CompositionOperation[] processorOperations,
         List<CompositionIssue> issues)
@@ -110,7 +113,7 @@ internal static partial class V2CompositionPlanCompiler
             postbuildPolicy.SourceAddressSpaceId is null ||
             (bindings.TryGetValue(
                  postbuildPolicy.SourceAddressSpaceId,
-                 out V2RuntimeReferenceReplaceInputBinding? sourceBinding) &&
+                 out V2ExplicitMappingInputBinding? sourceBinding) &&
              postbuildPolicy.RequiredNonuniformSourceRanges.All(range =>
                  range.EndExclusive <= sourceBinding.ExactLengthBytes &&
                  mappingOperations.Any(mapping =>
@@ -120,15 +123,9 @@ internal static partial class V2CompositionPlanCompiler
                      mapping.SourceRange == range)));
         bool validShape =
             sourceValidationIsValid &&
-            StringComparer.Ordinal.Equals(resolvedMap.ModeId, ExperienceIds.CtrlRamReplace) &&
+            truncatesCtrlRamSources &&
             resolvedMap.TopologySelection is { ChipCount: >= 2 } &&
             resolvedMap.CapacityBytes >= postbuildPolicy.DeclaredProcessorAuthority.EndExclusive &&
-            postbuildPolicy.DeclaredProcessorAuthority.Contains(
-                postbuildPolicy.ResolvedProcessorAuthority) &&
-            postbuildPolicy.ResolvedProcessorAuthority.Contains(
-                new ByteRange(
-                    postbuildPolicy.ExpectedFirmwareConfigBackupStart,
-                    postbuildPolicy.FirmwareConfigBackupLength)) &&
             mappingOperations.All(mapping =>
                 !mapping.TargetRange.Overlaps(postbuildPolicy.ResolvedProcessorAuthority)) &&
             processorOperations.Length == 1 &&
@@ -143,25 +140,4 @@ internal static partial class V2CompositionPlanCompiler
         }
     }
 
-    private static IEnumerable<ByteRange> Subtract(ByteRange source, ByteRange excluded)
-    {
-        ByteRange? overlap = source.Intersect(excluded);
-        if (overlap is null)
-        {
-            yield return source;
-            yield break;
-        }
-
-        if (source.Start < overlap.Value.Start)
-        {
-            yield return ByteRange.FromStartEndExclusive(source.Start, overlap.Value.Start);
-        }
-
-        if (overlap.Value.EndExclusive < source.EndExclusive)
-        {
-            yield return ByteRange.FromStartEndExclusive(
-                overlap.Value.EndExclusive,
-                source.EndExclusive);
-        }
-    }
 }

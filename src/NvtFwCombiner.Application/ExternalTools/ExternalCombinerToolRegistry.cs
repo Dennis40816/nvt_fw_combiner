@@ -34,9 +34,6 @@ public sealed class ExternalCombinerToolRegistry
         _byBindingId = byBindingId;
     }
 
-    /// <summary>Returns every registered manifest.</summary>
-    public IReadOnlyCollection<ExternalCombinerToolManifest> Manifests => _byBindingId.Values;
-
     /// <summary>Finds a manifest by exact tool binding id.</summary>
     public ExternalCombinerToolManifest Resolve(string toolBindingId)
     {

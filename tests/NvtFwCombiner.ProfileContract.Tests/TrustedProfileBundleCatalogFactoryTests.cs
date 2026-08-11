@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
@@ -24,9 +25,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         JsonElement profile = TrustedV2BundleTestDocuments.Profile(familyHash);
         string profileHash = Hash(TrustedV2BundleTestDocuments.ProfileJson(familyHash));
 
-        TrustedProfileBundleCatalog catalog = TrustedProfileBundleCatalogFactory.Create(Source(
+        TrustedProfileBundleCatalog catalog = CreateCatalogFromSources(
             [Family("family-entry", familyHash, family)],
-            [Profile("profile-entry", profileHash, profile)]));
+            [Profile("profile-entry", profileHash, profile)]);
 
         Assert.Equal("bundle", catalog.BundleIdentity.BundleId);
         Assert.Equal(BundleHash, catalog.BundleIdentity.ContentHash);
@@ -53,9 +54,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string secondHash = Hash(TrustedV2BundleTestDocuments.FamilyJson(mapId: "other-map"));
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("z-family", firstHash, first), Family("a-family", secondHash, second)],
-                [])));
+                []));
 
         Assert.Equal("profile-bundle.catalog.family-identity-duplicate", exception.Code);
         Assert.Equal("a-family", exception.EntryId);
@@ -71,12 +72,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         JsonElement second = TrustedV2BundleTestDocuments.Profile(familyHash);
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("family-entry", familyHash, family)],
                 [
                     Profile("z-profile", Hash(TrustedV2BundleTestDocuments.ProfileJson(familyHash)), first),
                     Profile("a-profile", Hash(TrustedV2BundleTestDocuments.ProfileJson(familyHash)), second),
-                ])));
+                ]));
 
         Assert.Equal("profile-bundle.catalog.profile-identity-duplicate", exception.Code);
         Assert.Equal("a-profile", exception.EntryId);
@@ -92,9 +93,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         JsonElement profile = TrustedV2BundleTestDocuments.Profile(wrongHash);
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("family-entry", familyHash, family)],
-                [Profile("profile-entry", Hash(TrustedV2BundleTestDocuments.ProfileJson(wrongHash)), profile)])));
+                [Profile("profile-entry", Hash(TrustedV2BundleTestDocuments.ProfileJson(wrongHash)), profile)]));
 
         Assert.Equal("profile-bundle.catalog.profile-family-missing", exception.Code);
         Assert.Equal("profile-entry", exception.EntryId);
@@ -109,32 +110,32 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         JsonElement profile = TrustedV2BundleTestDocuments.Profile(familyHash, mapId: "missing-map");
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("family-entry", familyHash, family)],
-                [Profile("profile-entry", Hash(TrustedV2BundleTestDocuments.ProfileJson(familyHash, mapId: "missing-map")), profile)])));
+                [Profile("profile-entry", Hash(TrustedV2BundleTestDocuments.ProfileJson(familyHash, mapId: "missing-map")), profile)]));
 
         Assert.Equal("profile-bundle.catalog.profile-map-missing", exception.Code);
         Assert.Equal("profile-entry", exception.EntryId);
     }
 
-    private static TrustedProfileBundleCatalogSource Source(
-        IEnumerable<TrustedFirmwareFamilyJsonSource> families,
-        IEnumerable<TrustedCompositionProfileJsonSource> profiles,
+    private static TrustedProfileBundleCatalog CreateCatalogFromSources(
+        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> families,
+        IEnumerable<(TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document)> profiles,
         string bundleContentHash = BundleHash)
     {
-        return new TrustedProfileBundleCatalogSource(
+        return TrustedProfileBundleCatalogFactory.Create(
             ManifestHash,
-            "bundle",
-            "1.0.0",
-            bundleContentHash,
-            "release-binding",
+            new ProfileBundleIdentity("bundle", "1.0.0", bundleContentHash, "release-binding"),
             families,
             profiles);
     }
 
-    private static TrustedFirmwareFamilyJsonSource Family(string entryId, string contentHash, JsonElement document)
+    private static (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) Family(
+        string entryId,
+        string contentHash,
+        JsonElement document)
     {
-        return new TrustedFirmwareFamilyJsonSource(
+        return (
             new TrustedProfileBundleCatalogEntryIdentity(
                 entryId,
                 $"families/{entryId}.json",
@@ -143,9 +144,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             document);
     }
 
-    private static TrustedCompositionProfileJsonSource Profile(string entryId, string contentHash, JsonElement document)
+    private static (TrustedProfileBundleCatalogEntryIdentity Identity, JsonElement Document) Profile(
+        string entryId,
+        string contentHash,
+        JsonElement document)
     {
-        return new TrustedCompositionProfileJsonSource(
+        return (
             new TrustedProfileBundleCatalogEntryIdentity(
                 entryId,
                 $"profiles/{entryId}.json",

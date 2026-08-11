@@ -1,4 +1,3 @@
-using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -51,8 +50,8 @@ public sealed partial class GeneralMergeCliCommandTests
                 new string('d', 64),
                 "map"));
 
-        WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 draft,
                 new GeneralSavedRuleResourcePolicy(
@@ -64,16 +63,13 @@ public sealed partial class GeneralMergeCliCommandTests
                         hasEvidence: true,
                         isTrusted: true),
                     limits),
-                build: true,
-                TestContext.Current.CancellationToken,
-                output);
+                TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
         Assert.False(File.Exists(output));
-        using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() ==
-                GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
+            prepared.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
     }
 }

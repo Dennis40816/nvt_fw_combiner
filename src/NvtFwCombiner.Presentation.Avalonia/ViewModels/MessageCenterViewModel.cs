@@ -1,0 +1,294 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.Ports;
+
+namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
+/// <summary>Compact shell entry that keeps reports and current system state separate.</summary>
+public sealed partial class MessageCenterViewModel : ObservableObject
+{
+    private readonly Func<ShellTextResources> _textProvider;
+    private readonly ISystemInformationService _systemInformation;
+    private readonly ISystemDiagnosticsExporter _exporter;
+    private readonly Action<bool> _diagnosticsChanged;
+
+    internal MessageCenterViewModel(
+        Func<ShellTextResources> textProvider,
+        ISystemInformationService systemInformation,
+        ISystemDiagnosticsExporter exporter,
+        ReportPresentationViewModel reports,
+        Action<bool> diagnosticsChanged)
+    {
+        _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
+        _systemInformation = systemInformation ?? throw new ArgumentNullException(nameof(systemInformation));
+        _exporter = exporter ?? throw new ArgumentNullException(nameof(exporter));
+        Reports = reports ?? throw new ArgumentNullException(nameof(reports));
+        _diagnosticsChanged = diagnosticsChanged ?? throw new ArgumentNullException(nameof(diagnosticsChanged));
+        OpenCommand = new RelayCommand(Open);
+        CloseCommand = new RelayCommand(Close);
+        ShowRunReportsCommand = new RelayCommand(() => SelectSystemInformation(false));
+        ShowSystemInformationCommand = new RelayCommand(() => SelectSystemInformation(true));
+        RefreshCommand = new AsyncRelayCommand(
+            cancellationToken => RefreshAsync(reloadCatalog: true, cancellationToken));
+        OpenCurrentReportCommand = new RelayCommand(OpenCurrentReport, () => Reports.CanOpenReport);
+        OpenReportHistoryCommand = new RelayCommand(OpenReportHistory, () => Reports.CanOpenReportHistory);
+    }
+
+    /// <summary>Localized shell text.</summary>
+    public ShellTextResources Text => _textProvider();
+
+    /// <summary>Latest immutable System Information observation.</summary>
+    public SystemInformationSnapshot Current => _systemInformation.Current;
+
+    /// <summary>Existing persisted run-report owner, referenced without merging its lifecycle.</summary>
+    public ReportPresentationViewModel Reports { get; }
+
+    /// <summary>True when the Message Center modal is open.</summary>
+    [ObservableProperty]
+    public partial bool IsOpen { get; private set; }
+
+    /// <summary>True when current system state is selected.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRunReportsSelected))]
+    public partial bool IsSystemInformationSelected { get; private set; } = true;
+
+    /// <summary>True when immutable run history is selected.</summary>
+    public bool IsRunReportsSelected => !IsSystemInformationSelected;
+
+    /// <summary>Number of active system diagnostics shown by the shell badge.</summary>
+    public int ActiveBadgeCount => Current.ActiveDiagnostics.Count;
+
+    /// <summary>True when the shell badge should be visible.</summary>
+    public bool HasActiveDiagnostics => ActiveBadgeCount > 0;
+
+    /// <summary>True when the resolved/empty state should be announced.</summary>
+    public bool HasNoActiveDiagnostics => !HasActiveDiagnostics;
+
+    /// <summary>Localized diagnostic projections; stable codes remain Application-owned.</summary>
+    public IReadOnlyList<MessageCenterDiagnosticItem> ActiveDiagnostics =>
+    [
+        .. Current.ActiveDiagnostics.Select(diagnostic => new MessageCenterDiagnosticItem(
+            diagnostic.Code,
+            Text.GetSystemDiagnosticCategory(diagnostic.Category),
+            diagnostic.Severity,
+            Text.GetSystemDiagnosticMessage(diagnostic),
+            Text.GetSystemDiagnosticAction(diagnostic))),
+    ];
+
+    /// <summary>Current global blocker, ahead of workflow-local blockers.</summary>
+    public ActionableSystemDiagnostic? GlobalBuildBlocker => Current.ActiveDiagnostics
+        .FirstOrDefault(static diagnostic =>
+            diagnostic.Severity == SystemDiagnosticSeverity.Blocking);
+
+    /// <summary>True while catalog refresh or an active global diagnostic blocks Build.</summary>
+    public bool IsGlobalBuildBlocked => IsRefreshInProgress || GlobalBuildBlocker is not null;
+
+    /// <summary>Localized global blocker text used by the focusable Build affordance.</summary>
+    public string GlobalBuildBlockerText => IsRefreshInProgress
+        ? Text.RefreshingDiagnosticsLabel
+        : GlobalBuildBlocker is { } blocker
+            ? $"{Text.GetSystemDiagnosticMessage(blocker)} {Text.GetSystemDiagnosticAction(blocker)}"
+            : string.Empty;
+
+    /// <summary>Compact canonical catalog state and identity.</summary>
+    public string CatalogSummary => Current.CatalogVersion is null
+        ? Text.GetCatalogStateLabel(Current.CatalogState)
+        : $"{Text.GetCatalogStateLabel(Current.CatalogState)} · {Current.CatalogVersion}";
+
+    /// <summary>Badge-aware accessible shell name.</summary>
+    public string MessageCenterAccessibleName =>
+        Text.FormatMessageCenterAccessibleName(ActiveBadgeCount);
+
+    /// <summary>Live system-state announcement after refresh or resolution.</summary>
+    public string SystemStatusAnnouncement => IsRefreshInProgress
+        ? Text.RefreshingDiagnosticsLabel
+        : Text.FormatSystemDiagnosticAnnouncement(ActiveBadgeCount);
+
+    /// <summary>Visible refresh action progress without requiring animation.</summary>
+    public string RefreshActionLabel => IsRefreshInProgress
+        ? Text.RefreshingDiagnosticsLabel
+        : Text.RefreshDiagnosticsLabel;
+
+    /// <summary>True while the explicit system refresh is running off the UI thread.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGlobalBuildBlocked))]
+    [NotifyPropertyChangedFor(nameof(GlobalBuildBlockerText))]
+    [NotifyPropertyChangedFor(nameof(SystemStatusAnnouncement))]
+    [NotifyPropertyChangedFor(nameof(RefreshActionLabel))]
+    public partial bool IsRefreshInProgress { get; private set; }
+
+    /// <summary>Current export result; never represented as a Build Report.</summary>
+    [ObservableProperty]
+    public partial string ExportStatus { get; private set; } = string.Empty;
+
+    /// <summary>Opens the compact Message Center.</summary>
+    public IRelayCommand OpenCommand { get; }
+
+    /// <summary>Closes the compact Message Center.</summary>
+    public IRelayCommand CloseCommand { get; }
+
+    /// <summary>Selects immutable run reports/history.</summary>
+    public IRelayCommand ShowRunReportsCommand { get; }
+
+    /// <summary>Selects refreshable System Information.</summary>
+    public IRelayCommand ShowSystemInformationCommand { get; }
+
+    /// <summary>Explicitly reloads and reprobes current system state.</summary>
+    public IAsyncRelayCommand RefreshCommand { get; }
+
+    /// <summary>Opens the existing current immutable run report.</summary>
+    public IRelayCommand OpenCurrentReportCommand { get; }
+
+    /// <summary>Opens the existing persisted report-history surface.</summary>
+    public IRelayCommand OpenReportHistoryCommand { get; }
+
+    /// <summary>Refreshes after the background startup catalog warm-up.</summary>
+    public Task RefreshAfterStartupAsync(CancellationToken cancellationToken)
+    {
+        return RefreshAsync(reloadCatalog: false, cancellationToken);
+    }
+
+    /// <summary>Exports one privacy-filtered JSON bundle to a caller-selected path.</summary>
+    public async Task ExportAsync(string destinationPath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _exporter.ExportAsync(
+                _systemInformation.CreateBundle(),
+                destinationPath,
+                cancellationToken);
+            ExportStatus = Text.DiagnosticsExportedLabel;
+        }
+        catch (Exception exception) when (exception is
+            IOException or
+            UnauthorizedAccessException or
+            ArgumentException)
+        {
+            ExportStatus = Text.DiagnosticsExportFailedLabel;
+        }
+    }
+
+    internal void ApplyLanguageChanged()
+    {
+        OnPropertyChanged(nameof(Text));
+        OnPropertyChanged(nameof(ActiveDiagnostics));
+        OnPropertyChanged(nameof(CatalogSummary));
+        OnPropertyChanged(nameof(MessageCenterAccessibleName));
+        OnPropertyChanged(nameof(SystemStatusAnnouncement));
+        OnPropertyChanged(nameof(GlobalBuildBlockerText));
+        OnPropertyChanged(nameof(RefreshActionLabel));
+        if (!string.IsNullOrEmpty(ExportStatus))
+        {
+            ExportStatus = string.Empty;
+        }
+    }
+
+    internal void NotifyReportHistoryChanged()
+    {
+        OnPropertyChanged(nameof(Reports));
+        OpenCurrentReportCommand.NotifyCanExecuteChanged();
+        OpenReportHistoryCommand.NotifyCanExecuteChanged();
+    }
+
+    private void Open()
+    {
+        ExportStatus = string.Empty;
+        IsOpen = true;
+    }
+
+    private void Close()
+    {
+        IsOpen = false;
+    }
+
+    private void SelectSystemInformation(bool selected)
+    {
+        if (IsSystemInformationSelected == selected)
+        {
+            return;
+        }
+
+        IsSystemInformationSelected = selected;
+    }
+
+    private async Task RefreshAsync(
+        bool reloadCatalog,
+        CancellationToken cancellationToken)
+    {
+        if (IsRefreshInProgress)
+        {
+            return;
+        }
+
+        string? previousPublicationToken = Current.PublicationToken;
+        bool publicationChanged = false;
+        IsRefreshInProgress = true;
+        _diagnosticsChanged(false);
+        try
+        {
+            SystemInformationSnapshot refreshed = await Task.Run(
+                () => _systemInformation.Refresh(reloadCatalog, cancellationToken),
+                cancellationToken);
+            publicationChanged = reloadCatalog && !StringComparer.Ordinal.Equals(
+                previousPublicationToken,
+                refreshed.PublicationToken);
+            ExportStatus = string.Empty;
+            NotifySystemStateChanged();
+        }
+        finally
+        {
+            IsRefreshInProgress = false;
+            _diagnosticsChanged(publicationChanged);
+        }
+    }
+
+    private void NotifySystemStateChanged()
+    {
+        OnPropertyChanged(nameof(Current));
+        OnPropertyChanged(nameof(ActiveBadgeCount));
+        OnPropertyChanged(nameof(HasActiveDiagnostics));
+        OnPropertyChanged(nameof(HasNoActiveDiagnostics));
+        OnPropertyChanged(nameof(ActiveDiagnostics));
+        OnPropertyChanged(nameof(GlobalBuildBlocker));
+        OnPropertyChanged(nameof(IsGlobalBuildBlocked));
+        OnPropertyChanged(nameof(GlobalBuildBlockerText));
+        OnPropertyChanged(nameof(CatalogSummary));
+        OnPropertyChanged(nameof(MessageCenterAccessibleName));
+        OnPropertyChanged(nameof(SystemStatusAnnouncement));
+    }
+
+    private void OpenReportHistory()
+    {
+        if (!Reports.ShowReportHistoryCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        Close();
+        Reports.ShowReportHistoryCommand.Execute(null);
+    }
+
+    private void OpenCurrentReport()
+    {
+        if (!Reports.ShowReportCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        Close();
+        Reports.ShowReportCommand.Execute(null);
+    }
+}
+
+/// <summary>Localized, focusable UI projection of one typed system diagnostic.</summary>
+public sealed record MessageCenterDiagnosticItem(
+    string Code,
+    string Category,
+    SystemDiagnosticSeverity Severity,
+    string Message,
+    string Action)
+{
+    /// <summary>Complete screen-reader text for the focusable diagnostic card.</summary>
+    public string AccessibleText => $"{Category}. {Message} {Action} {Code}";
+}

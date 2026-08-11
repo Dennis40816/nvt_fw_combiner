@@ -1,6 +1,6 @@
 using System.Globalization;
-using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
@@ -26,16 +26,15 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string patchOutput = workspace.PathFor("patch.bin");
         Dictionary<string, string> slots = CreateBaseSlots(basePath);
 
-        WorkbenchRunResult fileMapping = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> fileIssues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             slots,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("file-map", mappingPath, "0x00100", "0x2"),
             ]),
-            fileMappingOutput,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult virtualPatch = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> patchIssues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             slots,
@@ -45,11 +44,10 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x2",
                 GeneralMappingSourceKind.HexOverwrite,
                 patchValue)]),
-            patchOutput,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(fileMapping, fileMappingOutput);
-        AssertWorkflowNotSupported(virtualPatch, patchOutput);
+        AssertWorkflowNotSupported(fileIssues, fileMappingOutput);
+        AssertWorkflowNotSupported(patchIssues, patchOutput);
         Assert.Equal(originalBaseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -61,7 +59,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x50));
         string outputPath = workspace.PathFor("fill.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
@@ -71,13 +69,12 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x3",
                 GeneralMappingSourceKind.HexFill,
                 "FF")]),
-            outputPath,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        AssertWorkflowNotSupported(issues, outputPath);
     }
 
-    /// <summary>Malformed bytes and protected ranges are rejected before any output is committed.</summary>
+    /// <summary>An unavailable workflow rejects malformed and protected inputs before draft validation.</summary>
     [Fact]
     public async Task GeneralReplaceVirtualPatchRejectsMalformedAndProtectedInput()
     {
@@ -86,7 +83,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", baseBytes);
         string malformedOutput = workspace.PathFor("malformed.bin");
 
-        WorkbenchRunResult malformed = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> malformedIssues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
@@ -96,9 +93,8 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x2",
                 GeneralMappingSourceKind.HexOverwrite,
                 "ABC")]),
-            malformedOutput,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult protectedRange = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> protectedIssues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
@@ -110,15 +106,13 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "A5")]),
             TestContext.Current.CancellationToken);
 
-        Assert.False(malformed.Succeeded);
         Assert.False(File.Exists(malformedOutput));
-        AssertReportHasIssue(malformed.ReportJson, GeneralAuthoringIssueCodes.InlineHexInvalid);
-        Assert.False(protectedRange.Succeeded);
-        AssertReportHasIssue(protectedRange.ReportJson, "replace.workflow.not-supported");
+        AssertHasIssue(malformedIssues, "replace.workflow.not-supported");
+        AssertHasIssue(protectedIssues, "replace.workflow.not-supported");
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Rejects an out-of-base fill range before allocating the virtual fill artifact.</summary>
+    /// <summary>An unavailable workflow rejects before allocating an out-of-base virtual fill artifact.</summary>
     [Fact]
     public async Task GeneralReplaceVirtualFillRejectsTargetOutsideBaseBeforeMaterialization()
     {
@@ -126,7 +120,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         byte[] baseBytes = CreatePattern(0x40000, 0x71);
         string basePath = workspace.Write("base.bin", baseBytes);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
@@ -138,9 +132,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "FF")]),
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        AssertReportHasIssue(result.ReportJson, "general.admission.target-out-of-bounds");
-        AssertReportHasIssue(result.ReportJson, "general.admission.inline-materialization-exceeded");
+        AssertHasIssue(issues, "replace.workflow.not-supported");
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -152,7 +144,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x75));
         string filePath = workspace.Write("mapping.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51926",
             "single",
             CreateBaseSlots(basePath),
@@ -173,31 +165,25 @@ public sealed class WorkbenchGeneralReplacePatchTests
             ]),
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement[] issues =
-        [
-            .. report.RootElement.GetProperty("Issues").EnumerateArray(),
-        ];
-        Assert.Equal(2, issues.Length);
+        Assert.Equal(2, issues.Count);
         Assert.All(
             issues,
             issue => Assert.Equal(
                 "general.admission.target-intersection",
-                issue.GetProperty("Code").GetString()));
+                issue.Code));
         Assert.Contains(
             issues,
-            issue => issue.GetProperty("Message").GetString()!.Contains(
+            issue => issue.Message.Contains(
                 "[0x102, 0x104)",
                 StringComparison.Ordinal));
         Assert.Contains(
             issues,
-            issue => issue.GetProperty("Message").GetString()!.Contains(
+            issue => issue.Message.Contains(
                 "[0x104, 0x105)",
                 StringComparison.Ordinal));
         Assert.DoesNotContain(
             issues,
-            issue => issue.GetProperty("Message").GetString()!.Contains(
+            issue => issue.Message.Contains(
                 "postbuild",
                 StringComparison.OrdinalIgnoreCase));
     }
@@ -210,8 +196,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x76));
         string sourcePath = workspace.Write("mapping.bin", [0xA5, 0x5A]);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService
-            .PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
                 "NT51926",
                 "single",
                 CreateBaseSlots(basePath),
@@ -224,20 +209,17 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 ]),
                 TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        AssertReportHasIssue(
-            result.ReportJson,
-            WorkbenchIssueCodes.GeneralReplacePatchIdInvalid);
+        AssertHasIssue(issues, CompositionPlanningIssueCodes.GeneralReplacePatchIdInvalid);
     }
 
-    /// <summary>Rejects counts outside an owner-declared range before evaluating DP-only route support.</summary>
+    /// <summary>An unavailable workflow rejects before interpreting an IC-count selection.</summary>
     [Fact]
     public async Task GeneralReplaceDpOnlyPatchStillValidatesIcNumber()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-general-patch-number");
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x72));
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51929",
             "9",
             CreateBaseSlots(basePath),
@@ -249,8 +231,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "A5")]),
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        AssertReportHasIssue(result.ReportJson, WorkbenchIssueCodes.ReplaceGeneralIcNumberUnsupported);
+        AssertHasIssue(issues, "replace.workflow.not-supported");
     }
 
     /// <summary>TP virtual patches fail closed when the legacy General Replace compiler is retired.</summary>
@@ -262,7 +243,7 @@ public sealed class WorkbenchGeneralReplacePatchTests
         byte[] baseBytes = await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken);
 
         string outputPath = workspace.PathFor("output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
@@ -272,10 +253,9 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 "0x2",
                 GeneralMappingSourceKind.HexOverwrite,
                 Convert.ToHexString(baseBytes[0x22C00..0x22C02]))]),
-            outputPath,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        AssertWorkflowNotSupported(issues, outputPath);
     }
 
     /// <summary>Many valid mappings still fail closed without a legacy General Replace compiler.</summary>
@@ -300,15 +280,14 @@ public sealed class WorkbenchGeneralReplacePatchTests
                 baseBytes[0x22C00].ToString("X2", CultureInfo.InvariantCulture)),
         ];
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync(
+        IReadOnlyList<CompositionIssue> issues = await PrepareRejectedAsync(
             "NT51950",
             "single",
             CreateBaseSlots(basePath),
             GeneralTestDraftFactory.CreateReplaceDraft(patches),
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, result.ReportJson);
-        AssertReportHasIssue(result.ReportJson, "replace.workflow.not-supported");
+        AssertHasIssue(issues, "replace.workflow.not-supported");
     }
 
     private static Dictionary<string, string> CreateBaseSlots(string basePath)
@@ -319,21 +298,38 @@ public sealed class WorkbenchGeneralReplacePatchTests
         };
     }
 
-    private static void AssertReportHasIssue(string reportJson, string code)
+    private static async ValueTask<IReadOnlyList<CompositionIssue>> PrepareRejectedAsync(
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        GeneralMappingDraftState draft,
+        CancellationToken cancellationToken)
     {
-        using var document = JsonDocument.Parse(reportJson);
-        Assert.Contains(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == code);
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+                BootstrapTestHost.Canonical,
+                icId,
+                number,
+                slotPaths,
+                draft,
+                savedRulePolicy: null,
+                cancellationToken);
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        return prepared.Issues;
     }
 
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string outputPath)
+    private static void AssertHasIssue(IReadOnlyList<CompositionIssue> issues, string code)
     {
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Contains(issues, issue => issue.Code == code);
+    }
+
+    private static void AssertWorkflowNotSupported(
+        IReadOnlyList<CompositionIssue> issues,
+        string outputPath)
+    {
         Assert.False(File.Exists(outputPath));
-        AssertReportHasIssue(result.ReportJson, "replace.workflow.not-supported");
-        using var document = JsonDocument.Parse(result.ReportJson);
-        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+        AssertHasIssue(issues, "replace.workflow.not-supported");
     }
 
 }

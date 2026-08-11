@@ -6,6 +6,7 @@
 - Risk: R2
 - Follows: [ADR 0022](0022-canonical-contract-schema-materialization.md)
 - Amended by: ADR 0046 for capability-definition versus per-compilation identity
+- Amended by: #195 removes the superseded standalone publication-policy runtime
 
 ## Context
 
@@ -22,24 +23,24 @@ admission, evidence classification, and publication status remain independent.
 
 ## Decision
 
-The checked-in publication source is
-[`support-publication-policy-v1.json`](../contracts/support-publication-policy-v1.json),
-validated by
-[`support-publication-policy-v1.schema.json`](../contracts/support-publication-policy-v1.schema.json).
-Each decision contains:
+The checked-in publication source is the `publication` decision on each exact
+route in
+[`canonical-capability-policy-v1.json`](../contracts/canonical-capability-policy-v1.json).
+The canonical capability policy schema, hash-pinned loader, and catalog
+materialization validate publication together with the route and its expected
+`CapabilityFingerprint`. Each decision contains:
 
 1. one stable, exact `routeId`;
-2. one status: `supported`, `candidate`, `internal`, `test-only`, or explicitly
-   recorded `unclassified`; and
+2. one status: `supported`, `candidate`, `internal`, or `test-only`; and
 3. an immutable decision id plus owner-decision provenance.
 
 No row is a wildcard. A new IC Count or route map-axis value creates a new
-route and remains `unclassified` until an owner-approved decision references
-that route. Under ADR 0046, a route may instead reference one reviewed closed
+route and cannot materialize until an owner-approved publication decision
+references that route. Under ADR 0046, a route may instead reference one reviewed closed
 map-variant-set definition. Adding or removing a member then changes
 `CapabilityFingerprint` and stales policy without creating another logical
 row; selecting an existing member changes only `CompilationFingerprint`. A
-missing policy row also resolves to `unclassified`.
+missing policy row is a fail-closed materialization error.
 
 The canonical route renderer length-frames the IC, workflow, IC Count, and map
 axes before joining them, so hyphens inside one axis cannot collide with an
@@ -56,8 +57,8 @@ sources, permitted writes, and map capacity.
 The policy JSON is the only authority for publication status. It cannot set
 authoring availability, execution admission, profile selection, firmware
 ranges, processor authority, UI visibility, or evidence classification. The
-initial rows record the owner-confirmed NT51919 General Merge and General
-Replace `test-only` decisions and NT51950/NT51951 AB `candidate` decisions.
+initial reviewed rows record the owner-confirmed NT51919 General Merge
+`test-only` decision and NT51950/NT51951 AB `candidate` decisions.
 Those classifications do not open, block, or otherwise alter execution.
 
 Evidence resolves separately in this fixed strongest-to-weakest order:
@@ -81,23 +82,24 @@ does not copy firmware facts or grant execution. During migration its
 denominator is the union of selectable, executable, and publication sources.
 Every unresolved or divergent source remains a fail-closed diagnostic.
 
-The completed #170 baseline loads the policy only after its exact raw bytes
-match the reviewed SHA-256; line-ending, whitespace, and encoding
-normalization are not permitted. Application then validates semantic-version
-and ISO `yyyy-MM-dd` provenance-date syntax independently of the Infrastructure
-adapter, materializes the policy against the same current route snapshot, and
-exposes a fresh immutable query through
-`WorkbenchCompositionService.GetSupportMatrix()`. Infrastructure declares the
+The completed canonical migration loads the policy only after its exact raw
+bytes match the reviewed SHA-256; line-ending, whitespace, and encoding
+normalization are not permitted. Application validates the typed decisions and
+materializes them against the same current route snapshot.
+The Bootstrap catalog host serializes reload and resolution, then atomically
+publishes a non-blocking immutable reporting snapshot; #207 exposes an
+Application-owned immutable `ICanonicalSupportMatrixQuery` over that exact
+shared publication. Infrastructure declares the
 policy as both build and publish content at the same relative path used by the
 loader. Tests prove the deployed file exists, the publish metadata remains
-closed, and the public query does not alter firmware execution or UI state.
-Settings disclosure remains deferred to #207.
+closed, and the query does not alter firmware execution or UI state. Settings
+renders the #207 read-only IC-by-workflow disclosure without reclassifying
+authoring, execution, publication, evidence, or blockers.
 
-The owner-approved NT51919 General Replace decision is retained as one exact
-publication-inventory row while its authoring binding remains `unknown` and
-execution remains unadmitted. The row therefore resolves the policy reference
-without opening the workflow or hiding the existing unresolved-source
-diagnostic.
+The stale standalone NT51919 General Replace publication row is not carried
+into the canonical policy: there is no admitted exact route to bind. Its
+absence does not open the workflow, and any future route requires a canonical
+capability definition plus a new owner-approved publication decision.
 
 ## Consequences
 
@@ -107,8 +109,9 @@ diagnostic.
   silently expand the public support claim.
 - Settings and CLI may later display the same headless projection without
   maintaining another support list.
-- A route with incomplete exact identity or policy coverage remains visible as
-  `unclassified` rather than being inferred away.
+- A route with incomplete exact identity or policy coverage fails catalog
+  materialization and produces a system diagnostic rather than an inferred
+  support claim.
 
 ## Rejected options
 
@@ -120,13 +123,16 @@ diagnostic.
 
 ## Migration and verification
 
-The completed #170 baseline must prove:
+The canonical policy and Support Matrix must prove:
 
 1. every policy route resolves exactly once in the same catalog snapshot;
-2. routes without a decision remain `unclassified`;
+2. routes without a decision fail materialization and the retired
+   `unclassified` token is rejected;
 3. no policy value changes authoring or execution;
 4. evidence uses only the five declared values and fixed precedence;
 5. route, policy, evidence, and diagnostic snapshots are immutable;
 6. a policy hash or schema mismatch rejects the source before materialization;
-7. packaged headless query output uses the same projection; and
-8. no Presentation or UI-selection behavior changes in this ticket.
+7. packaged headless query output uses the same projection;
+8. a standalone `publicationPolicy` payload cannot return to runtime or the
+   release manifest; and
+9. no Presentation or UI-selection behavior changes in this ticket.

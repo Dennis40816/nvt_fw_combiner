@@ -11,6 +11,19 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 {
     private const string FamilyHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
+    /// <summary>Locks Profiles normalization helpers to the internal adapter boundary.</summary>
+    [Fact]
+    public void NormalizationHelpersRemainInternal()
+    {
+        Type[] helpers =
+        [
+            typeof(FirmwareFamilyNormalizationException),
+            typeof(IFirmwareMetadataStructureDefinitionResolver),
+        ];
+
+        Assert.All(helpers, type => Assert.True(type.IsNotPublic, type.FullName));
+    }
+
     /// <summary>Verifies direct family facts and typed predicates normalize into one Domain definition.</summary>
     [Fact]
     public void NormalizeCreatesCandidateScopedDomainFacts()
@@ -27,14 +40,15 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Equal("map", map.MapId);
         Assert.Equal(16, map.CapacityBytes);
         Assert.Equal(["physical"], map.RegionSets.Select(static set => set.RegionSetId));
-        Assert.Equal(["metadata"], map.MetadataSetIds);
+        Assert.Equal(
+            ["metadata"],
+            map.MetadataSetBindings.Select(static binding => binding.CanonicalFactId).Distinct(StringComparer.Ordinal));
         FirmwareMapFactBinding<FirmwareRegionSet> regionBinding = Assert.Single(map.RegionSetBindings);
         FirmwareMapFactBinding<FirmwareMetadataSet> metadataBinding = Assert.Single(map.MetadataSetBindings);
         Assert.Equal(regionBinding.EffectiveKey, regionBinding.DirectSourceKey);
         Assert.Equal(metadataBinding.EffectiveKey, metadataBinding.DirectSourceKey);
         Assert.Empty(regionBinding.Provenance.AliasChain);
         Assert.Empty(metadataBinding.Provenance.AliasChain);
-        Assert.Equal(["tp-firmware"], definition.RequiredArtifactBindingIds);
         FirmwareMetadataStructure structure =
             Assert.Single(definition.GetStructuresForMap("map"));
         Assert.Equal(
@@ -495,7 +509,6 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                 FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash);
 
             Assert.Equal("map", Assert.Single(definition.ImageMaps).MapId);
-            Assert.Equal(["tp-firmware"], definition.RequiredArtifactBindingIds);
         }
     }
 

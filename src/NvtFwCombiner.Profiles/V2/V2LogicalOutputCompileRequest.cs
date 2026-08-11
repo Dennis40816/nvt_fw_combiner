@@ -2,53 +2,43 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Profiles.V2;
 
-/// <summary>One concrete immutable logical-output input binding supplied at compile time.</summary>
-internal sealed class V2LogicalOutputInputBinding
+/// <summary>One concrete immutable input binding supplied for explicit mapping compilation.</summary>
+internal sealed record V2ExplicitMappingInputBinding(
+    string BindingId,
+    string SlotId,
+    long ExactLengthBytes);
+
+internal abstract class V2ExplicitMappingCompileRequest
 {
-    internal V2LogicalOutputInputBinding(string bindingId, string slotId, int exactLengthBytes)
+    protected V2ExplicitMappingCompileRequest(
+        IEnumerable<V2ExplicitMappingInputBinding> bindings,
+        IEnumerable<ExplicitMapping> mappings)
     {
-        BindingId = bindingId;
-        SlotId = slotId;
-        ExactLengthBytes = exactLengthBytes;
+        ArgumentNullException.ThrowIfNull(bindings);
+        ArgumentNullException.ThrowIfNull(mappings);
+        Bindings = Array.AsReadOnly([.. bindings]);
+        Mappings = Array.AsReadOnly([.. mappings]);
     }
 
-    /// <summary>Concrete immutable address-space identity for this compile request.</summary>
-    internal string BindingId { get; }
+    internal IReadOnlyList<V2ExplicitMappingInputBinding> Bindings { get; }
 
-    /// <summary>Profile slot materialized by this concrete binding.</summary>
-    internal string SlotId { get; }
-
-    /// <summary>Exact immutable source capacity expected by the resulting plan.</summary>
-    internal int ExactLengthBytes { get; }
+    internal IReadOnlyList<ExplicitMapping> Mappings { get; }
 }
 
 /// <summary>Typed General Merge overlay containing one exact initializer and explicit mappings.</summary>
-internal sealed class V2LogicalOutputCompileRequest
+internal sealed class V2LogicalOutputCompileRequest : V2ExplicitMappingCompileRequest
 {
-    private readonly V2LogicalOutputInputBinding[] _bindings;
-    private readonly ExplicitMapping[] _mappings;
-
     internal V2LogicalOutputCompileRequest(
         GeneralMergeOutputInitializer outputInitializer,
-        IEnumerable<V2LogicalOutputInputBinding> bindings,
+        IEnumerable<V2ExplicitMappingInputBinding> bindings,
         IEnumerable<ExplicitMapping> mappings)
+        : base(bindings, mappings)
     {
         ArgumentNullException.ThrowIfNull(outputInitializer);
-        ArgumentNullException.ThrowIfNull(bindings);
-        ArgumentNullException.ThrowIfNull(mappings);
-        _bindings = [.. bindings];
-        _mappings = [.. mappings];
         OutputInitializer = outputInitializer;
-        Bindings = Array.AsReadOnly(_bindings);
-        Mappings = Array.AsReadOnly(_mappings);
     }
 
     /// <summary>Requested exact final logical output initialization.</summary>
     internal GeneralMergeOutputInitializer OutputInitializer { get; }
 
-    /// <summary>Concrete immutable source bindings with no host paths or source bytes.</summary>
-    internal IReadOnlyList<V2LogicalOutputInputBinding> Bindings { get; }
-
-    /// <summary>Explicit source-to-output mappings lowered through the shared plan algebra.</summary>
-    internal IReadOnlyList<ExplicitMapping> Mappings { get; }
 }

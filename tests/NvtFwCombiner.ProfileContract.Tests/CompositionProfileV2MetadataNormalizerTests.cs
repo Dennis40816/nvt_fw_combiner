@@ -35,7 +35,7 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
 
         CompositionProfileMetadataBinding binding = CompositionProfileNormalizer.NormalizeMetadataBinding(document);
 
-        Assert.Equal(["chip-number", "pid"], binding.FieldIds);
+        Assert.Equal(["chip-number", "pid"], CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(Enum.GetValues<CompositionProfileMetadataPurpose>(), binding.Purposes);
     }
 
@@ -85,7 +85,7 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
             ],
             binding.TargetReferences.Select(static target =>
                 (target.Kind, target.TargetId)));
-        Assert.Empty(binding.FieldIds);
+        Assert.Empty(CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(["owner-type-ab-header-table"], binding.EvidenceRefs);
         Assert.DoesNotContain(
             binding.GetType().GetProperties(),
@@ -118,61 +118,17 @@ public sealed class CompositionProfileV2MetadataNormalizerTests
                 target.Kind));
         Assert.Equal(
             binding.TargetReferences.Select(static target => target.TargetId),
-            binding.FieldIds);
+            CompositionProfileV2DefinitionTestData.FieldIds(binding));
     }
 
-    /// <summary>Typed and legacy target authorities cannot coexist or omit evidence.</summary>
+    /// <summary>Verifies an unknown purpose token retains its source path.</summary>
     [Fact]
-    public void MetadataBindingRejectsMixedOrUnevidencedTypedTargets()
-    {
-        CompositionProfileMetadataTargetReferenceDocument[] targets =
-        [
-            new("span", "complete-header"),
-        ];
-        CompositionProfileNormalizationException mixed =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                CompositionProfileNormalizer.NormalizeMetadataBinding(
-                    new CompositionProfileMetadataBindingDocument(
-                        "tp-header",
-                        "tp-input",
-                        "type-ab-tp-flash-header",
-                        ["header-crc"],
-                        ["inspection"],
-                        targets,
-                        ["owner-table"])));
-        CompositionProfileNormalizationException unevidenced =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                CompositionProfileNormalizer.NormalizeMetadataBinding(
-                    new CompositionProfileMetadataBindingDocument(
-                        "tp-header",
-                        "tp-input",
-                        "type-ab-tp-flash-header",
-                        FieldIds: null,
-                        Purposes: ["inspection"],
-                        TargetReferences: targets,
-                        EvidenceRefs: [])));
-
-        Assert.Equal("metadataBindings[0]", mixed.Path);
-        Assert.Equal("metadataBindings[0].evidenceRefs", unevidenced.Path);
-    }
-
-    /// <summary>Verifies unknown purpose tokens and missing arrays retain their source paths.</summary>
-    [Fact]
-    public void MetadataBindingRejectsInvalidMembersWithPaths()
+    public void MetadataBindingRejectsUnknownPurposeWithPath()
     {
         CompositionProfileNormalizationException purpose = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeMetadataBinding(
                 MetadataBinding(["future"], ["pid"])));
-        CompositionProfileNormalizationException purposes = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeMetadataBinding(
-                MetadataBinding(null!, ["pid"])));
-        CompositionProfileNormalizationException fields = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeMetadataBinding(
-                MetadataBinding(["validation"], null!)));
-
         Assert.Equal("metadataBindings[0].purposes[0]", purpose.Path);
-        Assert.Equal("metadataBindings[0].purposes", purposes.Path);
-        Assert.Equal("metadataBindings[0].fieldIds", fields.Path);
     }
 
     /// <summary>Verifies every authoring access token maps without becoming execution policy.</summary>

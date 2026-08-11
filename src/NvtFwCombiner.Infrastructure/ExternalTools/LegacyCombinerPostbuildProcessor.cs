@@ -13,26 +13,22 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     private const string MapFileName = "map.txt";
 
     private readonly ExternalCombinerToolResolver _toolResolver;
-    private readonly Dictionary<string, LegacyCombinerPostbuildProfile> _profilesByProcessorId;
     private readonly string _stagingRoot;
     private readonly IExternalProcessRunner _processRunner;
 
     /// <summary>Creates a staged postbuild processor with approved tool and IC command profiles.</summary>
     public LegacyCombinerPostbuildProcessor(
         ExternalCombinerToolRegistry registry,
-        IEnumerable<LegacyCombinerPostbuildProfile> postbuildProfiles,
         string toolRoot,
         string stagingRoot,
         IExternalProcessRunner processRunner)
     {
         ArgumentNullException.ThrowIfNull(registry);
-        ArgumentNullException.ThrowIfNull(postbuildProfiles);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(stagingRoot);
         ArgumentNullException.ThrowIfNull(processRunner);
 
         _toolResolver = new ExternalCombinerToolResolver(registry, toolRoot);
-        _profilesByProcessorId = BuildProfileIndex(postbuildProfiles);
         _stagingRoot = Path.GetFullPath(stagingRoot);
         _processRunner = processRunner;
     }
@@ -44,18 +40,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (!_profilesByProcessorId.TryGetValue(request.ProcessorId, out LegacyCombinerPostbuildProfile? profile))
+        if (request.ProtocolPlan is not { } commandPlan ||
+            !StringComparer.Ordinal.Equals(
+                commandPlan.ProtocolId,
+                LegacyCombinerPostbuildPlanCompiler.ProtocolId))
         {
             return Fail(
-                "legacy-combiner.postbuild-profile.unknown",
-                $"Legacy combiner postbuild profile '{request.ProcessorId}' is not registered.");
-        }
-
-        if (!string.Equals(profile.ToolBindingId, request.ToolBindingId, StringComparison.Ordinal))
-        {
-            return Fail(
-                "legacy-combiner.tool-binding.mismatch",
-                "External processor request tool binding does not match the postbuild profile.");
+                "legacy-combiner.compiled-plan.missing",
+                "Legacy combiner execution requires the exact compiled protocol plan.");
         }
 
         if (!_toolResolver.TryResolve(
@@ -68,19 +60,6 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         }
 
         ExternalCombinerToolManifest resolvedManifest = manifest!;
-
-        LegacyCombinerPostbuildCommandPlan commandPlan;
-        try
-        {
-            commandPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
-                profile,
-                request.IcNumberSelection,
-                request.ResolvedIcCount);
-        }
-        catch (ArgumentException exception)
-        {
-            return Fail("legacy-combiner.branch.invalid", exception.Message);
-        }
 
         string runDirectory = Path.GetFullPath(Path.Combine(_stagingRoot, request.RunId));
         if (!ExternalCombinerToolResolver.IsInsideDirectory(_stagingRoot, runDirectory))
@@ -103,7 +82,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
             _ = Directory.CreateDirectory(outputDirectory);
             _ = Directory.CreateDirectory(binDirectory);
 
-            string firmwarePath = Path.Combine(outputDirectory, profile.FirmwareFileName);
+            string firmwarePath = Path.Combine(outputDirectory, commandPlan.TargetFileName);
             ReadOnlyMemory<byte> inputBytes = request.InputBytes;
             await File.WriteAllBytesAsync(firmwarePath, inputBytes, cancellationToken).ConfigureAwait(false);
             await File.WriteAllBytesAsync(Path.Combine(outputDirectory, MapFileName), [], cancellationToken)
@@ -124,8 +103,8 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                 return ExternalProcessorResult.Failed([stagedArtifactIssue]);
             }
 
-            StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);
-            foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)
+            StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(resolvedManifest, commandPlan);
+            foreach (ExternalProcessorProtocolCommand command in commandPlan.Commands)
             {
                 if (new FileInfo(firmwarePath).Length != inputBytes.Length)
                 {
@@ -146,14 +125,10 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
                     return ExternalProcessorResult.Failed([stagingIssue], executedCommands);
                 }
 
-                IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
-                    command,
-                    firmwarePath,
-                    binDirectory);
                 var startInfo = new ExternalProcessStartInfo(
                     executablePath!,
                     runDirectory,
-                    arguments,
+                    ResolveProtocolArguments(command, firmwarePath, binDirectory),
                     TimeSpan.FromSeconds(resolvedManifest.TimeoutSeconds));
                 ShortOutputTailSnapshot? shortOutputTail = await CaptureShortOutputTailAsync(
                         firmwarePath,
@@ -239,41 +214,27 @@ public sealed partial class LegacyCombinerPostbuildProcessor : IExternalProcesso
         }
         finally
         {
-            TryDeleteDirectory(runDirectory);
+            ExternalStagingDirectory.TryDelete(runDirectory);
         }
     }
 
-    private static Dictionary<string, LegacyCombinerPostbuildProfile> BuildProfileIndex(
-        IEnumerable<LegacyCombinerPostbuildProfile> profiles)
+    private static IReadOnlyList<string> ResolveProtocolArguments(
+        ExternalProcessorProtocolCommand command,
+        string firmwarePath,
+        string binDirectory)
     {
-        Dictionary<string, LegacyCombinerPostbuildProfile> byProcessorId = new(StringComparer.Ordinal);
-        foreach (LegacyCombinerPostbuildProfile profile in profiles)
-        {
-            if (!byProcessorId.TryAdd(profile.ProcessorId, profile))
-            {
-                throw new ArgumentException(
-                    $"Legacy combiner postbuild profile '{profile.ProcessorId}' is declared more than once.",
-                    nameof(profiles));
-            }
-        }
-
-        return byProcessorId;
+        string stagedPrefix = ExternalProcessorProtocolArgumentTokens.StagedDirectory +
+            Path.DirectorySeparatorChar;
+        return [
+            .. command.Arguments.Select(argument =>
+                StringComparer.Ordinal.Equals(
+                    argument,
+                    ExternalProcessorProtocolArgumentTokens.TargetFile)
+                    ? firmwarePath
+                    : argument.StartsWith(stagedPrefix, StringComparison.Ordinal)
+                        ? Path.Combine(binDirectory, argument[stagedPrefix.Length..])
+                        : argument),
+        ];
     }
 
-    private static void TryDeleteDirectory(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-            {
-                Directory.Delete(path, recursive: true);
-            }
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
-    }
 }

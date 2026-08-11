@@ -13,43 +13,43 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [Fact]
     public void OperationMapsEveryKind()
     {
-        CopyOrReplaceProfileOperation copy = Assert.IsType<CopyOrReplaceProfileOperation>(Normalize(Operation(
+        CompositionOperationDefinition copy = Normalize(Operation(
             "copy-range",
             sourceViewId: "source",
-            targetViewId: "target")));
-        CopyOrReplaceProfileOperation replace = Assert.IsType<CopyOrReplaceProfileOperation>(Normalize(Operation(
+            targetViewId: "target"));
+        CompositionOperationDefinition replace = Normalize(Operation(
             "replace-range",
             sourceViewId: "replacement",
-            targetViewId: "target")));
-        FillRangeProfileOperation fill = Assert.IsType<FillRangeProfileOperation>(Normalize(Operation(
+            targetViewId: "target"));
+        CompositionOperationDefinition fill = Normalize(Operation(
             "fill-range",
             targetViewId: "target",
-            fillByte: Number("255"))));
-        PatchScalarProfileOperation patch = Assert.IsType<PatchScalarProfileOperation>(Normalize(Operation(
+            fillByte: Number("255")));
+        CompositionOperationDefinition patch = Normalize(Operation(
             "patch-scalar",
             targetViewId: "target",
-            valueHex: "aa01")));
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+            valueHex: "aa01"));
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("18446744073709551616"),
             Number("4"),
             "little",
             Number("-18446744073709551617"),
-            Number("32"))));
-        RunProcessorProfileOperation processor = Assert.IsType<RunProcessorProfileOperation>(Normalize(Operation(
+            Number("32")));
+        CompositionOperationDefinition processor = Normalize(Operation(
             "run-processor",
-            processorStageId: "legacy-postbuild")));
+            processorStageId: "legacy-postbuild"));
 
-        Assert.Equal(CompositionProfileOperationKind.CopyRange, copy.Kind);
-        Assert.Equal(CompositionProfileOperationKind.ReplaceRange, replace.Kind);
+        Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
+        Assert.Equal(CompositionOperationKind.ReplaceRange, replace.Kind);
         Assert.Equal(0xFF, fill.FillByte);
-        Assert.Equal("aa01", patch.Value.Hex);
+        Assert.Equal("aa01", patch.PatchBytes.Hex);
         Assert.Equal(
             BigInteger.Parse("18446744073709551616", System.Globalization.CultureInfo.InvariantCulture),
             transform.Sequence);
         Assert.Equal(
             BigInteger.Parse("-18446744073709551617", System.Globalization.CultureInfo.InvariantCulture),
             transform.Addend);
-        Assert.Equal(CompositionProfileScalarByteOrder.LittleEndian, transform.ByteOrder);
+        Assert.Equal(ScalarTransformByteOrder.LittleEndian, transform.TransformByteOrder);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
     }
 
@@ -66,7 +66,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
 
         foreach ((string token, OverlapPolicy expected) in cases)
         {
-            CompositionProfileOperation operation = Normalize(Operation(
+            CompositionOperationDefinition operation = Normalize(Operation(
                 "fill-range",
                 overlapPolicy: token,
                 targetViewId: "target",
@@ -83,15 +83,15 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [InlineData("8", "18446744073709551615")]
     public void TransformMapsEveryWidthBoundary(string width, string expectedBefore)
     {
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("0"),
             Number(width),
             "big",
             Number("0"),
-            Number(expectedBefore))));
+            Number(expectedBefore)));
 
-        Assert.Equal(int.Parse(width, System.Globalization.CultureInfo.InvariantCulture), (int)transform.Width);
-        Assert.Equal(CompositionProfileScalarByteOrder.BigEndian, transform.ByteOrder);
+        Assert.Equal(int.Parse(width, System.Globalization.CultureInfo.InvariantCulture), (int)transform.TransformWidth);
+        Assert.Equal(ScalarTransformByteOrder.BigEndian, transform.TransformByteOrder);
         Assert.Equal(ulong.Parse(expectedBefore, System.Globalization.CultureInfo.InvariantCulture), transform.ExpectedBefore);
     }
 
@@ -99,23 +99,22 @@ public sealed class CompositionProfileV2OperationNormalizerTests
     [Fact]
     public void TransformMapsRegionInstanceDeltaAddend()
     {
-        TransformScalarProfileOperation transform = Assert.IsType<TransformScalarProfileOperation>(Normalize(Transform(
+        CompositionOperationDefinition transform = Normalize(Transform(
             Number("0"),
             Number("4"),
             "little",
             RegionInstanceDeltaAddend(
                 "region-instance-delta",
                 sourceRegionInstanceId: "a-bank",
-                targetRegionInstanceId: "b-bank")),
-            "2.14"));
+                targetRegionInstanceId: "b-bank")));
 
-        RegionInstanceDeltaTransformAddendSource addend =
-            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(transform.AddendSource);
+        ScalarTransformAddendSource addend = transform.AddendSource;
+        Assert.Equal(ScalarTransformAddendSourceKind.RegionInstanceDelta, addend.Kind);
         Assert.Equal("a-bank", addend.SourceRegionInstanceId);
         Assert.Equal("b-bank", addend.TargetRegionInstanceId);
     }
 
-    /// <summary>Verifies unknown discriminators and fixed transform policies retain exact paths.</summary>
+    /// <summary>Verifies unknown discriminators retain exact paths after schema admission.</summary>
     [Fact]
     public void OperationRejectsUnknownPolicyTokensWithPaths()
     {
@@ -129,54 +128,9 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 fillByte: Number("0"))));
         CompositionProfileNormalizationException byteOrder = Assert.Throws<CompositionProfileNormalizationException>(() =>
             Normalize(Transform(Number("0"), Number("4"), "middle", Number("0"))));
-        CompositionProfileNormalizationException interpretation = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Transform(
-                Number("0"),
-                Number("4"),
-                "little",
-                Number("0"),
-                valueInterpretation: "signed")));
-        CompositionProfileNormalizationException overflow = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Transform(
-                Number("0"),
-                Number("4"),
-                "little",
-                Number("0"),
-                overflowPolicy: "wrap")));
-
         Assert.Equal("operations[0].kind", kind.Path);
         Assert.Equal("operations[0].overlapPolicy", overlap.Path);
         Assert.Equal("operations[0].byteOrder", byteOrder.Path);
-        Assert.Equal("operations[0].valueInterpretation", interpretation.Path);
-        Assert.Equal("operations[0].overflowPolicy", overflow.Path);
-    }
-
-    /// <summary>Verifies required union fields fail at their exact source paths.</summary>
-    [Fact]
-    public void OperationRejectsMissingUnionMembersWithPaths()
-    {
-        CompositionProfileNormalizationException source = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Operation("copy-range", targetViewId: "target")));
-        CompositionProfileNormalizationException target = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Operation("fill-range", fillByte: Number("0"))));
-        CompositionProfileNormalizationException fill = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Operation("fill-range", targetViewId: "target")));
-        CompositionProfileNormalizationException value = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Operation("patch-scalar", targetViewId: "target")));
-        CompositionProfileNormalizationException width = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Transform(Number("0"), null, "little", Number("0"))));
-        CompositionProfileNormalizationException addend = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Transform(Number("0"), Number("4"), "little", null)));
-        CompositionProfileNormalizationException processor = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Operation("run-processor")));
-
-        Assert.Equal("operations[0].sourceViewId", source.Path);
-        Assert.Equal("operations[0].targetViewId", target.Path);
-        Assert.Equal("operations[0].fillByte", fill.Path);
-        Assert.Equal("operations[0].valueHex", value.Path);
-        Assert.Equal("operations[0].widthBytes", width.Path);
-        Assert.Equal("operations[0].addend", addend.Path);
-        Assert.Equal("operations[0].processorStageId", processor.Path);
     }
 
     /// <summary>Verifies numeric and byte values fail closed without lossy coercion.</summary>
@@ -205,7 +159,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 Number("0"),
                 Number("18446744073709551616"))));
 
-        Assert.Equal("operations[0].sequence", sequence.Path);
+        Assert.Equal("operations[0]", sequence.Path);
         Assert.Equal("operations[0].fillByte", fill.Path);
         Assert.Equal("operations[0].valueHex", patch.Path);
         Assert.Equal("operations[0].widthBytes", width.Path);
@@ -213,20 +167,10 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         Assert.Equal("operations[0].expectedBefore", expected.Path);
     }
 
-    /// <summary>Verifies region-instance addend objects reject unknown and incomplete identities.</summary>
+    /// <summary>Verifies region-instance identities retain canonical Domain invariants.</summary>
     [Fact]
     public void TransformRejectsInvalidRegionInstanceDeltaWithPaths()
     {
-        CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            Normalize(Transform(
-                Number("0"),
-                Number("4"),
-                "little",
-                RegionInstanceDeltaAddend(
-                    "future",
-                    sourceRegionInstanceId: "a-bank",
-                    targetRegionInstanceId: "b-bank")),
-                "2.14"));
         CompositionProfileNormalizationException source = Assert.Throws<CompositionProfileNormalizationException>(() =>
             Normalize(Transform(
                 Number("0"),
@@ -234,8 +178,7 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 "little",
                 RegionInstanceDeltaAddend(
                     "region-instance-delta",
-                    targetRegionInstanceId: "b-bank")),
-                "2.14"));
+                    targetRegionInstanceId: "b-bank"))));
         CompositionProfileNormalizationException target = Assert.Throws<CompositionProfileNormalizationException>(() =>
             Normalize(Transform(
                 Number("0"),
@@ -243,32 +186,20 @@ public sealed class CompositionProfileV2OperationNormalizerTests
                 "little",
                 RegionInstanceDeltaAddend(
                     "region-instance-delta",
-                    sourceRegionInstanceId: "a-bank")),
-                "2.14"));
+                    sourceRegionInstanceId: "a-bank"))));
+        CompositionProfileNormalizationException nonCanonical = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(Transform(
+                Number("0"),
+                Number("4"),
+                "little",
+                RegionInstanceDeltaAddend(
+                    "region-instance-delta",
+                    sourceRegionInstanceId: "A-bank",
+                    targetRegionInstanceId: "b-bank"))));
 
-        Assert.Equal("operations[0].addend.kind", kind.Path);
-        Assert.Equal("operations[0].addend.sourceRegionInstanceId", source.Path);
-        Assert.Equal("operations[0].addend.targetRegionInstanceId", target.Path);
-    }
-
-    /// <summary>Verifies older profile schemas cannot gain geometry-derived addend authority.</summary>
-    [Fact]
-    public void TransformRejectsRegionInstanceDeltaBeforeSchemaV214()
-    {
-        CompositionProfileNormalizationException exception =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                Normalize(
-                    Transform(
-                        Number("0"),
-                        Number("4"),
-                        "little",
-                        RegionInstanceDeltaAddend(
-                            "region-instance-delta",
-                            sourceRegionInstanceId: "a-bank",
-                            targetRegionInstanceId: "b-bank")),
-                    "2.13"));
-
-        Assert.Equal("operations[0].addend", exception.Path);
+        Assert.Equal("operations[0].addend", source.Path);
+        Assert.Equal("operations[0].addend", target.Path);
+        Assert.Equal("operations[0]", nonCanonical.Path);
     }
 
     /// <summary>Verifies expected-before must fit the selected scalar width.</summary>
@@ -282,13 +213,9 @@ public sealed class CompositionProfileV2OperationNormalizerTests
         _ = Assert.IsType<ArgumentOutOfRangeException>(exception.InnerException, exactMatch: false);
     }
 
-    private static CompositionProfileOperation Normalize(
-        CompositionProfileOperationDocument document,
-        string schemaVersion = "2.0")
+    private static CompositionOperationDefinition Normalize(CompositionProfileOperationDocument document)
     {
-        return CompositionProfileNormalizer.NormalizeOperation(
-            document,
-            schemaVersion: schemaVersion);
+        return CompositionProfileNormalizer.NormalizeOperation(document);
     }
 
     private static CompositionProfileOperationDocument Operation(

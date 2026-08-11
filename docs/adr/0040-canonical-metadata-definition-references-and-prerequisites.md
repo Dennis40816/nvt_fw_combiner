@@ -12,7 +12,16 @@
 - Risk: R2 cross-layer architecture contract; each firmware locator binding
   remains R3
 - Amends: ADR 0016 and ADR 0039
-- Amended by: ADR 0048
+- Amended by: ADR 0048 and the 2026-08-09 complete-retirement decision
+
+2026-08-09 amendment: exact-reference, logical-definition, prerequisite,
+readiness, and fail-closed semantics remain unchanged. The former allowance for
+a Workbench facade to adapt binding identities was migration-only and is now
+superseded. Presentation and CLI consume the one Application inspection/session
+publication directly; Bootstrap cannot retain or rename an inspection adapter,
+metadata projection, or readiness owner. Historical migration sections below
+remain evidence for #176/#194 and do not authorize a terminal compatibility
+path.
 
 ## Context
 
@@ -141,7 +150,7 @@ Metadata uses the repository-wide representation limit from ADR 0015:
    state, and per-run decoded values.
 
 Profiles normalization may use private ephemeral validation state but cannot
-retain a second metadata definition. Application plans, Workbench adapters, and
+retain a second metadata definition. Application plans, historical Workbench adapters, and
 Presentation/CLI projections may carry definition ids, readiness, decoded or
 formatted values, and typed issues; they may not copy field tables, assertions,
 locators, ranges, relations, or formatter rules. Repository callers migrate
@@ -170,9 +179,10 @@ This slice does not claim the following later work:
 - remaining headless consumer migration and compatibility-facade reduction,
   owned by #194.
 
-The existing Workbench facade may adapt binding identity to logical definition
-identity during migration, but it does not become a second resolver or a new
-consumer authority.
+During the #176/#194 migration, the existing Workbench facade could adapt
+binding identity to logical definition identity, but it did not become a
+second resolver or a new consumer authority. The 2026-08-09 amendment removes
+that terminal adapter allowance.
 
 ### FirmwareConfig is one all-IC definition
 

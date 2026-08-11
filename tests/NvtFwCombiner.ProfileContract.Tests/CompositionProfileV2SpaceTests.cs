@@ -1,5 +1,4 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -16,9 +15,9 @@ public sealed class CompositionProfileV2SpaceTests
         var blank = new BlankProfileInitializer(0xFF);
         var clone = new CloneProfileInitializer("reference-input");
 
-        Assert.Equal(CompositionProfileCapacityKind.ResolvedMap, resolved.Kind);
+        _ = Assert.IsType<ResolvedMapProfileCapacity>(resolved);
         Assert.Equal(4096, fixedCapacity.Bytes);
-        Assert.Equal(CompositionProfileCapacityKind.RuntimeRequest, runtimeRequest.Kind);
+        _ = Assert.IsType<RuntimeRequestProfileCapacity>(runtimeRequest);
         Assert.Equal(0xFF, blank.FillByte);
         Assert.Equal("reference-input", clone.SourceSlotId);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FixedProfileCapacity(0));
@@ -32,7 +31,7 @@ public sealed class CompositionProfileV2SpaceTests
         var input = new InputArtifactProfileSpace(
             "source",
             "source-input",
-            CompositionProfileInstancePolicy.PerBinding);
+            CompiledInputInstancePolicy.PerBinding);
         var work = new MutableCompositionProfileSpace(
             "work",
             CompositionProfileSpaceKind.WorkBuffer,
@@ -45,11 +44,11 @@ public sealed class CompositionProfileV2SpaceTests
             new CloneProfileInitializer("reference-input"));
 
         Assert.Equal(CompositionProfileSpaceKind.InputArtifact, input.Kind);
-        Assert.Equal(CompositionProfileInstancePolicy.PerBinding, input.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.PerBinding, input.InstancePolicy);
         Assert.Equal(CompositionProfileSpaceKind.WorkBuffer, work.Kind);
-        Assert.Equal(CompositionProfileInitializerKind.Blank, work.Initializer.Kind);
+        _ = Assert.IsType<BlankProfileInitializer>(work.Initializer);
         Assert.Equal(CompositionProfileSpaceKind.OutputImage, output.Kind);
-        Assert.Equal(CompositionProfileCapacityKind.ResolvedMap, output.Capacity.Kind);
+        _ = Assert.IsType<ResolvedMapProfileCapacity>(output.Capacity);
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new MutableCompositionProfileSpace(
             "invalid",
             CompositionProfileSpaceKind.InputArtifact,
@@ -61,18 +60,19 @@ public sealed class CompositionProfileV2SpaceTests
     [Fact]
     public void ViewSelectorsRetainCheckedRangeBasis()
     {
-        var region = new MapRegionViewSelector("dp-code");
+        CompositionProfileViewSelector region = new MapRegionViewSelector("dp-code");
         var slice = new MapRegionSliceViewSelector("dp-code", new ByteRange(4, 8));
         var range = new SpaceRangeViewSelector(new ByteRange(12, 4));
-        var templateRange = new RegionTemplateRangeViewSelector("b-bank", "tp-code");
+        CompositionProfileViewSelector templateRange = new RegionTemplateRangeViewSelector("b-bank", "tp-code");
         var view = new CompositionProfileView("source-view", "source", slice);
 
-        Assert.Equal(CompositionProfileViewSelectorKind.MapRegion, region.Kind);
+        Assert.Equal("dp-code", Assert.IsType<MapRegionViewSelector>(region).RegionId);
         Assert.Equal(new ByteRange(4, 8), slice.RelativeRange);
         Assert.Equal(new ByteRange(12, 4), range.Range);
-        Assert.Equal(CompositionProfileViewSelectorKind.RegionTemplateRange, templateRange.Kind);
-        Assert.Equal("b-bank", templateRange.RegionInstanceId);
-        Assert.Equal("tp-code", templateRange.TemplateRegionId);
+        RegionTemplateRangeViewSelector typedTemplateRange =
+            Assert.IsType<RegionTemplateRangeViewSelector>(templateRange);
+        Assert.Equal("b-bank", typedTemplateRange.RegionInstanceId);
+        Assert.Equal("tp-code", typedTemplateRange.TemplateRegionId);
         Assert.Equal("source", view.SpaceId);
         Assert.Same(slice, view.Selector);
         _ = Assert.Throws<ArgumentException>(() => new MapRegionViewSelector("DP-Code"));
@@ -95,7 +95,7 @@ public sealed class CompositionProfileV2SpaceTests
             CompositionProfileMetadataPurpose.Version,
             CompositionProfileMetadataPurpose.Validation,
         };
-        var binding = new CompositionProfileMetadataBinding(
+        CompositionProfileMetadataBinding binding = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
@@ -104,23 +104,25 @@ public sealed class CompositionProfileV2SpaceTests
         fieldIds.Clear();
         purposes.Clear();
 
-        Assert.Equal(["version-major", "version-minor"], binding.FieldIds);
+        Assert.Equal(
+            ["version-major", "version-minor"],
+            CompositionProfileV2DefinitionTestData.FieldIds(binding));
         Assert.Equal(
             [CompositionProfileMetadataPurpose.Validation, CompositionProfileMetadataPurpose.Version],
             binding.Purposes);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
             [],
             [CompositionProfileMetadataPurpose.Validation]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
             ["version-major"],
             []));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMetadataBinding(
+        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "cmd-version",
             "dp-source",
             "cmd",
@@ -164,7 +166,7 @@ public sealed class CompositionProfileV2SpaceTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new InputArtifactProfileSpace(
             "source",
             "source-input",
-            (CompositionProfileInstancePolicy)99));
+            (CompiledInputInstancePolicy)99));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => new MutableCompositionProfileSpace(
             "output",
             (CompositionProfileSpaceKind)99,

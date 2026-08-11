@@ -17,8 +17,23 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlySet<string>? activeOperationIds = null)
     {
         var operations = new List<CompositionOperation>();
-        foreach (CompositionProfileOperation operation in profile.Operations)
+        string? replaceReferenceSourceSpaceId = profile.CompositionKind == CompositionKind.Replace
+            ? ResolveCloneReferenceSourceSpaceId(
+                profile,
+                (CloneProfileInitializer)AssertOutputSpace(profile).Initializer)
+            : null;
+        foreach (CompositionOperationDefinition operation in profile.Operations)
         {
+            if (!useProcessorWriteAuthority &&
+                !IsAdmittedOperation(profile, operation, replaceReferenceSourceSpaceId))
+            {
+                AddUnsupported(
+                    issues,
+                    $"operation '{operation.OperationId}' is outside the closed Merge or reference-clone Replace operation subset",
+                    operation.OperationId);
+                continue;
+            }
+
             if (activeOperationIds is not null && !activeOperationIds.Contains(operation.OperationId))
             {
                 continue;
@@ -29,20 +44,21 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            switch (operation)
+            switch (operation.Kind)
             {
-                case CopyOrReplaceProfileOperation copy:
-                    LowerCopyOrReplaceOperation(profile, copy, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.CopyRange:
+                case CompositionOperationKind.ReplaceRange:
+                    LowerCopyOrReplaceOperation(profile, operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case FillRangeProfileOperation fill:
-                    LowerFillOperation(fill, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.FillRange:
+                    LowerFillOperation(operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case PatchScalarProfileOperation patch:
-                    LowerPatchOperation(patch, sequence, views, regionAccess, operations, issues);
+                case CompositionOperationKind.PatchScalar:
+                    LowerPatchOperation(operation, sequence, views, regionAccess, operations, issues);
                     break;
-                case TransformScalarProfileOperation transform:
+                case CompositionOperationKind.TransformScalar:
                     LowerTransformOperation(
-                        transform,
+                        operation,
                         sequence,
                         resolvedMap,
                         views,
@@ -50,10 +66,10 @@ internal static partial class V2CompositionPlanCompiler
                         operations,
                         issues);
                     break;
-                case RunProcessorProfileOperation processor:
+                case CompositionOperationKind.RunExternalProcessor:
                     LowerProcessorOperation(
                         profile,
-                        processor,
+                        operation,
                         sequence,
                         spaces,
                         views,
@@ -70,6 +86,45 @@ internal static partial class V2CompositionPlanCompiler
         return [.. operations];
     }
 
+    private static bool IsAdmittedOperation(
+        CompositionProfileDefinition profile,
+        CompositionOperationDefinition operation,
+        string? replaceReferenceSourceSpaceId)
+    {
+        return profile.CompositionKind == CompositionKind.Merge
+            ? operation.Kind switch
+            {
+                CompositionOperationKind.CopyRange or
+                    CompositionOperationKind.RunExternalProcessor =>
+                    operation.OverlapPolicy is OverlapPolicy.Reject or OverlapPolicy.ReplaceExisting,
+                CompositionOperationKind.FillRange or
+                    CompositionOperationKind.PatchScalar or
+                    CompositionOperationKind.TransformScalar =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject,
+                CompositionOperationKind.ReplaceRange => false,
+                _ => throw new InvalidOperationException("Unknown canonical operation kind."),
+            }
+            : operation.Kind switch
+            {
+                CompositionOperationKind.ReplaceRange =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject &&
+                    IsReplacePayloadInputSource(profile, operation),
+                CompositionOperationKind.RunExternalProcessor =>
+                    operation.OverlapPolicy == OverlapPolicy.Reject,
+                CompositionOperationKind.CopyRange =>
+                    operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
+                    StringComparer.Ordinal.Equals(
+                        replaceReferenceSourceSpaceId,
+                        profile.Views.Single(view => StringComparer.Ordinal.Equals(
+                            view.ViewId,
+                            operation.SourceViewId)).SpaceId),
+                CompositionOperationKind.FillRange or
+                    CompositionOperationKind.PatchScalar or
+                    CompositionOperationKind.TransformScalar => false,
+                _ => throw new InvalidOperationException("Unknown canonical operation kind."),
+            };
+    }
+
     private static void ValidateOperationOverlaps(
         IReadOnlyList<CompositionOperation> operations,
         List<CompositionIssue> issues)
@@ -77,38 +132,12 @@ internal static partial class V2CompositionPlanCompiler
         var priorWrites = new List<CompositionOperation>();
         foreach (CompositionOperation operation in operations.OrderBy(static operation => operation.Sequence).ThenBy(static operation => operation.OperationId, StringComparer.Ordinal))
         {
-            ByteRange[] writeRanges = GetDeclaredWriteRanges(operation);
-            CompositionOperation[] overlaps = [.. priorWrites.Where(candidate =>
-                StringComparer.Ordinal.Equals(candidate.TargetSpaceId, operation.TargetSpaceId) &&
-                GetDeclaredWriteRanges(candidate).Any(candidateRange =>
-                    writeRanges.Any(writeRange => candidateRange.Overlaps(writeRange))))];
-            if (overlaps.Length == 0)
-            {
-                if (operation.OverlapPolicy == OverlapPolicy.ReplaceExisting)
-                {
-                    issues.Add(new CompositionIssue(
-                        OperationOverlap,
-                        $"Operation '{operation.OperationId}' declares ReplaceExisting but has no earlier write covering its target range in target space '{operation.TargetSpaceId}'.",
-                        operation.OperationId));
-                    return;
-                }
-            }
-            else if (operation.OverlapPolicy != OverlapPolicy.ReplaceExisting)
-            {
-                CompositionOperation prior = overlaps[0];
-                issues.Add(new CompositionIssue(
-                    OperationOverlap,
-                    $"Operation '{operation.OperationId}' overlaps earlier operation '{prior.OperationId}' in target space '{operation.TargetSpaceId}'.",
-                    operation.OperationId));
-                return;
-            }
-            else if (operation.Kind is not (CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor) ||
-                     !writeRanges.All(writeRange => overlaps.Any(candidate =>
-                         GetDeclaredWriteRanges(candidate).Any(candidateRange => candidateRange.Contains(writeRange)))))
+            string? error = operation.GetProfileOverlapError(priorWrites);
+            if (error is not null)
             {
                 issues.Add(new CompositionIssue(
                     OperationOverlap,
-                    $"Operation '{operation.OperationId}' declares ReplaceExisting but no earlier write fully covers its target range in target space '{operation.TargetSpaceId}'.",
+                    error,
                     operation.OperationId));
                 return;
             }
@@ -117,33 +146,17 @@ internal static partial class V2CompositionPlanCompiler
         }
     }
 
-    private static ByteRange[] GetDeclaredWriteRanges(CompositionOperation operation)
-    {
-        return operation.Kind == CompositionOperationKind.RunExternalProcessor
-            ? [.. operation.ExternalProcessorInvocation!.AllowedWriteRanges]
-            : [operation.TargetRange];
-    }
-
     private static void LowerCopyOrReplaceOperation(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveSourceAndTarget(
-                operation.OperationId,
-                operation.SourceViewId,
-                operation.TargetViewId,
-                views,
-                issues,
-                out ResolvedView source,
-                out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView source = views[operation.SourceViewId];
+        ResolvedView target = views[operation.TargetViewId];
 
         if (source.Range.Length != target.Range.Length)
         {
@@ -155,15 +168,14 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (profile.CompositionKind == CompositionKind.Replace &&
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.DpReplace) &&
-            operation.Kind == CompositionProfileOperationKind.ReplaceRange &&
-            !TryAuthorizeDpReplacePayloadTarget(profile, operation, target, issues))
+            operation.Kind == CompositionOperationKind.ReplaceRange &&
+            !TryAuthorizeReplacePayloadTarget(profile, operation, target, issues))
         {
             return;
         }
 
         if (profile.CompositionKind == CompositionKind.Replace &&
-            operation.Kind == CompositionProfileOperationKind.CopyRange &&
+            operation.Kind == CompositionOperationKind.CopyRange &&
             operation.OverlapPolicy == OverlapPolicy.ReplaceExisting &&
             source.Range != target.Range)
         {
@@ -179,9 +191,8 @@ internal static partial class V2CompositionPlanCompiler
             return;
         }
 
-        operations.Add(operation.Kind switch
-        {
-            CompositionProfileOperationKind.CopyRange => CompositionOperation.CopyRange(
+        operations.Add(operation.Kind == CompositionOperationKind.CopyRange
+            ? CompositionOperation.CopyRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -189,8 +200,8 @@ internal static partial class V2CompositionPlanCompiler
                 target.SpaceId,
                 target.Range,
                 operation.OverlapPolicy,
-                operation.Reason),
-            CompositionProfileOperationKind.ReplaceRange => CompositionOperation.ReplaceRange(
+                operation.Reason)
+            : CompositionOperation.ReplaceRange(
                 operation.OperationId,
                 sequence,
                 source.SpaceId,
@@ -198,28 +209,19 @@ internal static partial class V2CompositionPlanCompiler
                 target.SpaceId,
                 target.Range,
                 operation.OverlapPolicy,
-                operation.Reason),
-            CompositionProfileOperationKind.FillRange or
-            CompositionProfileOperationKind.PatchScalar or
-            CompositionProfileOperationKind.TransformScalar or
-            CompositionProfileOperationKind.RunProcessor => throw new ArgumentOutOfRangeException(
-                nameof(operation),
-                operation.Kind,
-                "Copy-like lowering requires a copy-range or replace-range operation."),
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unsupported copy-like operation."),
-        });
+                operation.Reason));
     }
 
     private static void LowerFillOperation(
-        FillRangeProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveTarget(operation.OperationId, operation.TargetViewId, views, issues, out ResolvedView target) ||
-            !TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
+        ResolvedView target = views[operation.TargetViewId];
+        if (!TryAuthorizeTargetWrite(operation.OperationId, operation.TargetViewId, target, regionAccess, issues))
         {
             return;
         }
@@ -235,19 +237,16 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static void LowerPatchOperation(
-        PatchScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, ResolvedView> views,
         LoweredRegionAccess regionAccess,
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveTarget(operation.OperationId, operation.TargetViewId, views, issues, out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView target = views[operation.TargetViewId];
 
-        if (operation.Value.Length != target.Range.Length)
+        if (operation.PatchBytes.Length != target.Range.Length)
         {
             AddOperationLengthMismatch(operation.OperationId, "patch bytes and target view have different lengths", issues);
             return;
@@ -263,13 +262,13 @@ internal static partial class V2CompositionPlanCompiler
             sequence,
             target.SpaceId,
             target.Range,
-            operation.Value.Bytes.ToArray(),
+            operation.PatchBytes.Bytes.ToArray(),
             OverlapPolicy.Reject,
             operation.Reason));
     }
 
     private static void LowerTransformOperation(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         IReadOnlyDictionary<string, ResolvedView> views,
@@ -277,17 +276,8 @@ internal static partial class V2CompositionPlanCompiler
         List<CompositionOperation> operations,
         List<CompositionIssue> issues)
     {
-        if (!TryResolveSourceAndTarget(
-                operation.OperationId,
-                operation.SourceViewId,
-                operation.TargetViewId,
-                views,
-                issues,
-                out ResolvedView source,
-                out ResolvedView target))
-        {
-            return;
-        }
+        ResolvedView source = views[operation.SourceViewId];
+        ResolvedView target = views[operation.TargetViewId];
 
         if (source.Range.Length != target.Range.Length)
         {
@@ -337,7 +327,7 @@ internal static partial class V2CompositionPlanCompiler
 
     private static void LowerProcessorOperation(
         CompositionProfileDefinition profile,
-        RunProcessorProfileOperation operation,
+        CompositionOperationDefinition operation,
         int sequence,
         IReadOnlyDictionary<string, AddressSpace> spaces,
         IReadOnlyDictionary<string, ResolvedView> views,
@@ -468,7 +458,7 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(space.SpaceId, addressSpaceId));
         return input is not null &&
             profile.InputSlots.Single(slot => StringComparer.Ordinal.Equals(slot.SlotId, input.SlotId)).Normalization
-                is TruncateCtrlRamInputNormalization;
+                is CompiledTruncateCtrlRamInputNormalization;
     }
 
     private static bool IsTpCtrlRamTarget(ResolvedView target)
@@ -481,49 +471,8 @@ internal static partial class V2CompositionPlanCompiler
             };
     }
 
-    private static bool TryResolveSourceAndTarget(
-        string operationId,
-        string sourceViewId,
-        string targetViewId,
-        IReadOnlyDictionary<string, ResolvedView> views,
-        List<CompositionIssue> issues,
-        out ResolvedView source,
-        out ResolvedView target)
-    {
-        if (!views.TryGetValue(sourceViewId, out ResolvedView? resolvedSource) || resolvedSource is null ||
-            !views.TryGetValue(targetViewId, out ResolvedView? resolvedTarget) || resolvedTarget is null)
-        {
-            issues.Add(new CompositionIssue(InvalidView, $"Operation '{operationId}' references an unresolved view.", operationId));
-            source = null!;
-            target = null!;
-            return false;
-        }
-
-        source = resolvedSource;
-        target = resolvedTarget;
-        return true;
-    }
-
-    private static bool TryResolveTarget(
-        string operationId,
-        string targetViewId,
-        IReadOnlyDictionary<string, ResolvedView> views,
-        List<CompositionIssue> issues,
-        out ResolvedView target)
-    {
-        if (!views.TryGetValue(targetViewId, out ResolvedView? resolvedTarget) || resolvedTarget is null)
-        {
-            issues.Add(new CompositionIssue(InvalidView, $"Operation '{operationId}' references an unresolved view.", operationId));
-            target = null!;
-            return false;
-        }
-
-        target = resolvedTarget;
-        return true;
-    }
-
     private static bool TryResolveSequence(
-        CompositionProfileOperation operation,
+        CompositionOperationDefinition operation,
         List<CompositionIssue> issues,
         out int sequence)
     {
@@ -539,7 +488,7 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool TryCreateScalarTransform(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         out ScalarTransform? transform,
         out string? error)
@@ -559,20 +508,8 @@ internal static partial class V2CompositionPlanCompiler
         try
         {
             transform = new ScalarTransform(
-                operation.Width switch
-                {
-                    CompositionProfileScalarWidth.OneByte => ScalarTransformWidth.OneByte,
-                    CompositionProfileScalarWidth.TwoBytes => ScalarTransformWidth.TwoBytes,
-                    CompositionProfileScalarWidth.FourBytes => ScalarTransformWidth.FourBytes,
-                    CompositionProfileScalarWidth.EightBytes => ScalarTransformWidth.EightBytes,
-                    _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown scalar width."),
-                },
-                operation.ByteOrder switch
-                {
-                    CompositionProfileScalarByteOrder.LittleEndian => ScalarTransformByteOrder.LittleEndian,
-                    CompositionProfileScalarByteOrder.BigEndian => ScalarTransformByteOrder.BigEndian,
-                    _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown scalar byte order."),
-                },
+                operation.TransformWidth,
+                operation.TransformByteOrder,
                 addend,
                 operation.ExpectedBefore,
                 ScalarTransformOverflowPolicy.Reject,
@@ -589,27 +526,25 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static bool TryResolveTransformAddend(
-        TransformScalarProfileOperation operation,
+        CompositionOperationDefinition operation,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         out BigInteger addend,
         out ScalarTransformAddendSource? addendSource,
         out string? error)
     {
-        switch (operation.AddendSource)
+        switch (operation.AddendSource.Kind)
         {
-            case FixedTransformAddendSource fixedAddend:
-                addend = fixedAddend.Value;
-                addendSource = ScalarTransformAddendSource.Fixed;
+            case ScalarTransformAddendSourceKind.Fixed:
+                addend = operation.Addend;
+                addendSource = operation.AddendSource;
                 error = null;
                 return true;
-            case RegionInstanceDeltaTransformAddendSource delta:
+            case ScalarTransformAddendSourceKind.RegionInstanceDelta:
                 if (!TryResolveRegionInstance(
                         resolvedMap,
-                        delta.SourceRegionInstanceId,
-                        out FirmwareRegionSet? sourceSet,
+                        operation.AddendSource.SourceRegionInstanceId!,
                         out FirmwareRegionInstance? source,
                         out error) ||
-                    sourceSet is null ||
                     source is null)
                 {
                     addend = default;
@@ -619,11 +554,9 @@ internal static partial class V2CompositionPlanCompiler
 
                 if (!TryResolveRegionInstance(
                         resolvedMap,
-                        delta.TargetRegionInstanceId,
-                        out FirmwareRegionSet? targetSet,
+                        operation.AddendSource.TargetRegionInstanceId!,
                         out FirmwareRegionInstance? target,
                         out error) ||
-                    targetSet is null ||
                     target is null)
                 {
                     addend = default;
@@ -635,24 +568,13 @@ internal static partial class V2CompositionPlanCompiler
                 {
                     addend = default;
                     addendSource = null;
-                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
-                        $"'{delta.TargetRegionInstanceId}' do not reference the same canonical template";
-                    return false;
-                }
-
-                if (!StringComparer.Ordinal.Equals(sourceSet.AddressSpaceId, targetSet.AddressSpaceId))
-                {
-                    addend = default;
-                    addendSource = null;
-                    error = $"region instances '{delta.SourceRegionInstanceId}' and " +
-                        $"'{delta.TargetRegionInstanceId}' use incompatible address spaces";
+                    error = $"region instances '{operation.AddendSource.SourceRegionInstanceId}' and " +
+                        $"'{operation.AddendSource.TargetRegionInstanceId}' do not reference the same canonical template";
                     return false;
                 }
 
                 addend = new BigInteger(target.BaseOffset) - new BigInteger(source.BaseOffset);
-                addendSource = ScalarTransformAddendSource.RegionInstanceDelta(
-                    delta.SourceRegionInstanceId,
-                    delta.TargetRegionInstanceId);
+                addendSource = operation.AddendSource;
                 error = null;
                 return true;
             default:

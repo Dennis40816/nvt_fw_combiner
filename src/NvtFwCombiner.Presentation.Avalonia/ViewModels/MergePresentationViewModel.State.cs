@@ -2,42 +2,50 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MergePresentationViewModel
 {
-    private const string NormalMergeMode = WorkbenchMergeModes.Standard;
-    private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
-    private const string GeneralMergeMode = WorkbenchMergeModes.General;
+    private const string NormalMergeMode = ExperienceIds.StandardMerge;
+    private const string AbCodeMergeMode = ExperienceIds.AbMerge;
+    private const string GeneralMergeMode = ExperienceIds.GeneralMerge;
     private static readonly IReadOnlyList<string> s_standardMergeModeChoices =
         Array.AsReadOnly([NormalMergeMode, GeneralMergeMode]);
     private static readonly IReadOnlyList<string> s_abMergeModeChoices =
         Array.AsReadOnly([NormalMergeMode, AbCodeMergeMode, GeneralMergeMode]);
     private readonly Dictionary<string, string> _abMergeAddressSpaceBySlotId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CompiledAuthoringInputBinding> _abMergeBindingsByAddressSpace = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FirmwareSlotViewModel> _abMergeSlotsByAddressSpace = new(StringComparer.Ordinal);
-    private readonly MergeAuthoringSessionSet _authoringSessions = new();
+    private readonly AuthoringSessionState _standardMergeSession =
+        new(ExperienceIds.StandardMerge);
+    private readonly AuthoringSessionState _abMergeSession =
+        new(ExperienceIds.AbMerge);
+    private readonly AuthoringSessionState _generalMergeSession =
+        new(ExperienceIds.GeneralMerge);
+    private string? _abMergeTopologyChoicesIcId;
     private readonly MergeStateBindings _stateBindings;
     internal FirmwareSlotViewModel MergeDpSlot { get; } = new(
-        WorkbenchSlotIds.MergeDp,
+        CompositionSlotIds.MergeDp,
         "DP BIN",
         "Display payload for Standard Merge",
         FirmwareSlotKind.Dp,
-        addressSpaceId: WorkbenchAddressSpaceIds.DpInput);
+        addressSpaceId: CompositionAddressSpaceIds.DpInput);
     internal FirmwareSlotViewModel MergeTpSlot { get; } = new(
-        WorkbenchSlotIds.MergeTp,
+        CompositionSlotIds.MergeTp,
         "TP BIN",
         "Touch payload for Standard Merge",
         FirmwareSlotKind.Tp,
-        addressSpaceId: WorkbenchAddressSpaceIds.TpInput);
+        addressSpaceId: CompositionAddressSpaceIds.TpInput);
     internal FirmwareSlotViewModel MergeLdcSlot { get; } = new(
-        WorkbenchSlotIds.MergeLdc,
+        CompositionSlotIds.MergeLdc,
         "LDC BIN",
         "Optional LDC payload when the selected profile exposes an LDC region",
         FirmwareSlotKind.Dp,
         isOptional: true,
-        addressSpaceId: WorkbenchAddressSpaceIds.LdcInput);
+        addressSpaceId: CompositionAddressSpaceIds.LdcInput);
     internal IEnumerable<FirmwareSlotViewModel> StandardMergeSlots
     {
         get
@@ -70,7 +78,7 @@ public sealed partial class MergePresentationViewModel
     public ObservableCollection<FirmwareSlotViewModel> MergeSlots { get; } = [];
 
     /// <summary>Gets profile-owned symbolic AB topologies when the selected AB IC requires an operator choice.</summary>
-    public ObservableCollection<WorkbenchAbMergeTopologyChoice> AbMergeTopologyChoices { get; } = [];
+    public ObservableCollection<CapabilityTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
     /// <summary>Gets readable memory-map rows for the selected Merge workflow.</summary>
     public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
@@ -106,15 +114,22 @@ public sealed partial class MergePresentationViewModel
     public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
 
     /// <summary>Gets the profile-owned default Standard Merge output file name.</summary>
-    public string StandardMergeOutputFileName => _stateBindings.CreateOutputFileName(MergeSlots);
+    public string StandardMergeOutputFileName => ResolveAcceptedOutputFileName(
+        _standardMergeSession.CurrentSnapshot,
+        "nvt-fw-combiner-standard-merge.bin");
 
     /// <summary>Gets the default General Merge output file name.</summary>
-    public string GeneralMergeOutputFileName => _stateBindings.CreateOutputFileName(MergeSlots);
+    public string GeneralMergeOutputFileName => ResolveAcceptedOutputFileName(
+        _generalMergeSession.CurrentSnapshot,
+        GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(SelectedIc));
 
     /// <summary>Gets the compiled AB profile output file name.</summary>
-    public string AbMergeOutputFileName => WorkbenchCompositionService.GetAbMergeProfileSummaries()
-        .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
-        .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin";
+    public string AbMergeOutputFileName => ResolveAcceptedOutputFileName(
+        _abMergeSession.CurrentSnapshot,
+        _compositionServices.Capabilities
+            .GetAbMergeProfileSummaries()
+            .FirstOrDefault(profile => StringComparer.Ordinal.Equals(profile.IcId, SelectedIc))?
+            .DefaultOutputFileName ?? "nvt-fw-combiner-ab-output.bin");
 
     /// <summary>Gets the active Merge output file name.</summary>
     public string MergeOutputFileName => SelectedMergeMode switch
@@ -123,6 +138,16 @@ public sealed partial class MergePresentationViewModel
         AbCodeMergeMode => AbMergeOutputFileName,
         _ => StandardMergeOutputFileName,
     };
+
+    private string ResolveAcceptedOutputFileName(
+        ActiveSessionSnapshot? session,
+        string fallback)
+    {
+        return session?.HasCurrentInputInspection == true
+            ? _compositionServices.OutputNaming.ResolveAcceptedOutput(session).OutputName.FileName
+            : session?.ExactCapability?.CompiledComposition.V2Details
+                .OutputNamingRequirement.FileNameTemplate ?? fallback;
+    }
 
     /// <summary>Gets short Merge memory-map summary text.</summary>
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
@@ -149,10 +174,12 @@ public sealed partial class MergePresentationViewModel
     public bool HasAbMergeTopologyChoices => AbMergeTopologyChoices.Count > 0;
 
     /// <summary>True when the selected IC has an admitted AB profile.</summary>
-    public bool IsAbMergeSupported => AbMergeWorkbenchCompositionService.IsAbMergeSupported(SelectedIc);
+    public bool IsAbMergeSupported =>
+        _compositionServices.AbMergeAuthoring.IsAvailable(SelectedIc);
 
     /// <summary>True when selected IC has a built-in standard merge profile.</summary>
-    public bool IsStandardMergeSupported => WorkbenchCompositionService.IsStandardMergeSupported(SelectedIc);
+    public bool IsStandardMergeSupported =>
+        _compositionServices.StandardMergeAuthoring.IsSupported(SelectedIc);
 
     /// <summary>Status shown in the Merge inspector.</summary>
     public string MergeReadinessStatus => _stateBindings.IsFirmwareInspectionLoading()
@@ -174,6 +201,21 @@ public sealed partial class MergePresentationViewModel
 
     /// <summary>True when active Merge build can run.</summary>
     public bool CanBuildMerge => CanRunMerge();
+
+    /// <summary>Highest-priority typed pre-run blocker for the active Merge workflow.</summary>
+    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedMergeMode switch
+    {
+        GeneralMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _generalMergeSession.CurrentSnapshot,
+            GeneralMergeMode,
+            _generalMergeActionReadiness),
+        AbCodeMergeMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _abMergeSession.CurrentSnapshot,
+            AbCodeMergeMode),
+        _ => ActiveSessionBuildBlockerResolver.Resolve(
+            _standardMergeSession.CurrentSnapshot,
+            NormalMergeMode),
+    };
 
     /// <summary>Command that adds a General Merge mapping row.</summary>
     public IRelayCommand AddGeneralMergeMappingCommand { get; }
@@ -266,6 +308,7 @@ public sealed partial class MergePresentationViewModel
     internal void NotifyCommandStateChanged()
     {
         OnPropertyChanged(nameof(CanBuildMerge));
+        OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(MergeReadinessStatus));
     }
 

@@ -3,36 +3,28 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareFamilyResolutionDefinition NormalizeMapBoundFacts(
         FirmwareFamilyDocument document,
         string familyContentHash,
         IFirmwareMetadataStructureDefinitionResolver? metadataDefinitionResolver)
     {
-        IReadOnlyList<FirmwareFamilyMemberDocument> members = RequireList(document.Members, "members");
+        IReadOnlyList<FirmwareFamilyMemberDocument> members = document.Members;
         Dictionary<string, FirmwareFamilyMemberDocument> membersById = IndexUnique(
             members,
             static member => member.MemberId,
             "members",
             "memberId");
-        Dictionary<string, FirmwareRegionSet> regionSetsById = NormalizeRegionSets(
-            RequireList(document.RegionSets, "regionSets"),
-            document.SchemaVersion);
+        Dictionary<string, FirmwareRegionSet> regionSetsById = NormalizeRegionSets(document.RegionSets);
         Dictionary<string, FirmwareMetadataSet> metadataSetsById = NormalizeMetadataSets(
-            RequireList(document.MetadataSets, "metadataSets"),
+            document.MetadataSets,
             metadataDefinitionResolver);
-        ValidateGlobalStructureIds(metadataSetsById.Values);
-
-        MapInput[] maps = CreateMaps(
-            RequireList(document.ImageMaps, "imageMaps"),
-            membersById);
+        MapInput[] maps = CreateMaps(document.ImageMaps, membersById);
         Dictionary<string, MapInput> mapsById = maps.ToDictionary(
             static map => map.Document.MapId,
             StringComparer.Ordinal);
-        AliasDeclaration[] aliases = CreateAliases(
-            RequireList(document.FactAliases, "factAliases"),
-            mapsById);
+        AliasDeclaration[] aliases = CreateAliases(document.FactAliases, mapsById);
 
         Dictionary<FirmwareMapFactKey, ResolvedFact<FirmwareRegionSet>> regions = ResolvePhysicalFacts(
             maps,
@@ -73,7 +65,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             static map => map.MapId,
             StringComparer.Ordinal);
         FirmwareMapFactBinding<FirmwareCapabilityFact>[] capabilities = NormalizeCapabilities(
-            RequireList(document.Capabilities, "capabilities"),
+            document.Capabilities,
             aliases,
             normalizedMapsById,
             structuresByMap,
@@ -82,18 +74,32 @@ public static partial class FirmwareFamilyResolutionNormalizer
         FirmwareFamilyRelationship[] familyRelationships = NormalizeFamilyRelationships(
             document,
             normalizedMaps,
-            structuresByMap,
-            aliases,
-            capabilities);
+            structuresByMap);
 
-        return TranslateInvariant("$", () => new FirmwareFamilyResolutionDefinition(
+        try
+        {
+            return new FirmwareFamilyResolutionDefinition(
                 document.FamilyId,
                 document.FamilyVersion,
                 familyContentHash,
                 normalizedMaps,
                 metadataSetsById.Values,
                 capabilities,
-                familyRelationships));
+                familyRelationships);
+        }
+        catch (FirmwareFamilyRelationshipInvariantException exception)
+        {
+            int index = Array.FindIndex(
+                familyRelationships,
+                relationship => StringComparer.Ordinal.Equals(
+                    relationship.RelationshipId,
+                    exception.RelationshipId));
+            throw Error($"familyRelationships[{index}]", exception.Message, exception);
+        }
+        catch (Exception exception) when (exception is ArgumentException or OverflowException)
+        {
+            throw Error("$", exception.Message, exception);
+        }
     }
 
     private static MapInput[] CreateMaps(
@@ -104,23 +110,14 @@ public static partial class FirmwareFamilyResolutionNormalizer
         var ids = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < documents.Count; index++)
         {
-            FirmwareImageMapDocument document = documents[index] ?? throw Error(
-                $"imageMaps[{index}]",
-                "Image map cannot be null.");
+            FirmwareImageMapDocument document = documents[index];
             string path = $"imageMaps[{index}]";
-            if (string.IsNullOrWhiteSpace(document.MapId))
-            {
-                throw Error($"{path}.mapId", "Map id cannot be null or whitespace.");
-            }
-
             if (!ids.Add(document.MapId))
             {
                 throw Error($"{path}.mapId", $"Duplicate image map id '{document.MapId}'.");
             }
 
             ValidateMemberReferences(document.Applicability.MemberIds, membersById, $"{path}.applicability.memberIds");
-            ValidateDistinctFactIds(document.RegionSetIds, $"{path}.regionSetIds");
-            ValidateDistinctFactIds(document.MetadataSetIds, $"{path}.metadataSetIds");
             maps[index] = new MapInput(index, document);
         }
 
@@ -136,9 +133,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         var targets = new HashSet<FirmwareMapFactKey>();
         for (int index = 0; index < documents.Count; index++)
         {
-            FirmwareFactAliasDocument document = documents[index] ?? throw Error(
-                $"factAliases[{index}]",
-                "Fact alias cannot be null.");
+            FirmwareFactAliasDocument document = documents[index];
             string path = $"factAliases[{index}]";
             if (!aliasIds.Add(document.AliasId))
             {
@@ -177,16 +172,16 @@ public static partial class FirmwareFamilyResolutionNormalizer
         {
             FirmwareRegionSetAliasDocument region => (
                 FirmwareFactKind.RegionSet,
-                RequireFactId(region.TargetRegionSetId, $"{path}.targetRegionSetId"),
-                RequireFactId(region.SourceRegionSetId, $"{path}.sourceRegionSetId")),
+                region.TargetRegionSetId,
+                region.SourceRegionSetId),
             FirmwareMetadataSetAliasDocument metadata => (
                 FirmwareFactKind.MetadataSet,
-                RequireFactId(metadata.TargetMetadataSetId, $"{path}.targetMetadataSetId"),
-                RequireFactId(metadata.SourceMetadataSetId, $"{path}.sourceMetadataSetId")),
+                metadata.TargetMetadataSetId,
+                metadata.SourceMetadataSetId),
             FirmwareCapabilityAliasDocument capability => (
                 FirmwareFactKind.Capability,
-                RequireFactId(capability.TargetCapabilityFactId, $"{path}.targetCapabilityFactId"),
-                RequireFactId(capability.SourceCapabilityFactId, $"{path}.sourceCapabilityFactId")),
+                capability.TargetCapabilityFactId,
+                capability.SourceCapabilityFactId),
             _ => throw Error(path, "Unknown fact alias shape."),
         };
     }
@@ -196,7 +191,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
         IReadOnlyList<AliasDeclaration> aliases,
         FirmwareFactKind kind,
         IReadOnlyDictionary<string, TFact> directValuesById,
-        Func<MapInput, IReadOnlyList<string>?> factIds)
+        Func<MapInput, IReadOnlyList<string>> factIds)
         where TFact : class, IFirmwareMapFact
     {
         var expected = new List<FirmwareMapFactKey>();
@@ -206,7 +201,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
             static alias => alias.TargetKey);
         foreach (MapInput map in maps)
         {
-            IReadOnlyList<string> ids = RequireList(factIds(map), $"{map.Path}.{FactCollectionName(kind)}");
+            IReadOnlyList<string> ids = factIds(map);
             foreach (string memberId in map.Document.Applicability.MemberIds)
             {
                 for (int index = 0; index < ids.Count; index++)
@@ -382,7 +377,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                     map.Document.MapId,
                     map.Document.AddressSpaceId,
                     mapApplicability,
-                    NormalizeCoveragePolicy(map.Document.CoveragePolicy, $"{map.Path}.coveragePolicy"),
+                    FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
                     MaterializeBindings(
                         map,
                         FirmwareFactKind.RegionSet,
@@ -444,18 +439,9 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 alias.Document.Reason,
                 alias.Document.EvidenceRefs)),
         ];
-        var provenance = new FirmwareFactProvenance(
-            resolved.EffectiveKey,
-            resolved.DirectSourceKey,
-            hops,
-            resolved.Value.EvidenceRefs);
         return new FirmwareMapFactBinding<TFact>(
-            resolved.EffectiveKey,
-            resolved.DirectSourceKey,
-            resolved.Value.CanonicalFactId,
-            resolved.Value,
             applicability,
-            provenance);
+            new FirmwareFactProvenance(resolved.EffectiveKey, resolved.Value, hops));
     }
 
 }

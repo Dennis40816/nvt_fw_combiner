@@ -17,15 +17,11 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInTpFlashMapCatalog",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Context.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.FirmwareVersion.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.Planning.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Readiness.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.FirmwareVersion.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Planning.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
@@ -33,11 +29,15 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInPostbuildProfileCatalog",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs",
-                "src/NvtFwCombiner.Bootstrap/CurrentSupportMatrixCatalog.CtrlRam.cs",
-                "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
-                "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInPostbuildProfileResolver.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.Metadata.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
             ]);
+        AssertNoProductionText("CurrentSupportMatrixCatalog");
     }
 
     /// <summary>Prevents the unbound TP root/category projection from returning after report semantics moved to the header catalog.</summary>

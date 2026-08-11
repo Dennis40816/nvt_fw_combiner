@@ -6,6 +6,7 @@
     <ProjectReference Include="..\NvtFwCombiner.Domain\NvtFwCombiner.Domain.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Contracts\NvtFwCombiner.Contracts.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.Application\NvtFwCombiner.Application.csproj" />
+    <ProjectReference Include="..\NvtFwCombiner.Profiles\NvtFwCombiner.Profiles.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" />
@@ -20,16 +21,6 @@
     <EmbeddedResource
       Include="..\..\docs\contracts\saved-composition-rule-v2.schema.json"
       LogicalName="NvtFwCombiner.Infrastructure.Contracts.Schemas.saved-composition-rule-v2.schema.json" />
-    <Content
-      Include="..\..\docs\contracts\support-publication-policy-v1.0.0.json"
-      Link="docs\contracts\support-publication-policy-v1.0.0.json"
-      CopyToOutputDirectory="PreserveNewest"
-      CopyToPublishDirectory="PreserveNewest" />
-    <Content
-      Include="..\..\docs\contracts\support-publication-policy-v1.json"
-      Link="docs\contracts\support-publication-policy-v1.json"
-      CopyToOutputDirectory="PreserveNewest"
-      CopyToPublishDirectory="PreserveNewest" />
     <Content
       Include="..\..\docs\contracts\canonical-capability-policy-v1.json"
       Link="docs\contracts\canonical-capability-policy-v1.json"
@@ -50,6 +41,8 @@
     <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.GoldenRegression.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.TestSupport" />
+    <InternalsVisibleTo Include="NvtFwCombiner.UiSmoke.Tests" />
   </ItemGroup>
 </Project>

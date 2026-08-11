@@ -1,12 +1,34 @@
 # Repository Verification Report
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
-baseline, updated for the 0.10.2 canonical desktop-adoption release candidate. Current
+baseline, updated for the 0.10.3 canonical architecture and legacy-retirement
+release candidate. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
-Specification package version: `0.10.2`
+Specification package version: `0.10.3`
+
+## 0.10.3 canonical architecture and legacy-retirement release candidate
+
+The candidate advances the stable line from `v0.10.2` through Canonical Core
+Convergence and LAR-01 through LAR-12. Standard Merge, AB Merge, General Merge,
+DP Replace, CtrlRAM Replace, and General Replace now use one Application-owned
+accepted-session path for authoring, naming, execution, reports, delivery, and
+processor planning. Presentation and CLI consume the same typed use cases;
+Bootstrap contains four composition-root and lifetime files. The migration-era
+Workbench graph and renamed parallel production owners are absent.
+
+The release is support-neutral. It changes no profile/schema version, built-in
+firmware authority, expected BIN bytes or SHA-256, report wire, CRC success
+payload, or Legacy Combiner protocol. Both canonical full-verifier modes pass
+on the frozen source snapshot, including all 17 existing BIN golden
+regressions. The runtime metric is 67,433 nonblank lines and full production is
+96,044; exact slice ratchets and slice-sum closure pass. The final integration
+commit and tag must still be identical to the reviewed PR/main tree and pass
+protected CI, deterministic Windows x64 packaging, release-owner approval,
+five-asset verification, visible clean-Windows smoke, and downloaded-package
+smoke before `v0.10.3` publication.
 
 ## 0.10.2 canonical desktop-adoption release candidate
 
@@ -27,7 +49,7 @@ CI/review, deterministic Windows x64 packaging, visible local startup smoke
 where a desktop is available, protected-environment promotion, exact five-asset
 verification, and downloaded-package smoke. The canonical runtime metric is
 75,638 nonblank lines. Remaining deferred UI, Workbench deletion, Core
-convergence, and the hard 22,607-line #197 gate are allocated to `v0.10.3`, not
+convergence, and the hard 44,000-line #197 gate are allocated to `v0.10.3`, not
 claimed by this release.
 
 ## 0.10.1 headless canonical foundation release candidate

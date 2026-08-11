@@ -1,49 +1,57 @@
 using CommunityToolkit.Mvvm.Input;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.HexEditor;
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
 {
-    private const string DpReplaceMode = WorkbenchReplaceModes.Dp;
-    private const string CtrlRamReplaceMode = WorkbenchReplaceModes.CtrlRam;
-    private const string GeneralReplaceMode = WorkbenchReplaceModes.General;
-    private const string NormalMergeMode = WorkbenchMergeModes.Standard;
-    private const string AbCodeMergeMode = WorkbenchMergeModes.AbCode;
-    private const string GeneralMergeMode = WorkbenchMergeModes.General;
+    private const string DpReplaceMode = ExperienceIds.DpReplace;
+    private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
+    private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
+    private const string NormalMergeMode = ExperienceIds.StandardMerge;
+    private const string AbCodeMergeMode = ExperienceIds.AbMerge;
+    private const string GeneralMergeMode = ExperienceIds.GeneralMerge;
+    private readonly PresentationCompositionServices _compositionServices;
     private readonly DeferredShellState _deferredState = new();
     private readonly IFileRevealService _fileRevealService;
+    private readonly IRawBinaryEditorFileSessionFactory _rawBinaryEditorFileSessions;
+    private readonly ISystemInformationService _systemInformationService;
     private readonly bool _isInitializing = true;
 
-    /// <summary>Initializes the main workbench view model.</summary>
-    public MainWindowViewModel(
-        string shellVersion,
-        string appVersion,
-        ShellLanguage language = ShellLanguage.English)
-        : this(
-            shellVersion,
-            appVersion,
-            language,
-            static (icId, path) => WorkbenchCompositionService.TryReadFirmwareConfigMetadata(icId, path),
-            WorkbenchCompositionService.InspectFirmwareBatch,
-            WorkbenchHostServices.CreateFileRevealService())
-    {
-    }
-
-    /// <summary>Initializes the main workbench view model with a deterministic firmware metadata reader.</summary>
+    /// <summary>Initializes the main desktop view model.</summary>
     internal MainWindowViewModel(
         string shellVersion,
         string appVersion,
         ShellLanguage language,
-        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+        PresentationHostServices hostServices)
         : this(
             shellVersion,
             appVersion,
             language,
+            hostServices,
+            hostServices.Composition.FirmwareInspection.TryReadFirmwareConfigMetadata,
+            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
+    {
+    }
+
+    /// <summary>Initializes the main desktop view model with a deterministic firmware metadata reader.</summary>
+    internal MainWindowViewModel(
+        string shellVersion,
+        string appVersion,
+        ShellLanguage language,
+        PresentationHostServices hostServices,
+        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
+        : this(
+            shellVersion,
+            appVersion,
+            language,
+            hostServices,
             firmwareConfigMetadataReader,
-            WorkbenchCompositionService.InspectFirmwareBatch,
-            WorkbenchHostServices.CreateFileRevealService())
+            hostServices.Composition.FirmwareInspection.InspectFirmwareBatch)
     {
     }
 
@@ -52,31 +60,43 @@ public sealed partial class MainWindowViewModel
         string shellVersion,
         string appVersion,
         ShellLanguage language,
-        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader,
+        PresentationHostServices hostServices,
+        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader,
         Func<
             string,
-            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
-        IFileRevealService? fileRevealService = null)
+            IReadOnlyList<FirmwareInspectionSnapshotInput>,
+            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
+        IFileRevealService? fileRevealService = null,
+        ICanonicalSupportMatrixQuery? supportMatrixQuery = null,
+        ISystemInformationService? systemInformationService = null,
+        ISystemDiagnosticsExporter? systemDiagnosticsExporter = null)
     {
+        ArgumentNullException.ThrowIfNull(hostServices);
         ArgumentNullException.ThrowIfNull(firmwareConfigMetadataReader);
         ArgumentNullException.ThrowIfNull(firmwareInspectionReader);
-        _fileRevealService = fileRevealService ?? WorkbenchHostServices.CreateFileRevealService();
+        _compositionServices = hostServices.Composition;
+        _fileRevealService = fileRevealService ?? hostServices.FileReveal;
+        _rawBinaryEditorFileSessions = hostServices.RawBinaryEditorFileSessions;
+        _systemInformationService = systemInformationService ?? hostServices.SystemInformation;
         ShellVersion = shellVersion;
         AppVersion = appVersion;
-        Settings = new SettingsViewModel(appVersion);
+        Settings = new SettingsViewModel(
+            appVersion,
+            supportMatrixQuery ?? hostServices.SupportMatrix,
+            () => Text);
         Merge = new MergePresentationViewModel(
+            _compositionServices,
             () => Text,
             new MergeStateBindings(
                 GetWorkflowSelectedIc,
                 GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
+                IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 IsWorkflowLoading,
                 GetInspectedFileLength,
                 GetReportPresentation,
-                CreateWorkflowFlashCodeOutputFileName,
                 RunCompositionAsync,
                 PublishLastRunResult,
                 RefreshWorkflowNumberChoices,
@@ -86,20 +106,22 @@ public sealed partial class MainWindowViewModel
                 RefreshCommandState));
         Merge.PropertyChanged += Merge_OnPropertyChanged;
         Replace = new ReplacePresentationViewModel(
+            _compositionServices,
             new ReplaceStateBindings(
                 () => Text,
                 GetWorkflowSelectedIc,
                 GetWorkflowSelectedNumber,
                 IsCompositionRunInProgress,
                 IsFirmwareInspectionLoading,
+                IsGlobalBuildBlocked,
                 IsWorkflowLoaded,
                 GetInspectedFileLength,
                 GetSelectedReplaceBaseInspection,
-                GetReportPresentation,
-                CreateWorkflowFlashCodeOutputFileName,
-                CreateWorkflowCtrlRamOutputFileName,
-                RunCompositionAsync,
-                WorkflowReplaceModeChanged,
+                 GetReportPresentation,
+                 RunCompositionAsync,
+                 ShowDiagnosticPreviewAsync,
+                 ShowActionReadiness,
+                 WorkflowReplaceModeChanged,
                 ResetRunResultForContextChange,
                 RefreshSelectedReplaceFirmwareInspectionsAsync,
                 RefreshCommandState),
@@ -109,6 +131,7 @@ public sealed partial class MainWindowViewModel
         Reports = new ReportPresentationViewModel(() => Text, Replace.CloseSelectionForRun);
         Reports.PropertyChanged += Reports_OnPropertyChanged;
         WorkflowSession = new WorkflowSessionPresentationViewModel(
+            _compositionServices,
             () => Text,
             Merge,
             Replace,
@@ -143,6 +166,13 @@ public sealed partial class MainWindowViewModel
                 RefreshCommandState,
                 NotifyShellRunStateChanged));
         RunSession.PropertyChanged += RunSession_OnPropertyChanged;
+        MessageCenter = new MessageCenterViewModel(
+            () => Text,
+            _systemInformationService,
+            systemDiagnosticsExporter ?? hostServices.SystemDiagnosticsExporter,
+            Reports,
+            MessageCenterDiagnosticsChanged);
+        MessageCenter.PropertyChanged += MessageCenter_OnPropertyChanged;
         ApplyTextResources(language, notify: false);
         ShowHomeCommand = new RelayCommand(() => NavigateToPage(ShellPage.Home));
         ShowSettingsCommand = new RelayCommand(() => NavigateToPage(ShellPage.Settings));

@@ -90,10 +90,4 @@ public static class AuthoringByteRangeCodec
         ArgumentOutOfRangeException.ThrowIfNegative(value);
         return string.Create(CultureInfo.InvariantCulture, $"0x{value:X}");
     }
-
-    /// <summary>Derives the read-only inclusive end used by display adapters.</summary>
-    public static long GetEndInclusive(ByteRange range)
-    {
-        return checked(range.EndExclusive - 1);
-    }
 }

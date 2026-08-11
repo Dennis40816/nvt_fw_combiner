@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -11,7 +12,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryArtifactClass()
     {
-        CompositionProfileInputSlot[] slots =
+        CompositionInputSlotDefinition[] slots =
         [
             Normalize("tp-firmware", TpMaximum(), None()),
             Normalize("dp-firmware", ExactMapCapacity(), None()),
@@ -20,7 +21,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
             Normalize("auxiliary", ExactBytes("16"), None()),
         ];
 
-        Assert.Equal(Enum.GetValues<CompositionProfileArtifactClass>(), slots.Select(static slot => slot.ArtifactClass));
+        Assert.Equal(Enum.GetValues<CompiledInputArtifactClass>(), slots.Select(static slot => slot.ArtifactClass));
         Assert.All(slots, static slot => Assert.Equal([".bin", ".hex"], slot.AcceptedExtensions));
     }
 
@@ -28,16 +29,16 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryCardinality()
     {
-        (string Token, CompositionProfileSlotCardinality Expected)[] cases =
+        (string Token, CompiledInputSlotCardinality Expected)[] cases =
         [
-            ("exactly-one", CompositionProfileSlotCardinality.ExactlyOne),
-            ("zero-or-one", CompositionProfileSlotCardinality.ZeroOrOne),
-            ("one-or-more", CompositionProfileSlotCardinality.OneOrMore),
+            ("exactly-one", CompiledInputSlotCardinality.ExactlyOne),
+            ("zero-or-one", CompiledInputSlotCardinality.ZeroOrOne),
+            ("one-or-more", CompiledInputSlotCardinality.OneOrMore),
         ];
 
-        foreach ((string token, CompositionProfileSlotCardinality expected) in cases)
+        foreach ((string token, CompiledInputSlotCardinality expected) in cases)
         {
-            CompositionProfileInputSlot slot = CompositionProfileNormalizer.NormalizeInputSlot(
+            CompositionInputSlotDefinition slot = CompositionProfileNormalizer.NormalizeInputSlot(
                 Slot("auxiliary", ExactBytes("1"), None(), cardinality: token));
             Assert.Equal(expected, slot.Cardinality);
         }
@@ -47,25 +48,25 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryLengthRule()
     {
-        ExactBytesLengthRule exact = Assert.IsType<ExactBytesLengthRule>(
-            Normalize("auxiliary", ExactBytes("16.0"), None()).LengthRule);
-        _ = Assert.IsType<ExactResolvedMapCapacityLengthRule>(
-            Normalize("dp-firmware", ExactMapCapacity(), None()).LengthRule);
-        BoundedLengthRule bounded = Assert.IsType<BoundedLengthRule>(
-            Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRule);
-        NormalDpExtractWithWarningLengthRule dpWarning = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
-            Normalize("dp-firmware", NormalDpWarning(), None()).LengthRule);
-        TpMaximum256KLengthRule tpMaximum = Assert.IsType<TpMaximum256KLengthRule>(
-            Normalize("tp-firmware", TpMaximum(), None()).LengthRule);
-        DeclaredPrefixWithWarningLengthRule declaredPrefix = Assert.IsType<DeclaredPrefixWithWarningLengthRule>(
-            Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRule);
+        CompiledExactBytesInputLengthRequirement exact = Assert.IsType<CompiledExactBytesInputLengthRequirement>(
+            Normalize("auxiliary", ExactBytes("16.0"), None()).LengthRequirement);
+        _ = Assert.IsType<ResolvedMapCapacityInputLengthDefinition>(
+            Normalize("dp-firmware", ExactMapCapacity(), None()).LengthRequirement);
+        CompiledBoundedInputLengthRequirement bounded = Assert.IsType<CompiledBoundedInputLengthRequirement>(
+            Normalize("auxiliary", Bounded("1e1", "32"), None()).LengthRequirement);
+        SourceViewCoverageInputLengthDefinition dpWarning = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            Normalize("dp-firmware", NormalDpWarning(), None()).LengthRequirement);
+        SourceViewCoverageInputLengthDefinition tpMaximum = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            Normalize("tp-firmware", TpMaximum(), None()).LengthRequirement);
+        SourceViewCoverageInputLengthDefinition declaredPrefix = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            Normalize("auxiliary", DeclaredPrefix("524288"), None()).LengthRequirement);
 
         Assert.Equal(16, exact.Bytes);
         Assert.Equal(10, bounded.MinimumBytes);
         Assert.Equal(32, bounded.MaximumBytes);
-        Assert.Equal("DP_SIZE_WARNING", dpWarning.IssueCode);
-        Assert.Equal(262144, TpMaximum256KLengthRule.MaximumBytes);
-        Assert.Equal(CompositionProfileLengthRuleKind.TpMaximum256K, tpMaximum.Kind);
+        Assert.Equal("DP_SIZE_WARNING", dpWarning.UnexpectedOuterLengthIssueCode);
+        Assert.Empty(dpWarning.ExpectedOuterLengths);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, tpMaximum.MaximumBytes);
         Assert.Equal(0x80000, declaredPrefix.RequiredEndExclusive);
         Assert.Equal([0x80000L], declaredPrefix.ExpectedOuterLengths);
         Assert.Equal("AB_INPUT_SHORT", declaredPrefix.ShortInputIssueCode);
@@ -76,17 +77,60 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void InputSlotMapsEveryNormalization()
     {
-        _ = Assert.IsType<NoInputNormalization>(
+        _ = Assert.IsType<CompiledNoInputNormalization>(
             Normalize("auxiliary", ExactBytes("16"), None()).Normalization);
-        PadShorterInputNormalization padding = Assert.IsType<PadShorterInputNormalization>(
+        CompiledPadShorterInputNormalization padding = Assert.IsType<CompiledPadShorterInputNormalization>(
             Normalize("dp-firmware", ExactMapCapacity(), PadShorter("255")).Normalization);
-        TruncateCtrlRamInputNormalization truncation = Assert.IsType<TruncateCtrlRamInputNormalization>(
+        CompiledTruncateCtrlRamInputNormalization truncation = Assert.IsType<CompiledTruncateCtrlRamInputNormalization>(
             Normalize("ctrlram-replacement", Bounded("1", "16"), TruncateCtrlRam()).Normalization);
 
         Assert.Equal(0xFF, padding.FillByte);
         Assert.Equal("dp-padding-evidence", padding.EvidenceRef);
         Assert.Equal("CTRLRAM_TRUNCATED", truncation.WarningIssueCode);
         Assert.Equal("ctrlram-truncation-evidence", truncation.EvidenceRef);
+    }
+
+    /// <summary>Verifies profile wire identifiers remain canonical before entering compiled policy values.</summary>
+    [Fact]
+    public void InputSlotRejectsNonCanonicalNormalizationIdentifiers()
+    {
+        CompositionProfileNormalizationException evidence = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "dp-firmware",
+                ExactMapCapacity(),
+                new CompositionProfileInputNormalizationDocument(
+                    "pad-shorter",
+                    FillByte: Number("255"),
+                    EvidenceRef: "Evidence")));
+        CompositionProfileNormalizationException issueCode = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            Normalize(
+                "ctrlram-replacement",
+                Bounded("1", "16"),
+                new CompositionProfileInputNormalizationDocument(
+                    "truncate-ctrlram",
+                    WarningIssueCode: "ctrlram-truncated",
+                    EvidenceRef: "evidence")));
+
+        Assert.Equal("inputSlots[0].acceptance.normalization", evidence.Path);
+        Assert.Equal("inputSlots[0].acceptance.normalization", issueCode.Path);
+        _ = Assert.IsType<ArgumentException>(evidence.InnerException, exactMatch: false);
+        _ = Assert.IsType<ArgumentException>(issueCode.InnerException, exactMatch: false);
+    }
+
+    /// <summary>Verifies canonical slot identity is enforced before the definition enters the Domain model.</summary>
+    [Fact]
+    public void InputSlotRejectsNonCanonicalSlotIdentifiers()
+    {
+        CompositionProfileInputSlotDocument slot = Slot("auxiliary", ExactBytes("1"), None());
+        CompositionProfileNormalizationException slotId = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(slot with { SlotId = "Input" }));
+        CompositionProfileNormalizationException role = Assert.Throws<CompositionProfileNormalizationException>(() =>
+            CompositionProfileNormalizer.NormalizeInputSlot(slot with { Role = "Source" }));
+
+        Assert.Equal("inputSlots[0]", slotId.Path);
+        Assert.Equal("inputSlots[0]", role.Path);
+        _ = Assert.IsType<ArgumentException>(slotId.InnerException, exactMatch: false);
+        _ = Assert.IsType<ArgumentException>(role.InnerException, exactMatch: false);
     }
 
     /// <summary>Verifies unknown closed-union tokens fail at their exact discriminator paths.</summary>
@@ -112,35 +156,6 @@ public sealed class CompositionProfileV2InputNormalizerTests
         Assert.Equal("inputSlots[0].cardinality", cardinality.Path);
         Assert.Equal("inputSlots[0].acceptance.lengthRule.kind", length.Path);
         Assert.Equal("inputSlots[0].acceptance.normalization.kind", normalization.Path);
-    }
-
-    /// <summary>Verifies required union members and fixed TP capacity fail at source paths.</summary>
-    [Fact]
-    public void InputSlotRejectsMissingOrInvalidUnionMembersWithPaths()
-    {
-        CompositionProfileNormalizationException bytes = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot("auxiliary", new CompositionProfileLengthRuleDocument("exact-bytes"), None())));
-        CompositionProfileNormalizationException issueCode = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot(
-                    "dp-firmware",
-                    new CompositionProfileLengthRuleDocument("normal-dp-extract-with-warning"),
-                    None())));
-        CompositionProfileNormalizationException tpMaximum = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot("tp-firmware", TpMaximum("262143"), None())));
-        CompositionProfileNormalizationException evidence = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot(
-                    "dp-firmware",
-                    ExactMapCapacity(),
-                    new CompositionProfileInputNormalizationDocument("pad-shorter", FillByte: Number("255")))));
-
-        Assert.Equal("inputSlots[0].acceptance.lengthRule.bytes", bytes.Path);
-        Assert.Equal("inputSlots[0].acceptance.lengthRule.issueCode", issueCode.Path);
-        Assert.Equal("inputSlots[0].acceptance.lengthRule.maximumBytes", tpMaximum.Path);
-        Assert.Equal("inputSlots[0].acceptance.normalization.evidenceRef", evidence.Path);
     }
 
     /// <summary>Verifies exact integer parsing rejects fractions, overflow, and invalid fill bytes.</summary>
@@ -178,7 +193,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
     [Fact]
     public void NormalDpWarningRetainsDeclaredOuterContainerLengths()
     {
-        CompositionProfileInputSlot slot = Normalize(
+        CompositionInputSlotDefinition slot = Normalize(
             "dp-firmware",
             new CompositionProfileLengthRuleDocument(
                 "normal-dp-extract-with-warning",
@@ -186,16 +201,17 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 ExpectedInputLengths: [Number("524288"), Number("2097152")]),
             None());
 
-        NormalDpExtractWithWarningLengthRule rule = Assert.IsType<NormalDpExtractWithWarningLengthRule>(
-            slot.LengthRule);
-        Assert.Equal([0x80000L, 0x200000L], rule.ExpectedInputLengths);
+        SourceViewCoverageInputLengthDefinition rule = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            slot.LengthRequirement);
+        Assert.Equal([0x80000L, 0x200000L], rule.ExpectedOuterLengths);
+        Assert.Equal("DP_SIZE_WARNING", rule.UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies an exact TP source is admitted only within the fixed 256 KiB owner limit.</summary>
     [Fact]
     public void ExactTpInputRetainsExactGeometryWithinTheOwnerLimit()
     {
-        CompositionProfileInputSlot exact = Normalize(
+        CompositionInputSlotDefinition exact = Normalize(
             "tp-firmware",
             ExactBytes("262144"),
             None());
@@ -205,7 +221,7 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 ExactBytes("262145"),
                 None()));
 
-        Assert.Equal(262144, Assert.IsType<ExactBytesLengthRule>(exact.LengthRule).Bytes);
+        Assert.Equal(262144, Assert.IsType<CompiledExactBytesInputLengthRequirement>(exact.LengthRequirement).Bytes);
         Assert.Equal("inputSlots[0]", oversized.Path);
     }
 
@@ -239,14 +255,10 @@ public sealed class CompositionProfileV2InputNormalizerTests
         _ = Assert.IsType<ArgumentException>(exception.InnerException, exactMatch: false);
     }
 
-    /// <summary>Verifies declared-prefix authority is versioned and rejects one-byte-invalid boundaries.</summary>
+    /// <summary>Verifies admitted declared-prefix authority rejects one-byte-invalid boundaries.</summary>
     [Fact]
-    public void DeclaredPrefixAuthorityRequiresV210AndCanonicalBoundaries()
+    public void DeclaredPrefixAuthorityRejectsInvalidCanonicalBoundaries()
     {
-        CompositionProfileNormalizationException oldSchema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeInputSlot(
-                Slot("auxiliary", DeclaredPrefix("16"), None()),
-                "2.9"));
         CompositionProfileNormalizationException shortExpectation = Assert.Throws<CompositionProfileNormalizationException>(() =>
             Normalize(
                 "auxiliary",
@@ -268,14 +280,13 @@ public sealed class CompositionProfileV2InputNormalizerTests
                 DeclaredPrefix("16"),
                 PadShorter("255")));
 
-        Assert.Equal("inputSlots[0].acceptance.lengthRule.kind", oldSchema.Path);
         Assert.Equal("inputSlots[0].acceptance.lengthRule", shortExpectation.Path);
         Assert.Equal("inputSlots[0].acceptance.lengthRule.requiredEndExclusive", oversizedRequiredEnd.Path);
         Assert.Equal("inputSlots[0]", oversizedTpPrefix.Path);
         Assert.Equal("inputSlots[0]", normalized.Path);
     }
 
-    private static CompositionProfileInputSlot Normalize(
+    private static CompositionInputSlotDefinition Normalize(
         string artifactClass,
         CompositionProfileLengthRuleDocument lengthRule,
         CompositionProfileInputNormalizationDocument normalization)

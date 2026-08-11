@@ -15,8 +15,6 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
         string replaceRefresh = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Memory.cs");
-        string outputNamingViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.OutputNaming.cs");
         string firmwareInspectionSession = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareInspectionSession.cs");
         string workflowInspection = ReadText(
@@ -30,9 +28,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RefreshAllSelectedSlotFirmwareFacts", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("GetSelectedCtrlRamBasePath", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("TryReadFirmwareContextSuggestion", viewModels, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchCompositionService.InspectFirmware", firmwareFacts, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareInspectionAdapter.InspectFirmware", firmwareFacts, StringComparison.Ordinal);
         Assert.DoesNotContain("string? ctrlRamBasePath", replaceRunner, StringComparison.Ordinal);
-        Assert.Contains("ctrlRamBasePath: null", replaceRunner, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetDiscoveryDisplay", replaceRunner, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<CtrlRamRegion> regions", replaceRunner, StringComparison.Ordinal);
         Assert.DoesNotContain("File.Exists", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("new FileInfo", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -42,50 +41,54 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("RefreshMergeMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.Contains("RefreshReplaceMemoryMapState", replaceRefresh, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidateCachedCtrlRamDisplayAsync", viewModels, StringComparison.Ordinal);
-        Assert.Contains(
-            "CreateFlashCodeOutputFileNameFromInspections",
-            firmwareInspectionSession,
-            StringComparison.Ordinal);
-        Assert.Contains("FirmwareOutputNamingProjection.CreateFlashCodeOutputFileName", outputNamingViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("FileInfo", outputNamingViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain("File.Exists", outputNamingViewModel, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "WorkbenchCompositionService.CreateFlashCodeOutputFileName(",
-            outputNamingViewModel,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("OutputNaming", firmwareInspectionSession, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Presentation.Avalonia",
+            "ViewModels",
+            "WorkflowSessionPresentationViewModel.OutputNaming.cs")));
     }
 
     /// <summary>Verifies General Merge workbench orchestration, mapping, profile, and report helpers stay split.</summary>
     [Fact]
     public void GeneralMergeWorkbenchConcernsStaySplit()
     {
-        string orchestration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
-        string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
-        string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
-        string candidate = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+        string mapping = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.Mapping.cs");
+        string profile = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/Authoring/GeneralMergeAuthoringUseCase.cs"),
+            ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs"));
+        string entry = ReadText("src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
+        string candidate = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
 
-        Assert.Contains("RunGeneralMergeEphemeralDraftAsync", orchestration, StringComparison.Ordinal);
-        Assert.Contains("GetGeneralMergeMemoryDisplay", orchestration, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static bool TryCreateGeneralMergeMappings", orchestration, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static CompositionProfileDefinition CreateGeneralMergeProfile", orchestration, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static WorkbenchRunResult CreateGeneralMergeReportRunResult", orchestration, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeEphemeralDraftAsync", entry, StringComparison.Ordinal);
+        Assert.Contains("private async ValueTask<CompositionRunResult> ExecuteGeneralMergeAsync", entry, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.GeneralMerge.cs")));
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
             "NvtFwCombiner.Bootstrap",
             "WorkbenchCompositionService.GeneralMerge.Report.cs")));
-        Assert.Contains("private static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
+        Assert.Contains("internal static bool TryCreateGeneralMergeMappings", mapping, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkbenchGeneralMergeMappingInput", mapping, StringComparison.Ordinal);
-        Assert.Contains("TryResolveGeneralMergeInitializer", profile, StringComparison.Ordinal);
-        Assert.Contains("GeneralMergeDraftState", orchestration, StringComparison.Ordinal);
+        Assert.Contains("TryResolveOutputInitializer", profile, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeDraftState", candidate, StringComparison.Ordinal);
         Assert.Contains("draft.OutputInitializer", candidate, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "GeneralMergeFillByte",
-            orchestration + mapping + profile + candidate,
+            entry + mapping + profile + candidate,
             StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profile, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionProfileCompiler", orchestration, StringComparison.Ordinal);
-        Assert.Contains("CreateBlockedReportRunResult(", candidate, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateBlocked", entry, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionExecutionAdapter.GeneralMerge.V2.cs")));
     }
 
     /// <summary>Current General workflows cannot restore raw or inclusive-end workbench adapters.</summary>
@@ -107,6 +110,7 @@ public sealed partial class RepositoryBoundaryTests
     public void GeneralSavedRulesExposeOnlyTheV2RuntimeContract()
     {
         string bootstrap = ReadBootstrapSources();
+        string infrastructureComposition = ReadInfrastructureCompositionSources();
 
         Assert.DoesNotContain("SavedCompositionRuleLoader", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain("SavedRuleGeneralMappingDraftAdapter", bootstrap, StringComparison.Ordinal);
@@ -123,36 +127,47 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains(
             "Saved Rule v1 is retired; migrate the document to Saved Rule v2",
-            bootstrap,
+            infrastructureComposition,
             StringComparison.Ordinal);
+        Assert.DoesNotContain("Saved Rule v1 is retired", bootstrap, StringComparison.Ordinal);
         Assert.DoesNotContain(
             "LegacyTimestampFileStampCompatibilityAdapter",
             ReadProductionSources(),
             StringComparison.Ordinal);
     }
 
-    /// <summary>General Replace callers select explicit Preview/Build entry points rather than a bool adapter.</summary>
+    /// <summary>General Replace callers use the unified accepted execution request.</summary>
     [Fact]
     public void GeneralReplacePreviewBuildBoundaryStaysTyped()
     {
         string run = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
-        string context = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Context.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string cli = ReadText(
-            "src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+            "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.General.cs");
         string presentation = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
 
-        Assert.Contains("GeneralReplaceRunActionStrategy strategy", run, StringComparison.Ordinal);
-        Assert.Contains("PreviewGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
-        Assert.Contains("BuildGeneralReplaceEphemeralDraftAsync", cli, StringComparison.Ordinal);
-        Assert.Contains("PreviewGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
-        Assert.Contains("BuildGeneralReplaceAcceptedSessionWithProgressAsync", presentation, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralReplaceAcceptedSessionRunner generalReplaceRun", presentation, StringComparison.Ordinal);
-        Assert.Contains("? await generalReplaceRun(", presentation, StringComparison.Ordinal);
-        Assert.DoesNotContain("bool build", run, StringComparison.Ordinal);
-        Assert.DoesNotContain("bool build", context, StringComparison.Ordinal);
+        Assert.Contains("ExecuteGeneralReplaceAsync(", run, StringComparison.Ordinal);
+        Assert.Contains("AcceptedSessionExecutionInputs.CreateGeneralReplaceBindings(", run, StringComparison.Ordinal);
+        Assert.Contains("plan.VirtualArtifacts", run, StringComparison.Ordinal);
+        Assert.Contains("RequireGeneralReplaceActionReadiness", run, StringComparison.Ordinal);
+        Assert.Contains("host.GeneralAuthoring.PrepareReplaceSessionAsync", cli, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(cli, "host.CompositionExecution.ExecuteAsync"));
+        Assert.Contains("ResolveAcceptedOutput", cli, StringComparison.Ordinal);
+        Assert.Contains("AcceptedCompositionExecutionRequest", cli, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution.ExecuteAsync", presentation, StringComparison.Ordinal);
+        Assert.Contains("AcceptedCompositionExecutionRequest", presentation, StringComparison.Ordinal);
+        Assert.DoesNotContain("GeneralReplaceAcceptedSessionRunner", presentation, StringComparison.Ordinal);
+        Assert.Contains(
+            "ExecuteGeneralReplaceAsync(\n        AcceptedCompositionExecutionRequest request,",
+            run.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionPlanningAdapter.Replace.General.Context.cs")));
+        Assert.DoesNotContain("TryCreateGeneralReplaceRunContext", ReadProductionSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("(build, outputPath, token)", cli, StringComparison.Ordinal);
         Assert.DoesNotContain("replaceMode == GeneralReplaceMode\n                        ? build", presentation, StringComparison.Ordinal);
         Assert.DoesNotContain("CapabilityActionKind", run, StringComparison.Ordinal);
@@ -167,21 +182,21 @@ public sealed partial class RepositoryBoundaryTests
         string resolver = ReadText(
             "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringResourceLimits.cs");
         string bootstrapAdmission = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralAdmission.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs");
         string mergeMapping = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.Mapping.cs");
         string mergeRun = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string mergeDisplay = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
+            "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
         string replaceMapping = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.Mapping.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralReplace.Mapping.cs");
         string replaceRun = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.General.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
         string savedRules = ReadText(
-            "src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+            "src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs");
         string runner = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
         Assert.Contains(
             "public static class GeneralAuthoringAdmissionUseCase",
@@ -215,14 +230,18 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("File.Exists", replaceMapping, StringComparison.Ordinal);
         Assert.DoesNotContain("FileInfo", replaceMapping, StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: admission",
+            "generalAdmission: plan.Admission",
             mergeRun,
             StringComparison.Ordinal);
         Assert.Contains(
-            "generalAdmission: prepared.Admission",
+            "generalAdmission: plan.Admission",
             replaceRun,
             StringComparison.Ordinal);
         Assert.Contains(
+            "GeneralAuthoringAdmissionUseCase.Resolve(",
+            bootstrapAdmission,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
             "AdmitGeneralMappingDraft(",
             mergeDisplay,
             StringComparison.Ordinal);
@@ -236,19 +255,18 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void GeneralMergeWorkbenchIdsStayBootstrapOwned()
     {
-        string ids = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchGeneralMergeIds.cs");
-        string mapping = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Mapping.cs");
-        string authoring = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMappingDraft.cs");
-        string profile = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
+        string ids = ReadText("src/NvtFwCombiner.Application/Composition/GeneralMergeIds.cs");
+        string mapping = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.Mapping.cs");
+        string authoring = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralAuthoringMappingUseCase.cs");
         string savedRuleV2 = ReadText(
-            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/SavedRuleV2GeneralMergeDraftLoader.cs");
 
         Assert.Contains("public const string OutputRegionId = \"general-output\";", ids, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", authoring, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchGeneralMergeIds.OutputRegionId", savedRuleV2, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeIds.OutputRegionId", authoring, StringComparison.Ordinal);
+        Assert.Contains("GeneralMergeIds.OutputRegionId", savedRuleV2, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", mapping, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", authoring, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchGeneralMergeIds.OutputRegionId", profile, StringComparison.Ordinal);
         Assert.DoesNotContain("\"general-output\"", savedRuleV2, StringComparison.Ordinal);
     }
 
@@ -256,60 +274,65 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void WorkbenchCompositionServiceConcernsStaySplit()
     {
-        string catalog = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs");
-        string common = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Common.cs");
-        string runner = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Runner.cs");
-        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.cs");
-        string standardMergeDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
-        string standardMergeCompilation = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+        string catalog = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityExperience.cs"),
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CapabilityProfileSummary.cs"),
+            ReadText("src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs"),
+            ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs"));
+        string common = ReadText("src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
+        string runner = common;
+        string applicationExecution = ReadText(
+            "src/NvtFwCombiner.Application/Composition/AcceptedSessionCompositionExecution.cs");
+        string standardMerge = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs");
+        string standardMergeCompilation = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs"),
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.Routing.cs"));
         string standardMergeBuiltInV2 = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs");
-        string builtInV2Bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityResolution.StandardMerge.cs");
+        string builtInV2Bundle = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs");
         string builtInV2Registrations = ReadText(
-            "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
-        string standardMergeRun = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
+        string standardMergeRun = common;
         string generalMergeProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
-        string generalMerge = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.cs");
-        string generalMergeCandidate = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
-        string mergeCli = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
-        string mergeUi = ReadText("src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Merge.cs");
-        string firmwareMetadata = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareMetadata.cs");
-        string firmwareInspection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.FirmwareInspection.cs");
-        string abInputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
-        string workbenchModels = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionModels.cs");
-        string outputNaming = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs");
-        string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.CtrlRamDisplay.cs");
-        string replaceDisplay = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Display.cs");
-        string replaceCoverage = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Coverage.cs");
-        string replacePostbuild = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Postbuild.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs");
+        string generalMergeEntry = common;
+        string generalMergeCandidate = common;
+        string generalMergePlanning = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
+        string mergeCli = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs");
+        string firmwareMetadata = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.Metadata.cs");
+        string firmwareInspection = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs");
+        string workbenchModels = ReadText("src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
+        string outputNaming = ReadText(
+            "src/NvtFwCombiner.Application/Composition/AcceptedSessionOutputNameResolver.cs");
+        string outputNamingAdapter = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionOutputNamingExperience.cs");
+        string ctrlRamDisplay = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs");
+        string replacePostbuild = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInPostbuildProfileResolver.cs");
 
-        Assert.Contains("GetSupportedIcIds", catalog, StringComparison.Ordinal);
-        Assert.Contains("GetSettingsSnapshot", catalog, StringComparison.Ordinal);
-        Assert.Contains("IcSupportCatalog.IcIds", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetIcIds", catalog, StringComparison.Ordinal);
+        Assert.Contains("GetCatalogSummary", catalog, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcSupportCatalog.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInTpFlashMapCatalog.IcIds", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("LegacyCombinerPostbuildCatalog.All", catalog, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberChoice", catalog, StringComparison.Ordinal);
+        Assert.Contains("CapabilityNumberChoice", catalog, StringComparison.Ordinal);
         Assert.Contains("CreateProfileSummary", catalog, StringComparison.Ordinal);
         Assert.Contains("composition.Plan.RequiredInputAddressSpaceIds", catalog, StringComparison.Ordinal);
         Assert.Contains("IcNumberChoicePolicy.GetNumberSelectionChoices", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("IcNumberChoicePolicy.GetNumberChoices", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetNumberChoices", catalog, StringComparison.Ordinal);
         Assert.Contains("BuiltInPostbuildProfileCatalog.GetProfiles", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("BuildMetadata", catalog, StringComparison.Ordinal);
         Assert.DoesNotContain("internal sealed record IcMetadata(", catalog, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchDpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchDpVersionMetadata", workbenchModels, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
+        Assert.DoesNotContain("DpVersionMetadata? TryReadDpVersionMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.DoesNotContain("CmiDpCodeMetadata? TryReadCmiDpCodeMetadata", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("InspectFirmwareBatch", firmwareInspection, StringComparison.Ordinal);
+        Assert.Contains("DpVersionMetadata", workbenchModels, StringComparison.Ordinal);
+        Assert.Contains("CmiDpCodeMetadata", workbenchModels, StringComparison.Ordinal);
         Assert.DoesNotContain("ToRunProfile", common, StringComparison.Ordinal);
-        Assert.Contains("CompositionRunRequest request = new(", runner, StringComparison.Ordinal);
+        Assert.Contains("new CompositionRunRequest(", applicationExecution, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CompositionRunRequest(", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledCompositionRunAdapter", runner, StringComparison.Ordinal);
-        Assert.Contains("internal static string FormatIssues", common, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchCompositionService.FormatIssues", abInputProjection, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static string FormatIssues", abInputProjection, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", standardMergeCompilation, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", catalog, StringComparison.Ordinal);
@@ -318,26 +341,43 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("StandardMergeProfilesByIc", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("StandardMergeProfilesByIc", generalMergeProfile, StringComparison.Ordinal);
         Assert.Contains("TryCompileStandardMerge", generalMergeProfile, StringComparison.Ordinal);
-        Assert.Contains("RunGeneralMergeV2Async", generalMergeCandidate, StringComparison.Ordinal);
-        Assert.Contains("CompileLogicalOutput", generalMergeCandidate, StringComparison.Ordinal);
+        Assert.Contains("ExecuteGeneralMergeAsync", generalMergeCandidate, StringComparison.Ordinal);
+        Assert.Contains("CompileLogicalOutput", generalMergePlanning, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompileLogicalOutput", generalMergeCandidate, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", generalMergeCandidate, StringComparison.Ordinal);
-        Assert.Contains("RunGeneralMergeV2Async", generalMerge, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunGeneralMergeV2Async", generalMergeEntry, StringComparison.Ordinal);
         Assert.DoesNotContain("RunGeneralMergeV2Async", mergeCli, StringComparison.Ordinal);
-        Assert.DoesNotContain("RunGeneralMergeV2Async", mergeUi, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionExecutionAdapter.GeneralMerge.V2.cs")));
         Assert.DoesNotContain("RunStandardMergeAsync", standardMerge, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryDisplay", standardMerge, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeMemoryDisplay", standardMergeDisplay, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "public static WorkbenchMemoryDisplay GetStandardMergeMemoryDisplay("));
-        Assert.DoesNotContain("private static bool TryResolveStandardMergeProfileForDisplay", standardMergeDisplay, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMerge", standardMergeDisplay, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(standardMergeDisplay, "TryCompileStandardMerge("));
-        Assert.Contains("RunStandardMergeAsync", standardMergeRun, StringComparison.Ordinal);
-        Assert.Contains("TryGetStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
-        Assert.Contains("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.StandardMerge.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.AbMerge.cs")));
+        Assert.Contains(
+            "ExperienceIds.StandardMerge => ExecuteAcceptedCompositionAsync",
+            standardMergeRun,
+            StringComparison.Ordinal);
+        Assert.Contains("ExecuteAcceptedCompositionAsync", standardMergeRun, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(runner, "AcceptedSessionExecutionInputs.CreateBindings"));
+        Assert.Contains("AcceptedSessionCompositionExecution.ExecuteAsync", runner, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryGetStandardMergeDpInputLength", standardMergeRun, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileStandardMerge", standardMergeRun, StringComparison.Ordinal);
         Assert.Contains("BuiltInV2RegistrationRegistry.StandardMerge", standardMergeBuiltInV2, StringComparison.Ordinal);
         Assert.Contains("ReadOnlyCollection<BuiltInV2Registration>", builtInV2Registrations, StringComparison.Ordinal);
         Assert.Contains("ProfileBundleLoader.Load", builtInV2Bundle, StringComparison.Ordinal);
-        Assert.Contains("TrustedV2CompositionCompiler.Compile", builtInV2Bundle, StringComparison.Ordinal);
+        Assert.Contains("_catalog.Value.Compile", builtInV2Bundle, StringComparison.Ordinal);
+        Assert.DoesNotContain("TrustedV2CompositionCompiler", builtInV2Bundle, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileCompiler", builtInV2Bundle, StringComparison.Ordinal);
         Assert.Contains("TryReadBaseCommonFwVersion", firmwareMetadata, StringComparison.Ordinal);
         Assert.Contains("FirmwareConfigMetadataReader.TryReadBackup", firmwareMetadata, StringComparison.Ordinal);
@@ -345,7 +385,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("TryGetFirmwareConfigPrimaryStart", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("HaveEquivalentFirmwareConfigValues", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("ReadDpVersionMetadata(icId, image)", firmwareMetadata, StringComparison.Ordinal);
+        Assert.Contains("ReadDpMetadata(", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("TryReadCanonicalDpcmi", firmwareInspection, StringComparison.Ordinal);
         Assert.DoesNotContain("GenFlashVersionCatalog", firmwareInspection, StringComparison.Ordinal);
         Assert.Contains("InspectFirmware", firmwareInspection, StringComparison.Ordinal);
@@ -353,19 +393,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("PostbuildSetup_", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", firmwareMetadata, StringComparison.Ordinal);
         Assert.DoesNotContain("GetCtrlRamRegions", firmwareMetadata, StringComparison.Ordinal);
-        Assert.Contains("CreateFlashCodeOutputFileName", outputNaming, StringComparison.Ordinal);
-        Assert.Contains("FindDpVersionToken", outputNaming, StringComparison.Ordinal);
-        Assert.Contains("FindTpVersionToken", outputNaming, StringComparison.Ordinal);
-        Assert.DoesNotContain("GenFlashVersionCatalog", outputNaming, StringComparison.Ordinal);
-        Assert.DoesNotContain("OutputMainAbsoluteAddress", outputNaming, StringComparison.Ordinal);
-        Assert.DoesNotContain("InputRelativeOffset", outputNaming, StringComparison.Ordinal);
-        Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", outputNaming, StringComparison.Ordinal);
-        Assert.Contains("GetCtrlRamRegions", ctrlRamDisplay, StringComparison.Ordinal);
+        Assert.Contains("CompiledOutputNameResolver.Resolve", outputNaming, StringComparison.Ordinal);
+        Assert.Contains("AcceptedSessionOutputNameResolver.Resolve", outputNamingAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.", outputNaming, StringComparison.Ordinal);
+        Assert.DoesNotContain("FirmwareConfigMetadataReader", outputNaming, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionOutputNaming.cs")));
+        Assert.Contains("MemoryLayoutProjector.ProjectCtrlRamDiscovery", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.Contains("BuiltInTpFlashMapCatalog.GetRegions", ctrlRamDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("new CtrlRamRegion", ctrlRamDisplay, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ReplaceInputSlot", ctrlRamDisplay, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateFlashCodeOutputFileName", ctrlRamDisplay, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(replaceDisplay, "public static WorkbenchMemoryDisplay GetReplaceMemoryDisplay("));
-        Assert.Contains("CreateReplaceCoverageSegments", replaceDisplay, StringComparison.Ordinal);
-        Assert.Contains("CreateReplaceCoverageSegments", replaceCoverage, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.Replace.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.Replace.Coverage.cs")));
         Assert.DoesNotContain("FirmwareConfigMetadataReader.TryRead", replacePostbuild, StringComparison.Ordinal);
     }
 
@@ -373,14 +424,14 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void BuiltInV2BundlePinsHaveOneOwner()
     {
-        string bundle = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs");
+        string bundle = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs");
         string trustIndexText = ReadText("profiles/built-in/package-trust-index.json");
         using var trustIndex = JsonDocument.Parse(trustIndexText);
-        string registrations = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        string registrations = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         string generalMerge = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.V2.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.GeneralMerge.V2.cs");
         string dpReplace = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
+            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
 
         static bool IsSha256Literal(string value)
         {
@@ -437,7 +488,8 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
         string panelCodeBehind = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/HexEditorPanel.axaml.cs");
-        string hostSession = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchRawBinaryEditorSession.cs");
+        string hostSession = ReadText("src/NvtFwCombiner.Infrastructure/Files/RawBinaryEditorFileSession.cs");
+        string filePort = ReadText("src/NvtFwCombiner.Application/HexEditor/IRawBinaryEditorFileSession.cs");
         string session = ReadText("src/NvtFwCombiner.Application/HexEditor/RawBinaryEditorSession.cs");
 
         Assert.Contains("RequestSaveCommand", panel, StringComparison.Ordinal);
@@ -464,8 +516,10 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Bootstrap",
             "WorkbenchRawBinaryEditorContracts.cs")));
         Assert.Contains("RawBinaryEditorSession _editor = new();", viewModel, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchRawBinaryEditorSession _files;", viewModel, StringComparison.Ordinal);
-        Assert.Contains("new WorkbenchRawBinaryEditorSession(_editor)", viewModel, StringComparison.Ordinal);
+        Assert.Contains("IRawBinaryEditorFileSession _files;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("fileSessions.Create(_editor)", viewModel, StringComparison.Ordinal);
+        Assert.Contains("interface IRawBinaryEditorFileSession", filePort, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Bootstrap", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectOverwriteModeCommand", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("SelectFillModeCommand", presentationPartials, StringComparison.Ordinal);
         Assert.DoesNotContain("IsOverwriteModeSelected", rangeEditing, StringComparison.Ordinal);

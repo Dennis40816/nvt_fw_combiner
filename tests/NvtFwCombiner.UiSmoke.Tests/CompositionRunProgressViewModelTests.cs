@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;

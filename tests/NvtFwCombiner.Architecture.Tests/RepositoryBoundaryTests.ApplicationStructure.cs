@@ -32,12 +32,12 @@ public sealed partial class RepositoryBoundaryTests
 
         Assert.Contains(
             "byte[] sourceBytes = ReadSlice(sourceBuffer, binding.SourceRange);\n"
-                + "            stagedSources.Add(ExternalProcessorStagedSource.FromOwnedBytes("
+                + "            stagedSources.Add(new ExternalProcessorStagedSource("
                 + "binding.FirmwareRange, sourceBytes));",
             normalizedEngine,
             StringComparison.Ordinal);
         Assert.Contains(
-            "stagedArtifacts.Add(ExternalProcessorStagedArtifact.FromOwnedBytes(\n"
+            "stagedArtifacts.Add(new ExternalProcessorStagedArtifact(\n"
                 + "                binding.ArtifactId,\n"
                 + "                ReadSlice(sourceBuffer, binding.SourceRange)));",
             normalizedEngine,
@@ -124,7 +124,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("PreviewOrBuildAsync", root, StringComparison.Ordinal);
         Assert.Contains("RunAsync", root, StringComparison.Ordinal);
         Assert.Contains("_outputBytes = [.. outputBytes];", domainResult, StringComparison.Ordinal);
-        Assert.Contains("ClonePublicOutputBytes(outputBytes)", runResult, StringComparison.Ordinal);
+        Assert.Contains("internal CompositionRunResult(", runResult, StringComparison.Ordinal);
+        Assert.DoesNotContain("ClonePublicOutputBytes", runResult, StringComparison.Ordinal);
         Assert.Contains("OutputBytes = immutableOutputBytes;", runResult, StringComparison.Ordinal);
         Assert.DoesNotContain("OutputBytes = outputBytes.ToArray();", runResult, StringComparison.Ordinal);
         Assert.DoesNotContain("TransformExternalProcessorAsync", root, StringComparison.Ordinal);
@@ -193,9 +194,9 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("boundInputs.InputBytes,", root, StringComparison.Ordinal);
         Assert.Contains("execution.OutputBytes);", root, StringComparison.Ordinal);
-        Assert.Contains("ValidationRequirements { get; }", composition, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidationRequirements =>", composition, StringComparison.Ordinal);
         Assert.Contains(
-            "AppendValidationRequirements(builder, composition.ValidationRequirements)",
+            "AppendValidationRequirements(builder, provenance.ValidationRequirements)",
             fingerprint,
             StringComparison.Ordinal);
         Assert.Contains("CompiledFirmwareConfigBackupVersionValidation", finalOutputValidations, StringComparison.Ordinal);
@@ -251,5 +252,54 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("finalOutputAccepted && outputDifferencesAccepted", root, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateOutputDifferences(request", reports, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateOutputDifferenceIssues(outputDifferences)", reports, StringComparison.Ordinal);
+    }
+
+    /// <summary>Authoring state keeps only the canonical session and mapping transitions.</summary>
+    [Fact]
+    public void AuthoringConvenienceFacadesStayCollapsed()
+    {
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "Authoring",
+            "MergeAuthoringSessionSet.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "Authoring",
+            "ReplaceAuthoringSessionSet.cs")));
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
+        string rangeCodec = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/AuthoringByteRangeCodec.cs");
+        string mappingDraft = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralMappingDraftState.cs");
+        string mergeDraft = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/GeneralMergeDraftState.cs");
+
+        Assert.Equal(3, CountOccurrences(mergeState, "new(ExperienceIds."));
+        Assert.Equal(3, CountOccurrences(replaceState, "new(ExperienceIds."));
+        Assert.Contains("ExperienceIds.StandardMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.AbMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.DpReplace", replaceState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.CtrlRamReplace", replaceState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralReplace", replaceState, StringComparison.Ordinal);
+        Assert.Equal(0, CountOccurrences(rangeCodec, "GetEndInclusive("));
+        Assert.Equal(1, CountOccurrences(mappingDraft, "WithAcceptedFileStamp("));
+        Assert.Equal(1, CountOccurrences(mappingDraft, "RebindSelectedFile("));
+        Assert.Equal(1, CountOccurrences(mergeDraft, "bool HasSameValue("));
+        Assert.Contains(
+            "Equals(OutputInitializer, merge.OutputInitializer)",
+            mergeDraft,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Mappings.HasSameValue(merge.Mappings)",
+            mergeDraft,
+            StringComparison.Ordinal);
     }
 }

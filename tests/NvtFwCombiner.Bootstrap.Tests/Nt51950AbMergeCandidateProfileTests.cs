@@ -1,7 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -30,8 +29,8 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.Equal(
-            "b00181e924452c038a629b7d8ff52d12c240bf0bb5d14efed6f77529ec6ae042",
-            composition.IntegrityFingerprint);
+            "ea98508d187b178fb2e47403f2f0ec385a7556e4c97df320dbff6d5c051ddb8f",
+            composition.CompilationFingerprint);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.Equal("nt51950-ab-merge-512k", details.Provenance.ResolvedMap.ImageMap.MapId);
         AssertRegionRange(details, "a-cmi-dp-version", 0x3B016, 3);
@@ -176,7 +175,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
             "ab-candidate",
             composition,
             CreateRuntimeBindings(),
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             abMergeTopologySelection: SingleTopology());
 
         Assert.Same(composition, request.CompiledComposition);
@@ -251,8 +250,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public void CandidateProfileRejectsNon512KiBMapCapacity()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -270,8 +268,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public void CandidateProfileSelectsOneMebibyteCascadeMap()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -316,8 +313,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
     public async Task CascadePlanPreservesCompleteDpSeedOutsideTpPlacementsAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-cascade-preservation");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",
@@ -425,8 +421,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
 
     private static CompiledComposition CompileCandidate(TempWorkspace workspace)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51950-ab-merge",
             "0.3.0",
             "NT51950",

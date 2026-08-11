@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -34,7 +33,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal void PromptForFirmwareNumberMismatch(
         FirmwareSlotViewModel slot,
-        WorkbenchFirmwareContextSuggestion? suggestion)
+        FirmwareContextSuggestion? suggestion)
     {
         if (suggestion is null ||
             !slot.HasFile ||

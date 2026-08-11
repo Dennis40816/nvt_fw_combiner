@@ -45,6 +45,13 @@ def test_non_object_is_rejected() -> None:
     assert_worker_error([], "CRC_PROTOCOL_INVALID_REQUEST", ExitCode.REQUEST_ERROR)
 
 
+def test_non_string_request_field_is_rejected() -> None:
+    error = assert_worker_error(
+        {1: "invalid"}, "CRC_PROTOCOL_INVALID_REQUEST", ExitCode.REQUEST_ERROR
+    )
+    assert error.message == "request fields must be strings"
+
+
 def test_missing_field_is_rejected() -> None:
     document = request_for()
     del document["operation"]

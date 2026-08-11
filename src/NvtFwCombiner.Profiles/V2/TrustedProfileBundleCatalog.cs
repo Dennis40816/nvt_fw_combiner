@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -47,11 +48,14 @@ internal sealed class TrustedCompositionProfileCatalogEntry
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(family);
         Identity = identity;
+        EntryIdentity = new ProfileBundleEntryIdentity(identity.EntryId, identity.ContentHash);
         Profile = profile;
         Family = family;
     }
 
     internal TrustedProfileBundleCatalogEntryIdentity Identity { get; }
+
+    internal ProfileBundleEntryIdentity EntryIdentity { get; }
 
     internal CompositionProfileDefinition Profile { get; }
 
@@ -71,7 +75,7 @@ internal sealed partial class TrustedProfileBundleCatalog
         IEnumerable<TrustedCompositionProfileCatalogEntry> profiles)
     {
         ArgumentNullException.ThrowIfNull(bundleIdentity);
-        ProfileBundleIdentity.ValidateSha256(manifestSha256, nameof(manifestSha256));
+        _ = CanonicalSha256.Require(manifestSha256, nameof(manifestSha256));
         _families = ImmutableReferenceSnapshot.Create(
             families,
             "Trusted catalog entries cannot contain null values.");

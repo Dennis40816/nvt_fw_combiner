@@ -9,6 +9,19 @@ public sealed partial class FirmwareMetadataStructureResolutionTests
 {
     private const string FamilyHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
+    /// <summary>Verifies only the owning family resolver can construct normalized metadata outcomes.</summary>
+    [Fact]
+    public void MetadataResolutionConstructionRequiresFamilyCapability()
+    {
+        ConstructorInfo resolved = Assert.Single(typeof(FirmwareResolvedMetadataStructure).GetConstructors(
+            BindingFlags.Instance | BindingFlags.NonPublic));
+        ConstructorInfo resolution = Assert.Single(typeof(FirmwareMetadataStructureResolution).GetConstructors(
+            BindingFlags.Instance | BindingFlags.NonPublic));
+
+        Assert.Equal(typeof(object), resolved.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(object), resolution.GetParameters()[0].ParameterType);
+    }
+
     /// <summary>Verifies an absolute locator produces one typed, payload-free resolved outcome.</summary>
     [Fact]
     public void AbsoluteLocatorResolvesTypedStructure()
@@ -106,13 +119,14 @@ public sealed partial class FirmwareMetadataStructureResolutionTests
 
     /// <summary>Verifies terminal selection counts overlapping matches and chooses the declared end.</summary>
     [Theory]
-    [InlineData(FirmwareMarkerTerminal.LowestAddress, 4L, 8L)]
-    [InlineData(FirmwareMarkerTerminal.HighestAddress, 5L, 9L)]
+    [InlineData((int)FirmwareMarkerTerminal.LowestAddress, 4L, 8L)]
+    [InlineData((int)FirmwareMarkerTerminal.HighestAddress, 5L, 9L)]
     public void TerminalMarkerCountsOverlappingMatches(
-        FirmwareMarkerTerminal terminal,
+        int terminalValue,
         long expectedMarkerStart,
         long expectedResultStart)
     {
+        var terminal = (FirmwareMarkerTerminal)terminalValue;
         FirmwareMetadataStructure structure = Structure(
             Marker(
                 searchStart: 4,
@@ -233,23 +247,18 @@ public sealed partial class FirmwareMetadataStructureResolutionTests
         }
     }
 
-    /// <summary>Marker-cardinality count is required exactly for that rejection kind.</summary>
+    /// <summary>Friend assemblies cannot fabricate metadata outcomes without resolver authority.</summary>
     [Fact]
-    public void MarkerCardinalityCountCannotBeMissingOrAttachedToAnotherFailure()
+    public void MetadataResolutionFactoryRejectsFabricatedFamilyCapability()
     {
         FirmwareMetadataStructure structure = Structure(Absolute(0, 2, "allowed"));
 
         _ = Assert.Throws<ArgumentException>(() =>
             FirmwareMetadataStructureResolution.Rejected(
+                new object(),
                 "map",
                 structure,
-                FirmwareMetadataStructureResolutionFailure.MarkerCardinalityMismatch));
-        _ = Assert.Throws<ArgumentException>(() =>
-            FirmwareMetadataStructureResolution.Rejected(
-                "map",
-                structure,
-                FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed,
-                observedMarkerMatchCount: 1));
+                FirmwareMetadataStructureResolutionFailure.StructureDecodeFailed));
     }
 
     /// <summary>Verifies marker-selected ranges must stay nonnegative and inside the allowed region.</summary>

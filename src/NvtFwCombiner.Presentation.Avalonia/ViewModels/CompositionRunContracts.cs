@@ -1,9 +1,6 @@
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-internal delegate ValueTask<WorkbenchRunResult> CompositionRunWork(
+internal delegate ValueTask<CompositionRunResult> CompositionRunWork(
     CompositionRunProgressFeed progress,
     CancellationToken cancellationToken);
 
@@ -22,6 +19,6 @@ internal sealed record CompositionRunStateBindings(
     Func<string> DeviceContextRefreshSummary,
     Func<bool> IsReducedMotionEnabled,
     Func<ReportPresentationViewModel> Reports,
-    Func<WorkbenchRunResult, bool, bool> TryShowBuildCompleted,
+    Func<CompositionRunResult, bool, bool> TryShowBuildCompleted,
     Action RefreshCommandState,
     Action NotifyShellRunStateChanged);

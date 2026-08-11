@@ -33,7 +33,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-base");
         string outputPath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult result = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51951",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -44,8 +44,8 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        Assert.Equal("nt51951-standard-merge-dp-perspective", ReadProfileId(result.ReportJson));
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal("nt51951-standard-merge-dp-perspective", ReadProfileId(CompositionRunReportJson.Serialize(result)));
         Assert.Equal(OwnerExpectedSha256, Hash(File.ReadAllBytes(outputPath)));
         Assert.Equal(OwnerExpectedSha256, Hash(evidence.Expected.Bytes));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(evidence.Expected.Bytes, out FirmwareConfigMetadata metadata));
@@ -53,8 +53,8 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         Assert.Equal(1, metadata.ChipNumber);
         Assert.Equal(0x5901, metadata.ProjectId);
 
-        WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
-            WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51951", outputPath));
+        FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51951", outputPath));
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal(metadata.CommonFwVersion, suggestion.CommonFwVersion);
         Assert.Equal(metadata.ChipNumber, suggestion.ChipNumber);
@@ -78,17 +78,17 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-parity");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
         string v2Path = workspace.PathFor("v2.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
-            "NT51951", "single", WorkbenchReplaceModes.CtrlRam, slots, true,
+        CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
+            "NT51951", "single", ExperienceIds.CtrlRamReplace, slots, true,
             TestContext.Current.CancellationToken, v2Path);
 
-        Assert.True(v2.Succeeded, v2.ReportJson);
+        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2Path);
         Assert.Equal(CurrentOutputSha256, Hash(v2Bytes));
         AssertOwnerDifferenceClassification(evidence.Expected.Bytes, v2Bytes);
         AssertPhysicalInputProjection(evidence, v2Bytes);
 
-        using var v2Report = JsonDocument.Parse(v2.ReportJson);
+        using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, "nt51951-ctrlram-replace-fw200-single");
         AssertProcessEvidence(v2Report.RootElement);
         Assert.All(
@@ -122,11 +122,11 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         File.WriteAllBytes(referencePath, reference);
 
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await RunWithPassThroughAsync(evidence, number, referencePath, outputPath);
+        CompositionRunResult result = await RunWithPassThroughAsync(evidence, number, referencePath, outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }
 
@@ -144,11 +144,11 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         Assert.NotEqual(Hash(evidence.Expected.Bytes), Hash(reference));
 
         string outputPath = workspace.PathFor("output.bin");
-        WorkbenchRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
+        CompositionRunResult result = await RunWithPassThroughAsync(evidence, "single", referencePath, outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(reference[0x100], File.ReadAllBytes(outputPath)[0x100]);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }
 
@@ -165,15 +165,15 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
         byte[] diffBytes = [.. Enumerable.Range(0, 0x1400).Select(static index => unchecked((byte)(index * 19)))];
         string diffPath = workspace.Write("DiffDLM.bin", diffBytes);
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath);
-        _ = slots.Remove(WorkbenchSlotIds.CreateReplaceCtrlRam("nf"));
-        slots[WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath;
+        _ = slots.Remove(DynamicCtrlRamReplacementIds.Create("nf"));
+        slots[DynamicCtrlRamReplacementIds.Create("diff")] = diffPath;
 
         string outputPath = workspace.PathFor("cascade.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51951", "cascade", slots, true, outputPath, null,
             new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(File.Exists(outputPath));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(diffBytes.AsSpan(0, 0x0910).ToArray(), output.AsSpan(0x33200, 0x0910).ToArray());
@@ -181,7 +181,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
             cascadeReference.AsSpan(0x33B10, 0x0AF0).ToArray(),
             output.AsSpan(0x33B10, 0x0AF0).ToArray());
         Assert.Equal(cascadeReference.AsSpan(0x34600).ToArray(), output.AsSpan(0x34600).ToArray());
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw1x-cascade");
     }
 
@@ -194,22 +194,22 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-fw200-alias");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             icId, "single", CreateSlotPaths(evidence, evidence.Expected.Path), true,
             workspace.PathFor("alias.bin"), null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51951-ctrlram-replace-fw200-single");
     }
 
-    private static async Task<WorkbenchRunResult> RunWithPassThroughAsync(
+    private static async Task<CompositionRunResult> RunWithPassThroughAsync(
         OwnerCase evidence,
         string number,
         string referencePath,
         string outputPath)
     {
-        return await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51951", number, CreateSlotPaths(evidence, referencePath), true,
             outputPath, null, new PassThroughProcessor(), TestContext.Current.CancellationToken);
     }
@@ -335,7 +335,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath,
+            [CompositionSlotIds.ReplaceBase] = referencePath,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
@@ -413,7 +413,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 

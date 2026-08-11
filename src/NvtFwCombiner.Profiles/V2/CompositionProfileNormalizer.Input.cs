@@ -1,178 +1,146 @@
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using System.Text.Json;
 
 namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class CompositionProfileNormalizer
 {
-    internal static CompositionProfileInputSlot NormalizeInputSlot(
+    internal static CompositionInputSlotDefinition NormalizeInputSlot(
         CompositionProfileInputSlotDocument document,
-        string schemaVersion = "2.10",
         string path = "inputSlots[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
-        CompositionProfileInputAcceptanceDocument acceptance = document.Acceptance ?? throw Error(
-            $"{path}.acceptance",
-            "Input acceptance is missing.");
-        CompositionProfileLengthRuleDocument lengthRule = acceptance.LengthRule ?? throw Error(
-            $"{path}.acceptance.lengthRule",
-            "Input length rule is missing.");
-        CompositionProfileInputNormalizationDocument normalization = acceptance.Normalization ?? throw Error(
-            $"{path}.acceptance.normalization",
-            "Input normalization is missing.");
+        CompositionProfileInputAcceptanceDocument acceptance = document.Acceptance;
 
-        return Wrap(path, () => new CompositionProfileInputSlot(
+        return Wrap(path, () => new CompositionInputSlotDefinition(
             document.SlotId,
             document.Role,
             NormalizeArtifactClass(document.ArtifactClass, $"{path}.artifactClass"),
             document.Required,
             NormalizeCardinality(document.Cardinality, $"{path}.cardinality"),
-            RequireList(document.AcceptedExtensions, $"{path}.acceptedExtensions"),
-            NormalizeLengthRule(lengthRule, schemaVersion, $"{path}.acceptance.lengthRule"),
-            NormalizeInputNormalization(normalization, $"{path}.acceptance.normalization"),
+            document.AcceptedExtensions,
+            NormalizeLengthRule(acceptance.LengthRule, $"{path}.acceptance.lengthRule"),
+            NormalizeInputNormalization(acceptance.Normalization, $"{path}.acceptance.normalization"),
             document.NotApplicableReason));
     }
 
-    private static CompositionProfileArtifactClass NormalizeArtifactClass(string value, string path)
+    private static CompiledInputArtifactClass NormalizeArtifactClass(string value, string path)
     {
         return value switch
         {
-            "tp-firmware" => CompositionProfileArtifactClass.TpFirmware,
-            "dp-firmware" => CompositionProfileArtifactClass.DpFirmware,
-            "reference-image" => CompositionProfileArtifactClass.ReferenceImage,
+            "tp-firmware" => CompiledInputArtifactClass.TpFirmware,
+            "dp-firmware" => CompiledInputArtifactClass.DpFirmware,
+            "reference-image" => CompiledInputArtifactClass.ReferenceImage,
             CompositionProfileWireTokens.CtrlRamReplacementArtifactClass =>
-                CompositionProfileArtifactClass.CtrlRamReplacement,
-            "auxiliary" => CompositionProfileArtifactClass.Auxiliary,
+                CompiledInputArtifactClass.CtrlRamReplacement,
+            "auxiliary" => CompiledInputArtifactClass.Auxiliary,
             _ => throw Error(path, "Unknown input artifact class."),
         };
     }
 
-    private static CompositionProfileSlotCardinality NormalizeCardinality(string value, string path)
+    private static CompiledInputSlotCardinality NormalizeCardinality(string value, string path)
     {
         return value switch
         {
-            "exactly-one" => CompositionProfileSlotCardinality.ExactlyOne,
-            "zero-or-one" => CompositionProfileSlotCardinality.ZeroOrOne,
-            "one-or-more" => CompositionProfileSlotCardinality.OneOrMore,
+            "exactly-one" => CompiledInputSlotCardinality.ExactlyOne,
+            "zero-or-one" => CompiledInputSlotCardinality.ZeroOrOne,
+            "one-or-more" => CompiledInputSlotCardinality.OneOrMore,
             _ => throw Error(path, "Unknown input slot cardinality."),
         };
     }
 
-    private static CompositionProfileLengthRule NormalizeLengthRule(
+    private static InputLengthRequirementDefinition NormalizeLengthRule(
         CompositionProfileLengthRuleDocument document,
-        string schemaVersion,
         string path)
     {
         return document.Kind switch
         {
-            "exact-bytes" => Wrap(path, () => new ExactBytesLengthRule(ReadInt64(
-                Require(document.Bytes, $"{path}.bytes"),
+            "exact-bytes" => Wrap(path, () => new CompiledExactBytesInputLengthRequirement(ReadInt64(
+                document.Bytes!.Value,
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
-            "exact-resolved-map-capacity" => new ExactResolvedMapCapacityLengthRule(),
-            "bounded" => Wrap(path, () => new BoundedLengthRule(
+            "exact-resolved-map-capacity" => new ResolvedMapCapacityInputLengthDefinition(),
+            "bounded" => Wrap(path, () => new CompiledBoundedInputLengthRequirement(
                 ReadInt64(
-                    Require(document.MinimumBytes, $"{path}.minimumBytes"),
+                    document.MinimumBytes!.Value,
                     1,
                     long.MaxValue,
                     $"{path}.minimumBytes"),
                 ReadInt64(
-                    Require(document.MaximumBytes, $"{path}.maximumBytes"),
+                    document.MaximumBytes!.Value,
                     1,
                     long.MaxValue,
                     $"{path}.maximumBytes"))),
             "normal-dp-extract-with-warning" => Wrap(path, () =>
-                new NormalDpExtractWithWarningLengthRule(document.IssueCode ?? throw Error(
-                    $"{path}.issueCode",
-                    "Warning issue code is missing."),
-                    NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"))),
-            "tp-maximum-256k" => NormalizeTpMaximum(document, path),
-            "source-view-coverage" when schemaVersion is "2.13" or "2.14" or "2.15" => Wrap(path, () =>
-                new SourceViewCoverageLengthRule(
+                new SourceViewCoverageInputLengthDefinition(
+                    NormalizeExpectedInputLengths(document.ExpectedInputLengths, $"{path}.expectedInputLengths"),
+                    CanonicalPolicyValueRules.RequireIssueCode(
+                        document.IssueCode!,
+                        nameof(document.IssueCode)))),
+            "tp-maximum-256k" => new SourceViewCoverageInputLengthDefinition(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
+            "source-view-coverage" => Wrap(path, () =>
+                new SourceViewCoverageInputLengthDefinition(
                     NormalizeExpectedInputLengths(
                         document.ExpectedOuterLengths,
                         $"{path}.expectedOuterLengths"),
-                    document.UnexpectedOuterLengthIssueCode)),
-            "source-view-coverage" => throw Error(
-                $"{path}.kind",
-                "Source-view coverage requires composition-profile schema version '2.13' or later."),
-            "declared-prefix-with-warning" when schemaVersion is "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => Wrap(path, () =>
-                new DeclaredPrefixWithWarningLengthRule(
+                    document.UnexpectedOuterLengthIssueCode is { } issueCode
+                        ? CanonicalPolicyValueRules.RequireIssueCode(issueCode, nameof(document.UnexpectedOuterLengthIssueCode))
+                        : null)),
+            "declared-prefix-with-warning" => Wrap(path, () =>
+                new SourceViewCoverageInputLengthDefinition(
+                    NormalizeExpectedInputLengths(
+                        document.ExpectedOuterLengths,
+                        $"{path}.expectedOuterLengths")!,
+                    CanonicalPolicyValueRules.RequireIssueCode(
+                        document.UnexpectedOuterLengthIssueCode!,
+                        nameof(document.UnexpectedOuterLengthIssueCode)),
                     ReadInt64(
-                        Require(document.RequiredEndExclusive, $"{path}.requiredEndExclusive"),
+                        document.RequiredEndExclusive!.Value,
                         1,
                         int.MaxValue,
                         $"{path}.requiredEndExclusive"),
-                    NormalizeExpectedInputLengths(
-                        document.ExpectedOuterLengths,
-                        $"{path}.expectedOuterLengths") ?? throw Error(
-                            $"{path}.expectedOuterLengths",
-                            "Expected outer lengths are missing."),
-                    document.ShortInputIssueCode ?? throw Error(
-                        $"{path}.shortInputIssueCode",
-                        "Short-input issue code is missing."),
-                    document.UnexpectedOuterLengthIssueCode ?? throw Error(
-                        $"{path}.unexpectedOuterLengthIssueCode",
-                        "Unexpected outer-length issue code is missing."))),
-            "declared-prefix-with-warning" => throw Error(
-                $"{path}.kind",
-                "Declared-prefix input authority requires composition-profile schema version '2.10' through '2.15'."),
+                    CanonicalPolicyValueRules.RequireIssueCode(
+                        document.ShortInputIssueCode!,
+                        nameof(document.ShortInputIssueCode)))),
             _ => throw Error($"{path}.kind", "Unknown input length rule."),
         };
-    }
-
-    private static TpMaximum256KLengthRule NormalizeTpMaximum(
-        CompositionProfileLengthRuleDocument document,
-        string path)
-    {
-        long maximum = ReadInt64(
-            Require(document.MaximumBytes, $"{path}.maximumBytes"),
-            1,
-            long.MaxValue,
-            $"{path}.maximumBytes");
-        return maximum == TpMaximum256KLengthRule.MaximumBytes
-            ? new TpMaximum256KLengthRule()
-            : throw Error(
-                $"{path}.maximumBytes",
-                $"TP maximum must be {TpMaximum256KLengthRule.MaximumBytes} bytes.");
     }
 
     private static long[]? NormalizeExpectedInputLengths(
         IReadOnlyList<JsonElement>? documents,
         string path)
     {
-        if (documents is null)
-        {
-            return null;
-        }
-
-        long[] values = new long[documents.Count];
-        for (int index = 0; index < documents.Count; index++)
-        {
-            values[index] = ReadInt64(documents[index], 1, long.MaxValue, $"{path}[{index}]");
-        }
-
-        return values;
+        return documents is null
+            ? null
+            : NormalizeList(
+                documents,
+                path,
+                static (value, valuePath) => ReadInt64(value, 1, long.MaxValue, valuePath));
     }
 
-    private static CompositionProfileInputNormalization NormalizeInputNormalization(
+    private static CompiledInputNormalization NormalizeInputNormalization(
         CompositionProfileInputNormalizationDocument document,
         string path)
     {
         return document.Kind switch
         {
-            "none" => new NoInputNormalization(),
-            "pad-shorter" => Wrap(path, () => new PadShorterInputNormalization(
+            "none" => new CompiledNoInputNormalization(),
+            "pad-shorter" => Wrap(path, () => new CompiledPadShorterInputNormalization(
                 ReadByte(
-                    Require(document.FillByte, $"{path}.fillByte"),
+                    document.FillByte!.Value,
                     $"{path}.fillByte"),
-                document.EvidenceRef ?? throw Error($"{path}.evidenceRef", "Evidence reference is missing."))),
-            "truncate-ctrlram" => Wrap(path, () => new TruncateCtrlRamInputNormalization(
-                document.WarningIssueCode ?? throw Error(
-                    $"{path}.warningIssueCode",
-                    "Warning issue code is missing."),
-                document.EvidenceRef ?? throw Error($"{path}.evidenceRef", "Evidence reference is missing."))),
+                CanonicalPolicyValueRules.RequireCanonicalId(
+                    document.EvidenceRef!,
+                    nameof(document.EvidenceRef)))),
+            "truncate-ctrlram" => Wrap(path, () => new CompiledTruncateCtrlRamInputNormalization(
+                CanonicalPolicyValueRules.RequireIssueCode(
+                    document.WarningIssueCode!,
+                    nameof(document.WarningIssueCode)),
+                CanonicalPolicyValueRules.RequireCanonicalId(
+                    document.EvidenceRef!,
+                    nameof(document.EvidenceRef)))),
             _ => throw Error($"{path}.kind", "Unknown input normalization."),
         };
     }

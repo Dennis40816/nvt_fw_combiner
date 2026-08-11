@@ -5,7 +5,10 @@
     <InternalsVisibleTo Include="NvtFwCombiner.Application.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap.Tests" />
     <InternalsVisibleTo Include="NvtFwCombiner.ProfileContract.Tests" />
+    <InternalsVisibleTo Include="NvtFwCombiner.TestSupport" />
     <InternalsVisibleTo Include="NvtFwCombiner.Profiles" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 using System.Text;
 using NvtFwCombiner.Application.HexEditor;
+using NvtFwCombiner.Infrastructure.Files;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -17,12 +18,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -61,12 +62,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -105,12 +106,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", "ABAB"u8.ToArray());
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -137,12 +138,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -170,12 +171,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", "AAAA"u8.ToArray());
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -208,12 +209,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', documentLength)]);
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -243,12 +244,12 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
         int searchCallCount = 0;
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             _ = Interlocked.Increment(ref searchCallCount);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -283,8 +284,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-failed-edit");
         string sourcePath = workspace.Write("source.bin", Encoding.ASCII.GetBytes("AAAA"));
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor);
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        var session = new RawBinaryEditorFileSession(editor);
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -312,8 +313,8 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-hex-search-canceled");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)'A', LargeDocumentLength)]);
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor);
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        var session = new RawBinaryEditorFileSession(editor);
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);
@@ -336,7 +337,7 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
     public async Task CanceledSearchWithoutDocumentKeepsTypedIssue()
     {
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor);
+        var session = new RawBinaryEditorFileSession(editor);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -355,13 +356,13 @@ public sealed class WorkbenchRawBinaryEditorSearchPerformanceTests
         using var searchStarted = new ManualResetEventSlim();
         using var releaseSearch = new ManualResetEventSlim();
         var editor = new RawBinaryEditorSession();
-        var session = new WorkbenchRawBinaryEditorSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
+        var session = new RawBinaryEditorFileSession(editor, (snapshot, state, text, startOffset, cancellationToken) =>
         {
             searchStarted.Set();
             releaseSearch.Wait(cancellationToken);
             return RawBinaryEditorSearch.Find(snapshot, state, text, startOffset, cancellationToken);
         });
-        WorkbenchRawBinaryEditorFileResult load = await session.LoadAsync(
+        RawBinaryEditorFileResult load = await session.LoadAsync(
             sourcePath,
             TestContext.Current.CancellationToken);
         Assert.True(load.Succeeded, load.ErrorMessage);

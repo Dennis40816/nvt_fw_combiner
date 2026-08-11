@@ -8,29 +8,23 @@ internal static partial class CompositionProfileNormalizer
 {
     internal static CompositionProfileSpace NormalizeSpace(
         CompositionProfileSpaceDocument document,
-        string schemaVersion = "2.0",
         string path = "spaces[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return document.Kind switch
         {
             "input-artifact" => Wrap(path, () => new InputArtifactProfileSpace(
                 document.SpaceId,
-                document.SlotId ?? throw Error($"{path}.slotId", "Input slot reference is missing."),
+                document.SlotId!,
                 NormalizeInstancePolicy(
-                    document.InstancePolicy ?? throw Error(
-                        $"{path}.instancePolicy",
-                        "Input instance policy is missing."),
+                    document.InstancePolicy!,
                     $"{path}.instancePolicy"))),
             "work-buffer" => NormalizeMutableSpace(
                 document,
                 CompositionProfileSpaceKind.WorkBuffer,
-                schemaVersion,
                 path),
             CompositionProfileWireTokens.OutputImageSpaceKind => NormalizeMutableSpace(
                 document,
                 CompositionProfileSpaceKind.OutputImage,
-                schemaVersion,
                 path),
             _ => throw Error($"{path}.kind", "Unknown profile space kind."),
         };
@@ -38,71 +32,49 @@ internal static partial class CompositionProfileNormalizer
 
     internal static CompositionProfileView NormalizeView(
         CompositionProfileViewDocument document,
-        string path = "views[0]",
-        string schemaVersion = "2.0")
+        string path = "views[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
-        CompositionProfileViewSelectorDocument selector = document.Selector ?? throw Error(
-            $"{path}.selector",
-            "View selector is missing.");
         return Wrap(path, () => new CompositionProfileView(
             document.ViewId,
             document.SpaceId,
-            NormalizeViewSelector(selector, schemaVersion, $"{path}.selector")));
+            NormalizeViewSelector(document.Selector, $"{path}.selector")));
     }
 
     private static MutableCompositionProfileSpace NormalizeMutableSpace(
         CompositionProfileSpaceDocument document,
         CompositionProfileSpaceKind kind,
-        string schemaVersion,
         string path)
     {
-        CompositionProfileCapacityDocument capacity = document.Capacity ?? throw Error(
-            $"{path}.capacity",
-            "Mutable-space capacity is missing.");
-        CompositionProfileInitializerDocument initializer = document.Initializer ?? throw Error(
-            $"{path}.initializer",
-            "Mutable-space initializer is missing.");
         return Wrap(path, () => new MutableCompositionProfileSpace(
             document.SpaceId,
             kind,
-            NormalizeCapacity(capacity, kind, schemaVersion, $"{path}.capacity"),
-            NormalizeInitializer(initializer, $"{path}.initializer")));
+            NormalizeCapacity(document.Capacity!, $"{path}.capacity"),
+            NormalizeInitializer(document.Initializer!, $"{path}.initializer")));
     }
 
-    private static CompositionProfileInstancePolicy NormalizeInstancePolicy(string value, string path)
+    private static CompiledInputInstancePolicy NormalizeInstancePolicy(string value, string path)
     {
         return value switch
         {
-            "singleton" => CompositionProfileInstancePolicy.Singleton,
-            "per-binding" => CompositionProfileInstancePolicy.PerBinding,
+            "singleton" => CompiledInputInstancePolicy.Singleton,
+            "per-binding" => CompiledInputInstancePolicy.PerBinding,
             _ => throw Error(path, "Unknown input instance policy."),
         };
     }
 
     private static CompositionProfileCapacity NormalizeCapacity(
         CompositionProfileCapacityDocument document,
-        CompositionProfileSpaceKind spaceKind,
-        string schemaVersion,
         string path)
     {
         return document.Kind switch
         {
             "resolved-map" => new ResolvedMapProfileCapacity(),
             "fixed" => Wrap(path, () => new FixedProfileCapacity(ReadInt64(
-                Require(document.Bytes, $"{path}.bytes"),
+                document.Bytes!.Value,
                 1,
                 long.MaxValue,
                 $"{path}.bytes"))),
-            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" &&
-                                   spaceKind == CompositionProfileSpaceKind.OutputImage =>
-                new RuntimeRequestProfileCapacity(),
-            "runtime-request" when schemaVersion is "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9" or "2.10" or "2.11" or "2.12" or "2.13" or "2.14" or "2.15" => throw Error(
-                $"{path}.kind",
-                "The runtime-request capacity kind is valid only for an output-image space."),
-            "runtime-request" => throw Error(
-                $"{path}.kind",
-                "The runtime-request capacity kind requires composition-profile schema version '2.3' through '2.15'."),
+            "runtime-request" => new RuntimeRequestProfileCapacity(),
             _ => throw Error($"{path}.kind", "Unknown profile capacity kind."),
         };
     }
@@ -114,46 +86,35 @@ internal static partial class CompositionProfileNormalizer
         return document.Kind switch
         {
             "blank" => new BlankProfileInitializer(ReadByte(
-                Require(document.FillByte, $"{path}.fillByte"),
+                document.FillByte!.Value,
                 $"{path}.fillByte")),
             "clone" => Wrap(path, () => new CloneProfileInitializer(
-                document.SourceSlotId ?? throw Error(
-                    $"{path}.sourceSlotId",
-                    "Clone source slot is missing."))),
+                document.SourceSlotId!)),
             _ => throw Error($"{path}.kind", "Unknown profile initializer kind."),
         };
     }
 
     private static CompositionProfileViewSelector NormalizeViewSelector(
         CompositionProfileViewSelectorDocument document,
-        string schemaVersion,
         string path)
     {
         return document.Kind switch
         {
             "map-region" => Wrap(path, () => new MapRegionViewSelector(
-                document.RegionId ?? throw Error($"{path}.regionId", "Map region is missing."))),
+                document.RegionId!)),
             "map-region-slice" => Wrap(path, () => new MapRegionSliceViewSelector(
-                document.RegionId ?? throw Error($"{path}.regionId", "Map region is missing."),
+                document.RegionId!,
                 ReadRange(
-                    Require(document.Offset, $"{path}.offset"),
-                    Require(document.Length, $"{path}.length"),
+                    document.Offset!.Value,
+                    document.Length!.Value,
                     path,
                     "offset"))),
             "space-range" => new SpaceRangeViewSelector(ReadRange(
-                document.Range ?? throw Error($"{path}.range", "Space range is missing."),
+                document.Range!,
                 $"{path}.range")),
-            "region-template-range" when schemaVersion is "2.14" or "2.15" =>
-                Wrap(path, () => new RegionTemplateRangeViewSelector(
-                document.RegionInstanceId ?? throw Error(
-                    $"{path}.regionInstanceId",
-                    "Region instance is missing."),
-                document.TemplateRegionId ?? throw Error(
-                    $"{path}.templateRegionId",
-                    "Template region is missing."))),
-            "region-template-range" => throw Error(
-                $"{path}.kind",
-                "Region-template-range selectors require composition-profile schema version '2.14' or later."),
+            "region-template-range" => Wrap(path, () => new RegionTemplateRangeViewSelector(
+                document.RegionInstanceId!,
+                document.TemplateRegionId!)),
             _ => throw Error($"{path}.kind", "Unknown profile view selector kind."),
         };
     }

@@ -10,7 +10,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     private readonly FirmwareMetadataSet[] _metadataSets;
     private readonly FirmwareMapFactBinding<FirmwareCapabilityFact>[] _capabilityBindings;
     private readonly FirmwareFamilyRelationship[] _familyRelationships;
-    private readonly string[] _requiredArtifactBindingIds;
     private readonly Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>> _structuresByMap;
 
     /// <summary>Creates one atomic family, map, and metadata resolution definition.</summary>
@@ -20,26 +19,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         string familyContentHash,
         IEnumerable<FirmwareImageMap> imageMaps,
         IEnumerable<FirmwareMetadataSet> metadataSets)
-        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [])
-    {
-    }
-
-    /// <summary>Creates one normalized family after Profiles has validated map-bound capability semantics.</summary>
-    internal FirmwareFamilyResolutionDefinition(
-        string familyId,
-        string familyVersion,
-        string familyContentHash,
-        IEnumerable<FirmwareImageMap> imageMaps,
-        IEnumerable<FirmwareMetadataSet> metadataSets,
-        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityBindings)
-        : this(
-            familyId,
-            familyVersion,
-            familyContentHash,
-            imageMaps,
-            metadataSets,
-            capabilityBindings,
-            [])
+        : this(familyId, familyVersion, familyContentHash, imageMaps, metadataSets, [], [])
     {
     }
 
@@ -55,13 +35,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
         ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyContentHash);
-        if (!IsLowercaseSha256(familyContentHash))
-        {
-            throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
-        }
+        _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
         _imageMaps = SnapshotMaps(imageMaps);
         _metadataSets = SnapshotMetadataSets(metadataSets);
@@ -72,6 +46,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             "Family relationships cannot contain null.",
             "Family relationship ids must be ordinally unique.",
             StringComparer.Ordinal);
+        ValidateFamilyRelationships(
+            _familyRelationships,
+            _imageMaps,
+            _capabilityBindings);
         Array.Sort(
             _familyRelationships,
             static (left, right) =>
@@ -82,7 +60,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             static set => set.MetadataSetId,
             StringComparer.Ordinal);
         HashSet<string> referencedMetadataSetIds = new(StringComparer.Ordinal);
-        HashSet<string> artifactBindingIds = new(StringComparer.Ordinal);
         _structuresByMap = new Dictionary<string, IReadOnlyList<FirmwareMetadataStructure>>(
             StringComparer.Ordinal);
 
@@ -93,23 +70,13 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 metadataSetsById,
                 referencedMetadataSetIds);
             ValidateCandidate(map, structures);
-            foreach (FirmwareMetadataStructure structure in structures)
-            {
-                _ = artifactBindingIds.Add(structure.ArtifactBindingId);
-            }
-
             _structuresByMap.Add(map.MapId, Array.AsReadOnly(structures));
         }
 
-        if (_metadataSets.Any(set => !referencedMetadataSetIds.Contains(set.MetadataSetId)))
-        {
-            throw new ArgumentException(
-                "Normalized family resolution definitions cannot contain unreferenced metadata sets.",
-                nameof(metadataSets));
-        }
-
-        _requiredArtifactBindingIds = [.. artifactBindingIds];
-        Array.Sort(_requiredArtifactBindingIds, StringComparer.Ordinal);
+        DomainInvariant.Reject(
+            _metadataSets.Any(set => !referencedMetadataSetIds.Contains(set.MetadataSetId)),
+            "Normalized family resolution definitions cannot contain unreferenced metadata sets.",
+            nameof(metadataSets));
 
         FamilyId = familyId;
         FamilyVersion = familyVersion;
@@ -118,7 +85,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         MetadataSets = Array.AsReadOnly(_metadataSets);
         CapabilityBindings = Array.AsReadOnly(_capabilityBindings);
         FamilyRelationships = Array.AsReadOnly(_familyRelationships);
-        RequiredArtifactBindingIds = Array.AsReadOnly(_requiredArtifactBindingIds);
     }
 
     /// <summary>Stable source-family identifier.</summary>
@@ -136,14 +102,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     /// <summary>Referenced metadata sets in ordinal set-id order.</summary>
     public IReadOnlyList<FirmwareMetadataSet> MetadataSets { get; }
 
-    /// <summary>Map-bound technical capability evidence that never changes map eligibility or Build support.</summary>
-    public IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
+    internal IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityBindings { get; }
 
-    /// <summary>Owner-declared perfect-like and shared-part firmware relationships.</summary>
-    public IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
-
-    /// <summary>Artifact bindings reachable from at least one candidate map.</summary>
-    public IReadOnlyList<string> RequiredArtifactBindingIds { get; }
+    internal IReadOnlyList<FirmwareFamilyRelationship> FamilyRelationships { get; }
 
     /// <summary>Returns metadata structures selected by one exact candidate map.</summary>
     public IReadOnlyList<FirmwareMetadataStructure> GetStructuresForMap(string mapId)
@@ -152,24 +113,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         return _structuresByMap.TryGetValue(mapId, out IReadOnlyList<FirmwareMetadataStructure>? structures)
             ? structures
             : throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
-    }
-
-    /// <summary>Returns only metadata structures that participate in candidate map selection.</summary>
-    internal IReadOnlyList<FirmwareMetadataStructure> GetMapResolutionStructuresForMap(string mapId)
-    {
-        FirmwareImageMap map = _imageMaps.FirstOrDefault(candidate =>
-            StringComparer.Ordinal.Equals(candidate.MapId, mapId)) ??
-            throw new KeyNotFoundException($"Unknown firmware image map '{mapId}'.");
-        IReadOnlyList<FirmwareMetadataStructure> structures = GetStructuresForMap(mapId);
-        var predicateStructureIds = new HashSet<string>(
-            map.Applicability.MetadataPredicates.Select(
-                static predicate => predicate.MetadataStructureId),
-            StringComparer.Ordinal);
-        return Array.AsReadOnly(
-        [
-            .. structures.Where(structure =>
-                predicateStructureIds.Contains(structure.StructureId)),
-        ]);
     }
 
     /// <summary>Resolves a structure only through metadata sets selected by the candidate map.</summary>
@@ -236,13 +179,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 maps,
                 binding.DirectSourceKey,
                 nameof(capabilityBindings));
-            if (binding.EffectiveKey.FactKind != FirmwareFactKind.Capability ||
+            DomainInvariant.Reject(
+                binding.EffectiveKey.FactKind != FirmwareFactKind.Capability ||
                 binding.DirectSourceKey.FactKind != FirmwareFactKind.Capability ||
                 !effectiveMap.Applicability.MemberIds.Contains(binding.EffectiveKey.MemberId, StringComparer.Ordinal) ||
-                !directSourceMap.Applicability.MemberIds.Contains(binding.DirectSourceKey.MemberId, StringComparer.Ordinal))
-            {
-                throw new ArgumentException("Capability bindings must use a member selected by their effective map.", nameof(capabilityBindings));
-            }
+                !directSourceMap.Applicability.MemberIds.Contains(binding.DirectSourceKey.MemberId, StringComparer.Ordinal),
+                "Capability bindings must use a member selected by their effective map.", nameof(capabilityBindings));
         }
 
         Array.Sort(snapshot, static (left, right) =>
@@ -276,17 +218,88 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 parameterName);
     }
 
+    private static void ValidateFamilyRelationships(
+        IReadOnlyList<FirmwareFamilyRelationship> relationships,
+        IReadOnlyList<FirmwareImageMap> maps,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilities)
+    {
+        HashSet<string> perfectMembers = new(StringComparer.Ordinal);
+        HashSet<(string MapId, FirmwareSharedFactKind Kind, string FactId)> sharedFacts = [];
+        foreach (FirmwareFamilyRelationship relationship in relationships)
+        {
+            if (relationship is PerfectFamilyRelationship perfect)
+            {
+                HashSet<string> members = [.. perfect.MemberIds];
+                if (members.Any(member => !perfectMembers.Add(member)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "A member cannot have more than one perfect-family relationship.");
+                }
+
+                FirmwareImageMap[] selectedMaps =
+                    [.. maps.Where(map => map.Applicability.MemberIds.Any(members.Contains))];
+                if (perfect.MemberIds.Any(member =>
+                        selectedMaps.All(map => !map.Applicability.MemberIds.Contains(member, StringComparer.Ordinal))))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Every perfect-family member must be selected by a family-owned map.");
+                }
+
+                if (selectedMaps.Any(map => !members.SetEquals(map.Applicability.MemberIds)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family relationships cannot contain member-specific maps.");
+                }
+
+                if (maps.Any(map =>
+                        HasMemberAlias(map.RegionSetBindings, members) ||
+                        HasMemberAlias(map.MetadataSetBindings, members)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family firmware semantics cannot use member-specific fact aliases.");
+                }
+
+                if (capabilities.Any(binding => members.Contains(binding.EffectiveKey.MemberId)))
+                {
+                    throw new FirmwareFamilyRelationshipInvariantException(
+                        relationship.RelationshipId,
+                        "Perfect-family firmware semantics cannot contain member-specific capability facts.");
+                }
+            }
+            else if (relationship is SharedFactRelationship shared &&
+                shared.ApplicableMaps.Any(map => shared.SharedFactReferences.Any(reference =>
+                    !sharedFacts.Add((map.MapId, reference.Kind, reference.FactId)))))
+            {
+                throw new FirmwareFamilyRelationshipInvariantException(
+                    relationship.RelationshipId,
+                    "A canonical map fact cannot have more than one shared relationship.");
+            }
+        }
+    }
+
+    private static bool HasMemberAlias<TFact>(
+        IEnumerable<FirmwareMapFactBinding<TFact>> bindings,
+        HashSet<string> members)
+        where TFact : class, IFirmwareMapFact
+    {
+        return bindings.Any(binding => binding.Provenance.AliasChain.Any(hop =>
+            members.Contains(hop.TargetKey.MemberId) ||
+            members.Contains(hop.SourceKey.MemberId)));
+    }
+
     private static void ValidateFamilyStructureIds(IEnumerable<FirmwareMetadataSet> metadataSets)
     {
         HashSet<string> structureIds = new(StringComparer.Ordinal);
         foreach (FirmwareMetadataStructure structure in metadataSets.SelectMany(static set => set.Structures))
         {
-            if (!structureIds.Add(structure.StructureId))
-            {
-                throw new ArgumentException(
-                    $"Metadata structure id '{structure.StructureId}' must be unique across the family.",
-                    nameof(metadataSets));
-            }
+            DomainInvariant.Reject(
+                !structureIds.Add(structure.StructureId),
+                $"Metadata structure id '{structure.StructureId}' must be unique across the family.",
+                nameof(metadataSets));
         }
     }
 
@@ -300,14 +313,11 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                      .GroupBy(static binding => binding.CanonicalFactId, StringComparer.Ordinal)
                      .Select(static group => group.First()))
         {
-            if (!metadataSetsById.TryGetValue(binding.CanonicalFactId, out FirmwareMetadataSet? metadataSet) ||
-                !ReferenceEquals(metadataSet, binding.Value))
-            {
-                throw new ArgumentException(
-                    $"Image map '{map.MapId}' binding references an unknown canonical metadata set " +
-                    $"'{binding.CanonicalFactId}'.",
-                    nameof(map));
-            }
+            DomainInvariant.Reject(
+                !metadataSetsById.TryGetValue(binding.CanonicalFactId, out FirmwareMetadataSet? metadataSet) ||
+                !ReferenceEquals(metadataSet, binding.Value),
+                $"Image map '{map.MapId}' binding references an unknown canonical metadata set '{binding.CanonicalFactId}'.",
+                nameof(map));
 
             _ = referencedMetadataSetIds.Add(binding.CanonicalFactId);
             structures.AddRange(binding.Value.Structures);
@@ -335,28 +345,22 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         foreach (FirmwareMetadataPredicate predicate in map.Applicability.MetadataPredicates)
         {
-            if (!structuresById.TryGetValue(
-                predicate.MetadataStructureId,
-                out FirmwareMetadataStructure? structure))
-            {
-                throw new ArgumentException(
-                    $"Image map '{map.MapId}' predicate references an unselected metadata structure " +
-                    $"'{predicate.MetadataStructureId}'.",
-                    nameof(map));
-            }
+            DomainInvariant.Reject(
+                !structuresById.TryGetValue(
+                    predicate.MetadataStructureId,
+                    out FirmwareMetadataStructure? structure),
+                $"Image map '{map.MapId}' predicate references an unselected metadata structure '{predicate.MetadataStructureId}'.",
+                nameof(map));
 
             FirmwareMetadataField? field = structure.Fields.FirstOrDefault(candidate =>
                 StringComparer.Ordinal.Equals(candidate.FieldId, predicate.FieldId)) ?? throw new ArgumentException(
                     $"Image map '{map.MapId}' predicate references unknown field '{predicate.FieldId}' " +
                     $"in structure '{structure.StructureId}'.",
                     nameof(map));
-            if (predicate.ExpectedValues.Any(value => !field.CanRepresent(value)))
-            {
-                throw new ArgumentException(
-                    $"Image map '{map.MapId}' predicate value is not representable by " +
-                    $"'{structure.StructureId}.{field.FieldId}'.",
-                    nameof(map));
-            }
+            DomainInvariant.Reject(
+                predicate.ExpectedValues.Any(value => !field.CanRepresent(value)),
+                $"Image map '{map.MapId}' predicate value is not representable by '{structure.StructureId}.{field.FieldId}'.",
+                nameof(map));
         }
     }
 
@@ -368,15 +372,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         var regionsById = map.Regions.ToDictionary(
             static region => region.RegionId,
             StringComparer.Ordinal);
-        if (!regionsById.TryGetValue(
-            structure.Locator.AllowedResultRegionId,
-            out FirmwareRegion? allowedResultRegion))
-        {
-            throw new ArgumentException(
-                $"Metadata structure '{structure.StructureId}' references unknown allowed region " +
-                $"'{structure.Locator.AllowedResultRegionId}' in map '{map.MapId}'.",
-                nameof(structure));
-        }
+        DomainInvariant.Reject(
+            !regionsById.TryGetValue(
+                structure.Locator.AllowedResultRegionId,
+                out FirmwareRegion? allowedResultRegion),
+            $"Metadata structure '{structure.StructureId}' references unknown allowed region '{structure.Locator.AllowedResultRegionId}' in map '{map.MapId}'.",
+            nameof(structure));
 
         ByteRange mapRange = new(0, map.CapacityBytes);
         switch (structure.Locator)
@@ -386,24 +387,19 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 EnsureContains(allowedResultRegion, absolute.Range.Range, structure, map, "absolute result");
                 break;
             case FirmwareRegionRelativeLocator relative:
-                if (!regionsById.TryGetValue(relative.RegionId, out FirmwareRegion? baseRegion))
-                {
-                    throw new ArgumentException(
-                        $"Metadata structure '{structure.StructureId}' references unknown base region " +
-                        $"'{relative.RegionId}' in map '{map.MapId}'.",
-                        nameof(structure));
-                }
+                DomainInvariant.Reject(
+                    !regionsById.TryGetValue(relative.RegionId, out FirmwareRegion? baseRegion),
+                    $"Metadata structure '{structure.StructureId}' references unknown base region '{relative.RegionId}' in map '{map.MapId}'.",
+                    nameof(structure));
 
                 long relativeStart = checked(baseRegion.Range.Start + relative.Offset);
                 ByteRange relativeResultRange = new(relativeStart, structure.LengthBytes);
                 EnsureContains(baseRegion, relativeResultRange, structure, map, "region-relative result");
                 EnsureContains(allowedResultRegion, relativeResultRange, structure, map, "region-relative result");
-                if (!mapRange.Contains(relativeResultRange))
-                {
-                    throw new ArgumentException(
-                        $"Metadata structure '{structure.StructureId}' escapes map '{map.MapId}'.",
-                        nameof(structure));
-                }
+                DomainInvariant.Reject(
+                    !mapRange.Contains(relativeResultRange),
+                    $"Metadata structure '{structure.StructureId}' escapes map '{map.MapId}'.",
+                    nameof(structure));
 
                 break;
             case FirmwareMarkerRelativeLocator marker:
@@ -411,15 +407,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 ValidateMarkerEnvelope(marker, structure.LengthBytes);
                 break;
             case FirmwareMetadataFieldSelectedLocator selected:
-                if (!structuresById.TryGetValue(
+                DomainInvariant.Reject(
+                    !structuresById.TryGetValue(
                         selected.PrerequisiteStructureId,
-                        out FirmwareMetadataStructure? prerequisite))
-                {
-                    throw new ArgumentException(
-                        $"Metadata structure '{structure.StructureId}' references unknown prerequisite " +
-                        $"'{selected.PrerequisiteStructureId}' in map '{map.MapId}'.",
-                        nameof(structure));
-                }
+                        out FirmwareMetadataStructure? prerequisite),
+                    $"Metadata structure '{structure.StructureId}' references unknown prerequisite '{selected.PrerequisiteStructureId}' in map '{map.MapId}'.",
+                    nameof(structure));
 
                 FirmwareMetadataField prerequisiteField =
                     prerequisite.Fields.FirstOrDefault(field =>
@@ -430,13 +423,11 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                         $"Metadata structure '{structure.StructureId}' references unknown prerequisite field " +
                         $"'{selected.PrerequisiteFieldId}' in map '{map.MapId}'.",
                         nameof(structure));
-                if (prerequisiteField.Encoding !=
-                    FirmwareMetadataEncoding.UnsignedInteger)
-                {
-                    throw new ArgumentException(
-                        $"Metadata structure '{structure.StructureId}' prerequisite field must be unsigned.",
-                        nameof(structure));
-                }
+                DomainInvariant.Reject(
+                    prerequisiteField.Encoding !=
+                    FirmwareMetadataEncoding.UnsignedInteger,
+                    $"Metadata structure '{structure.StructureId}' prerequisite field must be unsigned.",
+                    nameof(structure));
 
                 foreach (FirmwareMetadataFieldSelectedBranch branch in
                          selected.Branches)
@@ -450,13 +441,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                         branch.AnchorRange.Range.Start +
                         selected.ResultOffset);
                     ByteRange resultRange = new(start, structure.LengthBytes);
-                    if (!branch.AnchorRange.Range.Contains(resultRange))
-                    {
-                        throw new ArgumentException(
-                            $"Metadata structure '{structure.StructureId}' selected result escapes its anchor " +
-                            $"in map '{map.MapId}'.",
-                            nameof(structure));
-                    }
+                    DomainInvariant.Reject(
+                        !branch.AnchorRange.Range.Contains(resultRange),
+                        $"Metadata structure '{structure.StructureId}' selected result escapes its anchor in map '{map.MapId}'.",
+                        nameof(structure));
 
                     EnsureContains(
                         allowedResultRegion,
@@ -478,36 +466,15 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareImageMap map,
         IReadOnlyDictionary<string, FirmwareMetadataStructure> structuresById)
     {
-        var visiting = new HashSet<string>(StringComparer.Ordinal);
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string structureId in structuresById.Keys)
-        {
-            Visit(structureId);
-        }
-
-        void Visit(string structureId)
-        {
-            if (visited.Contains(structureId))
-            {
-                return;
-            }
-
-            if (!visiting.Add(structureId))
-            {
-                throw new ArgumentException(
-                    $"Metadata dependency graph contains a cycle at '{structureId}' in map '{map.MapId}'.",
-                    nameof(structuresById));
-            }
-
-            FirmwareMetadataStructure structure = structuresById[structureId];
-            if (structure.Locator is FirmwareMetadataFieldSelectedLocator selected)
-            {
-                Visit(selected.PrerequisiteStructureId);
-            }
-
-            _ = visiting.Remove(structureId);
-            _ = visited.Add(structureId);
-        }
+        _ = AcyclicDependencyGraph.Sort(
+            structuresById.Keys,
+            structureId => structuresById[structureId].Locator is FirmwareMetadataFieldSelectedLocator selected
+                ? [selected.PrerequisiteStructureId]
+                : [],
+            (_, structureId) => new ArgumentException(
+                $"Metadata dependency graph contains a cycle at '{structureId}' in map '{map.MapId}'.",
+                nameof(structuresById)),
+            StringComparer.Ordinal);
     }
 
     private static void ValidateAddressedRange(
@@ -516,19 +483,15 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareAddressedRange addressedRange,
         ByteRange mapRange)
     {
-        if (!StringComparer.Ordinal.Equals(addressedRange.AddressSpaceId, map.AddressSpaceId))
-        {
-            throw new ArgumentException(
-                $"Metadata structure '{structure.StructureId}' uses the wrong address space for map '{map.MapId}'.",
-                nameof(addressedRange));
-        }
+        DomainInvariant.Reject(
+            !StringComparer.Ordinal.Equals(addressedRange.AddressSpaceId, map.AddressSpaceId),
+            $"Metadata structure '{structure.StructureId}' uses the wrong address space for map '{map.MapId}'.",
+            nameof(addressedRange));
 
-        if (!mapRange.Contains(addressedRange.Range))
-        {
-            throw new ArgumentException(
-                $"Metadata structure '{structure.StructureId}' addressed range escapes map '{map.MapId}'.",
-                nameof(addressedRange));
-        }
+        DomainInvariant.Reject(
+            !mapRange.Contains(addressedRange.Range),
+            $"Metadata structure '{structure.StructureId}' addressed range escapes map '{map.MapId}'.",
+            nameof(addressedRange));
     }
 
     private static void EnsureContains(
@@ -538,13 +501,10 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareImageMap map,
         string subject)
     {
-        if (!region.Range.Contains(range))
-        {
-            throw new ArgumentException(
-                $"Metadata structure '{structure.StructureId}' {subject} is outside region " +
-                $"'{region.RegionId}' in map '{map.MapId}'.",
-                nameof(range));
-        }
+        DomainInvariant.Reject(
+            !region.Range.Contains(range),
+            $"Metadata structure '{structure.StructureId}' {subject} is outside region '{region.RegionId}' in map '{map.MapId}'.",
+            nameof(range));
     }
 
     private static void ValidateMarkerEnvelope(FirmwareMarkerRelativeLocator marker, long structureLength)
@@ -553,13 +513,12 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         long lastMatch = checked(marker.SearchRange.Range.EndExclusive - marker.MarkerBytes.Length);
         long firstResult = checked(firstMatch + marker.ResultOffset);
         long lastResult = checked(lastMatch + marker.ResultOffset);
+        DomainInvariant.Reject(
+            lastResult < 0,
+            "Marker-relative metadata results cannot resolve entirely below zero.",
+            nameof(marker));
         _ = checked(firstResult + structureLength);
         _ = checked(lastResult + structureLength);
     }
 
-    private static bool IsLowercaseSha256(string value)
-    {
-        return value.Length == 64 && value.All(static character =>
-            character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
-    }
 }

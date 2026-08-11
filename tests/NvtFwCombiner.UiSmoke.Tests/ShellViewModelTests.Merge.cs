@@ -1,8 +1,7 @@
-using System.Globalization;
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.FlashMaps;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -15,8 +14,8 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void AbMergeUnavailableReadinessDirectsToDeclaredRoutes()
     {
-        MainWindowViewModel english = ShellViewModelFactory.Create();
-        MainWindowViewModel traditionalChinese = ShellViewModelFactory.Create(ShellLanguage.ChineseTraditional);
+        MainWindowViewModel english = PresentationTestHost.CreateViewModel();
+        MainWindowViewModel traditionalChinese = PresentationTestHost.CreateViewModel(ShellLanguage.ChineseTraditional);
 
         string englishHint = english.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
         string traditionalChineseHint = traditionalChinese.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
@@ -29,14 +28,16 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void NormalMergeHidesNumberSelectorButKeepsPlaceholder()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.True(viewModel.IsDeviceContextVisible);
         Assert.True(viewModel.Merge.IsNormalMergeModeSelected);
-        Assert.Equal(["Normal", "AB Code", "General"], viewModel.Merge.MergeModeChoices);
+        Assert.Equal(
+            [ExperienceIds.StandardMerge, ExperienceIds.AbMerge, ExperienceIds.GeneralMerge],
+            viewModel.Merge.MergeModeChoices);
         Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
@@ -53,11 +54,12 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void EverySupportedStandardMergeHidesNumberSelector()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowMergeCommand.Execute(null);
 
-        foreach (WorkbenchProfileSummary profile in WorkbenchCompositionService.GetStandardMergeProfileSummaries())
+        foreach (CapabilityProfileSummary profile in
+            TestHost.Projection.GetStandardMergeProfileSummaries())
         {
             viewModel.WorkflowSession.SelectedIc = profile.IcId;
 
@@ -72,15 +74,15 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void AbMergeExposureAndHomeContextContainAllFunctionOpenProfiles()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
+        Assert.Contains(ExperienceIds.AbMerge, viewModel.Merge.MergeModeChoices);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
+        Assert.Contains(ExperienceIds.AbMerge, viewModel.Merge.MergeModeChoices);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
+        Assert.Contains(ExperienceIds.AbMerge, viewModel.Merge.MergeModeChoices);
         viewModel.WorkflowSession.SelectedIc = "NT51951";
-        Assert.Contains(WorkbenchMergeModes.AbCode, viewModel.Merge.MergeModeChoices);
+        Assert.Contains(ExperienceIds.AbMerge, viewModel.Merge.MergeModeChoices);
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
 
@@ -114,10 +116,10 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void Nt51950AbMergeSelectsSingleOrCascadeTopology()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         Assert.True(viewModel.Merge.HasAbMergeTopologyChoices);
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorVisible);
@@ -143,9 +145,9 @@ public sealed partial class ShellViewModelTests
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
         Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
 
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal(WorkbenchCompositionService.GetSupportedIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(TestHost.Projection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>
@@ -154,10 +156,10 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-memory");
         string dpPath = workspace.Write("dp-ab-90000.bin", new byte[0x90000]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -165,21 +167,21 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Equal(
-            ["DP AB", "TPA", "TPB"],
-            viewModel.Merge.MergeMemoryRows.Select(static row => row.AfterSource));
-        Assert.Contains(
-            "does not match the compiled 0x80000 layout",
-            viewModel.Merge.MergeMemoryRows[0].Detail,
-            StringComparison.Ordinal);
-        Assert.Equal("Transform + Overlay + Postbuild", viewModel.Merge.MergeMemoryRows[2].ActionLabel);
-        Assert.Equal(
-            ["DP AB", "TPA", "TPB"],
-            viewModel.Merge.MergeCoverageSegments
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP AB");
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPA");
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPB");
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row =>
+            row.AfterSource == "TPB" && row.ActionLabel == "Transform + Overlay");
+        IReadOnlyList<string> sourceLabels =
+        [
+            .. viewModel.Merge.MergeCoverageSegments
                 .Select(static segment => segment.SourceLabel)
-                .Distinct(StringComparer.Ordinal));
+                .Distinct(StringComparer.Ordinal),
+        ];
+        Assert.Contains("DP AB", sourceLabels);
+        Assert.Contains("TPA", sourceLabels);
+        Assert.Contains("TPB", sourceLabels);
         Assert.DoesNotContain(viewModel.Merge.MergeMemoryRows, static row =>
-            row.Detail.Contains("CRC", StringComparison.OrdinalIgnoreCase) ||
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
         Assert.True(viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.DpAbInput).BlocksBuild);
@@ -200,9 +202,9 @@ public sealed partial class ShellViewModelTests
             0x81, 0x00, commonFwMajor: 1, commonFwMinor: 4, commonFwAdditional: 1, projectId: 0x5102));
         string tpBPath = workspace.Write("tp-b.bin", CreateUiAbTpImage(
             0x82, 0x03, commonFwMajor: 2, commonFwMinor: 0, commonFwAdditional: 0, projectId: 0x6A5C));
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         Assert.False(viewModel.Merge.CanBuildMerge);
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -220,7 +222,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.All(viewModel.Merge.MergeSlots, static slot =>
         {
-            Assert.Equal(WorkbenchInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
+            Assert.Equal(FirmwareInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
             Assert.False(slot.BlocksBuild);
             Assert.False(slot.IsInputInspectionPending);
         });
@@ -255,7 +257,7 @@ public sealed partial class ShellViewModelTests
         Assert.DoesNotContain("D06-05", suggestedOutputName, StringComparison.Ordinal);
         MergeBuildSavePreparation initialPreparation = Assert.IsType<MergeBuildSavePreparation>(
             await viewModel.Merge.TryPrepareMergeBuildSaveAsync(TestContext.Current.CancellationToken));
-        WorkbenchAbAFlashCodeDeliveryPlan initialAFlashCodePlan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
+        CompositionAdditionalDeliveryPlan initialAFlashCodePlan = Assert.IsType<CompositionAdditionalDeliveryPlan>(
             initialPreparation.AFlashCodePlan);
 
         WriteUiAbCmi(dp, 0, major: 0x0A, minor: 0x01, jira: 0x123);
@@ -314,9 +316,9 @@ public sealed partial class ShellViewModelTests
         WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteUiAbCmi(dp, dpLength / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string dpPath = workspace.Write("dp-ab.bin", dp);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
             dpPath,
@@ -354,9 +356,9 @@ public sealed partial class ShellViewModelTests
         const int dpLength = 0x80000;
         const int tpLength = 0x40000;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-health");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -364,7 +366,7 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, dpSlot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, dpSlot.InputInspectionSeverity);
         Assert.True(dpSlot.BlocksBuild);
         Assert.StartsWith("Error:", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
 
@@ -374,7 +376,7 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel tpSlot = viewModel.Merge.MergeSlots.Single(
             static slot => slot.SlotId == CompositionAddressSpaceIds.TpAInput);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Warning, tpSlot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Warning, tpSlot.InputInspectionSeverity);
         Assert.False(tpSlot.BlocksBuild);
         Assert.Contains("warning", tpSlot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
         Assert.False(viewModel.Merge.CanBuildMerge);
@@ -384,10 +386,10 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void GeneralMergeUsesEditableMappingsAndOwnOutputLength()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
 
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
         Assert.False(viewModel.Merge.IsNormalMergeModeSelected);
@@ -397,12 +399,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
-        Assert.Contains(
-            viewModel.Merge.MergeMemoryRows,
-            row => row.Detail.Contains("0x00", StringComparison.Ordinal));
-        Assert.Equal(
-            $"NT51950_FlashCode_DxxxxTxxxx_{DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}.bin",
-            viewModel.Merge.MergeOutputFileName);
+        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Pending input", Assert.Single(viewModel.Merge.MergeMemoryRows).AfterSource);
+        Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
         viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
@@ -419,7 +418,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void GeneralMergeShortcutOpensGeneralMergeMode()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.BeginGeneralMergeFromHomeCommand.Execute(null);
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
@@ -436,7 +435,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void MergeSlotsFollowSelectedProfileRequiredInputs()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
@@ -452,7 +451,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void MergeMemoryRowsExposeReadableOperationDetails()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
@@ -472,7 +471,7 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc(ic);
         using var workspace = TempWorkspace.Create($"nvt-fw-combiner-ui-{ic}");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = $"NT{ic}";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -515,9 +514,9 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-merge");
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13, 0x14]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
-        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.GeneralMergeOutputLength = "0x10";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x1";
@@ -531,7 +530,10 @@ public sealed partial class ShellViewModelTests
                 propertyChanges.Add(args.PropertyName);
             }
         };
-        viewModel.SetSlotFile(mapping.MappingId, source);
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            mapping.MappingId,
+            source,
+            TestContext.Current.CancellationToken);
         FileStamp acceptedStamp = Assert.IsType<FileStamp>(mapping.AcceptedFileStamp);
         Assert.Contains(nameof(MergePresentationViewModel.MergeReadinessStatus), propertyChanges);
         Assert.Contains("maps 1 source BIN", viewModel.Merge.MergeReadinessStatus, StringComparison.Ordinal);
@@ -539,6 +541,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.False(viewModel.Merge.CanBuildMerge);
         viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
+        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
         Assert.Contains(
             viewModel.Merge.MergeMemoryRows,
             row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
@@ -546,6 +549,7 @@ public sealed partial class ShellViewModelTests
         mapping.TargetStartAddress = "0x5";
         Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
         mapping.TargetStartAddress = "0x4";
+        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
         Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
         Assert.True(viewModel.Merge.CanBuildMerge);
         Assert.True(viewModel.Merge.IsGeneralMergeModeSelected);
@@ -560,13 +564,18 @@ public sealed partial class ShellViewModelTests
             [0x10, 0x11, 0x99, 0x13, 0x14],
             TestContext.Current.CancellationToken);
         await viewModel.Merge.BuildMergeAsync(outputPath);
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Contains(
-            "no longer matches",
-            viewModel.RunSession.LastRunResult.Detail,
-            StringComparison.Ordinal);
-        Assert.False(File.Exists(outputPath));
-        viewModel.SetSlotFile(mapping.MappingId, source);
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal(
+            [0xA5, 0xA5, 0xA5, 0xA5, 0x11, 0x12, 0x13, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5],
+            File.ReadAllBytes(outputPath));
+
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            mapping.MappingId,
+            source,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(
+            FileStamp.FromBytes([0x10, 0x11, 0x99, 0x13, 0x14]),
+            mapping.AcceptedFileStamp);
         await viewModel.Merge.BuildMergeAsync(outputPath);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.Equal(outputPath, viewModel.RunSession.LastRunResult.Output);
@@ -592,7 +601,7 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-merge-gate");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 

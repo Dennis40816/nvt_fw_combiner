@@ -1,9 +1,6 @@
 """Strict protocol 1.0 parsing and response construction."""
 
-from __future__ import annotations
-
 import base64
-import binascii
 from dataclasses import dataclass
 from typing import cast
 
@@ -14,6 +11,7 @@ OPERATION_CALCULATE = "calculate"
 ALGORITHM_CRC32_MPEG2 = "crc-32-mpeg-2"
 MAX_DECODED_PAYLOAD_BYTES = 4 * 1024 * 1024
 MAX_REQUEST_ID_LENGTH = 128
+MAX_ERROR_MESSAGE_LENGTH = 512
 _REQUEST_FIELDS = frozenset(
     {"protocolVersion", "requestId", "operation", "algorithmId", "payloadBase64"}
 )
@@ -26,15 +24,6 @@ class CalculationRequest:
     request_id: str
     algorithm_id: str
     payload: bytes
-
-
-def _request_id_if_usable(document: object) -> str:
-    if not isinstance(document, dict):
-        return ""
-    value = cast(dict[object, object], document).get("requestId")
-    if isinstance(value, str) and len(value) <= MAX_REQUEST_ID_LENGTH:
-        return value
-    return ""
 
 
 def _require_string(
@@ -53,7 +42,7 @@ def _require_string(
 
 def parse_request(document: object) -> CalculationRequest:
     """Validate a decoded JSON object and return a typed calculation request."""
-    request_id = _request_id_if_usable(document)
+    request_id = ""
     if not isinstance(document, dict):
         raise WorkerError(
             "CRC_PROTOCOL_INVALID_REQUEST",
@@ -62,6 +51,8 @@ def parse_request(document: object) -> CalculationRequest:
             request_id,
         )
     raw_document = cast(dict[object, object], document)
+    value = raw_document.get("requestId")
+    request_id = value if isinstance(value, str) and len(value) <= MAX_REQUEST_ID_LENGTH else ""
     if not all(isinstance(field, str) for field in raw_document):
         raise WorkerError(
             "CRC_PROTOCOL_INVALID_REQUEST",
@@ -124,7 +115,7 @@ def parse_request(document: object) -> CalculationRequest:
 
     try:
         payload = base64.b64decode(payload_base64, validate=True)
-    except (binascii.Error, ValueError) as exc:
+    except ValueError as exc:
         raise WorkerError(
             "CRC_PROTOCOL_INVALID_BASE64",
             "payloadBase64 is not valid base64",
@@ -175,5 +166,5 @@ def error_response(error: WorkerError, worker_version: str) -> dict[str, object]
         "requestId": error.request_id,
         "ok": False,
         "workerVersion": worker_version,
-        "error": {"code": error.code, "message": error.message},
+        "error": {"code": error.code, "message": error.message[:MAX_ERROR_MESSAGE_LENGTH]},
     }

@@ -59,20 +59,16 @@ internal sealed class ProfileBundleEntrySnapshotCollection
 {
     private ProfileBundleEntrySnapshotCollection(
         ProfileBundleManifest manifest,
-        IEnumerable<ProfileBundleEntrySnapshot> entries,
-        int totalEntryBytes)
+        IEnumerable<ProfileBundleEntrySnapshot> entries)
     {
         Manifest = manifest;
         ProfileBundleEntrySnapshot[] snapshot = [.. entries];
         Entries = Array.AsReadOnly(snapshot);
-        TotalEntryBytes = totalEntryBytes;
     }
 
     internal ProfileBundleManifest Manifest { get; }
 
     internal IReadOnlyList<ProfileBundleEntrySnapshot> Entries { get; }
-
-    internal int TotalEntryBytes { get; }
 
     internal static ProfileBundleEntrySnapshotCollection Capture(
         string bundleRoot,
@@ -123,6 +119,6 @@ internal sealed class ProfileBundleEntrySnapshotCollection
             manifest,
             limits.MaximumDirectoryCount);
 
-        return new ProfileBundleEntrySnapshotCollection(manifest, snapshots, totalEntryBytes);
+        return new ProfileBundleEntrySnapshotCollection(manifest, snapshots);
     }
 }

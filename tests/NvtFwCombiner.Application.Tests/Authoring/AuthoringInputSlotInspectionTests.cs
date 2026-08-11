@@ -180,6 +180,30 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.NotNull(result.Inspection);
     }
 
+    /// <summary>The retained TP maximum alias reaches terminal shared source-view health without throwing.</summary>
+    [Theory]
+    [InlineData(3, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputSourceViewIncomplete)]
+    [InlineData(4, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
+    [InlineData(8, AuthoringSlotLifecycle.Verified, InputArtifactInspectionIssueCodes.Ready)]
+    [InlineData(262145, AuthoringSlotLifecycle.Error, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    public void TpMaximumCompatibilityPublishesTerminalCompiledInspection(
+        int sourceLength,
+        AuthoringSlotLifecycle expectedLifecycle,
+        string expectedIssueCode)
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge, tpMaximum: true);
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(6),
+            ReadySelection(),
+            SourceSpace,
+            new byte[sourceLength]);
+
+        Assert.Equal(expectedLifecycle, result.InspectionLifecycle);
+        Assert.Equal(expectedIssueCode, result.Inspection!.IssueCode);
+    }
+
     /// <summary>Profile-declared input-load plausibility is part of terminal slot health.</summary>
     [Fact]
     public void UniformAcceptedSourcePublishesWarning()
@@ -259,6 +283,25 @@ public sealed partial class AuthoringInputSlotInspectionTests
             result.InspectionNextAction);
         Assert.Null(result.FileStamp);
         Assert.Null(result.Inspection);
+    }
+
+    /// <summary>Accepted execution bytes are one immutable copy owned by the inspection publication.</summary>
+    [Fact]
+    public void AcceptedInspectionRetainsImmutableExecutionBytes()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        byte[] source = [0x10, 0x20, 0x30, 0x40];
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            source);
+        source[0] = 0xff;
+
+        Assert.Equal(0x10, result.AcceptedBytes!.Value.Span[0]);
+        Assert.NotSame(source, result.AcceptedByteArray);
     }
 
     /// <summary>An unreadable terminal error publishes against the captured null stamp and exact compilation.</summary>
@@ -492,27 +535,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleResolution.Issue!.Code);
     }
 
-    /// <summary>Picker admission is separate from inspecting an already-selected ready artifact.</summary>
-    [Fact]
-    public void SelectedReadyArtifactCanBeInspectedWhenPickerTransitionIsDisabled()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
-        InputSelectionMemberReadiness selected = ReadySelection() with
-        {
-            CanSelect = false,
-        };
-
-        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            new AuthoringRevision(11),
-            selected,
-            SourceSpace,
-            new byte[4]);
-
-        Assert.Equal(AuthoringSlotLifecycle.Verified, result.InspectionLifecycle);
-        Assert.False(result.CanSelect);
-    }
-
     private static InputSelectionMemberReadiness ReadySelection()
     {
         return new InputSelectionMemberReadiness(
@@ -548,7 +570,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
         long targetStart = 0,
         string publicationToken = "headless-publication",
         CompiledValidationRequirement? validationRequirement = null,
-        bool observeAbVersion = false)
+        bool observeAbVersion = false,
+        bool includeExternalProcessor = false,
+        bool tpMaximum = false)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -595,7 +619,24 @@ public sealed partial class AuthoringInputSlotInspectionTests
                 new ByteRange(targetStart, 4),
                 OverlapPolicy.Reject,
                 "Synthetic merge.");
-        var plan = new CompositionPlan(initialization, spaces, [operation]);
+        List<CompositionOperation> operations = [operation];
+        if (includeExternalProcessor)
+        {
+            operations.Add(CompositionOperation.RunExternalProcessor(
+                "refresh-integrity",
+                200,
+                "output-image",
+                new ByteRange(0, 8),
+                new ExternalProcessorInvocation(
+                    "crc-worker",
+                    "nvt-crc-worker",
+                    [new ByteRange(0, 8)],
+                    [new ByteRange(0, 8)]),
+                OverlapPolicy.ReplaceExisting,
+                "Synthetic external integrity refresh."));
+        }
+
+        var plan = new CompositionPlan(initialization, spaces, operations);
         string mapId = $"{workflowId}-map";
         CompiledComposition composition = CompiledCompositionTestFactory.Create(
             plan,
@@ -609,9 +650,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
             observeAbVersion
                 ? CompiledOutputNamingRequirement.AbCodeV1Template
                 : $"synthetic-{workflowId}.bin",
-            icNumberPolicy: replace
-                ? CompiledIcNumberPolicy.SingleSelector
-                : CompiledIcNumberPolicy.NotApplicable,
+            icNumberInputMode: replace
+                ? IcNumberInputMode.SingleSelector
+                : null,
             validationRequirements: validationRequirement is null ? null : [validationRequirement],
             mapId: mapId,
             inputRolesByAddressSpace: observeAbVersion
@@ -623,7 +664,11 @@ public sealed partial class AuthoringInputSlotInspectionTests
             outputRequiredTokenIds: observeAbVersion
                 ? ["date", "dp-a", "dp-b", "ic", "tp-a", "tp-b"]
                 : null,
-            allowOutputOverride: false);
+            allowOutputOverride: false,
+            inputLengthRequirement: tpMaximum
+                ? new CompiledSourceViewCoverageInputLengthRequirement(
+                    maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes)
+                : null);
         var identity = new CapabilityRouteIdentity(
             "NT-HEADLESS",
             workflowId,
@@ -641,58 +686,4 @@ public sealed partial class AuthoringInputSlotInspectionTests
             token);
     }
 
-    private static ResolvedCapabilityRoute CreateRoute(string workflowId)
-    {
-        var identity = new CapabilityRouteIdentity(
-            "NT-HEADLESS",
-            workflowId,
-            "none",
-            $"{workflowId}-map");
-        var contract = new CanonicalCapabilityCompilationContract(
-            $"synthetic-{workflowId}",
-            "1.0.0",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            [$"{workflowId}-map"],
-            CapabilityDefinitionFingerprint.MapBoundCompilerSemanticId);
-        string fingerprint = CapabilityDefinitionFingerprint.Compute(
-            identity,
-            contract.ProfileId,
-            contract.ProfileVersion,
-            contract.TrustedDefinitionSha256,
-            contract.AllowedMapVariantIds,
-            contract.CompilerSemanticId,
-            contract.SemanticBindingIds);
-        var definition = new CanonicalDynamicCapabilityDefinition(
-            identity,
-            fingerprint,
-            contract,
-            Decision(identity, fingerprint, CapabilityAuthoringAvailability.Available),
-            Decision(identity, fingerprint, CapabilityPublicationStatus.TestOnly),
-            Decision(identity, fingerprint, CapabilityEvidenceStatus.SyntheticOracle));
-        return new ResolvedCapabilityRoute(
-            definition,
-            new ResolutionToken("headless-pending-publication"));
-    }
-
-    private static PinnedCapabilityDecision<T> Decision<T>(
-        CapabilityRouteIdentity identity,
-        T value)
-        where T : struct, Enum
-    {
-        return Decision(identity, CapabilityFingerprint, value);
-    }
-
-    private static PinnedCapabilityDecision<T> Decision<T>(
-        CapabilityRouteIdentity identity,
-        string capabilityFingerprint,
-        T value)
-        where T : struct, Enum
-    {
-        return new PinnedCapabilityDecision<T>(
-            $"headless-{typeof(T).Name}",
-            identity.RouteId,
-            capabilityFingerprint,
-            value,
-            "synthetic-headless-contract");
-    }
 }

@@ -15,8 +15,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void LogicalOutputLoweringCompilesAndExecutesThroughTheSharedEngine()
     {
         TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult result = catalog.CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
@@ -40,12 +39,26 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal([0, 0xAA, 0xBB, 0, 0, 0], execution.OutputBytes.ToArray());
     }
 
+    /// <summary>Verifies the logical compiler cannot mint an artifact below the compilable promotion boundary.</summary>
+    [Fact]
+    public void LogicalOutputLoweringRequiresCompilablePromotion()
+    {
+        TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog("authorable");
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => catalog.CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            LogicalRequest(outputCapacity: 6)));
+
+        Assert.StartsWith("Only compilable v2 profiles", exception.Message, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies one rejected logical member returns only its request-scoped admission issue.</summary>
     [Fact]
     public void LogicalOutputLoweringRejectsUnadmittedMemberWithoutMapResolution()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            CreateLogicalOutputCatalog(),
+        V2CompositionPlanCompileResult result = CreateLogicalOutputCatalog().CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             "NT00002",
@@ -66,9 +79,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         using var profileDocument = JsonDocument.Parse(profileJson);
 
         TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
-            TrustedProfileBundleCatalogFactory.Create(Source(
+            CreateCatalogFromSources(
                 [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
-                [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())])));
+                [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]));
 
         Assert.Equal("profile-bundle.catalog.logical-member-missing", exception.Code);
         Assert.Equal("logical-profile-entry", exception.EntryId);
@@ -81,14 +94,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
             new GeneralMergeOutputInitializer(0));
 
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            CreateLogicalOutputCatalog(),
+        V2CompositionPlanCompileResult result = CreateLogicalOutputCatalog().CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     10,
@@ -100,9 +112,29 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     OverlapPolicy.Reject,
                     alignment: 1,
                     reason: "test logical mapping")]));
+        V2CompositionPlanCompileResult oversizedBinding = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                [new V2ExplicitMappingInputBinding("source-a", "source", (long)int.MaxValue + 1)],
+                [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))]));
+        V2CompositionPlanCompileResult maximumBinding = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                [new V2ExplicitMappingInputBinding("source-a", "source", int.MaxValue)],
+                [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))]));
 
         Assert.False(result.IsCompiled);
         Assert.Contains(result.Issues, issue => issue.Code == "profile.v2.logical.source-out-of-bounds");
+        Assert.False(oversizedBinding.IsCompiled);
+        Assert.Null(oversizedBinding.CompiledComposition);
+        Assert.Contains(oversizedBinding.Issues, issue => issue.Code == "profile.v2.logical.binding-invalid");
+        Assert.True(maximumBinding.IsCompiled);
     }
 
     /// <summary>Verifies malformed logical mappings are rejected only during the selected request's lowering.</summary>
@@ -111,27 +143,112 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
         ExplicitMapping first = Mapping("copy-first", 10, new ByteRange(0, 2), new ByteRange(0, 2));
-        V2CompositionPlanCompileResult duplicate = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult duplicate = catalog.CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-first", 11, new ByteRange(2, 2), new ByteRange(2, 2))]));
-        V2CompositionPlanCompileResult overlapping = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult overlapping = catalog.CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [first, Mapping("copy-second", 11, new ByteRange(2, 2), new ByteRange(1, 2))]));
 
         Assert.Contains(duplicate.Issues, issue => issue.Code == "profile.v2.logical.mapping-invalid");
         Assert.Contains(overlapping.Issues, issue => issue.Code == "profile.v2.plan.operation-overlap");
+    }
+
+    /// <summary>Locks every compiler-owned logical binding and mapping guard at the shared request seam.</summary>
+    [Theory]
+    [InlineData("duplicate-binding", "profile.v2.logical.binding-invalid")]
+    [InlineData("duplicate-sequence", "profile.v2.logical.mapping-invalid")]
+    [InlineData("unknown-binding", "profile.v2.logical.mapping-invalid")]
+    [InlineData("wrong-kind", "profile.v2.logical.mapping-invalid")]
+    [InlineData("wrong-overlap", "profile.v2.logical.mapping-invalid")]
+    [InlineData("source-start-alignment", "profile.v2.logical.mapping-invalid")]
+    [InlineData("source-length-alignment", "profile.v2.logical.mapping-invalid")]
+    [InlineData("target-out-of-bounds", "profile.v2.logical.target-out-of-bounds")]
+    public void LogicalOutputLoweringRejectsInvalidExplicitMappingRequest(
+        string mutation,
+        string expectedIssueCode)
+    {
+        V2ExplicitMappingInputBinding[] bindings =
+            [new("source-a", "source", 4)];
+        ExplicitMapping[] mappings =
+            [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2))];
+        switch (mutation)
+        {
+            case "duplicate-binding":
+                bindings = [.. bindings, new("source-a", "source", 4)];
+                break;
+            case "duplicate-sequence":
+                mappings =
+                [
+                    mappings[0],
+                    Mapping("copy-second", 10, new ByteRange(2, 2), new ByteRange(2, 2)),
+                ];
+                break;
+            case "unknown-binding":
+                mappings =
+                    [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(0, 2), "missing")];
+                break;
+            case "wrong-kind":
+                mappings =
+                [
+                    Mapping(
+                        "copy-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(0, 2),
+                        operationKind: ExplicitMappingOperationKind.ReplaceRange),
+                ];
+                break;
+            case "wrong-overlap":
+                mappings =
+                [
+                    Mapping(
+                        "copy-source",
+                        10,
+                        new ByteRange(0, 2),
+                        new ByteRange(0, 2),
+                        overlapPolicy: OverlapPolicy.ReplaceExisting),
+                ];
+                break;
+            case "source-start-alignment":
+                mappings =
+                [Mapping("copy-source", 10, new ByteRange(1, 2), new ByteRange(0, 2), alignment: 2)];
+                break;
+            case "source-length-alignment":
+                bindings = [new("source-a", "source", 6)];
+                mappings =
+                [Mapping("copy-source", 10, new ByteRange(0, 3), new ByteRange(0, 3), alignment: 2)];
+                break;
+            case "target-out-of-bounds":
+                mappings =
+                    [Mapping("copy-source", 10, new ByteRange(0, 2), new ByteRange(5, 2))];
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mutation), mutation, "Unknown logical mutation.");
+        }
+
+        V2CompositionPlanCompileResult result = CreateLogicalOutputCatalog().CompileLogicalOutput(
+            "logical-general-merge",
+            "1.0.0",
+            LogicalTestMemberId,
+            new V2LogicalOutputCompileRequest(
+                new GeneralMergeOutputInitializer(6),
+                bindings,
+                mappings));
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(result.Issues, issue => issue.Code == expectedIssueCode);
     }
 
     /// <summary>Verifies a malformed input/output address-space collision stays within that logical compile request.</summary>
@@ -139,14 +256,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void LogicalOutputLoweringRejectsOutputSpaceBindingCollisionWithoutAffectingLaterRequests()
     {
         TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
-        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult rejected = catalog.CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(6),
-                [new V2LogicalOutputInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
+                [new V2ExplicitMappingInputBinding(CompositionAddressSpaceIds.OutputImage, "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     10,
@@ -158,8 +274,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                     OverlapPolicy.Reject,
                     alignment: 1,
                     reason: "test logical mapping")]));
-        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult valid = catalog.CompileLogicalOutput(
             "logical-general-merge",
             "1.0.0",
             LogicalTestMemberId,
@@ -176,15 +291,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
         CompiledComposition six = Assert.IsType<CompiledComposition>(
-            TrustedV2CompositionCompiler.CompileLogicalOutput(
-                catalog,
+catalog.CompileLogicalOutput(
                 "logical-general-merge",
                 "1.0.0",
             LogicalTestMemberId,
                 LogicalRequest(outputCapacity: 6)).CompiledComposition);
         CompiledComposition seven = Assert.IsType<CompiledComposition>(
-            TrustedV2CompositionCompiler.CompileLogicalOutput(
-                catalog,
+catalog.CompileLogicalOutput(
                 "logical-general-merge",
                 "1.0.0",
             LogicalTestMemberId,
@@ -205,8 +318,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         TrustedProfileBundleCatalog catalog = CreateLogicalOutputCatalog();
         CompiledComposition composition = Assert.IsType<CompiledComposition>(
-            TrustedV2CompositionCompiler.CompileLogicalOutput(
-                catalog,
+catalog.CompileLogicalOutput(
                 "logical-general-merge",
                 "1.0.0",
                 LogicalTestMemberId,
@@ -227,8 +339,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         if (fillByte != 0)
         {
             CompiledComposition zero = Assert.IsType<CompiledComposition>(
-                TrustedV2CompositionCompiler.CompileLogicalOutput(
-                    catalog,
+catalog.CompileLogicalOutput(
                     "logical-general-merge",
                     "1.0.0",
                     LogicalTestMemberId,
@@ -237,15 +348,16 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         }
     }
 
-    private static TrustedProfileBundleCatalog CreateLogicalOutputCatalog()
+    private static TrustedProfileBundleCatalog CreateLogicalOutputCatalog(
+        string promotionStage = "compilable")
     {
         string familyJson = TrustedV2BundleTestDocuments.FamilyJson();
         string familyHash = Hash(familyJson);
-        string profileJson = LogicalOutputProfileJson(familyHash);
+        string profileJson = LogicalOutputProfileJson(familyHash, promotionStage: promotionStage);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(Source(
+        return CreateCatalogFromSources(
             [Family("family-entry", familyHash, TrustedV2BundleTestDocuments.Family())],
-            [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]));
+            [Profile("logical-profile-entry", Hash(profileJson), profileDocument.RootElement.Clone())]);
     }
 
     private static V2LogicalOutputCompileRequest LogicalRequest(
@@ -254,7 +366,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         return new V2LogicalOutputCompileRequest(
             new GeneralMergeOutputInitializer(outputCapacity, fillByte),
-            [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+            [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
             [new ExplicitMapping(
                 "copy-source",
                 10,
@@ -268,22 +380,33 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 reason: "test logical mapping")]);
     }
 
-    private static ExplicitMapping Mapping(string mappingId, int sequence, ByteRange source, ByteRange target)
+    private static ExplicitMapping Mapping(
+        string mappingId,
+        int sequence,
+        ByteRange source,
+        ByteRange target,
+        string sourceBindingId = "source-a",
+        ExplicitMappingOperationKind operationKind = ExplicitMappingOperationKind.CopyRange,
+        OverlapPolicy overlapPolicy = OverlapPolicy.Reject,
+        int alignment = 1)
     {
         return new ExplicitMapping(
             mappingId,
             sequence,
-            ExplicitMappingOperationKind.CopyRange,
-            "source-a",
+            operationKind,
+            sourceBindingId,
             source,
             CompositionAddressSpaceIds.OutputImage,
             target,
-            OverlapPolicy.Reject,
-            alignment: 1,
+            overlapPolicy,
+            alignment,
             reason: "test logical mapping");
     }
 
-    private static string LogicalOutputProfileJson(string familyHash, string memberId = LogicalTestMemberId)
+    private static string LogicalOutputProfileJson(
+        string familyHash,
+        string memberId = LogicalTestMemberId,
+        string promotionStage = "compilable")
     {
         var profile = new JsonObject
         {
@@ -292,7 +415,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["profileVersion"] = "1.0.0",
             ["promotion"] = new JsonObject
             {
-                ["stage"] = "compilable",
+                ["stage"] = promotionStage,
                 ["blockers"] = new JsonArray(),
             },
             ["compositionKind"] = "merge",

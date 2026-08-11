@@ -13,16 +13,16 @@ internal static partial class V2CompositionPlanCompiler
 
     /// <summary>Lowers one admitted logical-output General Merge request through the shared plan algebra.</summary>
     internal static V2CompositionPlanCompileResult CompileLogicalOutput(
-        TrustedProfileBundleCatalog.ProfileSelection selection,
+        ProfileBundleIdentity bundleIdentity,
         TrustedCompositionProfileCatalogEntry profileEntry,
         string memberId,
         V2LogicalOutputCompileRequest request)
     {
-        ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
         ArgumentNullException.ThrowIfNull(profileEntry);
         ArgumentNullException.ThrowIfNull(request);
         CompositionProfileDefinition profile = profileEntry.Profile;
-        if (!IsLogicalOutputProfile(profile))
+        if (profile.Header.CompilationContextKind != V2CompilationContextKind.LogicalOutput)
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -31,7 +31,7 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         if (string.IsNullOrWhiteSpace(memberId) ||
-            !profile.LogicalOutputBinding.MemberIds.Contains(memberId, StringComparer.Ordinal))
+            !profile.LogicalOutputMemberIds.Contains(memberId, StringComparer.Ordinal))
         {
             return V2CompositionPlanCompileResult.Failed([
                 new CompositionIssue(
@@ -82,14 +82,15 @@ internal static partial class V2CompositionPlanCompiler
             output.SpaceId,
             spaces,
             operations);
-        CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = profile.InputSlots[0];
         return Succeed(
             profile,
-            selection,
+            bundleIdentity,
+            profileEntry.EntryIdentity,
             new LogicalOutputV2CompilationContext(
-                profile.LogicalOutputBinding.FamilyId,
-                profile.LogicalOutputBinding.FamilyVersion,
-                profile.LogicalOutputBinding.FamilyContentHash,
+                profile.Header.FamilyId,
+                profile.Header.FamilyVersion,
+                profile.Header.FamilyContentHash,
                 memberId),
             plan,
             [MapLogicalInputSlot(inputSlot)],
@@ -97,57 +98,14 @@ internal static partial class V2CompositionPlanCompiler
                 binding.BindingId,
                 binding.SlotId,
                 CompiledInputInstancePolicy.PerBinding)),
-            new CompiledRegionAccessContract([], []),
-            CompiledIcNumberPolicy.NotApplicable);
+            new CompiledRegionAccessContract([], []));
     }
 
-    private static bool IsLogicalOutputProfile(CompositionProfileDefinition profile)
-    {
-        return profile.CompilationContext is LogicalOutputProfileCompilationContext &&
-            profile.CompositionKind == CompositionKind.Merge &&
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.GeneralMerge) &&
-            profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
-            profile.Experience.InputPolicy == InputPolicy.Extensible &&
-            profile.Spaces.Count == 2 &&
-            profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault() is { InstancePolicy: CompositionProfileInstancePolicy.PerBinding } &&
-            AssertOutputSpace(profile) is
-            {
-                Capacity: RuntimeRequestProfileCapacity,
-                Initializer: BlankProfileInitializer { FillByte: 0 },
-            } &&
-            profile.Views.Count == 0 &&
-            profile.MetadataBindings.Count == 0 &&
-            profile.RegionAccessRules.Count == 0 &&
-            profile.Operations.Count == 0 &&
-            profile.Validations.Count == 0 &&
-            profile.ProcessorStages.Count == 0;
-    }
-
-    private static CompositionProfileInputSlot AssertLogicalInputSlot(CompositionProfileDefinition profile)
-    {
-        return profile.InputSlots.Count == 1 && profile.InputSlots[0] is
-        {
-            Required: true,
-            Cardinality: CompositionProfileSlotCardinality.OneOrMore,
-            ArtifactClass: CompositionProfileArtifactClass.Auxiliary,
-            LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            Normalization: NoInputNormalization,
-        } slot
-            ? slot
-            : throw new InvalidOperationException("Validated logical-output profile has an invalid input slot.");
-    }
-
-    private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionProfileInputSlot slot)
+    private static CompiledInputSlotRequirement MapLogicalInputSlot(CompositionInputSlotDefinition slot)
     {
         return new CompiledInputSlotRequirement(
-            slot.SlotId,
-            slot.Role,
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.OneOrMore,
-            slot.AcceptedExtensions,
-            new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
-            new CompiledNoInputNormalization());
+            slot,
+            (CompiledBoundedInputLengthRequirement)slot.LengthRequirement);
     }
 
     private static void ValidateLogicalRequest(
@@ -155,15 +113,15 @@ internal static partial class V2CompositionPlanCompiler
         V2LogicalOutputCompileRequest request,
         List<CompositionIssue> issues)
     {
-        CompositionProfileInputSlot inputSlot = AssertLogicalInputSlot(profile);
+        CompositionInputSlotDefinition inputSlot = profile.InputSlots[0];
         string outputSpaceId = AssertOutputSpace(profile).SpaceId;
-        var bindings = new Dictionary<string, V2LogicalOutputInputBinding>(StringComparer.Ordinal);
-        foreach (V2LogicalOutputInputBinding? binding in request.Bindings)
+        var bindings = new Dictionary<string, V2ExplicitMappingInputBinding>(StringComparer.Ordinal);
+        foreach (V2ExplicitMappingInputBinding? binding in request.Bindings)
         {
             if (binding is null ||
                 string.IsNullOrWhiteSpace(binding.BindingId) ||
                 !StringComparer.Ordinal.Equals(binding.SlotId, inputSlot.SlotId) ||
-                binding.ExactLengthBytes <= 0 ||
+                binding.ExactLengthBytes is <= 0 or > int.MaxValue ||
                 StringComparer.Ordinal.Equals(binding.BindingId, outputSpaceId) ||
                 !bindings.TryAdd(binding.BindingId, binding))
             {
@@ -186,7 +144,6 @@ internal static partial class V2CompositionPlanCompiler
         foreach (ExplicitMapping? mapping in request.Mappings)
         {
             if (mapping is null ||
-                string.IsNullOrWhiteSpace(mapping.MappingId) ||
                 !mappingIds.Add(mapping.MappingId) ||
                 !sequences.Add(mapping.Sequence) ||
                 mapping.OperationKind != ExplicitMappingOperationKind.CopyRange ||
@@ -196,8 +153,7 @@ internal static partial class V2CompositionPlanCompiler
                     CompositionAddressSpaceIds.OutputImage) ||
                 mapping.TargetRegionId is not null ||
                 mapping.SourceRange.Start % mapping.Alignment != 0 ||
-                mapping.SourceRange.Length % mapping.Alignment != 0 ||
-                mapping.TargetRange.Length % mapping.Alignment != 0)
+                mapping.SourceRange.Length % mapping.Alignment != 0)
             {
                 issues.Add(new CompositionIssue(
                     LogicalMappingInvalid,
@@ -206,7 +162,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2LogicalOutputInputBinding? source))
+            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2ExplicitMappingInputBinding? source))
             {
                 issues.Add(new CompositionIssue(
                     LogicalMappingInvalid,

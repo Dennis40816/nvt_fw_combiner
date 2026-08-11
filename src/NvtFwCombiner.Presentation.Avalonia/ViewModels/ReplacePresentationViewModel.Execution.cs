@@ -1,7 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -20,7 +20,7 @@ public sealed partial class ReplacePresentationViewModel
     /// <summary>Builds Replace output to a user-selected path.</summary>
     public Task BuildReplaceAsync(
         string outputPath,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null)
+        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         return RunBuildReplaceAsync(outputPath, ctrlRamFirmwareVersionEdit);
@@ -31,38 +31,29 @@ public sealed partial class ReplacePresentationViewModel
         return RunReplaceAsync(
             build: false,
             outputPath: null,
-            ctrlRamFirmwareVersionEdit: null,
-            WorkbenchCompositionService.PreviewGeneralReplaceAcceptedSessionWithProgressAsync);
+            ctrlRamFirmwareVersionEdit: null);
     }
 
     private Task RunBuildReplaceAsync(
         string? outputPath,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit)
+        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit)
     {
         return RunReplaceAsync(
             build: true,
             outputPath,
-            ctrlRamFirmwareVersionEdit,
-            (icId, number, slotPaths, acceptedSession, progress, cancellationToken) =>
-                WorkbenchCompositionService.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
-                    icId,
-                    number,
-                    slotPaths,
-                    acceptedSession,
-                    progress,
-                    outputPath,
-                    cancellationToken));
+            ctrlRamFirmwareVersionEdit);
     }
 
     private bool CanRunReplace()
     {
-        return !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
+        return !_stateBindings.IsGlobalBuildBlocked() &&
+            !_stateBindings.IsRunInProgress() && !_stateBindings.IsFirmwareInspectionLoading() &&
             IsSelectedReplaceModeSupported &&
             (SelectedReplaceMode switch
             {
                 DpReplaceMode => CanRunDpReplace(),
                 CtrlRamReplaceMode =>
-                    CanRunCompiledReplaceSession(_authoringSessions.CtrlRamReplace) &&
+                    CanRunCompiledReplaceSession(_ctrlRamReplaceSession) &&
                     HasCurrentCtrlRamActionReadiness(build: false),
                 GeneralReplaceMode => ReplaceBaseSlot.HasFile &&
                     _generalReplaceDraft is not null &&
@@ -74,22 +65,28 @@ public sealed partial class ReplacePresentationViewModel
 
     private bool CanRunDpReplace()
     {
-        return CanRunCompiledReplaceSession(_authoringSessions.DpReplace);
+        return CanRunCompiledReplaceSession(_dpReplaceSession);
     }
 
     private void RefreshDpReplaceInputSelectionReadiness()
     {
         FirmwareSlotViewModel[] selected = [.. CurrentReplaceInputSlots().DistinctBy(ReplaceInputId)];
-        CompiledAuthoringSelectionSnapshot? projection = SelectedReplaceMode == DpReplaceMode
-            ? _dpReplaceSelection is { } current && IsCurrentDpReplaceSelection(current, selected)
-                    ? current
-                    : ResolveDpReplaceAuthoringSnapshot(selected)
-            : null;
+        ActiveSessionSnapshot? session = _dpReplaceSession.CurrentSnapshot;
+        bool currentSelection = session is not null &&
+            session.Slots.Count(static slot => slot.SelectedPath is not null) == selected.Length &&
+            selected.All(slot => session.Slots.Any(current =>
+                StringComparer.Ordinal.Equals(current.SelectedPath, slot.FilePath)));
+        IReadOnlyList<InputSelectionMemberReadiness>? readiness =
+            SelectedReplaceMode != DpReplaceMode
+                ? null
+                : currentSelection && session!.InputSelectionReadiness.Count != 0
+                    ? session.InputSelectionReadiness
+                    : ResolveDpReplaceAuthoringSnapshot(selected).Slots;
         foreach (FirmwareSlotViewModel slot in ReplaceSlots.Where(slot =>
                      !ReferenceEquals(slot, ReplaceBaseSlot)))
         {
-            InputSelectionMemberReadiness? member = projection?.Slots.FirstOrDefault(candidate =>
-                string.Equals(candidate.SlotId, slot.AddressSpaceId, StringComparison.Ordinal));
+            InputSelectionMemberReadiness? member = readiness?.FirstOrDefault(candidate =>
+                string.Equals(candidate.SlotId, slot.CompiledSlotId, StringComparison.Ordinal));
             if (member is null)
             {
                 slot.IsOptional = slot.DeclaredIsOptional;
@@ -115,18 +112,17 @@ public sealed partial class ReplacePresentationViewModel
     private async Task RunReplaceAsync(
         bool build,
         string? outputPath,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit,
-        WorkbenchGeneralReplaceAcceptedSessionRunner generalReplaceRun)
+        CtrlRamFirmwareVersionDraftState? ctrlRamFirmwareVersionEdit)
     {
         CloseSelectionForRun();
         string icId = SelectedIc;
         string number = SelectedNumber;
         string replaceMode = SelectedReplaceMode;
         IReadOnlyDictionary<string, string> slotPaths = CreateReplaceSlotPaths();
-        WorkbenchCtrlRamAuthoringTransitionResult? ctrlRamTransition =
+        CtrlRamAuthoringTransitionResult? ctrlRamTransition =
             replaceMode == CtrlRamReplaceMode
-                ? WorkbenchCompositionService.TransitionCtrlRamFirmwareVersionCompilation(
-                    _authoringSessions.CtrlRamReplace,
+                ? _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
+                    _ctrlRamReplaceSession,
                     icId,
                     number,
                     slotPaths,
@@ -137,7 +133,7 @@ public sealed partial class ReplacePresentationViewModel
             await RefreshCtrlRamActionReadinessAsync(CancellationToken.None);
         }
         ActiveSessionSnapshot? generalSession = replaceMode == GeneralReplaceMode
-            ? _authoringSessions.GeneralReplace.CurrentSnapshot ??
+            ? _generalReplaceSession.CurrentSnapshot ??
                 throw new InvalidOperationException(
                     "General Replace requires one accepted authoring session.")
             : null;
@@ -145,52 +141,69 @@ public sealed partial class ReplacePresentationViewModel
             generalSession?.DraftState as GeneralMappingDraftState;
         ActiveSessionSnapshot? compiledSession = replaceMode switch
         {
-            DpReplaceMode => _authoringSessions.DpReplace.CurrentSnapshot,
+            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode => ctrlRamTransition?.Session,
             _ => null,
         };
+        CapabilityActionReadinessSnapshot? actionReadiness = replaceMode switch
+        {
+            CtrlRamReplaceMode => _ctrlRamActionReadiness,
+            GeneralReplaceMode => _generalReplaceActionReadiness,
+            _ => null,
+        };
+        if (actionReadiness is { } readiness)
+        {
+            CapabilityActionAvailability action = build
+                ? readiness.Build
+                : readiness.Preview;
+            if (!action.IsAvailable)
+            {
+                _stateBindings.ShowActionReadiness(readiness, build);
+                return;
+            }
+            if (replaceMode == GeneralReplaceMode &&
+                !build &&
+                _generalReplaceDiagnosticPreviewReport is { } diagnosticReport)
+            {
+                await _stateBindings.ShowDiagnosticPreviewAsync(diagnosticReport);
+                return;
+            }
+        }
         await RunCompositionAsync(
             build,
             async (progress, cancellationToken) =>
             {
-                WorkbenchRunResult result =
-                    replaceMode == GeneralReplaceMode
-                        ? await generalReplaceRun(
-                                icId,
-                                number,
-                                slotPaths,
-                                generalSession!,
-                                progress,
-                                cancellationToken)
-                            .ConfigureAwait(false)
-                        : compiledSession?.GetAcceptedCapability(
-                            AuthoringDerivedResultKind.Inspection) is null
-                        ? WorkbenchCompositionService.CreateRejectedReplaceAttemptResult(
-                            icId,
-                            number,
-                            replaceMode,
+                if (replaceMode != GeneralReplaceMode &&
+                    compiledSession?.GetAcceptedCapability(
+                        AuthoringDerivedResultKind.Inspection) is null)
+                {
+                    IReadOnlyList<CompositionIssue> issues = replaceMode == DpReplaceMode
+                        ? ResolveDpReplaceAuthoringSnapshot(
+                            [.. CurrentReplaceInputSlots()]).Issues
+                        : ctrlRamTransition?.Issues ?? [];
+                    throw new InvalidOperationException(issues.Count == 0
+                        ? "Replace requires one accepted selected-input inspection."
+                        : string.Join(
+                            Environment.NewLine,
+                            issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+                }
+
+                CompositionRunResult result = await _compositionServices.Execution.ExecuteAsync(
+                        new AcceptedCompositionExecutionRequest(
+                            generalSession ?? compiledSession!,
                             slotPaths,
-                            replaceMode == DpReplaceMode
-                                ? _dpReplaceSelection?.Issues ?? []
-                                : ctrlRamTransition?.Issues ?? [],
-                            build)
-                        : await WorkbenchCompositionService.RunReplaceAcceptedSessionWithProgressAsync(
-                            icId,
-                            number,
-                            replaceMode,
-                            slotPaths,
-                            compiledSession,
-                            build,
-                            progress,
-                            cancellationToken,
-                            outputPath,
-                            ctrlRamFirmwareVersionEdit).ConfigureAwait(false);
+                             build,
+                             outputPath: outputPath,
+                             actionReadiness: actionReadiness),
+                        progress,
+                        cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (replaceMode == GeneralReplaceMode)
                 {
                     if (result.AcceptedGeneralMappingDraft is { } accepted &&
                         ReferenceEquals(generalDraft, _generalReplaceDraft) &&
-                        _authoringSessions.GeneralReplace.CurrentSnapshot?.AuthoringRevision ==
+                        _generalReplaceSession.CurrentSnapshot?.AuthoringRevision ==
                             generalSession!.AuthoringRevision)
                     {
                         _generalReplaceDraft = accepted;

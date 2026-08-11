@@ -6,12 +6,238 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies synthetic Replace definitions cannot re-enter production profile catalogs.</summary>
+    /// <summary>Workflow labels may remain wire tokens, but cannot survive as normalized or compiled semantic types.</summary>
     [Fact]
-    public void SyntheticReplaceProfilesStayTestOnly()
+    public void NormalizedProfilePoliciesUseOneProfilesRepresentation()
     {
-        string synthetic = ReadText("tests/NvtFwCombiner.TestSupport/SyntheticReplaceProfiles.cs");
-        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        Assert.DoesNotContain(
+            "NormalDpExtractWithWarningLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "NormalDpExtractWithWarning",
+            ReadDomainSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "TpMaximum256KLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "DeclaredPrefixWithWarningLengthRule",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileLengthRuleKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInputNormalizationKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileCapacityKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInitializerKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileViewSelectorKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarLiteralKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileCompilationContextKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileProcessorKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInvalidCharacterPolicy",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileOutputArtifactType",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileOutputTokenSourceKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileOutputTokenMissingPolicy",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileValidationSeverity",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileMetadataComparison",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileRejectedBytePattern",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarWidth",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileScalarByteOrder",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "enum TransformAddendSourceKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfilePromotionStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileBlockerKind",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileSlotCardinality",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileArtifactClass",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CompositionProfileInstancePolicy",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal abstract record CompositionProfileInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record NoInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record PadShorterInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record TruncateCtrlRamInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapInputNormalization",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapPromotionStage",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "MapPromotionBlocker",
+            ReadProfileSources(),
+            StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "CompositionProfilePromotion.cs")));
+
+        string bootstrap = ReadBootstrapSources();
+        Assert.DoesNotContain("CompositionProfilePromotionStage", bootstrap, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileSlotCardinality", bootstrap, StringComparison.Ordinal);
+    }
+
+    /// <summary>Validation-only profile fields cannot survive as a fourth stored semantic form.</summary>
+    [Fact]
+    public void NormalizedProfilesDiscardValidationOnlyPolicyState()
+    {
+        string header = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileHeader.cs");
+        string processor = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileProcessor.cs");
+
+        Assert.DoesNotContain("CompositionProfileTopologyAuthoring", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("Audience { get; }", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayNameKey { get; }", header, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileProcessorFailurePolicy", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionProfileProcessorAuthority", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal abstract CompositionProfileProcessorPurpose", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal abstract CompositionProfileIntegrityDisposition",
+            processor,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ContractVersion { get; }", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("CalculationSetId { get; }", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("EvidenceRef { get; }", processor, StringComparison.Ordinal);
+    }
+
+    /// <summary>Output naming is constructed once as the Domain-owned canonical requirement.</summary>
+    [Fact]
+    public void NormalizedOutputNamingUsesDomainCanonicalDefinition()
+    {
+        string definition = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileDefinition.cs");
+        string processor = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/CompositionProfileProcessor.cs");
+        string lowering = ReadText(
+            "src/NvtFwCombiner.Profiles/V2/V2CompositionPlanCompiler.ContractLowering.cs");
+
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "V2",
+            "CompositionProfileDefinition.OutputNaming.cs")));
+        Assert.DoesNotContain(
+            "internal sealed class CompositionProfileOutput",
+            processor,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "internal sealed record CompositionProfileOutputTokenRequirement",
+            processor,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("LowerOutputNaming", lowering, StringComparison.Ordinal);
+        Assert.Contains("CompiledOutputNamingRequirement Output", definition, StringComparison.Ordinal);
+    }
+
+    /// <summary>Zero-caller Domain compatibility policy and resolution helpers cannot return.</summary>
+    [Fact]
+    public void DeadDomainProfileCompatibilitySurfaceStaysDeleted()
+    {
+        string domain = ReadDomainSources();
+
+        Assert.DoesNotContain("public enum RegionWritePolicy", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("public enum RegionAtomicity", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetMapResolutionStructuresForMap", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredArtifactBindingIds", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveMapWithin(", domain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveMapWithinForSelection(", domain, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verifies the legacy typed profile model and its synthetic fixture cannot return.</summary>
+    [Fact]
+    public void LegacyTypedProfileModelsStayDeleted()
+    {
+        string v2Registration = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -26,9 +252,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("synthetic-dp-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-ctrlram-replace", ReadProfileSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-general-replace", ReadProfileSources(), StringComparison.Ordinal);
-        Assert.Contains("public static class SyntheticReplaceProfiles", synthetic, StringComparison.Ordinal);
-        Assert.Contains("CompositionProfileDefinition General", synthetic, StringComparison.Ordinal);
-        Assert.DoesNotContain("DpPerspectiveCatalog", synthetic, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "CompositionProfileDefinition.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "tests",
+            "NvtFwCombiner.TestSupport",
+            "SyntheticReplaceProfiles.cs")));
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "src",
@@ -62,7 +295,7 @@ public sealed partial class RepositoryBoundaryTests
             "src",
             "NvtFwCombiner.Profiles",
             "SyntheticCompositionProfiles.cs")));
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        string registration = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "tests",
@@ -78,9 +311,11 @@ public sealed partial class RepositoryBoundaryTests
         string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
         string versionDecoder = ReadText(
             "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
-        string inputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
+        string inputProjection = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
-        string workbenchService = ReadText("src/NvtFwCombiner.Bootstrap/AbMergeWorkbenchCompositionService.cs");
+        string executionAdapter = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
         Assert.Contains("CompiledInputArtifactObservationService.DecodeDpRegion", outputNaming, StringComparison.Ordinal);
         Assert.Contains("Provenance.ResolvedMap.ImageMap.Regions", versionDecoder, StringComparison.Ordinal);
@@ -93,8 +328,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain(".Pid", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CommonFw", observedMetadataConsumers, StringComparison.Ordinal);
         Assert.DoesNotContain("CompiledComposition.IcId", topologyValidation, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51950", workbenchService, StringComparison.Ordinal);
-        Assert.DoesNotContain("NT51951", workbenchService, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51950", executionAdapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("NT51951", executionAdapter, StringComparison.Ordinal);
         Assert.Contains("ChipNumber", topologyValidation, StringComparison.Ordinal);
 
         foreach (string profilePath in new[]
@@ -231,14 +466,14 @@ public sealed partial class RepositoryBoundaryTests
         string[] retiredIds = ["51920", "51925", "51930", "51931"];
         string[] productionOwners =
         [
-            "src/NvtFwCombiner.Profiles/IcSupportCatalog.cs",
-            "src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs",
-            "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
-            "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",
+            "src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
             "src/NvtFwCombiner.Application/ExternalTools/PostbuildWriteSections.cs",
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.ReportMetadata.cs",
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs",
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.IntegrityRanges.cs",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog.Loader.cs",
             "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
@@ -361,9 +596,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
     {
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs");
-        string display = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.V2Display.cs");
-        string planning = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Planning.cs");
+        string registration = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
+        string display = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -371,14 +606,21 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", registration, StringComparison.Ordinal);
-        Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
-        Assert.DoesNotContain("BuiltInTpFlashMapCatalog", planning, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetDpReplaceRegions", planning, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionOperationKind", planning, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpReplaceContracts", registration, StringComparison.Ordinal);
+        Assert.Contains("plan.OrderedOperations", display, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.Replace.Dp.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionPlanningAdapter.Replace.Planning.cs")));
+        Assert.DoesNotContain("GetDpReplaceRegions", ReadBootstrapSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
-
     /// <summary>Partial family vocabulary cannot expand back into role-specific runtime forms.</summary>
     [Fact]
     public void FamilyRelationshipsRetainExactlyTwoRuntimeForms()
@@ -455,5 +697,4 @@ public sealed partial class RepositoryBoundaryTests
             relationshipSchema + tpHeaderSchema + productionFamilyJson,
             StringComparison.Ordinal);
     }
-
 }

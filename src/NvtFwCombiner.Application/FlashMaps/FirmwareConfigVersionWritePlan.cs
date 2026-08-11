@@ -62,12 +62,6 @@ public sealed class FirmwareConfigVersionWritePlan
     /// <summary>Canonical Backup range that must contain the final sub-version byte after postbuild.</summary>
     public ByteRange CanonicalBackupFirmwareSubVersionRange { get; }
 
-    /// <summary>Exact bytes for <see cref="SourceFirmwareVersionAndBarRange"/>.</summary>
-    public ReadOnlyMemory<byte> SourceFirmwareVersionAndBarBytes => new byte[] { FirmwareVersion, FirmwareVersionBar };
-
-    /// <summary>Exact bytes for <see cref="SourceFirmwareSubVersionRange"/>.</summary>
-    public ReadOnlyMemory<byte> SourceFirmwareSubVersionBytes => new byte[] { FirmwareSubVersion };
-
     /// <summary>
     /// Creates writes from metadata read through
     /// <see cref="FirmwareConfigMetadataReader.TryReadBackup(ReadOnlySpan{byte}, out FirmwareConfigMetadata)"/>.

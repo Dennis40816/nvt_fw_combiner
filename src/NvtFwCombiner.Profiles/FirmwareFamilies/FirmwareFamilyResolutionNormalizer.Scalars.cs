@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Firmware;
@@ -6,32 +5,23 @@ using NvtFwCombiner.Profiles.Normalization;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static TopologyRequirement NormalizeTopology(
         FirmwareTopologyRequirementDocument document,
         string path)
     {
-        ArgumentNullException.ThrowIfNull(document);
         return document.Kind switch
         {
             "none" => TopologyRequirement.NoTopologyConstraint(),
             "single" => TopologyRequirement.RequireSingleChip(),
             "cascade" => TopologyRequirement.RequireCascade(
-                ReadInt32(
-                    Require(document.MinimumChipCount, $"{path}.minimumChipCount"),
-                    2,
-                    int.MaxValue,
-                    $"{path}.minimumChipCount"),
+                ReadInt32(document.MinimumChipCount!.Value, $"{path}.minimumChipCount"),
                 document.MaximumChipCount is { } maximum
-                    ? ReadInt32(maximum, 2, int.MaxValue, $"{path}.maximumChipCount")
+                    ? ReadInt32(maximum, $"{path}.maximumChipCount")
                     : null),
             "exact-count" => TopologyRequirement.RequireExactCount(
-                ReadInt32(
-                    Require(document.ChipCount, $"{path}.chipCount"),
-                    1,
-                    int.MaxValue,
-                    $"{path}.chipCount")),
+                ReadInt32(document.ChipCount!.Value, $"{path}.chipCount")),
             _ => throw Error($"{path}.kind", "Unknown topology requirement kind."),
         };
     }
@@ -48,9 +38,9 @@ public static partial class FirmwareFamilyResolutionNormalizer
             FirmwareMetadataEncoding.PrintableAscii => FirmwareMetadataValue.FromText(
                 ReadString(document, path)),
             FirmwareMetadataEncoding.UnsignedInteger => FirmwareMetadataValue.FromUnsignedInteger(
-                ReadUInt64(document, 0, ulong.MaxValue, path)),
+                ReadUInt64(document, path)),
             FirmwareMetadataEncoding.SignedInteger => FirmwareMetadataValue.FromSignedInteger(
-                ReadInt64(document, long.MinValue, long.MaxValue, path)),
+                ReadInt64(document, path)),
             _ => throw Error(path, "Unknown metadata field encoding."),
         };
 
@@ -106,33 +96,19 @@ public static partial class FirmwareFamilyResolutionNormalizer
         };
     }
 
-    private static long ReadInt64(JsonElement value, long minimum, long maximum, string path)
+    private static long ReadInt64(JsonElement value, string path)
     {
-        BigInteger integer = ReadInteger(value, path);
-        return integer < minimum || integer > maximum
-            ? throw Error(path, $"Integer must be between {minimum} and {maximum}.")
-            : (long)integer;
+        return TranslateInvariant(path, () => (long)ContractJsonValueReader.ReadInteger(value));
     }
 
-    private static int ReadInt32(JsonElement value, int minimum, int maximum, string path)
+    private static int ReadInt32(JsonElement value, string path)
     {
-        BigInteger integer = ReadInteger(value, path);
-        return integer < minimum || integer > maximum
-            ? throw Error(path, $"Integer must be between {minimum} and {maximum}.")
-            : (int)integer;
+        return TranslateInvariant(path, () => (int)ContractJsonValueReader.ReadInteger(value));
     }
 
-    private static ulong ReadUInt64(JsonElement value, ulong minimum, ulong maximum, string path)
+    private static ulong ReadUInt64(JsonElement value, string path)
     {
-        BigInteger integer = ReadInteger(value, path);
-        return integer < minimum || integer > maximum
-            ? throw Error(path, $"Integer must be between {minimum} and {maximum}.")
-            : (ulong)integer;
-    }
-
-    private static BigInteger ReadInteger(JsonElement value, string path)
-    {
-        return TranslateInvariant(path, () => ContractJsonValueReader.ReadInteger(value));
+        return TranslateInvariant(path, () => (ulong)ContractJsonValueReader.ReadInteger(value));
     }
 
     private static string ReadString(JsonElement value, string path)

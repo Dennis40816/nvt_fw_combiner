@@ -12,13 +12,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     {
         string familyJson = RuntimeNormalOutputFamilyJson();
         V2CompositionPlanCompileResult flashCode =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeNormalOutputProfileJson(
                     familyHash,
                     tpFirmware: false),
                 familyJson));
         V2CompositionPlanCompileResult tpFirmware =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeNormalOutputProfileJson(
                     familyHash,
                     tpFirmware: true),
@@ -56,12 +56,33 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Empty(tpFirmware.Issues);
     }
 
+    /// <summary>The closed Merge plus AB renderer contract remains executable without a workflow-name branch.</summary>
+    [Fact]
+    public void BlankCopyLoweringAdmitsAbRendererAcrossWorkflowIdentity()
+    {
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(familyHash =>
+        {
+            JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(RuntimeSupportedProfileJson(familyHash)));
+            JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
+            output["fileNameTemplate"] = CompiledOutputNamingRequirement.AbCodeV1Template;
+            output["requiredTokenIds"] = new JsonArray("date", "dp-a", "dp-b", "ic", "tp-a", "tp-b");
+            return profile.ToJsonString();
+        }));
+
+        Assert.Empty(result.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
+        Assert.Equal("display-merge", composition.V2Details.ExperienceId);
+        Assert.NotEqual(ExperienceIds.AbMerge, composition.V2Details.ExperienceId);
+        Assert.Equal(CompiledOutputNameRendererKind.AbCodeV1, composition.V2Details?.OutputNamingRequirement.RendererKind);
+        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, composition.Eligibility);
+    }
+
     /// <summary>A matching legacy template cannot infer typed normal naming authority.</summary>
     [Fact]
     public void BlankCopyLoweringRejectsNormalTemplateWithoutTypedRule()
     {
         V2CompositionPlanCompileResult result =
-            V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+            Compile(PrepareSupportedBlankCopy(
                 familyHash => RuntimeLegacyNormalOutputProfileJson(
                     familyHash)));
 

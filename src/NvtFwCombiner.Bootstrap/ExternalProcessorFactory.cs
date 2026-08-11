@@ -20,12 +20,6 @@ internal static class ExternalProcessorFactory
         return ProcessLifetime.AcquireCurrent();
     }
 
-    /// <summary>Starts a new explicit processor-discovery generation.</summary>
-    internal static void Refresh()
-    {
-        ProcessLifetime.Refresh();
-    }
-
     internal static bool IsCurrent(long generation)
     {
         return ProcessLifetime.IsCurrent(generation);
@@ -60,7 +54,6 @@ internal static class ExternalProcessorFactory
             var processRunner = new SystemExternalProcessRunner();
             var legacyPostbuildProcessor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                BuiltInPostbuildProfileCatalog.All,
                 toolRoot,
                 stagingRoot,
                 processRunner);
@@ -72,8 +65,7 @@ internal static class ExternalProcessorFactory
                 ExternalCombinerInvocationCatalog.All);
             processor = new ExternalProcessorRouter(
                 legacyPostbuildProcessor,
-                manifestProcessor,
-                BuiltInPostbuildProfileCatalog.All.Select(static profile => profile.ProcessorId));
+                manifestProcessor);
         }
 
         return new ExternalProcessorRuntimeEnvironment(processor, readinessProvider);

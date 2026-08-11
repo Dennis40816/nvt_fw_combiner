@@ -8,12 +8,10 @@ public sealed partial class CompositionPlan
         List<CompositionOperation> priorWrites = [];
         foreach (CompositionOperation operation in OrderedOperations)
         {
-            if (!operationIds.Add(operation.OperationId))
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' is declared more than once.",
-                    nameof(OrderedOperations));
-            }
+            DomainInvariant.Reject(
+                !operationIds.Add(operation.OperationId),
+                $"Operation '{operation.OperationId}' is declared more than once.",
+                nameof(OrderedOperations));
 
             ValidateOperationReferences(operation);
             ValidateOperationOverlap(operation, priorWrites);
@@ -23,19 +21,15 @@ public sealed partial class CompositionPlan
 
     private void ValidateOperationReferences(CompositionOperation operation)
     {
-        if (!_addressSpacesById.TryGetValue(operation.TargetSpaceId, out AddressSpace? targetSpace))
-        {
-            throw new ArgumentException(
-                $"Operation '{operation.OperationId}' targets undeclared address space '{operation.TargetSpaceId}'.",
-                nameof(operation));
-        }
+        DomainInvariant.Reject(
+            !_addressSpacesById.TryGetValue(operation.TargetSpaceId, out AddressSpace? targetSpace),
+            $"Operation '{operation.OperationId}' targets undeclared address space '{operation.TargetSpaceId}'.",
+            nameof(operation));
 
-        if (targetSpace.Mutability != AddressSpaceMutability.Mutable)
-        {
-            throw new ArgumentException(
-                $"Operation '{operation.OperationId}' targets immutable address space '{operation.TargetSpaceId}'.",
-                nameof(operation));
-        }
+        DomainInvariant.Reject(
+            targetSpace.Mutability != AddressSpaceMutability.Mutable,
+            $"Operation '{operation.OperationId}' targets immutable address space '{operation.TargetSpaceId}'.",
+            nameof(operation));
 
         if (!targetSpace.Contains(operation.TargetRange))
         {
@@ -74,12 +68,10 @@ public sealed partial class CompositionPlan
         ByteRange sourceRange = operation.SourceRange ?? throw new ArgumentException(
             $"Operation '{operation.OperationId}' is missing scalar transform source range.",
             nameof(operation));
-        if (sourceRange.Length != transform.WidthBytes || operation.TargetRange.Length != transform.WidthBytes)
-        {
-            throw new ArgumentException(
-                $"Operation '{operation.OperationId}' scalar transform ranges must match its declared width.",
-                nameof(operation));
-        }
+        DomainInvariant.Reject(
+            sourceRange.Length != transform.WidthBytes || operation.TargetRange.Length != transform.WidthBytes,
+            $"Operation '{operation.OperationId}' scalar transform ranges must match its declared width.",
+            nameof(operation));
     }
 
     private void ValidateExternalProcessorRanges(
@@ -91,12 +83,10 @@ public sealed partial class CompositionPlan
                 $"Operation '{operation.OperationId}' is missing an external processor invocation.",
                 nameof(operation));
 
-        if (operation.TargetRange.Start != 0)
-        {
-            throw new ArgumentException(
-                $"Operation '{operation.OperationId}' external processor target range must be a zero-based image prefix.",
-                nameof(operation));
-        }
+        DomainInvariant.Reject(
+            operation.TargetRange.Start != 0,
+            $"Operation '{operation.OperationId}' external processor target range must be a zero-based image prefix.",
+            nameof(operation));
 
         foreach (ByteRange range in invocation.AllowedReadRanges)
         {
@@ -130,12 +120,10 @@ public sealed partial class CompositionPlan
 
         foreach (ExternalProcessorStagedSourceBinding binding in invocation.StagedSourceBindings)
         {
-            if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' staged source reads undeclared address space '{binding.SourceSpaceId}'.",
-                    nameof(operation));
-            }
+            DomainInvariant.Reject(
+                !_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace),
+                $"Operation '{operation.OperationId}' staged source reads undeclared address space '{binding.SourceSpaceId}'.",
+                nameof(operation));
 
             if (!sourceSpace.Contains(binding.SourceRange))
             {
@@ -144,12 +132,10 @@ public sealed partial class CompositionPlan
                     $"Operation '{operation.OperationId}' staged source range is outside address space '{binding.SourceSpaceId}'.");
             }
 
-            if (sourceSpace.Mutability != AddressSpaceMutability.Immutable)
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' staged source address space '{binding.SourceSpaceId}' must be immutable.",
-                    nameof(operation));
-            }
+            DomainInvariant.Reject(
+                sourceSpace.Mutability != AddressSpaceMutability.Immutable,
+                $"Operation '{operation.OperationId}' staged source address space '{binding.SourceSpaceId}' must be immutable.",
+                nameof(operation));
 
             if (!operation.TargetRange.Contains(binding.FirmwareRange) || !targetSpace.Contains(binding.FirmwareRange))
             {
@@ -161,12 +147,10 @@ public sealed partial class CompositionPlan
 
         foreach (ExternalProcessorStagedArtifactBinding binding in invocation.StagedArtifactBindings)
         {
-            if (!_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace))
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' staged artifact reads undeclared address space '{binding.SourceSpaceId}'.",
-                    nameof(operation));
-            }
+            DomainInvariant.Reject(
+                !_addressSpacesById.TryGetValue(binding.SourceSpaceId, out AddressSpace? sourceSpace),
+                $"Operation '{operation.OperationId}' staged artifact reads undeclared address space '{binding.SourceSpaceId}'.",
+                nameof(operation));
 
             if (!sourceSpace.Contains(binding.SourceRange))
             {
@@ -179,12 +163,10 @@ public sealed partial class CompositionPlan
 
     private void ValidateSourceRange(CompositionOperation operation)
     {
-        if (!_addressSpacesById.TryGetValue(operation.SourceSpaceId!, out AddressSpace? sourceSpace))
-        {
-            throw new ArgumentException(
-                $"Operation '{operation.OperationId}' reads undeclared address space '{operation.SourceSpaceId}'.",
-                nameof(operation));
-        }
+        DomainInvariant.Reject(
+            !_addressSpacesById.TryGetValue(operation.SourceSpaceId!, out AddressSpace? sourceSpace),
+            $"Operation '{operation.OperationId}' reads undeclared address space '{operation.SourceSpaceId}'.",
+            nameof(operation));
 
         if (!sourceSpace.Contains(operation.SourceRange!.Value))
         {
@@ -200,63 +182,31 @@ public sealed partial class CompositionPlan
     {
         foreach (CompositionOperation prior in priorWrites)
         {
-            if (CreatesSameSequenceMutableDependency(prior, operation))
-            {
-                throw new ArgumentException(
-                    $"Operations '{prior.OperationId}' and '{operation.OperationId}' use a mutable read/write dependency with the same sequence.",
-                    nameof(priorWrites));
-            }
+            DomainInvariant.Reject(
+                CreatesSameSequenceMutableDependency(prior, operation),
+                $"Operations '{prior.OperationId}' and '{operation.OperationId}' use a mutable read/write dependency with the same sequence.",
+                nameof(priorWrites));
 
-            if (!string.Equals(prior.TargetSpaceId, operation.TargetSpaceId, StringComparison.Ordinal) ||
-                !DeclaredWriteRangesOverlap(prior, operation))
+            if (!prior.DeclaredWritesOverlap(operation))
             {
                 continue;
             }
 
-            if (prior.Sequence == operation.Sequence)
-            {
-                throw new ArgumentException(
-                    $"Operations '{prior.OperationId}' and '{operation.OperationId}' overlap with the same sequence.",
-                    nameof(priorWrites));
-            }
+            DomainInvariant.Reject(
+                prior.Sequence == operation.Sequence,
+                $"Operations '{prior.OperationId}' and '{operation.OperationId}' overlap with the same sequence.",
+                nameof(priorWrites));
 
-            if (operation.OverlapPolicy == OverlapPolicy.AllowDeclared)
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' uses allow-declared overlap without validation evidence.",
-                    nameof(priorWrites));
-            }
+            DomainInvariant.Reject(
+                operation.OverlapPolicy == OverlapPolicy.AllowDeclared,
+                $"Operation '{operation.OperationId}' uses allow-declared overlap without validation evidence.",
+                nameof(priorWrites));
 
-            if (operation.OverlapPolicy == OverlapPolicy.Reject)
-            {
-                throw new ArgumentException(
-                    $"Operation '{operation.OperationId}' overlaps earlier operation '{prior.OperationId}' without declared overlap policy.",
-                    nameof(priorWrites));
-            }
+            DomainInvariant.Reject(
+                operation.OverlapPolicy == OverlapPolicy.Reject,
+                $"Operation '{operation.OperationId}' overlaps earlier operation '{prior.OperationId}' without declared overlap policy.",
+                nameof(priorWrites));
         }
-    }
-
-    private static bool DeclaredWriteRangesOverlap(CompositionOperation first, CompositionOperation second)
-    {
-        foreach (ByteRange firstRange in DeclaredWriteRanges(first))
-        {
-            foreach (ByteRange secondRange in DeclaredWriteRanges(second))
-            {
-                if (firstRange.Overlaps(secondRange))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static IReadOnlyList<ByteRange> DeclaredWriteRanges(CompositionOperation operation)
-    {
-        return operation.Kind == CompositionOperationKind.RunExternalProcessor
-            ? operation.ExternalProcessorInvocation!.AllowedWriteRanges
-            : [operation.TargetRange];
     }
 
     private bool CreatesSameSequenceMutableDependency(

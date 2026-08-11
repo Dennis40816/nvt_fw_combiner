@@ -28,7 +28,7 @@ Repository evidence used:
 - `src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs`
 - `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`
 - `src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog*.cs`
-- `profiles/built-in/*-standard-merge/` and `src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.BuiltInV2.cs`
+- `profiles/built-in/*-standard-merge/` and `src/NvtFwCombiner.Bootstrap/CanonicalCapabilityResolution.StandardMerge.cs`
 - `testdata/golden/canonical/manifest.json`
 - `testdata/diagnostics/golden-evidence/standard-merge-gen-flash/test_ic_config.json`
 - `external-tools/legacy-combiner/1.13.0/Combiner.exe`

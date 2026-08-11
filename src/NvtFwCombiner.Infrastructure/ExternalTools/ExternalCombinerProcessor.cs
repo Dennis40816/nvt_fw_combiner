@@ -169,7 +169,7 @@ public sealed partial class ExternalCombinerProcessor : IExternalProcessor
         }
         finally
         {
-            TryDeleteDirectory(runDirectory);
+            ExternalStagingDirectory.TryDelete(runDirectory);
         }
     }
 

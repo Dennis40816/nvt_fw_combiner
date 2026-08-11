@@ -53,17 +53,13 @@ public sealed record ScalarTransformAddendSource
         string? sourceRegionInstanceId,
         string? targetRegionInstanceId)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scalar addend source kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown scalar addend source kind.");
 
         if (kind == ScalarTransformAddendSourceKind.Fixed)
         {
-            if (sourceRegionInstanceId is not null || targetRegionInstanceId is not null)
-            {
-                throw new ArgumentException("Fixed scalar addends cannot name region instances.");
-            }
+            DomainInvariant.Reject(
+                sourceRegionInstanceId is not null || targetRegionInstanceId is not null,
+                "Fixed scalar addends cannot name region instances.");
         }
         else
         {
@@ -132,23 +128,9 @@ public sealed class ScalarTransform
         ScalarTransformOverflowPolicy overflowPolicy,
         ScalarTransformAddendSource addendSource)
     {
-        if (!Enum.IsDefined(width))
-        {
-            throw new ArgumentOutOfRangeException(nameof(width), width, "Unknown scalar transform width.");
-        }
-
-        if (!Enum.IsDefined(byteOrder))
-        {
-            throw new ArgumentOutOfRangeException(nameof(byteOrder), byteOrder, "Unknown scalar transform byte order.");
-        }
-
-        if (!Enum.IsDefined(overflowPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(overflowPolicy),
-                overflowPolicy,
-                "Unknown scalar transform overflow policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(width, "Unknown scalar transform width.");
+        ClosedEnum.ThrowIfUndefined(byteOrder, "Unknown scalar transform byte order.");
+        ClosedEnum.ThrowIfUndefined(overflowPolicy, "Unknown scalar transform overflow policy.");
 
         ArgumentNullException.ThrowIfNull(addendSource);
         BigInteger maximumValue = GetMaximumValue(width);
@@ -171,12 +153,10 @@ public sealed class ScalarTransform
             }
 
             BigInteger expectedAfter = expected + addend;
-            if (expectedAfter < BigInteger.Zero || expectedAfter > maximumValue)
-            {
-                throw new ArgumentException(
-                    "Expected scalar value and addend must not overflow the declared width.",
-                    nameof(addend));
-            }
+            DomainInvariant.Reject(
+                expectedAfter < BigInteger.Zero || expectedAfter > maximumValue,
+                "Expected scalar value and addend must not overflow the declared width.",
+                nameof(addend));
         }
 
         Width = width;

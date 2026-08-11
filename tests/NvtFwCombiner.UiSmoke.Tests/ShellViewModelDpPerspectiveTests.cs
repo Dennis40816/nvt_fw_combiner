@@ -1,5 +1,4 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -13,9 +12,9 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-coverage");
         string basePath = workspace.Write("base-40000.bin", new byte[0x40000]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         viewModel.SetSlotFile("replace-base", basePath);
 
         Assert.True(viewModel.IsReplaceVisible);
@@ -40,21 +39,16 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void Nt51950DpReplaceCoverageWaitsForSelectedBaseLength()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
 
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Equal("Reference FlashCode length: 0x40000 / 0x80000 / 0x100000", viewModel.Replace.ReplaceMemoryRangeLabel);
-        Assert.Equal("Reference length pending", segment.RangeLabel);
-        Assert.Equal("Reference FlashCode required", segment.SourceLabel);
-        Assert.Equal(
-            "Output range will follow the selected Reference FlashCode length.",
-            segment.CompactDetail);
-        Assert.Contains("actual DP Replace length", segment.Detail, StringComparison.Ordinal);
-        Assert.DoesNotContain("0x00000-0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
-        Assert.DoesNotContain("max", segment.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Pending", segment.RangeLabel);
+        Assert.Equal("Pending input", segment.SourceLabel);
+        Assert.Contains("required inputs", segment.Detail, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies Merge coverage rows expose final ownership without report-level operation text.</summary>
@@ -63,28 +57,20 @@ public sealed partial class ShellViewModelTests
     [InlineData("NT51951")]
     public void DpPerspectiveMergeCoverageWaitsForSelectedDpLength(string icId)
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = icId;
 
-        MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.Merge.MergeMemoryRows,
-            row => row.ActionLabel == "Initialize");
-        Assert.Equal("Selected DP BIN length pending", initialRow.RangeLabel);
-        Assert.Contains("Supported DP lengths are 0x40000 / 0x80000 / 0x100000", initialRow.Detail, StringComparison.Ordinal);
-        Assert.DoesNotContain("0xFFFFF", initialRow.Detail, StringComparison.Ordinal);
-        Assert.Equal("No output -> Reserved", initialRow.FlowLabel);
-        Assert.Equal("Selected DP BIN length pending", viewModel.Merge.MergeMemoryRangeLabel);
-        _ = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        MemoryMapRowViewModel initialRow = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("Pending", initialRow.RangeLabel);
+        Assert.Equal("Select", initialRow.ActionLabel);
+        Assert.Equal("No output -> Pending input", initialRow.FlowLabel);
+        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
         MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
-        Assert.Equal("Selected DP BIN length pending", pendingSegment.RangeLabel);
-        Assert.Equal("DP length pending", pendingSegment.SourceLabel);
-        Assert.Equal(
-            "Output range will follow the selected DP BIN length.",
-            pendingSegment.CompactDetail);
-        Assert.Contains("Select a DP BIN before final ownership is drawn", pendingSegment.Detail, StringComparison.Ordinal);
-        Assert.DoesNotContain("0xFFFFF", pendingSegment.RangeLabel, StringComparison.Ordinal);
+        Assert.Equal("Pending", pendingSegment.RangeLabel);
+        Assert.Equal("Pending input", pendingSegment.SourceLabel);
+        Assert.Contains("required inputs", pendingSegment.Detail, StringComparison.Ordinal);
         Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
@@ -99,17 +85,14 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-initial");
         string dpPath = workspace.Write("dp-40000.bin", new byte[0x40000]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.SetSlotFile("merge-dp", dpPath);
 
-        MemoryMapRowViewModel initialRow = Assert.Single(
-            viewModel.Merge.MergeMemoryRows,
-            row => row.ActionLabel == "Initialize");
-        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", initialRow.RangeLabel);
-        Assert.Contains("selected DP BIN length", initialRow.Detail, StringComparison.Ordinal);
         Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP BIN");
+        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TP BIN");
         Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
         {
             Assert.DoesNotContain("0xFFFFF", segment.RangeLabel, StringComparison.Ordinal);
@@ -120,10 +103,10 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void GenFlashDpReplaceSlotsIncludeLdcOnlyForNt51928()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51927";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
 
         Assert.True(viewModel.Replace.IsStructuredReplaceModeSelected);
         Assert.Equal(
@@ -136,32 +119,30 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             ["replace-base", "replace-dp", "replace-ldc"],
             viewModel.Replace.ReplaceSlots.Select(static slot => slot.SlotId));
-        Assert.Equal(
-            "Reference FlashCode length: 0x40000 / 0x80000",
-            viewModel.Replace.ReplaceMemoryRangeLabel);
+        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
     }
 
-    /// <summary>NT51951 DP inputs explain that the container includes Initial Code and LDC.</summary>
+    /// <summary>DP inputs do not display an undeclared IC-specific container hint.</summary>
     [Fact]
-    public void Nt51951DpSlotsExposeInitialCodeAndLdcHint()
+    public void DpSlotsDoNotInventInitialCodeAndLdcHint()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51951";
         viewModel.ShowMergeCommand.Execute(null);
 
         FirmwareSlotViewModel mergeDp = Assert.Single(
             viewModel.Merge.MergeSlots,
-            slot => slot.SlotId == WorkbenchSlotIds.MergeDp);
-        Assert.EndsWith("(Initial Code + LDC)", mergeDp.Description, StringComparison.Ordinal);
+            slot => slot.SlotId == CompositionSlotIds.MergeDp);
+        Assert.DoesNotContain("Initial Code + LDC", mergeDp.Description, StringComparison.Ordinal);
 
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         FirmwareSlotViewModel replaceDp = Assert.Single(
             viewModel.Replace.ReplaceSlots,
-            slot => slot.SlotId == WorkbenchSlotIds.ReplaceDp);
-        Assert.EndsWith("(Initial Code + LDC)", replaceDp.Description, StringComparison.Ordinal);
+            slot => slot.SlotId == CompositionSlotIds.ReplaceDp);
+        Assert.DoesNotContain("Initial Code + LDC", replaceDp.Description, StringComparison.Ordinal);
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == WorkbenchSlotIds.MergeDp).Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Initial Code + LDC", viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == CompositionSlotIds.MergeDp).Description, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies NT51950 DP Replace restores only TP bytes while customer information follows replacement DP.</summary>
@@ -178,9 +159,9 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
         string outputPath = workspace.PathFor($"nt51950-dp-replace-{baseLength:X}.bin");
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -232,16 +213,20 @@ public sealed partial class ShellViewModelTests
         JsonElement goldenCase = golden.CaseByIc(icId[2..]);
         string basePath = golden.ExpectedOutputPath(goldenCase);
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = icId;
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", dpPath);
 
+        Assert.Equal(
+            $"0x00000-0x{expectedLength - 1:X5} (len 0x{expectedLength:X})",
+            viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
-            row.ActionLabel == "Replace" &&
-            row.RangeLabel == $"0x00000-0x{expectedLength - 1:X5} (len 0x{expectedLength:X})");
+            row.ActionLabel == "Replace" && row.AfterSource == "Changed DP BIN");
+        Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
+            row.ActionLabel == "Restore" && row.AfterSource == "Base flash");
 
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
 
@@ -266,9 +251,9 @@ public sealed partial class ShellViewModelTests
         string outputPath = workspace.PathFor("blocked-output.bin");
         File.Copy(replacementPath, replacementPath2);
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -297,10 +282,10 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-replace-invalid");
         string basePath = workspace.Write("base-60000.bin", new byte[0x60000]);
         string replacementPath = workspace.Write("replacement-dp.bin", new byte[0x40000]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         viewModel.SetSlotFile("replace-dp", replacementPath);
 
@@ -308,15 +293,10 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
         Assert.Contains("0x40000 / 0x80000 / 0x100000", viewModel.RunSession.LastRunResult.Detail, StringComparison.Ordinal);
-        Assert.Contains(viewModel.Replace.ReplaceMemoryRows, row =>
-            row.ActionLabel == "Replace" &&
-            row.RangeLabel == "Unsupported Reference FlashCode length 0x60000");
+        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         MemoryCoverageSegmentViewModel segment = Assert.Single(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Equal("Unsupported 0x60000", segment.RangeLabel);
-        Assert.Equal("Unsupported reference", segment.SourceLabel);
-        Assert.Equal(
-            "This Reference FlashCode length is blocked by profile policy.",
-            segment.CompactDetail);
+        Assert.Equal("Pending", segment.RangeLabel);
+        Assert.Equal("Pending input", segment.SourceLabel);
         Assert.False(segment.IsChanged);
     }
 }

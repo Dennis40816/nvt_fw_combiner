@@ -25,7 +25,8 @@ public sealed class AuthoringInputSlotStatus
         FileStamp? fileStamp,
         CompiledInputArtifactInspectionResult? inspection,
         string? selectedPathHint = null,
-        CompiledInputArtifactObservationResult? observation = null)
+        CompiledInputArtifactObservationResult? observation = null,
+        ReadOnlyMemory<byte>? acceptedBytes = null)
     {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(selectionReadiness);
@@ -48,6 +49,7 @@ public sealed class AuthoringInputSlotStatus
         InspectionLifecycle = inspectionLifecycle;
         FileStamp = fileStamp;
         Inspection = inspection;
+        AcceptedByteArray = acceptedBytes?.ToArray();
         Observation = observation ?? CompiledInputArtifactObservationResult.Empty;
         _inspectionAdvisories =
         [
@@ -114,6 +116,11 @@ public sealed class AuthoringInputSlotStatus
 
     /// <summary>Content-authoritative complete source identity after terminal inspection.</summary>
     public FileStamp? FileStamp { get; }
+
+    /// <summary>Immutable bytes accepted by this exact inspection for subsequent execution.</summary>
+    public ReadOnlyMemory<byte>? AcceptedBytes => AcceptedByteArray;
+
+    internal byte[]? AcceptedByteArray { get; }
 
     /// <summary>Compiler-owned terminal diagnostic, or null while absent/checking.</summary>
     public CompiledInputArtifactInspectionResult? Inspection { get; }
@@ -273,7 +280,11 @@ public static class AuthoringInputSlotInspectionService
             : MapLifecycle(inspection.Severity);
         return Create(
             capability, authoringRevision, selectionReadiness, addressSpaceId,
-            lifecycle, fileStamp, inspection, selectedPathHint, observation);
+            lifecycle, fileStamp, inspection, selectedPathHint, observation,
+            lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning &&
+                !inspection.BlocksBuild
+                    ? sourceBytes
+                    : null);
     }
 
     /// <summary>Inspects one coherent selected-input batch under one exact compilation identity.</summary>
@@ -446,13 +457,14 @@ public static class AuthoringInputSlotInspectionService
         FileStamp? fileStamp,
         CompiledInputArtifactInspectionResult? inspection,
         string? selectedPathHint = null,
-        CompiledInputArtifactObservationResult? observation = null)
+        CompiledInputArtifactObservationResult? observation = null,
+        ReadOnlyMemory<byte>? acceptedBytes = null)
     {
         return Create(
             capability.Identity, capability.ResolutionToken, authoringRevision,
             capability.CapabilityFingerprint, capability.CompiledComposition.CompilationFingerprint,
             selectionReadiness, addressSpaceId, inspectionLifecycle, fileStamp, inspection,
-            selectedPathHint, observation);
+            selectedPathHint, observation, acceptedBytes);
     }
 
     private static AuthoringInputSlotStatus Create(
@@ -467,7 +479,8 @@ public static class AuthoringInputSlotInspectionService
         FileStamp? fileStamp,
         CompiledInputArtifactInspectionResult? inspection,
         string? selectedPathHint = null,
-        CompiledInputArtifactObservationResult? observation = null)
+        CompiledInputArtifactObservationResult? observation = null,
+        ReadOnlyMemory<byte>? acceptedBytes = null)
     {
         return new AuthoringInputSlotStatus(
             identity,
@@ -481,7 +494,8 @@ public static class AuthoringInputSlotInspectionService
             fileStamp,
             inspection,
             selectedPathHint,
-            observation);
+            observation,
+            acceptedBytes);
     }
 
     private static void ValidateInspectable(

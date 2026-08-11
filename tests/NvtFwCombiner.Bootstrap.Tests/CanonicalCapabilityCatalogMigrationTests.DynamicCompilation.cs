@@ -66,7 +66,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCtrlRamReportBindingsRequireProfileDeclaration()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute[] reportless =
@@ -103,7 +103,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsExactSemanticDrift()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -158,7 +158,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsMissingCompiledSelectionGroup()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -187,7 +187,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsLogicalFamilyDrift()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -202,7 +202,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "NT51928",
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(16),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     1,
@@ -261,20 +261,16 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             source.InputContract.SpaceBindings,
             selectionGroups: []);
         var details = new V2CompiledCompositionDetails(
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
+            composition.V2Details.ExperienceId,
+            composition.V2Details.CompositionKind,
             source.Provenance,
             inputContract,
             source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        var identity = new V2CompiledCompositionIdentity(
-            composition.ProfileId,
-            composition.ProfileVersion,
-            composition.ExperienceId,
-            composition.CompositionKind,
-            details);
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            composition.Plan,
-            identity,
-            composition.IcNumberPolicy);
+            source.OutputNamingRequirement,
+            source.IcNumberInputMode);
+        return CompiledComposition.CreateV2RuntimeExecutable(composition.Plan, details);
     }
 
     private static CompiledComposition WithLogicalFamilyId(
@@ -298,19 +294,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             provenance.ValidationRequirements,
             provenance.RequiredCapabilities);
         var details = new V2CompiledCompositionDetails(
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
+            composition.V2Details.ExperienceId,
+            composition.V2Details.CompositionKind,
             changedProvenance,
             source.InputContract,
             source.RegionAccessContract,
-            source.OutputNamingRequirement);
-        var identity = new V2CompiledCompositionIdentity(
-            composition.ProfileId,
-            composition.ProfileVersion,
-            composition.ExperienceId,
-            composition.CompositionKind,
-            details);
-        return CompiledComposition.CreateV2(
-            composition.Plan,
-            identity,
-            composition.IcNumberPolicy);
+            source.OutputNamingRequirement,
+            source.IcNumberInputMode);
+        return CompiledComposition.CreateV2(composition.Plan, details);
     }
 }

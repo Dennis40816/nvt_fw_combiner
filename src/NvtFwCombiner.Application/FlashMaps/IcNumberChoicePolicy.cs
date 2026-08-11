@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -23,13 +24,13 @@ public static class IcNumberChoicePolicy
     /// Gets concise count choices grouped by the identical postbuild branch they select.
     /// Serialized request validation remains owned by <see cref="IsNumberSelectionSupported"/>.
     /// </summary>
-    public static IReadOnlyList<IcNumberChoice> GetNumberSelectionChoices(
+    public static IReadOnlyList<CapabilityNumberChoice> GetNumberSelectionChoices(
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles)
     {
         ArgumentNullException.ThrowIfNull(profiles);
         if (profiles.Count == 0)
         {
-            return [new IcNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC")];
+            return [new CapabilityNumberChoice(IcNumberSelectionTokens.SingleChip, "1 IC")];
         }
 
         LegacyCombinerPostbuildPlanSelector[] selectors =
@@ -40,7 +41,7 @@ public static class IcNumberChoicePolicy
                     candidate.Branch == selector.Branch)))
                 .OrderBy(static selector => selector.MinimumCount),
         ];
-        return [.. selectors.Select(static selector => new IcNumberChoice(selector.Token, selector.DisplayLabel))];
+        return [.. selectors.Select(static selector => new CapabilityNumberChoice(selector.Token, selector.DisplayLabel))];
     }
 
 }

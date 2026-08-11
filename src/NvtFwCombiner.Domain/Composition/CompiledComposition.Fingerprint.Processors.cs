@@ -10,7 +10,7 @@ public sealed partial class CompiledComposition
         RuntimeReferenceReplaceV2CompilationContext context,
         bool capabilityBound)
     {
-        AppendEnum(builder, "compilation-context", context.Kind);
+        AppendInteger(builder, "compilation-context", 2);
         if (context.AllowsConditionalProcessor)
         {
             AppendInteger(
@@ -24,17 +24,10 @@ public sealed partial class CompiledComposition
             return;
         }
 
-        AppendInteger(
+        AppendStringList(
             builder,
-            "compilation-context.processor-write-view.count",
-            context.ProcessorWriteViewIds.Count);
-        for (int index = 0; index < context.ProcessorWriteViewIds.Count; index++)
-        {
-            AppendField(
-                builder,
-                $"compilation-context.processor-write-view.{index}",
-                context.ProcessorWriteViewIds[index]);
-        }
+            "compilation-context.processor-write-view",
+            context.ProcessorWriteViewIds);
     }
 
     private static void AppendProcessor(
@@ -54,54 +47,91 @@ public sealed partial class CompiledComposition
         AppendRangeList(builder, $"{prefix}.read-range", invocation.AllowedReadRanges);
         AppendRangeList(builder, $"{prefix}.write-range", invocation.AllowedWriteRanges);
 
-        AppendInteger(builder, $"{prefix}.write-section.count", invocation.AllowedWriteRangeSections.Count);
-        for (int index = 0; index < invocation.AllowedWriteRangeSections.Count; index++)
-        {
-            ExternalProcessorWriteRangeSection section = invocation.AllowedWriteRangeSections[index];
-            string sectionPrefix = FormattableString.Invariant($"{prefix}.write-section.{index}");
-            AppendField(builder, $"{sectionPrefix}.id", section.SectionId);
-            AppendRange(builder, $"{sectionPrefix}.range", section.Range);
-            AppendRange(builder, $"{sectionPrefix}.source-range", section.SourceRange);
-        }
+        AppendList(builder, $"{prefix}.write-section", invocation.AllowedWriteRangeSections, AppendWriteRangeSection);
 
         if (invocation.OutputAssertions.Count > 0)
         {
-            AppendInteger(builder, $"{prefix}.output-assertion.count", invocation.OutputAssertions.Count);
-            for (int index = 0; index < invocation.OutputAssertions.Count; index++)
-            {
-                ExternalProcessorOutputAssertion assertion = invocation.OutputAssertions[index];
-                string assertionPrefix = FormattableString.Invariant($"{prefix}.output-assertion.{index}");
-                AppendRange(builder, $"{assertionPrefix}.range", assertion.Range);
-                AppendField(builder, $"{assertionPrefix}.expected", Convert.ToHexString(assertion.ExpectedBytes.Span).ToLowerInvariant());
-            }
+            AppendList(builder, $"{prefix}.output-assertion", invocation.OutputAssertions, AppendOutputAssertion);
         }
 
-        AppendInteger(builder, $"{prefix}.staged-source.count", invocation.StagedSourceBindings.Count);
-        for (int index = 0; index < invocation.StagedSourceBindings.Count; index++)
+        AppendList(builder, $"{prefix}.staged-source", invocation.StagedSourceBindings, AppendStagedSource);
+        AppendList(builder, $"{prefix}.staged-artifact", invocation.StagedArtifactBindings, AppendStagedArtifact);
+        if (invocation.ProtocolPlan is { } protocolPlan)
         {
-            ExternalProcessorStagedSourceBinding binding = invocation.StagedSourceBindings[index];
-            string bindingPrefix = FormattableString.Invariant($"{prefix}.staged-source.{index}");
-            AppendField(builder, $"{bindingPrefix}.source-space", binding.SourceSpaceId);
-            AppendRange(builder, $"{bindingPrefix}.source-range", binding.SourceRange);
-            AppendRange(builder, $"{bindingPrefix}.firmware-range", binding.FirmwareRange);
+            AppendProtocolPlan(builder, $"{prefix}.protocol-plan", protocolPlan);
         }
+    }
 
-        AppendInteger(builder, $"{prefix}.staged-artifact.count", invocation.StagedArtifactBindings.Count);
-        for (int index = 0; index < invocation.StagedArtifactBindings.Count; index++)
-        {
-            ExternalProcessorStagedArtifactBinding binding =
-                invocation.StagedArtifactBindings[index];
-            string bindingPrefix =
-                FormattableString.Invariant($"{prefix}.staged-artifact.{index}");
-            AppendField(builder, $"{bindingPrefix}.id", binding.ArtifactId);
-            AppendField(
-                builder,
-                $"{bindingPrefix}.source-space",
-                binding.SourceSpaceId);
-            AppendRange(
-                builder,
-                $"{bindingPrefix}.source-range",
-                binding.SourceRange);
-        }
+    private static void AppendWriteRangeSection(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorWriteRangeSection section)
+    {
+        AppendField(builder, $"{prefix}.id", section.SectionId);
+        AppendRange(builder, $"{prefix}.range", section.Range);
+        AppendRange(builder, $"{prefix}.source-range", section.SourceRange);
+    }
+
+    private static void AppendOutputAssertion(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorOutputAssertion assertion)
+    {
+        AppendRange(builder, $"{prefix}.range", assertion.Range);
+        AppendField(builder, $"{prefix}.expected", Convert.ToHexString(assertion.ExpectedBytes.Span).ToLowerInvariant());
+    }
+
+    private static void AppendStagedSource(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorStagedSourceBinding binding)
+    {
+        AppendField(builder, $"{prefix}.source-space", binding.SourceSpaceId);
+        AppendRange(builder, $"{prefix}.source-range", binding.SourceRange);
+        AppendRange(builder, $"{prefix}.firmware-range", binding.FirmwareRange);
+    }
+
+    private static void AppendStagedArtifact(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorStagedArtifactBinding binding)
+    {
+        AppendField(builder, $"{prefix}.id", binding.ArtifactId);
+        AppendField(builder, $"{prefix}.source-space", binding.SourceSpaceId);
+        AppendRange(builder, $"{prefix}.source-range", binding.SourceRange);
+    }
+
+    private static void AppendProtocolPlan(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolPlan plan)
+    {
+        AppendField(builder, $"{prefix}.id", plan.ProtocolId);
+        AppendField(builder, $"{prefix}.target-file", plan.TargetFileName);
+        AppendList(builder, $"{prefix}.command", plan.Commands, AppendProtocolCommand);
+    }
+
+    private static void AppendProtocolCommand(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolCommand command)
+    {
+        AppendField(builder, $"{prefix}.id", command.CommandId);
+        AppendStringList(builder, $"{prefix}.argument", command.Arguments);
+        AppendInteger(builder, $"{prefix}.retain-short-tail", command.RetainShortOutputTail ? 1 : 0);
+        AppendList(builder, $"{prefix}.block", command.Blocks, AppendProtocolBlock);
+    }
+
+    private static void AppendProtocolBlock(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolBlock block)
+    {
+        AppendField(builder, $"{prefix}.id", block.BlockId);
+        AppendInteger(builder, $"{prefix}.source-kind", (int)block.SourceKind);
+        AppendField(builder, $"{prefix}.source-file", block.SourceFileName);
+        AppendInteger(builder, $"{prefix}.source-offset", block.SourceOffset);
+        AppendRange(builder, $"{prefix}.firmware-range", block.FirmwareRange);
+        AppendField(builder, $"{prefix}.staged-artifact", block.StagedArtifactId ?? string.Empty);
     }
 }

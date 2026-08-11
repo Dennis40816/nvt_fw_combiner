@@ -264,15 +264,14 @@ public sealed partial class CompositionRunRequestV2Tests
             [profileEvidenceReference],
             [],
             []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "logical-general-merge",
             "1.0.0",
             ExperienceIds.GeneralMerge,
             CompositionKind.Merge,
-            new V2CompiledCompositionDetails(
-                provenance,
-                new CompiledInputContract(
-                    [new CompiledInputSlotRequirement(
+            provenance,
+            new CompiledInputContract(
+                [CompiledInputSlotTestFactory.Create(
                         "source-slot",
                         "source",
                         CompiledInputArtifactClass.Auxiliary,
@@ -281,17 +280,17 @@ public sealed partial class CompositionRunRequestV2Tests
                         [".bin"],
                         new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
                         new CompiledNoInputNormalization())],
-                    [
-                        new CompiledInputSpaceBinding("source-a", "source-slot", CompiledInputInstancePolicy.PerBinding),
-                        new CompiledInputSpaceBinding("source-b", "source-slot", CompiledInputInstancePolicy.PerBinding),
-                    ]),
-                new CompiledRegionAccessContract([], []),
-                new CompiledOutputNamingRequirement(
-                    "logical-output.bin",
-                    allowOverride: false,
-                    CompiledOutputInvalidCharacterPolicy.Reject,
-                    [])));
-        return CompiledComposition.CreateV2(plan, identity, CompiledIcNumberPolicy.NotApplicable);
+                [
+                    new CompiledInputSpaceBinding("source-a", "source-slot", CompiledInputInstancePolicy.PerBinding),
+                    new CompiledInputSpaceBinding("source-b", "source-slot", CompiledInputInstancePolicy.PerBinding),
+                ]),
+            new CompiledRegionAccessContract([], []),
+            new CompiledOutputNamingRequirement(
+                "logical-output.bin",
+                allowOverride: false,
+                CompiledOutputInvalidCharacterPolicy.Reject,
+                []));
+        return CompiledComposition.CreateV2(plan, details);
     }
 
     private static InputArtifactBinding CreateLogicalBinding(string bindingId, string originalFileName)

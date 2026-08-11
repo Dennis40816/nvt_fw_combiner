@@ -56,6 +56,110 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
   </Style>
+  <Style Selector="Border.diagnosticCard:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.buildBlockerBadge:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.statusNotice">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.statusNotice.info">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+  </Style>
+  <Style Selector="Border.statusNotice.warning">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcWarningBorderBrush}" />
+  </Style>
+  <Style Selector="Border.statusNotice.error">
+    <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcRequiredMissingBorderBrush}" />
+  </Style>
+  <Style Selector="Border.statusNotice Border.warning">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.statusNotice Border.error">
+    <Setter Property="Background" Value="{DynamicResource NfcDangerTextBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixWorkflowHeader">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.supportMatrixIcHeader">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell.reviewed">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell.contract">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell.review">
+    <Setter Property="Background" Value="{DynamicResource NfcWarningSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell.blocked">
+    <Setter Property="Background" Value="{DynamicResource NfcCriticalSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell.notDeclared">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.supportMatrixCell:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.supportMatrixHoverRoute">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixVariantCount">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixNotDeclared">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="FontSize" Value="16" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend">
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="Width" Value="14" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend.reviewed">
+    <Setter Property="Foreground" Value="{DynamicResource NfcSuccessTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend.contract">
+    <Setter Property="Foreground" Value="{DynamicResource NfcInfoTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend.review">
+    <Setter Property="Foreground" Value="{DynamicResource NfcWarningTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend.blocked">
+    <Setter Property="Foreground" Value="{DynamicResource NfcDangerTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.supportMatrixLegend.notDeclared">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
+  </Style>
   <Style Selector="Border.successInset">
     <Setter Property="Background" Value="{DynamicResource NfcSuccessSurfaceBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource NfcSuccessBorderBrush}" />

@@ -1,4 +1,5 @@
 using System.Text;
+using NvtFwCombiner.Domain.Firmware;
 using static NvtFwCombiner.Domain.Firmware.FirmwareFingerprintWriter;
 
 namespace NvtFwCombiner.Domain.Composition;
@@ -9,43 +10,43 @@ public sealed partial class CompiledComposition
         StringBuilder builder,
         CompiledRegionAccessContract contract)
     {
-        AppendInteger(builder, "region-access.requirement.count", contract.Requirements.Count);
-        for (int index = 0; index < contract.Requirements.Count; index++)
-        {
-            CompiledRegionAccessRequirement requirement = contract.Requirements[index];
-            string prefix = FormattableString.Invariant($"region-access.requirement.{index}");
-            AppendField(builder, $"{prefix}.region-id", requirement.RegionId);
-            AppendEnum(builder, $"{prefix}.access", requirement.Access);
-            AppendField(builder, $"{prefix}.reason", requirement.Reason);
-            AppendStringList(builder, $"{prefix}.allowed-subregion", requirement.AllowedSubregionIds);
-            AppendPhysicalRegionChain(builder, $"{prefix}.chain", requirement.GoverningRegionChain);
-        }
+        AppendList(builder, "region-access.requirement", contract.Requirements, AppendRegionAccessRequirement);
+        AppendList(builder, "region-access.view", contract.ResolvedViews, AppendResolvedPhysicalView);
+    }
 
-        AppendInteger(builder, "region-access.view.count", contract.ResolvedViews.Count);
-        for (int index = 0; index < contract.ResolvedViews.Count; index++)
-        {
-            CompiledResolvedPhysicalView view = contract.ResolvedViews[index];
-            string prefix = FormattableString.Invariant($"region-access.view.{index}");
-            AppendField(builder, $"{prefix}.id", view.ViewId);
-            AppendField(builder, $"{prefix}.address-space", view.AddressSpaceId);
-            AppendRange(builder, $"{prefix}.range", view.Range);
-            AppendPhysicalRegionChain(builder, $"{prefix}.chain", view.GoverningRegionChain);
-        }
+    private static void AppendRegionAccessRequirement(
+        StringBuilder builder,
+        string prefix,
+        CompiledRegionAccessRequirement requirement)
+    {
+        AppendField(builder, $"{prefix}.region-id", requirement.RegionId);
+        AppendEnum(builder, $"{prefix}.access", requirement.Access);
+        AppendField(builder, $"{prefix}.reason", requirement.Reason);
+        AppendStringList(builder, $"{prefix}.allowed-subregion", requirement.AllowedSubregionIds);
+        AppendPhysicalRegionChain(builder, $"{prefix}.chain", requirement.GoverningRegionChain);
+    }
+
+    private static void AppendResolvedPhysicalView(
+        StringBuilder builder,
+        string prefix,
+        CompiledResolvedPhysicalView view)
+    {
+        AppendField(builder, $"{prefix}.id", view.ViewId);
+        AppendField(builder, $"{prefix}.address-space", view.AddressSpaceId);
+        AppendRange(builder, $"{prefix}.range", view.Range);
+        AppendPhysicalRegionChain(builder, $"{prefix}.chain", view.GoverningRegionChain);
     }
 
     private static void AppendPhysicalRegionChain(
         StringBuilder builder,
         string prefix,
-        IReadOnlyList<CompiledPhysicalRegionConstraint> regionChain)
+        IReadOnlyList<FirmwareRegion> regionChain)
     {
-        AppendInteger(builder, $"{prefix}.count", regionChain.Count);
-        for (int index = 0; index < regionChain.Count; index++)
+        AppendList(builder, prefix, regionChain, static (target, itemPrefix, region) =>
         {
-            CompiledPhysicalRegionConstraint region = regionChain[index];
-            string itemPrefix = FormattableString.Invariant($"{prefix}.{index}");
-            AppendField(builder, $"{itemPrefix}.region-id", region.RegionId);
-            AppendEnum(builder, $"{itemPrefix}.write-constraint", region.WriteConstraint);
-            AppendInteger(builder, $"{itemPrefix}.alignment", region.Alignment);
-        }
+            AppendField(target, $"{itemPrefix}.region-id", region.RegionId);
+            AppendEnum(target, $"{itemPrefix}.write-constraint", region.WriteConstraint);
+            AppendInteger(target, $"{itemPrefix}.alignment", region.Alignment);
+        });
     }
 }

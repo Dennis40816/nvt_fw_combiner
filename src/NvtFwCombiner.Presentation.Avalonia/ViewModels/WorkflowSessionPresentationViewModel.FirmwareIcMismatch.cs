@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -20,7 +19,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Gets the non-authoritative IC marker detected from the selected BIN.</summary>
     public string FirmwareIcMismatchDetectedIc { get; private set; } = string.Empty;
 
-    /// <summary>Gets the currently selected workbench IC.</summary>
+    /// <summary>Gets the currently selected workflow IC.</summary>
     public string FirmwareIcMismatchCurrentIc => SelectedIc;
 
     /// <summary>Command that adopts the prompted IC context and retains the selected BIN.</summary>
@@ -45,7 +44,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
             return false;
         }
 
-        if (WorkbenchCompositionService.ArePerfectFamilyMembers(SelectedIc, detectedIc))
+        if (_compositionServices.Capabilities.ArePerfectFamilyMembers(SelectedIc, detectedIc))
         {
             SelectDetectedFirmwareIc(detectedIc, slot.SlotId, slot.FilePath);
             return true;

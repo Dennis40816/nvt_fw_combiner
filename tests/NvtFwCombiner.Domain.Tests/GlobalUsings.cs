@@ -1,2 +1,2 @@
-global using NvtFwCombiner.TestSupport;
 global using Xunit;
+global using NvtFwCombiner.TestSupport;

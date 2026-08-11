@@ -11,14 +11,11 @@ public sealed class ExternalProcessorStagedArtifact
     {
     }
 
-    private ExternalProcessorStagedArtifact(string artifactId, byte[] ownedBytes)
+    internal ExternalProcessorStagedArtifact(string artifactId, byte[] ownedBytes)
     {
         ValidateArtifactId(artifactId, nameof(artifactId));
         ArgumentNullException.ThrowIfNull(ownedBytes);
-        if (ownedBytes.Length == 0)
-        {
-            throw new ArgumentException("Staged artifact bytes must not be empty.", nameof(ownedBytes));
-        }
+        DomainInvariant.Reject(ownedBytes.Length == 0, "Staged artifact bytes must not be empty.", nameof(ownedBytes));
 
         ArtifactId = artifactId;
         _bytes = ownedBytes;
@@ -30,11 +27,6 @@ public sealed class ExternalProcessorStagedArtifact
     /// <summary>Cloned bytes written only into the host-created staging directory.</summary>
     public ReadOnlyMemory<byte> Bytes => _bytes;
 
-    internal static ExternalProcessorStagedArtifact FromOwnedBytes(string artifactId, byte[] ownedBytes)
-    {
-        return new ExternalProcessorStagedArtifact(artifactId, ownedBytes);
-    }
-
     private static byte[] ClonePublicBytes(string artifactId, ReadOnlyMemory<byte> bytes)
     {
         ValidateArtifactId(artifactId, nameof(artifactId));
@@ -45,12 +37,10 @@ public sealed class ExternalProcessorStagedArtifact
     public static void ValidateArtifactId(string value, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
-        if (!IsValidArtifactId(value))
-        {
-            throw new ArgumentException(
-                "Staged artifact id must be lowercase hyphen-separated ASCII words beginning with a letter.",
-                parameterName);
-        }
+        DomainInvariant.Reject(
+            !IsValidArtifactId(value),
+            "Staged artifact id must be lowercase hyphen-separated ASCII words beginning with a letter.",
+            parameterName);
     }
 
     /// <summary>Returns whether a value is a closed staging-artifact identifier.</summary>

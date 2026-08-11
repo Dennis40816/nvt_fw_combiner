@@ -1,5 +1,5 @@
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -12,11 +12,11 @@ public sealed partial class ShellViewModelTests
     public async Task CompletedBuildProjectionOpensOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
-            result with { CommittedOutputId = outputPath },
+            WithCommittedOutputId(result, outputPath),
             build: true,
             TestContext.Current.CancellationToken);
 
@@ -30,16 +30,14 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task BlockedBuildProjectionOpensFailureReport()
     {
-        var result = new WorkbenchRunResult(
-            false,
-            "blocked",
-            "nt51927-ctrlram-replace",
-            0,
-            string.Empty,
-            "No output",
-            null,
-            ReportJsonSamples.CtrlRamCommandIssue());
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        CompositionRunResult result = CreateRunResult(
+            succeeded: false,
+            outputPath: null,
+            [new CompositionIssue(
+                "processor.tool.missing",
+                "Combiner executable is not available.",
+                "run-ctrlram-postbuild")]);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
@@ -56,16 +54,14 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task BlockedPreviewDoesNotAutoOpenFailureReport()
     {
-        var result = new WorkbenchRunResult(
-            false,
-            "blocked",
-            "nt51927-ctrlram-replace",
-            0,
-            string.Empty,
-            "No output",
-            null,
-            ReportJsonSamples.CtrlRamCommandIssue());
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        CompositionRunResult result = CreateRunResult(
+            succeeded: false,
+            outputPath: null,
+            [new CompositionIssue(
+                "processor.tool.missing",
+                "Combiner executable is not available.",
+                "run-ctrlram-postbuild")]);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.ProjectAndApplyRunResultAsync(
             result,
@@ -80,7 +76,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task BuildExceptionOpensFailureReport()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.RunSession.RunCompositionAsync(
             build: true,
@@ -103,7 +99,7 @@ public sealed partial class ShellViewModelTests
     public void CommittedBuildShowsOutputConfirmation()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
         Assert.True(viewModel.BuildResult.IsOpen);
@@ -122,7 +118,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task AbAFlashCodeDeliveryPromptResolvesBeforeBuild()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task<bool> yes = viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
         Assert.True(viewModel.Merge.IsAbAFlashCodeDeliveryPromptOpen);
@@ -144,20 +140,18 @@ public sealed partial class ShellViewModelTests
     {
         string primaryPath = Path.Combine(Path.GetTempPath(), "output", "ab.bin");
         string aFlashCodePath = Path.Combine(Path.GetTempPath(), "output", "a.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        WorkbenchRunResult result = CreateRunResult(succeeded: true, primaryPath) with
-        {
-            DeliveryArtifacts =
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        CompositionRunResult result = WithDelivery(
+            CreateRunResult(succeeded: true, primaryPath),
             [
-                new WorkbenchDeliveryArtifact(
+                new CompositionDeliveryArtifact(
                     "ab-a-flashcode",
                     aFlashCodePath,
                     "a.bin",
                     0x40000,
-                    new Domain.Composition.ByteRange(0, 0x40000),
+                    new ByteRange(0, 0x40000),
                     "a-hash"),
-            ],
-        };
+            ]);
 
         Assert.True(viewModel.TryShowBuildCompleted(result, build: true));
         Assert.True(viewModel.BuildResult.HasAdditionalOutput);
@@ -170,12 +164,12 @@ public sealed partial class ShellViewModelTests
     public void PartialDeliveryDoesNotClaimBuildCompletion()
     {
         string primaryPath = Path.Combine(Path.GetTempPath(), "output", "ab.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        WorkbenchRunResult result = CreateRunResult(succeeded: true, primaryPath) with
-        {
-            IsDeliveryComplete = false,
-            DeliveryFailureMessage = "A FlashCode delivery failed.",
-        };
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        CompositionRunResult result = WithDelivery(
+            CreateRunResult(succeeded: true, primaryPath),
+            [],
+            isDeliveryComplete: false,
+            deliveryFailureMessage: "A FlashCode delivery failed.");
 
         Assert.False(viewModel.TryShowBuildCompleted(result, build: true));
         Assert.False(viewModel.BuildResult.IsOpen);
@@ -187,7 +181,7 @@ public sealed partial class ShellViewModelTests
     public void OutputConfirmationRequiresSuccessfulCommittedBuild()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: false));
         Assert.False(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: false, outputPath), build: true));
@@ -201,8 +195,8 @@ public sealed partial class ShellViewModelTests
     public void LatestOutputActionTracksCommittedOutputAndCompositionPage()
     {
         string outputPath = Path.Combine(Path.GetTempPath(), "output", "firmware.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
-        OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
 
         Assert.False(viewModel.IsLatestOutputActionVisible);
         Assert.True(viewModel.TryShowBuildCompleted(CreateRunResult(succeeded: true, outputPath), build: true));
@@ -245,10 +239,10 @@ public sealed partial class ShellViewModelTests
             ? CreateCtrlRamVersionReadyViewModel(
                 golden!.ReadExpectedOutput(golden.CaseByIc("51926")),
                 workspace!)
-            : ShellViewModelFactory.Create();
+            : PresentationTestHost.CreateViewModel();
         if (surface != "ctrlram-version")
         {
-            OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
+            OpenReplace(viewModel, ExperienceIds.DpReplace);
         }
 
         Assert.True(viewModel.IsCompositionActionRailVisible);
@@ -444,22 +438,110 @@ public sealed partial class ShellViewModelTests
             "test-shell",
             "test-app",
             ShellLanguage.English,
+            PresentationTestHost.CreateServices("test-app"),
             static (_, _) => null,
-            WorkbenchCompositionService.InspectFirmwareBatch,
+            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch,
             fileRevealService);
     }
 
-    private static WorkbenchRunResult CreateRunResult(bool succeeded, string? outputPath)
+    private static CompositionRunResult CreateRunResult(
+        bool succeeded,
+        string? outputPath,
+        IReadOnlyList<CompositionIssue>? issues = null)
     {
-        return new WorkbenchRunResult(
-            succeeded,
-            succeeded ? "succeeded" : "blocked",
+        DateTimeOffset timestamp = new(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
+        ReadOnlyMemory<byte> outputBytes = succeeded
+            ? new byte[] { 0x01, 0x02, 0x03, 0x04 }
+            : ReadOnlyMemory<byte>.Empty;
+        var report = new CompositionRunReport(
+            "ui-smoke-run",
             "test-profile",
-            4,
-            "hash",
-            "firmware.bin",
+            "1.0.0",
+            "NT51927",
+            "ctrlram-replace",
+            "ctrlram-replace",
+            CompositionKind.Replace,
+            timestamp,
+            timestamp,
+            [],
+            [],
+            [],
+            issues ?? [],
+            new OutputArtifactSummary(
+                succeeded ? "firmware.bin" : "No output",
+                outputBytes.Length,
+                succeeded ? "hash" : "empty-hash",
+                committed: succeeded && outputPath is not null));
+        return new CompositionRunResult(
+            succeeded
+                ? CompositionExecutionStatus.Succeeded
+                : CompositionExecutionStatus.Failed,
+            outputBytes,
+            report,
             outputPath,
-            "{}");
+            previewToken: null,
+            inspectionOutputSpaceId: null,
+            inspectionReferenceSpaceId: null,
+            inspectionReferenceBytes: null,
+            inspectionOutputBytes: null,
+            outcomeStatus: succeeded ? "Succeeded" : "Blocked");
+    }
+
+    private static CompositionRunResult WithCommittedOutputId(
+        CompositionRunResult source,
+        string committedOutputId)
+    {
+        return CloneRunResult(source, committedOutputId, source.Report);
+    }
+
+    private static CompositionRunResult WithDelivery(
+        CompositionRunResult source,
+        IReadOnlyList<CompositionDeliveryArtifact> deliveryArtifacts,
+        bool isDeliveryComplete = true,
+        string? deliveryFailureMessage = null)
+    {
+        CompositionRunResult clone = CloneRunResult(source, source.CommittedOutputId, source.Report);
+        clone.DeliveryArtifacts = [.. deliveryArtifacts];
+        clone.IsDeliveryComplete = isDeliveryComplete;
+        clone.DeliveryFailureMessage = deliveryFailureMessage;
+        return clone;
+    }
+
+    private static CompositionRunResult WithReport(
+        CompositionRunResult source,
+        CompositionRunReport report)
+    {
+        return CloneRunResult(source, source.CommittedOutputId, report);
+    }
+
+    private static CompositionRunResult CloneRunResult(
+        CompositionRunResult source,
+        string? committedOutputId,
+        CompositionRunReport report)
+    {
+        CompositionRunInspectionSnapshot? inspection = source.InspectionSnapshot;
+        var clone = new CompositionRunResult(
+            source.Status,
+            source.OutputBytes,
+            report,
+            committedOutputId,
+            source.PreviewToken,
+            inspection?.OutputSpaceId,
+            inspection?.ReferenceSpaceId,
+            inspection?.ReferenceBytes.ToArray(),
+            inspection?.OutputBytes,
+            source.OutcomeStatus,
+            source.SuppressOutputInExternalReport,
+            source.HasRunReport)
+        {
+            AcceptedGeneralMappingDraft = source.AcceptedGeneralMappingDraft,
+            ResolvedCapability = source.ResolvedCapability,
+            ActionReadiness = source.ActionReadiness,
+            DeliveryArtifacts = [.. source.DeliveryArtifacts],
+            IsDeliveryComplete = source.IsDeliveryComplete,
+            DeliveryFailureMessage = source.DeliveryFailureMessage,
+        };
+        return clone;
     }
 
     private sealed class RecordingFileRevealService(bool result) : IFileRevealService

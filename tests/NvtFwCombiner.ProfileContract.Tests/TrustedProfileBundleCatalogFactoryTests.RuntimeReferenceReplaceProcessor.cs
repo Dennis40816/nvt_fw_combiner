@@ -13,8 +13,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceGeneralReplaceRejectsResolutionArtifact()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: false),
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: false).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -43,8 +42,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new ByteRange(0, 2),
                 new ByteRange(8, 2))]);
 
-        V2CompositionPlanCompileResult valid = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult valid = catalog.CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -52,8 +50,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             requestedTopology: null,
             [new FirmwareArtifactPayload("base", new byte[16])],
             request);
-        V2CompositionPlanCompileResult rejected = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult rejected = catalog.CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -73,15 +70,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceCompilesShortSourceForSelectedTopology()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
                 experienceId: ExperienceIds.CtrlRamReplace,
                 mapDefinitions:
                 [
                     new RuntimeReferenceReplaceMapDocument("single-map", 16, "single"),
                     new RuntimeReferenceReplaceMapDocument("cascade-map", 16, "cascade"),
-                ]),
+                ]).CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -95,7 +91,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         Assert.True(result.IsCompiled);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal(ExperienceIds.CtrlRamReplace, composition.ExperienceId);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, composition.V2Details.ExperienceId);
         Assert.Equal("cascade-map", composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         CompiledInputSlotRequirement sourceSlot = Assert.Single(
             composition.V2Details.InputContract.Slots,
@@ -117,6 +113,119 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             });
     }
 
+    /// <summary>Verifies postbuild source evidence must be bounded by its binding and match one compiled mapping.</summary>
+    [Theory]
+    [InlineData(0, 3)]
+    [InlineData(1, 1)]
+    public void RuntimeReferenceCtrlRamRejectsUnmappedPostbuildSourceRange(
+        long requiredStart,
+        long requiredLength)
+    {
+        ExplicitMapping[] mappings =
+        [
+            RuntimeReferenceReplaceMapping(
+                "replace-tp",
+                10,
+                new ByteRange(0, 2),
+                new ByteRange(8, 2)),
+        ];
+        var postbuildPolicy = new V2RuntimeReferenceReplacePostbuildPolicy(
+            "postbuild",
+            "source-a",
+            [new ByteRange(requiredStart, requiredLength)],
+            "SOURCE_UNIFORM",
+            new ByteRange(12, 4),
+            new ByteRange(12, 4),
+            expectedFirmwareConfigBackupStart: 12,
+            firmwareConfigBackupLength: 2,
+            "INVALID_PLACEMENT",
+            "INACTIVE_MUTATION",
+            "UNEXPECTED_PLACEMENT");
+        var request = new V2RuntimeReferenceReplaceCompileRequest(
+            [
+                new V2ExplicitMappingInputBinding("base", "reference", 16),
+                new V2ExplicitMappingInputBinding("source-a", "source", 2),
+            ],
+            mappings,
+            postbuildPolicy: postbuildPolicy);
+
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                mapDefinitions:
+                [
+                    new RuntimeReferenceReplaceMapDocument("single-map", 16, "single"),
+                    new RuntimeReferenceReplaceMapDocument("cascade-map", 16, "cascade"),
+                ]).CompileRuntimeReferenceReplace(
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            new TopologySelection(3, "cascade", TopologySelectionSource.Requested, "ic-number"),
+            request);
+
+        Assert.False(result.IsCompiled);
+        Assert.Null(result.CompiledComposition);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == "profile.v2.runtime-reference-replace.processor-required");
+    }
+
+    /// <summary>CtrlRAM lowering is selected by its closed semantic shape, not by workflow identity.</summary>
+    [Fact]
+    public void RuntimeReferenceCtrlRamSemanticPlanIsInvariantAcrossWorkflowIdentity()
+    {
+        RuntimeReferenceReplaceMapDocument[] maps =
+        [
+            new("single-map", 16, "single"),
+            new("cascade-map", 16, "cascade"),
+        ];
+        var topology = new TopologySelection(
+            3,
+            "cascade",
+            TopologySelectionSource.Requested,
+            "ic-number");
+        V2RuntimeReferenceReplaceCompileRequest request = RuntimeReferenceReplaceRequest(
+            sourceLength: 2,
+            mappings:
+            [RuntimeReferenceReplaceMapping("replace-tp-prefix", 10, new ByteRange(0, 2), new ByteRange(8, 2))]);
+        V2CompositionPlanCompileResult ctrlRamResult = CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.CtrlRamReplace,
+                mapDefinitions: maps).CompileRuntimeReferenceReplace(
+            "runtime-ctrlram-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.CtrlRamReplace,
+            topology,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            request);
+        V2CompositionPlanCompileResult alternateResult = CreateConditionalRuntimeReferenceReplaceCatalog(
+                includeProcessor: true,
+                experienceId: ExperienceIds.GeneralReplace,
+                mapDefinitions: maps,
+                usesCtrlRamSemantics: true).CompileRuntimeReferenceReplace(
+            "runtime-general-replace",
+            "1.0.0",
+            LogicalTestMemberId,
+            ExperienceIds.GeneralReplace,
+            topology,
+            [new FirmwareArtifactPayload("base", new byte[16])],
+            request);
+
+        Assert.True(
+            ctrlRamResult.IsCompiled,
+            string.Join(Environment.NewLine, ctrlRamResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.True(
+            alternateResult.IsCompiled,
+            string.Join(Environment.NewLine, alternateResult.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        CompiledComposition ctrlRam = Assert.IsType<CompiledComposition>(ctrlRamResult.CompiledComposition);
+        CompiledComposition alternate = Assert.IsType<CompiledComposition>(alternateResult.CompiledComposition);
+        Assert.Equal(ExperienceIds.CtrlRamReplace, ctrlRam.V2Details.ExperienceId);
+        Assert.Equal(ExperienceIds.GeneralReplace, alternate.V2Details.ExperienceId);
+        AssertEquivalentRuntimeExecutionSemantics(ctrlRam, alternate);
+    }
+
     /// <summary>
     /// Reviewed postbuild section identities survive compiler lowering and
     /// therefore distinguish the exact compiled processor plan.
@@ -132,7 +241,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             "single",
             TopologySelectionSource.Requested,
             "ic-number");
-        V2RuntimeReferenceReplaceInputBinding[] bindings =
+        V2ExplicitMappingInputBinding[] bindings =
         [
             new("base", "reference", 16),
             new("source-a", "source", 4),
@@ -146,8 +255,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 new ByteRange(8, 2)),
         ];
         V2CompositionPlanCompileResult baseline =
-            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-                catalog,
+catalog.CompileRuntimeReferenceReplace(
                 "runtime-ctrlram-replace",
                 "1.0.0",
                 LogicalTestMemberId,
@@ -155,8 +263,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 topology,
                 new V2RuntimeReferenceReplaceCompileRequest(bindings, mappings));
         V2CompositionPlanCompileResult classified =
-            TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-                catalog,
+catalog.CompileRuntimeReferenceReplace(
                 "runtime-ctrlram-replace",
                 "1.0.0",
                 LogicalTestMemberId,
@@ -193,10 +300,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceCtrlRamReplaceRejectsDpTarget()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                experienceId: ExperienceIds.CtrlRamReplace),
+                experienceId: ExperienceIds.CtrlRamReplace).CompileRuntimeReferenceReplace(
             "runtime-ctrlram-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -222,15 +328,14 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 includeProcessor: false,
                 experienceId: ExperienceIds.CtrlRamReplace));
 
-        Assert.Contains("CtrlRAM Replace requires one final Legacy Combiner stage", exception.Message);
+        Assert.Contains("closed user-defined source or fixed processor mapping shape", exception.Message);
     }
 
     /// <summary>Verifies General Replace cannot use the CtrlRAM-only topology disambiguation input.</summary>
     [Fact]
     public void RuntimeReferenceGeneralReplaceRejectsExplicitTopology()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: true),
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor: true).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -354,10 +459,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceRejectsProcessorWriteOutsidePhysicalAuthority()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                headerWriteConstraint: "forbidden"),
+                headerWriteConstraint: "forbidden").CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -373,10 +477,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void RuntimeReferenceReplaceRejectsProcessorWritesExposedToAuthoring()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(
+        V2CompositionPlanCompileResult result = CreateConditionalRuntimeReferenceReplaceCatalog(
                 includeProcessor: true,
-                headerAccess: "explicit-range"),
+                headerAccess: "explicit-range").CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -392,8 +495,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         V2RuntimeReferenceReplaceCompileRequest request,
         bool includeProcessor = true)
     {
-        return TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor),
+        return CreateConditionalRuntimeReferenceReplaceCatalog(includeProcessor).CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             LogicalTestMemberId,
@@ -405,7 +507,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string headerWriteConstraint = "explicit-range",
         string headerAccess = "hidden",
         string experienceId = ExperienceIds.GeneralReplace,
-        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null)
+        IReadOnlyList<RuntimeReferenceReplaceMapDocument>? mapDefinitions = null,
+        bool usesCtrlRamSemantics = false)
     {
         string familyJson = ConditionalRuntimeReferenceReplaceFamilyJson(
             headerWriteConstraint,
@@ -417,12 +520,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             includeProcessor,
             headerAccess,
             experienceId,
-            mapDefinitions?.Select(static map => map.MapId));
+            mapDefinitions?.Select(static map => map.MapId),
+            usesCtrlRamSemantics);
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(Source(
+        return CreateCatalogFromSources(
             [Family("family-entry", familyHash, familyDocument.RootElement.Clone())],
-            [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]));
+            [Profile("runtime-reference-replace-profile", Hash(profileJson), profileDocument.RootElement.Clone())]);
     }
 
     private static string ConditionalRuntimeReferenceReplaceFamilyJson(
@@ -451,16 +555,24 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         bool includeProcessor,
         string headerAccess,
         string experienceId,
-        IEnumerable<string>? mapIds)
+        IEnumerable<string>? mapIds,
+        bool usesCtrlRamSemantics)
     {
+        string shapeExperienceId = usesCtrlRamSemantics
+            ? ExperienceIds.CtrlRamReplace
+            : experienceId;
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(
             RuntimeReferenceReplaceTestDocuments.ProfileJson(
                 familyHash,
                 "compilable",
                 mapIds ?? ["map"],
-                experienceId)));
+                shapeExperienceId)));
+        profile["profileId"] = $"runtime-{experienceId}";
+        JsonObject experience = Assert.IsType<JsonObject>(profile["experience"]);
+        experience["experienceId"] = experienceId;
+        experience["displayNameKey"] = $"runtime-{experienceId}";
         profile["schemaVersion"] = "2.9";
-        if (StringComparer.Ordinal.Equals(experienceId, ExperienceIds.CtrlRamReplace))
+        if (StringComparer.Ordinal.Equals(shapeExperienceId, ExperienceIds.CtrlRamReplace))
         {
             JsonObject sourceSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
             Assert.IsType<JsonObject>(sourceSlot["acceptance"])["normalization"] = new JsonObject
@@ -513,7 +625,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
                 ["processorStageId"] = "tp-refresh",
                 ["kind"] = "legacy-combiner-v1",
                 ["toolBindingId"] = "legacy-combiner-1.13.0",
-                ["invocationProfileId"] = $"nfc.synthetic.{experienceId}",
+                ["invocationProfileId"] = $"nfc.synthetic.{shapeExperienceId}",
                 ["targetSpaceId"] = "output-image",
                 ["targetViewId"] = "processor-image",
                 ["authority"] = "transform",

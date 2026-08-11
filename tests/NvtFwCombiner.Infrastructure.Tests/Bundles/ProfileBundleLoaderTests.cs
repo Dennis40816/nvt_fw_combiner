@@ -26,7 +26,7 @@ public sealed class ProfileBundleLoaderTests
 
         Assert.Equal(contentHash, bundle.Manifest.ContentHash);
         Assert.Equal("release-manifest", bundle.Manifest.TrustAnchorBindingId);
-        Assert.Equal(2, bundle.Entries.Count);
+        Assert.Equal(2, bundle.Manifest.Entries.Count);
         Assert.Matches("^[0-9a-f]{64}$", bundle.ManifestSha256);
     }
 

@@ -48,12 +48,15 @@ execution snapshots inside the Application run.
 
 ### Scope and admission
 
-`v0.9.15` activates this naming contract only for already enabled AB Merge
-profiles.  Its first execution scope is the owner-approved
+`v0.9.15` originally activated this naming contract only for already enabled AB
+Merge profiles. Its first execution scope was the owner-approved
 NT51919/NT51929/NT51932 perfect family.  The contract is designed as a typed
 profile capability so future NT51950/NT51951 AB profiles can opt in only after
 their independent runtime-admission, evidence, and firmware-owner gates pass.
-No profile is promoted by this ADR.
+Under the later identity-independent compiler rule in ADR 0015, the exact
+`AbCodeV1` renderer plus Merge composition carries compiler authority; workflow
+identity remains trusted data and policy/evidence controls which profiles may
+declare the renderer. No profile is promoted by this ADR.
 
 ### Exact tokens and template
 

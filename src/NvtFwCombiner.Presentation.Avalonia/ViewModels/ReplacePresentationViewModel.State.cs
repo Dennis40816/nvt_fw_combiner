@@ -1,16 +1,22 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReplacePresentationViewModel
 {
-    private const string DpReplaceMode = WorkbenchReplaceModes.Dp;
-    private const string CtrlRamReplaceMode = WorkbenchReplaceModes.CtrlRam;
-    private const string GeneralReplaceMode = WorkbenchReplaceModes.General;
-    private readonly ReplaceAuthoringSessionSet _authoringSessions = new();
+    private const string DpReplaceMode = ExperienceIds.DpReplace;
+    private const string CtrlRamReplaceMode = ExperienceIds.CtrlRamReplace;
+    private const string GeneralReplaceMode = ExperienceIds.GeneralReplace;
+    private readonly AuthoringSessionState _dpReplaceSession =
+        new(ExperienceIds.DpReplace);
+    private readonly AuthoringSessionState _ctrlRamReplaceSession =
+        new(ExperienceIds.CtrlRamReplace);
+    private readonly AuthoringSessionState _generalReplaceSession =
+        new(ExperienceIds.GeneralReplace);
     private int _generalReplaceMappingCounter;
     private string _selectedReplaceMode = DpReplaceMode;
 
@@ -27,7 +33,7 @@ public sealed partial class ReplacePresentationViewModel
 
     /// <summary>Gets the independent General Replace base firmware slot.</summary>
     public FirmwareSlotViewModel ReplaceBaseSlot { get; } = new(
-        WorkbenchSlotIds.ReplaceBase,
+        CompositionSlotIds.ReplaceBase,
         "Reference firmware",
         "Complete source image cloned before replacement",
         FirmwareSlotKind.Base);
@@ -64,15 +70,44 @@ public sealed partial class ReplacePresentationViewModel
     }
 
     /// <summary>Gets the default Replace output file name for the active mode.</summary>
-    public string ReplaceOutputFileName => _stateBindings.CreateOutputFileName(
-        ReplaceSlots.Concat([ReplaceBaseSlot]));
+    public string ReplaceOutputFileName => ResolveAcceptedOutputFileName(
+        SelectedReplaceMode switch
+        {
+            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+            _ => null,
+        },
+        $"{SelectedIc.ToLowerInvariant()}-{SelectedReplaceMode}.bin");
 
     /// <summary>Creates the CtrlRAM Replace output name from the confirmed version choice.</summary>
-    public string CreateCtrlRamReplaceOutputFileName(WorkbenchCtrlRamFirmwareVersionEdit? edit)
+    public string CreateCtrlRamReplaceOutputFileName(CtrlRamFirmwareVersionDraftState? edit)
     {
-        return _stateBindings.CreateCtrlRamOutputFileName(
-            ReplaceSlots.Concat([ReplaceBaseSlot]),
-            edit);
+        CtrlRamAuthoringTransitionResult transition =
+            _compositionServices.CtrlRamAuthoring.TransitionFirmwareVersionCompilation(
+                _ctrlRamReplaceSession,
+                SelectedIc,
+                SelectedNumber,
+                CreateReplaceSlotPaths(),
+                edit);
+        ActiveSessionSnapshot acceptedSession = transition.Succeeded
+            ? transition.Session!
+            : throw new InvalidOperationException(
+                string.Join("; ", transition.Issues.Select(static issue => issue.Message)));
+
+        return ResolveAcceptedOutputFileName(
+            acceptedSession,
+            $"{SelectedIc.ToLowerInvariant()}-ctrlram-replace.bin");
+    }
+
+    private string ResolveAcceptedOutputFileName(
+        ActiveSessionSnapshot? session,
+        string fallback)
+    {
+        return session?.HasCurrentInputInspection == true
+            ? _compositionServices.OutputNaming.ResolveAcceptedOutput(session).OutputName.FileName
+            : session?.ExactCapability?.CompiledComposition.V2Details
+                .OutputNamingRequirement.FileNameTemplate ?? fallback;
     }
 
     /// <summary>True when CtrlRAM Replace is selected.</summary>
@@ -101,12 +136,12 @@ public sealed partial class ReplacePresentationViewModel
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
     /// <summary>Selected Replace workflow availability and golden-evidence state.</summary>
-    public WorkbenchWorkflowReadiness SelectedReplaceWorkflowReadiness =>
-        WorkbenchCompositionService.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
+    public CapabilityWorkflowReadiness SelectedReplaceWorkflowReadiness =>
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode);
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
-        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness.EvidenceStatus);
+        Text.GetWorkflowEvidenceLabel(SelectedReplaceWorkflowReadiness);
 
     /// <summary>Localized evidence reason and opening condition for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceTooltip =>
@@ -114,15 +149,15 @@ public sealed partial class ReplacePresentationViewModel
 
     /// <summary>True when selected Replace has golden parity evidence.</summary>
     public bool IsSelectedReplaceModeGoldenVerified =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.GoldenVerified;
+        SelectedReplaceWorkflowReadiness.HasReviewedEvidence;
 
     /// <summary>True when selected Replace is available with evidence still open.</summary>
     public bool IsSelectedReplaceModeEvidenceGated =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.EvidenceGated;
+        SelectedReplaceWorkflowReadiness.IsEvidencePending;
 
     /// <summary>True when selected Replace has no approved executable/safety contract.</summary>
     public bool IsSelectedReplaceModeUnavailable =>
-        SelectedReplaceWorkflowReadiness.EvidenceStatus == WorkbenchWorkflowEvidenceStatus.NotAvailable;
+        !SelectedReplaceWorkflowReadiness.IsAvailable;
 
     /// <summary>True when Replace build can run for the active mode.</summary>
     public bool CanBuildReplace => CanRunReplace() &&
@@ -130,13 +165,29 @@ public sealed partial class ReplacePresentationViewModel
         (!IsCtrlRamReplaceModeSelected || HasCurrentCtrlRamActionReadiness(build: true)) &&
         (!IsGeneralReplaceModeSelected || _generalReplaceActionReadiness?.Build.IsAvailable == true);
 
+    /// <summary>Highest-priority typed pre-run blocker for the active Replace workflow.</summary>
+    public CapabilityActionBlocker? PrimaryBuildBlocker => SelectedReplaceMode switch
+    {
+        CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _ctrlRamReplaceSession.CurrentSnapshot,
+            CtrlRamReplaceMode,
+            _ctrlRamActionReadiness),
+        GeneralReplaceMode => ActiveSessionBuildBlockerResolver.Resolve(
+            _generalReplaceSession.CurrentSnapshot,
+            GeneralReplaceMode,
+            _generalReplaceActionReadiness),
+        _ => ActiveSessionBuildBlockerResolver.Resolve(
+            _dpReplaceSession.CurrentSnapshot,
+            DpReplaceMode),
+    };
+
     /// <summary>Command that adds a General Replace mapping row.</summary>
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
 
-    /// <summary>Command that previews Replace through the application core or workbench planner.</summary>
+    /// <summary>Command that previews Replace through the typed Application use case.</summary>
     public IAsyncRelayCommand PreviewReplaceCommand { get; }
 
-    /// <summary>Command that builds Replace output through the application/workbench core.</summary>
+    /// <summary>Command that builds Replace output through the typed Application use case.</summary>
     public IAsyncRelayCommand BuildReplaceCommand { get; }
 
     /// <summary>Command that keeps the source TP firmware version for the current CtrlRAM build.</summary>
@@ -155,7 +206,7 @@ public sealed partial class ReplacePresentationViewModel
     private ReportPresentationViewModel Reports => _stateBindings.Reports();
 
     private bool IsSelectedReplaceModeSupported =>
-        WorkbenchCompositionService.IsReplaceWorkflowSupported(SelectedIc, SelectedReplaceMode);
+        _compositionServices.Capabilities.IsReplaceWorkflowAvailable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
         bool build,
@@ -233,6 +284,7 @@ public sealed partial class ReplacePresentationViewModel
         PreviewReplaceCommand.NotifyCanExecuteChanged();
         BuildReplaceCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanBuildReplace));
+        OnPropertyChanged(nameof(PrimaryBuildBlocker));
         OnPropertyChanged(nameof(ReplaceReadinessStatus));
         RefreshSelectionState();
     }

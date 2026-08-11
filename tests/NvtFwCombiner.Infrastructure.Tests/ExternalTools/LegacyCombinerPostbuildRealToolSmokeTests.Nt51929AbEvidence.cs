@@ -61,7 +61,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         {
             var processor = new LegacyCombinerPostbuildProcessor(
                 new ExternalCombinerToolRegistry([manifest]),
-                [profile!],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());

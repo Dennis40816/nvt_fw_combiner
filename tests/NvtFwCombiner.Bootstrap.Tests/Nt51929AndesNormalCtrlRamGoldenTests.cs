@@ -38,25 +38,25 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51929-andes-normal-cross");
         string outputPath = workspace.PathFor("nt51929-andes-normal-cross.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51929",
             "single",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = ownerCase.RequireRole("replace-base-flashcode-110us").Path,
+                [CompositionSlotIds.ReplaceBase] = ownerCase.RequireRole("replace-base-flashcode-110us").Path,
                 ["replace-ctrlram-normal"] = ownerCase.RequireRole("ctrlram-normal-input-115us").Path,
             },
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(OutputSha256, Hash(output));
         AssertCrcOnlyDifference(ownerCase.Expected.Bytes, output);
 
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51929-ctrlram-replace-fw200-single", report.RootElement.GetProperty("ProfileId").GetString());
         Assert.Equal("NT51929", report.RootElement.GetProperty("IcId").GetString());
         Assert.All(

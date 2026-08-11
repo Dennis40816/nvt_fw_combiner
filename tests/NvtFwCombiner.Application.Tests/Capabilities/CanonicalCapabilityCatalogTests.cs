@@ -7,7 +7,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 /// <summary>Tests the Application-owned canonical capability snapshot and reload boundary.</summary>
-public sealed class CanonicalCapabilityCatalogTests
+public sealed partial class CanonicalCapabilityCatalogTests
 {
     private static readonly CapabilityRouteIdentity Route = new(
         "NT51929",
@@ -92,6 +92,25 @@ public sealed class CanonicalCapabilityCatalogTests
 
         Assert.True(resolution.Succeeded);
         Assert.Equal(Route.RouteId, resolution.Capability!.Identity.RouteId);
+    }
+
+    /// <summary>Availability and execution retention are resolved by the publication owner.</summary>
+    [Fact]
+    public void CatalogOwnsAvailabilityAndCurrentCompilationRetention()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(CreateCandidate())));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+        ResolvedCapability capability = catalog.Resolve(Route.RouteId).Capability!;
+
+        Assert.True(catalog.HasAuthorableCapability("NT51929", "standard-merge"));
+        Assert.Same(
+            capability,
+            catalog.ResolveCurrentCompilation(
+                capability.CompiledComposition,
+                capability));
+        Assert.Null(catalog.ResolveCurrentCompilation(CreateCompiledComposition()));
     }
 
     /// <summary>Every successful publication receives a fresh token even for identical source bytes.</summary>
@@ -278,7 +297,7 @@ public sealed class CanonicalCapabilityCatalogTests
                 "capability-fingerprint-drift",
                 composition,
                 [],
-                composition.DefaultOutputFileName,
+                composition.V2Details.OutputNamingRequirement.FileNameTemplate,
                 resolvedCapability: capability));
 
         Assert.Equal("resolvedCapability", exception.ParamName);
@@ -456,7 +475,7 @@ public sealed class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable,
+            null,
             mapId: mapId ?? Route.MapVariant);
     }
 
@@ -495,7 +514,7 @@ public sealed class CanonicalCapabilityCatalogTests
                 "standard-merge",
                 CompositionKind.Merge),
             "synthetic-nt51929-standard-merge.bin",
-            CompiledIcNumberPolicy.NotApplicable,
+            null,
             mapId: Route.MapVariant);
     }
 

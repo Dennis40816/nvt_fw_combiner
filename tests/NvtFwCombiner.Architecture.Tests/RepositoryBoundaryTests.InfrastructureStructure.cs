@@ -45,7 +45,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Infrastructure/ExternalTools/StagedArtifactFileVerifier.cs");
         string normalizedLegacyRoot = legacyRoot.ReplaceLineEndings("\n");
         int legacyCommandLoopStart = legacyRoot.IndexOf(
-            "foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)",
+            "foreach (ExternalProcessorProtocolCommand command in commandPlan.Commands)",
             StringComparison.Ordinal);
         int legacyCommandLoopEnd = legacyRoot.IndexOf(
             "// Plans are nonempty, and the last per-command check follows every staging mutation.",
@@ -73,7 +73,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("SHA256", root, StringComparison.Ordinal);
         Assert.Contains("ExpandArguments", staging, StringComparison.Ordinal);
         Assert.Contains("FindUnexpectedStagingFileIssue", staging, StringComparison.Ordinal);
-        Assert.Contains("TryDeleteDirectory", staging, StringComparison.Ordinal);
+        Assert.Contains("ExternalStagingDirectory.TryDelete", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryDeleteDirectory", staging, StringComparison.Ordinal);
         Assert.Contains("File.WriteAllBytesAsync(workBin, request.InputBytes,", root, StringComparison.Ordinal);
         Assert.Contains("File.WriteAllBytesAsync(path, artifact.Bytes,", staging, StringComparison.Ordinal);
         Assert.DoesNotContain("InputBytes.ToArray()", root, StringComparison.Ordinal);
@@ -95,8 +96,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Equal(1, CountOccurrences(legacyRoot, "CreateStagingTreePolicy("));
         Assert.Equal(1, CountOccurrences(legacyRoot, "ValidateStagingTree("));
         Assert.Contains(
-            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);\n"
-                + "            foreach (LegacyCombinerPostbuildCommand command in commandPlan.Commands)",
+            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(resolvedManifest, commandPlan);\n"
+                + "            foreach (ExternalProcessorProtocolCommand command in commandPlan.Commands)",
             normalizedLegacyRoot,
             StringComparison.Ordinal);
         Assert.True(legacyCommandLoopStart >= 0);
@@ -106,7 +107,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.InRange(legacyStagingValidation, legacyCommandLoopStart, legacyCommandLoopEnd);
         Assert.True(legacyStagingValidation > legacyShortOutputNormalization);
         Assert.Contains(
-            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(profile, resolvedManifest, commandPlan);",
+            "StagingTreePolicy stagingTreePolicy = CreateStagingTreePolicy(resolvedManifest, commandPlan);",
             legacyRoot,
             StringComparison.Ordinal);
         Assert.Contains(

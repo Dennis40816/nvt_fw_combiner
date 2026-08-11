@@ -11,7 +11,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDerivesTpInputSpaceFromReferencedSourceSpan()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(SupportedProfileJson(familyHash), new ByteRange(0, 12)),
             FamilyJsonWithRootWriteConstraint("explicit-range")));
 
@@ -22,7 +22,9 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal(InputOversizePolicy.ExtractDeclaredRange, input.InputOversizePolicy);
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
         Assert.Equal(CompiledInputArtifactClass.TpFirmware, slot.ArtifactClass);
-        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(slot.LengthRequirement);
+        CompiledSourceViewCoverageInputLengthRequirement tpMaximum = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, tpMaximum.MaximumBytes);
         CompositionOperation operation = Assert.Single(composition.Plan.OrderedOperations);
         Assert.Equal(new ByteRange(0, 12), operation.SourceRange);
         Assert.Equal(new ByteRange(0, 12), operation.TargetRange);
@@ -32,7 +34,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDerivesTpInputSpaceFromAllResolvedSourceViews()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 4),
@@ -51,7 +53,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringAcceptsTpSourceSpanBelowLargerResolvedMapCapacity()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x30000)),
@@ -68,13 +70,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBoundsTpInputSourceSpanAt256KiB()
     {
-        V2CompositionPlanCompileResult exact = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult exact = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x40000)),
             FamilyJsonWithRootWriteConstraint("explicit-range", capacity: 0x40000),
             capacityBytes: 0x40000));
-        V2CompositionPlanCompileResult overflow = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult overflow = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 0x40001)),
@@ -91,7 +93,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringClonesWorkBufferFromExactTpInput()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithWorkBuffer(
                 ProfileWithExactTpInput(SupportedProfileJson(familyHash), 16),
                 cloneSourceSlotId: "tp-input")));
@@ -117,8 +119,23 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringDefersNonTpExactInput()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithAuxiliaryExactInput(SupportedProfileJson(familyHash))));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
+    }
+
+    /// <summary>Capability admission remains fail-closed when an inactive optional slot uses unsupported geometry.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsUnsupportedInactiveOptionalInput()
+    {
+        V2CompositionPlanCompileResult result = Compile(
+            PrepareSupportedBlankCopy(familyHash => ProfileWithInactiveOptionalBranch(
+                SupportedProfileJson(familyHash),
+                slot => Assert.IsType<JsonObject>(slot["acceptance"])["lengthRule"] =
+                    new JsonObject { ["kind"] = "exact-bytes", ["bytes"] = 16 })),
+            selectedInputSlotIds: []);
 
         Assert.Null(result.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(result.Issues).Code);
@@ -128,7 +145,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringBindsNormalDpExtractionPolicy()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNormalDpExtraction(SupportedProfileJson(familyHash))));
 
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
@@ -142,14 +159,15 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
         Assert.Equal(
             "DP_SIZE_WARNING",
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement).IssueCode);
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement)
+                .UnexpectedOuterLengthIssueCode);
     }
 
     /// <summary>Verifies a Normal-DP profile can declare known outer containers without changing its source span.</summary>
     [Fact]
     public void BlankOutputLoweringBindsDeclaredNormalDpOuterContainerLengths()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNormalDpExtraction(
                 SupportedProfileJson(familyHash),
                 [0x80000, 0x200000])));
@@ -162,8 +180,21 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal([0x80000L, 0x200000L], input.ExpectedInputLengths);
         Assert.Equal(
             [0x80000L, 0x200000L],
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(slot.LengthRequirement)
-                .ExpectedInputLengths);
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement)
+                .ExpectedOuterLengths);
+    }
+
+    /// <summary>Legacy Normal-DP wire policy still fails closed when no generic source read can be derived.</summary>
+    [Fact]
+    public void BlankOutputLoweringRejectsNormalDpInputWithoutSourceRead()
+    {
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
+            familyHash => ProfileWithNoTpSourceView(ProfileWithNormalDpExtraction(
+                SupportedProfileJson(familyHash))),
+            FamilyJsonWithRootWriteConstraint("explicit-range")));
+
+        Assert.Null(result.CompiledComposition);
+        Assert.Equal("profile.v2.plan.invalid-input-geometry", Assert.Single(result.Issues).Code);
     }
 
     /// <summary>Verifies the pilot DP_AB, TPA, and TPB facts lower independently through one generic declared-prefix rule.</summary>
@@ -176,7 +207,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         string artifactClass,
         int requiredEndExclusive)
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithDeclaredPrefix(
                 SupportedProfileJson(familyHash),
                 role,
@@ -191,8 +222,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         CompiledComposition composition = Assert.IsType<CompiledComposition>(result.CompiledComposition);
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "tp-source");
         CompiledInputSlotRequirement slot = Assert.Single(composition.V2Details.InputContract.Slots);
-        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(slot.LengthRequirement);
+        CompiledSourceViewCoverageInputLengthRequirement requirement = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(slot.LengthRequirement);
 
         Assert.Equal(role, slot.Role);
         Assert.Equal(requiredEndExclusive, input.Length);
@@ -213,7 +244,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     public void BlankOutputLoweringRejectsViewBeyondDeclaredPrefix()
     {
         const int requiredEndExclusive = 0x40000;
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithDeclaredPrefix(
                 SupportedProfileJson(familyHash),
                 "tp-a",
@@ -230,7 +261,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void BlankOutputLoweringRejectsTpInputWithoutResolvedSourceView()
     {
-        V2CompositionPlanCompileResult result = V2CompositionPlanCompiler.Compile(PrepareSupportedBlankCopy(
+        V2CompositionPlanCompileResult result = Compile(PrepareSupportedBlankCopy(
             familyHash => ProfileWithNoTpSourceView(ProfileWithTpMaximumInput(
                 SupportedProfileJson(familyHash),
                 new ByteRange(0, 12))),
@@ -312,6 +343,68 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             ["kind"] = "exact-bytes",
             ["bytes"] = 16,
         };
+        return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string ProfileWithInactiveOptionalBranch(
+        string profileJson,
+        Action<JsonObject>? mutateSlot = null,
+        Action<JsonObject>? mutateOperation = null)
+    {
+        JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
+        profile["schemaVersion"] = "2.13";
+        profile["compilationContext"] = new JsonObject { ["kind"] = "resolved-map" };
+        var slot = new JsonObject
+        {
+            ["slotId"] = "optional-input",
+            ["role"] = "auxiliary",
+            ["artifactClass"] = "auxiliary",
+            ["required"] = false,
+            ["cardinality"] = "zero-or-one",
+            ["acceptedExtensions"] = new JsonArray(".bin"),
+            ["acceptance"] = new JsonObject
+            {
+                ["lengthRule"] = new JsonObject { ["kind"] = "source-view-coverage" },
+                ["normalization"] = new JsonObject { ["kind"] = "none" },
+            },
+        };
+        Assert.IsType<JsonArray>(profile["inputSlots"]).Add(slot);
+        profile["inputSelectionGroups"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["groupId"] = "optional-selection",
+                ["memberSlotIds"] = new JsonArray("optional-input"),
+                ["minimumSelected"] = 0,
+                ["maximumSelected"] = 1,
+            },
+        };
+        Assert.IsType<JsonArray>(profile["spaces"]).Add(new JsonObject
+        {
+            ["spaceId"] = "optional-source",
+            ["kind"] = "input-artifact",
+            ["slotId"] = "optional-input",
+            ["instancePolicy"] = "singleton",
+        });
+        Assert.IsType<JsonArray>(profile["views"]).Add(new JsonObject
+        {
+            ["viewId"] = "optional-view",
+            ["spaceId"] = "optional-source",
+            ["selector"] = new JsonObject { ["kind"] = "map-region", ["regionId"] = "root" },
+        });
+        var operation = new JsonObject
+        {
+            ["operationId"] = "copy-optional",
+            ["sequence"] = 1,
+            ["overlapPolicy"] = "reject",
+            ["reason"] = "Copy the selected optional source view.",
+            ["kind"] = "copy-range",
+            ["sourceViewId"] = "optional-view",
+            ["targetViewId"] = "output-code",
+        };
+        Assert.IsType<JsonArray>(profile["operations"]).Add(operation);
+        mutateSlot?.Invoke(slot);
+        mutateOperation?.Invoke(operation);
         return profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 

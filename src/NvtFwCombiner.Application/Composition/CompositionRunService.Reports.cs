@@ -17,6 +17,7 @@ public sealed partial class CompositionRunService
         bool committed,
         string? outputFileName = null,
         OutputNamingSummary? outputNaming = null,
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
@@ -56,12 +57,12 @@ public sealed partial class CompositionRunService
 
         return new CompositionRunReport(
             request.RunId,
-            request.CompiledComposition.ProfileId,
-            request.CompiledComposition.ProfileVersion,
-            request.CompiledComposition.IcId,
-            request.CompiledComposition.ModeId,
-            request.CompiledComposition.ExperienceId,
-            request.CompiledComposition.CompositionKind,
+            request.CompiledComposition.V2Details.ProfileId,
+            request.CompiledComposition.V2Details.ProfileVersion,
+            request.CompiledComposition.V2Details.Provenance.Context.MemberId,
+            request.CompiledComposition.V2Details.Provenance.Context.ModeId,
+            request.CompiledComposition.V2Details.ExperienceId,
+            request.CompiledComposition.V2Details.CompositionKind,
             startedAtUtc,
             completedAtUtc,
             inputSummaries,
@@ -73,9 +74,10 @@ public sealed partial class CompositionRunService
             request.CompiledComposition.CompilationFingerprint,
             validations,
             outputNaming,
+            deliveryArtifacts,
             generalAdmission: request.GeneralAdmission,
             imageInitialization: StringComparer.Ordinal.Equals(
-                request.CompiledComposition.ExperienceId,
+                request.CompiledComposition.V2Details.ExperienceId,
                 ExperienceIds.GeneralMerge)
                     ? ImageInitializationSummary.FromCompiled(
                         request.CompiledComposition.Plan.OutputInitialization)
@@ -119,5 +121,12 @@ public sealed partial class CompositionRunService
             operation.Reason,
             operation.Provenance,
             executedCommands);
+    }
+
+    internal static OperationRunSummary ToPlanningOperationSummary(
+        CompositionOperation operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        return ToOperationSummary(operation, OperationRunStatus.Skipped, []);
     }
 }

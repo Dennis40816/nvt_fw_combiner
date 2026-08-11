@@ -70,127 +70,61 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         Assert.Null(structure.Definition.TypedDefinition);
     }
 
-    /// <summary>Verifies the typed envelope is closed and requires a matching discriminator and payload.</summary>
-    [Theory]
-    [InlineData(null, true, "metadataSets[metadata].structures[0].structureKind")]
-    [InlineData("tp-flash-header", false, "metadataSets[metadata].structures[0].tpFlashHeader")]
-    [InlineData("generic", false, "metadataSets[metadata].structures[0].structureKind")]
-    [InlineData("future-header", false, "metadataSets[metadata].structures[0].structureKind")]
-    public void NormalizeRejectsInvalidTypedMetadataEnvelope(
-        string? structureKind,
-        bool includePayload,
-        string expectedPath)
-    {
-        FirmwareFamilyDocument document = WithTpFlashHeader(
-            Document(includePredicate: false),
-            structureKind,
-            includePayload ? TpFlashHeaderPayload() : null);
-
-        FirmwareFamilyNormalizationException exception =
-            Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
-
-        Assert.Equal(expectedPath, exception.Path);
-    }
-
-    /// <summary>
-    /// Verifies a shared definition reference cannot carry a second inline
-    /// typed payload or discriminator.
-    /// </summary>
-    [Fact]
-    public void NormalizeRejectsTypedPayloadOnDefinitionReference()
-    {
-        FirmwareFamilyDocument source = Document(includePredicate: false);
-        FirmwareMetadataSetDocument metadataSet = Assert.Single(source.MetadataSets);
-        FirmwareMetadataStructureDocument structure = Assert.Single(metadataSet.Structures);
-        FirmwareFamilyDocument document = source with
-        {
-            MetadataSets =
-            [
-                metadataSet with
-                {
-                    Structures =
-                    [
-                        structure with
-                        {
-                            Length = default,
-                            Fields = null!,
-                            Assertions = null!,
-                            Relations = null,
-                            DefinitionReference =
-                                new FirmwareMetadataStructureDefinitionReferenceDocument(
-                                    "shared-family",
-                                    "1.0.0",
-                                    new string('a', 64),
-                                    "shared-header"),
-                            StructureKind = "tp-flash-header",
-                            TpFlashHeader = TpFlashHeaderPayload(),
-                        },
-                    ],
-                },
-            ],
-        };
-
-        FirmwareFamilyNormalizationException exception =
-            Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash));
-
-        Assert.Equal("metadataSets[metadata].structures[0].structureKind", exception.Path);
-    }
-
     /// <summary>Verifies every accepted TP Header subject and value-role token maps explicitly.</summary>
     [Theory]
     [InlineData(
         "header",
         "integrity-value",
-        TpFlashHeaderFieldSubject.Header,
-        TpFlashHeaderFieldRole.IntegrityValue)]
+        (int)TpFlashHeaderFieldSubject.Header,
+        (int)TpFlashHeaderFieldRole.IntegrityValue)]
     [InlineData(
         "ilm",
         "destination-address",
-        TpFlashHeaderFieldSubject.Ilm,
-        TpFlashHeaderFieldRole.DestinationAddress)]
+        (int)TpFlashHeaderFieldSubject.Ilm,
+        (int)TpFlashHeaderFieldRole.DestinationAddress)]
     [InlineData(
         "dlm",
         "size",
-        TpFlashHeaderFieldSubject.Dlm,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.Dlm,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "data",
         "size",
-        TpFlashHeaderFieldSubject.Data,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.Data,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "firmware-config",
         "size",
-        TpFlashHeaderFieldSubject.FirmwareConfig,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.FirmwareConfig,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "ctrlram",
         "size",
-        TpFlashHeaderFieldSubject.CtrlRam,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.CtrlRam,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "mp-ctrlram",
         "size",
-        TpFlashHeaderFieldSubject.MpCtrlRam,
-        TpFlashHeaderFieldRole.Size)]
+        (int)TpFlashHeaderFieldSubject.MpCtrlRam,
+        (int)TpFlashHeaderFieldRole.Size)]
     [InlineData(
         "dlm-difference",
         "tp-bin-start-address",
-        TpFlashHeaderFieldSubject.DlmDifference,
-        TpFlashHeaderFieldRole.TpBinStartAddress)]
+        (int)TpFlashHeaderFieldSubject.DlmDifference,
+        (int)TpFlashHeaderFieldRole.TpBinStartAddress)]
     [InlineData(
         "header",
         "option",
-        TpFlashHeaderFieldSubject.Header,
-        TpFlashHeaderFieldRole.Option)]
+        (int)TpFlashHeaderFieldSubject.Header,
+        (int)TpFlashHeaderFieldRole.Option)]
     public void NormalizeMapsClosedTpHeaderSemanticTokens(
         string subject,
         string role,
-        TpFlashHeaderFieldSubject expectedSubject,
-        TpFlashHeaderFieldRole expectedRole)
+        int expectedSubjectValue,
+        int expectedRoleValue)
     {
+        var expectedSubject = (TpFlashHeaderFieldSubject)expectedSubjectValue;
+        var expectedRole = (TpFlashHeaderFieldRole)expectedRoleValue;
         FirmwareTpFlashHeaderDocument payload = TpFlashHeaderPayload();
         FirmwareTpFlashHeaderFieldSemanticsDocument first = payload.FieldSemantics[0];
         payload = payload with

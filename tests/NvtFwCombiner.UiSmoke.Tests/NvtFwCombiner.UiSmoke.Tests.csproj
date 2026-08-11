@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\NvtFwCombiner.Presentation.Avalonia\NvtFwCombiner.Presentation.Avalonia.csproj" />
+    <ProjectReference Include="..\..\src\NvtFwCombiner.Bootstrap\NvtFwCombiner.Bootstrap.csproj" />
     <ProjectReference Include="..\NvtFwCombiner.TestSupport\NvtFwCombiner.TestSupport.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -266,7 +266,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.Contains(
             composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "diff-ctrlram" &&
-                requirement.Access == CompiledRegionAccessKind.ExplicitRange);
+                requirement.Access == RegionAccessKind.ExplicitRange);
         Assert.DoesNotContain(
             composition.V2Details.RegionAccessContract.ResolvedViews,
             static view => view.ViewId == "fw-config-backup-output");
@@ -347,7 +347,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.Contains(
             composition.V2Details.RegionAccessContract.Requirements,
             static requirement => requirement.RegionId == "nf-master" &&
-                requirement.Access == CompiledRegionAccessKind.ExplicitRange);
+                requirement.Access == RegionAccessKind.ExplicitRange);
     }
 
     /// <summary>NT51950 and NT51951 cascade use identical TP authority despite different preserved image tails.</summary>
@@ -474,8 +474,7 @@ public sealed class CtrlRamV2PlanClosureProfileTests
             chipCount == 1 ? "single" : "cascade",
             TopologySelectionSource.Requested,
             "number-selector");
-        V2CompositionPlanCompileResult compile = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            catalog,
+        V2CompositionPlanCompileResult compile = catalog.CompileRuntimeReferenceReplace(
             profileId,
             profileVersion,
             icId,
@@ -486,8 +485,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
                 ResolutionReference(icId, chipCount, referenceCapacity))],
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("reference-base", "reference-base", referenceCapacity),
-                    new V2RuntimeReferenceReplaceInputBinding("ctrlram-source-1", "ctrlram-source", targetLength),
+                    new V2ExplicitMappingInputBinding("reference-base", "reference-base", referenceCapacity),
+                    new V2ExplicitMappingInputBinding("ctrlram-source-1", "ctrlram-source", targetLength),
                 ],
                 [new ExplicitMapping(
                     "replace-ctrlram-byte",
@@ -504,8 +503,8 @@ public sealed class CtrlRamV2PlanClosureProfileTests
         Assert.True(compile.IsCompiled, string.Join(Environment.NewLine, compile.Issues.Select(static issue => issue.Message)));
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compile.CompiledComposition);
         Assert.Equal(expectedEligibility, composition.Eligibility);
-        Assert.Equal(profileId, composition.ProfileId);
-        Assert.Equal(icId, composition.IcId);
+        Assert.Equal(profileId, composition.V2Details.ProfileId);
+        Assert.Equal(icId, composition.V2Details.Provenance.Context.MemberId);
         return composition;
     }
 

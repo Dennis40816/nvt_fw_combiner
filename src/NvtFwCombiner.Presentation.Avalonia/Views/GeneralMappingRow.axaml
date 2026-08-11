@@ -149,9 +149,9 @@
           Grid.ColumnSpan="2"
           AutomationProperties.LiveSetting="Assertive"
           Classes="firmwareSlotFact error"
-          IsVisible="{Binding HasInspectionIssue}"
+          IsVisible="{Binding HasIssue}"
           Padding="8,6">
-        <TextBlock Text="{Binding InspectionIssueMessage}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding IssueMessage}" TextWrapping="Wrap" />
       </Border>
     </Grid>
   </Border>

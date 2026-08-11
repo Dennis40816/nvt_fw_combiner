@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-08-01
+- Last amended: 2026-08-09
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -117,6 +117,18 @@ operations, processors, or integrity declarations. Accidental public
 implementation types are not compatibility authority and receive no
 replacement shim after repository callers migrate.
 
+The 2026-08-07 #230 convergence amendment makes the trusted bundle's strict,
+hash-pinned schema gateway the sole production owner of serialized required/null
+shape, fixed constants, and schema-version compatibility. The production route
+must pass `ProfileBundleLoader` validation and the immutable trusted projection
+before `CompositionProfileNormalizer` can run. Profiles lowers admitted closed
+tokens, resolves cross-references, and constructs the canonical Domain model; it
+does not repeat schema constants or version-presence rules. Domain constructors
+continue to own canonical firmware invariants, and compiler-semantic decisions
+that affect the compiled plan remain in Profiles. Direct normalizer test access
+is test-only and cannot authorize an unvalidated production DTO or recreate
+schema-owned diagnostics.
+
 The canonical compiler branches only on the closed, versioned semantic
 vocabulary: operation, locator, initialization, validation, integrity, and
 processor-stage kinds. Production compiler, Domain, Application, Bootstrap, and
@@ -179,8 +191,10 @@ artifacts that have no capability admission identity.
 
 Every runtime invariant has one validating owner:
 
-1. schema/Contracts intake validates serialized shape, required fields,
-   primitive types, closed discriminators, and local bounds;
+1. the Infrastructure-owned trusted schema gateway validates serialized shape,
+   required/null fields, primitive types, closed discriminators, fixed
+   constants, schema-version compatibility, and local bounds before the
+   Contracts DTO enters Profiles;
 2. Domain canonical construction validates firmware-semantic ranges, overlap,
    reference kinds, cycles, applicability, family/topology rules, and
    definition completeness;
@@ -216,6 +230,190 @@ typed child state inside the shared session contract, but they cannot define a
 second execution/readiness/report pipeline. UI and CLI consume the same
 Application contracts without workflow facades of their own. Bootstrap remains
 wiring and cannot replace the deleted services with a broad gateway.
+
+The 2026-08-09 complete-retirement amendment authorizes a coordinated
+Application, Bootstrap, CLI, and Presentation contract migration to remove the
+remaining legacy architecture. This is a scope amendment to the former
+Bootstrap-only #233 non-goal, not permission to move semantic code between
+counted or excluded layers. The separately verified #352 deletion checkpoint
+remains unchanged. A migration slice may introduce or reshape only the minimum
+capability-centered Application contract required to replace named live
+callers; the displaced Workbench/Bootstrap owner is then deleted rather than
+retained behind a shim. Presentation remains a consumer, Bootstrap remains
+wiring, and UI layout, CLI observables, firmware semantics, bytes, ranges,
+processors, evidence, and publication are unchanged. The exact terminal naming
+and public-surface criterion was accepted on 2026-08-09: `Workbench` is a
+retired migration-compatibility architecture rather than a durable product or
+domain concept. Production Application, Bootstrap, CLI, and Presentation must
+contain zero `Workbench*` symbols at completion. Presentation keeps the same
+visible functionality through local ViewModels and canonical Application
+contracts; historical documentation may name the retired architecture. The
+zero-name guard is paired with dependency and semantic-owner guards so the old
+facade/DTO graph cannot merely be renamed.
+
+The accepted lifecycle contract is deliberately split rather than replaced by
+another aggregate result. `ActiveSessionSnapshot` exclusively carries the
+accepted authoring session, immutable draft, exact capability, and compilation
+identity. `CapabilityActionReadinessSnapshot` exclusively carries action
+readiness. `CompositionRunResult` and its typed `CompositionRunReport`
+exclusively carry execution and report outcomes for both Presentation and CLI.
+Blocked, unavailable, and diagnostic-plan-only actions use a typed readiness or
+diagnostic/report contract and are not fabricated execution results. Bootstrap
+must not serialize a report only for another in-process adapter to parse it;
+JSON remains an external persistence/report rendering concern. The retired
+`WorkbenchRunResult` is deleted. Any delivery evidence needed by live consumers
+is added narrowly to the existing canonical result/report owner, while exact
+capability and accepted draft state remain reachable through the accepted
+session rather than duplicated onto a result.
+
+All six workflows then cross one Application execution boundary: Preview or
+Build receives an exact accepted `ActiveSessionSnapshot` plus a minimal typed
+request and delegates to the shared `CompositionRunService`. Workflow-specific
+Bootstrap `Run*` gateways are deleted. Topology, IC-number selection, CtrlRAM
+firmware-version edits, General mappings, naming admission, and processor-plan
+semantics must be accepted into the typed session/capability/compiled
+composition before this boundary; only adapter-owned output and optional
+delivery destinations remain Build intent. UI and CLI invoke the same boundary
+and cannot recreate per-workflow runners.
+
+This is a byte-preserving architecture migration. Every repository-declared or
+owner-approved BIN golden available at the reviewed #352 commit
+`6ba7217299c3e2ddb1c38467e6f288d5710ffef1` must retain identical full output
+bytes, size, SHA-256, naming tokens, mutation trace, and processor outcome for
+the same fixture identities. Golden expectations, hashes, padding, headers,
+CRC behavior, or accepted ranges are not changed to accommodate this work. Any
+observed difference is a separate firmware-semantic R3 change and blocks the
+retirement until independently explained and approved.
+
+Inspection also has one publication owner. For each exact authoring revision,
+Application produces one immutable inspection publication bound to the catalog
+resolution token, capability and compilation fingerprints, typed draft, and
+accepted artifact identities. `ActiveSessionSnapshot.InputSlotStatuses` and
+the corresponding derived publication are the shared readiness evidence for
+Presentation, CLI, naming, memory presentation, Preview, and Build. Those
+consumers cannot reopen file paths, repeat metadata decoding, or reconstruct
+readiness. A file selection/content identity, draft, or catalog revision change
+invalidates the publication; explicit Reload is the only manual reinspection
+trigger. Bootstrap path-based inspection adapters and `WorkbenchFirmwareInspection*`
+models are removed rather than renamed.
+
+Semantic memory projection likewise has one owner. Application's
+`MemoryLayoutProjector` consumes the exact accepted session and canonical
+capability/compiled composition and returns the typed `MemoryLayoutSnapshot`.
+Presentation formats that result but cannot derive addresses, ranges, region
+groups, slot requirements, retained coverage, or compiled selection. Bootstrap
+`CompositionMemoryProjection*`, `ICompositionMemoryPresentation`,
+`WorkbenchMemory*`, and workflow slot mirrors are removed without changing the
+visible layout or compiled geometry.
+
+The complete-retirement invariant is one production semantic owner and one
+executable path for every module. It covers catalog resolution, session state,
+inspection, readiness, compilation/planning, memory projection, naming,
+Preview/Build, reports, and delivery. Presentation and CLI share the same typed
+Application use case; Bootstrap and Infrastructure retain only declared wiring
+and adapter duties. Forwarders cannot hide fallback policy, re-resolution,
+reinspection, duplicated projections, or compatibility execution. A slice must
+migrate all live callers and delete the displaced route, and terminal guards
+must reject both the original legacy symbols and equivalent renamed parallel
+implementations.
+
+Output naming follows the same rule. `CompositionRunService.ResolveOutputNameAsync`
+and `CompiledOutputNameResolver` are the only production resolver. They consume
+the accepted session, canonical inspection publication, compiled naming plan,
+and effective date once. Preview publishes a typed result and admission
+identity, and Build reuses it or rejects stale session, artifact, revision,
+publication, capability, or compilation identity. Manual file-name overrides
+remain typed host delivery intent; CtrlRAM edits and other semantic inputs must
+be accepted into the typed session before naming. Bootstrap and client
+path-backed naming projections and workflow-specific auto-name preflights are
+removed without changing displayed or golden names.
+
+Catalog publication has one dependency-inverted chain. Infrastructure loads
+and trust-validates immutable bundle source; Profiles is the only normalizer,
+map/profile semantic resolver, and compiler; Application's
+`CanonicalCapabilityCatalog` is the only publication, reload, cache,
+fixed/dynamic route-resolution, and `ResolutionToken` owner. Narrow ports allow
+the outer loader/compiler implementations to be registered without moving
+orchestration into Bootstrap. Bootstrap performs registration only and retains
+no projection, materialization, fallback lookup, or second cache. UI and CLI
+query the Application snapshot. The migration source and Bootstrap
+`CanonicalCapabilityResolution*`/`CanonicalCapabilityProjection*` graph is
+deleted rather than renamed.
+
+Authoring mutation has one state machine. `AuthoringSessionState` and
+`CompiledAuthoringWorkflowService` own all typed IC, IC Count, slot, draft, and
+Reload changes. Desktop holds six isolated workflow sessions and CLI creates an
+ephemeral session per invocation. One accepted edit advances
+`AuthoringRevision` once and atomically invalidates stale inspection,
+readiness, naming, memory, and Preview publications. Presentation stores only
+display/interaction state. Bootstrap planning adapters, workflow-specific
+authoring ports, input projections, and slot/draft reconstruction are removed.
+Grouping-only Merge/Replace session-set wrappers are removed as well; they are
+not replaced by another session aggregate.
+
+Report and delivery are the final stages of that same Build path.
+`CompositionRunResult` and its typed `CompositionRunReport` carry the complete
+outcome. A profile/compiled composition declares every optional delivery kind,
+source `ByteRange`, and naming policy; the caller supplies only selection and
+an adapter-owned destination. Application derives an additional artifact from
+the already-produced immutable output and commits through the output-writer
+port without re-reading, recompiling, or re-executing. UI and CLI consume the
+typed result. JSON is rendered once only for an explicitly requested external
+report artifact and is never an in-process transport. Bootstrap delivery
+planning/export, Workbench delivery models, report serialization, and CLI JSON
+parsers are removed while the existing external schema and presentation remain
+compatible.
+
+The pre-retirement A FlashCode path derives that delivery range and filename in
+Bootstrap, so terminal retirement may add one minimum, versioned
+composition-profile/Domain/compiler/fingerprint delivery declaration. That
+declaration only re-homes the existing reviewed kind, `ByteRange`, and naming
+policy; it cannot alter route admission, source/target geometry, output bytes,
+naming tokens, or processor behavior. Existing persisted profile versions keep
+their declared compatibility policy and are not silently reinterpreted.
+
+Bootstrap terminates as a composition root rather than a client-facing layer.
+Presentation has no Bootstrap reference; CLI parsing, diagnostics, and console
+rendering live in the CLI assembly. Both clients consume the same focused
+Application use cases. Bootstrap keeps only startup, registration,
+lifetime/disposal, and platform-adapter selection and exposes no workflow
+method, static semantic adapter, service locator, cache, or DTO. The Workbench
+host, experience adapter shells, and execution forwarding port are removed. A
+Presentation-local immutable dependency bag is acceptable only as methodless
+wiring; tests target canonical use cases or the real root. Cross-assembly CLI
+movement is disclosed as relocation and never counted as deletion.
+
+Required external-tool compatibility is not confused with the retired host
+architecture. Distinct legacy Combiner.exe wire/argv/staging protocols may keep
+distinct adapters, but every compiled operation enters one `IExternalProcessor`
+route and `ExternalProcessorRouter` selects exactly one adapter. Profiles owns
+the compiled command plan; runtime `LegacyCombinerPostbuildPlanner` and
+IC/workflow plan reconstruction are removed. Staging, process execution,
+before/after diff, range enforcement, assertions, cleanup, and audit behavior
+are shared host owners, and no adapter fallback is permitted.
+
+Public Workbench and Bootstrap migration APIs are accidental desktop CLR
+surface, not a supported SDK contract. They are removed with their final
+callers without obsolete wrappers, type forwarding, compatibility assemblies,
+or dual entry points; tests migrate to the canonical path. Compatibility is
+preserved only for the explicitly durable CLI behavior, Saved Rule/report JSON
+schemas, profile/family contracts, external processor protocols, and user
+file/settings formats. Any evidenced external CLR consumer triggers separate
+owner review instead of a speculative shim.
+
+Implementation proceeds as vertical retirement slices, not an additive new
+foundation. A mergeable slice introduces only the minimum canonical contract,
+migrates every named live UI/CLI caller, deletes the displaced owner and
+forwarder, lowers exact ratchets in the same commit, and is net-negative for
+both runtime and full production source. Relocation is accounted separately;
+temporary adapters and dual paths may exist only in unmerged intermediate
+commits. The dependency order is catalog; session/inspection; memory/naming;
+Preview-Build/result/report/delivery; client convergence; and terminal
+Bootstrap wiring/zero-legacy cleanup. Each slice carries proportional
+architecture, Polytail, and golden evidence; the terminal slice runs the full
+verifier, every available BIN golden, and guards against legacy or renamed
+parallel owners. A non-proportionate or non-negative candidate is stopped and
+recorded as residual rather than weakening semantics.
 
 External processor infrastructure similarly has one staged host and one adapter
 per reviewed protocol family, not per IC, workflow, topology, or stage.
@@ -360,12 +558,12 @@ composition-profile-v2 + ResolvedFirmwareImageMap + compile request
   -> one CompositionPlan / one CompositionEngine
 ```
 
-During migration, `CompositionProfileDefinition` is the existing normalized
-Profiles type. It is not a permanent fourth representation. Canonical Core
-Convergence must either make it the Domain-owned canonical composition
-definition or eliminate it after direct Contract-to-Domain normalization.
-Private Profiles builder/validation state remains ephemeral and cannot be
-returned as consumer data. The canonical v2 definition owns slots, logical
+`CompositionProfileDefinition` is the Domain-owned canonical composition
+definition produced by direct Contracts-to-Domain normalization. Within that
+normalization seam, Profiles owns schema-version parsing and may use only
+private ephemeral validation state; it cannot return a consumer-visible fourth
+semantic model. Profiles retains its separately declared trusted-catalog,
+resolution, admission, and compiler responsibilities. The canonical v2 definition owns slots, logical
 views, experience access, mutable initializers, ordered operations, validators,
 processor stages, output naming, evidence, and promotion state. It references
 canonical map region/view ids and cannot relax map safety.

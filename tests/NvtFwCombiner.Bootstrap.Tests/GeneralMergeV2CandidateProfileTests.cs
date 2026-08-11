@@ -111,14 +111,13 @@ public sealed class GeneralMergeV2CandidateProfileTests
             workspace,
             bundleDirectory,
             bundleContentHash);
-        V2CompositionPlanCompileResult compile = TrustedV2CompositionCompiler.CompileLogicalOutput(
-            catalog,
+        V2CompositionPlanCompileResult compile = catalog.CompileLogicalOutput(
             profileId,
             "0.1.0",
             memberId,
             new V2LogicalOutputCompileRequest(
                 new GeneralMergeOutputInitializer(16),
-                [new V2LogicalOutputInputBinding("source-a", "source", 4)],
+                [new V2ExplicitMappingInputBinding("source-a", "source", 4)],
                 [new ExplicitMapping(
                     "copy-source",
                     1,

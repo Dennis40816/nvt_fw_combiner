@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Profiles;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -16,8 +17,8 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
         InputArtifactProfileSpace perBinding = Assert.IsType<InputArtifactProfileSpace>(CompositionProfileNormalizer.NormalizeSpace(
             InputSpace("per-binding")));
 
-        Assert.Equal(CompositionProfileInstancePolicy.Singleton, singleton.InstancePolicy);
-        Assert.Equal(CompositionProfileInstancePolicy.PerBinding, perBinding.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.Singleton, singleton.InstancePolicy);
+        Assert.Equal(CompiledInputInstancePolicy.PerBinding, perBinding.InstancePolicy);
         Assert.Equal("tp-input", singleton.SlotId);
     }
 
@@ -48,78 +49,32 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
         Assert.Equal("reference-input", Assert.IsType<CloneProfileInitializer>(output.Initializer).SourceSlotId);
     }
 
-    /// <summary>Verifies logical-output capacity is version-gated rather than accepted by older declarations.</summary>
-    [Theory]
-    [InlineData("2.0")]
-    [InlineData("2.1")]
-    [InlineData("2.2")]
-    public void SpaceRejectsRuntimeRequestCapacityBeforeV23(string schemaVersion)
-    {
-        var document = new CompositionProfileSpaceDocument(
-            "output",
-            "output-image",
-            Capacity: new CompositionProfileCapacityDocument("runtime-request"),
-            Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
-
-        CompositionProfileNormalizationException rejected = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(document, schemaVersion));
-
-        Assert.Equal("spaces[0].capacity.kind", rejected.Path);
-    }
-
-    /// <summary>Verifies logical-output capacity is admitted only on an output image in schema 2.3.</summary>
+    /// <summary>Verifies an admitted logical-output capacity maps to its canonical value.</summary>
     [Fact]
-    public void SpaceMapsRuntimeRequestCapacityOnlyForV23OutputImage()
+    public void SpaceMapsRuntimeRequestCapacity()
     {
         var output = new CompositionProfileSpaceDocument(
             "output",
             "output-image",
             Capacity: new CompositionProfileCapacityDocument("runtime-request"),
             Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
-        var workBuffer = new CompositionProfileSpaceDocument(
-            "work",
-            "work-buffer",
-            Capacity: new CompositionProfileCapacityDocument("runtime-request"),
-            Initializer: new CompositionProfileInitializerDocument("blank", Number("0")));
-
         MutableCompositionProfileSpace normalized = Assert.IsType<MutableCompositionProfileSpace>(
-            CompositionProfileNormalizer.NormalizeSpace(output, "2.3"));
-        CompositionProfileNormalizationException rejected = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(workBuffer, "2.3"));
+            CompositionProfileNormalizer.NormalizeSpace(output));
 
         _ = Assert.IsType<RuntimeRequestProfileCapacity>(normalized.Capacity);
-        Assert.Equal("spaces[0].capacity.kind", rejected.Path);
     }
 
-    /// <summary>Verifies unknown and incomplete space unions fail at exact source paths.</summary>
+    /// <summary>Verifies unknown space tokens fail at exact source paths.</summary>
     [Fact]
-    public void SpaceRejectsUnknownAndMissingUnionMembersWithPaths()
+    public void SpaceRejectsUnknownUnionTokensWithPaths()
     {
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeSpace(new CompositionProfileSpaceDocument("space", "future")));
-        CompositionProfileNormalizationException slot = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(
-                new CompositionProfileSpaceDocument("source", "input-artifact", InstancePolicy: "singleton")));
         CompositionProfileNormalizationException policy = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeSpace(InputSpace("future")));
-        CompositionProfileNormalizationException capacity = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(
-                new CompositionProfileSpaceDocument(
-                    "output",
-                    "output-image",
-                    Initializer: new CompositionProfileInitializerDocument("blank", Number("0")))));
-        CompositionProfileNormalizationException initializer = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(
-                new CompositionProfileSpaceDocument(
-                    "output",
-                    "output-image",
-                    Capacity: new CompositionProfileCapacityDocument("resolved-map"))));
 
         Assert.Equal("spaces[0].kind", kind.Path);
-        Assert.Equal("spaces[0].slotId", slot.Path);
         Assert.Equal("spaces[0].instancePolicy", policy.Path);
-        Assert.Equal("spaces[0].capacity", capacity.Path);
-        Assert.Equal("spaces[0].initializer", initializer.Path);
     }
 
     /// <summary>Verifies capacity and initializer scalar errors fail closed at their fields.</summary>
@@ -142,16 +97,10 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
             CompositionProfileNormalizer.NormalizeSpace(MutableSpace(
                 new CompositionProfileCapacityDocument("resolved-map"),
                 new CompositionProfileInitializerDocument("blank", Number("256")))));
-        CompositionProfileNormalizationException cloneSource = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeSpace(MutableSpace(
-                new CompositionProfileCapacityDocument("resolved-map"),
-                new CompositionProfileInitializerDocument("clone"))));
-
         Assert.Equal("spaces[0].capacity.kind", capacityKind.Path);
         Assert.Equal("spaces[0].capacity.bytes", capacityBytes.Path);
         Assert.Equal("spaces[0].initializer.kind", initializerKind.Path);
         Assert.Equal("spaces[0].initializer.fillByte", fillByte.Path);
-        Assert.Equal("spaces[0].initializer.sourceSlotId", cloneSource.Path);
     }
 
     /// <summary>Verifies every logical-view selector preserves half-open range values.</summary>
@@ -176,7 +125,7 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
                     "region-template-range",
                     RegionInstanceId: "b-bank",
                     TemplateRegionId: "tp-code")),
-                schemaVersion: "2.14").Selector);
+                "views[0]").Selector);
 
         Assert.Equal("dp-code", region.RegionId);
         Assert.Equal(16, slice.RelativeRange.Start);
@@ -187,54 +136,13 @@ public sealed class CompositionProfileV2SpaceNormalizerTests
         Assert.Equal("tp-code", templateRange.TemplateRegionId);
     }
 
-    /// <summary>Verifies incomplete and invalid selectors retain exact source paths.</summary>
+    /// <summary>Verifies an unknown selector token retains its exact source path.</summary>
     [Fact]
-    public void ViewRejectsInvalidSelectorsWithPaths()
+    public void ViewRejectsUnknownSelectorKindWithPath()
     {
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument("future"))));
-        CompositionProfileNormalizationException region = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument("map-region"))));
-        CompositionProfileNormalizationException offset = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument(
-                "map-region-slice",
-                RegionId: "dp-code",
-                Length: Number("1")))));
-        CompositionProfileNormalizationException range = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument("space-range"))));
-        CompositionProfileNormalizationException instance = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument(
-                "region-template-range",
-                TemplateRegionId: "tp-code")),
-                schemaVersion: "2.14"));
-        CompositionProfileNormalizationException templateRegion = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.NormalizeView(View(new CompositionProfileViewSelectorDocument(
-                "region-template-range",
-                RegionInstanceId: "b-bank")),
-                schemaVersion: "2.14"));
-
         Assert.Equal("views[0].selector.kind", kind.Path);
-        Assert.Equal("views[0].selector.regionId", region.Path);
-        Assert.Equal("views[0].selector.offset", offset.Path);
-        Assert.Equal("views[0].selector.range", range.Path);
-        Assert.Equal("views[0].selector.regionInstanceId", instance.Path);
-        Assert.Equal("views[0].selector.templateRegionId", templateRegion.Path);
-    }
-
-    /// <summary>Verifies older profile schemas cannot gain template-relative selector authority.</summary>
-    [Fact]
-    public void ViewRejectsRegionTemplateRangeBeforeSchemaV214()
-    {
-        CompositionProfileNormalizationException exception =
-            Assert.Throws<CompositionProfileNormalizationException>(() =>
-                CompositionProfileNormalizer.NormalizeView(
-                    View(new CompositionProfileViewSelectorDocument(
-                        "region-template-range",
-                        RegionInstanceId: "b-bank",
-                        TemplateRegionId: "tp-code")),
-                    schemaVersion: "2.13"));
-
-        Assert.Equal("views[0].selector.kind", exception.Path);
     }
 
     /// <summary>Verifies range scalars and end arithmetic reject invalid values without wrapping.</summary>

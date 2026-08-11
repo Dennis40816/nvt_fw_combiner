@@ -17,7 +17,7 @@ public sealed partial class ShellViewModelTests
             outputSize: 16,
             outputSha256: "abcdef0123456789abcdef");
         string buildJson = ReportJsonSamples.CtrlRamCommandSucceeded();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(previewJson, "preview-report.json");
         viewModel.Reports.LoadReportJson(buildJson, "build-report.json");
@@ -72,7 +72,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ReportHistoryDistinguishesMissingOutputFromZeroByteArtifact()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(ReportJsonSamples.CtrlRamCommandIssue(), "blocked-report.json");
 
@@ -87,7 +87,7 @@ public sealed partial class ShellViewModelTests
     {
         string json = ReportJsonSamples.Succeeded();
         string paddedJson = json.Insert(json.LastIndexOf('}'), $",\"Padding\":\"{new string('A', 1024 * 1024)}\"");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(paddedJson, "large-report.json");
         viewModel.Reports.ShowReportHistoryCommand.Execute(null);
@@ -117,7 +117,7 @@ public sealed partial class ShellViewModelTests
         string second = secondBase.Insert(
             secondBase.LastIndexOf('}'),
             $",\"Padding\":\"{new string('B', paddingLength)}\"");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(first, "first-large.json");
         viewModel.Reports.LoadReportJson(second, "second-large.json");
@@ -132,7 +132,7 @@ public sealed partial class ShellViewModelTests
     public void ReportHistoryReusesProjectedUtf8ByteCount()
     {
         string json = ReportJsonSamples.Succeeded(runId: "多位元組-report");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(json, "report.json");
 
@@ -160,7 +160,7 @@ public sealed partial class ShellViewModelTests
             "build-report.json",
             json,
             "C:/nfc/output/build.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportHistory([snapshot]);
 
@@ -186,7 +186,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("persisted-build-run", exportedSnapshot.Metadata.RunId);
         Assert.Equal("0 inputs / 0 steps / 0 mutations", exportedSnapshot.Metadata.EvidenceSummary);
 
-        MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel restoredViewModel = PresentationTestHost.CreateViewModel();
         restoredViewModel.Reports.LoadReportHistory(exported);
 
         Assert.Equal("nt51927-ctrlram-replace (NT51927)", restoredViewModel.Reports.LoadedReport.Title);
@@ -202,7 +202,7 @@ public sealed partial class ShellViewModelTests
         string userJson = ReportJsonSamples.Succeeded(runId: "newer-user-run");
         var pending = new TaskCompletionSource<IReadOnlyList<ReportHistorySnapshot>>(
             TaskCreationOptions.RunContinuationsAsynchronously);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task<bool> load = viewModel.Reports.LoadReportHistoryAsync(_ => pending.Task, CancellationToken.None);
         viewModel.Reports.LoadReportJson(userJson, "user-report.json");
@@ -223,7 +223,7 @@ public sealed partial class ShellViewModelTests
             "prepared-startup.json",
             startupJson,
             "C:/output/prepared.bin");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         bool published = await viewModel.Reports.LoadReportHistoryAsync(
             _ => Task.FromResult<IReadOnlyList<ReportHistorySnapshot>>([snapshot]),
@@ -245,7 +245,7 @@ public sealed partial class ShellViewModelTests
         var pending = new TaskCompletionSource<IReadOnlyList<ReportHistorySnapshot>>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = new CancellationTokenSource();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task<bool> load = viewModel.Reports.LoadReportHistoryAsync(_ => pending.Task, cancellation.Token);
         cancellation.Cancel();
@@ -264,7 +264,7 @@ public sealed partial class ShellViewModelTests
         string startupJson = ReportJsonSamples.Succeeded(runId: "startup-explicit-run");
         string userJson = ReportJsonSamples.Succeeded(runId: "newer-explicit-user-run");
         var pending = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task<bool> load = viewModel.Reports.LoadReportJsonAsync(
             _ => pending.Task,
@@ -284,7 +284,7 @@ public sealed partial class ShellViewModelTests
     public async Task DeferredReportSourceLoadPublishesCurrentReport()
     {
         string startupJson = ReportJsonSamples.Succeeded(runId: "current-explicit-startup-run");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         bool published = await viewModel.Reports.LoadReportJsonAsync(
             _ => Task.FromResult(startupJson),
@@ -301,7 +301,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task DeferredReportSourceFailurePublishesReadableError()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         bool published = await viewModel.Reports.LoadReportJsonAsync(
             _ => Task.FromException<string>(new IOException("startup storage unavailable")),
@@ -398,7 +398,7 @@ public sealed partial class ShellViewModelTests
         };
         ReportHistorySnapshot latest = new("latest.json", latestJson, string.Empty, latestMetadata);
         ReportHistorySnapshot deferred = new("deferred.json", deferredJson, "C:/output/deferred.bin", deferredMetadata);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportHistory([latest, deferred]);
 
@@ -429,7 +429,7 @@ public sealed partial class ShellViewModelTests
             Status = "Stored",
         };
         ReportHistorySnapshot invalid = new("invalid-latest.json", "[]", string.Empty, metadata);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportHistory([invalid]);
 
@@ -449,7 +449,7 @@ public sealed partial class ShellViewModelTests
             Status = "Stored",
         };
         ReportHistorySnapshot malformed = new("malformed.json", "{not json", string.Empty, metadata);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportHistory([malformed]);
 
@@ -479,7 +479,7 @@ public sealed partial class ShellViewModelTests
             /*lang=json,strict*/ "{\"Operations\":[0]}",
             string.Empty,
             invalidMetadata);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportHistory([latest, invalid]);
 

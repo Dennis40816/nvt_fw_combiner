@@ -19,7 +19,7 @@ public sealed partial class ShellViewModelTests
         const int documentLength = 1024 * 1024;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hex-viewport-baseline");
         string sourcePath = workspace.Write("baseline.bin", CreateHexPattern(documentLength));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
 

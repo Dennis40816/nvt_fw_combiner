@@ -1,11 +1,26 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests fail-closed internal references in map-independent v2 definitions.</summary>
 public sealed class CompositionProfileV2DefinitionGraphTests
 {
+    /// <summary>Map applicability follows the canonical regions referenced by a slot's views.</summary>
+    [Fact]
+    public void DefinitionOwnsInputSlotMapApplicability()
+    {
+        CompositionProfileDefinition definition = CompositionProfileV2DefinitionTestData.Create(
+            CompositionProfileV2DefinitionTestData.ValidMergeParts());
+
+        Assert.True(definition.IsInputSlotApplicable(
+            "tp-input",
+            new HashSet<string>(["dp-code"], StringComparer.Ordinal)));
+        Assert.False(definition.IsInputSlotApplicable(
+            "tp-input",
+            new HashSet<string>(StringComparer.Ordinal)));
+    }
+
     /// <summary>Verifies spaces and clone initializers reference declared input slots only.</summary>
     [Fact]
     public void DefinitionRejectsUnknownAndOrphanSlotReferences()
@@ -14,19 +29,19 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         var unknown = new InputArtifactProfileSpace(
             "source",
             "unknown-slot",
-            CompositionProfileInstancePolicy.Singleton);
+            CompiledInputInstancePolicy.Singleton);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Spaces = [unknown, parts.Spaces[1]] }));
 
-        var orphan = new CompositionProfileInputSlot(
+        var orphan = new CompositionInputSlotDefinition(
             "orphan-input",
             "auxiliary",
-            CompositionProfileArtifactClass.Auxiliary,
+            CompiledInputArtifactClass.Auxiliary,
             required: false,
-            CompositionProfileSlotCardinality.ZeroOrOne,
+            CompiledInputSlotCardinality.ZeroOrOne,
             [".bin"],
-            new ExactBytesLengthRule(16),
-            new NoInputNormalization());
+            new CompiledExactBytesInputLengthRequirement(16),
+            new CompiledNoInputNormalization());
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { InputSlots = [parts.InputSlots[0], orphan] }));
     }
@@ -57,7 +72,7 @@ public sealed class CompositionProfileV2DefinitionGraphTests
                 MapBinding = CompositionProfileV2DefinitionTestData.MapBinding(structureIds: ["other"]),
             }));
 
-        var unknownSpace = new CompositionProfileMetadataBinding(
+        CompositionProfileMetadataBinding unknownSpace = CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
             "fwconfig",
             "unknown-space",
             "firmware-config",
@@ -79,13 +94,13 @@ public sealed class CompositionProfileV2DefinitionGraphTests
     public void DefinitionRejectsInvalidOperationViewGraph()
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var unknownSource = new CopyOrReplaceProfileOperation(
-            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.CopyRange,
+        var unknownSource = CompositionOperationDefinition.CopyOrReplace(
+            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.CopyRange,
             "unknown-view", "target-view");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [unknownSource] }));
 
-        var immutableTarget = new FillRangeProfileOperation(
+        var immutableTarget = CompositionOperationDefinition.FillRange(
             "fill-source", 0, OverlapPolicy.Reject, "fill", "source-view", 0);
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [immutableTarget] }));
@@ -96,31 +111,31 @@ public sealed class CompositionProfileV2DefinitionGraphTests
     public void DefinitionRejectsInvalidValidationGraph()
     {
         CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var unknownBinding = new PidSanityProfileValidation(
+        var unknownBinding = new CompiledPidSanityValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
-            new CompositionProfileMetadataFieldReference("unknown", "pid"));
+            new CompiledValidationFieldReference("unknown", "pid"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unknownBinding] }));
 
-        var unselectedField = new PidSanityProfileValidation(
+        var unselectedField = new CompiledPidSanityValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
-            new CompositionProfileMetadataFieldReference("fwconfig", "chip-number"));
+            new CompiledValidationFieldReference("fwconfig", "chip-number"));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unselectedField] }));
 
-        var unknownView = new ViewByteAssertionProfileValidation(
+        var unknownView = new CompiledViewByteAssertionValidation(
             "header-valid",
-            CompositionProfileValidationStage.FinalOutput,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "unknown-view",
-            new CompositionProfileByteValue([0]));
+            new FirmwareMetadataBytes([0]));
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Validations = [unknownView] }));
     }
@@ -134,12 +149,12 @@ public sealed class CompositionProfileV2DefinitionGraphTests
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { ProcessorStages = [stage] }));
 
-        var unknownRun = new RunProcessorProfileOperation(
+        var unknownRun = CompositionOperationDefinition.RunProcessor(
             "postbuild", 1, OverlapPolicy.ReplaceExisting, "postbuild", "unknown-stage");
         _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], unknownRun] }));
 
-        var run = new RunProcessorProfileOperation(
+        var run = CompositionOperationDefinition.RunProcessor(
             "postbuild", 1, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
         var wrongAuthority = new LegacyCombinerProfileProcessorStage(
             "legacy-postbuild",
@@ -177,30 +192,14 @@ public sealed class CompositionProfileV2DefinitionGraphTests
             "display-crc",
             "source",
             ["source-view"]);
-        var runCrc = new RunProcessorProfileOperation(
+        var runCrc = CompositionOperationDefinition.RunProcessor(
             "verify-crc", 1, OverlapPolicy.Reject, "Verify source CRC.", "crc-check");
         CompositionProfileDefinition calculateInput = CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], runCrc], ProcessorStages = [crc] });
-        Assert.Equal(CompositionProfileProcessorAuthority.Calculate, calculateInput.ProcessorStages[0].Authority);
 
         CompositionProfileDefinition valid = CompositionProfileV2DefinitionTestData.Create(
             parts with { Operations = [parts.Operations[0], run], ProcessorStages = [stage] });
         _ = Assert.Single(valid.ProcessorStages);
-    }
-
-    /// <summary>Verifies output required-token declarations are present in the template.</summary>
-    [Fact]
-    public void DefinitionRejectsMissingOutputTemplateTokens()
-    {
-        CompositionProfileV2DefinitionParts parts = CompositionProfileV2DefinitionTestData.ValidMergeParts();
-        var output = new CompositionProfileOutput(
-            "merged.bin",
-            false,
-            CompositionProfileInvalidCharacterPolicy.Reject,
-            ["original-name"]);
-
-        _ = Assert.Throws<ArgumentException>(() => CompositionProfileV2DefinitionTestData.Create(
-            parts with { Output = output }));
     }
 
     private static LegacyCombinerProfileProcessorStage LegacyStage()

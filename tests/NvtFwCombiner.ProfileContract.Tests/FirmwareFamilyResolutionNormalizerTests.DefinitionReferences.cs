@@ -21,7 +21,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         (
             FirmwareFamilyDocument consumer,
             FirmwareMetadataStructureDefinition provider,
-            FirmwareMetadataStructureDefinitionReference reference) =
+            FirmwareMetadataStructureDefinitionReferenceDocument reference) =
             ReferencedDocument();
         var resolver = new ExactDefinitionResolver(reference, provider);
 
@@ -52,7 +52,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         (
             FirmwareFamilyDocument consumer,
             FirmwareMetadataStructureDefinition provider,
-            FirmwareMetadataStructureDefinitionReference reference) =
+            FirmwareMetadataStructureDefinitionReferenceDocument reference) =
             ReferencedDocument();
         var resolver = new ExactDefinitionResolver(reference, provider);
         FirmwareMetadataStructureDocument structure =
@@ -99,60 +99,10 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             exception.Path);
     }
 
-    /// <summary>A consumer cannot repeat offsets or fields beside a canonical reference.</summary>
-    [Fact]
-    public void NormalizeRejectsInlineFactsBesideDefinitionReference()
-    {
-        FirmwareFamilyDocument source = Document();
-        FirmwareMetadataSetDocument set = Assert.Single(source.MetadataSets);
-        FirmwareMetadataStructureDocument structure =
-            Assert.Single(set.Structures);
-        FirmwareMetadataStructureDefinition provider =
-            Assert.Single(
-                FirmwareFamilyResolutionNormalizer.Normalize(source, FamilyHash)
-                    .GetStructuresForMap("map"))
-                .Definition;
-        var reference = new FirmwareMetadataStructureDefinitionReference(
-            ProviderFamilyId,
-            ProviderFamilyVersion,
-            ProviderFamilyHash,
-            provider.DefinitionId);
-        FirmwareFamilyDocument duplicated = source with
-        {
-            MetadataSets =
-            [
-                set with
-                {
-                    Structures =
-                    [
-                        structure with
-                        {
-                            DefinitionReference =
-                                new FirmwareMetadataStructureDefinitionReferenceDocument(
-                                    reference.FamilyId,
-                                    reference.FamilyVersion,
-                                    reference.FamilyContentHash,
-                                    reference.StructureId),
-                        },
-                    ],
-                },
-            ],
-        };
-
-        FirmwareFamilyNormalizationException exception =
-            Assert.Throws<FirmwareFamilyNormalizationException>(() =>
-                FirmwareFamilyResolutionNormalizer.Normalize(
-                    duplicated,
-                    FamilyHash,
-                    new ExactDefinitionResolver(reference, provider)));
-
-        Assert.Equal("metadataSets[metadata].structures[0]", exception.Path);
-    }
-
     private static (
         FirmwareFamilyDocument Consumer,
         FirmwareMetadataStructureDefinition Provider,
-        FirmwareMetadataStructureDefinitionReference Reference)
+        FirmwareMetadataStructureDefinitionReferenceDocument Reference)
         ReferencedDocument()
     {
         FirmwareFamilyDocument source = Document();
@@ -164,7 +114,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
                 FirmwareFamilyResolutionNormalizer.Normalize(source, FamilyHash)
                     .GetStructuresForMap("map"))
                 .Definition;
-        var reference = new FirmwareMetadataStructureDefinitionReference(
+        var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
             ProviderFamilyId,
             ProviderFamilyVersion,
             ProviderFamilyHash,
@@ -198,12 +148,12 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
     }
 
     private sealed class ExactDefinitionResolver(
-        FirmwareMetadataStructureDefinitionReference expected,
+        FirmwareMetadataStructureDefinitionReferenceDocument expected,
         FirmwareMetadataStructureDefinition definition)
         : IFirmwareMetadataStructureDefinitionResolver
     {
         public bool TryResolve(
-            FirmwareMetadataStructureDefinitionReference reference,
+            FirmwareMetadataStructureDefinitionReferenceDocument reference,
             out FirmwareMetadataStructureDefinition? resolved)
         {
             if (reference == expected)

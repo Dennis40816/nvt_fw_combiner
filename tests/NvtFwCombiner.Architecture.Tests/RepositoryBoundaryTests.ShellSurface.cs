@@ -43,6 +43,8 @@ public sealed partial class RepositoryBoundaryTests
         string dropZoneDragState = ReadText("src/NvtFwCombiner.Presentation.Avalonia/DropZoneDragState.cs");
         string replaceSelectionModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReplaceSelectionModal.axaml");
         string reportModal = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/ReportModal.axaml");
+        string messageCenterModal = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/Views/MessageCenterModal.axaml");
         string shellSurface = string.Join(
             Environment.NewLine,
             shell,
@@ -56,6 +58,7 @@ public sealed partial class RepositoryBoundaryTests
             generalMappingRow,
             workflowContextSetupModal,
             replaceSelectionModal,
+            messageCenterModal,
             reportModal);
 
         Assert.Contains("IsHomeVisible", shell, StringComparison.Ordinal);
@@ -136,7 +139,12 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SaveReportButton_OnClick", reportModal, StringComparison.Ordinal);
         Assert.Contains("BuildMergeButton_OnClick", shell, StringComparison.Ordinal);
-        Assert.Contains("Command=\"{Binding Reports.ShowReportCommand}\"", shell, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding MessageCenter.OpenCommand}\"", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Command=\"{Binding MessageCenter.OpenSystemInformationCommand}\"",
+            shell,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("IsChecked=\"{Binding MessageCenter", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding Reports.IsReportModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding Replace.IsReplaceSelectionModalOpen}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
@@ -205,11 +213,11 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("BrowseGeneralMergeMappingButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("DataType=\"{x:Type vm:GeneralMergeMappingViewModel}\"", generalMappingRow, StringComparison.Ordinal);
         Assert.Contains("DataType=\"{x:Type vm:GeneralReplaceMappingViewModel}\"", generalMappingRow, StringComparison.Ordinal);
-        Assert.Contains("Button.reportAction", buttonStyles, StringComparison.Ordinal);
+        Assert.DoesNotContain("Button.reportAction", buttonStyles, StringComparison.Ordinal);
         Assert.Contains("Border.workflowCard", visualStyles, StringComparison.Ordinal);
-        Assert.Contains("IsEnabled=\"{Binding Reports.CanOpenReport}\"", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportActionLabel", shell, StringComparison.Ordinal);
-        Assert.Contains("ReportActionStatus", shell, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding Reports.CanOpenReport}\"", messageCenterModal, StringComparison.Ordinal);
+        Assert.Contains("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
+        Assert.Contains("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
@@ -329,15 +337,20 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", workflowContext, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", mergeMemory, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("GetSelectedReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", replaceMemory, StringComparison.Ordinal);
+        Assert.DoesNotContain("UiCompositionRunner.GetReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
         Assert.Contains("ReplaceModeChoices", replaceState, StringComparison.Ordinal);
         Assert.Contains("GeneralReplaceMappings", replaceState, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", replaceState, StringComparison.Ordinal);
         Assert.Contains("IsStructuredReplaceModeSelected", replaceState, StringComparison.Ordinal);
         Assert.Contains("PreviewMergeCommand", mergeState, StringComparison.Ordinal);
         Assert.Contains("BuildMergeCommand", mergeState, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", mergeViewModel, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution", mergeViewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionExecutionAdapter", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("RunStandardMergeAsync", mergeViewModel, StringComparison.Ordinal);
         Assert.Contains("OverviewRows", settingsViewModel, StringComparison.Ordinal);
         Assert.Contains("CapabilityRows", settingsViewModel, StringComparison.Ordinal);

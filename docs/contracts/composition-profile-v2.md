@@ -43,7 +43,7 @@ mathematical value receive the same verdict. Field values must still pass their 
 slice, while operation sequence and signed addend values remain arbitrary precision within this
 resource ceiling.
 
-`CompositionProfileDefinition` is the normalized typed form of this document. It owns:
+`CompositionProfileDefinition` is the Domain-owned normalized typed form of this document. It owns:
 
 - immutable input slots and acceptance/normalization policy;
 - input, work-buffer, and final-output address spaces;
@@ -52,6 +52,17 @@ resource ceiling.
 - the Replace-only IC-number selector policy;
 - one ordered operation list and closed processor stages; and
 - output naming.
+
+Every production document reaches that definition through one mandatory trust
+route: exact manifest/hash admission, the selected strict schema snapshot,
+immutable trusted document projection, and then Profiles normalization. The
+selected schema is the sole owner of required/null members, fixed wire values,
+closed union shape, and which declarations exist in each schema version.
+Profiles maps the already admitted tokens and cross-references into Domain;
+Domain constructors own canonical semantic invariants and the compiler owns
+selection/lowering semantics. Schema-shape failures therefore come from bundle
+loading/schema validation, not from a second version-aware normalizer. Test-only
+direct normalizer calls do not form a supported intake path.
 
 ## Compiled Plan Boundary
 
@@ -66,8 +77,8 @@ promotion is exactly `supported`, blockers are empty, each input slot has exactl
 singleton space, and output naming is one of: a token-free legacy-schema
 template, the exact closed AB Code v1 compatibility template, or a complete
 schema-2.15 typed normal naming rule, all with the `reject` invalid-character
-policy. The AB exception is admitted only for the AB Merge execution context
-and is rendered by Application from accepted execution snapshots. A normal
+policy. The AB exception is admitted only for Merge composition with the exact
+closed `AbCodeV1` renderer and is rendered by Application from accepted execution snapshots. A normal
 FlashCode or TP-firmware template without its schema-2.15 rule id, artifact
 type, typed token sources, and missing-value policies remains non-executable.
 Arbitrary token templates remain non-executable.
@@ -216,26 +227,27 @@ replace firmware-owner golden review. Exact ordered Combiner command facts remai
 closed `invocationProfileId` and are loaded from the separately hash-pinned built-in Postbuild data
 catalog; the composition profile does not duplicate that command table.
 
-Schema 2.9 keeps every earlier resolved-map and processor contract and adds two closed alternatives
-to `runtime-reference-replace`. A General Replace profile remains processor-free, or declares exactly
+Schema 2.9 keeps every earlier resolved-map and processor contract and adds two closed semantic shapes
+to `runtime-reference-replace`. A user-defined/extensible profile remains processor-free, or declares exactly
 one final `run-processor` operation and one `legacy-combiner-v1` stage for TP header/integrity refresh.
 The operation sequence is `2147483647`, its overlap policy is `replace-existing`, and the stage cannot
 stage source or auxiliary artifacts. Its views are profile-owned output/map views only; the typed request
 still supplies only immutable binding lengths and explicit mappings, never commands, processor paths,
 arguments, or mutable buffers.
 
-The CtrlRAM Replace alternative uses the same reference-clone and typed mapping
-algebra but has a fixed/fixed experience, an unnormalized per-binding
-`ctrlram-replacement` source, and exactly one final processor stage. Every
+The fixed processor shape uses the same Replace reference-clone and typed mapping
+algebra but has fixed/fixed authoring, a per-binding `ctrlram-replacement` source with
+the evidenced `truncate-ctrlram` normalization, and exactly one final processor stage. Every
 mapping target must resolve to a canonical TP-owned CtrlRAM region; no other
 region class can borrow profile access. The reference length selects capacity,
 and an explicit IC-number topology may disambiguate same-capacity single and
-cascade maps through the canonical resolver. Only supplied source bytes are
+cascade maps when the canonical map applicability declares typed topology requirements. Workflow
+identity remains trusted selection/provenance data and does not select this behavior. Only supplied source bytes are
 mapped, so a short input preserves the cloned target tail and an oversized input
 cannot expand section authority. This is candidate compilation, not built-in
 runtime registration or support promotion.
 
-For CtrlRAM Replace, the compiler intersects each profile-declared TP CtrlRAM
+For this typed CtrlRAM source shape, the compiler intersects each profile-declared TP CtrlRAM
 processor write view with the concrete mapping targets. Only those intersections
 enter the external invocation's allowed-write set. Non-CtrlRAM processor-only
 views remain exact profile authority. The compiled Domain artifact rejects a
@@ -417,9 +429,10 @@ complete DP AB seed to an exact declared container variant; built-in profile
 wiring and firmware-owner/golden approval remain separate R3 gates.
 
 `pad-shorter` and `truncate-ctrlram` require evidence and mutate only a transient input buffer.
-Padding is DP-only, `dp-replace` only, and forbidden when any processor/integrity stage exists.
-Truncation is `ctrlram-replace` only and valid only when every affected operation target resolves to
-a physical TP `ctrlram` region; it always emits the declared warning. These target-kind and capacity
+Padding is limited to a typed `dp-firmware` Replace source and is forbidden when any
+processor/integrity stage exists. Truncation requires a typed `ctrlram-replacement` Replace source
+and is valid only when every affected operation target resolves to a physical TP `ctrlram` region;
+it always emits the declared warning. These target-kind and capacity
 checks are mandatory compiler semantic validation because they cross-reference the resolved family
 map. Reference images, mutable work buffers, and processor-owned non-CtrlRAM flows remain exact.
 Compact CtrlRAM replacement is the only current built-in payload-relative
@@ -435,7 +448,8 @@ bytes. The original filename remains in reports and preview-token identity.
 Legacy runtime templates are normally token-free. The exact AB Code v1
 compatibility template
 `NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin` remains executable
-only for AB Merge under ADR 0034. Schema 2.15 additionally admits the exact
+only for Merge composition with the exact closed `AbCodeV1` renderer under ADR
+0034 and the identity-independent compiler rule in ADR 0015. Schema 2.15 additionally admits the exact
 typed normal FlashCode and TP-firmware rules described above; matching template
 text in an older schema does not select those renderers.
 

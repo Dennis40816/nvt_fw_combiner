@@ -1,8 +1,8 @@
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
-/// <summary>Tests immutable v2 processor-stage and output naming values.</summary>
+/// <summary>Tests immutable v2 processor-stage values.</summary>
 public sealed class CompositionProfileV2ProcessorTests
 {
     /// <summary>Verifies CRC stages are structurally calculation-only with zero write authority.</summary>
@@ -18,14 +18,8 @@ public sealed class CompositionProfileV2ProcessorTests
             reads);
         reads.Clear();
 
-        Assert.Equal(CompositionProfileProcessorKind.CrcWorkerV1, stage.Kind);
-        Assert.Equal(CompositionProfileProcessorAuthority.Calculate, stage.Authority);
-        Assert.Equal(CompositionProfileProcessorPurpose.Checksum, stage.Purpose);
-        Assert.Equal(CompositionProfileIntegrityDisposition.VerifyExisting, stage.IntegrityDisposition);
-        Assert.Equal(CompositionProfileProcessorFailurePolicy.FailClosed, CompositionProfileProcessorStage.FailurePolicy);
         Assert.Equal(["view-a", "view-z"], stage.AllowedReadViewIds);
         Assert.Empty(stage.AllowedWriteViewIds);
-        Assert.Equal("1.0.0", stage.ContractVersion);
     }
 
     /// <summary>Verifies legacy stages retain only approved ids, views, evidence, and staged bindings.</summary>
@@ -61,13 +55,10 @@ public sealed class CompositionProfileV2ProcessorTests
         bindings.Clear();
         artifactBindings.Clear();
 
-        Assert.Equal(CompositionProfileProcessorAuthority.Transform, stage.Authority);
         Assert.Equal(["crc", "header"], stage.AllowedWriteViewIds);
         Assert.Equal(["dp-source", "tp-source"], stage.StagedSourceBindings.Select(static item => item.SourceViewId));
         Assert.Equal(["a-bank", "b-bank"], stage.StagedArtifactBindings.Select(static item => item.ArtifactId));
         Assert.Equal("combiner-1-13", stage.ToolBindingId);
-        Assert.Equal("combiner-evidence", stage.EvidenceRef);
-        Assert.Equal(CompositionProfileProcessorFailurePolicy.FailClosed, CompositionProfileProcessorStage.FailurePolicy);
     }
 
     /// <summary>Verifies the closed purpose/integrity matrix rejects unsupported authority.</summary>
@@ -124,34 +115,6 @@ public sealed class CompositionProfileV2ProcessorTests
             "display-crc",
             "output",
             ["output-image"]));
-    }
-
-    /// <summary>Verifies output naming policy snapshots canonical token ids without rendering paths.</summary>
-    [Fact]
-    public void OutputNamingPolicyIsImmutableAndDoesNotRender()
-    {
-        var tokens = new List<string> { "version", "original-name" };
-        var output = new CompositionProfileOutput(
-            "{original-name}_{version}.bin",
-            allowOverride: false,
-            CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore,
-            tokens);
-        tokens.Clear();
-
-        Assert.Equal("{original-name}_{version}.bin", output.FileNameTemplate);
-        Assert.False(output.AllowOverride);
-        Assert.Equal(CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore, output.InvalidCharacterPolicy);
-        Assert.Equal(["original-name", "version"], output.RequiredTokenIds);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileOutput(
-            "name.bin",
-            false,
-            CompositionProfileInvalidCharacterPolicy.Reject,
-            ["Version"]));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompositionProfileOutput(
-            "name.bin",
-            false,
-            (CompositionProfileInvalidCharacterPolicy)99,
-            []));
     }
 
     private static LegacyCombinerProfileProcessorStage Legacy(

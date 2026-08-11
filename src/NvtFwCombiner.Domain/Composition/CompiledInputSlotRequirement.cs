@@ -35,115 +35,14 @@ public enum CompiledInputInstancePolicy
     PerBinding,
 }
 
-/// <summary>Closed input length-rule kind retained by a compiled artifact.</summary>
-public enum CompiledInputLengthRequirementKind
-{
-    /// <inheritdoc/>
-    ExactBytes,
-    /// <inheritdoc/>
-    ExactResolvedMapCapacity,
-    /// <inheritdoc/>
-    Bounded,
-    /// <inheritdoc/>
-    NormalDpExtractWithWarning,
-    /// <inheritdoc/>
-    TpMaximum256K,
-    /// <inheritdoc/>
-    DeclaredPrefixWithWarning,
-    /// <inheritdoc/>
-    SourceViewCoverage,
-}
-
 /// <summary>Base value for one immutable compiled input length requirement.</summary>
-public abstract record CompiledInputLengthRequirement
-{
-    /// <summary>Creates a checked closed length requirement kind.</summary>
-    protected CompiledInputLengthRequirement(CompiledInputLengthRequirementKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown compiled input length requirement kind.");
-        }
-
-        Kind = kind;
-    }
-
-    /// <summary>Closed requirement kind.</summary>
-    public CompiledInputLengthRequirementKind Kind { get; }
-}
-
-/// <summary>Accepts one immutable execution prefix while retaining full-source diagnostic authority.</summary>
-public sealed record CompiledDeclaredPrefixWithWarningInputLengthRequirement : CompiledInputLengthRequirement
-{
-    private readonly long[] _expectedOuterLengths;
-
-    /// <summary>Creates one checked declared-prefix requirement.</summary>
-    public CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-        long requiredEndExclusive,
-        IReadOnlyList<long> expectedOuterLengths,
-        string shortInputIssueCode,
-        string unexpectedOuterLengthIssueCode)
-        : base(CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning)
-    {
-        if (requiredEndExclusive is <= 0 or > int.MaxValue)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(requiredEndExclusive),
-                requiredEndExclusive,
-                "Required end must fit the in-memory execution snapshot limit.");
-        }
-
-        ArgumentNullException.ThrowIfNull(expectedOuterLengths);
-        if (expectedOuterLengths.Count is 0 or > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
-
-        _expectedOuterLengths = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            if (value < requiredEndExclusive || value > int.MaxValue || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must fit the in-memory limit, cover the required end, and be strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
-
-            _expectedOuterLengths[index] = value;
-            previous = value;
-        }
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(shortInputIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
-        RequiredEndExclusive = requiredEndExclusive;
-        ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
-        ShortInputIssueCode = shortInputIssueCode;
-        UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
-    }
-
-    /// <summary>First unavailable byte that makes a shorter source blocking.</summary>
-    public long RequiredEndExclusive { get; }
-
-    /// <summary>Complete source lengths that do not emit an outer-length warning.</summary>
-    public IReadOnlyList<long> ExpectedOuterLengths { get; }
-
-    /// <summary>Stable blocking issue code for a source shorter than the required end.</summary>
-    public string ShortInputIssueCode { get; }
-
-    /// <summary>Stable warning issue code for an accepted unexpected outer length.</summary>
-    public string UnexpectedOuterLengthIssueCode { get; }
-}
+public abstract record CompiledInputLengthRequirement : InputLengthRequirementDefinition;
 
 /// <summary>Requires one exact positive source length.</summary>
 public sealed record CompiledExactBytesInputLengthRequirement : CompiledInputLengthRequirement
 {
     /// <summary>Creates an exact-length requirement.</summary>
     public CompiledExactBytesInputLengthRequirement(long bytes)
-        : base(CompiledInputLengthRequirementKind.ExactBytes)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -158,7 +57,6 @@ public sealed record CompiledExactResolvedMapCapacityInputLengthRequirement : Co
 {
     /// <summary>Creates an exact resolved-map-capacity requirement.</summary>
     public CompiledExactResolvedMapCapacityInputLengthRequirement(long bytes)
-        : base(CompiledInputLengthRequirementKind.ExactResolvedMapCapacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bytes);
         Bytes = bytes;
@@ -173,7 +71,6 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
 {
     /// <summary>Creates a bounded-length requirement.</summary>
     public CompiledBoundedInputLengthRequirement(long minimumBytes, long maximumBytes)
-        : base(CompiledInputLengthRequirementKind.Bounded)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minimumBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
@@ -196,68 +93,6 @@ public sealed record CompiledBoundedInputLengthRequirement : CompiledInputLength
     public long MaximumBytes { get; }
 }
 
-/// <summary>Extracts declared Normal DP content and records a warning for a nonmatching container length.</summary>
-public sealed record CompiledNormalDpExtractWithWarningInputLengthRequirement : CompiledInputLengthRequirement
-{
-    private readonly long[] _expectedInputLengths;
-
-    /// <summary>Creates one fixed Normal-DP extraction requirement.</summary>
-    public CompiledNormalDpExtractWithWarningInputLengthRequirement(
-        string issueCode,
-        IReadOnlyList<long> expectedInputLengths)
-        : base(CompiledInputLengthRequirementKind.NormalDpExtractWithWarning)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(issueCode);
-        ArgumentNullException.ThrowIfNull(expectedInputLengths);
-        IssueCode = issueCode;
-        _expectedInputLengths = SnapshotExpectedInputLengths(expectedInputLengths);
-        ExpectedInputLengths = Array.AsReadOnly(_expectedInputLengths);
-    }
-
-    /// <summary>Stable warning issue code emitted for an outer-container size mismatch.</summary>
-    public string IssueCode { get; }
-
-    /// <summary>Expected outer-container lengths that avoid the warning while preserving declared-range extraction.</summary>
-    public IReadOnlyList<long> ExpectedInputLengths { get; }
-
-    private static long[] SnapshotExpectedInputLengths(IReadOnlyList<long> expectedInputLengths)
-    {
-        if (expectedInputLengths.Count is 0 or
-            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected input lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedInputLengths));
-        }
-
-        long[] snapshot = new long[expectedInputLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedInputLengths.Count; index++)
-        {
-            long value = expectedInputLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected input lengths must be positive and strictly ascending.",
-                    nameof(expectedInputLengths));
-            }
-
-            snapshot[index] = value;
-            previous = value;
-        }
-
-        return snapshot;
-    }
-}
-
-/// <summary>Rejects TP firmware larger than the owner-approved 256 KiB limit.</summary>
-public sealed record CompiledTpMaximum256KInputLengthRequirement()
-    : CompiledInputLengthRequirement(CompiledInputLengthRequirementKind.TpMaximum256K)
-{
-    /// <summary>Owner-approved maximum TP input length.</summary>
-    public const long MaximumBytes = 262144;
-}
-
 /// <summary>
 /// Accepts an immutable source that covers the compiled address-space reads,
 /// with optional complete-container diagnostics.
@@ -270,25 +105,57 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     /// <summary>Creates one checked source-view coverage requirement.</summary>
     public CompiledSourceViewCoverageInputLengthRequirement(
         IReadOnlyList<long>? expectedOuterLengths = null,
-        string? unexpectedOuterLengthIssueCode = null)
-        : base(CompiledInputLengthRequirementKind.SourceViewCoverage)
+        string? unexpectedOuterLengthIssueCode = null,
+        long? requiredEndExclusive = null,
+        string? shortInputIssueCode = null,
+        long? maximumBytes = null)
     {
-        if ((expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null))
+        if (requiredEndExclusive is <= 0 or > int.MaxValue)
         {
-            throw new ArgumentException(
-                "Expected outer lengths and their warning issue code must be declared together.");
+            throw new ArgumentOutOfRangeException(
+                nameof(requiredEndExclusive),
+                requiredEndExclusive,
+                "Required end must fit the in-memory execution snapshot limit.");
         }
+
+        DomainInvariant.Reject(
+            (expectedOuterLengths is null) != (unexpectedOuterLengthIssueCode is null),
+            "Expected outer lengths and their warning issue code must be declared together.");
+        DomainInvariant.Reject(
+            (requiredEndExclusive is null) != (shortInputIssueCode is null),
+            "An explicit required end and its blocking issue code must be declared together within the in-memory limit.");
+        DomainInvariant.Reject(
+            maximumBytes is <= 0 or > int.MaxValue ||
+            (maximumBytes is not null && (requiredEndExclusive is not null || expectedOuterLengths is not null)),
+            "Source-view maximum length must fit the in-memory limit and cannot carry another coverage policy.");
 
         _expectedOuterLengths = expectedOuterLengths is null
             ? []
-            : SnapshotExpectedOuterLengths(expectedOuterLengths);
+            : InputLengthPolicyLimits.SnapshotExpectedOuterLengths(
+                expectedOuterLengths,
+                nameof(expectedOuterLengths));
         if (unexpectedOuterLengthIssueCode is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedOuterLengthIssueCode);
         }
+        if (shortInputIssueCode is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(shortInputIssueCode);
+        }
+        if (requiredEndExclusive is { } requiredEnd)
+        {
+            DomainInvariant.Reject(
+                _expectedOuterLengths.Length == 0 ||
+                _expectedOuterLengths.Any(length => length < requiredEnd || length > int.MaxValue),
+                "Expected outer lengths must cover the explicit required end and fit the in-memory limit.",
+                nameof(expectedOuterLengths));
+        }
 
         ExpectedOuterLengths = Array.AsReadOnly(_expectedOuterLengths);
         UnexpectedOuterLengthIssueCode = unexpectedOuterLengthIssueCode;
+        RequiredEndExclusive = requiredEndExclusive;
+        ShortInputIssueCode = shortInputIssueCode;
+        MaximumBytes = maximumBytes;
     }
 
     /// <summary>Known complete-container lengths that suppress an optional warning.</summary>
@@ -297,79 +164,30 @@ public sealed record CompiledSourceViewCoverageInputLengthRequirement :
     /// <summary>Optional stable warning code for an unexpected complete-container length.</summary>
     public string? UnexpectedOuterLengthIssueCode { get; }
 
-    private static long[] SnapshotExpectedOuterLengths(IReadOnlyList<long> expectedOuterLengths)
-    {
-        if (expectedOuterLengths.Count is 0 or
-            > InputLengthPolicyLimits.MaximumExpectedInputLengths)
-        {
-            throw new ArgumentException(
-                $"Expected outer lengths must contain between 1 and {InputLengthPolicyLimits.MaximumExpectedInputLengths} values.",
-                nameof(expectedOuterLengths));
-        }
+    /// <summary>Optional first unavailable byte that makes a shorter source blocking.</summary>
+    public long? RequiredEndExclusive { get; }
 
-        long[] snapshot = new long[expectedOuterLengths.Count];
-        long previous = 0;
-        for (int index = 0; index < expectedOuterLengths.Count; index++)
-        {
-            long value = expectedOuterLengths[index];
-            if (value <= 0 || (index > 0 && value <= previous))
-            {
-                throw new ArgumentException(
-                    "Expected outer lengths must be positive and strictly ascending.",
-                    nameof(expectedOuterLengths));
-            }
+    /// <summary>Blocking issue code paired with an explicit required end.</summary>
+    public string? ShortInputIssueCode { get; }
 
-            snapshot[index] = value;
-            previous = value;
-        }
-
-        return snapshot;
-    }
-}
-
-/// <summary>Closed transient input-normalization kind retained by a compiled artifact.</summary>
-public enum CompiledInputNormalizationKind
-{
-    /// <inheritdoc/>
-    None,
-    /// <inheritdoc/>
-    PadShorter,
-    /// <inheritdoc/>
-    TruncateCtrlRam,
+    /// <summary>Optional inclusive maximum accepted complete source length.</summary>
+    public long? MaximumBytes { get; }
 }
 
 /// <summary>Base value for one immutable compiled input-normalization policy.</summary>
-public abstract record CompiledInputNormalization
-{
-    /// <summary>Creates a checked closed normalization kind.</summary>
-    protected CompiledInputNormalization(CompiledInputNormalizationKind kind)
-    {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown compiled input normalization kind.");
-        }
-
-        Kind = kind;
-    }
-
-    /// <summary>Closed normalization kind.</summary>
-    public CompiledInputNormalizationKind Kind { get; }
-}
+public abstract record CompiledInputNormalization;
 
 /// <summary>Preserves immutable source bytes without normalization.</summary>
-public sealed record CompiledNoInputNormalization()
-    : CompiledInputNormalization(CompiledInputNormalizationKind.None);
+public sealed record CompiledNoInputNormalization : CompiledInputNormalization;
 
 /// <summary>Pads a shorter DP source with one evidenced byte.</summary>
 public sealed record CompiledPadShorterInputNormalization : CompiledInputNormalization
 {
     /// <summary>Creates a checked short-input padding policy.</summary>
     public CompiledPadShorterInputNormalization(byte fillByte, string evidenceRef)
-        : base(CompiledInputNormalizationKind.PadShorter)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceRef);
+        EvidenceRef = RequiredValue.NotBlank(evidenceRef);
         FillByte = fillByte;
-        EvidenceRef = evidenceRef;
     }
 
     /// <summary>Byte appended to a shorter transient input.</summary>
@@ -384,12 +202,9 @@ public sealed record CompiledTruncateCtrlRamInputNormalization : CompiledInputNo
 {
     /// <summary>Creates a checked CtrlRAM truncation policy.</summary>
     public CompiledTruncateCtrlRamInputNormalization(string warningIssueCode, string evidenceRef)
-        : base(CompiledInputNormalizationKind.TruncateCtrlRam)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(warningIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceRef);
-        WarningIssueCode = warningIssueCode;
-        EvidenceRef = evidenceRef;
+        WarningIssueCode = RequiredValue.NotBlank(warningIssueCode);
+        EvidenceRef = RequiredValue.NotBlank(evidenceRef);
     }
 
     /// <summary>Stable warning issue code emitted when truncation occurs.</summary>
@@ -399,187 +214,62 @@ public sealed record CompiledTruncateCtrlRamInputNormalization : CompiledInputNo
     public string EvidenceRef { get; }
 }
 
-/// <summary>One immutable input-slot acceptance, normalization, and address-space binding requirement.</summary>
+/// <summary>One immutable compiled input-slot requirement referencing its canonical definition.</summary>
 public sealed class CompiledInputSlotRequirement
 {
-    private readonly string[] _acceptedExtensions;
+    private readonly CompositionInputSlotDefinition _definition;
 
     internal CompiledInputSlotRequirement(
-        string slotId,
-        string role,
-        CompiledInputArtifactClass artifactClass,
-        bool required,
-        CompiledInputSlotCardinality cardinality,
-        IEnumerable<string> acceptedExtensions,
+        CompositionInputSlotDefinition definition,
         CompiledInputLengthRequirement lengthRequirement,
-        CompiledInputNormalization normalization)
+        bool forceRequired = false)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(role);
-        if (!Enum.IsDefined(artifactClass))
-        {
-            throw new ArgumentOutOfRangeException(nameof(artifactClass), artifactClass, "Unknown compiled input artifact class.");
-        }
-
-        if (!Enum.IsDefined(cardinality))
-        {
-            throw new ArgumentOutOfRangeException(nameof(cardinality), cardinality, "Unknown compiled input slot cardinality.");
-        }
-
+        ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(lengthRequirement);
-        ArgumentNullException.ThrowIfNull(normalization);
-        ValidateArtifactPolicy(artifactClass, lengthRequirement, normalization);
-        _acceptedExtensions = SnapshotExtensions(acceptedExtensions);
+        bool matchesDefinition = definition.LengthRequirement switch
+        {
+            ResolvedMapCapacityInputLengthDefinition =>
+                lengthRequirement is CompiledExactResolvedMapCapacityInputLengthRequirement,
+            SourceViewCoverageInputLengthDefinition =>
+                lengthRequirement is CompiledSourceViewCoverageInputLengthRequirement,
+            CompiledInputLengthRequirement fixedRequirement =>
+                ReferenceEquals(fixedRequirement, lengthRequirement),
+            _ => false,
+        };
+        DomainInvariant.Reject(
+            !matchesDefinition,
+            "Compiled input length must resolve the canonical slot definition.",
+            nameof(lengthRequirement));
 
-        SlotId = slotId;
-        Role = role;
-        ArtifactClass = artifactClass;
-        Required = required;
-        Cardinality = cardinality;
-        AcceptedExtensions = Array.AsReadOnly(_acceptedExtensions);
+        _definition = definition;
+        Required = definition.Required || forceRequired;
+        Cardinality = forceRequired ? CompiledInputSlotCardinality.ExactlyOne : definition.Cardinality;
         LengthRequirement = lengthRequirement;
-        Normalization = normalization;
     }
 
     /// <summary>Profile-owned input slot identifier.</summary>
-    public string SlotId { get; }
+    public string SlotId => _definition.SlotId;
 
     /// <summary>Stable role identifier used for presentation and reports.</summary>
-    public string Role { get; }
+    public string Role => _definition.Role;
 
     /// <summary>Closed source-artifact class.</summary>
-    public CompiledInputArtifactClass ArtifactClass { get; }
+    public CompiledInputArtifactClass ArtifactClass => _definition.ArtifactClass;
 
-    /// <summary>Whether the profile requires this slot.</summary>
+    /// <summary>Whether the compiled plan requires this slot.</summary>
     public bool Required { get; }
 
     /// <summary>Closed source-binding cardinality.</summary>
     public CompiledInputSlotCardinality Cardinality { get; }
 
     /// <summary>Canonical accepted filename extensions.</summary>
-    public IReadOnlyList<string> AcceptedExtensions { get; }
+    public IReadOnlyList<string> AcceptedExtensions => _definition.AcceptedExtensions;
 
-    /// <summary>Typed source length acceptance policy.</summary>
+    /// <summary>Typed resolved source length acceptance policy.</summary>
     public CompiledInputLengthRequirement LengthRequirement { get; }
 
     /// <summary>Typed transient source normalization policy.</summary>
-    public CompiledInputNormalization Normalization { get; }
-
-    private static string[] SnapshotExtensions(IEnumerable<string> acceptedExtensions)
-    {
-        ArgumentNullException.ThrowIfNull(acceptedExtensions);
-        string[] snapshot = [.. acceptedExtensions];
-        if (snapshot.Length == 0 || snapshot.Any(static extension =>
-                extension.Length < 2 || extension[0] != '.' ||
-                extension.Skip(1).Any(static character => !char.IsAsciiLetterOrDigit(character))))
-        {
-            throw new ArgumentException(
-                "Accepted extensions must use canonical dot-prefixed alphanumeric form.",
-                nameof(acceptedExtensions));
-        }
-
-        if (snapshot.Distinct(StringComparer.Ordinal).Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Accepted extensions must be ordinally unique.", nameof(acceptedExtensions));
-        }
-
-        Array.Sort(snapshot, StringComparer.Ordinal);
-        return snapshot;
-    }
-
-    private static void ValidateArtifactPolicy(
-        CompiledInputArtifactClass artifactClass,
-        CompiledInputLengthRequirement lengthRequirement,
-        CompiledInputNormalization normalization)
-    {
-        if (artifactClass == CompiledInputArtifactClass.TpFirmware &&
-            (!IsApprovedTpLengthRequirement(lengthRequirement) ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "TP firmware requires one approved unnormalized section or exact length rule.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.TpMaximum256K &&
-            artifactClass != CompiledInputArtifactClass.TpFirmware)
-        {
-            throw new ArgumentException("The fixed 256 KiB rule is restricted to TP firmware.");
-        }
-
-        if (artifactClass == CompiledInputArtifactClass.DpFirmware &&
-            lengthRequirement.Kind is not CompiledInputLengthRequirementKind.ExactResolvedMapCapacity and
-                not CompiledInputLengthRequirementKind.NormalDpExtractWithWarning and
-                not CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning and
-                not CompiledInputLengthRequirementKind.SourceViewCoverage)
-        {
-            throw new ArgumentException("DP firmware requires an approved DP length rule.");
-        }
-
-        if (artifactClass == CompiledInputArtifactClass.ReferenceImage &&
-            (lengthRequirement.Kind != CompiledInputLengthRequirementKind.ExactResolvedMapCapacity ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Reference images require exact map capacity without normalization.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
-            artifactClass != CompiledInputArtifactClass.DpFirmware)
-        {
-            throw new ArgumentException("Short-input padding is restricted to DP firmware.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.PadShorter &&
-            lengthRequirement.Kind != CompiledInputLengthRequirementKind.ExactResolvedMapCapacity)
-        {
-            throw new ArgumentException("Short-input padding requires exact resolved-map capacity.");
-        }
-
-        if (normalization.Kind == CompiledInputNormalizationKind.TruncateCtrlRam &&
-            artifactClass != CompiledInputArtifactClass.CtrlRamReplacement)
-        {
-            throw new ArgumentException("CtrlRAM truncation requires a CtrlRAM replacement artifact.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.NormalDpExtractWithWarning &&
-            (artifactClass != CompiledInputArtifactClass.DpFirmware ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException("Normal DP extraction warnings cannot normalize input bytes.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.DeclaredPrefixWithWarning &&
-            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
-                CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Declared-prefix input authority is restricted to unnormalized immutable Merge sources.");
-        }
-
-        if (lengthRequirement.Kind == CompiledInputLengthRequirementKind.SourceViewCoverage &&
-            (artifactClass is CompiledInputArtifactClass.ReferenceImage or
-                CompiledInputArtifactClass.CtrlRamReplacement ||
-             normalization.Kind != CompiledInputNormalizationKind.None))
-        {
-            throw new ArgumentException(
-                "Source-view coverage is restricted to unnormalized immutable section sources.");
-        }
-    }
-
-    private static bool IsApprovedTpLengthRequirement(CompiledInputLengthRequirement lengthRequirement)
-    {
-        return lengthRequirement is CompiledTpMaximum256KInputLengthRequirement or
-            CompiledSourceViewCoverageInputLengthRequirement or
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement
-        {
-            RequiredEndExclusive: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-        } or
-            CompiledExactBytesInputLengthRequirement
-        {
-            Bytes: <= CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-        };
-    }
-
+    public CompiledInputNormalization Normalization => _definition.Normalization;
 }
 
 /// <summary>One immutable plan address-space binding supplied for one compiled input slot.</summary>
@@ -590,18 +280,10 @@ public sealed class CompiledInputSpaceBinding
         string slotId,
         CompiledInputInstancePolicy instancePolicy)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
-        if (!Enum.IsDefined(instancePolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(instancePolicy),
-                instancePolicy,
-                "Unknown compiled input instance policy.");
-        }
+        AddressSpaceId = RequiredValue.NotBlank(addressSpaceId);
+        SlotId = RequiredValue.NotBlank(slotId);
+        ClosedEnum.ThrowIfUndefined(instancePolicy, "Unknown compiled input instance policy.");
 
-        AddressSpaceId = addressSpaceId;
-        SlotId = slotId;
         InstancePolicy = instancePolicy;
     }
 
@@ -620,7 +302,6 @@ public sealed class CompiledInputContract
 {
     private readonly CompiledInputSlotRequirement[] _slots;
     private readonly CompiledInputSpaceBinding[] _spaceBindings;
-    private readonly CompiledInputSelectionGroup[] _selectionGroups;
 
     internal CompiledInputContract(
         IEnumerable<CompiledInputSlotRequirement> slots,
@@ -641,7 +322,7 @@ public sealed class CompiledInputContract
             "Input space bindings must be non-null, non-empty, and unique by address space.",
             StringComparer.Ordinal,
             requireValue: true);
-        _selectionGroups = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledInputSelectionGroup[] selectionGroupsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             selectionGroups ?? [],
             static group => group.GroupId,
             "Input selection groups must be non-null and ordinally unique.",
@@ -650,14 +331,12 @@ public sealed class CompiledInputContract
             requireValue: false);
 
         var slotIds = _slots.Select(static slot => slot.SlotId).ToHashSet(StringComparer.Ordinal);
-        if (_spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||
+        DomainInvariant.Reject(
+            _spaceBindings.Any(binding => !slotIds.Contains(binding.SlotId)) ||
             _slots.Any(slot => !_spaceBindings.Any(binding =>
-                StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId))))
-        {
-            throw new ArgumentException(
-                "Every input space binding must name one slot and every slot must bind one or more spaces.",
-                nameof(spaceBindings));
-        }
+                StringComparer.Ordinal.Equals(binding.SlotId, slot.SlotId))),
+            "Every input space binding must name one slot and every slot must bind one or more spaces.",
+            nameof(spaceBindings));
 
         Array.Sort(_slots, static (left, right) => StringComparer.Ordinal.Compare(left.SlotId, right.SlotId));
         Array.Sort(_spaceBindings, static (left, right) =>
@@ -665,11 +344,11 @@ public sealed class CompiledInputContract
             int space = StringComparer.Ordinal.Compare(left.AddressSpaceId, right.AddressSpaceId);
             return space != 0 ? space : StringComparer.Ordinal.Compare(left.SlotId, right.SlotId);
         });
-        Array.Sort(_selectionGroups, static (left, right) =>
+        Array.Sort(selectionGroupsSnapshot, static (left, right) =>
             StringComparer.Ordinal.Compare(left.GroupId, right.GroupId));
         Slots = Array.AsReadOnly(_slots);
         SpaceBindings = Array.AsReadOnly(_spaceBindings);
-        SelectionGroups = Array.AsReadOnly(_selectionGroups);
+        SelectionGroups = Array.AsReadOnly(selectionGroupsSnapshot);
     }
 
     /// <summary>Canonical slot declarations by ordinal slot id.</summary>

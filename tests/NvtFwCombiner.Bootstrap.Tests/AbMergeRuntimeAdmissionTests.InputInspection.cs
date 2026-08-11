@@ -21,15 +21,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         byte[] tpA = CreateTpImage(version: 0x81, subVersion: 0x00);
         byte[] tpB = CreateTpImage(version: 0x82, subVersion: 0x03);
 
-        WorkbenchFirmwareInspection dp = InspectAbInput(
+        FirmwareInspectionSnapshot dp = InspectAbInput(
             icId,
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab.bin", dpAb));
-        WorkbenchFirmwareInspection a = InspectAbInput(
+        FirmwareInspectionSnapshot a = InspectAbInput(
             icId,
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a.bin", tpA));
-        WorkbenchFirmwareInspection b = InspectAbInput(
+        FirmwareInspectionSnapshot b = InspectAbInput(
             icId,
             CompositionAddressSpaceIds.TpBInput,
             workspace.Write("tp-b.bin", tpB));
@@ -58,7 +58,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-load-unknown-version");
 
-        WorkbenchFirmwareInspection inspection = InspectAbInput(
+        FirmwareInspectionSnapshot inspection = InspectAbInput(
             "NT51929",
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a-unknown.bin", new byte[TpLength]));
@@ -83,7 +83,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         WriteCmiAt(dpAb, 0x5016, major: 0x82, minor: 0x03, jira: 0x123);
         WriteCmiAt(dpAb, 0x45016, major: 0x83, minor: 0x04, jira: 0x456);
 
-        WorkbenchFirmwareInspection inspection = InspectAbInput(
+        FirmwareInspectionSnapshot inspection = InspectAbInput(
             "NT51950",
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab-cascade.bin", dpAb),
@@ -106,7 +106,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         byte[] exact = CreateTpImage(version: 0x81, subVersion: 0x02);
         byte[] oversized = [.. exact, .. CreateTpImage(version: 0x99, subVersion: 0x09)];
 
-        WorkbenchFirmwareInspection inspection = InspectAbInput(
+        FirmwareInspectionSnapshot inspection = InspectAbInput(
             "NT51929",
             CompositionAddressSpaceIds.TpAInput,
             workspace.Write("tp-a-oversized.bin", oversized));
@@ -125,7 +125,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     public void WorkbenchLoadInspectionBlocksShortSource()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-load-short");
-        WorkbenchFirmwareInspection inspection = InspectAbInput(
+        FirmwareInspectionSnapshot inspection = InspectAbInput(
             "NT51929",
             CompositionAddressSpaceIds.DpAbInput,
             workspace.Write("dp-ab-short.bin", new byte[DpLength - 1]));

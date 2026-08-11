@@ -48,7 +48,7 @@ public sealed partial class CompositionRunRequestV2Tests
     {
         CompiledComposition composition = CreateV2RuntimeExecutable(
             compositionKind: CompositionKind.Replace,
-            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector);
+            icNumberInputMode: IcNumberInputMode.SingleSelector);
 
         var request = new CompositionRunRequest(
             "v2-replace-runtime",
@@ -57,7 +57,9 @@ public sealed partial class CompositionRunRequestV2Tests
             "v2-output.bin",
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
 
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, request.CompiledComposition.IcNumberPolicy);
+        Assert.Equal(
+            IcNumberInputMode.SingleSelector,
+            request.CompiledComposition.V2Details.IcNumberInputMode);
         _ = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
             "v2-replace-without-selector",
             composition,
@@ -82,7 +84,7 @@ public sealed partial class CompositionRunRequestV2Tests
             "supported-ab-runtime",
             composition,
             [CreateBinding()],
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             abMergeTopologySelection: topology);
 
         Assert.Equal(topology, request.AbMergeTopologySelection);
@@ -354,7 +356,7 @@ public sealed partial class CompositionRunRequestV2Tests
     private static CompiledComposition CreateV2RuntimeExecutable(
         bool allowOutputOverride = false,
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         string outputTemplate = "v2-output.bin",
         IReadOnlyList<string>? requiredTokenIds = null,
         string modeId = "standard",
@@ -369,7 +371,7 @@ public sealed partial class CompositionRunRequestV2Tests
             runtimeExecutable: true,
             allowOutputOverride: allowOutputOverride,
             compositionKind: compositionKind,
-            icNumberPolicy: icNumberPolicy,
+            icNumberInputMode: icNumberInputMode,
             modeId: modeId,
             experienceId: experienceId,
             topologyRequirement: topologyRequirement,
@@ -384,12 +386,12 @@ public sealed partial class CompositionRunRequestV2Tests
             [],
             runtimeExecutable: true,
             compositionKind: CompositionKind.Replace,
-            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector,
+            icNumberInputMode: IcNumberInputMode.SingleSelector,
             modeId: "dp-replace",
             experienceId: "dp-replace",
             inputContract: new CompiledInputContract(
                 [
-                    new CompiledInputSlotRequirement(
+                    CompiledInputSlotTestFactory.Create(
                         "reference-slot",
                         "reference",
                         CompiledInputArtifactClass.ReferenceImage,
@@ -398,7 +400,7 @@ public sealed partial class CompositionRunRequestV2Tests
                         [".bin"],
                         new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
                         new CompiledNoInputNormalization()),
-                    new CompiledInputSlotRequirement(
+                    CompiledInputSlotTestFactory.Create(
                         "dp-slot",
                         "dp",
                         CompiledInputArtifactClass.DpFirmware,
@@ -447,7 +449,7 @@ public sealed partial class CompositionRunRequestV2Tests
         bool runtimeExecutable,
         bool allowOutputOverride = false,
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         string modeId = "standard",
         string experienceId = "standard-merge",
         CompiledInputContract? inputContract = null,
@@ -468,7 +470,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new ProfileBundleEntryIdentity(
                 "profile-entry",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             promotion,
             ["profile-evidence"],
             [],
@@ -478,16 +480,16 @@ public sealed partial class CompositionRunRequestV2Tests
             allowOverride: allowOutputOverride,
             CompiledOutputInvalidCharacterPolicy.Reject,
             requiredTokenIds);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "profile-v2",
             "2.0.0",
             experienceId,
             compositionKind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract ?? CreateInputContract(),
-                new CompiledRegionAccessContract([], []),
-                output));
+            provenance,
+            inputContract ?? CreateInputContract(),
+            new CompiledRegionAccessContract([], []),
+            output,
+            icNumberInputMode);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -504,20 +506,14 @@ public sealed partial class CompositionRunRequestV2Tests
                 OverlapPolicy.Reject,
                 "copy synthetic immutable input")]);
         return runtimeExecutable
-            ? CompiledComposition.CreateV2RuntimeExecutable(
-                plan,
-                identity,
-                icNumberPolicy)
-            : CompiledComposition.CreateV2(
-                plan,
-                identity,
-                icNumberPolicy);
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
+            : CompiledComposition.CreateV2(plan, details);
     }
 
     private static CompiledInputContract CreateInputContract()
     {
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 "input-slot",
                 "input",
                 CompiledInputArtifactClass.ReferenceImage,

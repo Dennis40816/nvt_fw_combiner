@@ -49,7 +49,7 @@ public sealed partial class GeneralMappingRow : UserControl
     }
 
     private MainWindowViewModel? ShellViewModel =>
-        WorkbenchShellViewModelLocator.Find(this);
+        ShellViewModelLocator.Find(this);
 
     private void DropZone_OnDragOver(object? sender, DragEventArgs e)
     {

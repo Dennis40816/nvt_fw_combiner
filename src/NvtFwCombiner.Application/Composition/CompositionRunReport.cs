@@ -147,34 +147,4 @@ public sealed class CompositionRunReport
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public GeneralReplaceDiagnosticPreviewSummary? DiagnosticPreview { get; }
 
-    /// <summary>Creates an immutable report revision after an adapter-owned delivery phase.</summary>
-    public CompositionRunReport WithDeliveryArtifacts(
-        IReadOnlyList<DeliveryArtifactSummary> deliveryArtifacts,
-        IReadOnlyList<CompositionIssue>? additionalIssues = null)
-    {
-        ArgumentNullException.ThrowIfNull(deliveryArtifacts);
-        return new CompositionRunReport(
-            RunId,
-            ProfileId,
-            ProfileVersion,
-            IcId,
-            ModeId,
-            ExperienceId,
-            CompositionKind,
-            StartedAtUtc,
-            CompletedAtUtc,
-            Inputs,
-            Operations,
-            Mutations,
-            [.. Issues, .. additionalIssues ?? []],
-            Output,
-            OutputDifferences,
-            CompilationFingerprint,
-            Validations,
-            OutputNaming,
-            deliveryArtifacts,
-            generalAdmission: GeneralAdmission,
-            imageInitialization: ImageInitialization,
-            diagnosticPreview: DiagnosticPreview);
-    }
 }

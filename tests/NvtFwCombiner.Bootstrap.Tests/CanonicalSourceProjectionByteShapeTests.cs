@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -92,7 +91,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             CompiledFirmwareArtifactKind.FlashCode,
             CompiledFirmwareArtifactClassifier.Classify(classificationComposition, ownerFlashCode).Kind);
 
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51928",
             golden.ExpectedOutput.LongLength,
             [replacementAddressSpaceId],
@@ -243,13 +242,13 @@ public sealed class CanonicalSourceProjectionByteShapeTests
         ResolvedCapability? resolvedCapability)
     {
         var reader = new FakeArtifactReader(inputs.ToDictionary(
-            item => $"{composition.ProfileId}:{item.Key}",
+            item => $"{composition.V2Details.ProfileId}:{item.Key}",
             static item => item.Value,
             StringComparer.Ordinal));
         InputArtifactBinding[] bindings =
         [
             .. inputs.Keys.Order(StringComparer.Ordinal).Select(addressSpaceId =>
-                CreateInputBinding(composition.ProfileId, addressSpaceId)),
+                CreateInputBinding(composition.V2Details.ProfileId, addressSpaceId)),
         ];
         var service = new CompositionRunService(
             reader,
@@ -258,14 +257,14 @@ public sealed class CanonicalSourceProjectionByteShapeTests
                 new DateTimeOffset(2026, 7, 30, 0, 0, 1, TimeSpan.Zero),
             ]));
         IcNumberSelection? icNumberSelection =
-            composition.CompositionKind == CompositionKind.Replace
+            composition.V2Details.CompositionKind == CompositionKind.Replace
                 ? new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])
                 : null;
         var request = new CompositionRunRequest(
-            $"source-shape-{composition.IcId.ToLowerInvariant()}",
+            $"source-shape-{composition.V2Details.Provenance.Context.MemberId.ToLowerInvariant()}",
             composition,
             bindings,
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             icNumberSelection: icNumberSelection,
             resolvedCapability: resolvedCapability);
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);

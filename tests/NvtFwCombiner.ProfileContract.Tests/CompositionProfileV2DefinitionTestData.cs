@@ -1,25 +1,25 @@
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 internal sealed record CompositionProfileV2DefinitionParts(
     string ProfileId,
     string ProfileVersion,
-    CompositionProfilePromotion Promotion,
+    CompiledProfilePromotion Promotion,
     CompositionKind CompositionKind,
     IcNumberInputMode? IcNumberInputMode,
-    CompositionProfileExperience Experience,
+    (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) Experience,
     CompositionProfileMapBinding MapBinding,
-    IReadOnlyList<CompositionProfileInputSlot> InputSlots,
+    IReadOnlyList<CompositionInputSlotDefinition> InputSlots,
     IReadOnlyList<CompositionProfileSpace> Spaces,
     IReadOnlyList<CompositionProfileView> Views,
     IReadOnlyList<CompositionProfileMetadataBinding> MetadataBindings,
     IReadOnlyList<CompositionProfileRegionAccess> RegionAccessRules,
-    IReadOnlyList<CompositionProfileOperation> Operations,
-    IReadOnlyList<CompositionProfileValidation> Validations,
+    IReadOnlyList<CompositionOperationDefinition> Operations,
+    IReadOnlyList<ValidationRequirementDefinition> Validations,
     IReadOnlyList<CompositionProfileProcessorStage> ProcessorStages,
-    CompositionProfileOutput Output,
+    CompiledOutputNamingRequirement Output,
     IReadOnlyList<string> EvidenceRefs);
 
 internal static class CompositionProfileV2DefinitionTestData
@@ -31,14 +31,14 @@ internal static class CompositionProfileV2DefinitionTestData
         return new CompositionProfileV2DefinitionParts(
             "synthetic-merge",
             "1.0.0",
-            new CompositionProfilePromotion(CompositionProfilePromotionStage.Known, []),
+            new CompiledProfilePromotion(CompiledProfilePromotionStage.Known, []),
             CompositionKind.Merge,
             null,
             Experience(ExperienceIds.StandardMerge),
             MapBinding(),
             [TpSlot()],
             [
-                new InputArtifactProfileSpace("source", "tp-input", CompositionProfileInstancePolicy.Singleton),
+                new InputArtifactProfileSpace("source", "tp-input", CompiledInputInstancePolicy.Singleton),
                 new MutableCompositionProfileSpace(
                     "output",
                     CompositionProfileSpaceKind.OutputImage,
@@ -52,23 +52,23 @@ internal static class CompositionProfileV2DefinitionTestData
                     "output",
                     new SpaceRangeViewSelector(new ByteRange(0, 16))),
             ],
-            [new CompositionProfileMetadataBinding(
+            [CreateMetadataBinding(
                 "fwconfig", "source", "firmware-config", ["pid"],
                 [CompositionProfileMetadataPurpose.Validation])],
             [new CompositionProfileRegionAccess(
                 "dp-code", RegionAccessKind.ReadOnly, "Source region is immutable.")],
-            [new CopyOrReplaceProfileOperation(
+            [CompositionOperationDefinition.CopyOrReplace(
                 "copy-code", 0, OverlapPolicy.Reject, "Copy source code.",
-                CompositionProfileOperationKind.CopyRange, "source-view", "target-view")],
-            [new PidSanityProfileValidation(
-                "pid-valid", CompositionProfileValidationStage.InputLoad,
-                CompositionProfileValidationSeverity.Error, "PID_INVALID",
-                new CompositionProfileMetadataFieldReference("fwconfig", "pid"))],
+                CompositionOperationKind.CopyRange, "source-view", "target-view")],
+            [new CompiledPidSanityValidation(
+                "pid-valid", CompiledValidationStage.InputLoad,
+                CompiledValidationSeverity.Error, "PID_INVALID",
+                new CompiledValidationFieldReference("fwconfig", "pid"))],
             [],
-            new CompositionProfileOutput(
+            new CompiledOutputNamingRequirement(
                 "{original-name}_merged.bin",
                 false,
-                CompositionProfileInvalidCharacterPolicy.ReplaceUnderscore,
+                CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
                 ["original-name"]),
             ["profile-evidence"]);
     }
@@ -76,15 +76,15 @@ internal static class CompositionProfileV2DefinitionTestData
     internal static CompositionProfileV2DefinitionParts ValidReplaceParts()
     {
         CompositionProfileV2DefinitionParts merge = ValidMergeParts();
-        var reference = new CompositionProfileInputSlot(
+        var reference = new CompositionInputSlotDefinition(
             "reference-input",
             "reference",
-            CompositionProfileArtifactClass.ReferenceImage,
+            CompiledInputArtifactClass.ReferenceImage,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new ExactResolvedMapCapacityLengthRule(),
-            new NoInputNormalization());
+            new ResolvedMapCapacityInputLengthDefinition(),
+            new CompiledNoInputNormalization());
         return merge with
         {
             ProfileId = "synthetic-replace",
@@ -98,29 +98,39 @@ internal static class CompositionProfileV2DefinitionTestData
                 new InputArtifactProfileSpace(
                     "reference",
                     "reference-input",
-                    CompositionProfileInstancePolicy.Singleton),
+                    CompiledInputInstancePolicy.Singleton),
                 new MutableCompositionProfileSpace(
                     "output",
                     CompositionProfileSpaceKind.OutputImage,
                     new ResolvedMapProfileCapacity(),
                     new CloneProfileInitializer("reference-input")),
             ],
-            Operations = [new CopyOrReplaceProfileOperation(
+            Operations = [CompositionOperationDefinition.CopyOrReplace(
                 "replace-code", 0, OverlapPolicy.ReplaceExisting, "Replace source code.",
-                CompositionProfileOperationKind.ReplaceRange, "source-view", "target-view")],
+                CompositionOperationKind.ReplaceRange, "source-view", "target-view")],
         };
     }
 
     internal static CompositionProfileDefinition Create(CompositionProfileV2DefinitionParts parts)
     {
+        var header = new CompositionProfileHeader(
+            parts.Experience.ExperienceId,
+            parts.Experience.LayoutPolicy,
+            parts.Experience.InputPolicy,
+            V2CompilationContextKind.ResolvedMap,
+            parts.MapBinding,
+            parts.MapBinding.FamilyId,
+            parts.MapBinding.FamilyVersion,
+            parts.MapBinding.FamilyContentHash,
+            Array.AsReadOnly(Array.Empty<string>()),
+            AllowsConditionalProcessor: false);
         return new CompositionProfileDefinition(
             parts.ProfileId,
             parts.ProfileVersion,
             parts.Promotion,
             parts.CompositionKind,
             parts.IcNumberInputMode,
-            parts.Experience,
-            parts.MapBinding,
+            header,
             parts.InputSlots,
             parts.Spaces,
             parts.Views,
@@ -133,15 +143,10 @@ internal static class CompositionProfileV2DefinitionTestData
             parts.EvidenceRefs);
     }
 
-    internal static CompositionProfileExperience Experience(string experienceId)
+    internal static (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) Experience(
+        string experienceId)
     {
-        return new CompositionProfileExperience(
-            experienceId,
-            AudienceKind.System,
-            LayoutPolicy.Fixed,
-            InputPolicy.Fixed,
-            CompositionProfileTopologyAuthoring.Hidden,
-            $"experience.{experienceId}");
+        return (experienceId, LayoutPolicy.Fixed, InputPolicy.Fixed);
     }
 
     internal static CompositionProfileMapBinding MapBinding(
@@ -158,16 +163,45 @@ internal static class CompositionProfileV2DefinitionTestData
             []);
     }
 
-    internal static CompositionProfileInputSlot TpSlot()
+    internal static CompositionProfileMetadataBinding CreateMetadataBinding(
+        string bindingId,
+        string spaceId,
+        string structureId,
+        IEnumerable<string> fieldIds,
+        IEnumerable<CompositionProfileMetadataPurpose> purposes)
     {
-        return new CompositionProfileInputSlot(
+        return new CompositionProfileMetadataBinding(
+            bindingId,
+            spaceId,
+            structureId,
+            fieldIds.Select(static fieldId => new FirmwareMetadataReferenceTarget(
+                FirmwareMetadataReferenceTargetKind.Field,
+                fieldId)),
+            purposes,
+            []);
+    }
+
+    internal static IReadOnlyList<string> FieldIds(CompositionProfileMetadataBinding binding)
+    {
+        return
+        [
+            .. binding.TargetReferences
+                .Where(static target => target.Kind == FirmwareMetadataReferenceTargetKind.Field)
+                .Select(static target => target.TargetId),
+        ];
+    }
+
+    internal static CompositionInputSlotDefinition TpSlot()
+    {
+        return new CompositionInputSlotDefinition(
             "tp-input",
             "tp",
-            CompositionProfileArtifactClass.TpFirmware,
+            CompiledInputArtifactClass.TpFirmware,
             required: true,
-            CompositionProfileSlotCardinality.ExactlyOne,
+            CompiledInputSlotCardinality.ExactlyOne,
             [".bin"],
-            new TpMaximum256KLengthRule(),
-            new NoInputNormalization());
+            new SourceViewCoverageInputLengthDefinition(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
+            new CompiledNoInputNormalization());
     }
 }

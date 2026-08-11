@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -14,7 +13,7 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
         string summary,
         IEnumerable<MemoryCoverageSegmentViewModel> segments,
         bool isExpanded,
-        WorkbenchReplaceRegionGroup regionGroup,
+        ReplaceRegionGroup regionGroup,
         ShellTextResources text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -42,7 +41,7 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     public int SegmentCount => Segments.Count;
 
     /// <summary>Typed grouping independent of localized title text.</summary>
-    public WorkbenchReplaceRegionGroup RegionGroup { get; }
+    public ReplaceRegionGroup RegionGroup { get; }
 
     /// <summary>Number of coverage segments written by the active operation type.</summary>
     public int ChangedCount => Segments.Count(segment => segment.IsChanged);
@@ -60,5 +59,5 @@ public sealed partial class MemoryCoverageGroupViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsExpanded { get; set; }
 
-    private bool IsBaseFirmwareGroup => RegionGroup == WorkbenchReplaceRegionGroup.Base;
+    private bool IsBaseFirmwareGroup => RegionGroup == ReplaceRegionGroup.Base;
 }

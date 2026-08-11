@@ -71,13 +71,7 @@ public sealed record CompiledOutputTokenRequirement
         string? metadataSpaceId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tokenId);
-        if (!Enum.IsDefined(sourceKind))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(sourceKind),
-                sourceKind,
-                "Unknown output token source kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(sourceKind, "Unknown output token source kind.");
 
         bool isMetadataSource = sourceKind is
             CompiledOutputTokenSourceKind.DpcmiVersion or
@@ -94,13 +88,7 @@ public sealed record CompiledOutputTokenRequirement
                 nameof(metadataBindingId));
         }
 
-        if (!Enum.IsDefined(missingPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(missingPolicy),
-                missingPolicy,
-                "Unknown output token missing policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(missingPolicy, "Unknown output token missing policy.");
 
         if (missingPolicy == CompiledOutputTokenMissingPolicy.UsePlaceholder)
         {
@@ -167,7 +155,6 @@ public sealed class CompiledOutputNamingRequirement
     private static readonly char[] WindowsInvalidFileNameCharacters = ['<', '>', '"', '|', '?', '*'];
 
     private readonly string[] _requiredTokenIds;
-    private readonly CompiledOutputTokenRequirement[] _tokenRequirements;
 
     internal CompiledOutputNamingRequirement(
         string fileNameTemplate,
@@ -195,40 +182,25 @@ public sealed class CompiledOutputNamingRequirement
         IEnumerable<CompiledOutputTokenRequirement>? tokenRequirements)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileNameTemplate);
-        if (fileNameTemplate.IndexOfAny(['/', '\\', ':']) >= 0 ||
+        DomainInvariant.Reject(
+            fileNameTemplate.IndexOfAny(['/', '\\', ':']) >= 0 ||
             fileNameTemplate is "." or ".." ||
-            fileNameTemplate.Any(char.IsControl))
-        {
-            throw new ArgumentException("Output file-name templates must not contain path or control syntax.", nameof(fileNameTemplate));
-        }
+            fileNameTemplate.Any(char.IsControl),
+            "Output file-name templates must not contain path or control syntax.", nameof(fileNameTemplate));
 
-        if (!Enum.IsDefined(invalidCharacterPolicy))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(invalidCharacterPolicy),
-                invalidCharacterPolicy,
-                "Unknown output invalid-character policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(invalidCharacterPolicy, "Unknown output invalid-character policy.");
 
-        if (!Enum.IsDefined(outputArtifactType))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(outputArtifactType),
-                outputArtifactType,
-                "Unknown compiled output artifact type.");
-        }
+        ClosedEnum.ThrowIfUndefined(outputArtifactType, "Unknown compiled output artifact type.");
 
         bool hasTypedRule = ruleId is not null;
         if (hasTypedRule)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(ruleId);
-            if (outputArtifactType == CompiledOutputArtifactType.Unspecified ||
-                tokenRequirements is null)
-            {
-                throw new ArgumentException(
-                    "Typed output naming requires one rule id, artifact type, and token requirement set.",
-                    nameof(ruleId));
-            }
+            DomainInvariant.Reject(
+                outputArtifactType == CompiledOutputArtifactType.Unspecified ||
+                tokenRequirements is null,
+                "Typed output naming requires one rule id, artifact type, and token requirement set.",
+                nameof(ruleId));
         }
         else if (outputArtifactType != CompiledOutputArtifactType.Unspecified ||
                  tokenRequirements is not null)
@@ -250,19 +222,16 @@ public sealed class CompiledOutputNamingRequirement
         }
 
         string[] templateTokenIds = ExtractTokenIds(fileNameTemplate);
-        if (!templateTokenIds.SequenceEqual(_requiredTokenIds, StringComparer.Ordinal))
-        {
-            throw new ArgumentException(
-                "Output template tokens must exactly match required token ids.",
-                nameof(requiredTokenIds));
-        }
+        DomainInvariant.Reject(
+            !templateTokenIds.SequenceEqual(_requiredTokenIds, StringComparer.Ordinal),
+            "Output template tokens must exactly match required token ids.",
+            nameof(requiredTokenIds));
 
         ValidateWindowsTemplateSafety(fileNameTemplate, invalidCharacterPolicy, nameof(fileNameTemplate));
 
         FileNameTemplate = fileNameTemplate;
         AllowOverride = allowOverride;
         InvalidCharacterPolicy = invalidCharacterPolicy;
-        RequiredTokenIds = Array.AsReadOnly(_requiredTokenIds);
         RuleId = ruleId;
         OutputArtifactType = outputArtifactType;
         RendererKind = ResolveRendererKind(
@@ -271,13 +240,13 @@ public sealed class CompiledOutputNamingRequirement
             _requiredTokenIds,
             ruleId,
             outputArtifactType);
-        _tokenRequirements = tokenRequirements is null
+        CompiledOutputTokenRequirement[] tokenRequirementsSnapshot = tokenRequirements is null
             ? CreateLegacyTokenRequirements(RendererKind, _requiredTokenIds)
             : ValidateTypedTokenRequirements(
                 RendererKind,
                 _requiredTokenIds,
                 tokenRequirements);
-        TokenRequirements = Array.AsReadOnly(_tokenRequirements);
+        TokenRequirements = Array.AsReadOnly(tokenRequirementsSnapshot);
     }
 
     /// <summary>Unrendered profile filename template.</summary>
@@ -289,9 +258,6 @@ public sealed class CompiledOutputNamingRequirement
     /// <summary>Closed policy for invalid rendered filename characters.</summary>
     public CompiledOutputInvalidCharacterPolicy InvalidCharacterPolicy { get; }
 
-    /// <summary>Profile tokens required before a future runtime may render this template.</summary>
-    public IReadOnlyList<string> RequiredTokenIds { get; }
-
     /// <summary>Stable profile-declared rule id, or null for legacy schemas.</summary>
     public string? RuleId { get; }
 
@@ -301,6 +267,18 @@ public sealed class CompiledOutputNamingRequirement
     /// <summary>Typed rendering behavior admitted by the compiled output contract.</summary>
     public CompiledOutputNameRendererKind RendererKind { get; }
 
+    /// <summary>Returns whether this closed renderer can name a runtime-executable composition kind.</summary>
+    internal bool AllowsRuntimeExecution(CompositionKind compositionKind)
+    {
+        return InvalidCharacterPolicy == CompiledOutputInvalidCharacterPolicy.Reject &&
+            (RendererKind is
+                 CompiledOutputNameRendererKind.Static or
+                 CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+                 CompiledOutputNameRendererKind.TpFirmwareV1 ||
+             (compositionKind == CompositionKind.Merge &&
+              RendererKind == CompiledOutputNameRendererKind.AbCodeV1));
+    }
+
     /// <summary>Token references and explicit missing-value behavior in canonical token-id order.</summary>
     public IReadOnlyList<CompiledOutputTokenRequirement> TokenRequirements { get; }
 
@@ -308,14 +286,12 @@ public sealed class CompiledOutputNamingRequirement
     public static void ValidateRuntimeLiteralFileName(string fileName, string parameterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName, parameterName);
-        if (fileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
+        DomainInvariant.Reject(
+            fileName.IndexOfAny(['/', '\\', ':']) >= 0 ||
             fileName is "." or ".." ||
-            fileName.Any(char.IsControl))
-        {
-            throw new ArgumentException(
-                "Runtime output file names must not contain path or control syntax.",
-                parameterName);
-        }
+            fileName.Any(char.IsControl),
+            "Runtime output file names must not contain path or control syntax.",
+            parameterName);
 
         ValidateWindowsTemplateSafety(
             fileName,
@@ -330,14 +306,12 @@ public sealed class CompiledOutputNamingRequirement
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId, parameterName);
         const string Prefix = "NT";
-        if (icId.Length != Prefix.Length + 5 ||
+        DomainInvariant.Reject(
+            icId.Length != Prefix.Length + 5 ||
             !icId.StartsWith(Prefix, StringComparison.Ordinal) ||
-            icId.AsSpan(Prefix.Length).IndexOfAnyExceptInRange('0', '9') >= 0)
-        {
-            throw new ArgumentException(
-                "Compiled output naming requires a canonical NTxxxxx IC identity.",
-                parameterName);
-        }
+            icId.AsSpan(Prefix.Length).IndexOfAnyExceptInRange('0', '9') >= 0,
+            "Compiled output naming requires a canonical NTxxxxx IC identity.",
+            parameterName);
     }
 
     private static CompiledOutputNameRendererKind ResolveRendererKind(
@@ -441,24 +415,20 @@ public sealed class CompiledOutputNamingRequirement
         IEnumerable<CompiledOutputTokenRequirement> tokenRequirements)
     {
         CompiledOutputTokenRequirement[] requirements = [.. tokenRequirements];
-        if (requirements.Any(static requirement => requirement is null))
-        {
-            throw new ArgumentException(
-                "Compiled output token requirements cannot contain null.",
-                nameof(tokenRequirements));
-        }
+        DomainInvariant.Reject(
+            requirements.Any(static requirement => requirement is null),
+            "Compiled output token requirements cannot contain null.",
+            nameof(tokenRequirements));
 
         Array.Sort(
             requirements,
             static (left, right) =>
                 StringComparer.Ordinal.Compare(left.TokenId, right.TokenId));
-        if (!requirements.Select(static requirement => requirement.TokenId)
-                .SequenceEqual(requiredTokenIds, StringComparer.Ordinal))
-        {
-            throw new ArgumentException(
-                "Typed output token requirements must exactly match the template token ids.",
-                nameof(tokenRequirements));
-        }
+        DomainInvariant.Reject(
+            !requirements.Select(static requirement => requirement.TokenId)
+            .SequenceEqual(requiredTokenIds, StringComparer.Ordinal),
+            "Typed output token requirements must exactly match the template token ids.",
+            nameof(tokenRequirements));
 
         foreach (CompiledOutputTokenRequirement requirement in requirements)
         {
@@ -497,14 +467,12 @@ public sealed class CompiledOutputNamingRequirement
                     "Typed output token is not part of the selected canonical renderer.",
                     nameof(requirement)),
             };
-        if (requirement.SourceKind != expectedSource ||
+        DomainInvariant.Reject(
+            requirement.SourceKind != expectedSource ||
             requirement.MissingPolicy != expectedMissing ||
-            !StringComparer.Ordinal.Equals(requirement.Placeholder, expectedPlaceholder))
-        {
-            throw new ArgumentException(
-                "Typed output token source and missing policy must match the selected canonical renderer.",
-                nameof(requirement));
-        }
+            !StringComparer.Ordinal.Equals(requirement.Placeholder, expectedPlaceholder),
+            "Typed output token source and missing policy must match the selected canonical renderer.",
+            nameof(requirement));
     }
 
     private static string[] ExtractTokenIds(string template)
@@ -513,10 +481,9 @@ public sealed class CompiledOutputNamingRequirement
         for (int index = 0; index < template.Length; index++)
         {
             char current = template[index];
-            if (current == '}')
-            {
-                throw new ArgumentException("Output templates cannot contain an unmatched closing token brace.", nameof(template));
-            }
+            DomainInvariant.Reject(
+                current == '}',
+                "Output templates cannot contain an unmatched closing token brace.", nameof(template));
 
             if (current != '{')
             {
@@ -524,16 +491,14 @@ public sealed class CompiledOutputNamingRequirement
             }
 
             int close = template.IndexOf('}', index + 1);
-            if (close < 0 || close == index + 1)
-            {
-                throw new ArgumentException("Output templates require non-empty closed token braces.", nameof(template));
-            }
+            DomainInvariant.Reject(
+                close < 0 || close == index + 1,
+                "Output templates require non-empty closed token braces.", nameof(template));
 
             string tokenId = template[(index + 1)..close];
-            if (tokenId.Any(char.IsWhiteSpace) || tokenId.IndexOfAny(['{', '}']) >= 0)
-            {
-                throw new ArgumentException("Output template token ids cannot contain whitespace or braces.", nameof(template));
-            }
+            DomainInvariant.Reject(
+                tokenId.Any(char.IsWhiteSpace) || tokenId.IndexOfAny(['{', '}']) >= 0,
+                "Output template token ids cannot contain whitespace or braces.", nameof(template));
 
             ValidateTokenId(tokenId, nameof(template));
             _ = tokenIds.Add(tokenId);
@@ -545,25 +510,22 @@ public sealed class CompiledOutputNamingRequirement
 
     private static void ValidateTokenId(string tokenId, string parameterName)
     {
-        if (tokenId.Length == 0 || tokenId[0] is < 'a' or > 'z' || tokenId[^1] == '-')
-        {
-            throw new ArgumentException("Output template token ids must use canonical profile ids.", parameterName);
-        }
+        DomainInvariant.Reject(
+            tokenId.Length == 0 || tokenId[0] is < 'a' or > 'z' || tokenId[^1] == '-',
+            "Output template token ids must use canonical profile ids.", parameterName);
 
         bool previousHyphen = false;
         foreach (char character in tokenId[1..])
         {
             bool isLowercaseLetter = character is >= 'a' and <= 'z';
             bool isDigit = character is >= '0' and <= '9';
-            if (!isLowercaseLetter && !isDigit && character != '-')
-            {
-                throw new ArgumentException("Output template token ids must use canonical profile ids.", parameterName);
-            }
+            DomainInvariant.Reject(
+                !isLowercaseLetter && !isDigit && character != '-',
+                "Output template token ids must use canonical profile ids.", parameterName);
 
-            if (character == '-' && previousHyphen)
-            {
-                throw new ArgumentException("Output template token ids must use canonical profile ids.", parameterName);
-            }
+            DomainInvariant.Reject(
+                character == '-' && previousHyphen,
+                "Output template token ids must use canonical profile ids.", parameterName);
 
             previousHyphen = character == '-';
         }
@@ -594,13 +556,11 @@ public sealed class CompiledOutputNamingRequirement
                 parameterName);
         }
 
-        if (candidate.Length == 0 || candidate is "." or ".." ||
-            candidate.EndsWith(' ') || candidate.EndsWith('.') || IsWindowsReservedDeviceName(candidate))
-        {
-            throw new ArgumentException(
-                "Output templates must be safe Windows file names after token rendering.",
-                parameterName);
-        }
+        DomainInvariant.Reject(
+            candidate.Length == 0 || candidate is "." or ".." ||
+            candidate.EndsWith(' ') || candidate.EndsWith('.') || IsWindowsReservedDeviceName(candidate),
+            "Output templates must be safe Windows file names after token rendering.",
+            parameterName);
     }
 
     private static string ReplaceTokenOccurrences(string template)

@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
     private readonly CancellationTokenSource _startupLoadCancellation = new();
+    private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
     private bool _isReportHistoryClosePending;
@@ -27,22 +28,33 @@ public sealed partial class MainWindow : Window, IDisposable
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
-        : this(UiLaunchOptions.Empty, StartupTraceSession.Disabled)
+        : this(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."))
     {
     }
 
     /// <summary>Initializes the main window controls with command-line startup state.</summary>
     public MainWindow(UiLaunchOptions launchOptions)
-        : this(launchOptions, StartupTraceSession.Disabled)
+        : this(
+            launchOptions,
+            StartupTraceSession.Disabled,
+            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."))
     {
     }
 
-    internal MainWindow(UiLaunchOptions launchOptions, StartupTraceSession startupTrace)
+    internal MainWindow(
+        UiLaunchOptions launchOptions,
+        StartupTraceSession startupTrace,
+        PresentationHostServices hostServices)
     {
         ArgumentNullException.ThrowIfNull(launchOptions);
         ArgumentNullException.ThrowIfNull(startupTrace);
+        ArgumentNullException.ThrowIfNull(hostServices);
         _launchOptions = launchOptions;
         _startupTrace = startupTrace;
+        _hostServices = hostServices;
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();
@@ -53,6 +65,7 @@ public sealed partial class MainWindow : Window, IDisposable
             ShellPreferenceFileStore.DefaultPreferencesPath);
         _startupTrace.Mark("shell-preferences.loaded");
         MainWindowViewModel viewModel = ShellViewModelFactory.Create(
+            _hostServices,
             ShellTextResources.LanguageFromPreference(preferences.Language));
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
@@ -195,6 +208,12 @@ public sealed partial class MainWindow : Window, IDisposable
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
             await catalogWarmup;
+            await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
+            if (viewModel.IsSettingsVisible)
+            {
+                viewModel.Settings.Refresh(viewModel.Text);
+            }
+
             _startupTrace.Mark("startup-warmup.catalogs.ready");
             await WarmDeferredShellAsync(viewModel, startupCancellation);
             _ = _startupTrace.Complete("startup-warmup.completed");
@@ -291,6 +310,7 @@ public sealed partial class MainWindow : Window, IDisposable
         LoadContent(FirmwareIcMismatchModalHost, viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(FirmwareNumberMismatchModalHost, viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen, viewModel.WorkflowSession);
         LoadContent(NavigationClearConfirmationModalHost, viewModel.IsNavigationClearConfirmationOpen, viewModel);
+        LoadContent(MessageCenterModalHost, viewModel.MessageCenter.IsOpen, viewModel.MessageCenter);
         LoadContent(ReportModalHost, viewModel.Reports.IsReportModalOpen, viewModel.Reports);
         LoadContent(BuildCompletedModalHost, viewModel.BuildResult.IsOpen, viewModel);
     }

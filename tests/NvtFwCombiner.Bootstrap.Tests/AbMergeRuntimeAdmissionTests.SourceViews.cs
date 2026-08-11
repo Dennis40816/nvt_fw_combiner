@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -17,14 +18,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         paths[CompositionAddressSpaceIds.DpAbInput] =
             workspace.Write("oversized/dp-ab-input.bin", oversized);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompiledAuthoringSessionPreparation prepared = AbMergeTestSupport.Prepare(
+            BootstrapTestHost.Services,
             "NT51929",
-            paths,
-            build: false,
-            TestContext.Current.CancellationToken);
+            paths);
 
-        Assert.False(result.Succeeded);
-        Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.ReportJson, StringComparison.Ordinal);
+        Assert.False(prepared.Succeeded);
+        Assert.Contains(
+            prepared.Issues,
+            static issue => issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch);
         Assert.Equal(oversized, await File.ReadAllBytesAsync(
             paths[CompositionAddressSpaceIds.DpAbInput],
             TestContext.Current.CancellationToken));

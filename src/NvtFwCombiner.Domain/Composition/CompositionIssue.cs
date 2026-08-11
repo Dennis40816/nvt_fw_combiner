@@ -1,40 +1,31 @@
 namespace NvtFwCombiner.Domain.Composition;
 
 /// <summary>Stable structured issue emitted by profile compilation or plan execution.</summary>
-public sealed class CompositionIssue
+public sealed class CompositionIssue(
+    string code,
+    string message,
+    string? operationId = null,
+    string severity = CompositionIssueSeverity.Error)
 {
-    /// <summary>Creates a structured issue with an optional operation id.</summary>
-    public CompositionIssue(
-        string code,
-        string message,
-        string? operationId = null,
-        string severity = CompositionIssueSeverity.Error)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        ArgumentException.ThrowIfNullOrWhiteSpace(message);
-        ArgumentException.ThrowIfNullOrWhiteSpace(severity);
-        if (!CompositionIssueSeverity.IsDefined(severity))
-        {
-            throw new ArgumentException($"Unsupported issue severity '{severity}'.", nameof(severity));
-        }
-
-        Code = code;
-        Message = message;
-        OperationId = string.IsNullOrWhiteSpace(operationId) ? null : operationId;
-        Severity = severity;
-    }
-
     /// <summary>Stable machine-readable issue code.</summary>
-    public string Code { get; }
-
-    /// <summary>Machine-readable severity: info, warning, or error.</summary>
-    public string Severity { get; }
+    public string Code { get; } = RequiredValue.NotBlank(code);
 
     /// <summary>Human-readable issue text.</summary>
-    public string Message { get; }
+    public string Message { get; } = RequiredValue.NotBlank(message);
+
+    /// <summary>Machine-readable severity: info, warning, or error.</summary>
+    public string Severity { get; } = RequireSeverity(severity);
 
     /// <summary>Operation id associated with the issue when available.</summary>
-    public string? OperationId { get; }
+    public string? OperationId { get; } = string.IsNullOrWhiteSpace(operationId) ? null : operationId;
+
+    private static string RequireSeverity(string severity)
+    {
+        _ = RequiredValue.NotBlank(severity);
+        return CompositionIssueSeverity.IsDefined(severity)
+            ? severity
+            : throw new ArgumentException($"Unsupported issue severity '{severity}'.", nameof(severity));
+    }
 }
 
 /// <summary>Stable issue severity values used by run reports.</summary>

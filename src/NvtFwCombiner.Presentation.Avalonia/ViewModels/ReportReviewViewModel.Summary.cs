@@ -1,5 +1,5 @@
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -102,14 +102,14 @@ public sealed partial class ReportReviewViewModel
     {
         return issue.Title switch
         {
-            WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch =>
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch =>
                 T(language, "Fix input size", "修正輸入大小"),
-            WorkbenchIssueCodes.ReplaceWorkflowNotSupported =>
+            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported =>
                 T(language, "Check IC and input roles", "確認 IC 與輸入用途"),
-            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
-            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
+            CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
+            CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
                 T(language, "Check Base firmware", "確認 Base firmware"),
-            WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput =>
+            CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput =>
                 T(language, "Select a CtrlRAM BIN", "選擇 CtrlRAM BIN"),
             _ => T(language, "Start with this issue", "先查看此問題"),
         };
@@ -170,28 +170,28 @@ public sealed partial class ReportReviewViewModel
     {
         return issue.Title switch
         {
-            WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch =>
+            CompositionIssueCodes.InputAddressSpaceLengthMismatch =>
                 T(
                     language,
                     "Use a BIN whose byte length matches the selected IC/profile range, or switch to a workflow that explicitly allows padding/truncation. This run stays blocked because no relaxation policy applies.",
                     "請使用 byte 長度符合所選 IC/profile 範圍的 BIN，或改用明確允許 padding/truncation 的流程。此執行沒有放寬 policy，因此會阻擋。"),
-            WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated =>
+            CompositionIssueCodes.InputAddressSpaceTruncated =>
                 T(
                     language,
                     "The selected profile allowed truncation for this CtrlRAM input. Review the warning and output differences before using the artifact as evidence.",
                     "所選 profile 允許此 CtrlRAM input truncation；使用輸出作為證據前，請確認警告與輸出差異。"),
-            WorkbenchIssueCodes.ReplaceWorkflowNotSupported =>
+            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported =>
                 T(
                     language,
                     "Confirm that IC, Number, and Mode match the Base firmware, then place region-specific CtrlRAM BINs in their matching slots. A complete FlashCode is valid only as Base firmware; it is not a CtrlRAM replacement BIN.",
                     "請確認 IC、Number、Mode 與 Base firmware 相符，並把各區專用 CtrlRAM BIN 放入對應 slot。完整 FlashCode 只能作為 Base firmware，不能當成 CtrlRAM replacement BIN。"),
-            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
-            WorkbenchIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
+            CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnknown or
+            CompositionPlanningIssueCodes.ReplaceCtrlRamPostbuildCategoryUnsupported =>
                 T(
                     language,
                     "Select a complete FlashCode or TP FW whose verified metadata matches the chosen IC/profile. The filename alone cannot select a postbuild category.",
                     "請選擇 verified metadata 與所選 IC/profile 相符的完整 FlashCode 或 TP FW；不能只靠檔名決定 postbuild category。"),
-            WorkbenchIssueCodes.ReplaceCtrlRamNoRegionInput =>
+            CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput =>
                 T(
                     language,
                     "Select at least one region-specific CtrlRAM BIN in an available replacement slot, then run Build again.",

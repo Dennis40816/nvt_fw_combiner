@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.Normalization;
 
 namespace NvtFwCombiner.Profiles.V2;
@@ -52,11 +53,11 @@ internal static partial class CompositionProfileNormalizer
         }
     }
 
-    private static CompositionProfileByteValue ReadBytes(string value, string path)
+    private static FirmwareMetadataBytes ReadBytes(string value, string path)
     {
         try
         {
-            return new CompositionProfileByteValue(ContractJsonValueReader.ParseCanonicalHex(value));
+            return new FirmwareMetadataBytes(ContractJsonValueReader.ParseCanonicalHex(value));
         }
         catch (ArgumentException exception)
         {
@@ -74,10 +75,5 @@ internal static partial class CompositionProfileNormalizer
         {
             throw Error(path, exception.Message, exception);
         }
-    }
-
-    private static JsonElement Require(JsonElement? value, string path)
-    {
-        return value ?? throw Error(path, "Required integer is missing.");
     }
 }

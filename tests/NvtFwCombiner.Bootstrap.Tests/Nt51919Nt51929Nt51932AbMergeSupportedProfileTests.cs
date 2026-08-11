@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -65,8 +64,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             ],
             composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
 
-        V2CompositionPlanCompileResult wrongCapacity = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult wrongCapacity = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             profileId,
             "0.4.0",
             icId,
@@ -89,7 +87,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         InputArtifactBinding[] bindings =
         [
             .. composition.Plan.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     composition,
                     addressSpaceId,
                     Path.Combine(Path.GetTempPath(), $"{addressSpaceId}.bin"))),
@@ -99,7 +97,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
             "ab-runtime",
             composition,
             bindings,
-            composition.DefaultOutputFileName);
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate);
 
         Assert.Equal(composition, request.CompiledComposition);
         Assert.Equal(3, request.ArtifactBindings.Count);
@@ -148,8 +146,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
     /// <inheritdoc/>
     private static CompiledComposition CompileProfile(string icId, string profileId)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             profileId,
             "0.4.0",
             icId,

@@ -4,6 +4,19 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.InputInspection;
 
+/// <summary>Stable generic issue codes emitted by compiled input inspection.</summary>
+public static class InputArtifactInspectionIssueCodes
+{
+    /// <summary>The source matches one compiler-owned expected outer length.</summary>
+    public const string Ready = "input.inspection.ready";
+
+    /// <summary>The selected source could not be materialized for inspection.</summary>
+    public const string SourceUnreadable = "input.inspection.source-unreadable";
+
+    /// <summary>An accepted AB input has no readable informational version metadata.</summary>
+    public const string AbVersionMetadataUnknown = "ab.input.version-unknown";
+}
+
 /// <summary>Stable health priority for one input inspected against a compiled contract.</summary>
 public enum CompiledInputArtifactInspectionSeverity
 {
@@ -94,65 +107,37 @@ public static class CompiledInputArtifactInspectionService
                 truncation,
                 addressSpace,
                 sourceBytes)
-            : slot.LengthRequirement is CompiledSourceViewCoverageInputLengthRequirement sourceView
-                ? InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes)
-                : Inspect(details.InputContract, addressSpaceId, sourceBytes);
+            : slot.LengthRequirement switch
+            {
+                CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: not null } sourceView =>
+                    InspectDeclaredPrefix(binding, slot, sourceView, sourceBytes),
+                CompiledSourceViewCoverageInputLengthRequirement sourceView =>
+                    InspectSourceView(binding, slot, sourceView, addressSpace, sourceBytes),
+                CompiledExactBytesInputLengthRequirement exact =>
+                    InspectExact(binding, slot, exact.Bytes, sourceBytes),
+                CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
+                    InspectExact(binding, slot, exact.Bytes, sourceBytes),
+                _ => throw new ArgumentException(
+                    $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
+                    nameof(addressSpaceId)),
+            };
         return ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection);
     }
 
-    /// <summary>Inspects one immutable source using its complete compiled length contract.</summary>
-    public static CompiledInputArtifactInspectionResult Inspect(
-        CompiledInputContract inputContract,
-        string addressSpaceId,
+    private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        CompiledSourceViewCoverageInputLengthRequirement requirement,
         ReadOnlyMemory<byte> sourceBytes)
     {
-        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
-            ResolveBinding(inputContract, addressSpaceId);
-        return slot.LengthRequirement switch
-        {
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement =>
-                InspectDeclaredPrefix(inputContract, addressSpaceId, sourceBytes),
-            CompiledExactBytesInputLengthRequirement exact =>
-                InspectExact(binding, slot, exact.Bytes, sourceBytes),
-            CompiledExactResolvedMapCapacityInputLengthRequirement exact =>
-                InspectExact(binding, slot, exact.Bytes, sourceBytes),
-            CompiledSourceViewCoverageInputLengthRequirement =>
-                throw new ArgumentException(
-                    $"Compiled input address space '{addressSpaceId}' requires the complete compiled composition to inspect its source-view projection.",
-                    nameof(inputContract)),
-            _ => throw new ArgumentException(
-                $"Compiled input address space '{addressSpaceId}' has no supported inspection projection.",
-                nameof(addressSpaceId)),
-        };
-    }
-
-    /// <summary>Creates one deterministic diagnostic from a compiled declared-prefix requirement.</summary>
-    public static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
-        CompiledInputContract inputContract,
-        string addressSpaceId,
-        ReadOnlyMemory<byte> sourceBytes)
-    {
-        ArgumentNullException.ThrowIfNull(inputContract);
-        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-
-        (CompiledInputSpaceBinding binding, CompiledInputSlotRequirement slot) =
-            ResolveBinding(inputContract, addressSpaceId);
-        if (slot.LengthRequirement is not CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement)
-        {
-            throw new ArgumentException(
-                $"Compiled input address space '{addressSpaceId}' does not use declared-prefix inspection.",
-                nameof(addressSpaceId));
-        }
-
-        InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
-            new DeclaredPrefixInputInspectionPolicy(
-                requirement.RequiredEndExclusive,
-                requirement.ExpectedOuterLengths,
-                requirement.ShortInputIssueCode,
-                requirement.UnexpectedOuterLengthIssueCode),
+        return InspectDeclaredPrefix(
+            binding,
+            slot,
+            requirement.RequiredEndExclusive!.Value,
+            requirement.ExpectedOuterLengths,
+            requirement.ShortInputIssueCode!,
+            requirement.UnexpectedOuterLengthIssueCode!,
             sourceBytes);
-
-        return Project(binding, slot, inspection);
     }
 
     private static CompiledInputArtifactInspectionResult InspectTruncatedCtrlRam(
@@ -162,22 +147,83 @@ public static class CompiledInputArtifactInspectionService
         AddressSpace addressSpace,
         ReadOnlyMemory<byte> sourceBytes)
     {
-        if (slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement ||
-            addressSpace.InputOversizePolicy != InputOversizePolicy.TruncateWithWarning)
+        return slot.ArtifactClass != CompiledInputArtifactClass.CtrlRamReplacement ||
+            addressSpace.InputOversizePolicy != InputOversizePolicy.TruncateWithWarning
+                ? throw new ArgumentException(
+                    "CtrlRAM prefix inspection requires the compiled CtrlRAM truncation contract.",
+                    nameof(addressSpace))
+                : InspectDeclaredPrefix(
+                    binding,
+                    slot,
+                    addressSpace.Length,
+                    [addressSpace.Length],
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch,
+                    truncation.WarningIssueCode,
+                    sourceBytes);
+    }
+
+    private static CompiledInputArtifactInspectionResult InspectDeclaredPrefix(
+        CompiledInputSpaceBinding binding,
+        CompiledInputSlotRequirement slot,
+        long requiredEndExclusive,
+        IEnumerable<long> expectedOuterLengths,
+        string shortInputIssueCode,
+        string unexpectedOuterLengthIssueCode,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(requiredEndExclusive, int.MaxValue);
+        byte[] actualSnapshot = sourceBytes.ToArray();
+        string actualSha256 = Convert.ToHexStringLower(SHA256.HashData(actualSnapshot));
+        IReadOnlyList<long> expectedOuterLengthSnapshot =
+            Array.AsReadOnly([.. expectedOuterLengths]);
+        if (actualSnapshot.LongLength < requiredEndExclusive)
         {
-            throw new ArgumentException(
-                "CtrlRAM prefix inspection requires the compiled CtrlRAM truncation contract.",
-                nameof(addressSpace));
+            return new CompiledInputArtifactInspectionResult(
+                binding.AddressSpaceId,
+                slot.SlotId,
+                actualSnapshot.LongLength,
+                actualSha256,
+                requiredEndExclusive,
+                expectedOuterLengthSnapshot,
+                AcceptedSnapshotRange: null,
+                AcceptedSnapshotSha256: null,
+                IgnoredTrailingRange: null,
+                CompiledInputArtifactInspectionSeverity.Blocking,
+                shortInputIssueCode,
+                BlocksBuild: true,
+                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
         }
 
-        InputArtifactInspection inspection = DeclaredPrefixInputInspector.Inspect(
-            new DeclaredPrefixInputInspectionPolicy(
-                addressSpace.Length,
-                [addressSpace.Length],
-                CompositionIssueCodes.InputAddressSpaceLengthMismatch,
-                truncation.WarningIssueCode),
-            sourceBytes);
-        return Project(binding, slot, inspection);
+        int acceptedLength = checked((int)requiredEndExclusive);
+        var acceptedRange = new ByteRange(0, requiredEndExclusive);
+        string acceptedSha256 = Convert.ToHexStringLower(SHA256.HashData(
+            actualSnapshot.AsSpan(0, acceptedLength)));
+        ByteRange? ignoredTrailingRange = actualSnapshot.LongLength > requiredEndExclusive
+            ? ByteRange.FromStartEndExclusive(requiredEndExclusive, actualSnapshot.LongLength)
+            : null;
+        bool expectedOuterLength = expectedOuterLengthSnapshot.Contains(actualSnapshot.LongLength);
+        return new CompiledInputArtifactInspectionResult(
+            binding.AddressSpaceId,
+            slot.SlotId,
+            actualSnapshot.LongLength,
+            actualSha256,
+            requiredEndExclusive,
+            expectedOuterLengthSnapshot,
+            acceptedRange,
+            acceptedSha256,
+            ignoredTrailingRange,
+            expectedOuterLength
+                ? CompiledInputArtifactInspectionSeverity.Valid
+                : CompiledInputArtifactInspectionSeverity.Warning,
+            expectedOuterLength
+                ? InputArtifactInspectionIssueCodes.Ready
+                : unexpectedOuterLengthIssueCode,
+            BlocksBuild: false,
+            expectedOuterLength
+                ? CompiledInputArtifactInspectionNextAction.None
+                : ignoredTrailingRange.HasValue
+                    ? CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes
+                    : CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength);
     }
 
     private static CompiledInputArtifactInspectionResult ApplyInputLoadValidation(
@@ -191,7 +237,7 @@ public static class CompiledInputArtifactInspectionService
             return inspection;
         }
 
-        CompiledUniformInputRangeValidation? failed = composition.ValidationRequirements
+        CompiledUniformInputRangeValidation? failed = composition.V2Details.Provenance.ValidationRequirements
             .OfType<CompiledUniformInputRangeValidation>()
             .Where(requirement => StringComparer.Ordinal.Equals(
                 requirement.AddressSpaceId,
@@ -213,27 +259,6 @@ public static class CompiledInputArtifactInspectionService
                 BlocksBuild = blocksBuild,
                 NextAction = CompiledInputArtifactInspectionNextAction.None,
             };
-    }
-
-    private static CompiledInputArtifactInspectionResult Project(
-        CompiledInputSpaceBinding binding,
-        CompiledInputSlotRequirement slot,
-        InputArtifactInspection inspection)
-    {
-        return new CompiledInputArtifactInspectionResult(
-            binding.AddressSpaceId,
-            slot.SlotId,
-            inspection.ActualSource.Length,
-            inspection.ActualSource.Sha256,
-            inspection.RequiredEndExclusive,
-            inspection.ExpectedOuterLengths,
-            inspection.AcceptedSnapshotRange,
-            inspection.AcceptedSnapshot?.Sha256,
-            inspection.IgnoredTrailingRange,
-            MapSeverity(inspection.Severity),
-            inspection.IssueCode,
-            inspection.BuildImpact == InputArtifactBuildImpact.Blocked,
-            MapNextAction(inspection.NextAction));
     }
 
     private static (CompiledInputSpaceBinding Binding, CompiledInputSlotRequirement Slot) ResolveBinding(
@@ -291,7 +316,8 @@ public static class CompiledInputArtifactInspectionService
     {
         string actualSha256 = Convert.ToHexStringLower(SHA256.HashData(sourceBytes.Span));
         long requiredEndExclusive = addressSpace.Length;
-        if (sourceBytes.Length < requiredEndExclusive)
+        bool tooLong = requirement.MaximumBytes is { } maximumBytes && sourceBytes.Length > maximumBytes;
+        if (sourceBytes.Length < requiredEndExclusive || tooLong)
         {
             return new CompiledInputArtifactInspectionResult(
                 binding.AddressSpaceId,
@@ -304,7 +330,9 @@ public static class CompiledInputArtifactInspectionService
                 AcceptedSnapshotSha256: null,
                 IgnoredTrailingRange: null,
                 CompiledInputArtifactInspectionSeverity.Blocking,
-                CompositionIssueCodes.InputSourceViewIncomplete,
+                tooLong
+                    ? CompositionIssueCodes.InputAddressSpaceLengthMismatch
+                    : CompositionIssueCodes.InputSourceViewIncomplete,
                 BlocksBuild: true,
                 CompiledInputArtifactInspectionNextAction.SelectCompatibleInput);
         }
@@ -339,30 +367,4 @@ public static class CompiledInputArtifactInspectionService
                 : CompiledInputArtifactInspectionNextAction.None);
     }
 
-    private static CompiledInputArtifactInspectionSeverity MapSeverity(InputArtifactInspectionSeverity severity)
-    {
-        return severity switch
-        {
-            InputArtifactInspectionSeverity.Valid => CompiledInputArtifactInspectionSeverity.Valid,
-            InputArtifactInspectionSeverity.Warning => CompiledInputArtifactInspectionSeverity.Warning,
-            InputArtifactInspectionSeverity.Blocking => CompiledInputArtifactInspectionSeverity.Blocking,
-            _ => throw new ArgumentOutOfRangeException(nameof(severity), severity, null),
-        };
-    }
-
-    private static CompiledInputArtifactInspectionNextAction MapNextAction(
-        InputArtifactInspectionNextAction nextAction)
-    {
-        return nextAction switch
-        {
-            InputArtifactInspectionNextAction.None => CompiledInputArtifactInspectionNextAction.None,
-            InputArtifactInspectionNextAction.SelectCompatibleInput =>
-                CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
-            InputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes =>
-                CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes,
-            InputArtifactInspectionNextAction.ReviewUnexpectedOuterLength =>
-                CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength,
-            _ => throw new ArgumentOutOfRangeException(nameof(nextAction), nextAction, null),
-        };
-    }
 }

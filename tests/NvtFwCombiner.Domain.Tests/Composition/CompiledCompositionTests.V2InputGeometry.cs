@@ -5,37 +5,6 @@ namespace NvtFwCombiner.Domain.Tests.Composition;
 
 public sealed partial class CompiledCompositionTests
 {
-    /// <summary>Verifies TP-maximum artifacts fail closed when their immutable source space has no resolved source view.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsTpInputWithoutResolvedSourceView()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateTpComposition(
-            sourceLength: 4,
-            outputCapacity: 4,
-            sourceRanges: []));
-    }
-
-    /// <summary>Verifies TP-maximum source capacity cannot exceed the exact maximum end-exclusive source-view span.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsTpInputSpaceLargerThanResolvedSourceSpan()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateTpComposition(
-            sourceLength: 8,
-            outputCapacity: 8,
-            sourceRanges: [new ByteRange(0, 4)]));
-    }
-
-    /// <summary>Verifies TP-maximum source policy rejects a sole allowed artifact length that differs from its resolved span.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsTpInputAllowedLengthDifferentFromResolvedSpan()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateTpComposition(
-            sourceLength: 8,
-            outputCapacity: 8,
-            sourceRanges: [new ByteRange(0, 8)],
-            allowedInputLengths: [4]));
-    }
-
     /// <summary>Verifies discontiguous TP views bind their greatest end-exclusive coordinate and that geometry changes identity.</summary>
     [Fact]
     public void V2PlanArtifactDerivesTpInputSpanFromMaximumResolvedViewEnd()
@@ -61,33 +30,21 @@ public sealed partial class CompiledCompositionTests
     public void V2PlanArtifactAcceptsTpInputAtExact256KiBBoundary()
     {
         CompiledComposition composition = CreateTpComposition(
-            sourceLength: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-            outputCapacity: CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
-            sourceRanges: [new ByteRange(0, CompiledTpMaximum256KInputLengthRequirement.MaximumBytes)]);
+            sourceLength: InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            outputCapacity: InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            sourceRanges: [new ByteRange(0, InputLengthPolicyLimits.MaximumTpFirmwareBytes)]);
 
         AddressSpace input = Assert.Single(composition.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
-        Assert.Equal(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes, input.Length);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, input.Length);
     }
 
-    /// <summary>Verifies Domain independently rejects one byte beyond the TP policy limit even when the source view agrees.</summary>
+    /// <summary>Verifies source-view coverage retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
     [Fact]
-    public void V2PlanArtifactRejectsTpInputAbove256KiBBoundary()
+    public void V2PlanArtifactBindsSourceViewGeometryAndWarningCode()
     {
-        long oversize = CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1;
-
-        _ = Assert.Throws<ArgumentException>(() => CreateTpComposition(
-            sourceLength: oversize,
-            outputCapacity: oversize,
-            sourceRanges: [new ByteRange(0, oversize)]));
-    }
-
-    /// <summary>Verifies Normal DP extraction retains its declared span, expected containers, warning code, and distinct compilation identity.</summary>
-    [Fact]
-    public void V2PlanArtifactBindsNormalDpExtractionGeometryAndWarningCode()
-    {
-        CompiledComposition baseline = CreateNormalDpComposition("DP_SIZE_WARNING");
-        CompiledComposition changedWarning = CreateNormalDpComposition("DP_LENGTH_WARNING");
-        CompiledComposition changedContainers = CreateNormalDpComposition(
+        CompiledComposition baseline = CreateSourceViewComposition("DP_SIZE_WARNING");
+        CompiledComposition changedWarning = CreateSourceViewComposition("DP_LENGTH_WARNING");
+        CompiledComposition changedContainers = CreateSourceViewComposition(
             "DP_SIZE_WARNING",
             expectedInputLengths: [0x20, 0x40]);
 
@@ -99,26 +56,6 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal("DP_SIZE_WARNING", input.UnexpectedInputLengthIssueCode);
         Assert.NotEqual(baseline.CompilationFingerprint, changedWarning.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, changedContainers.CompilationFingerprint);
-    }
-
-    /// <summary>Verifies V2 artifacts reject Normal DP contracts that can bypass extraction or lack a declared source span.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsInvalidNormalDpExtractionGeometry()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
-            "DP_SIZE_WARNING",
-            inputOversizePolicy: InputOversizePolicy.Reject,
-            includeWarningCodeInAddressSpace: false));
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
-            "DP_SIZE_WARNING",
-            sourceRanges: []));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateNormalDpComposition(
-            "DP_SIZE_WARNING",
-            expectedInputLengths: [4]));
-        _ = Assert.Throws<ArgumentException>(() => CreateNormalDpComposition(
-            "DP_SIZE_WARNING",
-            expectedInputLengths: [16],
-            addressSpaceExpectedInputLengths: [32]));
     }
 
     /// <summary>Verifies declared-prefix authority binds its exact half-open snapshot, issue codes, and fingerprint.</summary>
@@ -133,8 +70,8 @@ public sealed partial class CompiledCompositionTests
             unexpectedOuterLengthIssueCode: "INPUT_OUTER_SIZE");
 
         AddressSpace input = Assert.Single(baseline.Plan.AddressSpaces, space => space.AddressSpaceId == "input");
-        CompiledDeclaredPrefixWithWarningInputLengthRequirement requirement = Assert.IsType<
-            CompiledDeclaredPrefixWithWarningInputLengthRequirement>(
+        CompiledSourceViewCoverageInputLengthRequirement requirement = Assert.IsType<
+            CompiledSourceViewCoverageInputLengthRequirement>(
                 Assert.Single(baseline.V2Details.InputContract.Slots).LengthRequirement);
         Assert.Equal(new ByteRange(0, 8), new ByteRange(0, input.Length));
         Assert.Null(input.InputPaddingByte);
@@ -151,34 +88,25 @@ public sealed partial class CompiledCompositionTests
             variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
     }
 
-    /// <summary>Verifies declared-prefix authority fails closed on a one-byte-short policy or mismatched plan projection.</summary>
+    /// <summary>Verifies declared-prefix values reject invalid half-open bounds and ordering.</summary>
     [Fact]
-    public void V2PlanArtifactRejectsInvalidDeclaredPrefixBoundaries()
+    public void DeclaredPrefixRequirementRejectsInvalidBoundaries()
     {
-        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            8,
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [7],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            8,
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 8,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [16, 8],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-            (long)int.MaxValue + 1,
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: 8,
+            shortInputIssueCode: "INPUT_SHORT"));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
             [(long)int.MaxValue + 1],
-            "INPUT_SHORT",
-            "INPUT_OUTER_LENGTH"));
-        _ = Assert.ThrowsAny<ArgumentException>(() => CreateDeclaredPrefixComposition(
-            addressSpaceLength: 9));
-        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
-            addressSpaceExpectedOuterLengths: [16]));
-        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
-            inputOversizePolicy: InputOversizePolicy.Reject,
-            includeWarningCodeInAddressSpace: false));
-        _ = Assert.Throws<ArgumentException>(() => CreateDeclaredPrefixComposition(
-            compositionKind: CompositionKind.Replace));
+            "INPUT_OUTER_LENGTH",
+            requiredEndExclusive: (long)int.MaxValue + 1,
+            shortInputIssueCode: "INPUT_SHORT"));
     }
 
     /// <summary>Source-view diagnostics are immutable, paired, ordered, and optional.</summary>
@@ -207,14 +135,24 @@ public sealed partial class CompiledCompositionTests
             new CompiledSourceViewCoverageInputLengthRequirement([16, 8], "INPUT_OUTER_LENGTH"));
     }
 
+    /// <summary>A maximum-only compatibility requirement cannot hide diagnostics from its fingerprint.</summary>
+    [Fact]
+    public void SourceViewMaximumRejectsAdditionalCoveragePolicy()
+    {
+        _ = Assert.Throws<ArgumentException>(() => new CompiledSourceViewCoverageInputLengthRequirement(
+            [8],
+            "INPUT_OUTER_LENGTH",
+            maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes));
+    }
+
     /// <summary>Verifies a V2 Replace artifact can use an exact reference clone and one declared padded DP source.</summary>
     [Fact]
     public void V2ReplaceArtifactBindsReferenceCloneAndExactDpPadding()
     {
         CompiledComposition composition = CreateDpReplaceComposition();
 
-        Assert.Equal(CompositionKind.Replace, composition.CompositionKind);
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
+        Assert.Equal(CompositionKind.Replace, composition.V2Details.CompositionKind);
+        Assert.Equal(IcNumberInputMode.SingleSelector, composition.V2Details.IcNumberInputMode);
         Assert.Equal(ImageInitializationKind.Reference, composition.Plan.OutputInitialization.Kind);
         Assert.Equal("reference-source", composition.Plan.OutputInitialization.ReferenceSpaceId);
         AddressSpace reference = Assert.Single(
@@ -230,67 +168,62 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(CompositionOperationKind.ReplaceRange, Assert.Single(composition.Plan.OrderedOperations).Kind);
     }
 
-    /// <summary>Verifies DP short-input padding cannot produce a Replace artifact unless the output clones its immutable reference.</summary>
-    [Fact]
-    public void V2ReplaceArtifactRejectsPaddedDpWithoutReferenceClone()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateDpReplaceComposition(referenceClone: false));
-    }
-
     private static CompiledComposition CreateTpComposition(
         long sourceLength,
         long outputCapacity,
-        IReadOnlyList<ByteRange> sourceRanges,
-        IReadOnlyList<long>? allowedInputLengths = null)
+        IReadOnlyList<ByteRange> sourceRanges)
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "tp-slot",
                     "tp",
                     CompiledInputArtifactClass.TpFirmware,
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledTpMaximum256KInputLengthRequirement(),
+                    new CompiledSourceViewCoverageInputLengthRequirement(
+                        maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "tp-slot", CompiledInputInstancePolicy.Singleton)]),
-            regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
-            plan: CreateTpPlan(sourceLength, outputCapacity, allowedInputLengths));
+            regionAccessContract: CreateTpRegionAccessContract(
+                sourceRanges,
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
+            plan: CreateTpPlan(sourceLength, outputCapacity));
     }
 
-    private static CompiledComposition CreateNormalDpComposition(
+    private static CompiledComposition CreateSourceViewComposition(
         string warningCode,
-        IReadOnlyList<ByteRange>? sourceRanges = null,
-        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
-        bool includeWarningCodeInAddressSpace = true,
-        IReadOnlyList<long>? expectedInputLengths = null,
-        IReadOnlyList<long>? addressSpaceExpectedInputLengths = null)
+        IReadOnlyList<long>? expectedInputLengths = null)
     {
         const long sourceLength = 8;
         const long outputCapacity = 16;
-        sourceRanges ??= [new ByteRange(0, sourceLength)];
         IReadOnlyList<long> expected = expectedInputLengths ?? [outputCapacity];
-        IReadOnlyList<long> addressSpaceExpected = addressSpaceExpectedInputLengths ?? expected;
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledNormalDpExtractWithWarningInputLengthRequirement(warningCode, expected),
+                    new CompiledSourceViewCoverageInputLengthRequirement(expected, warningCode),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "dp-slot", CompiledInputInstancePolicy.Singleton)]),
-            regionAccessContract: CreateTpRegionAccessContract(sourceRanges, new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
+            regionAccessContract: CreateTpRegionAccessContract(
+                [new ByteRange(0, sourceLength)],
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
             plan: new CompositionPlan(
                 ImageInitialization.Blank("output-image", outputCapacity, 0),
                 [
@@ -298,9 +231,9 @@ public sealed partial class CompiledCompositionTests
                         "input",
                         sourceLength,
                         AddressSpaceMutability.Immutable,
-                        inputOversizePolicy: inputOversizePolicy,
-                        expectedInputLengths: addressSpaceExpected,
-                        unexpectedInputLengthIssueCode: includeWarningCodeInAddressSpace ? warningCode : null),
+                        inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                        expectedInputLengths: expected,
+                        unexpectedInputLengthIssueCode: warningCode),
                     new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
                 ],
                 [CompositionOperation.CopyRange(
@@ -318,50 +251,44 @@ public sealed partial class CompiledCompositionTests
         long requiredEndExclusive = 8,
         IReadOnlyList<long>? expectedOuterLengths = null,
         string shortInputIssueCode = "INPUT_SHORT",
-        string unexpectedOuterLengthIssueCode = "INPUT_OUTER_LENGTH",
-        long? addressSpaceLength = null,
-        IReadOnlyList<long>? addressSpaceExpectedOuterLengths = null,
-        InputOversizePolicy inputOversizePolicy = InputOversizePolicy.ExtractDeclaredRange,
-        bool includeWarningCodeInAddressSpace = true,
-        CompositionKind compositionKind = CompositionKind.Merge)
+        string unexpectedOuterLengthIssueCode = "INPUT_OUTER_LENGTH")
     {
         expectedOuterLengths ??= [requiredEndExclusive];
-        addressSpaceExpectedOuterLengths ??= expectedOuterLengths;
         long outputCapacity = Math.Max(requiredEndExclusive, 16);
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            outputCapacity);
         return CreateV2(
             inputContract: new CompiledInputContract(
-                [new CompiledInputSlotRequirement(
+                [CompiledInputSlotTestFactory.Create(
                     "source-slot",
                     "source",
                     CompiledInputArtifactClass.Auxiliary,
                     required: true,
                     CompiledInputSlotCardinality.ExactlyOne,
                     [".bin"],
-                    new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                        requiredEndExclusive,
+                    new CompiledSourceViewCoverageInputLengthRequirement(
                         expectedOuterLengths,
-                        shortInputIssueCode,
-                        unexpectedOuterLengthIssueCode),
+                        unexpectedOuterLengthIssueCode,
+                        requiredEndExclusive,
+                        shortInputIssueCode),
                     new CompiledNoInputNormalization())],
                 [new CompiledInputSpaceBinding("input", "source-slot", CompiledInputInstancePolicy.Singleton)]),
             regionAccessContract: CreateTpRegionAccessContract(
                 [new ByteRange(0, 1)],
-                new ByteRange(0, outputCapacity)),
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                outputCapacity),
+                new ByteRange(0, outputCapacity),
+                resolvedMap),
+            resolvedMap: resolvedMap,
             plan: new CompositionPlan(
                 ImageInitialization.Blank("output-image", outputCapacity, 0),
                 [
                     new AddressSpace(
                         "input",
-                        addressSpaceLength ?? requiredEndExclusive,
+                        requiredEndExclusive,
                         AddressSpaceMutability.Immutable,
-                        inputOversizePolicy: inputOversizePolicy,
-                        expectedInputLengths: addressSpaceExpectedOuterLengths,
-                        unexpectedInputLengthIssueCode: includeWarningCodeInAddressSpace
-                            ? unexpectedOuterLengthIssueCode
-                            : null),
+                        inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
+                        expectedInputLengths: expectedOuterLengths,
+                        unexpectedInputLengthIssueCode: unexpectedOuterLengthIssueCode),
                     new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
                 ],
                 [CompositionOperation.CopyRange(
@@ -372,16 +299,19 @@ public sealed partial class CompiledCompositionTests
                     "output-image",
                     new ByteRange(0, 1),
                     OverlapPolicy.Reject,
-                    "copy one synthetic declared-prefix byte")]),
-            compositionKind: compositionKind);
+                "copy one synthetic declared-prefix byte")]));
     }
 
-    private static CompiledComposition CreateDpReplaceComposition(bool referenceClone = true)
+    private static CompiledComposition CreateDpReplaceComposition()
     {
         const long capacity = 16;
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            capacity,
+            "dp-replace");
         var contract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "reference-slot",
                     "reference",
                     CompiledInputArtifactClass.ReferenceImage,
@@ -390,7 +320,7 @@ public sealed partial class CompiledCompositionTests
                     [".bin"],
                     new CompiledExactResolvedMapCapacityInputLengthRequirement(capacity),
                     new CompiledNoInputNormalization()),
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,
@@ -411,9 +341,7 @@ public sealed partial class CompiledCompositionTests
                     CompiledInputInstancePolicy.Singleton),
             ]);
         var plan = new CompositionPlan(
-            referenceClone
-                ? ImageInitialization.Reference("output-image", "reference-source", capacity)
-                : ImageInitialization.Blank("output-image", capacity, 0),
+            ImageInitialization.Reference("output-image", "reference-source", capacity),
             [
                 new AddressSpace("reference-source", capacity, AddressSpaceMutability.Immutable),
                 new AddressSpace(
@@ -432,12 +360,9 @@ public sealed partial class CompiledCompositionTests
                 new ByteRange(0, 4),
                 OverlapPolicy.Reject,
                 "replace synthetic DP bytes")]);
-        CompiledPhysicalRegionConstraint[] chain =
+        FirmwareRegion[] chain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.Forbidden,
-                alignment: 1),
+            resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root"),
         ];
         var regionAccess = new CompiledRegionAccessContract(
             [],
@@ -461,21 +386,17 @@ public sealed partial class CompiledCompositionTests
         return CreateV2(
             inputContract: contract,
             regionAccessContract: regionAccess,
-            resolvedMap: CreateResolvedMap(
-                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-                capacity,
-                "dp-replace"),
+            resolvedMap: resolvedMap,
             plan: plan,
             compositionKind: CompositionKind.Replace,
             modeId: "dp-replace",
             experienceId: "dp-replace",
-            icNumberPolicy: CompiledIcNumberPolicy.SingleSelector);
+            icNumberInputMode: IcNumberInputMode.SingleSelector);
     }
 
     private static CompositionPlan CreateTpPlan(
         long sourceLength,
-        long outputCapacity,
-        IReadOnlyList<long>? allowedInputLengths)
+        long outputCapacity)
     {
         return new CompositionPlan(
             ImageInitialization.Blank("output-image", outputCapacity, 0),
@@ -484,8 +405,7 @@ public sealed partial class CompiledCompositionTests
                     "input",
                     sourceLength,
                     AddressSpaceMutability.Immutable,
-                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange,
-                    allowedInputLengths: allowedInputLengths),
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
                 new AddressSpace("output-image", outputCapacity, AddressSpaceMutability.Mutable),
             ],
             [CompositionOperation.CopyRange(
@@ -501,14 +421,12 @@ public sealed partial class CompiledCompositionTests
 
     private static CompiledRegionAccessContract CreateTpRegionAccessContract(
         IReadOnlyList<ByteRange> sourceRanges,
-        ByteRange outputRange)
+        ByteRange outputRange,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
     {
-        CompiledPhysicalRegionConstraint[] chain =
+        FirmwareRegion[] chain =
         [
-            new CompiledPhysicalRegionConstraint(
-                "root",
-                FirmwareWriteConstraint.Forbidden,
-                alignment: 1),
+            resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root"),
         ];
         CompiledResolvedPhysicalView[] views =
         [

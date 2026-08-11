@@ -11,15 +11,13 @@ public sealed class ExternalProcessorStagedSource
     {
     }
 
-    private ExternalProcessorStagedSource(ByteRange firmwareRange, byte[] ownedBytes)
+    internal ExternalProcessorStagedSource(ByteRange firmwareRange, byte[] ownedBytes)
     {
         ArgumentNullException.ThrowIfNull(ownedBytes);
-        if (ownedBytes.Length != firmwareRange.Length)
-        {
-            throw new ArgumentException(
-                "Staged source byte count must match the firmware range length.",
-                nameof(ownedBytes));
-        }
+        DomainInvariant.Reject(
+            ownedBytes.Length != firmwareRange.Length,
+            "Staged source byte count must match the firmware range length.",
+            nameof(ownedBytes));
 
         FirmwareRange = firmwareRange;
         _bytes = ownedBytes;
@@ -30,11 +28,6 @@ public sealed class ExternalProcessorStagedSource
 
     /// <summary>Cloned staged source bytes.</summary>
     public ReadOnlyMemory<byte> Bytes => _bytes;
-
-    internal static ExternalProcessorStagedSource FromOwnedBytes(ByteRange firmwareRange, byte[] ownedBytes)
-    {
-        return new ExternalProcessorStagedSource(firmwareRange, ownedBytes);
-    }
 
     private static byte[] ClonePublicBytes(ByteRange firmwareRange, ReadOnlyMemory<byte> bytes)
     {

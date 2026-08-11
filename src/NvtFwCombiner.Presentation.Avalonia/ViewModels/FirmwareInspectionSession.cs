@@ -1,7 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -9,8 +9,8 @@ internal sealed class FirmwareInspectionSession
 {
     private readonly Func<
         string,
-        IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-        IReadOnlyList<WorkbenchFirmwareInspectionResult>> _reader;
+        IReadOnlyList<FirmwareInspectionSnapshotInput>,
+        IReadOnlyList<FirmwareInspectionSnapshotResult>> _reader;
     private readonly Dictionary<string, FirmwareFileProjection> _fileProjections =
         new(StringComparer.Ordinal);
     private BaseFirmwareInspectionCache? _baseCache;
@@ -18,8 +18,8 @@ internal sealed class FirmwareInspectionSession
 
     internal FirmwareInspectionSession(Func<
         string,
-        IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-        IReadOnlyList<WorkbenchFirmwareInspectionResult>> reader)
+        IReadOnlyList<FirmwareInspectionSnapshotInput>,
+        IReadOnlyList<FirmwareInspectionSnapshotResult>> reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
         _reader = reader;
@@ -46,9 +46,9 @@ internal sealed class FirmwareInspectionSession
             static path => path,
             FirmwareFileIdentity.Capture,
             StringComparer.Ordinal);
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
-            .. request.Items.Select(item => new WorkbenchFirmwareInspectionInput(
+            .. request.Items.Select(item => new FirmwareInspectionSnapshotInput(
                 item.SlotId,
                 item.Path,
                 item.TpPath,
@@ -63,7 +63,7 @@ internal sealed class FirmwareInspectionSession
                     item.StandardMergeInspectionLease?.ExactCapability ??
                     item.AbMergeInspectionLease?.ExactCapability)),
         ];
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> inspections = _reader(request.IcId, inputs);
+        IReadOnlyList<FirmwareInspectionSnapshotResult> inspections = _reader(request.IcId, inputs);
         var inspectionsById = inspections.ToDictionary(
             static result => result.InspectionId,
             static result => result.Inspection,
@@ -88,12 +88,12 @@ internal sealed class FirmwareInspectionSession
         string slotId,
         string path,
         FirmwareFileIdentity identity,
-        WorkbenchFirmwareInspection inspection)
+        FirmwareInspectionSnapshot inspection)
     {
         _fileProjections[slotId] = new FirmwareFileProjection(path, identity, inspection);
     }
 
-    internal void StoreBase(string icId, string path, WorkbenchFirmwareInspection inspection)
+    internal void StoreBase(string icId, string path, FirmwareInspectionSnapshot inspection)
     {
         _baseCache = new BaseFirmwareInspectionCache(icId, path, inspection);
     }
@@ -116,7 +116,7 @@ internal sealed class FirmwareInspectionSession
     internal bool TryGetInspection(
         string slotId,
         string? path,
-        out WorkbenchFirmwareInspection inspection)
+        out FirmwareInspectionSnapshot inspection)
     {
         if (path is not null &&
             _fileProjections.TryGetValue(slotId, out FirmwareFileProjection projection) &&
@@ -133,7 +133,7 @@ internal sealed class FirmwareInspectionSession
     internal bool TryGetBase(
         string icId,
         string? path,
-        out WorkbenchFirmwareInspection inspection)
+        out FirmwareInspectionSnapshot inspection)
     {
         if (_baseCache is { } cache && cache.MatchesContext(icId, path))
         {
@@ -172,7 +172,7 @@ internal sealed class FirmwareInspectionSession
     private readonly record struct FirmwareFileProjection(
         string Path,
         FirmwareFileIdentity FileIdentity,
-        WorkbenchFirmwareInspection Inspection)
+        FirmwareInspectionSnapshot Inspection)
     {
         internal bool Matches(string path)
         {
@@ -183,7 +183,7 @@ internal sealed class FirmwareInspectionSession
     private readonly record struct BaseFirmwareInspectionCache(
         string IcId,
         string Path,
-        WorkbenchFirmwareInspection Inspection)
+        FirmwareInspectionSnapshot Inspection)
     {
         internal bool MatchesContext(string icId, string? path)
         {
@@ -237,16 +237,16 @@ internal static class FirmwareInspectionRequestFactory
         string? dependentTpPath = slot.SlotId == context.MergeDpSlotId
             ? tpPath ?? context.MergeTpSlot.FilePath
             : null;
-        WorkbenchCtrlRamInspectionRequest? ctrlRamRequest =
+        CtrlRamInspectionRequest? ctrlRamRequest =
             slot.SlotId == context.ReplaceBaseSlotId && context.IsCtrlRamReplace
-                ? new WorkbenchCtrlRamInspectionRequest(context.SelectedNumber)
+                ? new CtrlRamInspectionRequest(context.SelectedNumber)
                 : null;
         string? abMergeAddressSpaceId = context.IsAbMerge
             ? context.AbAddressSpaceBySlotId.GetValueOrDefault(slot.SlotId)
             : null;
         string? dpReplaceAddressSpaceId = context.IsDpReplace
             ? ReferenceEquals(slot, context.ReplaceBaseSlot)
-                ? WorkbenchAddressSpaceIds.ReferenceBase
+                ? CompositionAddressSpaceIds.ReferenceBase
                 : slot.AddressSpaceId ?? throw new InvalidOperationException(
                     $"DP Replace slot '{slot.SlotId}' has no canonical address-space id.")
             : null;
@@ -256,9 +256,9 @@ internal static class FirmwareInspectionRequestFactory
             : null;
         string? ctrlRamReplaceAddressSpaceId = context.IsCtrlRamReplace &&
             (ReferenceEquals(slot, context.ReplaceBaseSlot) ||
-                slot.ReplaceInputRole == WorkbenchReplaceInputRole.CtrlRam)
+                slot.ReplaceInputRole == ReplaceInputRole.CtrlRam)
             ? ReferenceEquals(slot, context.ReplaceBaseSlot)
-                ? WorkbenchAddressSpaceIds.ReferenceBase
+                ? CompositionAddressSpaceIds.ReferenceBase
                 : slot.AddressSpaceId
             : null;
         // Firmware metadata can request confirmation only when the current page exposes an
@@ -306,15 +306,17 @@ internal static class FirmwareInspectionProjection
                 (item.TpPath is null || string.Equals(currentTpPath, item.TpPath, StringComparison.Ordinal)));
     }
 
-    internal static WorkbenchCtrlRamInspectionDisplay ResolveCtrlRamDisplay(
-        WorkbenchFirmwareInspection inspection,
+    internal static CtrlRamInspectionDisplay ResolveCtrlRamDisplay(
+        IFirmwareInspection firmwareInspection,
+        FirmwareInspectionSnapshot inspection,
         string icId,
         string number)
     {
+        ArgumentNullException.ThrowIfNull(firmwareInspection);
         return inspection.CtrlRamDisplay is { } inspectedDisplay &&
             string.Equals(inspectedDisplay.NumberToken, number, StringComparison.Ordinal)
                 ? inspectedDisplay
-                : WorkbenchCompositionService.ProjectCtrlRamInspectionDisplay(
+                : firmwareInspection.ProjectCtrlRamInspectionDisplay(
                     icId,
                     number,
                     inspection.FirmwareConfig);
@@ -322,7 +324,7 @@ internal static class FirmwareInspectionProjection
 
     internal static void ApplyAbInputFacts(
         FirmwareSlotViewModel slot,
-        WorkbenchFirmwareInspection inspection,
+        FirmwareInspectionSnapshot inspection,
         ShellTextResources text)
     {
         slot.SetFirmwareFacts(CreateAbFirmwareFacts(inspection, text));
@@ -347,7 +349,7 @@ internal static class FirmwareInspectionProjection
             if (status.Readiness == ResolvedChildReadiness.Blocked)
             {
                 slot.SetInputInspection(
-                    WorkbenchInputInspectionSeverity.Blocking,
+                    FirmwareInputInspectionSeverity.Blocking,
                     readinessDetail);
             }
             else
@@ -358,11 +360,11 @@ internal static class FirmwareInspectionProjection
             return;
         }
 
-        WorkbenchInputInspectionSeverity severity = status.InspectionLifecycle == AuthoringSlotLifecycle.Verified
-            ? WorkbenchInputInspectionSeverity.Valid
+        FirmwareInputInspectionSeverity severity = status.InspectionLifecycle == AuthoringSlotLifecycle.Verified
+            ? FirmwareInputInspectionSeverity.Valid
             : status.InspectionLifecycle == AuthoringSlotLifecycle.Warning
-                ? WorkbenchInputInspectionSeverity.Warning
-                : WorkbenchInputInspectionSeverity.Blocking;
+                ? FirmwareInputInspectionSeverity.Warning
+                : FirmwareInputInspectionSeverity.Blocking;
         slot.SetInputInspection(severity, text.GetInputSlotInspectionStatus(status));
     }
 
@@ -390,7 +392,7 @@ internal static class FirmwareInspectionProjection
             }
 
             slot.SetInputInspection(
-                WorkbenchInputInspectionSeverity.Blocking,
+                FirmwareInputInspectionSeverity.Blocking,
                 text.FirmwareInspectionStaleFileStatus);
             applied = true;
         }
@@ -399,10 +401,10 @@ internal static class FirmwareInspectionProjection
     }
 
     internal static IReadOnlyList<FirmwareSlotFactViewModel> CreateAbFirmwareFacts(
-        WorkbenchFirmwareInspection inspection,
+        FirmwareInspectionSnapshot inspection,
         ShellTextResources text)
     {
-        WorkbenchAbMergeInputFacts abInput = inspection.AbMergeFacts ??
+        AbMergeInputFacts abInput = inspection.AbMergeFacts ??
             throw new ArgumentException("AB firmware facts require AB input facts.", nameof(inspection));
         return
         [
@@ -424,67 +426,12 @@ internal static class FirmwareInspectionProjection
     private static string FormatAbVersion(CompiledInputVersionObservation version)
     {
         string value = version.Kind is CompiledInputVersionKind.DpA or CompiledInputVersionKind.DpB
-            ? WorkbenchDpVersionMetadata.FormatDisplayValue(
+            ? DpVersionMetadata.FormatDisplayValue(
                 FormattableString.Invariant($"{version.Major:X2}{version.Minor:X2}"))
             : FormattableString.Invariant($"T{version.Major:X2}-{version.Minor:X2}");
         return version.TrackerId is { } trackerId
             ? $"{value} · AUTO_PRJ-{trackerId}"
             : value;
-    }
-}
-
-internal static class FirmwareOutputNamingProjection
-{
-    internal static string CreateFlashCodeOutputFileName(
-        string icId,
-        IEnumerable<FirmwareSlotViewModel> slots,
-        FirmwareInspectionSession inspectionSession,
-        WorkbenchCtrlRamFirmwareVersionEdit? edit)
-    {
-        ArgumentNullException.ThrowIfNull(slots);
-        WorkbenchOutputNameInspectionCandidate[] candidates =
-            [.. slots.Select(slot => ToCandidate(slot, inspectionSession))];
-        return edit is null
-            ? WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(icId, candidates).FileName
-            : WorkbenchCompositionService.CreateFlashCodeOutputFileNameFromInspections(icId, candidates, edit).FileName;
-    }
-
-    internal static string CreateCtrlRamReplaceOutputFileName(
-        string icId,
-        IEnumerable<FirmwareSlotViewModel> slots,
-        FirmwareInspectionSession inspectionSession,
-        WorkbenchCtrlRamFirmwareVersionEdit? edit)
-    {
-        ArgumentNullException.ThrowIfNull(slots);
-        WorkbenchOutputNameInspectionCandidate[] candidates =
-            [.. slots.Select(slot => ToCandidate(slot, inspectionSession))];
-        return WorkbenchCompositionService.CreateCtrlRamReplaceOutputFileNameFromInspections(
-            icId,
-            candidates,
-            edit).FileName;
-    }
-
-    private static WorkbenchOutputNameInspectionCandidate ToCandidate(
-        FirmwareSlotViewModel slot,
-        FirmwareInspectionSession inspectionSession)
-    {
-        WorkbenchFirmwareInspection? inspection = inspectionSession.TryGetInspection(
-            slot.SlotId,
-            slot.FilePath,
-            out WorkbenchFirmwareInspection projected)
-                ? projected
-                : null;
-        return new WorkbenchOutputNameInspectionCandidate(
-            slot.SlotKind switch
-            {
-                FirmwareSlotKind.Dp => WorkbenchOutputNameCandidateKind.Dp,
-                FirmwareSlotKind.Tp => WorkbenchOutputNameCandidateKind.Tp,
-                FirmwareSlotKind.CtrlRam => WorkbenchOutputNameCandidateKind.CtrlRam,
-                FirmwareSlotKind.Base => WorkbenchOutputNameCandidateKind.Base,
-                FirmwareSlotKind.Unknown => WorkbenchOutputNameCandidateKind.Unknown,
-                _ => WorkbenchOutputNameCandidateKind.Unknown,
-            },
-            inspection);
     }
 }
 
@@ -519,7 +466,7 @@ internal readonly record struct FirmwareInspectionItemRequest(
     FirmwareSlotKind SlotKind,
     string Path,
     string? TpPath,
-    WorkbenchCtrlRamInspectionRequest? CtrlRamRequest,
+    CtrlRamInspectionRequest? CtrlRamRequest,
     bool PublishFacts,
     bool PromptForMismatch,
     bool ApplyVerifiedContext,
@@ -533,7 +480,7 @@ internal readonly record struct FirmwareInspectionItemRequest(
     AuthoringSlotInspectionLease? AbMergeInspectionLease = null);
 
 internal readonly record struct FirmwareInspectionBatchResult(
-    IReadOnlyDictionary<string, WorkbenchFirmwareInspection> InspectionsById,
+    IReadOnlyDictionary<string, FirmwareInspectionSnapshot> InspectionsById,
     IReadOnlyDictionary<string, FirmwareFileIdentity> FileIdentities,
     IReadOnlySet<string> UnstableFilePaths)
 {

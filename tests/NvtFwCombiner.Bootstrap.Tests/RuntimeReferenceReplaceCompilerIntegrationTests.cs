@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Profiles.V2;
@@ -16,15 +15,14 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
     [Fact]
     public async Task CompilerLoweredRuntimeReferenceCandidateRunsThroughSharedApplicationEngine()
     {
-        V2CompositionPlanCompileResult result = TrustedV2CompositionCompiler.CompileRuntimeReferenceReplace(
-            CreateRuntimeReferenceCatalog(),
+        V2CompositionPlanCompileResult result = CreateRuntimeReferenceCatalog().CompileRuntimeReferenceReplace(
             "runtime-general-replace",
             "1.0.0",
             "NT00001",
             new V2RuntimeReferenceReplaceCompileRequest(
                 [
-                    new V2RuntimeReferenceReplaceInputBinding("base", "reference", 16),
-                    new V2RuntimeReferenceReplaceInputBinding("source-a", "source", 4),
+                    new V2ExplicitMappingInputBinding("base", "reference", 16),
+                    new V2ExplicitMappingInputBinding("source-a", "source", 4),
                 ],
                 [new ExplicitMapping(
                     "replace-source",
@@ -102,26 +100,27 @@ public sealed class RuntimeReferenceReplaceCompilerIntegrationTests
             maps.Select(static map => map.MapId));
         using var familyDocument = JsonDocument.Parse(familyJson);
         using var profileDocument = JsonDocument.Parse(profileJson);
-        return TrustedProfileBundleCatalogFactory.Create(new TrustedProfileBundleCatalogSource(
+        return TrustedProfileBundleCatalogFactory.Create(
             RuntimeReferenceManifestHash,
-            "runtime-reference-bundle",
-            "1.0.0",
-            RuntimeReferenceBundleHash,
-            "runtime-reference-release",
-            [new TrustedFirmwareFamilyJsonSource(
+            new ProfileBundleIdentity(
+                "runtime-reference-bundle",
+                "1.0.0",
+                RuntimeReferenceBundleHash,
+                "runtime-reference-release"),
+            [(
                 new TrustedProfileBundleCatalogEntryIdentity(
                     "family-entry",
                     "families/family-entry.json",
                     RuntimeReferenceFamilySchemaId,
                     familyHash),
                 familyDocument.RootElement.Clone())],
-            [new TrustedCompositionProfileJsonSource(
+            [(
                 new TrustedProfileBundleCatalogEntryIdentity(
                     "runtime-reference-profile",
                     "profiles/runtime-reference-profile.json",
                     RuntimeReferenceProfileSchemaId,
                     HashRuntimeReferenceDocument(profileJson)),
-                profileDocument.RootElement.Clone())]));
+                profileDocument.RootElement.Clone())]);
     }
 
     private static string HashRuntimeReferenceDocument(string document)

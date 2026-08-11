@@ -22,12 +22,13 @@ internal static class CompiledCompositionTestFactory
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
         string defaultOutputFileName,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null,
         string mapId = "application-test-map",
         bool allowOutputOverride = false,
         IReadOnlyDictionary<string, string>? inputRolesByAddressSpace = null,
-        IReadOnlyList<string>? outputRequiredTokenIds = null)
+        IReadOnlyList<string>? outputRequiredTokenIds = null,
+        CompiledInputLengthRequirement? inputLengthRequirement = null)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(identity);
@@ -43,36 +44,33 @@ internal static class CompiledCompositionTestFactory
             new ProfileBundleEntryIdentity(
                 "application-test-profile",
                 SyntheticSha256),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["application-test-evidence"],
             validationRequirements ?? [],
             []);
         var details = new V2CompiledCompositionDetails(
+            identity.ProfileId,
+            identity.ProfileVersion,
+            identity.ExperienceId,
+            identity.CompositionKind,
             provenance,
-            CreateInputContract(plan, identity, inputRolesByAddressSpace),
+            CreateInputContract(plan, identity, inputRolesByAddressSpace, inputLengthRequirement),
             new CompiledRegionAccessContract([], []),
             new CompiledOutputNamingRequirement(
                 defaultOutputFileName,
                 allowOverride: allowOutputOverride,
                 CompiledOutputInvalidCharacterPolicy.Reject,
-                outputRequiredTokenIds ?? []));
-        var compiledIdentity = new V2CompiledCompositionIdentity(
-            identity.ProfileId,
-            identity.ProfileVersion,
-            identity.ExperienceId,
-            identity.CompositionKind,
-            details);
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            compiledIdentity,
-            icNumberPolicy);
+                outputRequiredTokenIds ?? []),
+            icNumberInputMode);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static CompiledInputContract CreateInputContract(
         CompositionPlan plan,
         TestCompiledCompositionIdentity identity,
-        IReadOnlyDictionary<string, string>? inputRolesByAddressSpace)
+        IReadOnlyDictionary<string, string>? inputRolesByAddressSpace,
+        CompiledInputLengthRequirement? inputLengthRequirement)
     {
         var slots = new List<CompiledInputSlotRequirement>();
         var bindings = new List<CompiledInputSpaceBinding>();
@@ -90,8 +88,9 @@ internal static class CompiledCompositionTestFactory
                 CompiledInputNormalization normalization) = CreateInputPolicy(
                     space,
                     identity,
-                    isReference);
-            slots.Add(new CompiledInputSlotRequirement(
+                    isReference,
+                    inputLengthRequirement);
+            slots.Add(CompiledInputSlotTestFactory.Create(
                 slotId,
                 inputRolesByAddressSpace?.GetValueOrDefault(space.AddressSpaceId) ??
                     space.AddressSpaceId,
@@ -113,15 +112,27 @@ internal static class CompiledCompositionTestFactory
     private static (CompiledInputArtifactClass ArtifactClass,
         CompiledInputLengthRequirement LengthRequirement,
         CompiledInputNormalization Normalization) CreateInputPolicy(
-            AddressSpace space,
-            TestCompiledCompositionIdentity identity,
-            bool isReference)
+        AddressSpace space,
+        TestCompiledCompositionIdentity identity,
+        bool isReference,
+        CompiledInputLengthRequirement? inputLengthRequirement)
     {
         if (isReference)
         {
             return (
                 CompiledInputArtifactClass.ReferenceImage,
                 new CompiledExactResolvedMapCapacityInputLengthRequirement(space.Length),
+                new CompiledNoInputNormalization());
+        }
+
+        if (inputLengthRequirement is not null)
+        {
+            return (
+                inputLengthRequirement is CompiledSourceViewCoverageInputLengthRequirement
+                { MaximumBytes: not null }
+                    ? CompiledInputArtifactClass.TpFirmware
+                    : CompiledInputArtifactClass.Auxiliary,
+                inputLengthRequirement,
                 new CompiledNoInputNormalization());
         }
 
@@ -143,7 +154,7 @@ internal static class CompiledCompositionTestFactory
                 CompiledInputArtifactClass.CtrlRamReplacement,
                 new CompiledExactBytesInputLengthRequirement(space.Length),
                 new CompiledTruncateCtrlRamInputNormalization(
-                    "application-test-ctrlram-truncated",
+                    "APPLICATION_TEST_CTRLRAM_TRUNCATED",
                     "application-test-evidence"));
         }
 

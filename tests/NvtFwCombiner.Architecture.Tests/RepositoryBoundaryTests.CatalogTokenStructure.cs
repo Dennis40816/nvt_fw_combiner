@@ -2,39 +2,37 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies canonical NT-prefixed IC normalization stays catalog-owned.</summary>
+    /// <summary>Verifies canonical NT-prefixed IC normalization stays identifier-owned.</summary>
     [Fact]
-    public void IcIdentifierNormalizationStaysCatalogOwned()
+    public void IcIdentifierNormalizationStaysIdentifierOwned()
     {
-        string catalog = ReadText("src/NvtFwCombiner.Profiles/IcSupportCatalog.cs");
+        string identifier = ReadText(
+            "src/NvtFwCombiner.Domain/Composition/IcIdentifier.cs");
         string[] consumers =
         [
-            ReadText("src/NvtFwCombiner.Profiles/DpReplaceAuthoringCatalog.cs"),
-            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Catalog.cs"),
-            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.OutputNaming.cs"),
-            ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.Dp.BuiltInV2.cs"),
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.cs"),
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityDisclosure.cs"),
+            ReadText("src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityExperience.cs"),
         ];
 
         const string implementationToken = "StartsWith(\"NT\", StringComparison.OrdinalIgnoreCase)";
-        Assert.Contains("public static string NormalizeIcId", catalog, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(catalog, implementationToken));
+        Assert.Contains("public static string Normalize", identifier, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(identifier, implementationToken));
         foreach (string consumer in consumers)
         {
-            Assert.Contains("IcSupportCatalog.NormalizeIcId", consumer, StringComparison.Ordinal);
+            Assert.Contains("IcIdentifier.Normalize", consumer, StringComparison.Ordinal);
             Assert.DoesNotContain(implementationToken, consumer, StringComparison.Ordinal);
         }
     }
 
-    /// <summary>Verifies workflow ids stay catalog-owned instead of being duplicated in profile adapters.</summary>
+    /// <summary>Verifies workflow ids stay Domain-owned without parallel catalogs or profile mirrors.</summary>
     [Fact]
-    public void WorkflowIdsStayCatalogOwned()
+    public void WorkflowIdsStayDomainBacked()
     {
-        string catalog = ReadText("src/NvtFwCombiner.Profiles/IcSupportCatalog.cs");
         string experienceIds = ReadText("src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs");
-        string experienceCatalog = ReadText("src/NvtFwCombiner.Domain/Composition/ExperienceCatalog.cs");
         string profileSources = ReadProfileSources();
-        string profilesWithoutCatalog = profileSources.Replace(catalog, string.Empty, StringComparison.Ordinal);
         string bootstrapSources = ReadBootstrapSources();
+        string infrastructureComposition = ReadInfrastructureCompositionSources();
 
         Assert.Contains("public const string StandardMerge = \"standard-merge\"", experienceIds, StringComparison.Ordinal);
         Assert.Contains("public const string AbMerge = \"ab-merge\"", experienceIds, StringComparison.Ordinal);
@@ -42,25 +40,37 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string DpReplace = \"dp-replace\"", experienceIds, StringComparison.Ordinal);
         Assert.Contains("public const string CtrlRamReplace = \"ctrlram-replace\"", experienceIds, StringComparison.Ordinal);
         Assert.Contains("public const string GeneralReplace = \"general-replace\"", experienceIds, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.StandardMerge,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.AbMerge,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.GeneralMerge,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.DpReplace,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.CtrlRamReplace,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("new(ExperienceIds.GeneralReplace,", experienceCatalog, StringComparison.Ordinal);
-        Assert.Contains("public const string StandardMerge = ExperienceIds.StandardMerge", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string DpReplace = ExperienceIds.DpReplace", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string CtrlRamReplace = ExperienceIds.CtrlRamReplace", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralMerge = ExperienceIds.GeneralMerge", catalog, StringComparison.Ordinal);
-        Assert.Contains("public const string GeneralReplace = ExperienceIds.GeneralReplace", catalog, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.GeneralMerge", catalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("IcWorkflowIds.CtrlRamReplace", profilesWithoutCatalog, StringComparison.Ordinal);
-        Assert.DoesNotContain("IcWorkflowIds.GeneralReplace", profilesWithoutCatalog, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.StandardMerge", bootstrapSources, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.DpReplace", bootstrapSources, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.CtrlRamReplace", bootstrapSources, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.GeneralMerge", bootstrapSources, StringComparison.Ordinal);
-        Assert.Contains("IcWorkflowIds.GeneralReplace", bootstrapSources, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Profiles",
+            "ExperienceIds.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Domain",
+            "Composition",
+            "ExperienceCatalog.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Domain",
+            "Composition",
+            "ExperienceDescriptor.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Domain",
+            "Composition",
+            "AudienceKind.cs")));
+        Assert.DoesNotContain("IcWorkflowIds", profileSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("IcWorkflowIds", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.StandardMerge", infrastructureComposition, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.DpReplace", infrastructureComposition, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.CtrlRamReplace", infrastructureComposition, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", infrastructureComposition, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralReplace", infrastructureComposition, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExperienceIds.", bootstrapSources, StringComparison.Ordinal);
 
         foreach (string workflowLiteral in new[]
         {
@@ -71,22 +81,20 @@ public sealed partial class RepositoryBoundaryTests
             "\"general-replace\"",
         })
         {
-            Assert.DoesNotContain(workflowLiteral, experienceCatalog, StringComparison.Ordinal);
-            Assert.DoesNotContain(workflowLiteral, catalog, StringComparison.Ordinal);
-            Assert.DoesNotContain(workflowLiteral, profilesWithoutCatalog, StringComparison.Ordinal);
+            Assert.DoesNotContain(workflowLiteral, profileSources, StringComparison.Ordinal);
             Assert.DoesNotContain(workflowLiteral, bootstrapSources, StringComparison.Ordinal);
+            Assert.DoesNotContain(workflowLiteral, infrastructureComposition, StringComparison.Ordinal);
         }
     }
 
-    /// <summary>Verifies shared address-space ids stay Domain-owned and adapter-projected.</summary>
+    /// <summary>Verifies shared address-space ids stay Domain-owned without a Bootstrap token mirror.</summary>
     [Fact]
     public void SharedAddressSpaceIdsStayCatalogOwned()
     {
         string addressSpaceIds = ReadText("src/NvtFwCombiner.Domain/Composition/CompositionAddressSpaceIds.cs");
-        string workbenchAddressSpaceIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAddressSpaceIds.cs");
         string profileSources = ReadProfileSources();
-        string bootstrapSources = ReadBootstrapSources()
-            .Replace(workbenchAddressSpaceIds, string.Empty, StringComparison.Ordinal);
+        string bootstrapSources = ReadBootstrapSources();
+        string infrastructureComposition = ReadInfrastructureCompositionSources();
         string presentationSources = ReadPresentationSources();
 
         Assert.Contains("public const string OutputImage = \"output-image\"", addressSpaceIds, StringComparison.Ordinal);
@@ -99,13 +107,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public const string CtrlRamReplacement = \"ctrlram-replacement\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = \"replace-ctrlram-\"", addressSpaceIds, StringComparison.Ordinal);
         Assert.Contains("CompositionAddressSpaceIds.OutputImage", profileSources, StringComparison.Ordinal);
-        Assert.Contains("CompositionAddressSpaceIds.DpReplacement", bootstrapSources, StringComparison.Ordinal);
-        Assert.Contains("public const string DpInput = CompositionAddressSpaceIds.DpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string TpInput = CompositionAddressSpaceIds.TpInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string LdcInput = CompositionAddressSpaceIds.LdcInput;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string DpReplacement = CompositionAddressSpaceIds.DpReplacement;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("public const string DynamicCtrlRamReplacementPrefix = CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix;", workbenchAddressSpaceIds, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.ReferenceBase", infrastructureComposition, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionAddressSpaceIds.", bootstrapSources, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.DpInput", presentationSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchAddressSpaceIds", bootstrapSources, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchAddressSpaceIds", presentationSources, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "WorkbenchAddressSpaceIds.cs")));
         Assert.Contains(
             "DynamicCtrlRamReplacementIds.TryFormatDisplayLabel",
             ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceLabels.cs"),
@@ -162,13 +173,11 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.OutputDifferenceLabels.cs");
         string presentationParser = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReportReviewViewModel.Parsing.cs");
-        string workbenchSlotIds = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchSlotIds.cs");
 
         Assert.Contains("TryFormatDisplayLabel", domainHelper, StringComparison.Ordinal);
         Assert.Contains("FormatRegionDisplayLabel", domainHelper, StringComparison.Ordinal);
         Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", applicationLabels, StringComparison.Ordinal);
-        Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", workbenchSlotIds, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel", presentationParser, StringComparison.Ordinal);
+        Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", presentationParser, StringComparison.Ordinal);
         Assert.DoesNotContain("Split('-',", applicationLabels, StringComparison.Ordinal);
         Assert.DoesNotContain("Split('-',", presentationParser, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceCtrlRamPrefix", presentationParser, StringComparison.Ordinal);
@@ -182,20 +191,23 @@ public sealed partial class RepositoryBoundaryTests
         string flashMapChoices = ReadText("src/NvtFwCombiner.Application/FlashMaps/IcNumberChoicePolicy.cs");
         string postbuildSelector = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanSelector.cs");
-        string workbenchTokens = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberTokens.cs");
-        string workbenchSelections = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchIcNumberSelections.cs");
+        string selection = ReadText("src/NvtFwCombiner.Application/Composition/IcNumberSelection.cs");
         string workflowContext = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.DeviceContext.cs");
 
         Assert.Contains("public const string SingleChip = \"single\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("public const string Cascade = \"cascade\"", domainTokens, StringComparison.Ordinal);
+        Assert.Contains("public const string CascadeTwoToEight = \"cascade_2to8\"", domainTokens, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.SingleChip", flashMapChoices, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.SingleChip", postbuildSelector, StringComparison.Ordinal);
         Assert.Contains("IcNumberSelectionTokens.Cascade", postbuildSelector, StringComparison.Ordinal);
-        Assert.Contains("public const string SingleChip = IcNumberSelectionTokens.SingleChip;", workbenchTokens, StringComparison.Ordinal);
-        Assert.Contains("public const string CascadeTwoToEight = \"cascade_2to8\";", workbenchTokens, StringComparison.Ordinal);
-        Assert.Contains("IcNumberSelectionTokens.IsSingle(number)", workbenchSelections, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchIcNumberTokens.SingleChip", workflowContext, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "WorkbenchIcNumberTokens.cs")));
+        Assert.Contains("IcNumberSelectionTokens.IsSingle(token)", selection, StringComparison.Ordinal);
+        Assert.Contains("IcNumberSelectionTokens.SingleChip", workflowContext, StringComparison.Ordinal);
         Assert.DoesNotContain("\"single\"", flashMapChoices, StringComparison.Ordinal);
         Assert.DoesNotContain("\"cascade\"", flashMapChoices, StringComparison.Ordinal);
     }

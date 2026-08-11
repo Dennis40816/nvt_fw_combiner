@@ -11,6 +11,7 @@ public sealed partial class CompositionRunService
     private readonly ISystemClock _clock;
     private readonly ICompositionOutputWriter? _outputWriter;
     private readonly IExternalProcessor? _externalProcessor;
+    private readonly ICompositionDeliveryWriter? _deliveryWriter;
 
     /// <summary>Creates a run service with read-only preview support.</summary>
     public CompositionRunService(IArtifactReader artifactReader, ISystemClock clock)
@@ -33,6 +34,17 @@ public sealed partial class CompositionRunService
         ISystemClock clock,
         ICompositionOutputWriter? outputWriter,
         IExternalProcessor? externalProcessor)
+        : this(artifactReader, clock, outputWriter, externalProcessor, null)
+    {
+    }
+
+    /// <summary>Creates a run service with one optional compiled additional-delivery writer.</summary>
+    public CompositionRunService(
+        IArtifactReader artifactReader,
+        ISystemClock clock,
+        ICompositionOutputWriter? outputWriter,
+        IExternalProcessor? externalProcessor,
+        ICompositionDeliveryWriter? deliveryWriter)
     {
         ArgumentNullException.ThrowIfNull(artifactReader);
         ArgumentNullException.ThrowIfNull(clock);
@@ -41,6 +53,7 @@ public sealed partial class CompositionRunService
         _clock = clock;
         _outputWriter = outputWriter;
         _externalProcessor = externalProcessor;
+        _deliveryWriter = deliveryWriter;
     }
 
     /// <summary>
@@ -229,9 +242,14 @@ public sealed partial class CompositionRunService
                 ]);
             return new CompositionRunResult(
                 previewRequired.Status,
-                [],
+                ReadOnlyMemory<byte>.Empty,
                 failedReport,
-                committedOutputId: null);
+                committedOutputId: null,
+                previewToken: null,
+                inspectionOutputSpaceId: null,
+                inspectionReferenceSpaceId: null,
+                inspectionReferenceBytes: null,
+                inspectionOutputBytes: null);
         }
 
         progressPublisher.Report(CompositionRunPhase.ReadingInputs);
@@ -262,6 +280,20 @@ public sealed partial class CompositionRunService
             // The renderer has now bound the name to these exact accepted snapshots.  Perform
             // filesystem identity admission before plan execution or any staged processor work.
             outputPreflight.EnsureCanCommit(outputName.FileName, outputName.Summary);
+        }
+        CompositionAdditionalDeliveryPlan? deliveryPlan = null;
+        string? deliveryFileName = null;
+        if (commitOutput && preparationIssues.Length == 0 && _deliveryWriter is not null)
+        {
+            deliveryPlan = CompositionAdditionalDeliveryPlanner.TryCreate(
+                    request.CompiledComposition,
+                    outputName.Summary,
+                    _deliveryWriter.DeliveryKind)
+                ?? throw new InvalidOperationException(
+                    $"The selected profile does not declare additional delivery '{_deliveryWriter.DeliveryKind}'.");
+            deliveryFileName = _deliveryWriter.EnsureCanCommit(
+                outputName.FileName,
+                deliveryPlan.SuggestedFileName);
         }
         var executedCommandsByOperationId = new Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>(StringComparer.Ordinal);
         CompositionExecutionResult execution;
@@ -345,6 +377,61 @@ public sealed partial class CompositionRunService
             }
         }
 
+        List<DeliveryArtifactSummary> deliverySummaries = [];
+        List<CompositionDeliveryArtifact> deliveredArtifacts = [];
+        bool isDeliveryComplete = true;
+        string? deliveryFailureMessage = null;
+        if (committedOutputId is not null &&
+            deliveryPlan is not null &&
+            deliveryFileName is not null &&
+            _deliveryWriter is not null)
+        {
+            ReadOnlyMemory<byte> deliveryBytes = SliceDeliveryBytes(
+                execution.OutputBytes,
+                deliveryPlan.SourceRange,
+                deliveryPlan.DeliveryKind);
+            string deliverySha256 = ToSha256Hex(deliveryBytes.Span);
+            try
+            {
+                string deliveryOutputId = await _deliveryWriter.CommitAsync(
+                        deliveryFileName,
+                        deliveryBytes,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                deliverySummaries.Add(new DeliveryArtifactSummary(
+                    deliveryPlan.DeliveryKind,
+                    deliveryFileName,
+                    deliveryBytes.Length,
+                    deliverySha256,
+                    committed: true,
+                    deliveryPlan.SourceRange));
+                deliveredArtifacts.Add(new CompositionDeliveryArtifact(
+                    deliveryPlan.DeliveryKind,
+                    deliveryOutputId,
+                    deliveryFileName,
+                    deliveryBytes.Length,
+                    deliveryPlan.SourceRange,
+                    deliverySha256));
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException or UnauthorizedAccessException)
+            {
+                deliverySummaries.Add(new DeliveryArtifactSummary(
+                    deliveryPlan.DeliveryKind,
+                    deliveryFileName,
+                    deliveryBytes.Length,
+                    deliverySha256,
+                    committed: false,
+                    deliveryPlan.SourceRange));
+                var issue = new CompositionIssue(
+                    $"delivery.{deliveryPlan.DeliveryKind}.failed",
+                    $"The primary output committed, but the requested '{deliveryPlan.DeliveryKind}' delivery failed: {exception.Message}",
+                    deliveryPlan.DeliveryKind);
+                runIssues.Add(issue);
+                isDeliveryComplete = false;
+                deliveryFailureMessage = issue.Message;
+            }
+        }
+
         DateTimeOffset completedAtUtc = _clock.UtcNow;
         progressPublisher.Report(CompositionRunPhase.PreparingReport, committedOutputId);
         CompositionRunReport report = CreateReport(
@@ -357,6 +444,7 @@ public sealed partial class CompositionRunService
             committedOutputId is not null,
             outputFileName: outputName.FileName,
             outputNaming: outputName.Summary,
+            deliveryArtifacts: deliverySummaries,
             additionalIssues: runIssues,
             validations:
             [
@@ -381,6 +469,22 @@ public sealed partial class CompositionRunService
             inspectionReferenceBytes,
             inspectionReferenceBytes is null
                 ? default(ReadOnlyMemory<byte>?)
-                : execution.OutputBytes);
+                : execution.OutputBytes)
+        {
+            DeliveryArtifacts = deliveredArtifacts.AsReadOnly(),
+            IsDeliveryComplete = isDeliveryComplete,
+            DeliveryFailureMessage = deliveryFailureMessage,
+        };
+    }
+
+    private static ReadOnlyMemory<byte> SliceDeliveryBytes(
+        ReadOnlyMemory<byte> output,
+        ByteRange range,
+        string deliveryKind)
+    {
+        return range.EndExclusive > output.Length || range.Start > int.MaxValue || range.Length > int.MaxValue
+            ? throw new InvalidOperationException(
+                $"Compiled delivery '{deliveryKind}' is outside the completed primary output.")
+            : output.Slice(checked((int)range.Start), checked((int)range.Length));
     }
 }

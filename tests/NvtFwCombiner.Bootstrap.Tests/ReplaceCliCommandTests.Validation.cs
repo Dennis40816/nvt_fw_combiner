@@ -121,7 +121,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
     }
 
-    /// <summary>General Replace reports the shared IC-number requirement before request mapping fields.</summary>
+    /// <summary>An unavailable General Replace route rejects before request-field validation.</summary>
     [Fact]
     public async Task GeneralReplaceRejectsMissingIcNumberBeforeMappingOptions()
     {
@@ -132,8 +132,9 @@ public sealed partial class ReplaceCliCommandTests
             "NT51950",
         ]);
 
-        Assert.Equal(64, result.ExitCode);
-        Assert.Contains("--ic-num is required", result.Error, StringComparison.Ordinal);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("--ic-num is required", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("--base is required", result.Error, StringComparison.Ordinal);
     }
 

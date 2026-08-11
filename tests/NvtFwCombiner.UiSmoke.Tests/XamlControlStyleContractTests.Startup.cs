@@ -26,6 +26,7 @@ public sealed partial class XamlControlStyleContractTests
             "WorkflowContextSetupModalHost",
             "FirmwareIcMismatchModalHost",
             "NavigationClearConfirmationModalHost",
+            "MessageCenterModalHost",
             "ReportModalHost",
             "BuildCompletedModalHost",
         ];
@@ -61,6 +62,14 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle.IndexOf("main-window.opened", StringComparison.Ordinal) <
             lifecycle.IndexOf("PrimeDeferredCatalogs", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("WarmCanonicalCapabilities(cancellationToken)", warmup, StringComparison.Ordinal);
+        Assert.True(
+            lifecycle.IndexOf("await catalogWarmup", StringComparison.Ordinal) <
+            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal));
+        Assert.True(
+            lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal) <
+            lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
+        Assert.Contains("Deferred catalog warm-up did not complete", warmup, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);
@@ -76,6 +85,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareIcMismatchModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("NavigationClearConfirmationModalHost,", warmup, StringComparison.Ordinal);
+        Assert.DoesNotContain("MessageCenterModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
     }
@@ -92,5 +102,26 @@ public sealed partial class XamlControlStyleContractTests
             modal,
             StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"{Binding NavigationPath}\"", modal, StringComparison.Ordinal);
+    }
+
+    /// <summary>The matrix detail tooltip owns its width so its wider content is not clipped.</summary>
+    [Fact]
+    public void SupportMatrixTooltipOwnsItsContentWidth()
+    {
+        var templates = XDocument.Parse(
+            ReadPresentationFile("Resources/MainWindowPageTemplates.axaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement cellTemplate = Assert.Single(
+            templates.Descendants(),
+            element =>
+                element.Name.LocalName == "DataTemplate" &&
+                (string?)element.Attribute(x + "Key") == "SupportMatrixCellTemplate");
+        XElement toolTip = Assert.Single(
+            cellTemplate.Descendants(),
+            element => element.Name.LocalName == "ToolTip");
+        XElement content = Assert.Single(toolTip.Elements());
+
+        Assert.Equal("560", (string?)toolTip.Attribute("Width"));
+        Assert.Null(content.Attribute("Width"));
     }
 }

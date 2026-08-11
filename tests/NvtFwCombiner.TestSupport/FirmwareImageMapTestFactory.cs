@@ -43,12 +43,8 @@ public static class FirmwareImageMapTestFactory
         {
             FirmwareMapFactKey key = new(memberId, mapId, fact.FactKind, fact.CanonicalFactId);
             return new FirmwareMapFactBinding<TFact>(
-                key,
-                key,
-                fact.CanonicalFactId,
-                fact,
                 applicability,
-                new FirmwareFactProvenance(key, key, [], fact.EvidenceRefs));
+                new FirmwareFactProvenance(key, fact, []));
         }));
     }
 }

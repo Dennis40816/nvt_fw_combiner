@@ -1,11 +1,11 @@
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 internal sealed record MergeBuildSavePreparation(
     string SuggestedFileName,
-    WorkbenchAbAFlashCodeDeliveryPlan? AFlashCodePlan);
+    CompositionAdditionalDeliveryPlan? AFlashCodePlan);
 
 public sealed partial class MergePresentationViewModel
 {
@@ -54,23 +54,16 @@ public sealed partial class MergePresentationViewModel
             return MergeOutputFileName;
         }
 
-        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
-            .Where(static slot => slot.HasFile)
-            .ToDictionary(
-                slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
-                slot => slot.FilePath!,
-                StringComparer.Ordinal);
-        return await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
-                SelectedIc,
-                slotPaths,
-                cancellationToken,
-                GetSelectedAbMergeTopologyToken(),
-                _authoringSessions.AbMerge.CurrentSnapshot)
+        CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
+                _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                    "AB Merge output naming requires one accepted authoring session."),
+                cancellationToken)
             .ConfigureAwait(false);
+        return preparation.OutputName.FileName;
     }
 
     /// <summary>Returns the optional A FlashCode plan only for the currently compiled AB profile.</summary>
-    internal async ValueTask<WorkbenchAbAFlashCodeDeliveryPlan?> TryCreateAbAFlashCodeDeliveryPlanAsync(
+    internal async ValueTask<CompositionAdditionalDeliveryPlan?> TryCreateAbAFlashCodeDeliveryPlanAsync(
         CancellationToken cancellationToken)
     {
         if (!IsAbCodeMergeModeSelected)
@@ -78,19 +71,15 @@ public sealed partial class MergePresentationViewModel
             return null;
         }
 
-        IReadOnlyDictionary<string, string> slotPaths = MergeSlots
-            .Where(static slot => slot.HasFile)
-            .ToDictionary(
-                slot => AbMergeAddressSpaceBySlotId[slot.SlotId],
-                slot => slot.FilePath!,
-                StringComparer.Ordinal);
-        return await AbMergeWorkbenchCompositionService.TryCreateAFlashCodeDeliveryPlanAsync(
-                SelectedIc,
-                slotPaths,
-                cancellationToken,
-                GetSelectedAbMergeTopologyToken(),
-                _authoringSessions.AbMerge.CurrentSnapshot)
+        CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
+                _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                    "AB Merge delivery planning requires one accepted authoring session."),
+                cancellationToken)
             .ConfigureAwait(false);
+        return preparation.AdditionalDeliveries.SingleOrDefault(delivery =>
+            StringComparer.Ordinal.Equals(
+                delivery.DeliveryKind,
+                CompiledAdditionalDelivery.AbAFlashCodeKind));
     }
 
     /// <summary>Prepares all Build save-dialog data and converts admission failures into the standard run report.</summary>
@@ -104,12 +93,16 @@ public sealed partial class MergePresentationViewModel
 
         try
         {
-            string suggestedFileName = await ResolveMergeOutputFileNameForSaveAsync(cancellationToken)
-                .ConfigureAwait(false);
-            WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = await TryCreateAbAFlashCodeDeliveryPlanAsync(
+            CompositionOutputPreparation preparation = await _compositionServices.OutputNaming.PrepareAutomaticOutputAsync(
+                    _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                        "AB Merge Build preparation requires one accepted authoring session."),
                     cancellationToken)
                 .ConfigureAwait(false);
-            return new MergeBuildSavePreparation(suggestedFileName, aFlashCodePlan);
+            CompositionAdditionalDeliveryPlan? aFlashCodePlan = preparation.AdditionalDeliveries
+                .SingleOrDefault(delivery => StringComparer.Ordinal.Equals(
+                    delivery.DeliveryKind,
+                    CompiledAdditionalDelivery.AbAFlashCodeKind));
+            return new MergeBuildSavePreparation(preparation.OutputName.FileName, aFlashCodePlan);
         }
         catch (Exception exception) when (
             exception is InvalidOperationException or IOException or UnauthorizedAccessException or ArgumentException)
@@ -125,18 +118,19 @@ public sealed partial class MergePresentationViewModel
         string number = SelectedNumber;
         IReadOnlyDictionary<string, string> slotPaths = CreateStandardMergeSlotPaths();
         string profileId =
-            WorkbenchCompositionService.GetStandardMergeProfileId(icId) ?? WorkbenchWorkflowIds.StandardMerge;
+            _compositionServices.StandardMergeAuthoring.GetProfileId(icId) ??
+            ExperienceIds.StandardMerge;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => WorkbenchCompositionService.RunStandardMergeAcceptedSessionWithProgressAsync(
-                icId,
-                slotPaths,
-                _authoringSessions.StandardMerge.CurrentSnapshot ?? throw new InvalidOperationException(
-                    "Standard Merge requires one accepted authoring session."),
-                build,
+            (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    _standardMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                        "Standard Merge requires one accepted authoring session."),
+                    slotPaths,
+                    build,
+                    outputPath: outputPath),
                 progress,
-                cancellationToken,
-                outputPath),
+                cancellationToken),
             (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 profileId,
@@ -151,29 +145,29 @@ public sealed partial class MergePresentationViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         ActiveSessionSnapshot acceptedSession =
-            _authoringSessions.GeneralMerge.CurrentSnapshot ??
+            _generalMergeSession.CurrentSnapshot ??
             throw new InvalidOperationException("General Merge requires one active authoring session.");
         GeneralMergeDraftState draft = acceptedSession.DraftState as GeneralMergeDraftState ??
             throw new InvalidOperationException("General Merge requires one admitted typed draft.");
         IReadOnlyDictionary<string, string> slotPaths = CreateGeneralMergeSlotPaths();
-        string outputFileName = WorkbenchCompositionService.GetGeneralMergeDefaultOutputFileName(icId);
+        string outputFileName = GeneralMergeAuthoringUseCase.GetDefaultOutputFileName(icId);
         return RunCompositionAsync(
             build,
             async (progress, cancellationToken) =>
             {
-                WorkbenchRunResult result = await WorkbenchCompositionService
-                    .RunGeneralMergeAcceptedSessionWithProgressAsync(
-                        icId,
-                        acceptedSession,
-                        build,
+                CompositionRunResult result = await _compositionServices.Execution.ExecuteAsync(
+                        new AcceptedCompositionExecutionRequest(
+                            acceptedSession,
+                            slotPaths,
+                            build,
+                            outputPath: outputPath),
                         progress,
-                        cancellationToken,
-                        outputPath)
+                        cancellationToken)
                     .ConfigureAwait(false);
 
                 if (result.AcceptedGeneralMappingDraft is { } accepted &&
                     ReferenceEquals(draft, _generalMergeDraft) &&
-                    _authoringSessions.GeneralMerge.CurrentSnapshot?.AuthoringRevision ==
+                    _generalMergeSession.CurrentSnapshot?.AuthoringRevision ==
                         acceptedSession.AuthoringRevision)
                 {
                     _generalMergeDraft = new GeneralMergeDraftState(
@@ -190,8 +184,8 @@ public sealed partial class MergePresentationViewModel
                 errorMessage,
                 slotPaths,
                 compositionKind: "Merge",
-                modeId: WorkbenchWorkflowIds.GeneralMerge,
-                experienceId: WorkbenchWorkflowIds.GeneralMerge));
+                modeId: ExperienceIds.GeneralMerge,
+                experienceId: ExperienceIds.GeneralMerge));
     }
 
     private Task RunAbMergeAsync(
@@ -203,24 +197,24 @@ public sealed partial class MergePresentationViewModel
     {
         string icId = SelectedIc;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
         return RunCompositionAsync(
             build,
-            (progress, cancellationToken) => AbMergeWorkbenchCompositionService.RunAbMergeAcceptedSessionWithProgressAsync(
-                icId,
-                slotPaths,
-                _authoringSessions.AbMerge.CurrentSnapshot ?? throw new InvalidOperationException(
-                    "AB Merge requires one accepted authoring session."),
-                build,
+            (progress, cancellationToken) => _compositionServices.Execution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    _abMergeSession.CurrentSnapshot ?? throw new InvalidOperationException(
+                        "AB Merge requires one accepted authoring session."),
+                    slotPaths,
+                    build,
+                    outputPath: outputPath,
+                    additionalDeliveryOutputPath: aFlashCodeOutputPath,
+                    outputPathUsesAutomaticName: outputPathUsesAutomaticName,
+                    additionalDeliveryOutputPathUsesAutomaticName:
+                        aFlashCodeOutputPathUsesAutomaticName),
                 progress,
-                cancellationToken,
-                outputPath,
-                GetSelectedAbMergeTopologyToken(),
-                aFlashCodeOutputPath,
-                outputPathUsesAutomaticName,
-                aFlashCodeOutputPathUsesAutomaticName),
+                cancellationToken),
             (action, errorMessage) => Reports.LoadRunErrorReport(
                 action,
                 profileId,
@@ -229,8 +223,8 @@ public sealed partial class MergePresentationViewModel
                 errorMessage,
                 slotPaths,
                 compositionKind: "Merge",
-                modeId: WorkbenchWorkflowIds.AbMerge,
-                experienceId: WorkbenchWorkflowIds.AbMerge));
+                modeId: ExperienceIds.AbMerge,
+                experienceId: ExperienceIds.AbMerge));
     }
 
     private void PublishAbMergeBuildSavePreparationFailure(string message)
@@ -238,7 +232,7 @@ public sealed partial class MergePresentationViewModel
         string icId = SelectedIc;
         string number = SelectedNumber;
         IReadOnlyDictionary<string, string> slotPaths = CreateAbMergeSlotPaths();
-        string profileId = WorkbenchCompositionService.GetAbMergeProfileSummaries()
+        string profileId = _compositionServices.Capabilities.GetAbMergeProfileSummaries()
             .Single(profile => StringComparer.Ordinal.Equals(profile.IcId, icId))
             .ProfileId;
         Reports.LoadRunErrorReport(
@@ -249,8 +243,8 @@ public sealed partial class MergePresentationViewModel
             message,
             slotPaths,
             compositionKind: "Merge",
-            modeId: WorkbenchWorkflowIds.AbMerge,
-            experienceId: WorkbenchWorkflowIds.AbMerge);
+            modeId: ExperienceIds.AbMerge,
+            experienceId: ExperienceIds.AbMerge);
         _stateBindings.PublishRunResult(
             new UiRunResultViewModel("Build failed", message, "No output", succeeded: false));
         Reports.ShowReport();
@@ -259,9 +253,9 @@ public sealed partial class MergePresentationViewModel
     private Dictionary<string, string> CreateStandardMergeSlotPaths()
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);
-        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.DpInput, MergeDpSlot);
-        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.TpInput, MergeTpSlot);
-        FirmwareSlotPathProjection.Add(paths, WorkbenchAddressSpaceIds.LdcInput, MergeLdcSlot);
+        FirmwareSlotPathProjection.Add(paths, CompositionAddressSpaceIds.DpInput, MergeDpSlot);
+        FirmwareSlotPathProjection.Add(paths, CompositionAddressSpaceIds.TpInput, MergeTpSlot);
+        FirmwareSlotPathProjection.Add(paths, CompositionAddressSpaceIds.LdcInput, MergeLdcSlot);
         return paths;
     }
 

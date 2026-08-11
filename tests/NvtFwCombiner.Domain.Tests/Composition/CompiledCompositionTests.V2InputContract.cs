@@ -52,7 +52,7 @@ public sealed partial class CompiledCompositionTests
         _ = Assert.Throws<ArgumentException>(() => new CompiledInputContract(
             [Slot("input-slot", "input")],
             [new CompiledInputSpaceBinding("input", "unknown", CompiledInputInstancePolicy.Singleton)]));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "input-slot",
             "input",
             CompiledInputArtifactClass.ReferenceImage,
@@ -63,90 +63,32 @@ public sealed partial class CompiledCompositionTests
             new CompiledNoInputNormalization()));
     }
 
-    /// <summary>Verifies the current V2 plan subset rejects a contract that no longer matches immutable plan input geometry.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsInputContractThatDoesNotOwnItsImmutablePlanSpace()
-    {
-        var contract = new CompiledInputContract(
-            [Slot("input-slot", "input")],
-            [new CompiledInputSpaceBinding("missing", "input-slot", CompiledInputInstancePolicy.Singleton)]);
-
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(inputContract: contract));
-    }
-
-    /// <summary>Verifies exact TP inputs cannot weaken their immutable four-byte plan geometry.</summary>
-    [Fact]
-    public void V2PlanArtifactRejectsRelaxedExactTpInputGeometry()
-    {
-        var contract = new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
-                "tp-slot",
-                "tp",
-                CompiledInputArtifactClass.TpFirmware,
-                required: true,
-                CompiledInputSlotCardinality.ExactlyOne,
-                [".bin"],
-                new CompiledExactBytesInputLengthRequirement(4),
-                new CompiledNoInputNormalization())],
-            [new CompiledInputSpaceBinding("input", "tp-slot", CompiledInputInstancePolicy.Singleton)]);
-
-        AddressSpace[] relaxedInputs =
-        [
-            new AddressSpace(
-                "input",
-                4,
-                AddressSpaceMutability.Immutable,
-                inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
-            new AddressSpace(
-                "input",
-                4,
-                AddressSpaceMutability.Immutable,
-                inputPaddingByte: 0),
-            new AddressSpace(
-                "input",
-                4,
-                AddressSpaceMutability.Immutable,
-                allowedInputLengths: [4]),
-            new AddressSpace(
-                "input",
-                4,
-                AddressSpaceMutability.Immutable,
-                expectedInputLengths: [4]),
-        ];
-
-        foreach (AddressSpace input in relaxedInputs)
-        {
-            _ = Assert.Throws<ArgumentException>(() => CreateV2(
-                inputContract: contract,
-                plan: ExactTpPlan(input)));
-        }
-    }
-
     /// <summary>Verifies every closed input length and normalization shape retains its typed payload.</summary>
     [Fact]
     public void V2InputSlotRequirementsRetainClosedLengthAndNormalizationPayloads()
     {
-        CompiledInputSlotRequirement exact = new(
+        CompiledInputSlotRequirement exact = CompiledInputSlotTestFactory.Create(
             "aux-exact", "aux", CompiledInputArtifactClass.Auxiliary, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledExactBytesInputLengthRequirement(12), new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement bounded = new(
+        CompiledInputSlotRequirement bounded = CompiledInputSlotTestFactory.Create(
             "aux-bounded", "aux", CompiledInputArtifactClass.Auxiliary, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledBoundedInputLengthRequirement(1, 12), new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement normalDp = new(
+        CompiledInputSlotRequirement sourceView = CompiledInputSlotTestFactory.Create(
             "dp", "dp", CompiledInputArtifactClass.DpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledNormalDpExtractWithWarningInputLengthRequirement("DP_SIZE", [12, 16]), new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement tp = new(
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement([12, 16], "DP_SIZE"), new CompiledNoInputNormalization());
+        CompiledInputSlotRequirement tp = CompiledInputSlotTestFactory.Create(
             "tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement exactTp = new(
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization());
+        CompiledInputSlotRequirement exactTp = CompiledInputSlotTestFactory.Create(
             "tp-exact", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledExactBytesInputLengthRequirement(CompiledTpMaximum256KInputLengthRequirement.MaximumBytes),
+            [".bin"], new CompiledExactBytesInputLengthRequirement(InputLengthPolicyLimits.MaximumTpFirmwareBytes),
             new CompiledNoInputNormalization());
-        CompiledInputSlotRequirement padded = new(
+        CompiledInputSlotRequirement padded = CompiledInputSlotTestFactory.Create(
             "dp-padded", "dp", CompiledInputArtifactClass.DpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
             new CompiledPadShorterInputNormalization(0xFF, "pad-evidence"));
-        CompiledInputSlotRequirement truncated = new(
+        CompiledInputSlotRequirement truncated = CompiledInputSlotTestFactory.Create(
             "ctrlram", "ctrlram", CompiledInputArtifactClass.CtrlRamReplacement, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"], new CompiledExactBytesInputLengthRequirement(16),
             new CompiledTruncateCtrlRamInputNormalization("CTRLRAM_TRUNCATED", "ctrlram-evidence"));
@@ -155,68 +97,53 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal((1L, 12L), (
             Assert.IsType<CompiledBoundedInputLengthRequirement>(bounded.LengthRequirement).MinimumBytes,
             Assert.IsType<CompiledBoundedInputLengthRequirement>(bounded.LengthRequirement).MaximumBytes));
-        CompiledNormalDpExtractWithWarningInputLengthRequirement normalDpLength =
-            Assert.IsType<CompiledNormalDpExtractWithWarningInputLengthRequirement>(normalDp.LengthRequirement);
-        Assert.Equal("DP_SIZE", normalDpLength.IssueCode);
-        Assert.Equal([12L, 16L], normalDpLength.ExpectedInputLengths);
-        _ = Assert.IsType<CompiledTpMaximum256KInputLengthRequirement>(tp.LengthRequirement);
+        CompiledSourceViewCoverageInputLengthRequirement sourceViewLength =
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(sourceView.LengthRequirement);
+        Assert.Equal("DP_SIZE", sourceViewLength.UnexpectedOuterLengthIssueCode);
+        Assert.Equal([12L, 16L], sourceViewLength.ExpectedOuterLengths);
         Assert.Equal(
-            CompiledTpMaximum256KInputLengthRequirement.MaximumBytes,
+            InputLengthPolicyLimits.MaximumTpFirmwareBytes,
+            Assert.IsType<CompiledSourceViewCoverageInputLengthRequirement>(tp.LengthRequirement).MaximumBytes);
+        Assert.Equal(
+            InputLengthPolicyLimits.MaximumTpFirmwareBytes,
             Assert.IsType<CompiledExactBytesInputLengthRequirement>(exactTp.LengthRequirement).Bytes);
-        Assert.Equal(262144, CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
+        Assert.Equal(262144, InputLengthPolicyLimits.MaximumTpFirmwareBytes);
         Assert.Equal((byte)0xFF, Assert.IsType<CompiledPadShorterInputNormalization>(padded.Normalization).FillByte);
         Assert.Equal(
             "CTRLRAM_TRUNCATED",
             Assert.IsType<CompiledTruncateCtrlRamInputNormalization>(truncated.Normalization).WarningIssueCode);
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-tp", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
             [".bin"], new CompiledExactBytesInputLengthRequirement(
-                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1), new CompiledNoInputNormalization()));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+                InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1), new CompiledNoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-tp-prefix", "tp", CompiledInputArtifactClass.TpFirmware, true, CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"], new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1,
-                [CompiledTpMaximum256KInputLengthRequirement.MaximumBytes + 1],
-                "INPUT_SHORT",
-                "INPUT_OUTER_LENGTH"),
+            [".bin"], new CompiledSourceViewCoverageInputLengthRequirement(
+                [InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1],
+                "INPUT_OUTER_LENGTH",
+                requiredEndExclusive: InputLengthPolicyLimits.MaximumTpFirmwareBytes + 1,
+                shortInputIssueCode: "INPUT_SHORT"),
             new CompiledNoInputNormalization()));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-pad", "reference", CompiledInputArtifactClass.ReferenceImage, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
             new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
             new CompiledPadShorterInputNormalization(0xFF, "evidence")));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-pad-length", "dp", CompiledInputArtifactClass.DpFirmware, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledNormalDpExtractWithWarningInputLengthRequirement("DP_SIZE", [16]),
+            new CompiledSourceViewCoverageInputLengthRequirement([16], "DP_SIZE"),
             new CompiledPadShorterInputNormalization(0xFF, "evidence")));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-aux-tp", "aux", CompiledInputArtifactClass.Auxiliary, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledInputSlotRequirement(
+            new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization()));
+        _ = Assert.Throws<ArgumentException>(() => CompiledInputSlotTestFactory.Create(
             "bad-ctrlram-tp", "ctrlram", CompiledInputArtifactClass.CtrlRamReplacement, true,
             CompiledInputSlotCardinality.ExactlyOne, [".bin"],
-            new CompiledTpMaximum256KInputLengthRequirement(), new CompiledNoInputNormalization()));
-    }
-
-    private static CompositionPlan ExactTpPlan(AddressSpace input)
-    {
-        return new CompositionPlan(
-            ImageInitialization.Blank("output-image", 4, 0),
-            [
-                input,
-                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
-            ],
-            [CompositionOperation.CopyRange(
-                "copy-input",
-                10,
-                "input",
-                new ByteRange(0, 4),
-                "output-image",
-                new ByteRange(0, 4),
-                OverlapPolicy.Reject,
-                "copy exact TP input")]);
+            new CompiledSourceViewCoverageInputLengthRequirement(
+                maximumBytes: InputLengthPolicyLimits.MaximumTpFirmwareBytes), new CompiledNoInputNormalization()));
     }
 
     /// <summary>Verifies complete typed input and capability admission policy participates in V2 compilation identity.</summary>
@@ -233,9 +160,10 @@ public sealed partial class CompiledCompositionTests
         Assert.NotEqual(baseline.CompilationFingerprint, roleVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, capabilityVariant.CompilationFingerprint);
         Assert.NotEqual(baseline.CompilationFingerprint, aliasVariant.CompilationFingerprint);
-        CompiledCapabilityAdmission aliased = Assert.Single(aliasVariant.V2Details.Provenance.RequiredCapabilities);
-        Assert.Equal("source-member", aliased.Binding.DirectSourceKey.MemberId);
-        Assert.Equal(["capability-alias"], aliased.Binding.Provenance.AliasChain.Select(static alias => alias.AliasId));
+        FirmwareMapFactBinding<FirmwareCapabilityFact> aliased = Assert.Single(
+            aliasVariant.V2Details.Provenance.RequiredCapabilities);
+        Assert.Equal("source-member", aliased.DirectSourceKey.MemberId);
+        Assert.Equal(["capability-alias"], aliased.Provenance.AliasChain.Select(static alias => alias.AliasId));
     }
 
     /// <summary>Verifies independently variable admitted capability and alias-provenance fields bind V2 identity.</summary>
@@ -260,13 +188,10 @@ public sealed partial class CompiledCompositionTests
         Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
     }
 
-    /// <summary>Verifies capability admission cannot be forged with a mismatched id, state, or resolved-map target.</summary>
+    /// <summary>Verifies capability admission rejects a non-present state or mismatched resolved-map target.</summary>
     [Fact]
     public void V2CapabilityAdmissionFailsClosedForInvalidEvidence()
     {
-        CompiledCapabilityAdmission direct = DirectCapabilityAdmission("direct reason");
-        _ = Assert.Throws<ArgumentException>(() => new CompiledCapabilityAdmission("different", direct.Binding));
-
         FirmwareMapFactBinding<FirmwareCapabilityFact> wrongTarget = Binding(
             "different-member",
             "map",
@@ -278,7 +203,7 @@ public sealed partial class CompiledCompositionTests
                 "reason",
                 ["evidence"]));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            requiredCapabilities: [new CompiledCapabilityAdmission("ab-code", wrongTarget)]));
+            requiredCapabilities: [wrongTarget]));
         FirmwareMapFactBinding<FirmwareCapabilityFact> absent = Binding(
             "NT-SYNTHETIC",
             "map",
@@ -289,12 +214,12 @@ public sealed partial class CompiledCompositionTests
                 FirmwareCapabilityState.ConfirmedAbsent,
                 "reason",
                 ["evidence"]));
-        _ = Assert.Throws<ArgumentException>(() => new CompiledCapabilityAdmission("ab-code", absent));
+        _ = Assert.Throws<ArgumentException>(() => CreateV2(requiredCapabilities: [absent]));
     }
 
     private static CompiledInputSlotRequirement Slot(string slotId, string role)
     {
-        return new CompiledInputSlotRequirement(
+        return CompiledInputSlotTestFactory.Create(
             slotId,
             role,
             CompiledInputArtifactClass.ReferenceImage,
@@ -312,7 +237,7 @@ public sealed partial class CompiledCompositionTests
             [new CompiledInputSpaceBinding("input", "input-slot", CompiledInputInstancePolicy.Singleton)]);
     }
 
-    private static CompiledCapabilityAdmission DirectCapabilityAdmission(string reason)
+    private static FirmwareMapFactBinding<FirmwareCapabilityFact> DirectCapabilityAdmission(string reason)
     {
         var capability = new FirmwareCapabilityFact(
             "capability-fact",
@@ -320,12 +245,10 @@ public sealed partial class CompiledCompositionTests
             FirmwareCapabilityState.ConfirmedPresent,
             reason,
             ["capability-evidence"]);
-        return new CompiledCapabilityAdmission(
-            "ab-code",
-            Binding("NT-SYNTHETIC", "map", "capability-fact", capability));
+        return Binding("NT-SYNTHETIC", "map", "capability-fact", capability);
     }
 
-    private static CompiledCapabilityAdmission AliasedCapabilityAdmission(
+    private static FirmwareMapFactBinding<FirmwareCapabilityFact> AliasedCapabilityAdmission(
         string requiredCapabilityId = "ab-code",
         string capabilityReason = "source reason",
         IReadOnlyList<string>? capabilityEvidenceRefs = null,
@@ -356,15 +279,9 @@ public sealed partial class CompiledCompositionTests
             applicability,
             aliasReason,
             aliasEvidenceRefs ?? ["alias-evidence"]);
-        return new CompiledCapabilityAdmission(
-            requiredCapabilityId,
-            new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-                target,
-                source,
-                sourceFactId,
-                capability,
-                applicability,
-                new FirmwareFactProvenance(target, source, [alias], capability.EvidenceRefs)));
+        return new FirmwareMapFactBinding<FirmwareCapabilityFact>(
+            applicability,
+            new FirmwareFactProvenance(target, capability, [alias]));
     }
 
     private static FirmwareMapFactBinding<FirmwareCapabilityFact> Binding(
@@ -379,11 +296,7 @@ public sealed partial class CompiledCompositionTests
             TopologyRequirement.NoTopologyConstraint(),
             4);
         return new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            capabilityFactId,
-            capability,
             applicability,
-            new FirmwareFactProvenance(key, key, [], capability.EvidenceRefs));
+            new FirmwareFactProvenance(key, capability, []));
     }
 }

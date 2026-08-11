@@ -1,17 +1,17 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class WorkflowSessionPresentationViewModel
 {
     private WorkflowContextTarget? _workflowContextTarget;
-    private string _replaceWorkflowContextIc = WorkbenchCompositionService.GetDefaultIcId();
-    private string _replaceWorkflowContextNumber = WorkbenchIcNumberTokens.SingleChip;
+    private string _replaceWorkflowContextIc;
+    private string _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
 
     /// <summary>Gets the cancelable IC context draft shown for Home workflow shortcuts.</summary>
-    public WorkflowContextSetupViewModel WorkflowContextSetup { get; } = new();
+    public WorkflowContextSetupViewModel WorkflowContextSetup { get; }
 
     /// <summary>True while the Home workflow context dialog is open.</summary>
     [ObservableProperty]
@@ -32,8 +32,9 @@ public sealed partial class WorkflowSessionPresentationViewModel
         bool showNumber,
         IReadOnlyList<string>? icChoices = null)
     {
-        icChoices ??= string.Equals(mode, WorkbenchMergeModes.AbCode, StringComparison.Ordinal)
-            ? [.. WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId)]
+        icChoices ??= string.Equals(mode, ExperienceIds.AbMerge, StringComparison.Ordinal)
+            ? [.. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
+                .Select(static profile => profile.IcId)]
             : null;
         _workflowContextTarget = new WorkflowContextTarget(page, mode, showNumber);
         string draftIc = page == ShellPage.Replace ? _replaceWorkflowContextIc : SelectedIc;

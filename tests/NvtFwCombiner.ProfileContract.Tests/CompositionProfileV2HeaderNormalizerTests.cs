@@ -13,20 +13,20 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
     [Fact]
     public void PromotionMapsEveryStage()
     {
-        (string Token, CompositionProfilePromotionStage Stage)[] cases =
+        (string Token, CompiledProfilePromotionStage Stage)[] cases =
         [
-            ("known", CompositionProfilePromotionStage.Known),
-            ("map-resolvable", CompositionProfilePromotionStage.MapResolvable),
-            ("inspectable", CompositionProfilePromotionStage.Inspectable),
-            ("authorable", CompositionProfilePromotionStage.Authorable),
-            ("compilable", CompositionProfilePromotionStage.Compilable),
-            ("executable-candidate", CompositionProfilePromotionStage.ExecutableCandidate),
-            ("supported", CompositionProfilePromotionStage.Supported),
+            ("known", CompiledProfilePromotionStage.Known),
+            ("map-resolvable", CompiledProfilePromotionStage.MapResolvable),
+            ("inspectable", CompiledProfilePromotionStage.Inspectable),
+            ("authorable", CompiledProfilePromotionStage.Authorable),
+            ("compilable", CompiledProfilePromotionStage.Compilable),
+            ("executable-candidate", CompiledProfilePromotionStage.ExecutableCandidate),
+            ("supported", CompiledProfilePromotionStage.Supported),
         ];
 
-        foreach ((string token, CompositionProfilePromotionStage expected) in cases)
+        foreach ((string token, CompiledProfilePromotionStage expected) in cases)
         {
-            CompositionProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
+            CompiledProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
                 new CompositionProfilePromotionDocument(token, []));
             Assert.Equal(expected, promotion.Stage);
         }
@@ -50,17 +50,17 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
                 ["z-evidence", "a-evidence"])),
         ];
 
-        CompositionProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
+        CompiledProfilePromotion promotion = CompositionProfileNormalizer.NormalizePromotion(
             new CompositionProfilePromotionDocument("known", documents));
 
         Assert.Equal(9, promotion.Blockers.Count);
         Assert.Equal(["a-evidence", "z-evidence"], promotion.Blockers[0].EvidenceRefs);
         Assert.Equal(
-            Enum.GetValues<CompositionProfileBlockerKind>().Order(),
+            Enum.GetValues<CompiledProfilePromotionBlockerKind>().Order(),
             promotion.Blockers.Select(static blocker => blocker.Kind).Order());
     }
 
-    /// <summary>Verifies experience tokens map to existing Domain policy dimensions.</summary>
+    /// <summary>Verifies experience tokens validate while compiler-consumed policy dimensions remain typed.</summary>
     [Fact]
     public void ExperienceMapsClosedPolicyTokens()
     {
@@ -72,12 +72,11 @@ public sealed class CompositionProfileV2HeaderNormalizerTests
             "exact-count",
             "experience.general-replace");
 
-        CompositionProfileExperience experience = CompositionProfileNormalizer.NormalizeExperience(document);
+        (string ExperienceId, LayoutPolicy LayoutPolicy, InputPolicy InputPolicy) experience =
+            CompositionProfileNormalizer.NormalizeExperience(document);
 
-        Assert.Equal(AudienceKind.Advanced, experience.Audience);
         Assert.Equal(LayoutPolicy.UserDefined, experience.LayoutPolicy);
         Assert.Equal(InputPolicy.Extensible, experience.InputPolicy);
-        Assert.Equal(CompositionProfileTopologyAuthoring.ExactCount, experience.TopologyAuthoring);
     }
 
     /// <summary>Verifies trusted family/map references normalize into immutable canonical sets.</summary>

@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
     public void ReportReviewUsesToastAndModalState()
     {
         string json = ReportJsonSamples.Succeeded(runId: "ui-smoke");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.False(viewModel.Reports.CanOpenReport);
         Assert.False(viewModel.Reports.ShowReportCommand.CanExecute(null));
@@ -123,7 +123,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ReportReviewErrorsUseModalState()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportError("Startup report", "missing preview-report.json");
 

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Capabilities;
@@ -108,11 +109,15 @@ public sealed record CapabilityResolutionResult(
 /// Application-owned catalog session. Reload validates a complete candidate
 /// before one atomic publication and otherwise retains the last-known-good snapshot.
 /// </summary>
-public sealed class CanonicalCapabilityCatalog
+public sealed class CanonicalCapabilityCatalog :
+    ICanonicalCapabilityCatalogReloader,
+    ICanonicalCapabilityQuery,
+    ICanonicalSupportMatrixQuery
 {
     private readonly Lock _reloadLock = new();
     private readonly ICanonicalCapabilityCatalogSource _source;
     private CanonicalCapabilityCatalogSnapshot? _current;
+    private CapabilityCatalogReloadResult? _latestReload;
     private long _publicationGeneration;
 
     /// <summary>Creates one catalog session over an injected trusted source.</summary>
@@ -126,53 +131,49 @@ public sealed class CanonicalCapabilityCatalog
     public CanonicalCapabilityCatalogSnapshot? CurrentSnapshot =>
         Volatile.Read(ref _current);
 
+    /// <summary>Latest completed load attempt, or null while the initial load is pending.</summary>
+    internal CapabilityCatalogReloadResult? LatestReload =>
+        Volatile.Read(ref _latestReload);
+
     /// <summary>Explicitly loads, validates, and atomically publishes one candidate.</summary>
     public CapabilityCatalogReloadResult Reload(
         CancellationToken cancellationToken = default)
     {
-        lock (_reloadLock)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CapabilityCatalogLoadResult loaded = _source.Load(cancellationToken);
-            if (!loaded.Succeeded)
-            {
-                return Failed(loaded.Issues);
-            }
+        return Load(initialOnly: false, cancellationToken);
+    }
 
-            try
-            {
-                CanonicalCapabilityCatalogCandidate candidate = loaded.Candidate!;
-                ValidateCandidate(candidate);
-                long generation = checked(++_publicationGeneration);
-                var token = new ResolutionToken(
-                    FormattableString.Invariant(
-                        $"{candidate.CatalogId}:{candidate.CatalogVersion}:{generation}:{candidate.SourceSha256[..12]}"));
-                var snapshot = new CanonicalCapabilityCatalogSnapshot(
-                    candidate,
-                    token);
-                Volatile.Write(ref _current, snapshot);
-                return new CapabilityCatalogReloadResult(
-                    Succeeded: true,
-                    RetainedLastKnownGood: false,
-                    snapshot,
-                    []);
-            }
-            catch (ArgumentException exception)
-            {
-                return Failed(
-                [
-                    new CapabilityCatalogIssue(
-                        CapabilityCatalogIssueCodes.InvalidCandidate,
-                        exception.Message),
-                ]);
-            }
-        }
+    /// <summary>Loads the initial publication on a caller-owned worker.</summary>
+    internal void Warm(CancellationToken cancellationToken)
+    {
+        _ = EnsureLoaded(cancellationToken);
+    }
+
+    void ICanonicalCapabilityCatalogReloader.Reload(
+        CancellationToken cancellationToken)
+    {
+        _ = Reload(cancellationToken);
+    }
+
+    /// <summary>Gets the current valid publication after one lazy load attempt.</summary>
+    public CanonicalCapabilityCatalogSnapshot GetCurrentSnapshot()
+    {
+        return TryGetCurrentSnapshot() ??
+            throw new InvalidOperationException(
+                "Canonical capability publication is unavailable.");
+    }
+
+    /// <inheritdoc />
+    public CanonicalCapabilityCatalogSnapshot? TryGetCurrentSnapshot()
+    {
+        _ = EnsureLoaded(CancellationToken.None);
+        return CurrentSnapshot;
     }
 
     /// <summary>Resolves one exact route through the current immutable snapshot.</summary>
     public CapabilityResolutionResult Resolve(string routeId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
+        _ = EnsureLoaded(CancellationToken.None);
         CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
         return snapshot is null
             ? Failure(
@@ -181,10 +182,81 @@ public sealed class CanonicalCapabilityCatalog
             : Resolve(snapshot, routeId);
     }
 
+    /// <inheritdoc />
+    public CanonicalSupportMatrixQueryResult Query()
+    {
+        CapabilityCatalogReloadResult? reload = LatestReload;
+        return reload is null
+            ? CanonicalSupportMatrixQueryResult.Loading()
+            : CanonicalSupportMatrixQuery.Project(reload);
+    }
+
+    private CapabilityCatalogReloadResult EnsureLoaded(
+        CancellationToken cancellationToken)
+    {
+        return Volatile.Read(ref _latestReload) ??
+            Load(initialOnly: true, cancellationToken);
+    }
+
+    private CapabilityCatalogReloadResult Load(
+        bool initialOnly,
+        CancellationToken cancellationToken)
+    {
+        lock (_reloadLock)
+        {
+            if (initialOnly && Volatile.Read(ref _latestReload) is { } current)
+            {
+                return current;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            CapabilityCatalogLoadResult loaded = _source.Load(cancellationToken);
+            CapabilityCatalogReloadResult result;
+            if (!loaded.Succeeded)
+            {
+                result = Failed(loaded.Issues);
+            }
+            else
+            {
+                try
+                {
+                    CanonicalCapabilityCatalogCandidate candidate = loaded.Candidate!;
+                    ValidateCandidate(candidate);
+                    long generation = checked(++_publicationGeneration);
+                    var token = new ResolutionToken(
+                        FormattableString.Invariant(
+                            $"{candidate.CatalogId}:{candidate.CatalogVersion}:{generation}:{candidate.SourceSha256[..12]}"));
+                    var snapshot = new CanonicalCapabilityCatalogSnapshot(
+                        candidate,
+                        token);
+                    Volatile.Write(ref _current, snapshot);
+                    result = new CapabilityCatalogReloadResult(
+                        Succeeded: true,
+                        RetainedLastKnownGood: false,
+                        snapshot,
+                        []);
+                }
+                catch (ArgumentException exception)
+                {
+                    result = Failed(
+                    [
+                        new CapabilityCatalogIssue(
+                            CapabilityCatalogIssueCodes.InvalidCandidate,
+                            exception.Message),
+                    ]);
+                }
+            }
+
+            Volatile.Write(ref _latestReload, result);
+            return result;
+        }
+    }
+
     /// <summary>Resolves a policy-bound dynamic definition before compiling current authoring state.</summary>
     public CapabilityRouteResolutionResult ResolveDynamicRoute(string routeId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
+        _ = EnsureLoaded(CancellationToken.None);
         CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
         return snapshot is null
             ? DynamicFailure(
@@ -232,6 +304,7 @@ public sealed class CanonicalCapabilityCatalog
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icCountVariant);
+        _ = EnsureLoaded(CancellationToken.None);
         CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
         if (snapshot is null)
         {
@@ -274,6 +347,7 @@ public sealed class CanonicalCapabilityCatalog
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        _ = EnsureLoaded(CancellationToken.None);
         CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
         if (snapshot is null)
         {
@@ -302,6 +376,104 @@ public sealed class CanonicalCapabilityCatalog
                 "The requested topology resolves to more than one map variant."),
             _ => Resolve(snapshot, matches[0].Identity.RouteId),
         };
+    }
+
+    /// <inheritdoc />
+    public bool HasAuthorableCapability(string icId, string workflowId)
+    {
+        if (string.IsNullOrWhiteSpace(icId) || string.IsNullOrWhiteSpace(workflowId))
+        {
+            return false;
+        }
+
+        _ = EnsureLoaded(CancellationToken.None);
+        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        return snapshot is not null &&
+            (snapshot.Capabilities.Any(capability =>
+                    MatchesAuthorableRoute(
+                        capability.Identity,
+                        capability.Authoring,
+                        icId,
+                        workflowId) &&
+                    capability.ExecutionAdmitted) ||
+                snapshot.DynamicRoutes.Any(route =>
+                    MatchesAuthorableRoute(
+                        route.Identity,
+                        route.Authoring,
+                        icId,
+                        workflowId)));
+    }
+
+    /// <inheritdoc />
+    public ResolvedCapability? ResolveCurrentCompilation(
+        CompiledComposition composition,
+        ResolvedCapability? acceptedCapability = null)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        _ = EnsureLoaded(CancellationToken.None);
+        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        if (snapshot is null || composition.CapabilityFingerprint is null)
+        {
+            return null;
+        }
+
+        if (acceptedCapability is not null)
+        {
+            if (!ReferenceEquals(acceptedCapability.CompiledComposition, composition) ||
+                acceptedCapability.ResolutionToken != snapshot.ResolutionToken ||
+                acceptedCapability.Authoring.Value != CapabilityAuthoringAvailability.Available)
+            {
+                return null;
+            }
+
+            CapabilityResolutionResult fixedResolution = Resolve(
+                acceptedCapability.Identity.RouteId);
+            if (fixedResolution.Succeeded)
+            {
+                return ReferenceEquals(
+                        fixedResolution.Capability!.CompiledComposition,
+                        composition) &&
+                    fixedResolution.Capability.ResolutionToken ==
+                        acceptedCapability.ResolutionToken
+                            ? acceptedCapability
+                            : null;
+            }
+
+            CapabilityRouteResolutionResult dynamicResolution = ResolveDynamicRoute(
+                acceptedCapability.Identity.RouteId);
+            return dynamicResolution.Succeeded &&
+                dynamicResolution.Route!.ResolutionToken ==
+                    acceptedCapability.ResolutionToken &&
+                StringComparer.Ordinal.Equals(
+                    dynamicResolution.Route.CapabilityFingerprint,
+                    acceptedCapability.CapabilityFingerprint)
+                        ? acceptedCapability
+                        : null;
+        }
+
+        ResolvedCapability? fixedCapability = snapshot.Capabilities.SingleOrDefault(
+            capability => ReferenceEquals(capability.CompiledComposition, composition));
+        if (fixedCapability is null)
+        {
+            return null;
+        }
+
+        CapabilityResolutionResult current = Resolve(fixedCapability.Identity.RouteId);
+        return current.Succeeded &&
+            ReferenceEquals(current.Capability!.CompiledComposition, composition)
+                ? current.Capability
+                : null;
+    }
+
+    private static bool MatchesAuthorableRoute(
+        CapabilityRouteIdentity identity,
+        PinnedCapabilityDecision<CapabilityAuthoringAvailability> authoring,
+        string icId,
+        string workflowId)
+    {
+        return StringComparer.Ordinal.Equals(identity.IcId, icId) &&
+            StringComparer.Ordinal.Equals(identity.WorkflowId, workflowId) &&
+            authoring.Value == CapabilityAuthoringAvailability.Available;
     }
 
     private static CapabilityResolutionResult Resolve(

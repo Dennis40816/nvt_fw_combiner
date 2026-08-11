@@ -3,6 +3,15 @@ namespace NvtFwCombiner.Domain.Composition;
 /// <summary>Helpers for dynamic CtrlRAM replacement address-space identifiers.</summary>
 public static class DynamicCtrlRamReplacementIds
 {
+    /// <summary>Creates one dynamic CtrlRAM replacement address-space id.</summary>
+    public static string Create(string regionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        return string.Concat(
+            CompositionAddressSpaceIds.DynamicCtrlRamReplacementPrefix,
+            regionId);
+    }
+
     /// <summary>Formats a dynamic CtrlRAM replacement id into a human-readable report label.</summary>
     public static bool TryFormatDisplayLabel(string addressSpaceId, out string label)
     {
@@ -34,10 +43,7 @@ public static class DynamicCtrlRamReplacementIds
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
         string[] parts = regionId.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0)
-        {
-            throw new ArgumentException("CtrlRAM region id must include a region token.", nameof(regionId));
-        }
+        DomainInvariant.Reject(parts.Length == 0, "CtrlRAM region id must include a region token.", nameof(regionId));
 
         string region = FormatRegionToken(parts[0]);
         string side = FormatSide(parts);

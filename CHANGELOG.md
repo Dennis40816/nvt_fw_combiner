@@ -4,7 +4,131 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
-No unreleased changes.
+## [0.10.3] - 2026-08-11
+
+### Summary
+
+This stable release completes the canonical refactoring program. Standard
+Merge, AB Merge, General Merge, DP Replace, CtrlRAM Replace, and General
+Replace now use one accepted-session authoring, naming, execution, reporting,
+delivery, and processor route. The migration-era Workbench graph and renamed
+parallel owners are removed; Bootstrap is reduced to four composition-root and
+lifetime files. Existing supported behavior and support status are unchanged.
+
+### Product changes
+
+#### One canonical production architecture
+
+- Before → After: UI and CLI previously reached migration-era
+  Bootstrap/Workbench projections that could repeat catalog resolution,
+  inspection, memory, naming, planning, result conversion, or workflow
+  execution after canonical compilation. Application now owns focused
+  authoring/use-case contracts and immutable
+  accepted sessions; Profiles owns compilation; Infrastructure owns trust and
+  platform/tool adapters; Presentation and CLI consume the same typed
+  Application operations; Bootstrap owns wiring and lifetime only.
+- Affected: all six Merge/Replace workflows in desktop and CLI, including
+  readiness, automatic naming, Preview/Build, reports, and optional AB A-bank
+  FlashCode delivery.
+- Support status: unchanged and support-neutral. No IC, topology, IC Count,
+  profile, firmware family, or evidence class is promoted.
+- Compatibility: accidental-public Workbench/Bootstrap CLR APIs
+  are removed. CLI commands/options/exit behavior, Saved Rule/report JSON,
+  settings, profile/schema versions, and external processor protocols remain
+  compatible. Replace the complete portable folder when upgrading.
+- Verification: both bounded-concurrency and jobs-one complete repository
+  verifiers pass; all 17 existing BIN golden regressions retain complete bytes
+  and SHA-256 expectations; Architecture, UI smoke, CLI, processor, catalog,
+  report, and coverage gates pass.
+- Limitations: post-refactor detail simplification is assigned to
+  `v0.10.4`; unified preload control, path-based update, and theme review remain
+  later milestones.
+
+#### Canonical Core convergence and exact identity
+
+- Before → After: four ownership slices previously retained compatibility
+  constructors, projections, duplicate validation/transport state, and
+  client-side semantic reruns accumulated during the headless migration. #230
+  through #233 and LAR-01 through LAR-12 now retain one reviewed
+  capability definition fingerprint, one compiled-composition fingerprint,
+  exact publication/session identities, immutable accepted input bytes, and
+  one processor-plan/router path. Safe evidence-backed reductions are complete
+  and the old fixed LOC targets are retired as planning estimates.
+- Affected: catalog reload/LKG, fixed and dynamic route resolution, all authoring
+  sessions, General Saved Rules, memory/slot projection, output naming,
+  external processors, report production, desktop, and CLI.
+- Support status: unchanged/support-neutral; no firmware rule is inferred from
+  a filename, version, hash, or golden observation.
+- Compatibility: no schema, built-in profile, golden fixture,
+  report-wire, CRC protocol, or Legacy Combiner protocol payload changes.
+- Verification: exact ratchets and four-slice sum closure pass through the
+  canonical verifier, with no production relocation to excluded paths.
+- Limitations: remaining code is retained canonical product behavior,
+  not an implied commitment to the earlier 25,000-line concept.
+
+- AB output naming and execution now read topology only from the exact accepted
+  compiled capability; a client token cannot trigger post-acceptance route
+  resolution.
+- CtrlRAM region and required-slot discovery now publishes one coherent
+  `MemoryLayoutProjector` result; UI and CLI no longer request separate
+  Infrastructure projections.
+- Desktop directly retains exactly six isolated workflow sessions without
+  grouping-only session wrappers, preventing hidden cross-workflow state.
+- CRC worker errors honor the existing 512-character protocol-schema bound;
+  CRC success bytes, exits, and the `123456789` vector remain unchanged.
+
+- Against predecessor `6ba721729`, full production falls from 97,498 to 96,044
+  nonblank lines (**-1,454**) and runtime production from 68,767 to 67,433
+  (**-1,334**). Bootstrap + CLI + Desktop host falls from 18,496 to 3,371
+  (**-15,125**) while required semantics move to their canonical owners.
+- The former 7,800–10,200 estimate is superseded by the exact gross/add/net
+  ledger; it incorrectly treated unique trust, route, report, delivery, and
+  processor behavior as removable duplication.
+- The Windows x64 distribution remains one closed-allowlist self-contained
+  portable ZIP with the reviewed profiles, required external tools, reference
+  manifest, hashes, SPDX SBOM, provenance, and no separate .NET/Python install.
+
+### Security
+
+Firmware inputs remain immutable, every write stays inside compiled half-open
+ranges, and external processors can mutate only host-created staging copies.
+The release package remains a closed allowlist with pinned tools, hashes, SBOM,
+and provenance; no private golden payload, credential, or unrestricted
+per-run executable path is included.
+
+### Known issues
+
+- This refactor does not promote routes that still lack direct golden or
+  firmware-owner certification; their existing evidence status remains
+  visible and unchanged.
+- Detailed code-shape polish, unified preload controls, configured-path update,
+  and dark-theme audit are explicitly deferred to later milestones.
+- Stable publication still requires the protected release workflow, exact
+  source/tag identity, release-owner approval, downloaded-asset verification,
+  and visible clean-Windows smoke; no omitted gate is claimed here.
+
+### Upgrade and rollback
+
+- Upgrade from `v0.10.2` by replacing the complete portable folder with
+  `NvtFwCombiner-v0.10.3-win-x64`; do not mix files across versions.
+- Saved Rules, reports, settings, firmware inputs, CLI invocations, and external
+  tool locations retain their declared compatibility. Keep a backup of the old
+  portable folder before upgrading.
+- Roll back by restoring the untouched `v0.10.2` portable folder. Outputs
+  already built by either version remain ordinary firmware artifacts; do not
+  overwrite source firmware during upgrade or rollback.
+
+### Downloads and integrity
+
+- The stable GitHub Release publishes
+  `NvtFwCombiner-v0.10.3-win-x64.zip`,
+  `NvtFwCombiner-v0.10.3-win-x64.spdx.json`,
+  `NvtFwCombiner-v0.10.3-win-x64.provenance.json`,
+  `NvtFwCombiner-v0.10.3-candidate.json`, and
+  `NvtFwCombiner-v0.10.3-assets.sha256`. Verify the outer hash list, candidate
+  manifest, package `SHA256SUMS.txt`, SPDX SBOM, and provenance before use.
+- GitHub also provides tag-derived source `.zip` and `.tar.gz` downloads; they
+  are source archives, not the Windows portable package.
 
 ## [0.10.2] - 2026-08-04
 
@@ -19,8 +143,8 @@ read-only Hex viewport across Raw Hex Editor, Report Diff, and BIN Inspector,
 and deletes the superseded General/Saved Rule v1 production owners.
 
 This is a support-neutral checkpoint through #254. Remaining deferred UI,
-Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
-22,607-line integration gate move to `v0.10.3`.
+Workbench/parallel-catalog deletion, Canonical Core Convergence, and the revised
+44,000-line integration gate move to `v0.10.3`.
 
 ### Product changes
 
@@ -112,7 +236,7 @@ Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
   firmware-owner gates are approved.
 - Measured result: runtime production code moved from 76,633 lines at the
   post-#208 checkpoint to 75,638 lines at the reviewed #254 tree, a net deletion
-  of 995 lines. This does not claim the deferred 22,607-line integration gate.
+  of 995 lines. This does not claim the deferred 44,000-line integration gate.
 
 #### Deterministic verification and release identity
 
@@ -161,7 +285,7 @@ Workbench/parallel-catalog deletion, Canonical Core Convergence, and the hard
   headless foundation is 29 of 29 (100%), and its weighted total is 72.4% at
   this release boundary.
 - Runtime production size is 75,638 nonblank lines. Workbench deletion and the
-  four Core Convergence slices remain necessary before the hard 22,607-line
+  four Core Convergence slices remain necessary before the hard 44,000-line
   `v0.10.3` integration gate can close.
 - Direct AB goldens remain missing for NT51919, NT51932, NT51950 Cascade, and
   NT51951. NT51928 remains `ContractOnly` without a complete project golden.

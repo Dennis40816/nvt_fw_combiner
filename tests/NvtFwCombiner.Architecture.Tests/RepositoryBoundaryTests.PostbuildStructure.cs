@@ -94,26 +94,33 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed class LegacyCombinerBlockArgument", blockArgument, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommand", command, StringComparison.Ordinal);
         Assert.Contains("public sealed class LegacyCombinerPostbuildCommandPlan", commandPlan, StringComparison.Ordinal);
+        Assert.Contains("internal LegacyCombinerPostbuildCommandPlan(", commandPlan, StringComparison.Ordinal);
+        Assert.DoesNotContain("public LegacyCombinerPostbuildCommandPlan(", commandPlan, StringComparison.Ordinal);
+        Assert.Contains("private readonly CompiledPlanTemplate[] _compiledPlans", profile, StringComparison.Ordinal);
+        Assert.Contains("public LegacyCombinerPostbuildCommandPlan ResolvePlan(", profile, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies legacy postbuild planning stays split from write-range and integrity helpers.</summary>
+    /// <summary>Verifies profile-time protocol compilation stays split from derived write-range helpers.</summary>
     [Fact]
-    public void LegacyPostbuildPlannerConcernsStaySplit()
+    public void LegacyPostbuildCompiledPlanConcernsStaySplit()
     {
-        string root = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.cs");
+        string root = string.Concat(
+            ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.cs"),
+            ReadText("src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.Resolve.cs"));
         string writeRanges = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.WriteRanges.cs");
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.WriteRanges.cs");
         string integrityRanges = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs");
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.IntegrityRanges.cs");
         string normalize = ReadText(
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.Normalize.cs");
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.Normalize.cs");
 
-        Assert.Contains("public static partial class LegacyCombinerPostbuildPlanner", root, StringComparison.Ordinal);
-        Assert.Contains("CreatePlan", root, StringComparison.Ordinal);
+        Assert.Contains("public static partial class LegacyCombinerPostbuildPlanCompiler", root, StringComparison.Ordinal);
+        Assert.Contains("CompileProtocol", root, StringComparison.Ordinal);
+        Assert.Contains("ResolveCommands", root, StringComparison.Ordinal);
         Assert.Contains("GetStagedFileBlocks", root, StringComparison.Ordinal);
         Assert.Contains("CalculateRequiredCapacity", root, StringComparison.Ordinal);
-        Assert.Contains("ResolveSelector", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreatePlan", root, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResolveSelector", root, StringComparison.Ordinal);
         Assert.DoesNotContain("GetAllowedWriteRangeSectionsForStagedSources", root, StringComparison.Ordinal);
         Assert.DoesNotContain("NormalizeCandidateWriteRangeSections", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", root, StringComparison.Ordinal);
@@ -153,7 +160,7 @@ public sealed partial class RepositoryBoundaryTests
             pipelineSource.Split("File.ReadAllBytesAsync(firmwarePath", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("File.ReadAllBytes(firmwarePath", pipelineSource, StringComparison.Ordinal);
         Assert.DoesNotContain("File.ReadAllBytesAsync(firmwarePath", staging, StringComparison.Ordinal);
-        Assert.Contains("command.Family != LegacyCombinerCommandFamily.MergeMode", staging, StringComparison.Ordinal);
+        Assert.Contains("if (!command.RetainShortOutputTail)", staging, StringComparison.Ordinal);
         Assert.Contains("expectedLength - minimumLength", staging, StringComparison.Ordinal);
         Assert.Contains("ReadExactlyAsync(tailBytes", staging, StringComparison.Ordinal);
         Assert.Contains("FileMode.Append", staging, StringComparison.Ordinal);
@@ -165,13 +172,14 @@ public sealed partial class RepositoryBoundaryTests
     {
         string factory = ReadText("src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs");
         string ctrlRam = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.Replace.CtrlRam.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
         Assert.Contains("ProcessLifetime = new(CreateUncached)", factory, StringComparison.Ordinal);
         Assert.Contains("internal static ExternalProcessorGenerationLease AcquireCurrent()", factory, StringComparison.Ordinal);
-        Assert.Contains("internal static void Refresh()", factory, StringComparison.Ordinal);
-        Assert.Contains("public static void RefreshCtrlRamRuntimeDependencies()", ctrlRam, StringComparison.Ordinal);
-        Assert.Contains("ExternalProcessorFactory.Refresh()", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("internal static void Refresh()", factory, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefreshCtrlRamRuntimeDependencies", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("_acquireExternalProcessor()", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("_externalProcessorGenerationIsCurrent", ctrlRam, StringComparison.Ordinal);
         Assert.Contains("LazyThreadSafetyMode.ExecutionAndPublication", factory, StringComparison.Ordinal);
         Assert.Equal(1, factory.Split("Directory.EnumerateFiles(", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("static IExternalProcessor? CreateOrNull()", factory, StringComparison.Ordinal);

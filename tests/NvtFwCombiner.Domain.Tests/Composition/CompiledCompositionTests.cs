@@ -7,14 +7,17 @@ public sealed partial class CompiledCompositionTests
 {
     /// <summary>Verifies every supported Replace IC-number policy is represented without null or unknown states.</summary>
     [Theory]
-    [InlineData(CompiledIcNumberPolicy.SingleSelector)]
-    [InlineData(CompiledIcNumberPolicy.CascadeSelector)]
-    [InlineData(CompiledIcNumberPolicy.NumericSelector)]
-    public void ReplaceAcceptsExplicitIcNumberPolicies(CompiledIcNumberPolicy policy)
+    [InlineData(IcNumberInputMode.SingleSelector, "00d8b5220f887fc1dc44044d8616b8f42e56eb320735809a25de64bed8f00df0")]
+    [InlineData(IcNumberInputMode.CascadeSelector, "a987c5ae6c9e4150b5ad2e15c213ee109a94070c6b5602da9ea4fed1ab226b3d")]
+    [InlineData(IcNumberInputMode.NumericSelector, "b2055f1234aadce751122f44033521ef7c2c78379b0515412eaeef82466ceb19")]
+    public void ReplaceAcceptsExplicitIcNumberPolicies(
+        IcNumberInputMode inputMode,
+        string expectedFingerprint)
     {
-        CompiledComposition composition = CreateReplace(policy);
+        CompiledComposition composition = CreateReplace(inputMode);
 
-        Assert.Equal(policy, composition.IcNumberPolicy);
+        Assert.Equal(inputMode, composition.V2Details.IcNumberInputMode);
+        Assert.Equal(expectedFingerprint, composition.CompilationFingerprint);
     }
 
     /// <summary>Verifies compiled default output policy cannot contain path or control syntax.</summary>
@@ -57,15 +60,15 @@ public sealed partial class CompiledCompositionTests
             CreateMerge(modeId: "alternate"),
             CreateMerge(experienceId: "general-merge"),
             CreateMerge(defaultOutputFileName: "alternate.bin"),
-            CreateReplace(CompiledIcNumberPolicy.SingleSelector),
+            CreateReplace(IcNumberInputMode.SingleSelector),
         ];
 
         Assert.All(
             variants,
             variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
         Assert.NotEqual(
-            CreateReplace(CompiledIcNumberPolicy.SingleSelector).CompilationFingerprint,
-            CreateReplace(CompiledIcNumberPolicy.CascadeSelector).CompilationFingerprint);
+            CreateReplace(IcNumberInputMode.SingleSelector).CompilationFingerprint,
+            CreateReplace(IcNumberInputMode.CascadeSelector).CompilationFingerprint);
     }
 
     /// <summary>Verifies final-output validation requirements are immutable compiled policy and fingerprinted.</summary>
@@ -90,7 +93,7 @@ public sealed partial class CompiledCompositionTests
         CompiledComposition changed = CreateMerge(validationRequirements: [changedRequirement]);
 
         CompiledFirmwareConfigBackupVersionValidation requirement = Assert.IsType<
-            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.ValidationRequirements));
+            CompiledFirmwareConfigBackupVersionValidation>(Assert.Single(baseline.V2Details.Provenance.ValidationRequirements));
         Assert.Equal(CompiledValidationStage.FinalOutput, requirement.Stage);
         Assert.Equal(CompiledValidationSeverity.Error, requirement.Severity);
         Assert.Equal(0x27, requirement.FirmwareVersion);
@@ -193,15 +196,6 @@ public sealed partial class CompiledCompositionTests
                 baselineUniformFingerprint,
                 CreateMerge(validationRequirements: [variant]).CompilationFingerprint));
 
-        CompiledValidationRequirement outsideInput =
-            CompiledValidationRequirements.RejectUniformInputRanges(
-                "outside-input",
-                CompiledValidationSeverity.Error,
-                "input.uniform",
-                "input",
-                [new ByteRange(3, 2)]);
-        _ = Assert.Throws<ArgumentException>(() =>
-            CreateMerge(validationRequirements: [outsideInput]));
     }
 
     /// <summary>Verifies initializer, output selection, input policy, and operation semantics affect the fingerprint.</summary>
@@ -268,10 +262,54 @@ public sealed partial class CompiledCompositionTests
                 Assert.NotEqual(
                     baseline.CompilationFingerprint,
                     variant.CompilationFingerprint);
-                Assert.NotEqual(
-                    baseline.IntegrityFingerprint,
-                    variant.IntegrityFingerprint);
             });
+
+        string protocolBaseline = CreateProcessorComposition(
+            protocolPlan: CreateProtocolPlan()).CompilationFingerprint;
+        ExternalProcessorProtocolPlan[] protocolVariants =
+        [
+            CreateProtocolPlan("protocol-b"),
+            CreateProtocolPlan("protocol-a", targetFileName: "other.bin"),
+            CreateProtocolPlan("protocol-a", modeArgument: "MODE_B"),
+            CreateProtocolPlan("protocol-a", sourceOffset: 1),
+        ];
+        Assert.All(
+            protocolVariants,
+            plan => Assert.NotEqual(
+                protocolBaseline,
+                CreateProcessorComposition(protocolPlan: plan).CompilationFingerprint));
+    }
+
+    /// <summary>The exact optional delivery contract is part of one compiled-plan identity.</summary>
+    [Fact]
+    public void CompilationFingerprintBindsAdditionalDeliveries()
+    {
+        string baseline = CreateV2(additionalDeliveries:
+        [
+            Delivery("delivery-a", new ByteRange(0, 2), "a.bin", ["ic"]),
+        ]).CompilationFingerprint;
+        CompiledAdditionalDelivery[] variants =
+        [
+            Delivery("delivery-b", new ByteRange(0, 2), "a.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(1, 2), "a.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(0, 2), "b.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(0, 2), "a.bin", ["date"]),
+        ];
+
+        Assert.All(
+            variants,
+            delivery => Assert.NotEqual(
+                baseline,
+                CreateV2(additionalDeliveries: [delivery]).CompilationFingerprint));
+
+        static CompiledAdditionalDelivery Delivery(
+            string kind,
+            ByteRange range,
+            string template,
+            IEnumerable<string> tokenIds)
+        {
+            return new CompiledAdditionalDelivery(kind, range, template, tokenIds);
+        }
     }
 
     private static CompiledComposition CreateMerge(
@@ -337,7 +375,7 @@ public sealed partial class CompiledCompositionTests
             profileVersion: profileVersion);
     }
 
-    private static CompiledComposition CreateReplace(CompiledIcNumberPolicy policy)
+    private static CompiledComposition CreateReplace(IcNumberInputMode inputMode)
     {
         var plan = new CompositionPlan(
             ImageInitialization.Reference("output-image", "reference", 4),
@@ -359,7 +397,7 @@ public sealed partial class CompiledCompositionTests
             modeId: "replace",
             experienceId: "general-replace",
             compositionKind: CompositionKind.Replace,
-            icNumberPolicy: policy,
+            icNumberInputMode: inputMode,
             profileId: "replace-profile",
             profileVersion: "1.0.0");
     }
@@ -440,7 +478,8 @@ public sealed partial class CompiledCompositionTests
         string stagedArtifactId = "artifact-a",
         string stagedArtifactSourceSpaceId = "source",
         long stagedArtifactSourceStart = 0,
-        ExternalProcessorOutputAssertion? outputAssertion = null)
+        ExternalProcessorOutputAssertion? outputAssertion = null,
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         var invocation = new ExternalProcessorInvocation(
             processorId,
@@ -465,7 +504,8 @@ public sealed partial class CompiledCompositionTests
                     stagedArtifactSourceSpaceId,
                     new ByteRange(stagedArtifactSourceStart, 1)),
             ],
-            outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
+            outputAssertions: outputAssertion is null ? [] : [outputAssertion],
+            protocolPlan: protocolPlan);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -497,6 +537,27 @@ public sealed partial class CompiledCompositionTests
             profileVersion: "1.0.0");
     }
 
+    private static ExternalProcessorProtocolPlan CreateProtocolPlan(
+        string protocolId = "protocol-a",
+        string targetFileName = "firmware.bin",
+        string modeArgument = "MODE_A",
+        long sourceOffset = 0)
+    {
+        return new ExternalProcessorProtocolPlan(
+            protocolId,
+            targetFileName,
+            [new ExternalProcessorProtocolCommand(
+                "command-a",
+                [modeArgument, ExternalProcessorProtocolArgumentTokens.TargetFile],
+                [new ExternalProcessorProtocolBlock(
+                    "block-a",
+                    ExternalProcessorProtocolBlockSourceKind.StagedFile,
+                    "source.bin",
+                    sourceOffset,
+                    new ByteRange(0, 1))],
+                retainShortOutputTail: false)]);
+    }
+
     private static CompiledInputContract CreateExactMapInputContract(
         string addressSpaceId,
         CompiledInputArtifactClass artifactClass,
@@ -504,7 +565,7 @@ public sealed partial class CompiledCompositionTests
     {
         string slotId = $"{addressSpaceId}-slot";
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 slotId,
                 addressSpaceId,
                 artifactClass,

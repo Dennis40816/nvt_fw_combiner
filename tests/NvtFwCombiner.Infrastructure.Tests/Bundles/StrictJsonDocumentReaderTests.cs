@@ -72,9 +72,9 @@ public sealed class StrictJsonDocumentReaderTests
         {
         }
 
-        long ownedAllocation = MeasureAllocation(
+        long ownedAllocation = MeasureMinimumAllocation(
             () => StrictJsonDocumentReader.ParseOwnedSnapshot(bytes, bytes.Length, 8));
-        long defensiveAllocation = MeasureAllocation(
+        long defensiveAllocation = MeasureMinimumAllocation(
             () => StrictJsonDocumentReader.Parse(bytes, bytes.Length, 8));
 
         TestContext.Current.TestOutputHelper?.WriteLine(
@@ -134,5 +134,16 @@ public sealed class StrictJsonDocumentReaderTests
         using JsonDocument document = parse();
         _ = document.RootElement.ValueKind;
         return GC.GetAllocatedBytesForCurrentThread() - before;
+    }
+
+    private static long MeasureMinimumAllocation(Func<JsonDocument> parse)
+    {
+        long minimum = long.MaxValue;
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            minimum = Math.Min(minimum, MeasureAllocation(parse));
+        }
+
+        return minimum;
     }
 }

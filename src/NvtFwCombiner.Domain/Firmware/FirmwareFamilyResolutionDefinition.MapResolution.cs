@@ -11,34 +11,6 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             requiredMetadataStructureIds: null);
     }
 
-    /// <summary>Resolves only physical maps named by an already trusted workflow profile binding.</summary>
-    internal FirmwareMapResolutionResult ResolveMapWithin(
-        FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string> candidateMapIds)
-    {
-        ArgumentNullException.ThrowIfNull(candidateMapIds);
-        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
-
-        return ResolveMapCore(
-            inputs,
-            candidateMapIds,
-            requiredMetadataStructureIds: null);
-    }
-
-    /// <summary>Resolves one trusted profile map using only metadata required by map-selection predicates.</summary>
-    internal FirmwareMapResolutionResult ResolveMapWithinForSelection(
-        FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string> candidateMapIds)
-    {
-        ArgumentNullException.ThrowIfNull(candidateMapIds);
-        ArgumentOutOfRangeException.ThrowIfZero(candidateMapIds.Count, nameof(candidateMapIds));
-
-        return ResolveMapCore(
-            inputs,
-            candidateMapIds,
-            new HashSet<string>(StringComparer.Ordinal));
-    }
-
     /// <summary>
     /// Resolves one trusted profile map using only selection metadata and the
     /// exact metadata structures required by that profile.
@@ -65,7 +37,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
     {
         ArgumentNullException.ThrowIfNull(inputs);
         var uniqueCandidates = new List<ResolvedFirmwareImageMap>();
-        var pendingRequirements = new HashSet<FirmwareMapResolutionPendingRequirement>();
+        bool hasPendingCandidate = false;
 
         foreach (FirmwareImageMap map in _imageMaps)
         {
@@ -74,17 +46,18 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 continue;
             }
 
-            CandidateResolution candidate = EvaluateCandidate(
+            FirmwareApplicabilityResult result = EvaluateCandidate(
                 map,
                 inputs,
-                requiredMetadataStructureIds);
-            switch (candidate.Result)
+                requiredMetadataStructureIds,
+                out ResolvedFirmwareImageMap? resolvedMap);
+            switch (result)
             {
                 case FirmwareApplicabilityResult.Match:
-                    uniqueCandidates.Add(candidate.ResolvedMap!);
+                    uniqueCandidates.Add(resolvedMap!);
                     break;
                 case FirmwareApplicabilityResult.Pending:
-                    pendingRequirements.UnionWith(candidate.PendingRequirements);
+                    hasPendingCandidate = true;
                     break;
                 case FirmwareApplicabilityResult.NoMatch:
                     break;
@@ -95,44 +68,47 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         return uniqueCandidates.Count >= 2
             ? FirmwareMapResolutionResult.Rejected(FirmwareMapResolutionRejectionKind.AmbiguousMaps)
-            : pendingRequirements.Count != 0
-            ? FirmwareMapResolutionResult.Pending(pendingRequirements)
+            : hasPendingCandidate
+            ? FirmwareMapResolutionResult.Pending()
             : uniqueCandidates.Count == 1
             ? FirmwareMapResolutionResult.Unique(uniqueCandidates[0])
             : FirmwareMapResolutionResult.Rejected(FirmwareMapResolutionRejectionKind.NoMatchingMap);
     }
 
-    private CandidateResolution EvaluateCandidate(
+    private FirmwareApplicabilityResult EvaluateCandidate(
         FirmwareImageMap map,
         FirmwareMapResolutionInputs inputs,
-        IReadOnlySet<string>? requiredMetadataStructureIds)
+        IReadOnlySet<string>? requiredMetadataStructureIds,
+        out ResolvedFirmwareImageMap? resolvedMap)
     {
-        FirmwareMapApplicabilityEvaluation staticEvaluation = map.Applicability.Evaluate(inputs);
-        if (staticEvaluation.Result == FirmwareApplicabilityResult.NoMatch)
+        resolvedMap = null;
+        bool isPending = false;
+        FirmwareMapApplicability applicability = map.Applicability;
+        if (!applicability.MemberIds.Contains(inputs.MemberId, StringComparer.Ordinal) ||
+            !applicability.ModeIds.Contains(inputs.ModeId, StringComparer.Ordinal) ||
+            inputs.CapacityBytes != applicability.CapacityBytes)
         {
-            return CandidateResolution.NoMatch();
+            return FirmwareApplicabilityResult.NoMatch;
         }
 
-        var pendingRequirements = new HashSet<FirmwareMapResolutionPendingRequirement>();
-        foreach (FirmwareMapPendingRequirementKind requirement in staticEvaluation.PendingRequirements)
+        if (applicability.TopologyRequirement.Kind != TopologyRequirementKind.None)
         {
-            switch (requirement)
+            if (inputs.RequestedTopology is null)
             {
-                case FirmwareMapPendingRequirementKind.RequestedTopologyMissing:
-                    _ = pendingRequirements.Add(new FirmwareMapResolutionPendingRequirement(
-                        FirmwareMapResolutionPendingKind.RequestedTopologyMissing));
-                    break;
-                case FirmwareMapPendingRequirementKind.CommonFirmwareCategoryDerivationUnavailable:
-                    _ = pendingRequirements.Add(new FirmwareMapResolutionPendingRequirement(
-                        FirmwareMapResolutionPendingKind.CommonFirmwareCategoryDerivationUnavailable));
-                    break;
-                case FirmwareMapPendingRequirementKind.MetadataResolutionRequired:
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown static map pending requirement.");
+                isPending = true;
+            }
+            else if (!applicability.TopologyRequirement.Matches(inputs.RequestedTopology))
+            {
+                return FirmwareApplicabilityResult.NoMatch;
             }
         }
 
+        if (applicability.CommonFirmwareCategoryIds.Count != 0)
+        {
+            isPending = true;
+        }
+
+        // Metadata predicates become comparable only after candidate-scoped structure resolution.
         IReadOnlyList<FirmwareMetadataStructure> metadataStructures =
             requiredMetadataStructureIds is null
                 ? GetStructuresForMap(map.MapId)
@@ -145,20 +121,18 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         if (structureResolutions.Any(static resolution =>
                 resolution.Status == FirmwareMetadataStructureResolutionStatus.Rejected))
         {
-            return CandidateResolution.NoMatch();
+            return FirmwareApplicabilityResult.NoMatch;
         }
 
-        foreach (FirmwareMetadataStructureResolution resolution in structureResolutions.Where(static resolution =>
-                     resolution.Status == FirmwareMetadataStructureResolutionStatus.Pending))
+        if (structureResolutions.Any(static resolution =>
+                resolution.Status == FirmwareMetadataStructureResolutionStatus.Pending))
         {
-            _ = pendingRequirements.Add(new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                resolution.ArtifactBindingId));
+            isPending = true;
         }
 
-        if (pendingRequirements.Count != 0)
+        if (isPending)
         {
-            return CandidateResolution.Pending(pendingRequirements);
+            return FirmwareApplicabilityResult.Pending;
         }
 
         FirmwareResolvedMetadataStructure[] resolvedStructures =
@@ -169,7 +143,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             static structure => structure.DecodedStructure.MetadataStructureId,
             StringComparer.Ordinal);
         var predicateOutcomes = new List<FirmwareMetadataPredicateOutcome>();
-        foreach (FirmwareMetadataPredicate predicate in map.Applicability.MetadataPredicates)
+        foreach (FirmwareMetadataPredicate predicate in applicability.MetadataPredicates)
         {
             FirmwareResolvedMetadataStructure structure = structuresById[predicate.MetadataStructureId];
             var fields = structure.DecodedStructure.Facts.ToDictionary(
@@ -179,20 +153,20 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareMetadataPredicateOutcome outcome = predicate.Evaluate(fields);
             if (outcome.Result != FirmwarePredicateResult.Match)
             {
-                return CandidateResolution.NoMatch();
+                return FirmwareApplicabilityResult.NoMatch;
             }
 
             predicateOutcomes.Add(outcome);
         }
 
-        return CandidateResolution.Match(new ResolvedFirmwareImageMap(
+        resolvedMap = new ResolvedFirmwareImageMap(
             ResolvedMapConstructionToken,
             this,
             inputs,
             map,
             resolvedStructures,
-            predicateOutcomes,
-            metadataStructures));
+            predicateOutcomes);
+        return FirmwareApplicabilityResult.Match;
     }
 
     private System.Collections.ObjectModel.ReadOnlyCollection<FirmwareMetadataStructure>
@@ -227,30 +201,4 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         ]);
     }
 
-    private sealed record CandidateResolution(
-        FirmwareApplicabilityResult Result,
-        ResolvedFirmwareImageMap? ResolvedMap,
-        IReadOnlyList<FirmwareMapResolutionPendingRequirement> PendingRequirements)
-    {
-        internal static CandidateResolution NoMatch()
-        {
-            return new CandidateResolution(FirmwareApplicabilityResult.NoMatch, null, []);
-        }
-
-        internal static CandidateResolution Pending(
-            IEnumerable<FirmwareMapResolutionPendingRequirement> pendingRequirements)
-        {
-            ArgumentNullException.ThrowIfNull(pendingRequirements);
-            return new CandidateResolution(
-                FirmwareApplicabilityResult.Pending,
-                null,
-                [.. pendingRequirements]);
-        }
-
-        internal static CandidateResolution Match(ResolvedFirmwareImageMap resolvedMap)
-        {
-            ArgumentNullException.ThrowIfNull(resolvedMap);
-            return new CandidateResolution(FirmwareApplicabilityResult.Match, resolvedMap, []);
-        }
-    }
 }

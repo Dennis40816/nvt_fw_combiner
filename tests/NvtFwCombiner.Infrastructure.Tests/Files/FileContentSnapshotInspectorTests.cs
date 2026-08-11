@@ -22,6 +22,7 @@ public sealed class FileContentSnapshotInspectorTests
             CancellationToken.None);
 
         Assert.Equal(FileStamp.FromBytes([1, 2, 3, 4]), result.FileStamp);
+        Assert.Equal([1, 2, 3, 4], result.AcceptedBytes!.Value.ToArray());
         Assert.Equal("input.bin", result.DisplayNameHint);
         Assert.Null(result.LastWriteTimeUtcHint);
     }

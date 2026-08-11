@@ -1,5 +1,4 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -15,7 +14,7 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-950-negative");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
 
@@ -43,17 +42,17 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ab-canonical-gate");
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         [
-            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+            .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                 input.InspectionId,
-                new WorkbenchFirmwareInspection(null, null, null, null, null, null)
+                new FirmwareInspectionSnapshot(null, null, null, null, null, null)
                 {
-                    AbMergeFacts = new WorkbenchAbMergeInputFacts(
+                    AbMergeFacts = new AbMergeInputFacts(
                         input.AbMergeAddressSpaceId!,
                         []),
                 })),
         ]);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         foreach (string slotId in new[]
                  {
@@ -81,9 +80,9 @@ public sealed partial class ShellViewModelTests
         WriteUiAbCmi(dp, 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteUiAbCmi(dp, singleCapacity / 2, major: 0x07, minor: 0x08, jira: 0x456);
         string path = workspace.Write("single-dp-ab.bin", dp);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -91,13 +90,13 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel slot = viewModel.Merge.MergeSlots.Single(static candidate =>
             candidate.SlotId == CompositionAddressSpaceIds.DpAbInput);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Valid, slot.InputInspectionSeverity);
 
         viewModel.WorkflowSession.SelectedNumber = "cascade";
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Equal(path, slot.FilePath);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
         Assert.True(slot.BlocksBuild);
         Assert.False(viewModel.Merge.CanBuildMerge);
     }

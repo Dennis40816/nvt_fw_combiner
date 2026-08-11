@@ -9,15 +9,10 @@ public sealed record FirmwareDecodedMetadataFact
         string fieldId,
         FirmwareMetadataValue value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fieldId);
-        ArgumentNullException.ThrowIfNull(value);
-
-        ArtifactBindingId = artifactBindingId;
-        MetadataStructureId = metadataStructureId;
-        FieldId = fieldId;
-        Value = value;
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        MetadataStructureId = RequiredValue.NotBlank(metadataStructureId);
+        FieldId = RequiredValue.NotBlank(fieldId);
+        Value = RequiredValue.NotNull(value);
     }
 
     /// <summary>Exact runtime artifact binding used to decode this fact.</summary>
@@ -43,18 +38,12 @@ public sealed record FirmwareDecodedMetadataRelation
         string relatedFieldId,
         bool isSatisfied)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relationId);
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata relation kind.");
-        }
+        RelationId = RequiredValue.NotBlank(relationId);
+        ClosedEnum.ThrowIfUndefined(kind, "Unknown metadata relation kind.");
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(relatedFieldId);
-        RelationId = relationId;
+        SourceFieldId = RequiredValue.NotBlank(sourceFieldId);
+        RelatedFieldId = RequiredValue.NotBlank(relatedFieldId);
         Kind = kind;
-        SourceFieldId = sourceFieldId;
-        RelatedFieldId = relatedFieldId;
         IsSatisfied = isSatisfied;
     }
 
@@ -86,35 +75,30 @@ public sealed class FirmwareDecodedMetadataStructure
         IEnumerable<FirmwareDecodedMetadataFact> facts,
         IEnumerable<FirmwareDecodedMetadataRelation>? relations = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(metadataStructureId);
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        MetadataStructureId = RequiredValue.NotBlank(metadataStructureId);
         _facts = Composition.ImmutableReferenceSnapshot.Create(
             facts,
             "Decoded metadata structures cannot contain null facts.");
 
-        if (_facts.Any(fact =>
+        DomainInvariant.Reject(
+            _facts.Any(fact =>
             !StringComparer.Ordinal.Equals(fact.ArtifactBindingId, artifactBindingId) ||
-            !StringComparer.Ordinal.Equals(fact.MetadataStructureId, metadataStructureId)))
-        {
-            throw new ArgumentException("Decoded metadata fact identity must match its structure.", nameof(facts));
-        }
+            !StringComparer.Ordinal.Equals(fact.MetadataStructureId, metadataStructureId)),
+            "Decoded metadata fact identity must match its structure.", nameof(facts));
 
-        if (_facts.Select(static fact => fact.FieldId).Distinct(StringComparer.Ordinal).Count() != _facts.Length)
-        {
-            throw new ArgumentException("Decoded metadata field ids must be ordinally unique.", nameof(facts));
-        }
+        DomainInvariant.Reject(
+            _facts.Select(static fact => fact.FieldId).Distinct(StringComparer.Ordinal).Count() != _facts.Length,
+            "Decoded metadata field ids must be ordinally unique.", nameof(facts));
 
         _relations = Composition.ImmutableReferenceSnapshot.Create(
             relations ?? [],
             "Decoded metadata structures cannot contain null relations.");
-        if (_relations.Select(static relation => relation.RelationId)
-            .Distinct(StringComparer.Ordinal).Count() != _relations.Length)
-        {
-            throw new ArgumentException("Decoded metadata relation ids must be ordinally unique.", nameof(relations));
-        }
+        DomainInvariant.Reject(
+            _relations.Select(static relation => relation.RelationId)
+            .Distinct(StringComparer.Ordinal).Count() != _relations.Length,
+            "Decoded metadata relation ids must be ordinally unique.", nameof(relations));
 
-        ArtifactBindingId = artifactBindingId;
-        MetadataStructureId = metadataStructureId;
         Facts = Array.AsReadOnly(_facts);
         Relations = Array.AsReadOnly(_relations);
     }

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
@@ -55,7 +56,7 @@ public sealed partial class MemoryLayoutProjectorTests
                 MemoryWorkflowDisposition.WillWrite,
                 MemoryWorkflowDisposition.Blank,
                 MemoryWorkflowDisposition.Resolved,
-                MemoryWorkflowDisposition.Blank,
+                MemoryWorkflowDisposition.WillWrite,
             ],
             snapshot.AfterSegments.Select(static segment => segment.Disposition));
         Assert.Equal(
@@ -70,12 +71,19 @@ public sealed partial class MemoryLayoutProjectorTests
         MemoryLayoutSegment dp = snapshot.AfterSegments[0];
         Assert.Same(fixture.DpRegion, dp.CanonicalRegion);
         Assert.Equal("dp-input", dp.SourceSlotId);
-        Assert.Equal(["copy-dp"], dp.ContributingOperationIds);
+        Assert.Equal(["copy-dp"], dp.ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Equal(MemorySelectionState.Selected, dp.Selection);
         Assert.Equal(MemoryObservedChange.NotObserved, dp.ObservedChange);
         Assert.Equal(MemoryFocusState.NotFocused, dp.Focus);
         Assert.Equal(MemoryBankIdentity.NotApplicable, dp.Bank);
         Assert.Equal(MemoryEndpointIdentity.NotApplicable, dp.Endpoint);
+
+        MemoryLayoutSegment tp = Assert.Single(
+            snapshot.AfterSegments,
+            static segment => segment.ContributingOperations.Any(
+                static operation => operation.OperationId == "copy-tp"));
+        Assert.Equal("tp-input", tp.SourceSlotId);
+        Assert.Equal(MemorySelectionState.NotSelected, tp.Selection);
 
         MemoryLayoutPendingItem pending = Assert.Single(snapshot.PendingItems);
         Assert.Equal("tp-input", pending.SlotId);
@@ -131,9 +139,11 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Same(fixture.DpRegion, snapshot.AfterSegments[0].CanonicalRegion);
         Assert.Same(fixture.DpRegion, snapshot.AfterSegments[1].CanonicalRegion);
         Assert.Same(fixture.TpRegion, snapshot.AfterSegments[3].CanonicalRegion);
-        Assert.Equal(["replace-dp"], snapshot.AfterSegments[0].ContributingOperationIds);
-        Assert.Empty(snapshot.AfterSegments[1].ContributingOperationIds);
-        Assert.Empty(snapshot.AfterSegments[3].ContributingOperationIds);
+        Assert.Equal(
+            ["replace-dp"],
+            snapshot.AfterSegments[0].ContributingOperations.Select(static operation => operation.OperationId));
+        Assert.Empty(snapshot.AfterSegments[1].ContributingOperations);
+        Assert.Empty(snapshot.AfterSegments[3].ContributingOperations);
     }
 
     /// <summary>Keeps unresolved inputs non-geometric until a compiled overlay is supplied.</summary>
@@ -161,7 +171,7 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(MemoryLayoutNextAction.WaitForInspection, checking.NextAction);
         Assert.All(
             snapshot.AfterSegments,
-            static segment => Assert.Empty(segment.ContributingOperationIds));
+            static segment => Assert.Empty(segment.ContributingOperations));
 
         ActiveSessionSnapshot selectedSession = CreateSession(
             fixture,
@@ -177,105 +187,6 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(MemoryLayoutNextAction.RunInspection, selected.NextAction);
         Assert.Equal(MemoryLayoutReadiness.PendingInput, selected.Readiness);
         Assert.Null(selected.BlockedIssue);
-    }
-
-    /// <summary>Retains kept subranges under one primary canonical segment.</summary>
-    [Fact]
-    public void PreservationDetailsRemainSubordinateToOneCanonicalSegment()
-    {
-        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace);
-        var detail = new MemoryLayoutPreservationDetail(
-            "active-nf-0",
-            blockIndex: 0,
-            MemoryEndpointIdentity.Slave,
-            "diffdlm-input",
-            new ByteRange(0x0B90, 0x0870),
-            new ByteRange(2, 2));
-        var segment = MemoryLayoutSegment.Create(
-            "dp-code:0-8",
-            "flash",
-            new ByteRange(0, 8),
-            fixture.DpRegion,
-            MemoryContentRole.Dp,
-            MemoryWorkflowDisposition.WillReplace,
-            MemoryEndpointIdentity.NotApplicable,
-            MemoryBankIdentity.NotApplicable,
-            MemoryProcessorEffect.None,
-            MemoryDiagnosticSeverity.None,
-            MemoryObservedChange.NotObserved,
-            MemorySelectionState.Selected,
-            MemoryFocusState.NotFocused,
-            "diffdlm-input",
-            "diffdlm",
-            ["replace-active-dlm"],
-            [detail]);
-
-        MemoryLayoutPreservationDetail actual = Assert.Single(segment.PreservationDetails);
-        Assert.Same(detail, actual);
-        Assert.Equal(MemoryWorkflowDisposition.Kept, actual.Disposition);
-        Assert.Equal(new ByteRange(0, 8), segment.Range);
-        Assert.Equal(new ByteRange(2, 2), actual.ResolvedRange);
-        Assert.Same(fixture.DpRegion, segment.CanonicalRegion);
-    }
-
-    /// <summary>Rejects subordinate kept details that overlap inside their primary segment.</summary>
-    [Fact]
-    public void PreservationDetailsRemainCheckedAndNonAuthoritative()
-    {
-        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace);
-        var first = new MemoryLayoutPreservationDetail(
-            "nf-0",
-            0,
-            MemoryEndpointIdentity.Slave,
-            "diffdlm-input",
-            new ByteRange(0, 2),
-            new ByteRange(1, 2));
-        var overlapping = new MemoryLayoutPreservationDetail(
-            "nf-1",
-            1,
-            MemoryEndpointIdentity.Slave,
-            "diffdlm-input",
-            new ByteRange(2, 2),
-            new ByteRange(2, 2));
-
-        _ = Assert.Throws<ArgumentException>(() =>
-            MemoryLayoutSegment.Create(
-                "dp-code:0-8",
-                "flash",
-                new ByteRange(0, 8),
-                fixture.DpRegion,
-                MemoryContentRole.Dp,
-                MemoryWorkflowDisposition.WillReplace,
-                MemoryEndpointIdentity.NotApplicable,
-                MemoryBankIdentity.NotApplicable,
-                MemoryProcessorEffect.None,
-                MemoryDiagnosticSeverity.None,
-                MemoryObservedChange.NotObserved,
-                MemorySelectionState.Selected,
-                MemoryFocusState.NotFocused,
-                "diffdlm-input",
-                "diffdlm",
-                ["replace-active-dlm"],
-                [first, overlapping]));
-    }
-
-    /// <summary>Exposes projection collections as immutable snapshots.</summary>
-    [Fact]
-    public void SnapshotCollectionsAreImmutable()
-    {
-        ProjectionFixture fixture = CreateFixture(CompositionKind.Merge);
-        ActiveSessionSnapshot session = CreateSession(
-            fixture,
-            Slot("dp-input", AuthoringSlotLifecycle.Verified, Capacity),
-            Slot("tp-input", AuthoringSlotLifecycle.Empty));
-        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
-            fixture.Capability,
-            session,
-            fixture.Composition);
-
-        Assert.True(((IList<MemoryLayoutSegment>)snapshot.AfterSegments).IsReadOnly);
-        Assert.True(((IList<FirmwareRegion>)snapshot.CanonicalRegions).IsReadOnly);
-        Assert.True(((IList<MemoryLayoutPendingItem>)snapshot.PendingItems).IsReadOnly);
     }
 
     /// <summary>Rejects stale authoring identity and separately compiled look-alike artifacts.</summary>
@@ -305,22 +216,75 @@ public sealed partial class MemoryLayoutProjectorTests
                 other.Composition));
     }
 
+    /// <summary>TP Overview labels cannot redefine canonical CtrlRAM geometry or grouping identity.</summary>
+    [Fact]
+    public void CtrlRamDisplayGroupingBindsByExactCanonicalRange()
+    {
+        ProjectionFixture fixture = CreateFixture(
+            CompositionKind.Replace,
+            ctrlRamMap: true);
+        ActiveSessionSnapshot session = CreateSession(
+            fixture,
+            Slot("reference-base", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("dp-replacement", AuthoringSlotLifecycle.Verified, Capacity));
+        var display = new CtrlRamRegion(
+            "tp-overview-display-id",
+            "Slave Right CtrlRAM",
+            fixture.TpRegion.Range.Start,
+            fixture.TpRegion.Range.Length,
+            IsMultiChipOnly: true,
+            ReplaceRegionGroup.SlaveRight);
+
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
+            fixture.Capability,
+            session,
+            fixture.Composition,
+            [display]);
+
+        MemoryLayoutSegment segment = Assert.Single(
+            snapshot.AfterSegments,
+            candidate => ReferenceEquals(candidate.CanonicalRegion, fixture.TpRegion));
+        Assert.Equal("tp-code", segment.RegionId);
+        Assert.Equal(ReplaceRegionGroup.SlaveRight, segment.RegionGroup);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+        {
+            _ = MemoryLayoutProjector.Project(
+                fixture.Capability,
+                session,
+                fixture.Composition,
+                [display, display with { RegionId = "duplicate-display-id" }]);
+        });
+        _ = Assert.Throws<ArgumentException>(() =>
+        {
+            _ = MemoryLayoutProjector.Project(
+                fixture.Capability,
+                session,
+                fixture.Composition,
+                [display with { Start = display.Start + 1 }]);
+        });
+    }
+
     private static ProjectionFixture CreateFixture(
         CompositionKind kind,
-        CompositionPlan? customPlan = null)
+        CompositionPlan? customPlan = null,
+        CompiledInputContract? customInputContract = null,
+        string? customWorkflowId = null,
+        bool ctrlRamMap = false)
     {
-        string workflowId = kind == CompositionKind.Merge
+        string workflowId = customWorkflowId ?? (kind == CompositionKind.Merge
             ? ExperienceIds.StandardMerge
-            : ExperienceIds.DpReplace;
+            : ExperienceIds.DpReplace);
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap =
-            CreateResolvedMap(workflowId);
+            CreateResolvedMap(workflowId, ctrlRamMap);
         FirmwareRegion dp = resolvedMap.ImageMap.Regions.Single(
             static region => region.RegionId == "dp-code");
         FirmwareRegion tp = resolvedMap.ImageMap.Regions.Single(
             static region => region.RegionId == "tp-code");
-        CompiledInputContract inputContract = kind == CompositionKind.Merge
-            ? MergeInputContract()
-            : ReplaceInputContract();
+        CompiledInputContract inputContract = customInputContract ??
+            (kind == CompositionKind.Merge
+                ? MergeInputContract()
+                : ReplaceInputContract());
         CompositionPlan plan = customPlan ??
             (kind == CompositionKind.Merge
                 ? MergePlan()
@@ -334,31 +298,28 @@ public sealed partial class MemoryLayoutProjectorTests
             new ProfileBundleEntryIdentity(
                 $"profile-{workflowId}",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["test-evidence"],
             [],
             []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             $"profile-{workflowId}",
             "1.0.0",
             workflowId,
             kind,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                new CompiledRegionAccessContract([], []),
-                new CompiledOutputNamingRequirement(
-                    $"{workflowId}.bin",
-                    allowOverride: true,
-                    CompiledOutputInvalidCharacterPolicy.Reject,
-                    [])));
-        var composition = CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            identity,
+            provenance,
+            inputContract,
+            new CompiledRegionAccessContract([], []),
+            new CompiledOutputNamingRequirement(
+                $"{workflowId}.bin",
+                allowOverride: true,
+                CompiledOutputInvalidCharacterPolicy.Reject,
+                []),
             kind == CompositionKind.Merge
-                ? CompiledIcNumberPolicy.NotApplicable
-                : CompiledIcNumberPolicy.SingleSelector);
+                ? null
+                : IcNumberInputMode.SingleSelector);
+        var composition = CompiledComposition.CreateV2RuntimeExecutable(plan, details);
         var route = new CapabilityRouteIdentity(
             "NT-SYNTHETIC",
             workflowId,
@@ -375,7 +336,7 @@ public sealed partial class MemoryLayoutProjectorTests
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap
-        CreateResolvedMap(string modeId)
+        CreateResolvedMap(string modeId, bool ctrlRamMap)
     {
         FirmwareRegion[] regions =
         [
@@ -418,7 +379,7 @@ public sealed partial class MemoryLayoutProjectorTests
                 "tp-code",
                 "flash-image",
                 FirmwareRegionOwner.Tp,
-                FirmwareRegionKind.Code,
+                ctrlRamMap ? FirmwareRegionKind.CtrlRam : FirmwareRegionKind.Code,
                 new ByteRange(12, 4),
                 FirmwareWriteConstraint.WholeRegion),
         ];
@@ -511,7 +472,7 @@ public sealed partial class MemoryLayoutProjectorTests
         CompiledInputArtifactClass artifactClass,
         CompiledInputLengthRequirement length)
     {
-        return new CompiledInputSlotRequirement(
+        return CompiledInputSlotTestFactory.Create(
             slotId,
             role,
             artifactClass,
@@ -658,6 +619,29 @@ public sealed partial class MemoryLayoutProjectorTests
             slots,
             draftState: null,
             draftCapabilityFingerprint: null,
+            derivedPublications: []);
+    }
+
+    private static ActiveSessionSnapshot CreateSessionWithDraft(
+        ProjectionFixture fixture,
+        AuthoringDraftState draftState,
+        params AuthoringSlotState[] slots)
+    {
+        return new ActiveSessionSnapshot(
+            fixture.Route.WorkflowId,
+            Token,
+            new AuthoringRevision(3),
+            fixture.Route.RouteId,
+            fixture.Capability.CapabilityFingerprint,
+            executionAdmitted: true,
+            fixture.Route.IcId,
+            fixture.Route.IcCountVariant,
+            fixture.Route.MapVariant,
+            [fixture.Route.IcId],
+            [fixture.Route.IcCountVariant],
+            slots,
+            draftState,
+            fixture.Capability.CapabilityFingerprint,
             derivedPublications: []);
     }
 

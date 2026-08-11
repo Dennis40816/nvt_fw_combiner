@@ -18,42 +18,20 @@ public abstract class V2CompilationContext
 {
     /// <summary>Creates a checked exact compilation context.</summary>
     protected V2CompilationContext(
-        V2CompilationContextKind kind,
         string familyId,
         string familyVersion,
         string familyContentHash,
         string memberId,
         string modeId)
     {
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown V2 compilation context kind.");
-        }
+        FamilyId = RequiredValue.NotBlank(familyId);
+        FamilyVersion = RequiredValue.NotBlank(familyVersion);
+        MemberId = RequiredValue.NotBlank(memberId);
+        ModeId = RequiredValue.NotBlank(modeId);
+        _ = CanonicalSha256.Require(familyContentHash, nameof(familyContentHash));
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(familyVersion);
-        ArgumentNullException.ThrowIfNull(familyContentHash);
-        ArgumentException.ThrowIfNullOrWhiteSpace(memberId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(modeId);
-        if (familyContentHash.Length != 64 ||
-            familyContentHash.Any(static character => !char.IsAsciiHexDigit(character)) ||
-            familyContentHash.Any(char.IsUpper))
-        {
-            throw new ArgumentException(
-                "Family content hash must be 64 lowercase hexadecimal characters.",
-                nameof(familyContentHash));
-        }
-
-        Kind = kind;
-        FamilyId = familyId;
-        FamilyVersion = familyVersion;
         FamilyContentHash = familyContentHash;
-        MemberId = memberId;
-        ModeId = modeId;
     }
-
-    /// <summary>Closed provenance context kind.</summary>
-    public V2CompilationContextKind Kind { get; }
 
     /// <summary>Exact trusted firmware family identifier.</summary>
     public string FamilyId { get; }
@@ -76,10 +54,8 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
 {
     /// <summary>Creates one checked map-bound context with a closed purpose discriminator.</summary>
     protected MapBoundV2CompilationContext(
-        V2CompilationContextKind kind,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
         : base(
-            kind,
             RequireMap(resolvedMap).FamilyId,
             resolvedMap.FamilyVersion,
             resolvedMap.FamilyContentHash,
@@ -103,7 +79,7 @@ public abstract class MapBoundV2CompilationContext : V2CompilationContext
 public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationContext
 {
     internal ResolvedMapV2CompilationContext(FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
-        : base(V2CompilationContextKind.ResolvedMap, resolvedMap)
+        : base(resolvedMap)
     {
     }
 }
@@ -111,22 +87,20 @@ public sealed class ResolvedMapV2CompilationContext : MapBoundV2CompilationConte
 /// <summary>Context for the closed map-bound runtime reference-replace candidate shape.</summary>
 public sealed class RuntimeReferenceReplaceV2CompilationContext : MapBoundV2CompilationContext
 {
-    private readonly string[] _processorWriteViewIds;
-
     internal RuntimeReferenceReplaceV2CompilationContext(
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         bool allowsConditionalProcessor,
         IEnumerable<string>? processorWriteViewIds = null)
-        : base(V2CompilationContextKind.RuntimeReferenceReplace, resolvedMap)
+        : base(resolvedMap)
     {
-        _processorWriteViewIds = ImmutableStringSnapshot.Create(
+        string[] processorWriteViewIdsSnapshot = ImmutableStringSnapshot.Create(
             processorWriteViewIds ?? [],
             nameof(processorWriteViewIds),
             requiredMessage: null,
             "Runtime-reference processor write-view ids must be non-empty.",
             "Runtime-reference processor write-view ids must be ordinally unique.");
         AllowsConditionalProcessor = allowsConditionalProcessor;
-        ProcessorWriteViewIds = Array.AsReadOnly(_processorWriteViewIds);
+        ProcessorWriteViewIds = Array.AsReadOnly(processorWriteViewIdsSnapshot);
     }
 
     /// <summary>Whether the trusted profile contract can append one mapping-triggered processor stage.</summary>
@@ -145,7 +119,6 @@ public sealed class LogicalOutputV2CompilationContext : V2CompilationContext
         string familyContentHash,
         string memberId)
         : base(
-            V2CompilationContextKind.LogicalOutput,
             familyId,
             familyVersion,
             familyContentHash,

@@ -127,11 +127,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         CompiledComposition composition = Composition();
         _ = Assert.Throws<ArgumentException>(() =>
             CompiledInputArtifactInspectionService.Inspect(
-                composition.V2Details.InputContract,
-                "dp-input",
-                new byte[4]));
-        _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.Inspect(
                 composition,
                 "missing-input",
                 new byte[4]));
@@ -220,7 +215,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
         ];
         var inputContract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "dp-slot",
                     "dp",
                     CompiledInputArtifactClass.DpFirmware,
@@ -231,7 +226,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                         dpExpectedOuterLengths,
                         dpUnexpectedOuterLengthIssueCode),
                     new CompiledNoInputNormalization()),
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     "tp-slot",
                     "tp",
                     CompiledInputArtifactClass.TpFirmware,
@@ -260,12 +255,16 @@ public sealed class CompiledFirmwareArtifactClassifierTests
             new ProfileBundleEntryIdentity(
                 "profile-entry",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             ["profile-evidence"],
             validations,
             []);
         var details = new V2CompiledCompositionDetails(
+            "classification-profile",
+            "1.0.0",
+            ExperienceIds.StandardMerge,
+            CompositionKind.Merge,
             provenance,
             inputContract,
             new CompiledRegionAccessContract([], []),
@@ -274,12 +273,6 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                 allowOverride: true,
                 CompiledOutputInvalidCharacterPolicy.Reject,
                 []));
-        var identity = new V2CompiledCompositionIdentity(
-            "classification-profile",
-            "1.0.0",
-            ExperienceIds.StandardMerge,
-            CompositionKind.Merge,
-            details);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 16, 0),
             [
@@ -318,10 +311,7 @@ public sealed class CompiledFirmwareArtifactClassifierTests
                     "copy declared TP source"),
             ]);
 
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.NotApplicable);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolvedMap()

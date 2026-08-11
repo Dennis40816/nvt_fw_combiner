@@ -117,6 +117,7 @@ public sealed record CanonicalCapabilityCatalogCandidate
         SourceSha256 = sourceSha256;
         Definitions = Array.AsReadOnly([.. definitions]);
         DynamicDefinitions = Array.AsReadOnly([.. dynamicDefinitions ?? []]);
+        Disclosure = CanonicalCapabilityDisclosure.Empty;
     }
 
     /// <summary>Stable catalog id.</summary>
@@ -133,6 +134,15 @@ public sealed record CanonicalCapabilityCatalogCandidate
 
     /// <summary>Policy-bound definitions compiled only after current authoring resolution.</summary>
     public IReadOnlyList<CanonicalDynamicCapabilityDefinition> DynamicDefinitions { get; }
+
+    internal CanonicalCapabilityDisclosure Disclosure { get; private init; }
+
+    internal CanonicalCapabilityCatalogCandidate WithDisclosure(
+        CanonicalCapabilityDisclosure disclosure)
+    {
+        ArgumentNullException.ThrowIfNull(disclosure);
+        return this with { Disclosure = disclosure };
+    }
 }
 
 /// <summary>Unique identity for one published in-process resolution snapshot.</summary>
@@ -228,6 +238,17 @@ public sealed record ResolvedCapability
     /// <summary>Typed plan proof bound to this exact runtime-reference compilation.</summary>
     public RuntimeReferenceCompilationProof? RuntimeReferenceProof { get; }
 
+    /// <summary>
+    /// Exact accepted General admission and input bindings, or null for non-General capabilities.
+    /// </summary>
+    public AcceptedGeneralExecutionPlan? GeneralExecutionPlan { get; private init; }
+
+    /// <summary>Exact accepted DP execution selection, or null for other workflows.</summary>
+    public AcceptedDpExecutionPlan? DpExecutionPlan { get; private init; }
+
+    /// <summary>Exact accepted CtrlRAM selections and advisory evidence, or null for other workflows.</summary>
+    public AcceptedCtrlRamExecutionPlan? CtrlRamExecutionPlan { get; private init; }
+
     /// <summary>Shared UI/CLI authoring decision.</summary>
     public PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring { get; }
 
@@ -247,6 +268,37 @@ public sealed record ResolvedCapability
     public bool ExecutionAdmitted =>
         CapabilityPublicationCoherence.IsExecutionAdmitted(
             CompiledComposition);
+
+    /// <summary>Binds one immutable General execution plan to this exact compiled capability.</summary>
+    public ResolvedCapability BindGeneralExecutionPlan(AcceptedGeneralExecutionPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return StringComparer.Ordinal.Equals(Identity.WorkflowId, ExperienceIds.GeneralMerge) ||
+               StringComparer.Ordinal.Equals(Identity.WorkflowId, ExperienceIds.GeneralReplace)
+            ? this with { GeneralExecutionPlan = plan }
+            : throw new InvalidOperationException(
+                "Only a General workflow capability may retain a General execution plan.");
+    }
+
+    /// <summary>Binds one immutable DP execution plan to this exact compiled capability.</summary>
+    public ResolvedCapability BindDpExecutionPlan(AcceptedDpExecutionPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return StringComparer.Ordinal.Equals(Identity.WorkflowId, ExperienceIds.DpReplace)
+            ? this with { DpExecutionPlan = plan }
+            : throw new InvalidOperationException(
+                "Only a DP Replace capability may retain a DP execution plan.");
+    }
+
+    /// <summary>Binds one immutable CtrlRAM execution plan to this exact compiled capability.</summary>
+    public ResolvedCapability BindCtrlRamExecutionPlan(AcceptedCtrlRamExecutionPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return StringComparer.Ordinal.Equals(Identity.WorkflowId, ExperienceIds.CtrlRamReplace)
+            ? this with { CtrlRamExecutionPlan = plan }
+            : throw new InvalidOperationException(
+                "Only a CtrlRAM Replace capability may retain a CtrlRAM execution plan.");
+    }
 }
 
 /// <summary>One immutable published catalog projection.</summary>
@@ -262,6 +314,7 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
         CatalogVersion = candidate.CatalogVersion;
         SourceSha256 = candidate.SourceSha256;
         ResolutionToken = resolutionToken;
+        Disclosure = candidate.Disclosure;
 
         var byRouteId = new Dictionary<string, ResolvedCapability>(StringComparer.Ordinal);
         foreach (CanonicalCapabilityDefinition definition in candidate.Definitions)
@@ -291,17 +344,6 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
                 static capability => capability.Identity.RouteId,
                 StringComparer.Ordinal),
         ]);
-        CertificationIssues = Array.AsReadOnly(
-        [
-            .. Capabilities
-                .Where(static capability =>
-                    capability.Publication.Value == CapabilityPublicationStatus.Supported &&
-                    capability.Evidence.Value == CapabilityEvidenceStatus.Missing)
-                .Select(static capability => new CapabilityCatalogIssue(
-                    CapabilityCatalogIssueCodes.SupportedWithoutEvidence,
-                    "A supported route has no approved evidence declaration.",
-                    capability.Identity.RouteId)),
-        ]);
         DynamicRoutes = Array.AsReadOnly(
         [
             .. candidate.DynamicDefinitions
@@ -314,6 +356,25 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
             DynamicRoutes.ToDictionary(
                 static route => route.Identity.RouteId,
                 StringComparer.Ordinal));
+        CertificationIssues = Array.AsReadOnly(
+        [
+            .. Capabilities
+                .Select(static capability => (
+                    capability.Identity,
+                    capability.Publication,
+                    capability.Evidence))
+                .Concat(DynamicRoutes.Select(static route => (
+                    route.Identity,
+                    route.Publication,
+                    route.Evidence)))
+                .Where(static route =>
+                    route.Publication.Value == CapabilityPublicationStatus.Supported &&
+                    route.Evidence.Value == CapabilityEvidenceStatus.Missing)
+                .Select(static route => new CapabilityCatalogIssue(
+                    CapabilityCatalogIssueCodes.SupportedWithoutEvidence,
+                    "A supported route has no approved evidence declaration.",
+                    route.Identity.RouteId)),
+        ]);
     }
 
     /// <summary>Stable catalog id.</summary>
@@ -327,6 +388,8 @@ public sealed partial record CanonicalCapabilityCatalogSnapshot
 
     /// <summary>Unique token for this publication.</summary>
     public ResolutionToken ResolutionToken { get; }
+
+    internal CanonicalCapabilityDisclosure Disclosure { get; }
 
     /// <summary>Resolved exact routes in stable identity order.</summary>
     public IReadOnlyList<ResolvedCapability> Capabilities { get; }

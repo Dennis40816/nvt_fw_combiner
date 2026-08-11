@@ -1,6 +1,6 @@
 using System.Numerics;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -11,36 +11,35 @@ public sealed class CompositionProfileV2OperationTests
     [Fact]
     public void OperationKindsKeepTypedLogicalReferences()
     {
-        var copy = new CopyOrReplaceProfileOperation(
-            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.CopyRange,
-            "source", "target");
-        var replace = new CopyOrReplaceProfileOperation(
+        var copy = CompositionOperationDefinition.CopyOrReplace(
+            "copy-code", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.CopyRange, "source", "target");
+        var replace = CompositionOperationDefinition.CopyOrReplace(
             "replace-code", 1, OverlapPolicy.ReplaceExisting, "replace",
-            CompositionProfileOperationKind.ReplaceRange, "replacement", "target");
-        var fill = new FillRangeProfileOperation(
+            CompositionOperationKind.ReplaceRange, "replacement", "target");
+        var fill = CompositionOperationDefinition.FillRange(
             "fill-gap", 2, OverlapPolicy.Reject, "fill", "gap", 0xFF);
-        var patch = new PatchScalarProfileOperation(
+        var patch = CompositionOperationDefinition.PatchScalar(
             "patch-header", 3, OverlapPolicy.AllowDeclared, "patch", "header-field",
-            new CompositionProfileByteValue([0x01, 0x02]));
-        var transform = new TransformScalarProfileOperation(
+            new FirmwareMetadataBytes([0x01, 0x02]));
+        var transform = CompositionOperationDefinition.TransformScalar(
             "relocate", 4, OverlapPolicy.ReplaceExisting, "relocate", "source-scalar", "target-scalar",
-            CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
-            -16, 32);
-        var instanceDelta = new TransformScalarProfileOperation(
+            ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
+            -16, ScalarTransformAddendSource.Fixed, 32);
+        var instanceDelta = CompositionOperationDefinition.TransformScalar(
             "relocate-instance", 5, OverlapPolicy.Reject, "relocate", "source-scalar", "target-scalar",
-            CompositionProfileScalarWidth.FourBytes, CompositionProfileScalarByteOrder.LittleEndian,
-            new RegionInstanceDeltaTransformAddendSource("a-bank", "b-bank"), null);
-        var processor = new RunProcessorProfileOperation(
+            ScalarTransformWidth.FourBytes, ScalarTransformByteOrder.LittleEndian,
+            null, ScalarTransformAddendSource.RegionInstanceDelta("a-bank", "b-bank"), null);
+        var processor = CompositionOperationDefinition.RunProcessor(
             "postbuild", 6, OverlapPolicy.ReplaceExisting, "postbuild", "legacy-postbuild");
 
-        Assert.Equal(CompositionProfileOperationKind.CopyRange, copy.Kind);
+        Assert.Equal(CompositionOperationKind.CopyRange, copy.Kind);
         Assert.Equal("target", replace.TargetViewId);
         Assert.Equal(0xFF, fill.FillByte);
-        Assert.Equal("0102", patch.Value.Hex);
-        Assert.Equal(CompositionProfileScalarWidth.FourBytes, transform.Width);
+        Assert.Equal("0102", patch.PatchBytes.Hex);
+        Assert.Equal(ScalarTransformWidth.FourBytes, transform.TransformWidth);
         Assert.Equal(-16, transform.Addend);
-        RegionInstanceDeltaTransformAddendSource delta =
-            Assert.IsType<RegionInstanceDeltaTransformAddendSource>(instanceDelta.AddendSource);
+        ScalarTransformAddendSource delta = instanceDelta.AddendSource;
+        Assert.Equal(ScalarTransformAddendSourceKind.RegionInstanceDelta, delta.Kind);
         Assert.Equal("a-bank", delta.SourceRegionInstanceId);
         Assert.Equal("b-bank", delta.TargetRegionInstanceId);
         Assert.Equal("legacy-postbuild", processor.ProcessorStageId);
@@ -51,17 +50,17 @@ public sealed class CompositionProfileV2OperationTests
     public void ByteValuesAreImmutableAndStructural()
     {
         byte[] bytes = [0xAA, 0x55];
-        var value = new CompositionProfileByteValue(bytes);
+        var value = new FirmwareMetadataBytes(bytes);
         bytes[0] = 0;
-        var equal = new CompositionProfileByteValue([0xAA, 0x55]);
-        var different = new CompositionProfileByteValue([0xAA, 0x56]);
+        var equal = new FirmwareMetadataBytes([0xAA, 0x55]);
+        var different = new FirmwareMetadataBytes([0xAA, 0x56]);
 
         Assert.Equal("aa55", value.Hex);
         Assert.Equal(2, value.Length);
         Assert.Equal(value, equal);
         Assert.Equal(value.GetHashCode(), equal.GetHashCode());
         Assert.NotEqual(value, different);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileByteValue([]));
+        _ = Assert.Throws<ArgumentException>(() => new FirmwareMetadataBytes([]));
     }
 
     /// <summary>Verifies schema-sized sequence and signed addend values stay lossless.</summary>
@@ -70,10 +69,10 @@ public sealed class CompositionProfileV2OperationTests
     {
         var sequence = BigInteger.Parse("18446744073709551616", System.Globalization.CultureInfo.InvariantCulture);
         var addend = BigInteger.Parse("-18446744073709551617", System.Globalization.CultureInfo.InvariantCulture);
-        var transform = new TransformScalarProfileOperation(
+        var transform = CompositionOperationDefinition.TransformScalar(
             "relocate", sequence, OverlapPolicy.Reject, "relocate", "source", "target",
-            CompositionProfileScalarWidth.EightBytes, CompositionProfileScalarByteOrder.BigEndian,
-            addend, ulong.MaxValue);
+            ScalarTransformWidth.EightBytes, ScalarTransformByteOrder.BigEndian,
+            addend, ScalarTransformAddendSource.Fixed, ulong.MaxValue);
 
         Assert.Equal(sequence, transform.Sequence);
         Assert.Equal(addend, transform.Addend);
@@ -90,8 +89,8 @@ public sealed class CompositionProfileV2OperationTests
         int widthBytes,
         ulong expectedBefore)
     {
-        var width = (CompositionProfileScalarWidth)widthBytes;
-        TransformScalarProfileOperation operation = Transform(width, expectedBefore);
+        var width = (ScalarTransformWidth)widthBytes;
+        CompositionOperationDefinition operation = Transform(width, expectedBefore);
         Assert.Equal(expectedBefore, operation.ExpectedBefore);
     }
 
@@ -100,40 +99,40 @@ public sealed class CompositionProfileV2OperationTests
     public void TransformRejectsInvalidWidthOrderAndExpectedValue()
     {
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Transform(
-            CompositionProfileScalarWidth.OneByte,
+            ScalarTransformWidth.OneByte,
             256));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => Transform(
-            (CompositionProfileScalarWidth)3,
+            (ScalarTransformWidth)3,
             null));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new TransformScalarProfileOperation(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompositionOperationDefinition.TransformScalar(
             "relocate", 0, OverlapPolicy.Reject, "relocate", "source", "target",
-            CompositionProfileScalarWidth.OneByte, (CompositionProfileScalarByteOrder)99, 0, null));
+            ScalarTransformWidth.OneByte, (ScalarTransformByteOrder)99, 0, ScalarTransformAddendSource.Fixed, null));
     }
 
     /// <summary>Verifies common operation identity, sequence, and copy-kind invariants.</summary>
     [Fact]
     public void OperationsRejectInvalidCommonAndUnionValues()
     {
-        _ = Assert.Throws<ArgumentException>(() => new FillRangeProfileOperation(
+        _ = Assert.Throws<ArgumentException>(() => CompositionOperationDefinition.FillRange(
             "Fill", 0, OverlapPolicy.Reject, "fill", "target", 0));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FillRangeProfileOperation(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompositionOperationDefinition.FillRange(
             "fill", -1, OverlapPolicy.Reject, "fill", "target", 0));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new FillRangeProfileOperation(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompositionOperationDefinition.FillRange(
             "fill", 0, (OverlapPolicy)99, "fill", "target", 0));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CopyOrReplaceProfileOperation(
-            "copy", 0, OverlapPolicy.Reject, "copy", CompositionProfileOperationKind.FillRange,
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CompositionOperationDefinition.CopyOrReplace(
+            "copy", 0, OverlapPolicy.Reject, "copy", CompositionOperationKind.FillRange,
             "source", "target"));
-        _ = Assert.Throws<ArgumentNullException>(() => new PatchScalarProfileOperation(
+        _ = Assert.Throws<ArgumentNullException>(() => CompositionOperationDefinition.PatchScalar(
             "patch", 0, OverlapPolicy.Reject, "patch", "target", null!));
-        _ = Assert.Throws<ArgumentException>(() => new RunProcessorProfileOperation(
+        _ = Assert.Throws<ArgumentException>(() => CompositionOperationDefinition.RunProcessor(
             "processor", 0, OverlapPolicy.Reject, "run", "Processor"));
     }
 
-    private static TransformScalarProfileOperation Transform(
-        CompositionProfileScalarWidth width,
+    private static CompositionOperationDefinition Transform(
+        ScalarTransformWidth width,
         ulong? expectedBefore)
     {
-        return new TransformScalarProfileOperation(
+        return CompositionOperationDefinition.TransformScalar(
             "relocate",
             0,
             OverlapPolicy.Reject,
@@ -141,8 +140,9 @@ public sealed class CompositionProfileV2OperationTests
             "source",
             "target",
             width,
-            CompositionProfileScalarByteOrder.LittleEndian,
+            ScalarTransformByteOrder.LittleEndian,
             0,
+            ScalarTransformAddendSource.Fixed,
             expectedBefore);
     }
 }

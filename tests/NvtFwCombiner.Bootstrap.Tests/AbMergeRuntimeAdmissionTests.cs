@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -20,13 +20,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         Assert.Equal(
             ["NT51919", "NT51929", "NT51932", "NT51950", "NT51951"],
-            WorkbenchCompositionService.GetAbMergeProfileSummaries().Select(static profile => profile.IcId));
+            BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries()
+                .Select(static profile => profile.IcId));
         Assert.All(
-            WorkbenchCompositionService.GetAbMergeProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetAbMergeProfileSummaries(),
             static profile => Assert.True(profile.CompileSucceeded, string.Join(',', profile.IssueCodes)));
-        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("51929"));
-        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51950"));
-        Assert.True(AbMergeWorkbenchCompositionService.IsAbMergeSupported("NT51951"));
+        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("51929"));
+        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51950"));
+        Assert.True(BootstrapTestHost.Canonical.Compiler.IsAbMergeSupported("NT51951"));
     }
 
     /// <summary>The desktop adapter exposes compiler-owned exact-container and source-view authority.</summary>
@@ -41,28 +42,31 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         int expectedDpLength,
         int expectedTpPrefixLength)
     {
-        IReadOnlyList<WorkbenchAbMergeInputSlot> slots =
-            WorkbenchCompositionService.GetAbMergeInputSlots(
+        IReadOnlyList<CompiledAuthoringInputBinding> slots =
+            BootstrapTestHost.Services.AbMergeAuthoring.GetAuthoringSnapshot(
                 icId,
-                abMergeTopologyToken: icId == "NT51950" ? "single" : null);
+                topologyToken: icId == "NT51950" ? "single" : null,
+                [],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                new AuthoringRevision(1)).InputBindings;
         Assert.Collection(
             slots,
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.DpAbInput,
-                WorkbenchAbMergeInputRole.DpAb,
+                "dp-ab",
                 expectedDpLength,
                 [expectedDpLength]),
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.TpAInput,
-                WorkbenchAbMergeInputRole.TpA,
+                "tp-a",
                 expectedTpPrefixLength,
                 []),
             slot => AssertAbSlot(
                 slot,
                 CompositionAddressSpaceIds.TpBInput,
-                WorkbenchAbMergeInputRole.TpB,
+                "tp-b",
                 expectedTpPrefixLength,
                 []));
     }
@@ -73,10 +77,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         Assert.Equal(
             ["single", "cascade"],
-            AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51950")
+            BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51950")
                 .Select(static choice => choice.Token));
-        Assert.Empty(AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51951"));
-        Assert.Empty(AbMergeWorkbenchCompositionService.GetTopologyChoices("NT51929"));
+        Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51951"));
+        Assert.Empty(BootstrapTestHost.Canonical.Compiler.GetAbMergeTopologyChoices("NT51929"));
     }
 
     /// <summary>NT51950 rejects a selected topology that disagrees with both canonical TP FWConfig Backups before postbuild.</summary>
@@ -86,15 +90,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-topology-selection");
         Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 2, tpBChipCount: 2);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51950",
             paths,
             build: false,
             TestContext.Current.CancellationToken,
-            abMergeTopologySelection: RequestedTopology("single"));
+            topologySelection: RequestedTopology("NT51950", "single"));
 
         Assert.False(result.Succeeded);
-        Assert.Contains("AB_TP_TOPOLOGY_SELECTION_MISMATCH", result.ReportJson, StringComparison.Ordinal);
+        Assert.Contains("AB_TP_TOPOLOGY_SELECTION_MISMATCH", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
     }
 
     /// <summary>NT51950 rejects TPA and TPB that declare different canonical FWConfig Backup topologies before postbuild.</summary>
@@ -104,15 +108,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-nt51950-ab-topology-pair");
         Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 1, tpBChipCount: 2);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51950",
             paths,
             build: false,
             TestContext.Current.CancellationToken,
-            abMergeTopologySelection: RequestedTopology("single"));
+            topologySelection: RequestedTopology("NT51950", "single"));
 
         Assert.False(result.Succeeded);
-        Assert.Contains("AB_TP_TOPOLOGY_MISMATCH", result.ReportJson, StringComparison.Ordinal);
+        Assert.Contains("AB_TP_TOPOLOGY_MISMATCH", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
     }
 
     /// <summary>NT51950 rejects a TP source whose accepted prefix does not contain a valid canonical FWConfig Backup.</summary>
@@ -123,15 +127,15 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Dictionary<string, string> paths = WriteNt51950Inputs(workspace, tpAChipCount: 1, tpBChipCount: 1);
         paths[CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b-invalid.bin", new byte[0x37000]);
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51950",
             paths,
             build: false,
             TestContext.Current.CancellationToken,
-            abMergeTopologySelection: RequestedTopology("single"));
+            topologySelection: RequestedTopology("NT51950", "single"));
 
         Assert.False(result.Succeeded);
-        Assert.Contains("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", result.ReportJson, StringComparison.Ordinal);
+        Assert.Contains("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
     }
 
     /// <summary>Each selected source that ends one byte early blocks under its canonical input geometry.</summary>
@@ -150,22 +154,17 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         paths[shortAddressSpaceId] = workspace.Write($"short/{shortAddressSpaceId}.bin", shortBytes);
         string outputPath = workspace.PathFor($"output/{shortAddressSpaceId}.bin");
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompiledAuthoringSessionPreparation prepared = AbMergeTestSupport.Prepare(
+            BootstrapTestHost.Services,
             "NT51929",
-            paths,
-            build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
+            paths);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(0, result.OutputSize);
+        Assert.False(prepared.Succeeded);
         Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == expectedIssueCode);
-        Assert.Equal(shortAddressSpaceId, issue.GetProperty("OperationId").GetString());
-        Assert.Equal("error", issue.GetProperty("Severity").GetString());
+        CompositionIssue issue = Assert.Single(
+            prepared.Issues,
+            issue => issue.Code == expectedIssueCode);
+        Assert.Equal(shortAddressSpaceId, issue.OperationId);
         Assert.Equal(shortBytes, await File.ReadAllBytesAsync(
             paths[shortAddressSpaceId],
             TestContext.Current.CancellationToken));
@@ -180,27 +179,27 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-oversize");
         Dictionary<string, string> paths = WriteInputs(workspace);
-        WorkbenchRunResult exact = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult exact = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
             build: false,
             TestContext.Current.CancellationToken);
-        Assert.True(exact.Succeeded, exact.ReportJson);
+        Assert.True(exact.Succeeded, CompositionRunReportJson.Serialize(exact));
 
         byte[] original = await File.ReadAllBytesAsync(
             paths[oversizedAddressSpaceId],
             TestContext.Current.CancellationToken);
         byte[] oversized = [.. original, 0xD7];
         paths[oversizedAddressSpaceId] = workspace.Write($"oversized/{oversizedAddressSpaceId}.bin", oversized);
-        WorkbenchRunResult tailed = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult tailed = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(tailed.Succeeded, tailed.ReportJson);
+        Assert.True(tailed.Succeeded, CompositionRunReportJson.Serialize(tailed));
         Assert.Equal(exact.OutputSha256, tailed.OutputSha256);
-        using var report = JsonDocument.Parse(tailed.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(tailed));
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
         JsonElement input = Assert.Single(
             report.RootElement.GetProperty("Inputs").EnumerateArray(),
@@ -233,7 +232,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         string outputPath = workspace.PathFor("output/nt51929-ab.bin");
         string aFlashCodePath = workspace.PathFor("output/nt51929-a-flashcode.bin");
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
             build: true,
@@ -241,14 +240,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             outputPath: outputPath,
             aFlashCodeOutputPath: aFlashCodePath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        Assert.True(result.IsDeliveryComplete, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.True(result.IsDeliveryComplete, CompositionRunReportJson.Serialize(result));
         Assert.Equal(DpLength, result.OutputSize);
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(result.OutputSha256, Sha256(output));
 
-        WorkbenchDeliveryArtifact aFlashCodeDelivery = Assert.Single(result.DeliveryArtifacts);
-        Assert.Equal(AbMergeAFlashCodeExportService.AFlashCodeDeliveryKind, aFlashCodeDelivery.DeliveryKind);
+        CompositionDeliveryArtifact aFlashCodeDelivery = Assert.Single(result.DeliveryArtifacts);
+        Assert.Equal(CompiledAdditionalDelivery.AbAFlashCodeKind, aFlashCodeDelivery.DeliveryKind);
         Assert.Equal(aFlashCodePath, aFlashCodeDelivery.OutputPath);
         Assert.Equal(0, aFlashCodeDelivery.SourceRange.Start);
         Assert.Equal(DpLength / 2, aFlashCodeDelivery.SourceRange.EndExclusive);
@@ -268,7 +267,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         byte[] aFlashCode = await File.ReadAllBytesAsync(aFlashCodePath, TestContext.Current.CancellationToken);
         Assert.Equal(DpLength / 2, aFlashCodeDelivery.OutputSize);
         Assert.Equal(output[..(DpLength / 2)], aFlashCode);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(Path.GetFileName(outputPath), report.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
         JsonElement reportDelivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
         Assert.Equal(Path.GetFileName(aFlashCodePath), reportDelivery.GetProperty("FileName").GetString());
@@ -291,7 +290,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         string outputPath = workspace.PathFor("output/nt51929-ab.bin");
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+            AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
                 "NT51929",
                 paths,
                 build: true,
@@ -312,11 +311,10 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     {
         using var workspace = TempWorkspace.Create("nfc-ab-rendered-output-alias");
         Dictionary<string, string> paths = WriteInputs(workspace);
-        string automaticFileName = await AbMergeWorkbenchCompositionService
-            .ResolveAutomaticOutputFileNameAsync(
+        string automaticFileName = (await AbMergeTestSupport.PrepareOutputAsync(BootstrapTestHost.Services,
                 "NT51929",
                 paths,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken)).OutputName.FileName;
         string originalDpPath = paths[CompositionAddressSpaceIds.DpAbInput];
         byte[] originalDpBytes = await File.ReadAllBytesAsync(
             originalDpPath,
@@ -327,13 +325,13 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         var progress = new CompositionRunProgressFeed();
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            AbMergeWorkbenchCompositionService.RunAbMergeWithProgressAsync(
+            AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
                 "NT51929",
                 paths,
                 build: true,
                 progress: progress,
                 cancellationToken: TestContext.Current.CancellationToken,
-                abMergeTopologySelection: null).AsTask());
+                topologySelection: null).AsTask());
 
         Assert.Contains("Output path must not overwrite input artifact", exception.Message, StringComparison.Ordinal);
         Assert.Equal(
@@ -357,7 +355,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         string outputPath = workspace.PathFor("output/nt51929-ab.bin");
         string directoryPath = workspace.PathFor("output");
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
             build: true,
@@ -365,11 +363,11 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             outputPath: outputPath,
             aFlashCodeOutputPath: directoryPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.False(result.IsDeliveryComplete);
         Assert.True(File.Exists(outputPath));
         Assert.False(string.IsNullOrWhiteSpace(result.DeliveryFailureMessage));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement delivery = Assert.Single(report.RootElement.GetProperty("DeliveryArtifacts").EnumerateArray());
         Assert.False(delivery.GetProperty("Committed").GetBoolean());
         Assert.Contains(
@@ -382,23 +380,22 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [InlineData("NT51919")]
     [InlineData("NT51929")]
     [InlineData("NT51932")]
-    public async Task PerfectFamilyAbMapsDeclareTheAFlashCodeDeliveryPlanAsync(string icId)
+    public void PerfectFamilyAbMapsDeclareTheAFlashCodeDeliveryPlan(string icId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMerge(
             icId,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues),
             string.Join(',', issues.Select(static issue => issue.Code)));
         CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
-        OutputNamingSummary outputNaming = CreateCompletedAbResult(icId, DpLength).OutputNaming!;
-        WorkbenchAbAFlashCodeDeliveryPlan? export = await AbMergeAFlashCodeExportService.TryCreatePlanAsync(
+        OutputNamingSummary outputNaming = CreateOutputNamingSummary(icId);
+        CompositionAdditionalDeliveryPlan? export = CompositionAdditionalDeliveryPlanner.TryCreate(
             compiledComposition,
-            new Dictionary<string, string>(StringComparer.Ordinal),
-            new CompositionOutputNamePreview(outputNaming.ActualFileName, outputNaming, []),
-            TestContext.Current.CancellationToken);
+            outputNaming,
+            CompiledAdditionalDelivery.AbAFlashCodeKind);
 
-        WorkbenchAbAFlashCodeDeliveryPlan plan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(export);
+        CompositionAdditionalDeliveryPlan plan = Assert.IsType<CompositionAdditionalDeliveryPlan>(export);
         Assert.Equal(0, plan.SourceRange.Start);
         Assert.Equal(DpLength / 2, plan.SourceRange.EndExclusive);
         Assert.Equal($"NT{icId[2..]}_FlashCode_D0605T8100_20260724.bin", plan.SuggestedFileName);
@@ -408,63 +405,51 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     [Fact]
     public void Nt51950AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMerge(
             "NT51950",
-            RequestedTopology("single"),
+            RequestedTopology("NT51950", "single"),
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues),
             string.Join(',', issues.Select(static issue => issue.Code)));
         CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
 
-        Assert.False(AbMergeAFlashCodeExportService.TryResolveAFlashCodeRange(compiledComposition, out _));
+        Assert.Empty(compiledComposition.V2Details.AdditionalDeliveries);
     }
 
     /// <summary>NT51951's distinct selector-free AB layout likewise remains outside the perfect-family A-only delivery rule.</summary>
     [Fact]
     public void Nt51951AbMapDoesNotDeclareTheAFlashCodeDelivery()
     {
-        Assert.True(AbMergeWorkbenchCompositionService.TryCompileAbMerge(
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMerge(
             "NT51951",
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues),
             string.Join(',', issues.Select(static issue => issue.Code)));
         CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
 
-        Assert.False(AbMergeAFlashCodeExportService.TryResolveAFlashCodeRange(compiledComposition, out _));
+        Assert.Empty(compiledComposition.V2Details.AdditionalDeliveries);
     }
 
-    private static WorkbenchRunResult CreateCompletedAbResult(string icId, int outputLength)
+    private static OutputNamingSummary CreateOutputNamingSummary(string icId)
     {
         string icNumber = icId[2..];
         string fileName = $"NT{icNumber}_FlashCode_A_D0605T8100_B_D0708T8203_20260724.bin";
-        return new WorkbenchRunResult(
-            true,
-            "Succeeded",
-            $"{icId.ToLowerInvariant()}-ab-merge",
-            outputLength,
-            "source-output-sha256",
+        return new OutputNamingSummary(
+            "ab-code-v1",
+            "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
             fileName,
-            Path.Combine(Path.GetTempPath(), fileName),
-            "{}")
-        {
-            OutputBytes = new byte[outputLength],
-            OutputNaming = new OutputNamingSummary(
-                "ab-code-v1",
-                "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin",
-                fileName,
-                fileName,
-                isExplicitOverride: false,
-                "utc",
-                new DateTimeOffset(2026, 7, 24, 0, 0, 0, TimeSpan.Zero),
-                [
-                    new OutputNamingTokenSummary("ic", icNumber, true, null, null, "compiled-profile"),
-                    new OutputNamingTokenSummary("dp-a", "D0605", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
-                    new OutputNamingTokenSummary("tp-a", "T8100", true, "tp-a-input", null, "fwconfig-backup"),
-                    new OutputNamingTokenSummary("dp-b", "D0708", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
-                    new OutputNamingTokenSummary("tp-b", "T8203", true, "tp-b-input", null, "fwconfig-backup"),
-                    new OutputNamingTokenSummary("date", "20260724", true, null, null, "utc-clock"),
-                ]),
-        };
+            fileName,
+            isExplicitOverride: false,
+            "utc",
+            new DateTimeOffset(2026, 7, 24, 0, 0, 0, TimeSpan.Zero),
+            [
+                new OutputNamingTokenSummary("ic", icNumber, true, null, null, "compiled-profile"),
+                new OutputNamingTokenSummary("dp-a", "D0605", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
+                new OutputNamingTokenSummary("tp-a", "T8100", true, "tp-a-input", null, "fwconfig-backup"),
+                new OutputNamingTokenSummary("dp-b", "D0708", true, "dp-ab-input", null, "profile-cmi-reg16-18"),
+                new OutputNamingTokenSummary("tp-b", "T8203", true, "tp-b-input", null, "fwconfig-backup"),
+                new OutputNamingTokenSummary("date", "20260724", true, null, null, "utc-clock"),
+            ]);
     }
 
     private static Dictionary<string, string> WriteInputs(TempWorkspace workspace)
@@ -499,16 +484,16 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         };
     }
 
-    private static WorkbenchFirmwareInspection InspectAbInput(
+    private static FirmwareInspectionSnapshot InspectAbInput(
         string icId,
         string addressSpaceId,
         string path,
         string? topologyToken = null)
     {
-        WorkbenchFirmwareInspectionResult result = Assert.Single(
-            WorkbenchCompositionService.InspectFirmwareBatch(
+        FirmwareInspectionSnapshotResult result = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 icId,
-                [new WorkbenchFirmwareInspectionInput(
+                [new FirmwareInspectionSnapshotInput(
                     addressSpaceId,
                     path,
                     AbMergeAddressSpaceId: addressSpaceId,
@@ -516,12 +501,12 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         return result.Inspection;
     }
 
-    private static Domain.Firmware.TopologySelection RequestedTopology(string token)
+    private static Domain.Firmware.TopologySelection RequestedTopology(
+        string icId,
+        string token)
     {
-        Assert.True(AbMergeWorkbenchCompositionService.TryCreateTopologySelection(
-            token,
-            out Domain.Firmware.TopologySelection? topology));
-        return Assert.IsType<Domain.Firmware.TopologySelection>(topology);
+        return Assert.IsType<Domain.Firmware.TopologySelection>(
+            BootstrapTestHost.Canonical.Compiler.ResolveAbMergeTopologySelection(icId, token));
     }
 
     private static byte[] CreatePattern(int length, byte salt)
@@ -536,9 +521,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     }
 
     private static void AssertAbSlot(
-        WorkbenchAbMergeInputSlot slot,
+        CompiledAuthoringInputBinding slot,
         string addressSpaceId,
-        WorkbenchAbMergeInputRole role,
+        string role,
         int requiredLength,
         IReadOnlyList<long> expectedOuterLengths)
     {

@@ -146,6 +146,16 @@ dedicated partial-sharing runtime shapes; #221 removes retired members before
 convergence and removal of remaining migration adapters remain ticket #194;
 support promotion, UI, processor behavior, and firmware bytes are unchanged.
 
+Issue #230 later converges validation after schema-token resolution: Profiles
+still resolves member, map, and typed fact identifiers and translates Domain
+invariant failures, while `FirmwareFamilyRelationship` owns member cardinality,
+map coverage, typed-reference uniqueness, and exact canonical reference
+identity. Profiles must not preflight those same invariants or compare every
+applicable map a second time. Consequently a failure detected by the canonical
+relationship constructor is reported at the relationship path rather than at
+a duplicate Profiles sub-path; the typed normalization failure and fail-closed
+condition remain unchanged.
+
 ## Alternatives
 
 - Treat every relationship as fact-scoped: rejected because `perfect-like`

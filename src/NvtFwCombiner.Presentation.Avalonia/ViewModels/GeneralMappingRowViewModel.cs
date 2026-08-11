@@ -74,6 +74,20 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         ? _text.GetGeneralSelectedFileInspectionIssue(issue)
         : string.Empty;
 
+    /// <summary>Application-owned draft or admission blocker for this mapping row.</summary>
+    public string AuthoringIssueMessage { get; private set; } = string.Empty;
+
+    /// <summary>True when canonical draft or admission validation rejected this mapping.</summary>
+    public bool HasAuthoringIssue => !string.IsNullOrEmpty(AuthoringIssueMessage);
+
+    /// <summary>True when either input inspection or authoring admission blocks this row.</summary>
+    public bool HasIssue => HasInspectionIssue || HasAuthoringIssue;
+
+    /// <summary>Current canonical row issue, preferring authoring admission over file inspection.</summary>
+    public string IssueMessage => HasAuthoringIssue
+        ? AuthoringIssueMessage
+        : InspectionIssueMessage;
+
     /// <summary>True while the row displays its empty-slot guidance.</summary>
     public bool IsGuidanceVisible => !HasSource;
 
@@ -112,6 +126,23 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         OnPropertyChanged(nameof(InspectionIssue));
         OnPropertyChanged(nameof(HasInspectionIssue));
         OnPropertyChanged(nameof(InspectionIssueMessage));
+        OnPropertyChanged(nameof(HasIssue));
+        OnPropertyChanged(nameof(IssueMessage));
+    }
+
+    internal void ApplyAuthoringIssue(string? message)
+    {
+        message ??= string.Empty;
+        if (StringComparer.Ordinal.Equals(AuthoringIssueMessage, message))
+        {
+            return;
+        }
+
+        AuthoringIssueMessage = message;
+        OnPropertyChanged(nameof(AuthoringIssueMessage));
+        OnPropertyChanged(nameof(HasAuthoringIssue));
+        OnPropertyChanged(nameof(HasIssue));
+        OnPropertyChanged(nameof(IssueMessage));
     }
 
     internal void SetFileSelectionAvailability(bool canSelect, string unavailableMessage)
@@ -132,87 +163,16 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         OnPropertyChanged(nameof(IsFileSelectionPending));
     }
 
-    internal AuthoringPublicationLease? CapturePrebindingLease(
-        AuthoringSessionState session,
-        string path)
+    internal void ApplyPreparation(GeneralAuthoringSessionPreparation preparation)
     {
-        return session.SetSlotFile(MappingId, path, fileStamp: null).Succeeded
-            ? session.CapturePublicationLease(AuthoringDerivedResultKind.Inspection)
-            : null;
-    }
-
-    internal bool TryCacheInspection(
-        AuthoringSessionState session,
-        AuthoringPublicationLease lease,
-        GeneralSelectedFileInspectionResult result)
-    {
-        bool current = result.Succeeded
-            ? session.TryCacheGeneralSelectedFileInspection(lease, result.Inspection!).Succeeded
-            : session.IsPublicationCurrent(lease);
-        if (current)
-        {
-            ApplyFileInspection(null, result.Issue);
-        }
-        return current;
-    }
-
-    internal bool TryAcceptCachedInspection(
-        AuthoringSessionState session,
-        Func<GeneralSelectedFileInspection, AuthoringSlotInspectionStartResult> begin)
-    {
-        if (FilePath is null ||
-            !session.TryGetCachedGeneralSelectedFileInspection(
-                MappingId,
-                FilePath,
-                out GeneralSelectedFileInspection? cached))
-        {
-            return false;
-        }
-
-        AuthoringSlotInspectionStartResult started = begin(cached);
-        if (!started.Succeeded)
-        {
-            return false;
-        }
-
-        var current = new GeneralSelectedFileInspection(
-            cached.DefinitionId,
-            started.Snapshot!.AuthoringRevision,
-            cached.SelectedPathHint,
-            cached.FileStamp,
-            cached.DisplayNameHint,
-            cached.LastWriteTimeUtcHint);
-        if (!session.TryAcceptSlotFileInspection(started.Lease!, current).Succeeded)
-        {
-            return false;
-        }
-
-        ApplyFileInspection(current.FileStamp, issue: null);
-        return true;
-    }
-
-    internal bool IsInspectionVerified(AuthoringSessionState session)
-    {
-        return session.CurrentSnapshot?.Slots.Any(slot =>
-            StringComparer.Ordinal.Equals(slot.DefinitionId, MappingId) &&
-            slot.Lifecycle == AuthoringSlotLifecycle.Verified) == true;
-    }
-
-    internal bool TryPublishInspection(
-        AuthoringSessionState session,
-        AuthoringSlotInspectionLease lease,
-        GeneralSelectedFileInspectionResult result)
-    {
-        AuthoringSessionTransitionResult transition = result.Succeeded
-            ? session.TryAcceptSlotFileInspection(lease, result.Inspection!)
-            : session.TryRejectSlotFileInspection(lease, result.Issue!);
-        if (!transition.Succeeded)
-        {
-            return false;
-        }
-
-        ApplyFileInspection(result.Inspection?.FileStamp, result.Issue);
-        return true;
+        ArgumentNullException.ThrowIfNull(preparation);
+        AuthoringSlotState? slot = preparation.AcceptedSession?.Slots.SingleOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.DefinitionId, MappingId));
+        GeneralSelectedFileInspectionIssue? issue =
+            preparation.GetSelectedFileIssue(MappingId);
+        ApplyFileInspection(
+            slot?.FileStamp,
+            issue);
     }
 
     partial void OnFilePathChanged(string? value)
@@ -220,7 +180,7 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         InvalidateFileInspection();
     }
 
-    private void InvalidateFileInspection()
+    internal void InvalidateFileInspection()
     {
         AcceptedFileStamp = null;
         InspectionIssue = null;
@@ -228,6 +188,8 @@ public abstract partial class GeneralMappingRowViewModel : ObservableObject
         OnPropertyChanged(nameof(InspectionIssue));
         OnPropertyChanged(nameof(HasInspectionIssue));
         OnPropertyChanged(nameof(InspectionIssueMessage));
+        OnPropertyChanged(nameof(HasIssue));
+        OnPropertyChanged(nameof(IssueMessage));
     }
 
     /// <summary>Selected local input file path.</summary>

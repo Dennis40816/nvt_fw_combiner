@@ -4,17 +4,14 @@ public sealed partial class CompositionPlan
 {
     private void ValidateInitializations()
     {
-        if (!_addressSpacesById.TryGetValue(OutputSpaceId, out AddressSpace? outputSpace))
-        {
-            throw new ArgumentException(
-                $"Output address space '{OutputSpaceId}' is not declared.",
-                nameof(OutputSpaceId));
-        }
+        DomainInvariant.Reject(
+            !_addressSpacesById.TryGetValue(OutputSpaceId, out AddressSpace? outputSpace),
+            $"Output address space '{OutputSpaceId}' is not declared.",
+            nameof(OutputSpaceId));
 
-        if (outputSpace.Mutability != AddressSpaceMutability.Mutable)
-        {
-            throw new ArgumentException("Output address space must be mutable.", nameof(OutputSpaceId));
-        }
+        DomainInvariant.Reject(
+            outputSpace.Mutability != AddressSpaceMutability.Mutable,
+            "Output address space must be mutable.", nameof(OutputSpaceId));
 
         foreach (ImageInitialization initialization in _initializations)
         {
@@ -39,24 +36,19 @@ public sealed partial class CompositionPlan
 
     private void ValidateInitialization(ImageInitialization initialization)
     {
-        if (!_addressSpacesById.TryGetValue(initialization.TargetSpaceId, out AddressSpace? targetSpace))
-        {
-            throw new ArgumentException(
-                $"Initialization target address space '{initialization.TargetSpaceId}' is not declared.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            !_addressSpacesById.TryGetValue(initialization.TargetSpaceId, out AddressSpace? targetSpace),
+            $"Initialization target address space '{initialization.TargetSpaceId}' is not declared.",
+            nameof(initialization));
 
-        if (targetSpace.Mutability != AddressSpaceMutability.Mutable)
-        {
-            throw new ArgumentException("Initialization target address space must be mutable.", nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            targetSpace.Mutability != AddressSpaceMutability.Mutable,
+            "Initialization target address space must be mutable.", nameof(initialization));
 
-        if (targetSpace.Length != initialization.Capacity)
-        {
-            throw new ArgumentException(
-                "Initialization capacity must match target address-space length.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            targetSpace.Length != initialization.Capacity,
+            "Initialization capacity must match target address-space length.",
+            nameof(initialization));
 
         if (initialization.Kind == ImageInitializationKind.Reference)
         {
@@ -66,70 +58,55 @@ public sealed partial class CompositionPlan
 
     private void ValidateReferenceInitialization(ImageInitialization initialization)
     {
-        if (initialization.ReferenceSpaceId is null)
-        {
-            throw new ArgumentException(
-                "Reference initialization requires a reference address space id.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            initialization.ReferenceSpaceId is null,
+            "Reference initialization requires a reference address space id.",
+            nameof(initialization));
 
-        if (!_addressSpacesById.TryGetValue(initialization.ReferenceSpaceId, out AddressSpace? referenceSpace))
-        {
-            throw new ArgumentException(
-                $"Reference address space '{initialization.ReferenceSpaceId}' is not declared.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            !_addressSpacesById.TryGetValue(initialization.ReferenceSpaceId, out AddressSpace? referenceSpace),
+            $"Reference address space '{initialization.ReferenceSpaceId}' is not declared.",
+            nameof(initialization));
 
-        if (referenceSpace.Mutability != AddressSpaceMutability.Immutable)
-        {
-            throw new ArgumentException("Reference address space must be immutable.", nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.Mutability != AddressSpaceMutability.Immutable,
+            "Reference address space must be immutable.", nameof(initialization));
 
-        if (referenceSpace.Length != initialization.Capacity)
-        {
-            throw new ArgumentException(
-                "Reference address-space length must match initialization capacity.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.Length != initialization.Capacity,
+            "Reference address-space length must match initialization capacity.",
+            nameof(initialization));
 
-        if (referenceSpace.InputPaddingByte is not null)
-        {
-            throw new ArgumentException("Reference address space cannot declare input padding.", nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.InputPaddingByte is not null,
+            "Reference address space cannot declare input padding.", nameof(initialization));
 
         bool clonesCheckedSourceIntoWorkBuffer =
             !StringComparer.Ordinal.Equals(initialization.TargetSpaceId, OutputSpaceId) &&
             referenceSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
             referenceSpace.AllowedInputLengths.Count == 0;
-        if (referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject &&
-            !clonesCheckedSourceIntoWorkBuffer)
-        {
-            throw new ArgumentException("Reference address space cannot declare input truncation.", nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.InputOversizePolicy != InputOversizePolicy.Reject &&
+            !clonesCheckedSourceIntoWorkBuffer,
+            "Reference address space cannot declare input truncation.", nameof(initialization));
 
-        if (referenceSpace.AllowedInputLengths.Count > 0)
-        {
-            throw new ArgumentException(
-                "Reference address space cannot declare alternate input lengths.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.AllowedInputLengths.Count > 0,
+            "Reference address space cannot declare alternate input lengths.",
+            nameof(initialization));
 
-        if (referenceSpace.ExpectedInputLengths.Count > 0 &&
-            !clonesCheckedSourceIntoWorkBuffer)
-        {
-            throw new ArgumentException(
-                "Reference address space cannot declare expected input lengths.",
-                nameof(initialization));
-        }
+        DomainInvariant.Reject(
+            referenceSpace.ExpectedInputLengths.Count > 0 &&
+            !clonesCheckedSourceIntoWorkBuffer,
+            "Reference address space cannot declare expected input lengths.",
+            nameof(initialization));
     }
 
     private void ValidateProcessorInputPadding()
     {
-        if (AddressSpaces.Any(addressSpace => addressSpace.InputPaddingByte is not null))
-        {
-            throw new ArgumentException(
-                "Address spaces cannot declare input padding when an external processor operation is present.",
-                nameof(AddressSpaces));
-        }
+        DomainInvariant.Reject(
+            AddressSpaces.Any(addressSpace => addressSpace.InputPaddingByte is not null),
+            "Address spaces cannot declare input padding when an external processor operation is present.",
+            nameof(AddressSpaces));
     }
 }

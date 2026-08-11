@@ -8,7 +8,8 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunServiceTests
 {
-    private static CompositionRunRequest CreateExternalProcessorRequest()
+    private static CompositionRunRequest CreateExternalProcessorRequest(
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         AddressSpace[] addressSpaces =
         [
@@ -28,7 +29,8 @@ public sealed partial class CompositionRunServiceTests
                         "processor-v1",
                         "tool-v1",
                         [new ByteRange(0, 4)],
-                        [new ByteRange(1, 1)]),
+                        [new ByteRange(1, 1)],
+                        protocolPlan: protocolPlan),
                     OverlapPolicy.Reject,
                     "run synthetic external processor"),
             ]);
@@ -94,7 +96,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "fwconfig-final-output.bin",
-                CompiledIcNumberPolicy.SingleSelector,
+                IcNumberInputMode.SingleSelector,
                 [validation]),
             [new InputArtifactBinding(
                 "reference-base",
@@ -170,7 +172,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "external-staged-source.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-base", "reference-artifact", "reference-base.bin",
@@ -233,7 +235,7 @@ public sealed partial class CompositionRunServiceTests
                     "ctrlram-replace",
                     CompositionKind.Replace),
                 "mapped-processor.bin",
-                CompiledIcNumberPolicy.SingleSelector),
+                IcNumberInputMode.SingleSelector),
             [
                 new InputArtifactBinding(
                     "reference-base", "reference-base", "reference-artifact", "reference-base.bin",

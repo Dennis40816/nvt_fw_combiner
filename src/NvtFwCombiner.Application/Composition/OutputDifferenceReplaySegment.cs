@@ -62,19 +62,6 @@ public sealed class OutputDifferenceReplaySegment
     /// <summary>SHA-256 of the complete persisted output plane.</summary>
     public string AfterSha256 { get; }
 
-    /// <summary>Checks that the complete changed range still matches its report evidence hashes.</summary>
-    public bool MatchesDifferenceEvidence(
-        long differenceStart,
-        long differenceLength,
-        string beforeSha256,
-        string afterSha256)
-    {
-        return MatchesDifferenceEvidence(
-            new ByteRange(differenceStart, differenceLength),
-            beforeSha256,
-            afterSha256);
-    }
-
     /// <summary>Checks the changed-byte count and evidence hashes for one complete changed range.</summary>
     public bool MatchesDifferenceEvidence(
         long differenceStart,

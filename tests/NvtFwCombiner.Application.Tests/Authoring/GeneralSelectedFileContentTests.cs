@@ -22,12 +22,26 @@ public sealed class GeneralSelectedFileContentTests
         Assert.DoesNotContain(first.Sha256, static character => character is >= 'A' and <= 'F');
     }
 
-    /// <summary>
-    /// Explicit rebind accepts a fresh content identity without reapplying
-    /// materialized full-file length.
-    /// </summary>
+    /// <summary>Retained bytes are cloned and must agree with their exact content identity.</summary>
     [Fact]
-    public async Task InspectionAndRebindPreserveEditableLength()
+    public void SelectedFileInspectionRetainsOnlyMatchingImmutableBytes()
+    {
+        byte[] bytes = [0x10, 0x20];
+        var inspection = new SelectedFileContentInspection(
+            FileStamp.FromBytes(bytes),
+            acceptedBytes: bytes);
+
+        bytes[0] = 0xFF;
+
+        Assert.Equal([0x10, 0x20], inspection.AcceptedBytes!.Value.ToArray());
+        _ = Assert.Throws<ArgumentException>(() => new SelectedFileContentInspection(
+            FileStamp.FromBytes([0x10, 0x20]),
+            acceptedBytes: new byte[] { 0x10, 0x21 }));
+    }
+
+    /// <summary>Explicit reinspection captures a fresh content identity.</summary>
+    [Fact]
+    public async Task ReinspectionCapturesFreshContentIdentity()
     {
         var firstStamp = FileStamp.FromBytes([1, 2, 3, 4]);
         var secondStamp = FileStamp.FromBytes([5, 6, 7, 8, 9, 10]);
@@ -41,46 +55,27 @@ public sealed class GeneralSelectedFileContentTests
                 "source.bin",
                 new DateTimeOffset(2026, 7, 30, 2, 0, 0, TimeSpan.Zero)));
         var service = new GeneralSelectedFileInspectionService(inspector);
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
+        GeneralSelectedFileInspectionResult accepted =
+            await service.InspectAsync(
                 "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 1),
-        ]);
-
-        GeneralSelectedFileDraftInspectionResult accepted =
-            await service.AcceptDraftAsync(
-                draft,
+                @"C:\firmware\source.bin",
                 new AuthoringRevision(4),
                 CancellationToken.None);
 
         Assert.True(accepted.Succeeded);
         Assert.Equal(1, inspector.CallCount);
-        GeneralMappingDraftRow acceptedRow = Assert.Single(accepted.Draft!.Rows);
-        Assert.Equal(firstStamp, acceptedRow.Source.AcceptedFileStamp);
+        Assert.Equal(firstStamp, accepted.Inspection!.FileStamp);
 
-        GeneralMappingDraftState materialized =
-            accepted.Draft.MaterializeFullFileLength("mapping-1");
-        GeneralMappingDraftRow materializedRow = Assert.Single(materialized.Rows);
-        Assert.Equal(4, materializedRow.SourceRange.Length);
-        Assert.Equal(4, materializedRow.TargetRange.Length);
-
-        GeneralMappingDraftState rebound = new(materialized.Rows.Select(row =>
-            row.RebindSelectedFile(row.Source.Reference)));
-        GeneralSelectedFileDraftInspectionResult reloaded =
-            await service.AcceptDraftAsync(
-                rebound,
+        GeneralSelectedFileInspectionResult reloaded =
+            await service.InspectAsync(
+                "mapping-1",
+                @"C:\firmware\source.bin",
                 new AuthoringRevision(5),
                 CancellationToken.None);
 
         Assert.True(reloaded.Succeeded);
         Assert.Equal(2, inspector.CallCount);
-        GeneralMappingDraftRow reloadedRow = Assert.Single(reloaded.Draft!.Rows);
-        Assert.Equal(secondStamp, reloadedRow.Source.AcceptedFileStamp);
-        Assert.Equal(4, reloadedRow.SourceRange.Length);
-        Assert.Equal(4, reloadedRow.TargetRange.Length);
+        Assert.Equal(secondStamp, reloaded.Inspection!.FileStamp);
     }
 
     /// <summary>Inspection failures are stable and never publish a partly bound draft.</summary>
@@ -90,24 +85,17 @@ public sealed class GeneralSelectedFileContentTests
         var service = new GeneralSelectedFileInspectionService(
             new ThrowingSelectedFileContentInspector(
                 new IOException("The selected file became unavailable.")));
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
+        GeneralSelectedFileInspectionResult result =
+            await service.InspectAsync(
                 "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 4),
-        ]);
-
-        GeneralSelectedFileDraftInspectionResult result =
-            await service.AcceptDraftAsync(
-                draft,
+                @"C:\firmware\source.bin",
                 new AuthoringRevision(7),
                 CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Null(result.Draft);
-        GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
+        Assert.Null(result.Inspection);
+        GeneralSelectedFileInspectionIssue issue = Assert.IsType<GeneralSelectedFileInspectionIssue>(
+            result.Issue);
         Assert.Equal(
             GeneralSelectedFileInspectionIssueCodes.InspectionFailed,
             issue.Code);
@@ -123,54 +111,38 @@ public sealed class GeneralSelectedFileContentTests
             new ThrowingSelectedFileContentInspector(
                 new SelectedFileSizeLimitExceededException(5, 4)),
             maximumFileBytes: 4);
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
+        GeneralSelectedFileInspectionResult result =
+            await service.InspectAsync(
                 "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 4),
-        ]);
-
-        GeneralSelectedFileDraftInspectionResult result =
-            await service.AcceptDraftAsync(
-                draft,
+                @"C:\firmware\source.bin",
                 new AuthoringRevision(8),
                 CancellationToken.None);
 
-        GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
+        GeneralSelectedFileInspectionIssue issue = Assert.IsType<GeneralSelectedFileInspectionIssue>(
+            result.Issue);
         Assert.Equal(GeneralAuthoringIssueCodes.FileSizeExceeded, issue.Code);
         Assert.Contains("5 bytes", issue.Message, StringComparison.Ordinal);
         Assert.Contains("maximum 4", issue.Message, StringComparison.Ordinal);
     }
 
-    /// <summary>A failed explicit rebind cannot publish a replacement draft.</summary>
+    /// <summary>An unauthorized inspection returns one typed failure.</summary>
     [Fact]
-    public async Task RebindInspectionFailureDoesNotPublishDraft()
+    public async Task UnauthorizedInspectionReturnsTypedFailure()
     {
         var service = new GeneralSelectedFileInspectionService(
             new ThrowingSelectedFileContentInspector(
                 new UnauthorizedAccessException("The selected file cannot be read.")));
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
+        GeneralSelectedFileInspectionResult result =
+            await service.InspectAsync(
                 "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 4),
-        ]);
-
-        GeneralMappingDraftState rebound = new(draft.Rows.Select(row =>
-            row.RebindSelectedFile(row.Source.Reference)));
-        GeneralSelectedFileDraftInspectionResult result =
-            await service.AcceptDraftAsync(
-                rebound,
+                @"C:\firmware\source.bin",
                 new AuthoringRevision(12),
                 CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Null(result.Draft);
-        GeneralSelectedFileInspectionIssue issue = Assert.Single(result.Issues);
+        Assert.Null(result.Inspection);
+        GeneralSelectedFileInspectionIssue issue = Assert.IsType<GeneralSelectedFileInspectionIssue>(
+            result.Issue);
         Assert.Equal(
             GeneralSelectedFileInspectionIssueCodes.InspectionFailed,
             issue.Code);
@@ -184,20 +156,13 @@ public sealed class GeneralSelectedFileContentTests
         var service = new GeneralSelectedFileInspectionService(
             new ThrowingSelectedFileContentInspector(
                 new OperationCanceledException()));
-        var draft = new GeneralMappingDraftState(
-        [
-            FileRow(
-                "mapping-1",
-                sourceStart: 0,
-                targetStart: 0x100,
-                length: 4),
-        ]);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         _ = await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            service.AcceptDraftAsync(
-                    draft,
+            service.InspectAsync(
+                    "mapping-1",
+                    @"C:\firmware\source.bin",
                     new AuthoringRevision(13),
                     cancellation.Token)
                 .AsTask());
@@ -283,14 +248,6 @@ public sealed class GeneralSelectedFileContentTests
 
         internal int CallCount { get; private set; }
 
-        public ValueTask<long> ObserveLengthAsync(
-            string selectedPath,
-            long maximumBytes,
-            CancellationToken cancellationToken)
-        {
-            return ValueTask.FromResult(_results.Peek().FileStamp.AcceptedLength);
-        }
-
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,
@@ -307,14 +264,6 @@ public sealed class GeneralSelectedFileContentTests
     private sealed class ThrowingSelectedFileContentInspector(Exception exception)
         : ISelectedFileContentInspector
     {
-        public ValueTask<long> ObserveLengthAsync(
-            string selectedPath,
-            long maximumBytes,
-            CancellationToken cancellationToken)
-        {
-            return ValueTask.FromException<long>(exception);
-        }
-
         public ValueTask<SelectedFileContentInspection> InspectAsync(
             string selectedPath,
             long maximumBytes,

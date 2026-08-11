@@ -2,7 +2,6 @@ using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
-using NvtFwCombiner.Profiles.V2;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -18,17 +17,16 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             FamilyHash);
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = ResolveMap(definition);
 
-        CompositionProfileMapAdmissionResult result = CompositionProfileMapAdmissionValidator.Validate(
+        CapabilityAdmissionResult result = Admit(
             CapabilityProfile(["ab-code"]),
             definition,
             resolvedMap);
 
-        CompositionProfileMapAdmission admission = Assert.IsType<CompositionProfileMapAdmission>(result.Admission);
-        AdmittedCapabilityEvidence evidence = Assert.Single(admission.RequiredCapabilities);
-        Assert.Equal("ab-code", evidence.RequiredCapabilityId);
-        Assert.Equal("NT00001", evidence.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", evidence.Binding.EffectiveKey.MapId);
-        Assert.Empty(evidence.Binding.Provenance.AliasChain);
+        FirmwareMapFactBinding<FirmwareCapabilityFact> evidence = Assert.Single(result.CapabilityAdmissions);
+        Assert.Equal("ab-code", evidence.Value.CapabilityId);
+        Assert.Equal("NT00001", evidence.EffectiveKey.MemberId);
+        Assert.Equal("map", evidence.EffectiveKey.MapId);
+        Assert.Empty(evidence.Provenance.AliasChain);
         Assert.Empty(result.Issues);
     }
 
@@ -80,20 +78,19 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         FirmwareFamilyResolutionDefinition definition = FirmwareFamilyResolutionNormalizer.Normalize(document, FamilyHash);
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = ResolveMap(definition);
 
-        CompositionProfileMapAdmissionResult result = CompositionProfileMapAdmissionValidator.Validate(
+        CapabilityAdmissionResult result = Admit(
             CapabilityProfile(["ab-code"]),
             definition,
             resolvedMap);
 
-        AdmittedCapabilityEvidence evidence = Assert.Single(
-            Assert.IsType<CompositionProfileMapAdmission>(result.Admission).RequiredCapabilities);
-        Assert.Equal("NT00001", evidence.Binding.EffectiveKey.MemberId);
-        Assert.Equal("map", evidence.Binding.EffectiveKey.MapId);
-        Assert.Equal("NT00002", evidence.Binding.DirectSourceKey.MemberId);
-        Assert.Equal("source-map", evidence.Binding.DirectSourceKey.MapId);
+        FirmwareMapFactBinding<FirmwareCapabilityFact> evidence = Assert.Single(result.CapabilityAdmissions);
+        Assert.Equal("NT00001", evidence.EffectiveKey.MemberId);
+        Assert.Equal("map", evidence.EffectiveKey.MapId);
+        Assert.Equal("NT00002", evidence.DirectSourceKey.MemberId);
+        Assert.Equal("source-map", evidence.DirectSourceKey.MapId);
         Assert.Equal(
             ["target-capability-to-source"],
-            evidence.Binding.Provenance.AliasChain.Select(static hop => hop.AliasId));
+            evidence.Provenance.AliasChain.Select(static hop => hop.AliasId));
         Assert.Empty(result.Issues);
     }
 
@@ -111,13 +108,13 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             },
             FamilyHash);
 
-        CompositionProfileMapAdmissionResult result = CompositionProfileMapAdmissionValidator.Validate(
+        CapabilityAdmissionResult result = Admit(
             CapabilityProfile(["ab-code"]),
             definition,
             ResolveMap(definition));
 
         Assert.False(result.IsAdmitted);
-        Assert.Null(result.Admission);
+        Assert.Empty(result.CapabilityAdmissions);
         Assert.Equal([expectedIssueCode], result.Issues.Select(static issue => issue.Code));
     }
 
@@ -155,7 +152,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             },
             FamilyHash);
 
-        CompositionProfileMapAdmissionResult result = CompositionProfileMapAdmissionValidator.Validate(
+        CapabilityAdmissionResult result = Admit(
             CapabilityProfile(["ab-code"]),
             definition,
             ResolveMap(definition));
@@ -186,7 +183,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             },
             FamilyHash);
 
-        CompositionProfileMapAdmissionResult result = CompositionProfileMapAdmissionValidator.Validate(
+        CapabilityAdmissionResult result = Admit(
             CapabilityProfile(["ab-code"]),
             definition,
             ResolveMap(definition));
@@ -197,42 +194,23 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             result.Issues.Select(static issue => issue.Code));
     }
 
-    /// <summary>Verifies future compiler input cannot be constructed with incomplete, extra, or cross-selection evidence.</summary>
+    /// <summary>Verifies a failed admission cannot retain partial canonical capability evidence.</summary>
     [Fact]
-    public void AdmissionContextRejectsIncompleteExtraAndCrossSelectionEvidence()
+    public void AdmissionFailureDiscardsPartialCapabilityEvidence()
     {
         FirmwareFamilyResolutionDefinition definition = FirmwareFamilyResolutionNormalizer.Normalize(
             Document(includePredicate: false),
             FamilyHash);
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = ResolveMap(definition);
-        FirmwareMapFactBinding<FirmwareCapabilityFact> binding = Assert.Single(definition.CapabilityBindings);
-        var evidence = new AdmittedCapabilityEvidence("ab-code", binding);
+        CapabilityAdmissionResult result = Admit(
+            CapabilityProfile(["ab-code", "missing-capability"]),
+            definition,
+            ResolveMap(definition));
 
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMapAdmission(
-            CapabilityProfile(["ab-code"]),
-            definition,
-            resolvedMap,
-            []));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMapAdmission(
-            CapabilityProfile([]),
-            definition,
-            resolvedMap,
-            [evidence]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMapAdmission(
-            CapabilityProfile(["ab-code"]),
-            definition,
-            resolvedMap,
-            [new AdmittedCapabilityEvidence("ab-code", Rebind(binding, "NT00001", "map"))]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMapAdmission(
-            CapabilityProfile(["ab-code"]),
-            definition,
-            resolvedMap,
-            [new AdmittedCapabilityEvidence("ab-code", Rebind(binding, "NT00002", "map"))]));
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileMapAdmission(
-            CapabilityProfile(["ab-code"]),
-            definition,
-            resolvedMap,
-            [new AdmittedCapabilityEvidence("ab-code", Rebind(binding, "NT00001", "other-map"))]));
+        Assert.False(result.IsAdmitted);
+        Assert.Empty(result.CapabilityAdmissions);
+        Assert.Equal(
+            ["profile.v2.map.required-capability-missing"],
+            result.Issues.Select(static issue => issue.Code));
     }
 
     private static FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap ResolveMap(
@@ -266,7 +244,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
             ],
             MetadataBindings =
             [
-                new CompositionProfileMetadataBinding(
+                CompositionProfileV2DefinitionTestData.CreateMetadataBinding(
                     "fwconfig",
                     "source",
                     "config",
@@ -282,22 +260,22 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         });
     }
 
-    private static FirmwareMapFactBinding<FirmwareCapabilityFact> Rebind(
-        FirmwareMapFactBinding<FirmwareCapabilityFact> binding,
-        string effectiveMemberId,
-        string effectiveMapId)
+    private static CapabilityAdmissionResult Admit(
+        CompositionProfileDefinition profile,
+        FirmwareFamilyResolutionDefinition definition,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap)
     {
-        var key = new FirmwareMapFactKey(
-            effectiveMemberId,
-            effectiveMapId,
-            FirmwareFactKind.Capability,
-            binding.Value.CapabilityFactId);
-        return new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            binding.CanonicalFactId,
-            binding.Value,
-            binding.Applicability,
-            new FirmwareFactProvenance(key, key, [], binding.Value.EvidenceRefs));
+        IReadOnlyList<CompositionIssue> issues = definition.AdmitRequiredCapabilities(
+            profile.MapBinding,
+            resolvedMap,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions);
+        return new CapabilityAdmissionResult(issues, capabilityAdmissions);
+    }
+
+    private sealed record CapabilityAdmissionResult(
+        IReadOnlyList<CompositionIssue> Issues,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions)
+    {
+        internal bool IsAdmitted => Issues.Count == 0;
     }
 }

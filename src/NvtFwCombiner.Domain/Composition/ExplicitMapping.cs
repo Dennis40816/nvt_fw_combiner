@@ -28,15 +28,13 @@ public sealed record ExplicitMapping
             throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Alignment must be positive.");
         }
 
-        if (sourceRange.Length != targetRange.Length)
-        {
-            throw new ArgumentException("Source and target mapping lengths must match.", nameof(targetRange));
-        }
+        DomainInvariant.Reject(
+            sourceRange.Length != targetRange.Length,
+            "Source and target mapping lengths must match.", nameof(targetRange));
 
-        if (targetRange.Start % alignment != 0)
-        {
-            throw new ArgumentException("Target start must satisfy the mapping alignment.", nameof(targetRange));
-        }
+        DomainInvariant.Reject(
+            targetRange.Start % alignment != 0,
+            "Target start must satisfy the mapping alignment.", nameof(targetRange));
 
         MappingId = mappingId;
         Sequence = sequence;

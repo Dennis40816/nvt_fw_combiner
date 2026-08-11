@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.2 canonical desktop-adoption and compatibility-deletion release candidate; v0.10.1 is the stable predecessor`
-> 文件版本：`0.10.2`
-> 基準日期：`2026-08-04`
+> 文件狀態：`0.10.3 canonical architecture and legacy-retirement release candidate; v0.10.2 is the stable predecessor`
+> 文件版本：`0.10.3`
+> 基準日期：`2026-08-11`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,18 +30,20 @@
 
 ## 0.1 Current owner priority
 
-`0.10.2` is the second implementation release from the approved `0.10.x`
-program. It carries the completed 78-route headless foundation into the
-desktop, adopts the canonical per-slot readiness/inspection and exact compiled
-composition across the six Merge/Replace workflows, extracts the shallow shell
-and shared read-only Hex viewport, and deletes the superseded General/Saved
-Rule v1 compatibility owners through #254. It does not complete the remaining
-deferred UI, Workbench deletion, Core convergence, or #197 integration waves,
-and it does not convert function availability or golden observations into
-support certification. `v0.10.1` is the stable predecessor on this canonical
-line; independent `0.9.17`/`0.9.18` maintenance releases remain historical
-upgrade sources rather than alternate `0.10.x` architecture authority. The
-remaining sequence is maintained in
+`0.10.3` completes the approved canonical refactoring and legacy-architecture
+retirement program. The six Merge/Replace workflows now share one
+Application-owned accepted-session route for authoring, naming, execution,
+reporting, delivery, and processor planning; Profiles remains the compilation
+authority, Infrastructure owns adapters, Presentation and CLI consume the same
+typed use cases, and Bootstrap contains composition-root/lifetime wiring only.
+The Workbench graph and renamed parallel production owners are removed. This
+release is support-neutral: it does not convert function availability or
+golden observations into support certification, and it does not change profile,
+schema, firmware-family, processor-protocol, or golden byte authority.
+`v0.10.2` is the stable predecessor on this canonical line; independent
+`0.9.17`/`0.9.18` maintenance releases remain historical upgrade sources rather
+than alternate `0.10.x` architecture authority. The remaining sequence is
+maintained in
 [NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
@@ -1134,10 +1136,11 @@ to each `0.10.x` version.
 54. As a migration reviewer, I want every characterized behavior classified
     before it becomes a parity gate, so that known defects are not preserved as
     compatibility contracts and uncertain firmware behavior is not guessed.
-55. As a repository owner, I want non-UI/test production code reduced by at
-    least 50% by the end of the 0.10.x maintainability program, so that
+55. As a repository owner, I want every Core slice to exhaust its reviewed,
+    evidence-backed deletion ledger under exact descending ratchets, so that
     duplicated owners and compatibility paths are actually deleted rather than
-    reorganized into equally large replacement modules.
+    reorganized into equally large replacement modules or retained to chase an
+    unsupported numeric forecast.
 56. As an NT51928 operator, I want one Standard Merge and one DP Replace
     capability to resolve either the shared `0x40000` no-LDC form or the
     `0x80000` LDC form, so container differences do not create duplicate
@@ -1265,11 +1268,10 @@ to each `0.10.x` version.
 - Every canonical exact route also has one explicit versioned
   `PublicationStatus`, such as `Supported`, `Candidate`, `Internal`, or
   `TestOnly`. Missing publication policy is a fail-closed materialization error,
-  never an implicit `Internal` or `Unsupported`. A migration adapter may
-  temporarily project legacy `Unclassified` but cannot create a public support
-  claim. `Unclassified` is not a target publication value: every route must
-  receive one of the four explicit decisions before it becomes canonical, and
-  the legacy enum/value is deleted after route migration reaches zero.
+  never an implicit `Internal` or `Unsupported`. #195 completed the migration:
+  every canonical route now carries one of the four explicit decisions, the
+  conservative non-public baseline is `Internal`, and the legacy
+  `Unclassified` enum/value is rejected at policy intake.
   `EvidenceStatus.Missing` remains a valid explicit evidence result and is not
   treated as missing publication data.
 - Stable `RouteId` identifies only the logical exact route: IC, workflow,
@@ -1372,8 +1374,10 @@ to each `0.10.x` version.
 
 #### Application use-case boundary
 
-- `WorkbenchCompositionService` is a migration-only Bootstrap compatibility
-  facade and is deleted after every UI and CLI caller has moved.
+- Issue #195 retired `WorkbenchCompositionService` after proving zero UI, CLI,
+  production, and executable-test callers. Capability query, authoring-session,
+  inspection, memory projection, output naming, planning, and execution now
+  have focused owners; no replacement all-workflow facade is permitted.
 - NFC is not a supported .NET SDK at this stage. Bootstrap, Presentation,
   ViewModel, and other implementation C# types do not gain compatibility
   authority merely because they are declared `public`; they may change or be
@@ -1396,6 +1400,231 @@ to each `0.10.x` version.
 - Bootstrap owns DI and composition wiring only. Each migration slice names the
   remaining facade callers and lowers the facade aggregate ratchet; the final
   slice proves zero callers and removes the facade.
+- The 2026-08-09 owner amendment authorizes the complete legacy-architecture
+  retirement to cross Application, Bootstrap, CLI, and Presentation contract
+  boundaries. It supersedes #233's former no-Application/Contracts-redesign
+  non-goal only for this named retirement program. The independently reviewed
+  #352 Bootstrap/CLI reduction remains a stable predecessor and is not expanded
+  into the cross-layer change. Each retirement slice first moves live UI and
+  CLI callers to the canonical capability/session/inspection/Preview-Build/
+  typed-report contracts, then deletes the displaced owner in the same
+  dependency-ordered program. It may reshape the minimum canonical contract
+  needed by those callers, but it cannot introduce another Workbench facade,
+  compatibility service hierarchy, Bootstrap semantic owner, or indefinite
+  forwarding shim. UI layout and observable CLI behavior remain unchanged;
+  firmware facts, ranges, output bytes, processor authority, evidence, and
+  support state remain under their existing R2/R3 gates.
+- The 2026-08-09 terminal naming decision treats `Workbench` as a retired
+  migration-compatibility architecture, not a firmware/domain or durable
+  product concept. Completion requires zero `Workbench*` symbols in production
+  Application, Bootstrap, CLI, and Presentation source. Presentation preserves
+  the same visible workflows through Presentation-local ViewModels and the
+  canonical Application contracts; it cannot retain or rename the old
+  cross-layer DTO/facade graph. Historical specifications, ADRs, changelog
+  entries, and migration evidence may retain the word only when they clearly
+  describe the retired architecture. A zero-name result is not sufficient by
+  itself: architecture guards must also prove that equivalent semantic owners
+  or broad facades were not recreated under another name.
+- The 2026-08-09 canonical lifecycle-contract decision replaces the legacy
+  all-purpose `WorkbenchRunResult` boundary with three focused Application
+  owners. `ActiveSessionSnapshot` is the only accepted-session, draft,
+  capability, and compilation-identity snapshot;
+  `CapabilityActionReadinessSnapshot` is the only Preview/Build readiness
+  result; and `CompositionRunResult` plus its typed `CompositionRunReport` is
+  the only execution result/report boundary consumed by UI and CLI. A rejected,
+  unavailable, or diagnostic-plan-only action is a typed readiness or
+  diagnostic/report outcome and cannot be represented as a fabricated
+  execution result. Bootstrap cannot serialize an Application report into JSON
+  for an in-process CLI or Presentation consumer to parse again. Exact
+  capability and accepted draft state remain owned by the accepted session and
+  are not copied into an execution result. Delivery facts or other live data
+  that exist only on the retired result may be added to the existing focused
+  canonical result/report contract, but cannot justify another aggregate
+  facade or result envelope.
+- The 2026-08-09 shared-execution decision requires every workflow to enter the
+  same Application Preview/Build boundary from an exact accepted
+  `ActiveSessionSnapshot` and a minimal typed request. Workflow-specific
+  Bootstrap execution gateways such as Standard Merge, AB Merge, DP Replace,
+  CtrlRAM Replace, General Merge, and General Replace `Run*` methods are
+  migration-only and are deleted. Firmware-semantic selections, including
+  topology, IC-number policy, CtrlRAM firmware-version edits, General mappings,
+  naming admission, and the compiled processor plan, must already be bound to
+  the accepted typed draft, exact capability, or compiled composition before
+  execution. Only host delivery intent, such as a selected output destination
+  or optional additional delivery destination, may remain in the minimal Build
+  request. Preview and Build consume the same accepted session, input
+  identities, output-naming admission, capability fingerprint, and compilation
+  fingerprint; Presentation and CLI cannot own workflow runners of their own.
+- Complete retirement is byte-preserving. For every repository-declared or
+  owner-approved BIN golden available at the independently reviewed #352
+  baseline (`6ba7217299c3e2ddb1c38467e6f288d5710ffef1`), the refactored path must
+  produce the identical complete output byte sequence, output size, lowercase
+  SHA-256, naming tokens, mutation trace, and external-processor outcome from
+  the same input fixture identities. Expected output, expected hash, padding,
+  header, CRC, or tolerated range cannot be edited merely to make the
+  refactoring pass. Any difference is a firmware-semantic change, stops this
+  retirement program, and requires separate R3 authority and independent
+  evidence rather than a golden update inside the refactor.
+- The 2026-08-09 inspection-ownership decision permits one canonical
+  Application inspection publication for each exact authoring revision. The
+  publication is bound to the catalog resolution token, capability and
+  compilation fingerprints, immutable artifact identities, typed draft, and
+  per-slot results exposed through `ActiveSessionSnapshot.InputSlotStatuses`
+  and its derived-publication evidence. Presentation, CLI, output naming,
+  memory presentation, Preview, and Build consume that same accepted snapshot;
+  they cannot reopen paths, repeat metadata decoding, rebuild readiness, or
+  reinterpret a slot independently. Inspection is invalidated only by a file
+  selection or content-identity change, typed draft change, catalog/publication
+  revision change, or explicit Reload. Bootstrap path-based inspection,
+  `FirmwareInspectionAdapter`, `WorkbenchFirmwareInspection*`, and equivalent
+  duplicate inspection DTOs/services are migration-only and are deleted.
+- The 2026-08-09 memory-projection decision makes the Application
+  `MemoryLayoutProjector` the only owner of semantic memory and input-slot
+  projection. It consumes the exact accepted session and its canonical
+  capability/compiled composition and publishes a typed `MemoryLayoutSnapshot`.
+  Missing live client data is added minimally to that canonical projection, not
+  recomputed in an adapter. Presentation owns only labels, localization,
+  styling, display ordering, visibility, and interaction. It cannot calculate
+  firmware addresses, ranges, region groups, required/optional membership,
+  retained coverage, or compiled slot selection. Bootstrap
+  `CompositionMemoryProjection*`, `ICompositionMemoryPresentation`,
+  `WorkbenchMemory*`, and workflow-specific slot projections are deleted while
+  preserving the current visible layout and exact compiled ranges/selection.
+- The 2026-08-09 owner-wide single-path rule applies to every production module
+  in this retirement, not only execution or memory projection. Catalog
+  publication/resolution, authoring session state, inspection, readiness,
+  compilation/planning, memory projection, output naming, Preview/Build,
+  reporting, and delivery each have exactly one authoritative semantic owner
+  and one executable route. Presentation and CLI consume the same typed
+  Application route; Bootstrap and Infrastructure may perform only their
+  declared wiring or adapter duties. A forwarding adapter cannot contain a
+  fallback, re-resolution, reinspection, policy branch, semantic projection,
+  or compatibility implementation. Each migration slice moves every live
+  caller and deletes the displaced route in the same dependency-ordered
+  program. Completion requires source/call-graph guards proving both zero
+  legacy routes and the absence of renamed parallel implementations.
+- The 2026-08-09 output-naming decision makes
+  `CompositionRunService.ResolveOutputNameAsync` and
+  `CompiledOutputNameResolver` the only production naming path. Naming consumes
+  the exact accepted session, canonical inspection publication, compiled
+  naming plan, and declared effective date once. Preview returns the typed
+  naming result and admission identity; Build reuses that exact accepted result
+  and rejects a changed session, artifact identity, authoring revision,
+  publication token, capability fingerprint, or compilation fingerprint rather
+  than re-reading or re-deriving a name. A manual filename override remains
+  typed host Build intent and cannot alter profile naming semantics. CtrlRAM
+  firmware-version edits or other semantic naming inputs must first be part of
+  the accepted typed draft/session. Bootstrap `CompositionOutputNaming*`,
+  `WorkbenchOutputName*`, path-backed naming helpers, and UI/CLI workflow
+  auto-name preflights are deleted while preserving the exact displayed name
+  and all golden naming tokens.
+- The 2026-08-09 catalog-ownership decision establishes one publication chain:
+  an Infrastructure adapter loads and trust-validates immutable bundle source;
+  Profiles alone normalizes profiles, resolves map/profile semantics, and
+  compiles canonical definitions; Application's
+  `CanonicalCapabilityCatalog` alone publishes, reloads, caches, and resolves
+  fixed or dynamic `ResolvedCapability` routes and issues each
+  `ResolutionToken`; accepted sessions consume that publication. Narrow ports
+  invert the loader/compiler dependencies where required. Bootstrap only
+  registers those implementations. It cannot materialize routes, maps,
+  fingerprints, or fallback lookup state, retain a second cache, or project a
+  second catalog. Presentation and CLI query only the Application snapshot.
+  `CanonicalCapabilityCatalogMigrationSource`, Bootstrap
+  `CanonicalCapabilityResolution*`, `CanonicalCapabilityProjection*`, and
+  equivalent route/materialization owners are deleted rather than renamed.
+- The 2026-08-09 authoring-state decision makes `AuthoringSessionState` and
+  `CompiledAuthoringWorkflowService` the only production mutation path. The
+  desktop owns exactly one isolated session for each of the six workflows; a
+  CLI invocation owns an isolated ephemeral session. IC, IC Count, slot,
+  typed-draft, and Reload changes enter the same typed Application command
+  path. One accepted user mutation advances `AuthoringRevision` exactly once
+  and the same owner invalidates every stale inspection, readiness, naming,
+  memory, and Preview-token publication. Presentation retains only display and
+  interaction state and cannot mutate or rebuild the canonical session. UI and
+  CLI use the same commands and queries. Bootstrap `CompositionPlanningAdapter*`,
+  workflow-specific `ICompositionAuthoringExperience`/
+  `ICompositionAuthoringSession` methods, `Workbench*InputProjection`, and
+  equivalent slot/draft reconstruction are deleted. Merge/Replace session-set
+  wrappers are also deleted when they provide only grouping; Presentation owns
+  the six session instances directly rather than introducing another aggregate.
+- The 2026-08-09 report-and-delivery decision makes
+  `CompositionRunResult`/`CompositionRunReport` the complete typed outcome of
+  the shared Build path. Profiles and the compiled composition declare each
+  optional delivery artifact, its source `ByteRange`, kind, and naming policy.
+  This narrow canonical delivery vocabulary may require a coordinated,
+  versioned composition-profile schema, Domain, compiler, and fingerprint
+  extension because the pre-retirement runtime reconstructs A FlashCode
+  delivery in Bootstrap. It may only encode the existing reviewed behavior and
+  cannot change route admission, firmware geometry, output bytes, naming
+  tokens, or processor execution.
+  A caller supplies only whether to deliver and the adapter-owned destination;
+  it cannot change the kind or range. Application extracts the artifact from
+  the already-produced immutable output bytes and commits primary and optional
+  outputs through the output-writer port without reopening inputs, compiling,
+  or executing a processor again. The result reports every committed artifact
+  and delivery failure in typed form. Presentation and CLI consume that typed
+  report. JSON is serialized once only at an explicitly requested external
+  report-file boundary and preserves the existing schema, fields, and CLI
+  presentation; it cannot be an in-process transport. Bootstrap report
+  serialization/parsing, `IAbMergeDeliveryPlanning`,
+  `AbMergeAFlashCodeExportService`, `WorkbenchAbAFlashCodeDeliveryPlan`,
+  `WorkbenchDeliveryArtifact`, and CLI report-JSON parsers are deleted.
+- The 2026-08-09 outer-boundary decision makes Bootstrap a composition root
+  only. Presentation does not reference Bootstrap; CLI parsing, diagnostics,
+  and console rendering live in `NvtFwCombiner.Cli`; both clients invoke the
+  same focused Application commands and queries. Bootstrap owns only startup,
+  dependency registration, lifetime/disposal, and platform-adapter selection.
+  It exposes no callable workflow method, static semantic adapter, service
+  locator, cache, or client DTO. `WorkbenchHostServices`,
+  `CompositionExperienceAdapters*`, `CompositionExecutionPort`, and equivalent
+  forwarding shells are deleted. A Presentation-local immutable dependency bag
+  is permitted only when it has no methods, cache, state transition, fallback,
+  or policy; otherwise ViewModels receive focused ports directly. Tests use the
+  canonical Application use case or the real composition root rather than a
+  public Bootstrap convenience gateway. Moving CLI-owned presentation code out
+  of Bootstrap is reported as relocation, not claimed as a code-size reduction.
+- The 2026-08-09 external-processor decision distinguishes required external
+  protocol compatibility from the retired application architecture. A
+  supported legacy Combiner.exe protocol adapter may remain only when its
+  wire/argv/staging contract is genuinely distinct. Every compiled processor
+  operation follows one route: its Profiles-owned compiled processor plan
+  enters Application `IExternalProcessor`, `ExternalProcessorRouter` selects
+  exactly one registered protocol adapter, and the adapter uses the shared
+  staging, process, diff, declared-range, assertion, cleanup, and audit safety
+  owners. Runtime `LegacyCombinerPostbuildPlanner` and any IC/workflow-based
+  command-plan reconstruction are deleted; the command plan is fixed during
+  Profiles compilation. Common host behavior cannot be copied between protocol
+  adapters, and a compiled operation cannot fall back to a second adapter.
+- The 2026-08-09 compatibility decision classifies public Workbench and
+  Bootstrap migration APIs as accidental CLR surface of the desktop
+  application, not a supported SDK. They, their constructors, and their methods
+  are deleted with their final callers. The retirement cannot retain
+  `[Obsolete]` wrappers, type forwarders, compatibility assemblies, or dual old
+  and new entry points, and repository tests migrate to the canonical contract
+  rather than keeping production compatibility code. Durable compatibility is
+  limited to explicitly governed external surfaces: CLI commands/options/exit
+  behavior and observable text, Saved Rule and report JSON schemas, profile
+  bundle and firmware-family contracts, external-processor protocols, and user
+  file/settings formats. UI behavior and golden outputs remain unchanged. Any
+  evidenced repository-external CLR consumer stops the affected deletion for
+  separate owner review; it does not justify a speculative shim.
+- The 2026-08-09 migration decision requires vertical retirement slices rather
+  than an additive replacement foundation. Every mergeable slice adds only the
+  minimum canonical contract, migrates all named live UI/CLI callers, deletes
+  the displaced owner and forwarding path, lowers the exact ratchets in the
+  same commit, and is net-negative for both runtime and full production source.
+  Cross-assembly relocation is reported separately. Temporary adapters or dual
+  paths may exist only in unmerged feature-branch intermediate commits and
+  cannot enter `0.10.x`. The dependency order is catalog publication/resolution;
+  authoring session plus canonical inspection; memory plus output naming;
+  shared Preview/Build plus typed result/report/delivery; CLI and Presentation
+  caller convergence; then Bootstrap wiring-only and terminal zero-symbol/
+  renamed-path cleanup. Each slice runs proportional architecture, Polytail,
+  and golden evidence; the terminal slice runs the complete verifier, all
+  available BIN goldens, and zero-legacy/parallel-owner guards. A candidate that
+  cannot remain behavior-compatible and proportionately net-negative stops,
+  records its residual, and yields to the next slice rather than weakening
+  semantics or adding compatibility architecture.
 
 #### Artifact, metadata, and firmware vocabulary
 
@@ -1911,27 +2140,52 @@ after the grill closes so issues do not become a competing draft specification.
     replacement owner. `EvidenceRequired` remains fail-closed and cannot
     authorize a firmware change. `ApprovedChange` records the accepted old/new
     behavior and tests the new contract.
-21. The non-UI/test production-code measurement, frozen baseline, 50% target,
-    and anti-gaming constraints are owned by
+21. The non-UI/test production-code measurement, frozen baseline, exact
+    descending ratchets, and anti-gaming constraints are owned by
     [`ADR 0021`](docs/adr/0021-code-size-ratchet-and-convergence.md).
     Ticket #171 must make that exact measurement executable through the existing
-    canonical verifier. The resulting 22,607-line limit is a hard final
-    `0.10.x` integration gate, not an aspirational report. Every migration slice
-    records its production delta and deletes superseded ownership when its
-    caller/evidence gate permits. After Workbench/parallel-catalog deletion and
-    legacy-runtime retirement, a dedicated Canonical Core Convergence phase
-    owns explicit layer budgets and remaining simplification through four
-    independently reviewable slices: Domain + Profiles, Application, Bootstrap
-    + CLI, and Infrastructure + Contracts + CRC worker. Each slice declares its
-    caller inventory, deletion list, tests, measured delta, and final budget;
-    shared registries/schemas have one writer, and no slice mixes in new product
-    functionality or UI layout work. Their provisional hard caps are 10,500,
-    5,000, 2,000, and 4,500 lines respectively, for 22,000 allocated lines.
-    The remaining 607 lines are an unallocated integration reserve. Capacity
-    does not move between slices without owner-approved architecture review,
-    and no reallocation may raise the 22,607 final gate. Ticket #197 remains
-    blocked until the umbrella reaches that gate without weakening behavior,
-    architecture, firmware, security, coverage, or release evidence.
+    canonical verifier. Every migration slice records its production delta and
+    deletes superseded ownership when its caller/evidence gate permits. After
+    Workbench/parallel-catalog deletion and legacy-runtime retirement, a
+    dedicated Canonical Core Convergence phase owns remaining simplification
+    through four independently reviewable slices: Domain + Profiles,
+    Application, Bootstrap + CLI, and Infrastructure + Contracts + CRC worker.
+    Each slice declares a line-addressed caller/deletion ledger, tests,
+    disposition for every retained candidate, and exact measured delta; shared
+    registries/schemas have one writer, and no slice mixes in new product
+    functionality or UI layout work. A Core PR must lower every affected
+    ratchet and the runtime total in the same commit, so cross-slice relocation
+    cannot pass. The four slices must sum exactly to runtime total; an
+    unallocated runtime source root fails rather than creating a fifth
+    ownership bucket.
+    Owner amendment on 2026-08-08 supersedes the earlier 44,000 total and
+    18,000/12,000/7,500/5,500 slice completion caps. The dated numbers remain
+    planning history after the merged #230 checkpoint at `ad672900` showed that
+    no compatible, evidence-backed deletion ledger could close the remaining
+    numeric gap. Every mutually compatible, evidence-backed, in-scope candidate
+    with a proportionate implementation, verification, and evidence cost and a
+    net-negative result is completed. A safe candidate is not skipped solely
+    because its individual reduction is small. An unimplemented de minimis
+    candidate must show that its total implementation, verification, and
+    evidence cost is disproportionate to its maintenance benefit. Every other
+    retained candidate is explicitly classified as a durable contract, another
+    ticket's authority, or evidence/R3 blocked; a cross-scope disposition names
+    its owning layer and existing issue when one exists. A slice completes only
+    when no unclassified or still-eligible candidate remains and its full
+    behavioral, golden, architecture, and measurement evidence passes.
+    Owner amendment on 2026-08-06 permits a bounded Application caller
+    migration before #230 closes only as a #230-owned same-PR exception when
+    that caller is the last blocker to deleting a named Domain + Profiles
+    compatibility surface. The caller migration and zero-caller deletion land
+    in the same PR; no measured slice may grow, and both the deleted-owner
+    ratchet and runtime total must fall. This exception is not independent #231
+    execution; broad #231 implementation begins only after #230 closes and the
+    owner separately approves its intake. The exception adds no Application
+    semantic mirror, UI or Bootstrap behavior, cap reallocation, or
+    migration-only PR that keeps the superseded surface alive.
+    #197 verifies completed slice ledgers, latest exact ratchets, slice-sum
+    integrity, and all existing integration/release gates. It does not activate
+    a separate numeric final-target mode.
     Merged PR #278 commit `4dddf1a2822ee74a343d2b20a565115d745313ae`
     is the 72,750-line post-headless pre-Core baseline. Before #229 freezes
     Core-entry ratchets, cumulative positive counted growth is capped at 2,000
@@ -1944,8 +2198,8 @@ after the grill closes so issues do not become a competing draft specification.
     counted runtime lines. This consumes no reusable allowance, does not refill
     after deletion, and does not authorize any other pre-Core growth. #254 is
     the immediate next implementation ticket and records the superseded
-    General/Saved Rule reduction. The 22,607 final gate and 607-line
-    integration reserve remain unchanged.
+    General/Saved Rule reduction. Those dated limits remain measurement history;
+    the 2026-08-08 amendment supersedes them as completion gates.
     Every Canonical Core Convergence PR must reduce both its slice and total
     metric and may not create temporary deletion debt. An earlier R3
     firmware/route migration may temporarily grow only when a golden,
@@ -2051,13 +2305,13 @@ after the grill closes so issues do not become a competing draft specification.
     feature PRs merge to a non-default integration branch, the merge checklist
     explicitly updates/closes the issue and records the PR rather than relying
     on `Closes #N`.
-30. Final layer caps do not prematurely block prerequisite migration. The Core
-    Convergence entry change, after Workbench/parallel-catalog and legacy
-    runtime deletion, freezes the measured baseline for all four slices and
-    enables exact descending slice ratchets through `scripts/verify.py`. Every
-    Core PR lowers each affected slice ratchet and the total; moving equivalent
-    logic between slices cannot pass. Final integration enforces both four
-    maximum caps and total 22,607 through that same verifier, with no second
+30. The Core Convergence entry change, after Workbench/parallel-catalog and
+    legacy runtime deletion, freezes the measured baseline for all four slices
+    and enables exact descending slice ratchets through `scripts/verify.py`.
+    Every Core PR lowers each affected slice ratchet and the total; moving
+    equivalent logic between slices cannot pass. Final integration enforces the
+    latest exact ratchets, slice-sum integrity, completed candidate ledgers,
+    and existing release gates through that same verifier, with no second
     command or CI entry point.
 31. Documentation convergence removes boilerplate XML summaries that merely
     restate names and repeated comments on forwarding constructors/properties,
@@ -2122,8 +2376,8 @@ approved specification and consistency grill
   -> allocate the dependency-ready frontier to the next 0.10.x release
   -> implement, review, verify, record production delta, and delete old ownership slice by slice
   -> delete Workbench/parallel catalogs and retire the legacy runtime
-  -> complete four independently reviewable Canonical Core Convergence slices under explicit layer budgets
-  -> pass the 22,607-line #197 integration gate
+  -> complete four independently reviewable Canonical Core Convergence candidate ledgers under exact ratchets
+  -> pass the #197 integration, evidence, and release gates
 ```
 
 Owner decision on 2026-08-04 allocates the reviewed state through #254 to
@@ -2131,7 +2385,8 @@ Owner decision on 2026-08-04 allocates the reviewed state through #254 to
 viewport, and first General/Saved Rule compatibility deletion form a stable,
 support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
-refactor and hard 22,607-line gate are complete. `v0.10.4` then performs a
+refactor, reviewed residual ledgers, and exact ratchet gates are complete.
+`v0.10.4` then performs a
 fresh simplification/ownership audit of that result; `v0.10.5` owns performance
 work that unifies every preload behind one observable, cancellable, bounded,
 and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
@@ -2187,13 +2442,14 @@ owner.
 Prerequisite vertical slices can establish the canonical runtime while leaving
 duplicate DTOs, validators, workflow services, fingerprints, caches, processor
 wrappers, Workbench projections, and implementation-shaped tests behind. That
-would preserve the current maintenance burden and miss the hard 22,607-line
-non-UI/test production gate even if every feature still works.
+would preserve the current maintenance burden even if every feature still
+works or a planning number appears improved.
 
 Canonical Core Convergence must therefore delete superseded ownership after the
 headless, Workbench, and legacy-runtime migrations; retain one semantic and
 execution path; preserve all accepted behavior and firmware evidence; and make
-the final code-size constraint executable through the existing verifier.
+exact descending ratchets plus the reviewed candidate-ledger completion
+contract executable through the existing verifier and ticket evidence.
 
 #### Necessary user stories
 
@@ -2212,8 +2468,10 @@ the final code-size constraint executable through the existing verifier.
    differential seams removed only after stable behavioral, golden, mutation,
    and architecture evidence replaces them.
 6. As the repository owner, I want the four Core slices and total production
-   metric to ratchet downward to the approved caps, so the 50% reduction is a
-   verified result rather than a reorganized duplicate architecture.
+   metric to ratchet downward while every compatible, evidence-backed deletion
+   candidate is exhausted or explicitly dispositioned, so improvement is
+   verified rather than presented as a reorganized duplicate architecture or
+   an unsupported forecast.
 
 #### Scope and explicit non-goals
 
@@ -2240,8 +2498,9 @@ security, coverage, accessibility, or human-review gates.
   Preview/Build, report retrieval, readiness, and stale-result policy.
 - Infrastructure owns trust/document loading and one staged processor host with
   protocol-family adapters; Bootstrap owns wiring; UI and CLI are consumers.
-- ADR 0021 owns measurement, slice caps, reserve, anti-gaming, and ratchet
-  policy. `scripts/verify.py` remains the only verification entry point.
+- ADR 0021 owns measurement, exact slice/total ratchets, candidate completion,
+  and anti-gaming policy. `scripts/verify.py` remains the only verification
+  entry point.
 
 #### Functional and failure requirements
 
@@ -2256,10 +2515,11 @@ parse, resolution, inspection, compilation/engine execution, and processor
 stages no more than once at their declared identity seam.
 
 Unknown or unvalidated definitions, stale identity, missing processor
-authority, cache-key ambiguity, duplicate exact-route ownership, or a slice
-that fails to lower both its own and total metric fails closed. Cache disable or
-clear must only cause canonical recomputation and must not change bytes,
-readiness, diagnostics, evidence, publication, or support.
+authority, cache-key ambiguity, duplicate exact-route ownership, an
+unclassified eligible deletion candidate, or a slice that fails to lower both
+its own and total metric fails closed. Cache disable or clear must only cause
+canonical recomputation and must not change bytes, readiness, diagnostics,
+evidence, publication, or support.
 
 #### Compatibility, firmware, support, security, and release impact
 
@@ -2277,7 +2537,9 @@ Release gates remain unchanged and downstream of convergence.
 
 Each slice records its entry measurement, callers, deletion list, affected
 semantic owners, narrow tests, architecture checks, production delta, and final
-measurement. Durable evidence covers fixed golden bytes/hashes, exact mutation
+measurement. Its residual ledger gives every retained candidate a reviewed
+durable-contract, later-ticket, evidence/R3, or disproportionate-risk/cost
+disposition. Durable evidence covers fixed golden bytes/hashes, exact mutation
 ranges, operation traces, typed failures, UI/CLI observable behavior,
 cross-language fingerprint vectors, validation-boundary tests, stale/cache
 tests, deterministic work counts, bounded allocations, dependency direction,
@@ -2287,10 +2549,48 @@ mandatory at the risk level declared by the affected authority.
 
 #### Open decisions and remaining gates
 
-No architecture or terminology decision remains open from this grill.
-`$to-tickets` synchronized umbrella #229 and ownership-bounded slices #230-#233,
-including Core-entry ratchets and the #197 dependency, on 2026-07-28. Each
-ticket remains outside implementation intake until the owner separately
-approves its exact scope for `ready-for-agent`. Route-specific R3 golden or
-firmware-owner evidence remains an implementation gate, not an unresolved
-architecture decision.
+No architecture or terminology decision remains open from this grill. Owner
+amendment on 2026-08-08 replaced the disproven numeric completion caps with the
+maximum-practical, evidence-backed candidate-ledger contract while retaining
+all exact ratchets and anti-gaming rules. `$to-tickets` synchronizes umbrella
+#229, ownership-bounded slices #230-#233, and the #197 dependency to that
+amendment. Each ticket remains outside implementation intake until the owner
+separately approves its exact scope for `ready-for-agent`. Route-specific R3
+golden or firmware-owner evidence remains an implementation gate, not an
+unresolved architecture decision.
+
+### 15.9 Complete Legacy Architecture Retirement
+
+Status: the owner accepted the individual architecture decisions and approved
+the consolidated specification and LAR-01..12 implementation. The terminal
+implementation is present on the feature branch; LAR-00 verification and
+release gates remain open.
+The reviewable draft is
+[`docs/specs/0.10.x-legacy-architecture-retirement.md`](docs/specs/0.10.x-legacy-architecture-retirement.md),
+and its exact baseline/size assessment is
+[`docs/governance/0.10.x-legacy-architecture-retirement-size-assessment.md`](docs/governance/0.10.x-legacy-architecture-retirement-size-assessment.md).
+
+The terminal outcome is zero production Workbench or renamed-equivalent
+facades, one semantic/execution path per module, Application contracts shared
+by UI and CLI, Presentation independent of Bootstrap, and Bootstrap reduced to
+composition wiring and lifetime. Every repository-declared or owner-approved
+BIN golden at PR #352 commit
+`6ba7217299c3e2ddb1c38467e6f288d5710ffef1` remains exact full-byte evidence.
+The measured direct legacy surface was 14,543 nonblank lines of gross
+retirement surface, not promised net savings. The terminal implementation is
+67,433 runtime and 96,044 full-production nonblank lines: exact reductions of
+1,334 and 1,454 from the predecessor. The former 7,800–10,200 planning range
+is superseded because it overestimated how much unique trust, route,
+admission, reporting, delivery, and processor behavior could be deleted rather
+than relocated to its canonical owner. Exact gross/add/net and slice closure
+are recorded in the size assessment.
+
+The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
+planning ids LAR-01 through LAR-12 own the vertical implementation slices and
+LAR-00 owns aggregate completion; their exact blocker graph is maintained in
+`docs/governance/0.10.x-ticket-dependency-plan.md`. The graph is allocated to
+the `v0.10.3` complete-refactoring gate. The owner authorized the governed
+review/PR/merge/release sequence on 2026-08-10, but tag creation remains
+blocked until LAR-00, #197, CI, package/provenance, clean-Windows, and owner
+review gates pass. Support promotion, profile/schema implementation, and
+firmware-semantic mutation remain out of scope.

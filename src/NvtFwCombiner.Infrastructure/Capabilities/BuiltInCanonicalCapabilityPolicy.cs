@@ -10,7 +10,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
     internal const string RelativePath =
         "docs/contracts/canonical-capability-policy-v1.json";
     internal const string ExpectedSha256 =
-        "0b901c0cdec2f4a90c3fca8c542293b9700c049956f7dba3480e16a5a8ceac23";
+        "026fd116bb8380c373148953935cde01ceb5532f60bb3848dbab7d17fabd69e4";
 
     internal static CanonicalCapabilityPolicySnapshot Load()
     {
@@ -37,7 +37,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
             !StringComparer.Ordinal.Equals(
                 document.CatalogId,
                 "canonical-capability-policy") ||
-            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.5.0") ||
+            !StringComparer.Ordinal.Equals(document.CatalogVersion, "1.6.0") ||
             !IsIsoDate(document.IssuedOn) ||
             document.Routes is null ||
             document.Routes.Count == 0)
@@ -92,7 +92,6 @@ internal static class BuiltInCanonicalCapabilityPolicy
                 source.CapabilityFingerprint,
                 static value => value switch
                 {
-                    "unclassified" => CapabilityPublicationStatus.Unclassified,
                     "supported" => CapabilityPublicationStatus.Supported,
                     "candidate" => CapabilityPublicationStatus.Candidate,
                     "internal" => CapabilityPublicationStatus.Internal,
@@ -165,21 +164,6 @@ internal static class BuiltInCanonicalCapabilityPolicy
             $"Built-in canonical capability policy has invalid {field}.");
     }
 }
-
-/// <summary>Typed policy facts ready to be joined with compiler output.</summary>
-internal sealed record CanonicalCapabilityPolicySnapshot(
-    string CatalogId,
-    string CatalogVersion,
-    string SourceSha256,
-    IReadOnlyList<CanonicalCapabilityPolicyRoute> Routes);
-
-/// <summary>One exact-route policy row without duplicated firmware execution facts.</summary>
-internal sealed record CanonicalCapabilityPolicyRoute(
-    CapabilityRouteIdentity Identity,
-    string CapabilityFingerprint,
-    PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring,
-    PinnedCapabilityDecision<CapabilityPublicationStatus> Publication,
-    PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence);
 
 /// <summary>Generated metadata for the exact hash-pinned capability policy.</summary>
 [JsonSourceGenerationOptions(

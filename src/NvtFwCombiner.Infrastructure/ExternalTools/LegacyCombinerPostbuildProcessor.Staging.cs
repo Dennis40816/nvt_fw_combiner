@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
@@ -46,7 +45,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     }
 
     private static CompositionIssue? MaterializeStagedBlockFiles(
-        IReadOnlyList<LegacyCombinerBlockArgument> blocks,
+        IReadOnlyList<ExternalProcessorProtocolBlock> blocks,
         byte[] firmwareBytes,
         IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
         string binDirectory)
@@ -58,14 +57,14 @@ public sealed partial class LegacyCombinerPostbuildProcessor
 
         Dictionary<string, byte[]> files = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, bool[]> written = new(StringComparer.OrdinalIgnoreCase);
-        foreach (LegacyCombinerBlockArgument block in blocks
-            .Where(block => block.SourceKind is LegacyCombinerBlockSourceKind.StagedFile or
-                LegacyCombinerBlockSourceKind.StagedArtifact)
+        foreach (ExternalProcessorProtocolBlock block in blocks
+            .Where(block => block.SourceKind is ExternalProcessorProtocolBlockSourceKind.StagedFile or
+                ExternalProcessorProtocolBlockSourceKind.StagedArtifact)
             .OrderBy(block => block.SourceFileName, StringComparer.Ordinal)
             .ThenBy(block => block.SourceOffset)
             .ThenBy(block => block.FirmwareRange.Start))
         {
-            if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile &&
+            if (block.SourceKind == ExternalProcessorProtocolBlockSourceKind.StagedFile &&
                 block.StagedArtifactId is not null &&
                 artifactsById!.TryGetValue(block.StagedArtifactId, out ExternalProcessorStagedArtifact? fileArtifact))
             {
@@ -101,7 +100,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
             }
 
             ReadOnlySpan<byte> sourceBytes;
-            if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+            if (block.SourceKind == ExternalProcessorProtocolBlockSourceKind.StagedArtifact)
             {
                 if (!artifactsById!.TryGetValue(block.StagedArtifactId!, out ExternalProcessorStagedArtifact? artifact))
                 {
@@ -167,7 +166,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     }
 
     private static CompositionIssue? ValidateStagedArtifacts(
-        LegacyCombinerPostbuildCommandPlan commandPlan,
+        ExternalProcessorProtocolPlan commandPlan,
         IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts)
     {
         if (!TryCreateArtifactIndex(stagedArtifacts, out Dictionary<string, ExternalProcessorStagedArtifact>? artifactsById, out CompositionIssue? artifactIndexIssue))
@@ -178,7 +177,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         HashSet<string> requiredArtifactIds = [
             .. commandPlan.Commands
                 .SelectMany(command => command.Blocks)
-                .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+                .Where(block => block.SourceKind == ExternalProcessorProtocolBlockSourceKind.StagedArtifact)
                 .Select(block => block.StagedArtifactId!),
         ];
         foreach (string artifactId in requiredArtifactIds)
@@ -207,12 +206,12 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     }
 
     private static async ValueTask<CompositionIssue?> VerifyStagedArtifactsUnchangedAsync(
-        IReadOnlyList<LegacyCombinerBlockArgument> blocks,
+        IReadOnlyList<ExternalProcessorProtocolBlock> blocks,
         IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
         string binDirectory,
         CancellationToken cancellationToken)
     {
-        foreach (LegacyCombinerBlockArgument block in blocks
+        foreach (ExternalProcessorProtocolBlock block in blocks
             .Where(block => block.StagedArtifactId is not null)
             .DistinctBy(block => block.StagedArtifactId, StringComparer.Ordinal))
         {
@@ -220,7 +219,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
                 candidate => string.Equals(candidate.ArtifactId, block.StagedArtifactId, StringComparison.Ordinal));
             if (artifact is null)
             {
-                if (block.SourceKind == LegacyCombinerBlockSourceKind.StagedArtifact)
+                if (block.SourceKind == ExternalProcessorProtocolBlockSourceKind.StagedArtifact)
                 {
                     return new CompositionIssue(
                         "external-tool.staged-artifact.unknown",
@@ -286,11 +285,11 @@ public sealed partial class LegacyCombinerPostbuildProcessor
 
     private static async ValueTask<ShortOutputTailSnapshot?> CaptureShortOutputTailAsync(
         string firmwarePath,
-        LegacyCombinerPostbuildCommand command,
+        ExternalProcessorProtocolCommand command,
         long expectedLength,
         CancellationToken cancellationToken)
     {
-        if (command.Family != LegacyCombinerCommandFamily.MergeMode)
+        if (!command.RetainShortOutputTail)
         {
             return null;
         }
@@ -321,7 +320,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
 
     private static async ValueTask<CompositionIssue?> NormalizeShortenedFirmwareAsync(
         string firmwarePath,
-        LegacyCombinerPostbuildCommand command,
+        ExternalProcessorProtocolCommand command,
         long expectedLength,
         ShortOutputTailSnapshot? tailSnapshot,
         CancellationToken cancellationToken)
@@ -362,7 +361,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     }
 
     private static long GetMinimumCommandOutputLength(
-        LegacyCombinerPostbuildCommand command,
+        ExternalProcessorProtocolCommand command,
         long originalLength)
     {
         return command.Blocks.Count == 0
@@ -421,17 +420,19 @@ public sealed partial class LegacyCombinerPostbuildProcessor
     }
 
     private static StagingTreePolicy CreateStagingTreePolicy(
-        LegacyCombinerPostbuildProfile profile,
         ExternalCombinerToolManifest manifest,
-        LegacyCombinerPostbuildCommandPlan commandPlan)
+        ExternalProcessorProtocolPlan commandPlan)
     {
         HashSet<string> allowedRelativePaths = new(StringComparer.OrdinalIgnoreCase)
         {
-            Path.Combine(OutputDirectoryName, profile.FirmwareFileName),
+            Path.Combine(OutputDirectoryName, commandPlan.TargetFileName),
             Path.Combine(OutputDirectoryName, MapFileName),
         };
-        foreach (string stagedFileName in LegacyCombinerPostbuildPlanner
-            .GetStagedFileBlocks(commandPlan)
+        foreach (string stagedFileName in commandPlan.Commands
+            .SelectMany(static command => command.Blocks)
+            .Where(static block => block.SourceKind is
+                ExternalProcessorProtocolBlockSourceKind.StagedFile or
+                ExternalProcessorProtocolBlockSourceKind.StagedArtifact)
             .Select(block => block.SourceFileName)
             .Distinct(StringComparer.OrdinalIgnoreCase))
         {

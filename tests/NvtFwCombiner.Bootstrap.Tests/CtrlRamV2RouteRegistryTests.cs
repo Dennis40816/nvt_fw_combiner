@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
@@ -33,7 +32,7 @@ public sealed class CtrlRamV2RouteRegistryTests
     /// <summary>Both owner-modeled NT51926 Common FW 1.x plans have explicit V2 routes.</summary>
     [Theory]
     [InlineData(IcNumberInputMode.SingleSelector, IcNumberSelectionTokens.SingleChip, LegacyCombinerPostbuildBranch.SingleChip, "nt51926-ctrlram-replace-fw141-runtime-single")]
-    [InlineData(IcNumberInputMode.CascadeSelector, WorkbenchIcNumberTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade, "nt51926-ctrlram-replace-fw141-runtime-cascade")]
+    [InlineData(IcNumberInputMode.CascadeSelector, IcNumberSelectionTokens.Cascade, LegacyCombinerPostbuildBranch.Cascade, "nt51926-ctrlram-replace-fw141-runtime-cascade")]
     public void Nt51926CommonFw1xPlanResolvesItsTypedV2Route(
         IcNumberInputMode mode,
         string token,
@@ -43,9 +42,7 @@ public sealed class CtrlRamV2RouteRegistryTests
         LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog
             .GetProfiles("NT51926")
             .Single(static candidate => candidate.EffectiveCommonFwVersion == new LegacyCombinerCommonFwVersion(1, 0, 0));
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            profile,
-            new IcNumberSelection(mode, [token]));
+        LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(new IcNumberSelection(mode, [token]));
 
         Assert.Equal(expectedBranch, plan.Branch);
         Assert.True(CtrlRamV2RouteRegistry.TryResolve(plan, out CtrlRamV2Route? route));
@@ -81,9 +78,7 @@ public sealed class CtrlRamV2RouteRegistryTests
     {
         LegacyCombinerPostbuildProfile profile = Assert.Single(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51928"));
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            profile,
-            new IcNumberSelection(mode, [token]));
+        LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(new IcNumberSelection(mode, [token]));
 
         Assert.True(CtrlRamV2RouteRegistry.TryResolve(plan, out CtrlRamV2Route? route));
         Assert.NotNull(route);

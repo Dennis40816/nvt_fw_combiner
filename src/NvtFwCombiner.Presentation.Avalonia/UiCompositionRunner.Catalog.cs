@@ -1,4 +1,5 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -7,19 +8,22 @@ namespace NvtFwCombiner.Presentation.Avalonia;
 public static partial class UiCompositionRunner
 {
     /// <summary>Gets grouped IC-number display choices while preserving planner tokens.</summary>
-    public static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(string icId)
+    public static IReadOnlyList<IcNumberChoiceViewModel> GetNumberSelectionChoices(
+        PresentationCompositionServices services,
+        string icId)
     {
-        IReadOnlyList<WorkbenchIcNumberChoice> workbenchChoices =
-            WorkbenchCompositionService.GetNumberSelectionChoices(icId);
+        ArgumentNullException.ThrowIfNull(services);
+        IReadOnlyList<CapabilityNumberChoice> canonicalChoices =
+            services.Capabilities.GetNumberSelectionChoices(icId);
         IReadOnlyList<IcNumberChoiceViewModel> choices =
         [
-            .. workbenchChoices
+            .. canonicalChoices
                 .Select(choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel)),
         ];
 
         return choices.Count > 0
             ? choices
-            : [new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.SingleChip, "1 IC")];
+            : [new IcNumberChoiceViewModel(IcNumberSelectionTokens.SingleChip, "1 IC")];
     }
 
 }

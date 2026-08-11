@@ -142,12 +142,6 @@ public sealed record RawBinaryEditorByte(
     byte CurrentValue,
     RawBinaryEditorChangeKind ChangeKind)
 {
-    /// <summary>True when this current byte retains an identity from the loaded source document.</summary>
-    public bool HasOriginalValue => OriginalAddress is not null;
-
-    /// <summary>True when the opened source document contains this same display address.</summary>
-    public bool HasOriginalValueAtAddress => OriginalValueAtAddress is not null;
-
     /// <summary>True when the current value differs from its retained source identity.</summary>
     public bool IsDataChanged => (ChangeKind & RawBinaryEditorChangeKind.Data) != 0;
 
@@ -163,11 +157,7 @@ public sealed record RawBinaryEditorViewportRow(
     long Address,
     IReadOnlyList<RawBinaryEditorByte> Bytes,
     string OriginalAscii,
-    string CurrentAscii)
-{
-    /// <summary>True when at least one byte in the displayed row changed.</summary>
-    public bool HasChanges => Bytes.Any(value => value.IsChanged);
-}
+    string CurrentAscii);
 
 /// <summary>A bounded, fixed-width raw-BIN viewport built from the editor-owned work buffer.</summary>
 public sealed record RawBinaryEditorViewport(

@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.TestSupport;
-using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
+using static NvtFwCombiner.Infrastructure.Composition.SavedRuleIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -467,15 +467,15 @@ public sealed partial class SavedRuleCliCommandTests
         (GeneralMergeDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralMergeRule(rule, source);
 
-        WorkbenchRunResult preview =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult preview =
+            await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 draft,
                 policy,
                 build: false,
                 TestContext.Current.CancellationToken);
-        WorkbenchRunResult build =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult build =
+            await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 draft,
                 policy,
@@ -483,13 +483,13 @@ public sealed partial class SavedRuleCliCommandTests
                 TestContext.Current.CancellationToken,
                 output);
 
-        Assert.True(preview.Succeeded, preview.ReportJson);
-        Assert.True(build.Succeeded, build.ReportJson);
+        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
+        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
         byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal([0xA5, 0x10, 0xA5, 0xA5], outputBytes);
 
-        using var previewDocument = JsonDocument.Parse(preview.ReportJson);
-        using var buildDocument = JsonDocument.Parse(build.ReportJson);
+        using var previewDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(preview));
+        using var buildDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(build));
         JsonElement previewRoot = previewDocument.RootElement;
         JsonElement buildRoot = buildDocument.RootElement;
         Assert.Equal(
@@ -559,8 +559,8 @@ public sealed partial class SavedRuleCliCommandTests
         (GeneralMergeDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralMergeRule(rule, source);
 
-        WorkbenchRunResult result =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult result =
+            await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 draft,
                 policy,
@@ -568,7 +568,7 @@ public sealed partial class SavedRuleCliCommandTests
                 TestContext.Current.CancellationToken,
                 output);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(
             [0x00, 0x10, 0x00],
             await File.ReadAllBytesAsync(
@@ -622,23 +622,23 @@ public sealed partial class SavedRuleCliCommandTests
         (GeneralMergeDraftState secondDraft, GeneralSavedRuleResourcePolicy secondPolicy) =
             LoadTrustedGeneralMergeRule(secondRule, source);
 
-        WorkbenchRunResult first =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult first =
+            await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 firstDraft,
                 firstPolicy,
                 build: false,
                 TestContext.Current.CancellationToken);
-        WorkbenchRunResult second =
-            await WorkbenchCompositionService.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult second =
+            await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
                 "NT51950",
                 secondDraft,
                 secondPolicy,
                 build: false,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(first.Succeeded, first.ReportJson);
-        Assert.True(second.Succeeded, second.ReportJson);
+        Assert.True(first.Succeeded, CompositionRunReportJson.Serialize(first));
+        Assert.True(second.Succeeded, CompositionRunReportJson.Serialize(second));
         Assert.NotEqual(first.PreviewToken, second.PreviewToken);
     }
 

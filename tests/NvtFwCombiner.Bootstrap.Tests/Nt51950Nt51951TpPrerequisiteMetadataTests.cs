@@ -1,8 +1,8 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -103,19 +103,6 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         Assert.Equal("tp-input", action.ArtifactBindingId);
         Assert.Equal("tp-input", action.SlotId);
         Assert.Equal(dp.Identity, Assert.Single(snapshot.ArtifactIdentities));
-        InputSelectionMemberReadiness slotReadiness =
-            InputSelectionReadinessResolver.ProjectMetadataDependency(
-                dpcmi,
-                isSelected: true);
-        Assert.Equal("dp-input", slotReadiness.SlotId);
-        Assert.False(slotReadiness.CanSelect);
-        Assert.Equal(ResolvedChildReadiness.PendingInput, slotReadiness.Readiness);
-        Assert.Equal(
-            new InputSelectionNextAction(
-                InputSelectionNextActionKind.LoadArtifactFirst,
-                "tp-input",
-                "tp-input"),
-            slotReadiness.NextAction);
     }
 
     /// <summary>NT51950 count 1 and cascade count 2 select their evidenced anchors.</summary>
@@ -217,13 +204,6 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
             "firmware-config-standard-merge",
             dpcmi.Resolution?.Prerequisite?.StructureId);
         Assert.Null(dpcmi.NextAction);
-        InputSelectionMemberReadiness slotReadiness =
-            InputSelectionReadinessResolver.ProjectMetadataDependency(
-                dpcmi,
-                isSelected: true);
-        Assert.Equal(ResolvedChildReadiness.Blocked, slotReadiness.Readiness);
-        Assert.False(slotReadiness.CanSelect);
-        Assert.Null(slotReadiness.NextAction);
     }
 
     /// <summary>The built-in trust seam rejects every non-exact provider identity.</summary>
@@ -235,31 +215,31 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
     public void BuiltInDefinitionResolverRejectsNonExactReference(
         string mismatch)
     {
-        var exact = new FirmwareMetadataStructureDefinitionReference(
+        var exact = new FirmwareMetadataStructureDefinitionReferenceDocument(
                 "nt51929-nt51932",
                 "1.3.0",
                 "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617",
                 DpcmiMetadataContract.StructureId);
-        FirmwareMetadataStructureDefinitionReference changed =
+        FirmwareMetadataStructureDefinitionReferenceDocument changed =
             mismatch switch
             {
-                "family" => new FirmwareMetadataStructureDefinitionReference(
+                "family" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     "unknown-family",
                     exact.FamilyVersion,
                     exact.FamilyContentHash,
                     exact.StructureId),
-                "version" => new FirmwareMetadataStructureDefinitionReference(
+                "version" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     exact.FamilyId,
                     "1.2.1",
                     exact.FamilyContentHash,
                     exact.StructureId),
-                "hash" => new FirmwareMetadataStructureDefinitionReference(
+                "hash" => new FirmwareMetadataStructureDefinitionReferenceDocument(
                     exact.FamilyId,
                     exact.FamilyVersion,
                     "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                     exact.StructureId),
                 "structure" =>
-                    new FirmwareMetadataStructureDefinitionReference(
+                    new FirmwareMetadataStructureDefinitionReferenceDocument(
                         exact.FamilyId,
                         exact.FamilyVersion,
                         exact.FamilyContentHash,
@@ -350,9 +330,6 @@ public sealed class Nt51950Nt51951TpPrerequisiteMetadataTests
         Assert.Equal(MetadataInspectionState.Value, dpcmi.State);
         Assert.Equal(ResolvedChildReadiness.Ready, dpcmi.Readiness);
         Assert.Null(dpcmi.NextAction);
-        Assert.True(InputSelectionReadinessResolver
-            .ProjectMetadataDependency(dpcmi, isSelected: true)
-            .CanSelect);
         Assert.Equal(
             new ByteRange(expectedStart, 3),
             dpcmi.Resolution?.Resolved?.LocatorOutcome.ResolvedRange.Range);

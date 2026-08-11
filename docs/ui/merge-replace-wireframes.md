@@ -1,6 +1,6 @@
 # Merge and Replace Wireframe Plan
 
-This document describes the current production-backed workbench interface for Merge and Replace. UI surfaces render catalog/service state and do not implement firmware behavior in XAML or ViewModels.
+This document describes the current production-backed workspace interface for Merge and Replace. UI surfaces render catalog/service state and do not implement firmware behavior in XAML or ViewModels.
 
 ## Home launcher
 
@@ -42,7 +42,7 @@ Shared controls:
 - Prefer compact labels, status chips, and progressive disclosure over explanatory paragraphs.
 - Avoid landing-page or marketing composition.
 - Keep Memory coverage visually stable between Merge and Replace so users can compare workflows without relearning layout.
-- Keep Memory coverage on a light workbench surface with direct labels and
+- Keep Memory coverage on a light memory-layout surface with direct labels and
   inspectable details instead of a dominant dark banner. Add a compact legend
   only when multiple non-obvious states lack an adjacent self-labeling list.
 - Keep command rows and disabled actions visually lighter than primary workflow content.

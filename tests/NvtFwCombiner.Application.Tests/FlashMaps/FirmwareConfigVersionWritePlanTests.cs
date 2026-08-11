@@ -17,11 +17,12 @@ public sealed class FirmwareConfigVersionWritePlanTests
         Assert.Equal(0x3B000, plan.SourceStructureStart);
         Assert.Equal(0x3B000, plan.CanonicalBackupStructureStart);
         Assert.Equal(new ByteRange(0x3B000, 2), plan.SourceFirmwareVersionAndBarRange);
-        Assert.Equal([0x27, 0xD8], plan.SourceFirmwareVersionAndBarBytes.ToArray());
+        Assert.Equal(0x27, plan.FirmwareVersion);
+        Assert.Equal(0xD8, plan.FirmwareVersionBar);
         Assert.Equal(new ByteRange(0x3B011, 1), plan.SourceFirmwareSubVersionRange);
         Assert.Equal(new ByteRange(0x3B000, 2), plan.CanonicalBackupFirmwareVersionAndBarRange);
         Assert.Equal(new ByteRange(0x3B011, 1), plan.CanonicalBackupFirmwareSubVersionRange);
-        Assert.Equal([0x04], plan.SourceFirmwareSubVersionBytes.ToArray());
+        Assert.Equal(0x04, plan.FirmwareSubVersion);
     }
 
     /// <summary>Rejects a Backup whose existing version complement is malformed.</summary>
@@ -50,9 +51,10 @@ public sealed class FirmwareConfigVersionWritePlanTests
         Assert.Equal(0x22000, sourcePlan.SourceStructureStart);
         Assert.Equal(0x3B000, sourcePlan.CanonicalBackupStructureStart);
         Assert.Equal(new ByteRange(0x22000, 2), sourcePlan.SourceFirmwareVersionAndBarRange);
-        Assert.Equal([0x18, 0xE7], sourcePlan.SourceFirmwareVersionAndBarBytes.ToArray());
+        Assert.Equal(0x18, sourcePlan.FirmwareVersion);
+        Assert.Equal(0xE7, sourcePlan.FirmwareVersionBar);
         Assert.Equal(new ByteRange(0x22011, 1), sourcePlan.SourceFirmwareSubVersionRange);
-        Assert.Equal([0x03], sourcePlan.SourceFirmwareSubVersionBytes.ToArray());
+        Assert.Equal(0x03, sourcePlan.FirmwareSubVersion);
         Assert.Equal(new ByteRange(0x3B000, 2), sourcePlan.CanonicalBackupFirmwareVersionAndBarRange);
         Assert.Equal(new ByteRange(0x3B011, 1), sourcePlan.CanonicalBackupFirmwareSubVersionRange);
     }

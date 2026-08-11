@@ -1,4 +1,3 @@
-using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
@@ -20,26 +19,26 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var processor = new PassThroughProcessor();
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: false);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CapabilityActionReadinessSnapshot readiness = await CtrlRamReplaceTestSupport.GetReadinessAsync(BootstrapTestHost.Canonical,
             "NT51929",
             "single",
             CreateSlotPaths(evidence, evidence.Expected.Path),
-            build,
-            build ? outputPath : null,
             firmwareVersionEdit: null,
-            processor,
             readinessProvider,
-            runtimeDependencyGeneration: 12,
+            generation: 12,
             static generation => generation == 12,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        CapabilityActionAvailability action = build ? readiness.Build : readiness.Preview;
+        Assert.False(action.IsAvailable);
         Assert.Equal(0, processor.CallCount);
         Assert.False(File.Exists(outputPath));
         Assert.Equal([12], readinessProvider.ObservedGenerations);
-        AssertReportContainsIssue(
-            result.ReportJson,
-            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked);
+        Assert.Contains(
+            action.Blockers,
+            blocker => StringComparer.Ordinal.Equals(
+                CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
+                blocker.Code));
     }
 
     /// <summary>A later refresh observes an installed dependency and allows the next Build to run.</summary>
@@ -53,19 +52,19 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: false);
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(evidence, evidence.Expected.Path);
 
-        WorkbenchRunResult blocked = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
-            "NT51929", "single", slots, true, outputPath, null, processor,
-            readinessProvider, 20, static generation => generation == 20,
+        CapabilityActionReadinessSnapshot blocked = await CtrlRamReplaceTestSupport.GetReadinessAsync(BootstrapTestHost.Canonical,
+            "NT51929", "single", slots, firmwareVersionEdit: null,
+            readinessProvider, generation: 20, static generation => generation == 20,
             TestContext.Current.CancellationToken);
 
         readinessProvider.IsReady = true;
-        WorkbenchRunResult recovered = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult recovered = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51929", "single", slots, true, outputPath, null, processor,
             readinessProvider, 21, static generation => generation == 21,
             TestContext.Current.CancellationToken);
 
-        Assert.False(blocked.Succeeded, blocked.ReportJson);
-        Assert.True(recovered.Succeeded, recovered.ReportJson);
+        Assert.False(blocked.Build.IsAvailable);
+        Assert.True(recovered.Succeeded, CompositionRunReportJson.Serialize(recovered));
         Assert.Equal(1, processor.CallCount);
         Assert.True(File.Exists(outputPath));
         Assert.Equal([20, 21], readinessProvider.ObservedGenerations);
@@ -81,35 +80,24 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         var processor = new PassThroughProcessor();
         var readinessProvider = new SwitchableRuntimeDependencyReadinessProvider(isReady: true);
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CapabilityActionReadinessSnapshot readiness = await CtrlRamReplaceTestSupport.GetReadinessAsync(BootstrapTestHost.Canonical,
             "NT51929",
             "single",
             CreateSlotPaths(evidence, evidence.Expected.Path),
-            build: true,
-            outputPath,
             firmwareVersionEdit: null,
-            processor,
             readinessProvider,
-            runtimeDependencyGeneration: 30,
+            generation: 30,
             static _ => false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(readiness.Build.IsAvailable);
         Assert.Equal(0, processor.CallCount);
         Assert.False(File.Exists(outputPath));
-        AssertReportContainsIssue(
-            result.ReportJson,
-            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale);
-    }
-
-    private static void AssertReportContainsIssue(string reportJson, string issueCode)
-    {
-        using var report = JsonDocument.Parse(reportJson);
         Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => StringComparer.Ordinal.Equals(
-                issueCode,
-                issue.GetProperty("Code").GetString()));
+            readiness.Build.Blockers,
+            blocker => StringComparer.Ordinal.Equals(
+                CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
+                blocker.Code));
     }
 
     private sealed class SwitchableRuntimeDependencyReadinessProvider(

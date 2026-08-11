@@ -15,92 +15,50 @@ public sealed class CompositionProfileV2MapAdmissionTests
     [Fact]
     public void ValidateAdmitsExactMapIdentityEffectiveRegionAndResolvedMetadata()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile());
+        CompositionProfileDefinition profile = Profile();
+        ResolutionContext context = ResolveContext();
+
+        ValidateStatic(profile, context);
+        AdmissionResult result = Admit(profile, context);
 
         Assert.True(result.IsAdmitted);
         Assert.Empty(result.Issues);
-        Assert.NotNull(result.Admission);
-        Assert.Empty(result.Admission.RequiredCapabilities);
-    }
-
-    /// <summary>Verifies every family identity component is compared exactly and independently.</summary>
-    [Theory]
-    [InlineData("other-family", "1.0.0", FamilyHash, "profile.v2.map.profile-family-id-mismatch")]
-    [InlineData("synthetic-family", "2.0.0", FamilyHash, "profile.v2.map.profile-family-version-mismatch")]
-    [InlineData("synthetic-family", "1.0.0", "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "profile.v2.map.profile-family-content-hash-mismatch")]
-    public void ValidateRejectsMismatchedFamilyIdentity(
-        string familyId,
-        string familyVersion,
-        string familyContentHash,
-        string expectedIssueCode)
-    {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(familyId, familyVersion, familyContentHash));
-
-        Assert.False(result.IsAdmitted);
-        Assert.Equal([expectedIssueCode], result.Issues.Select(static issue => issue.Code));
-    }
-
-    /// <summary>Verifies a map resolved by another normalized family cannot be mixed into admission by matching strings alone.</summary>
-    [Fact]
-    public void ValidateRejectsResolvedMapOutsideTheSuppliedFamilyOwnership()
-    {
-        ResolutionContext resolvedContext = ResolveContext();
-        ResolutionContext foreignContext = ResolveContext(
-            familyContentHash: "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
-
-        CompositionProfileMapAdmissionResult result = Admit(
-            Profile(),
-            new ResolutionContext(foreignContext.Family, resolvedContext.ResolvedMap));
-
-        Assert.False(result.IsAdmitted);
-        Assert.Equal(
-            [
-                "profile.v2.map.profile-family-content-hash-mismatch",
-                "profile.v2.map.resolved-family-content-hash-mismatch",
-                "profile.v2.map.resolved-map-not-owned",
-            ],
-            result.Issues.Select(static issue => issue.Code));
-    }
-
-    /// <summary>Verifies a resolved map must be explicitly declared by the profile binding.</summary>
-    [Fact]
-    public void ValidateRejectsResolvedMapOutsideDeclaredMapIds()
-    {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(mapIds: ["other-map"]));
-
-        Assert.False(result.IsAdmitted);
-        Assert.Equal(["profile.v2.map.map-not-allowed"], result.Issues.Select(static issue => issue.Code));
+        Assert.Empty(result.CapabilityAdmissions);
     }
 
     /// <summary>Verifies all required physical regions must be present in the selected map's effective region graph.</summary>
     [Fact]
     public void ValidateRejectsMissingRequiredRegion()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(regionIds: ["dp-code", "missing-region"]));
+        CompositionProfileDefinition profile = Profile(regionIds: ["dp-code", "missing-region"]);
+        ResolutionContext context = ResolveContext();
 
-        Assert.False(result.IsAdmitted);
-        Assert.Equal(["profile.v2.map.required-region-missing"], result.Issues.Select(static issue => issue.Code));
-        Assert.Contains("missing-region", result.Issues[0].Message, StringComparison.Ordinal);
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            ValidateStatic(profile, context));
+
+        Assert.Equal("profile-bundle.catalog.profile-required-region-missing", exception.Code);
+        Assert.Contains("missing-region", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies metadata requirements must be declared by the selected canonical map.</summary>
     [Fact]
     public void ValidateRejectsMissingRequiredMetadataStructure()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(structureIds: ["firmware-config", "missing-structure"]));
+        CompositionProfileDefinition profile = Profile(structureIds: ["firmware-config", "missing-structure"]);
+        ResolutionContext context = ResolveContext();
 
-        Assert.False(result.IsAdmitted);
-        Assert.Equal(
-            ["profile.v2.map.required-metadata-structure-missing"],
-            result.Issues.Select(static issue => issue.Code));
-        Assert.Contains("missing-structure", result.Issues[0].Message, StringComparison.Ordinal);
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            ValidateStatic(profile, context));
+
+        Assert.Equal("profile-bundle.catalog.profile-required-metadata-missing", exception.Code);
+        Assert.Contains("missing-structure", exception.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies a required capability without one selected family binding blocks admission.</summary>
     [Fact]
     public void ValidateRejectsMissingRequiredCapabilities()
     {
-        CompositionProfileMapAdmissionResult result = Admit(Profile(capabilityIds: ["ab-code", "crc32"]));
+        AdmissionResult result = Admit(Profile(capabilityIds: ["ab-code", "crc32"]));
 
         Assert.False(result.IsAdmitted);
         Assert.Equal(
@@ -113,19 +71,15 @@ public sealed class CompositionProfileV2MapAdmissionTests
         Assert.Contains("crc32", result.Issues[1].Message, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies declaration order cannot change the ordered diagnostic output.</summary>
+    /// <summary>Verifies declaration order cannot change run-dependent capability diagnostics.</summary>
     [Fact]
     public void ValidateOrdersAdmissionIssuesIndependentlyOfRequirementDeclarationOrder()
     {
-        CompositionProfileMapAdmissionResult first = Admit(
+        AdmissionResult first = Admit(
             Profile(
-                regionIds: ["z-region", "dp-code", "a-region"],
-                structureIds: ["z-structure", "firmware-config", "a-structure"],
                 capabilityIds: ["z-capability", "a-capability"]));
-        CompositionProfileMapAdmissionResult second = Admit(
+        AdmissionResult second = Admit(
             Profile(
-                regionIds: ["a-region", "z-region", "dp-code"],
-                structureIds: ["a-structure", "z-structure", "firmware-config"],
                 capabilityIds: ["a-capability", "z-capability"]));
 
         Assert.Equal(
@@ -138,10 +92,6 @@ public sealed class CompositionProfileV2MapAdmissionTests
             [
                 "profile.v2.map.required-capability-missing",
                 "profile.v2.map.required-capability-missing",
-                "profile.v2.map.required-metadata-structure-missing",
-                "profile.v2.map.required-metadata-structure-missing",
-                "profile.v2.map.required-region-missing",
-                "profile.v2.map.required-region-missing",
             ],
             first.Issues.Select(static issue => issue.Code));
     }
@@ -152,7 +102,8 @@ public sealed class CompositionProfileV2MapAdmissionTests
     {
         ResolutionContext context = ResolveContext(useAliasedFacts: true);
 
-        CompositionProfileMapAdmissionResult result = Admit(Profile(), context);
+        ValidateStatic(Profile(), context);
+        AdmissionResult result = Admit(Profile(), context);
 
         Assert.True(result.IsAdmitted);
         Assert.Contains(context.ResolvedMap.FactProvenance, static provenance => provenance.AliasChain.Count != 0);
@@ -175,9 +126,9 @@ public sealed class CompositionProfileV2MapAdmissionTests
                     new(FirmwareMetadataReferenceTargetKind.Group, "pid-group")),
             ]);
 
-        CompositionProfileMapAdmissionResult result = Admit(
-            profile,
-            ResolveContext(useTypedMetadata: true));
+        ResolutionContext context = ResolveContext(useTypedMetadata: true);
+        ValidateStatic(profile, context);
+        AdmissionResult result = Admit(profile, context);
 
         Assert.True(result.IsAdmitted);
         Assert.Empty(result.Issues);
@@ -203,26 +154,43 @@ public sealed class CompositionProfileV2MapAdmissionTests
                     new FirmwareMetadataReferenceTarget(kind, "missing-target")),
             ]);
 
-        CompositionProfileMapAdmissionResult result = Admit(
-            profile,
-            ResolveContext(useTypedMetadata: true));
+        ResolutionContext context = ResolveContext(useTypedMetadata: true);
+        TrustedProfileBundleCatalogException exception = Assert.Throws<TrustedProfileBundleCatalogException>(() =>
+            ValidateStatic(profile, context));
 
-        Assert.False(result.IsAdmitted);
-        CompositionIssue issue = Assert.Single(result.Issues);
-        Assert.Equal("profile.v2.map.metadata-target-missing", issue.Code);
-        Assert.Contains("missing-target", issue.Message, StringComparison.Ordinal);
+        Assert.Equal("profile-bundle.catalog.profile-metadata-target-missing", exception.Code);
+        Assert.Contains("missing-target", exception.Message, StringComparison.Ordinal);
     }
 
-    private static CompositionProfileMapAdmissionResult Admit(CompositionProfileDefinition profile)
+    private static AdmissionResult Admit(CompositionProfileDefinition profile)
     {
         return Admit(profile, ResolveContext());
     }
 
-    private static CompositionProfileMapAdmissionResult Admit(
+    private static AdmissionResult Admit(
         CompositionProfileDefinition profile,
         ResolutionContext context)
     {
-        return CompositionProfileMapAdmissionValidator.Validate(profile, context.Family, context.ResolvedMap);
+        IReadOnlyList<CompositionIssue> issues = context.Family.AdmitRequiredCapabilities(
+            profile.MapBinding,
+            context.ResolvedMap,
+            out IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions);
+        return new AdmissionResult(issues, capabilityAdmissions);
+    }
+
+    private static void ValidateStatic(
+        CompositionProfileDefinition profile,
+        ResolutionContext context)
+    {
+        TrustedProfileBundleCatalogFactory.ValidateStaticMapContract(
+            profile,
+            context.Family,
+            context.ResolvedMap.ImageMap,
+            new TrustedProfileBundleCatalogEntryIdentity(
+                "profile-entry",
+                "profiles/profile.json",
+                "composition-profile-v2",
+                FamilyHash));
     }
 
     private static CompositionProfileDefinition Profile(
@@ -423,12 +391,8 @@ public sealed class CompositionProfileV2MapAdmissionTests
             factApplicability,
             "Synthetic canonical fact inheritance.",
             ["alias-evidence"]);
-        var provenance = new FirmwareFactProvenance(target, source, [hop], value.EvidenceRefs);
+        var provenance = new FirmwareFactProvenance(target, value, [hop]);
         return new FirmwareMapFactBinding<TFact>(
-            target,
-            source,
-            value.CanonicalFactId,
-            value,
             factApplicability,
             provenance);
     }
@@ -436,4 +400,11 @@ public sealed class CompositionProfileV2MapAdmissionTests
     private sealed record ResolutionContext(
         FirmwareFamilyResolutionDefinition Family,
         ResolvedFirmwareImageMap ResolvedMap);
+
+    private sealed record AdmissionResult(
+        IReadOnlyList<CompositionIssue> Issues,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> CapabilityAdmissions)
+    {
+        internal bool IsAdmitted => Issues.Count == 0;
+    }
 }

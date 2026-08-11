@@ -19,14 +19,16 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal("synthetic-merge", definition.ProfileId);
         Assert.Equal(CompositionKind.Merge, definition.CompositionKind);
         Assert.Null(definition.IcNumberInputMode);
-        Assert.Equal(CompositionProfilePromotionStage.Known, definition.Promotion.Stage);
-        Assert.Equal(ExperienceIds.StandardMerge, definition.Experience.ExperienceId);
+        Assert.Equal(CompiledProfilePromotionStage.Known, definition.Promotion.Stage);
+        Assert.Equal(ExperienceIds.StandardMerge, definition.Header.ExperienceId);
         Assert.Equal("standard-map", Assert.Single(definition.MapBinding.MapIds));
-        _ = Assert.IsType<TpMaximum256KLengthRule>(Assert.Single(definition.InputSlots).LengthRule);
+        SourceViewCoverageInputLengthDefinition tpMaximum = Assert.IsType<SourceViewCoverageInputLengthDefinition>(
+            Assert.Single(definition.InputSlots).LengthRequirement);
+        Assert.Equal(InputLengthPolicyLimits.MaximumTpFirmwareBytes, tpMaximum.MaximumBytes);
         Assert.Equal(2, definition.Spaces.Count);
         Assert.Equal(2, definition.Views.Count);
-        _ = Assert.IsType<CopyOrReplaceProfileOperation>(Assert.Single(definition.Operations));
-        _ = Assert.IsType<PidSanityProfileValidation>(Assert.Single(definition.Validations));
+        Assert.Equal(CompositionOperationKind.CopyRange, Assert.Single(definition.Operations).Kind);
+        _ = Assert.IsType<CompiledPidSanityValidation>(Assert.Single(definition.Validations));
         Assert.Empty(definition.ProcessorStages);
         Assert.Equal(["profile-evidence"], definition.EvidenceRefs);
     }
@@ -42,7 +44,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
 
         Assert.Equal(CompositionKind.Replace, definition.CompositionKind);
         Assert.Equal(IcNumberInputMode.SingleSelector, definition.IcNumberInputMode);
-        Assert.Equal(ExperienceIds.DpReplace, definition.Experience.ExperienceId);
+        Assert.Equal(ExperienceIds.DpReplace, definition.Header.ExperienceId);
         Assert.Equal(2, definition.InputSlots.Count);
         Assert.Equal("reference-input", Assert.IsType<CloneProfileInitializer>(output.Initializer).SourceSlotId);
     }
@@ -62,47 +64,13 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal(expectedMode, definition.IcNumberInputMode);
     }
 
-    /// <summary>Verifies the normalizer admits each pinned profile schema version before section assembly.</summary>
-    [Theory]
-    [InlineData("2.0")]
-    [InlineData("2.1")]
-    [InlineData("2.2")]
-    [InlineData("2.3")]
-    public void RootNormalizerAcceptsPinnedSchemaVersions(string schemaVersion)
-    {
-        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(
-            ValidMerge() with { SchemaVersion = schemaVersion });
-
-        Assert.Equal("synthetic-merge", definition.ProfileId);
-    }
-
-    /// <summary>Verifies schema 2.3 retains the 2.2 versioned Combiner binding grammar through full graph assembly.</summary>
+    /// <summary>Verifies an unknown composition token fails before section or graph assembly.</summary>
     [Fact]
-    public void RootNormalizerBuildsV23ProfileWithPublishedCombinerBinding()
+    public void RootNormalizerRejectsUnknownCompositionKindWithPath()
     {
-        CompositionProfileDocument valid = ValidMerge();
-        CompositionProfileDefinition definition = CompositionProfileNormalizer.Normalize(valid with
-        {
-            SchemaVersion = "2.3",
-            Operations = [CopyOperation("copy-range"), RunProcessorOperation()],
-            ProcessorStages = [LegacyCombinerStage()],
-        });
-
-        LegacyCombinerProfileProcessorStage stage = Assert.IsType<LegacyCombinerProfileProcessorStage>(
-            Assert.Single(definition.ProcessorStages));
-        Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
-    }
-
-    /// <summary>Verifies unsupported root schema and composition tokens fail before section or graph assembly.</summary>
-    [Fact]
-    public void RootNormalizerRejectsUnsupportedSchemaAndCompositionKindWithPaths()
-    {
-        CompositionProfileNormalizationException schema = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { SchemaVersion = "3.0" }));
         CompositionProfileNormalizationException kind = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(ValidMerge() with { CompositionKind = "future" }));
 
-        Assert.Equal("schemaVersion", schema.Path);
         Assert.Equal("compositionKind", kind.Path);
     }
 
@@ -122,28 +90,9 @@ public sealed class CompositionProfileV2RootNormalizerTests
         Assert.Equal("$", replace.Path);
     }
 
-    /// <summary>Verifies missing top-level objects and arrays retain their field paths.</summary>
+    /// <summary>Verifies semantic array element errors preserve their exact indexed source paths.</summary>
     [Fact]
-    public void RootNormalizerRejectsMissingSectionsWithPaths()
-    {
-        CompositionProfileNormalizationException promotion = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { Promotion = null! }));
-        CompositionProfileNormalizationException inputs = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { InputSlots = null! }));
-        CompositionProfileNormalizationException output = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { Output = null! }));
-        CompositionProfileNormalizationException evidence = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(ValidMerge() with { EvidenceRefs = null! }));
-
-        Assert.Equal("promotion", promotion.Path);
-        Assert.Equal("inputSlots", inputs.Path);
-        Assert.Equal("output", output.Path);
-        Assert.Equal("evidenceRefs", evidence.Path);
-    }
-
-    /// <summary>Verifies array element errors preserve their exact indexed source paths.</summary>
-    [Fact]
-    public void RootNormalizerPreservesIndexedSectionPaths()
+    public void RootNormalizerPreservesIndexedSemanticPaths()
     {
         CompositionProfileDocument valid = ValidMerge();
         var invalidView = new CompositionProfileViewDocument(
@@ -152,11 +101,7 @@ public sealed class CompositionProfileV2RootNormalizerTests
             new CompositionProfileViewSelectorDocument("future"));
         CompositionProfileNormalizationException selector = Assert.Throws<CompositionProfileNormalizationException>(() =>
             CompositionProfileNormalizer.Normalize(valid with { Views = [.. valid.Views, invalidView] }));
-        CompositionProfileNormalizationException nullElement = Assert.Throws<CompositionProfileNormalizationException>(() =>
-            CompositionProfileNormalizer.Normalize(valid with { Validations = [null!] }));
-
         Assert.Equal("views[2].selector.kind", selector.Path);
-        Assert.Equal("validations[0]", nullElement.Path);
     }
 
     /// <summary>Verifies cross-section graph failures remain attributed to the whole definition.</summary>
@@ -328,36 +273,6 @@ public sealed class CompositionProfileV2RootNormalizerTests
             kind,
             SourceViewId: "source-view",
             TargetViewId: "target-view");
-    }
-
-    private static CompositionProfileOperationDocument RunProcessorOperation()
-    {
-        return new CompositionProfileOperationDocument(
-            "run-combiner",
-            Number("1"),
-            "reject",
-            "Run the staged Combiner.",
-            "run-processor",
-            ProcessorStageId: "legacy-postbuild");
-    }
-
-    private static CompositionProfileProcessorStageDocument LegacyCombinerStage()
-    {
-        return new CompositionProfileProcessorStageDocument(
-            "legacy-postbuild",
-            "legacy-combiner-v1",
-            "output",
-            "transform",
-            "relocation",
-            "none",
-            ["target-view"],
-            ["target-view"],
-            "fail-closed",
-            ToolBindingId: "legacy-combiner-1.13.0",
-            InvocationProfileId: "synthetic-profile",
-            StagedSourceBindings: [],
-            EvidenceRef: "processor-evidence",
-            StagedArtifactBindings: []);
     }
 
     private static JsonElement Number(string value)

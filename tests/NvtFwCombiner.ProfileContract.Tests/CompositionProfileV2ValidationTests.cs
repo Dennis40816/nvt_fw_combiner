@@ -1,5 +1,6 @@
 using System.Numerics;
-using NvtFwCombiner.Profiles.V2;
+using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
 
@@ -10,50 +11,51 @@ public sealed class CompositionProfileV2ValidationTests
     [Fact]
     public void ValidationKindsKeepTypedLogicalReferences()
     {
-        CompositionProfileMetadataFieldReference field = Field("cmd", "major");
-        var metadataValue = new MetadataValueProfileValidation(
+        CompiledValidationFieldReference field = Field("cmd", "major");
+        ValidationRequirementDefinition validation = new CompiledMetadataValueValidation(
             "version-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "VERSION_INVALID",
             field,
-            CompositionProfileMetadataComparison.OneOf,
-            [new CompositionProfileIntegerLiteral(1), new CompositionProfileIntegerLiteral(2)]);
-        var pid = new PidSanityProfileValidation(
+            CompiledValidationMetadataComparison.OneOf,
+            [new CompiledValidationIntegerLiteral(1), new CompiledValidationIntegerLiteral(2)]);
+        var pid = new CompiledPidSanityValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
             Field("fwconfig", "pid"));
-        var equality = new MetadataEqualityProfileValidation(
+        var equality = new CompiledMetadataEqualityValidation(
             "version-parity",
-            CompositionProfileValidationStage.ProfileCompile,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.ProfileCompile,
+            CompiledValidationSeverity.Error,
             "VERSION_MISMATCH",
             Field("cmd", "major"),
             Field("legacy", "major"));
-        var rejected = new RejectMetadataBytePatternProfileValidation(
+        var rejected = new CompiledRejectMetadataBytePatternValidation(
             "identity-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "IDENTITY_INVALID",
             Field("fwconfig", "pid"),
-            [CompositionProfileRejectedBytePattern.AllFF, CompositionProfileRejectedBytePattern.AllZero]);
-        var assertion = new ViewByteAssertionProfileValidation(
+            [CompiledValidationRejectedBytePattern.AllFF, CompiledValidationRejectedBytePattern.AllZero]);
+        var assertion = new CompiledViewByteAssertionValidation(
             "header-valid",
-            CompositionProfileValidationStage.FinalOutput,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "header",
-            new CompositionProfileByteValue([0xA0]),
-            new CompositionProfileByteValue([0xF0]));
+            new FirmwareMetadataBytes([0xA0]),
+            new FirmwareMetadataBytes([0xF0]));
 
-        Assert.Equal(CompositionProfileValidationKind.MetadataValue, metadataValue.Kind);
+        CompiledMetadataValueValidation metadataValue =
+            Assert.IsType<CompiledMetadataValueValidation>(validation);
         Assert.Equal(2, metadataValue.ExpectedValues.Count);
         Assert.Equal("pid", pid.Field.FieldId);
         Assert.Equal("legacy", equality.Right.BindingId);
         Assert.Equal(
-            [CompositionProfileRejectedBytePattern.AllZero, CompositionProfileRejectedBytePattern.AllFF],
+            [CompiledValidationRejectedBytePattern.AllZero, CompiledValidationRejectedBytePattern.AllFF],
             rejected.RejectedPatterns);
         Assert.Equal("a0", assertion.Expected.Hex);
         Assert.Equal("f0", assertion.Mask?.Hex);
@@ -66,164 +68,169 @@ public sealed class CompositionProfileV2ValidationTests
         var integer = BigInteger.Parse(
             "18446744073709551616",
             System.Globalization.CultureInfo.InvariantCulture);
-        var integerLiteral = new CompositionProfileIntegerLiteral(integer);
-        var textLiteral = new CompositionProfileTextLiteral("0010");
+        CompiledValidationScalarLiteral integerValue = new CompiledValidationIntegerLiteral(integer);
+        CompiledValidationScalarLiteral textValue = new CompiledValidationTextLiteral("0010");
+        CompiledValidationIntegerLiteral integerLiteral =
+            Assert.IsType<CompiledValidationIntegerLiteral>(integerValue);
+        CompiledValidationTextLiteral textLiteral =
+            Assert.IsType<CompiledValidationTextLiteral>(textValue);
 
         Assert.Equal(integer, integerLiteral.Value);
-        Assert.Equal(CompositionProfileScalarLiteralKind.Integer, integerLiteral.Kind);
         Assert.Equal("0010", textLiteral.Value);
-        Assert.Equal(CompositionProfileScalarLiteralKind.Text, textLiteral.Kind);
-        _ = Assert.Throws<ArgumentException>(() => new CompositionProfileTextLiteral(string.Empty));
+        _ = Assert.Throws<ArgumentException>(() => new CompiledValidationTextLiteral(string.Empty));
     }
 
     /// <summary>Verifies metadata comparison cardinality and value uniqueness are closed.</summary>
     [Fact]
     public void MetadataComparisonsRejectInvalidValueSets()
     {
-        CompositionProfileMetadataFieldReference field = Field("cmd", "major");
+        CompiledValidationFieldReference field = Field("cmd", "major");
         _ = Assert.Throws<ArgumentException>(() => MetadataValue(
             field,
-            CompositionProfileMetadataComparison.Equal,
+            CompiledValidationMetadataComparison.Equal,
             []));
         _ = Assert.Throws<ArgumentException>(() => MetadataValue(
             field,
-            CompositionProfileMetadataComparison.Equal,
-            [new CompositionProfileIntegerLiteral(1), new CompositionProfileIntegerLiteral(2)]));
+            CompiledValidationMetadataComparison.Equal,
+            [new CompiledValidationIntegerLiteral(1), new CompiledValidationIntegerLiteral(2)]));
         _ = Assert.Throws<ArgumentException>(() => MetadataValue(
             field,
-            CompositionProfileMetadataComparison.OneOf,
-            [new CompositionProfileIntegerLiteral(1), new CompositionProfileIntegerLiteral(1)]));
+            CompiledValidationMetadataComparison.OneOf,
+            [new CompiledValidationIntegerLiteral(1), new CompiledValidationIntegerLiteral(1)]));
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => MetadataValue(
             field,
-            (CompositionProfileMetadataComparison)99,
-            [new CompositionProfileIntegerLiteral(1)]));
+            (CompiledValidationMetadataComparison)99,
+            [new CompiledValidationIntegerLiteral(1)]));
     }
 
     /// <summary>Verifies rejected byte-pattern sets are immutable, known, and unambiguous.</summary>
     [Fact]
     public void RejectedBytePatternsAreClosedAndImmutable()
     {
-        var patterns = new List<CompositionProfileRejectedBytePattern>
+        var patterns = new List<CompiledValidationRejectedBytePattern>
         {
-            CompositionProfileRejectedBytePattern.AllFF,
-            CompositionProfileRejectedBytePattern.AllZero,
+            CompiledValidationRejectedBytePattern.AllFF,
+            CompiledValidationRejectedBytePattern.AllZero,
         };
-        var validation = new RejectMetadataBytePatternProfileValidation(
+        var validation = new CompiledRejectMetadataBytePatternValidation(
             "identity-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "IDENTITY_INVALID",
             Field("fwconfig", "pid"),
             patterns);
         patterns.Clear();
 
         Assert.Equal(2, validation.RejectedPatterns.Count);
-        _ = Assert.Throws<ArgumentException>(() => new RejectMetadataBytePatternProfileValidation(
+        _ = Assert.Throws<ArgumentException>(() => new CompiledRejectMetadataBytePatternValidation(
             "identity-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "IDENTITY_INVALID",
             Field("fwconfig", "pid"),
             []));
-        _ = Assert.Throws<ArgumentException>(() => new RejectMetadataBytePatternProfileValidation(
+        _ = Assert.Throws<ArgumentException>(() => new CompiledRejectMetadataBytePatternValidation(
             "identity-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "IDENTITY_INVALID",
             Field("fwconfig", "pid"),
-            [CompositionProfileRejectedBytePattern.AllZero, CompositionProfileRejectedBytePattern.AllZero]));
+            [CompiledValidationRejectedBytePattern.AllZero, CompiledValidationRejectedBytePattern.AllZero]));
     }
 
     /// <summary>Verifies masked view assertions require equal non-empty byte widths.</summary>
     [Fact]
     public void ViewAssertionsRejectMaskWidthMismatch()
     {
-        _ = Assert.Throws<ArgumentException>(() => new ViewByteAssertionProfileValidation(
+        _ = Assert.Throws<ArgumentException>(() => new CompiledViewByteAssertionValidation(
             "header-valid",
-            CompositionProfileValidationStage.FinalOutput,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.FinalOutput,
+            CompiledValidationSeverity.Error,
             "HEADER_INVALID",
             "header",
-            new CompositionProfileByteValue([0xA0, 0x00]),
-            new CompositionProfileByteValue([0xF0])));
+            new FirmwareMetadataBytes([0xA0, 0x00]),
+            new FirmwareMetadataBytes([0xF0])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompositionProfileByteValue([0x00]),
-            new CompositionProfileByteValue([0x00])));
+            new FirmwareMetadataBytes([0x00]),
+            new FirmwareMetadataBytes([0x00])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompositionProfileByteValue([0xAA]),
-            new CompositionProfileByteValue([0xFF])));
+            new FirmwareMetadataBytes([0xAA]),
+            new FirmwareMetadataBytes([0xFF])));
         _ = Assert.Throws<ArgumentException>(() => Assertion(
-            new CompositionProfileByteValue([0xA1]),
-            new CompositionProfileByteValue([0xF0])));
+            new FirmwareMetadataBytes([0xA1]),
+            new FirmwareMetadataBytes([0xF0])));
     }
 
     /// <summary>Verifies common validation identity and enum carriers fail closed.</summary>
     [Fact]
     public void ValidationsRejectInvalidCommonValuesAndNullReferences()
     {
-        _ = Assert.Throws<ArgumentException>(() => new PidSanityProfileValidation(
-            "Pid-Valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+        _ = Assert.Throws<ArgumentException>(() =>
+            CanonicalValidationDefinitionRules.RequireProfileDefinition(new CompiledPidSanityValidation(
+                "Pid-Valid",
+                CompiledValidationStage.InputLoad,
+                CompiledValidationSeverity.Error,
+                "PID_INVALID",
+                Field("fwconfig", "pid"))));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledPidSanityValidation(
+            "pid-valid",
+            (CompiledValidationStage)99,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
             Field("fwconfig", "pid")));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new PidSanityProfileValidation(
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new CompiledPidSanityValidation(
             "pid-valid",
-            (CompositionProfileValidationStage)99,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            (CompiledValidationSeverity)99,
             "PID_INVALID",
             Field("fwconfig", "pid")));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new PidSanityProfileValidation(
+        _ = Assert.Throws<ArgumentException>(() =>
+            CanonicalValidationDefinitionRules.RequireProfileDefinition(new CompiledPidSanityValidation(
+                "pid-valid",
+                CompiledValidationStage.InputLoad,
+                CompiledValidationSeverity.Error,
+                "pid-invalid",
+                Field("fwconfig", "pid"))));
+        _ = Assert.Throws<ArgumentNullException>(() => new CompiledPidSanityValidation(
             "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            (CompositionProfileValidationSeverity)99,
-            "PID_INVALID",
-            Field("fwconfig", "pid")));
-        _ = Assert.Throws<ArgumentException>(() => new PidSanityProfileValidation(
-            "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
-            "pid-invalid",
-            Field("fwconfig", "pid")));
-        _ = Assert.Throws<ArgumentNullException>(() => new PidSanityProfileValidation(
-            "pid-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "PID_INVALID",
             null!));
     }
 
-    private static CompositionProfileMetadataFieldReference Field(string bindingId, string fieldId)
+    private static CompiledValidationFieldReference Field(string bindingId, string fieldId)
     {
-        return new CompositionProfileMetadataFieldReference(bindingId, fieldId);
+        return new CompiledValidationFieldReference(bindingId, fieldId);
     }
 
-    private static MetadataValueProfileValidation MetadataValue(
-        CompositionProfileMetadataFieldReference field,
-        CompositionProfileMetadataComparison comparison,
-        IEnumerable<CompositionProfileScalarLiteral> expectedValues)
+    private static CompiledMetadataValueValidation MetadataValue(
+        CompiledValidationFieldReference field,
+        CompiledValidationMetadataComparison comparison,
+        IEnumerable<CompiledValidationScalarLiteral> expectedValues)
     {
-        return new MetadataValueProfileValidation(
+        return new CompiledMetadataValueValidation(
             "metadata-valid",
-            CompositionProfileValidationStage.InputLoad,
-            CompositionProfileValidationSeverity.Error,
+            CompiledValidationStage.InputLoad,
+            CompiledValidationSeverity.Error,
             "METADATA_INVALID",
             field,
             comparison,
             expectedValues);
     }
 
-    private static ViewByteAssertionProfileValidation Assertion(
-        CompositionProfileByteValue expected,
-        CompositionProfileByteValue? mask)
+    private static CompiledViewByteAssertionValidation Assertion(
+        FirmwareMetadataBytes expected,
+        FirmwareMetadataBytes? mask)
     {
-        return new ViewByteAssertionProfileValidation(
-            "header-valid",
-            CompositionProfileValidationStage.FinalOutput,
-            CompositionProfileValidationSeverity.Error,
-            "HEADER_INVALID",
-            "header",
-            expected,
-            mask);
+        return CanonicalValidationDefinitionRules.RequireProfileDefinition(
+            new CompiledViewByteAssertionValidation(
+                "header-valid",
+                CompiledValidationStage.FinalOutput,
+                CompiledValidationSeverity.Error,
+                "HEADER_INVALID",
+                "header",
+                expected,
+                mask));
     }
 }

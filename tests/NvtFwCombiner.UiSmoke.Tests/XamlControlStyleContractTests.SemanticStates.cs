@@ -1,6 +1,6 @@
-using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
@@ -18,7 +18,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"firmwareSlotFact pendingInput\"", row, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding FileSelectionAvailabilityMessage}\"", row, StringComparison.Ordinal);
         Assert.Contains("Classes=\"firmwareSlotFact error\"", row, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding InspectionIssueMessage}\"", row, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding IssueMessage}\"", row, StringComparison.Ordinal);
         Assert.Contains("CanSelectFile: true", codeBehind, StringComparison.Ordinal);
         Assert.DoesNotContain("replace-base", row, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("replace-base", codeBehind, StringComparison.OrdinalIgnoreCase);
@@ -173,7 +173,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateChecking), notifications);
 
         notifications.Clear();
-        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Valid, "Ready");
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Ready");
         Assert.False(slot.IsInputInspectionPending);
         Assert.True(slot.IsInputInspectionValid);
         Assert.True(slot.IsSemanticStateVerified);
@@ -182,7 +182,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateVerified), notifications);
 
         notifications.Clear();
-        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Warning, "Review warning");
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Warning, "Review warning");
         Assert.False(slot.IsInputInspectionValid);
         Assert.True(slot.IsInputInspectionWarning);
         Assert.True(slot.IsSemanticStateWarning);
@@ -191,7 +191,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(nameof(FirmwareSlotViewModel.IsSemanticStateWarning), notifications);
 
         notifications.Clear();
-        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Blocking, "Fix input");
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Blocking, "Fix input");
         Assert.False(slot.IsInputInspectionWarning);
         Assert.True(slot.IsInputInspectionBlocking);
         Assert.True(slot.IsSemanticStateError);
@@ -356,8 +356,8 @@ public sealed partial class XamlControlStyleContractTests
             blockIndex: 0,
             Application.MemoryLayout.MemoryEndpointIdentity.NotApplicable,
             "postbuild-diffdlm",
-            new Domain.Composition.ByteRange(0xB90, 0x870),
-            new Domain.Composition.ByteRange(0x2DC90, 0x870));
+            new ByteRange(0xB90, 0x870),
+            new ByteRange(0x2DC90, 0x870));
         var masked = new MemoryCoverageSegmentViewModel(
             "0x2D100-0x2E4FF",
             "DiffDLM",
@@ -392,29 +392,26 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(full.HasPreservationDetails);
     }
 
-    /// <summary>Bootstrap's typed coverage role reaches Replace hatching while Merge stays plain.</summary>
+    /// <summary>Canonical DP Replace dispositions reach kept and changed coverage patterns.</summary>
     [Fact]
     public void MemoryCoveragePatternUsesTypedWorkbenchRole()
     {
-        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverage) = UiCompositionRunner.GetReplaceMemoryDisplay(
-            "NT51951",
-            "single",
-            WorkbenchReplaceModes.Dp,
-            dpBaseLength: 0x80000);
-        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> standardMergeCoverage) =
-            UiCompositionRunner.GetStandardMergeMemoryDisplay("NT51926");
-        (_, _, IReadOnlyList<MemoryCoverageSegmentViewModel> customizedMergeCoverage) =
-            UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                "NT51950",
-                "0x100",
-                null);
+        using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-memory-pattern");
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
+        viewModel.WorkflowSession.SelectedIc = "NT51951";
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.DpReplace;
+        viewModel.ShowReplaceCommand.Execute(null);
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceBase,
+            workspace.Write("reference.bin", new byte[0x80000]));
+        viewModel.SetSlotFile(
+            CompositionSlotIds.ReplaceDp,
+            workspace.Write("replacement.bin", new byte[0x80000]));
 
-        Assert.Contains(replaceCoverage, segment => segment.UsesBaseFirmwarePattern);
-        Assert.Contains(replaceCoverage, segment => !segment.UsesBaseFirmwarePattern);
-        Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
-        Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesBaseFirmwarePattern));
-        Assert.All(standardMergeCoverage, segment => Assert.False(segment.UsesKeptPattern));
-        Assert.All(customizedMergeCoverage, segment => Assert.False(segment.UsesKeptPattern));
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            segment.UsesBaseFirmwarePattern && segment.UsesKeptPattern);
+        Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
+            !segment.UsesBaseFirmwarePattern && !segment.UsesKeptPattern && segment.IsChanged);
     }
 
     private static string ExtractDataTemplate(string xaml, string key)

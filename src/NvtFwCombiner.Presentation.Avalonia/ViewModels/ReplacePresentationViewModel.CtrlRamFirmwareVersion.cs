@@ -1,12 +1,12 @@
 using System.Globalization;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReplacePresentationViewModel
 {
-    private readonly Func<string, string, WorkbenchFirmwareConfigMetadata?> _ctrlRamFirmwareVersionMetadataReader;
-    private WorkbenchFirmwareConfigMetadata? _ctrlRamFirmwareVersionMetadata;
+    private readonly Func<string, string, FirmwareConfigMetadataSnapshot?> _ctrlRamFirmwareVersionMetadataReader;
+    private FirmwareConfigMetadataSnapshot? _ctrlRamFirmwareVersionMetadata;
     private CtrlRamFirmwareVersionModalLease? _ctrlRamFirmwareVersionModalLease;
     private long _ctrlRamFirmwareVersionContextGeneration;
     private long _ctrlRamFirmwareVersionMetadataGeneration;
@@ -115,7 +115,7 @@ public sealed partial class ReplacePresentationViewModel
     }
 
     /// <summary>Revalidates metadata outside the dispatcher and creates the typed CtrlRAM version-edit request.</summary>
-    public async Task<(bool Succeeded, WorkbenchCtrlRamFirmwareVersionEdit? Edit)>
+    public async Task<(bool Succeeded, CtrlRamFirmwareVersionDraftState? Edit)>
         TryCreateCtrlRamFirmwareVersionEditAsync(CancellationToken cancellationToken = default)
     {
         if (!IsCtrlRamFirmwareVersionModalOpen ||
@@ -175,7 +175,7 @@ public sealed partial class ReplacePresentationViewModel
             return (false, null);
         }
 
-        var edit = new WorkbenchCtrlRamFirmwareVersionEdit(firmwareVersion, firmwareSubVersion);
+        var edit = new CtrlRamFirmwareVersionDraftState(firmwareVersion, firmwareSubVersion);
         ClearCtrlRamFirmwareVersionValidation();
         return (true, edit);
     }
@@ -263,7 +263,7 @@ public sealed partial class ReplacePresentationViewModel
         string basePath)
     {
         var before = FirmwareFileIdentity.Capture(basePath);
-        WorkbenchFirmwareConfigMetadata? metadata = _ctrlRamFirmwareVersionMetadataReader(icId, basePath);
+        FirmwareConfigMetadataSnapshot? metadata = _ctrlRamFirmwareVersionMetadataReader(icId, basePath);
         var after = FirmwareFileIdentity.Capture(basePath);
         return new CtrlRamFirmwareVersionMetadataWorkerResult(
             before.Equals(after),
@@ -392,12 +392,12 @@ public sealed partial class ReplacePresentationViewModel
 
     private readonly record struct CtrlRamFirmwareVersionMetadataReadResult(
         bool IsCurrent,
-        WorkbenchFirmwareConfigMetadata? Metadata,
+        FirmwareConfigMetadataSnapshot? Metadata,
         CtrlRamFirmwareVersionMetadataRequest Request);
 
     private readonly record struct CtrlRamFirmwareVersionMetadataWorkerResult(
         bool IsFileIdentityStable,
-        WorkbenchFirmwareConfigMetadata? Metadata,
+        FirmwareConfigMetadataSnapshot? Metadata,
         CtrlRamFirmwareVersionMetadataRequest Request);
 
     private readonly record struct CtrlRamFirmwareVersionModalLease(

@@ -51,7 +51,7 @@ public sealed partial class HexEditorWorkspaceViewModel
     /// <summary>Moves the document viewport to the last current address in one edited block.</summary>
     public IRelayCommand<HexEditorChangedBlockViewModel> GoToChangedBlockEndCommand { get; }
 
-    /// <summary>Fits the read-only drawing window into the available workbench height without materializing the document.</summary>
+    /// <summary>Fits the read-only drawing window into the available viewport height without materializing the document.</summary>
     public void SetViewportHeight(double availableHeight)
     {
         double nextHeight = Math.Clamp(Math.Floor(availableHeight), 300, 720);

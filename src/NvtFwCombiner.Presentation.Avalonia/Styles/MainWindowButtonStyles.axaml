@@ -405,44 +405,6 @@
     <Setter Property="Fill" Value="{DynamicResource NfcTextDisabledBrush}" />
     <Setter Property="Stroke" Value="{DynamicResource NfcTextDisabledBrush}" />
   </Style>
-  <Style Selector="Button.reportAction">
-    <Setter Property="MinHeight" Value="42" />
-    <Setter Property="MinWidth" Value="154" />
-    <Setter Property="Padding" Value="13,7" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
-  </Style>
-  <Style Selector="Button.reportAction /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
-  <Style Selector="Button.reportAction:pointerover">
-    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
-  <Style Selector="Button.reportAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
-  </Style>
-  <Style Selector="Button.reportAction:disabled">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="Foreground" Value="{DynamicResource NfcTextDisabledBrush}" />
-  </Style>
-  <Style Selector="Button.reportAction:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
-  </Style>
   <Style Selector="Button.summaryChip">
     <Setter Property="MinHeight" Value="30" />
     <Setter Property="Padding" Value="10,5" />

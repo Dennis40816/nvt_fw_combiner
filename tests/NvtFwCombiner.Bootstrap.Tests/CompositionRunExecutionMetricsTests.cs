@@ -1,10 +1,8 @@
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Tests;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Profiles;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -249,7 +247,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
     {
-        bool registered = WorkbenchCompositionService.TryCompileBuiltInV2DpReplace(
+        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51950",
             outputLength,
             selectedInputSlotIds: [],
@@ -262,11 +260,11 @@ public sealed class CompositionRunExecutionMetricsTests
         return CreateRequest(
             compiledComposition,
             [
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     compiledComposition,
                     CompositionAddressSpaceIds.ReferenceBase,
                     "reference-artifact.bin"),
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     compiledComposition,
                     CompositionAddressSpaceIds.DpReplacement,
                     "replacement-artifact.bin"),
@@ -279,14 +277,7 @@ public sealed class CompositionRunExecutionMetricsTests
     {
         var outputRange = new ByteRange(0, outputLength);
         var ctrlRamRange = new ByteRange(0, ctrlRamLength);
-        var profile = new CompositionProfileDefinition(
-            "synthetic-performance-ctrlram-replace",
-            "1.0.0",
-            "NT-SYNTHETIC",
-            IcWorkflowIds.CtrlRamReplace,
-            CompositionKind.Replace,
-            IcWorkflowIds.CtrlRamReplace,
-            "synthetic-performance-ctrlram-replace.bin",
+        var plan = new CompositionPlan(
             ImageInitialization.Reference(
                 CompositionAddressSpaceIds.OutputImage,
                 CompositionAddressSpaceIds.ReferenceBase,
@@ -325,21 +316,21 @@ public sealed class CompositionRunExecutionMetricsTests
                         ]),
                     OverlapPolicy.Reject,
                     "Run the synthetic CtrlRAM performance postbuild."),
-            ],
-            [
-                new ProfileRegion(
-                    "ctrlram",
-                    CompositionAddressSpaceIds.OutputImage,
-                    ctrlRamRange,
-                    RegionAtomicity.Whole,
-                    RegionWritePolicy.WholeOnly,
-                    processorDependencyIds: ["synthetic-postbuild"],
-                    classificationTags: ["tp-ctrlram"]),
-            ],
-            [new RegionAccessRule("ctrlram", RegionAccessKind.Whole)],
-            IcNumberInputMode.SingleSelector);
+            ]);
+        CompiledComposition composition = CompiledCompositionTestFactory.Create(
+            plan,
+            new TestCompiledCompositionIdentity(
+                "synthetic-performance-ctrlram-replace",
+                "1.0.0",
+                "NT-SYNTHETIC",
+                ExperienceIds.CtrlRamReplace,
+                ExperienceIds.CtrlRamReplace,
+                CompositionKind.Replace),
+            "synthetic-performance-ctrlram-replace.bin",
+            IcNumberInputMode.SingleSelector,
+            []);
         return CreateRequest(
-            profile,
+            composition,
             [
                 new InputArtifactBinding(
                     CompositionAddressSpaceIds.ReferenceBase,
@@ -358,30 +349,6 @@ public sealed class CompositionRunExecutionMetricsTests
     }
 
     private static CompositionRunRequest CreateRequest(
-        CompositionProfileDefinition profile,
-        IReadOnlyList<InputArtifactBinding> bindings,
-        IcNumberSelection selection)
-    {
-        var plan = new CompositionPlan(
-            profile.Initialization,
-            profile.AddressSpaces,
-            profile.Operations);
-        CompiledComposition composition = CompiledCompositionTestFactory.Create(
-            plan,
-            new TestCompiledCompositionIdentity(
-                profile.ProfileId,
-                profile.ProfileVersion,
-                profile.IcId,
-                profile.ModeId,
-                profile.ExperienceId,
-                profile.CompositionKind),
-            profile.DefaultOutputFileName,
-            CompiledIcNumberPolicy.SingleSelector,
-            profile.ValidationRequirements);
-        return CreateRequest(composition, bindings, selection);
-    }
-
-    private static CompositionRunRequest CreateRequest(
         CompiledComposition composition,
         IReadOnlyList<InputArtifactBinding> bindings,
         IcNumberSelection selection,
@@ -391,7 +358,7 @@ public sealed class CompositionRunExecutionMetricsTests
             "run-performance-baseline",
             composition,
             bindings,
-            composition.DefaultOutputFileName,
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
             icNumberSelection: selection,
             resolvedCapability: resolvedCapability);
     }

@@ -6,7 +6,7 @@ namespace NvtFwCombiner.Domain.Firmware;
 public sealed class FirmwareMetadataStructure
 {
     /// <summary>Creates a checked structure declaration without reading artifact bytes.</summary>
-    public FirmwareMetadataStructure(
+    internal FirmwareMetadataStructure(
         string structureId,
         string artifactBindingId,
         long lengthBytes,
@@ -30,25 +30,21 @@ public sealed class FirmwareMetadataStructure
     }
 
     /// <summary>Binds one shared logical definition to an exact artifact and locator.</summary>
-    public FirmwareMetadataStructure(
+    internal FirmwareMetadataStructure(
         string structureId,
         string artifactBindingId,
         FirmwareMetadataStructureDefinition definition,
         FirmwareMetadataLocator locator)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(structureId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(artifactBindingId);
-        ArgumentNullException.ThrowIfNull(definition);
-        ArgumentNullException.ThrowIfNull(locator);
+        StructureId = RequiredValue.NotBlank(structureId);
+        ArtifactBindingId = RequiredValue.NotBlank(artifactBindingId);
+        Definition = RequiredValue.NotNull(definition);
+        Locator = RequiredValue.NotNull(locator);
         ValidateLocatorShape(
             locator,
             definition.LengthBytes,
             definition.Assertions.Count);
 
-        StructureId = structureId;
-        ArtifactBindingId = artifactBindingId;
-        Definition = definition;
-        Locator = locator;
     }
 
     /// <summary>Family-global binding identifier for this artifact and locator.</summary>
@@ -63,14 +59,10 @@ public sealed class FirmwareMetadataStructure
     /// <summary>Exact positive structure length.</summary>
     public long LengthBytes => Definition.LengthBytes;
 
-    /// <summary>Closed physical locator declaration.</summary>
-    public FirmwareMetadataLocator Locator { get; }
+    internal FirmwareMetadataLocator Locator { get; }
 
     /// <summary>Fields in deterministic structure-relative range order.</summary>
     public IReadOnlyList<FirmwareMetadataField> Fields => Definition.Fields;
-
-    /// <summary>Assertions in deterministic structure-relative range order.</summary>
-    public IReadOnlyList<FirmwareMetadataByteAssertion> Assertions => Definition.Assertions;
 
     /// <summary>Typed validation relations in deterministic relation-id order.</summary>
     public IReadOnlyList<FirmwareMetadataFieldRelation> Relations => Definition.Relations;
@@ -95,12 +87,10 @@ public sealed class FirmwareMetadataStructure
         switch (locator)
         {
             case FirmwareAbsoluteRangeLocator absolute:
-                if (absolute.Range.Range.Length != lengthBytes)
-                {
-                    throw new ArgumentException(
-                        "Absolute metadata locator length must equal its structure length.",
-                        nameof(locator));
-                }
+                DomainInvariant.Reject(
+                    absolute.Range.Range.Length != lengthBytes,
+                    "Absolute metadata locator length must equal its structure length.",
+                    nameof(locator));
 
                 break;
             case FirmwareRegionRelativeLocator relative:
@@ -108,13 +98,11 @@ public sealed class FirmwareMetadataStructure
                 break;
             case FirmwareMarkerRelativeLocator marker:
                 _ = checked(marker.ResultOffset + lengthBytes);
-                if (assertionCount == 0 &&
-                    marker.Selection.Kind != FirmwareMarkerSelectionKind.Unique)
-                {
-                    throw new ArgumentException(
-                        "Non-unique marker-relative metadata structures require an assertion.",
-                        nameof(locator));
-                }
+                DomainInvariant.Reject(
+                    assertionCount == 0 &&
+                    marker.Selection.Kind != FirmwareMarkerSelectionKind.Unique,
+                    "Non-unique marker-relative metadata structures require an assertion.",
+                    nameof(locator));
 
                 break;
             case FirmwareMetadataFieldSelectedLocator selected:

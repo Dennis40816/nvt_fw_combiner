@@ -50,8 +50,8 @@ public sealed partial class CompositionOutputNameResolverTests
         Assert.Collection(
             summary.Tokens,
             token => AssertToken(token, "ic", "NT51929", known: true, null),
-            token => AssertToken(token, "dp-version", "8205", known: true, fixture.Artifact.Sha256),
-            token => AssertToken(token, "tp-version", "8004", known: true, fixture.Artifact.Sha256),
+            token => AssertToken(token, "dp-version", "8205", known: true, fixture.Artifact.Identity.Sha256),
+            token => AssertToken(token, "tp-version", "8004", known: true, fixture.Artifact.Identity.Sha256),
             token => AssertToken(token, "date", "20260728", known: true, null));
         Assert.Empty(resolved.Issues);
     }
@@ -441,7 +441,7 @@ public sealed partial class CompositionOutputNameResolverTests
             ArtifactBindingId,
             "input-artifact",
             artifact.LengthBytes,
-            artifact.Sha256);
+            artifact.Identity.Sha256);
         return new InspectionFixture(
             bytes,
             artifact,
@@ -464,7 +464,7 @@ public sealed partial class CompositionOutputNameResolverTests
             new ProfileBundleEntryIdentity(
                 "output-naming-profile-entry",
                 new string('e', 64)),
-            first.Definition.ResolvedMap,
+            new ResolvedMapV2CompilationContext(first.Definition.ResolvedMap),
             new CompiledProfilePromotion(
                 CompiledProfilePromotionStage.Supported,
                 []),
@@ -473,7 +473,7 @@ public sealed partial class CompositionOutputNameResolverTests
             []);
         var inputContract = new CompiledInputContract(
             [
-                new CompiledInputSlotRequirement(
+                CompiledInputSlotTestFactory.Create(
                     ArtifactSlotId,
                     "input",
                     CompiledInputArtifactClass.ReferenceImage,
@@ -490,16 +490,15 @@ public sealed partial class CompositionOutputNameResolverTests
                     CompiledInputInstancePolicy.Singleton),
             ]);
         CompiledOutputNamingRequirement output = NormalFlashCodeOutput();
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "output-naming-profile",
             "1.0.0",
             "standard-merge",
             CompositionKind.Merge,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                new CompiledRegionAccessContract([], []),
-                output));
+            provenance,
+            inputContract,
+            new CompiledRegionAccessContract([], []),
+            output);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output", CapacityBytes, 0),
             [
@@ -524,10 +523,7 @@ public sealed partial class CompositionOutputNameResolverTests
                     OverlapPolicy.Reject,
                     "copy accepted naming input"),
             ]);
-        return CompiledComposition.CreateV2RuntimeExecutable(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.NotApplicable);
+        return CompiledComposition.CreateV2RuntimeExecutable(plan, details);
     }
 
     private static InputArtifactBinding CreateInputBinding()

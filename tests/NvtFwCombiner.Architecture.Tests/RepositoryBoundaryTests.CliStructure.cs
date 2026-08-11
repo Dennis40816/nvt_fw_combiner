@@ -6,12 +6,12 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void ReplaceCliCommandHandlerConcernsStaySplit()
     {
-        string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
-        string options = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Options.cs");
-        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
-        string result = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Result.cs");
-        string usage = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.Usage.cs");
-        string workbenchReport = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchReport.cs");
+        string dispatch = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs");
+        string options = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Options.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Cli/CliOptionParser.cs");
+        string result = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Result.cs");
+        string usage = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Usage.cs");
+        string workbenchReport = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Report.cs");
 
         Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateBindings", dispatch, StringComparison.Ordinal);
@@ -27,57 +27,70 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", result, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> UnknownReplaceProfileAsync", result, StringComparison.Ordinal);
-        Assert.Contains("private static async Task PrintWorkbenchRunResultAsync", workbenchReport, StringComparison.Ordinal);
+        Assert.Contains("private static async Task PrintCompositionRunResultAsync", workbenchReport, StringComparison.Ordinal);
         Assert.Contains("private static async Task WriteUsageAsync", usage, StringComparison.Ordinal);
         Assert.DoesNotContain("synthetic-", usage, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies every Workbench Replace command shares one CLI run lifecycle.</summary>
+    /// <summary>Verifies every Replace command shares one CLI run lifecycle.</summary>
     [Fact]
-    public void WorkbenchReplaceCommandsShareRunLifecycle()
+    public void ReplaceCommandsShareRunLifecycle()
     {
-        string support = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.WorkbenchSupport.cs");
-        string dp = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.DpWorkbench.cs");
-        string ctrlRam = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.CtrlRamWorkbench.cs");
-        string general = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.GeneralWorkbench.cs");
+        string support = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.RunSupport.cs");
+        string dp = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.Dp.cs");
+        string ctrlRam = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.CtrlRam.cs");
+        string general = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.General.cs");
 
-        Assert.Contains("private static async Task<int> RunWorkbenchReplaceAsync", support, StringComparison.Ordinal);
+        Assert.Contains("private static async Task<int> CompleteReplaceRunAsync", support, StringComparison.Ordinal);
         Assert.Contains("EnsureOutputDoesNotAliasInputs", support, StringComparison.Ordinal);
         Assert.Contains("EnsureReportDoesNotAliasProtectedPaths", support, StringComparison.Ordinal);
         Assert.Contains("CliCompositionRunSupport.WriteReportJsonAsync", support, StringComparison.Ordinal);
-        Assert.Contains("PrintWorkbenchRunResultAsync", support, StringComparison.Ordinal);
+        Assert.Contains("PrintCompositionRunResultAsync", support, StringComparison.Ordinal);
         foreach (string workflow in new[] { dp, ctrlRam, general })
         {
-            Assert.Equal(1, CountOccurrences(workflow, "RunWorkbenchReplaceAsync("));
+            Assert.Equal(1, CountOccurrences(workflow, "CompleteReplaceRunAsync("));
             Assert.DoesNotContain("EnsureOutputDoesNotAliasInputs", workflow, StringComparison.Ordinal);
-            Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("output file already exists", workflow, StringComparison.Ordinal);
             Assert.DoesNotContain("WriteWorkbenchReportFileIfRequestedAsync", workflow, StringComparison.Ordinal);
-            Assert.DoesNotContain("PrintWorkbenchRunResultAsync", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("PrintCompositionRunResultAsync", workflow, StringComparison.Ordinal);
         }
 
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", dp, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService.RunReplaceAsync", ctrlRam, StringComparison.Ordinal);
+        Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", dp, StringComparison.Ordinal);
+        Assert.DoesNotContain("EnsureReportDoesNotAliasProtectedPaths", ctrlRam, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(general, "EnsureReportDoesNotAliasProtectedPaths("));
+
+        Assert.Contains("DpReplaceAuthoring.PrepareSession", dp, StringComparison.Ordinal);
+        Assert.Contains("host.CompositionExecution.ExecuteAsync", dp, StringComparison.Ordinal);
+        Assert.Contains("host.CtrlRamAuthoring.PrepareSession", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains("host.CompositionExecution", ctrlRam, StringComparison.Ordinal);
+        Assert.Contains(".ExecuteAsync(", ctrlRam, StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.PreviewGeneralReplaceEphemeralDraftAsync",
+            "host.GeneralAuthoring.PrepareReplaceSessionAsync",
             general,
             StringComparison.Ordinal);
         Assert.Contains(
-            "WorkbenchCompositionService.BuildGeneralReplaceEphemeralDraftAsync",
+            "host.CompositionExecution.ExecuteAsync",
             general,
             StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(general, "host.CompositionExecution.ExecuteAsync"));
+        foreach (string workflow in new[] { dp, ctrlRam, general })
+        {
+            Assert.Contains("ResolveAcceptedOutput", workflow, StringComparison.Ordinal);
+            Assert.DoesNotContain("GetReplaceDefaultOutputFileName", workflow, StringComparison.Ordinal);
+        }
+        Assert.Contains("AcceptedCompositionExecutionRequest", general, StringComparison.Ordinal);
     }
 
     /// <summary>Verifies General Merge CLI dispatch stays split from parsing, mapping adaptation, usage text, and result printing.</summary>
     [Fact]
     public void MergeCliCommandHandlerConcernsStaySplit()
     {
-        string dispatch = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.cs");
-        string manualMappings = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.ManualMappings.cs");
-        string options = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Options.cs");
-        string result = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Result.cs");
-        string usage = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.Usage.cs");
-        string savedRules = ReadText("src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+        string dispatch = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.cs");
+        string manualMappings = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.ManualMappings.cs");
+        string options = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.Options.cs");
+        string result = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.Result.cs");
+        string usage = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.Usage.cs");
+        string savedRules = ReadText("src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs");
 
         Assert.Contains("RunAsync", dispatch, StringComparison.Ordinal);
         Assert.DoesNotContain("private static bool TryCreateMappings", dispatch, StringComparison.Ordinal);
@@ -90,7 +103,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("private static bool TryParseMappingValue", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryResolveIc", manualMappings, StringComparison.Ordinal);
         Assert.Contains("private static bool TryCreateDraftFromSavedRule", savedRules, StringComparison.Ordinal);
-        Assert.Contains("SavedRuleV2GeneralMergeDraftLoader.Load", savedRules, StringComparison.Ordinal);
+        Assert.Contains("authoring.LoadGeneralMergeSavedRule", savedRules, StringComparison.Ordinal);
         Assert.Contains("private static bool TryParseOptions", options, StringComparison.Ordinal);
         Assert.Contains("private static bool RequireOption", options, StringComparison.Ordinal);
         Assert.Contains("private sealed record ParsedOptions", options, StringComparison.Ordinal);
@@ -106,18 +119,18 @@ public sealed partial class RepositoryBoundaryTests
     public void SavedRuleV2ExecutionUsesCanonicalSchemaBeforeMaterialization()
     {
         string handler = ReadText(
-            "src/NvtFwCombiner.Bootstrap/MergeCliCommandHandler.SavedRules.cs");
+            "src/NvtFwCombiner.Cli/MergeCliCommandHandler.SavedRules.cs");
         string draftLoader = ReadText(
-            "src/NvtFwCombiner.Bootstrap/SavedRuleV2GeneralMergeDraftLoader.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/SavedRuleV2GeneralMergeDraftLoader.cs");
         string admission = ReadText(
-            "src/NvtFwCombiner.Bootstrap/SavedCompositionRuleV2Admission.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/SavedCompositionRuleV2Admission.cs");
         string schema = ReadText(
             "src/NvtFwCombiner.Infrastructure/Contracts/SavedCompositionRuleV2Schema.cs");
         string infrastructureProject = ReadText(
             "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj");
 
         Assert.Contains(
-            "GetGeneralMergeSavedRuleAdmissionContext",
+            "authoring.LoadGeneralMergeSavedRule",
             handler,
             StringComparison.Ordinal);
         int admissionIndex = draftLoader.IndexOf(
@@ -154,13 +167,12 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void CliApplicationConcernsStaySplit()
     {
-        string root = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.cs");
-        string options = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Options.cs");
-        string optionParser = ReadText("src/NvtFwCombiner.Bootstrap/CliOptionParser.cs");
-        string profiles = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Profiles.cs");
-        string result = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Result.cs");
-        string standardMerge = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
-        string usage = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.Usage.cs");
+        string root = ReadText("src/NvtFwCombiner.Cli/CliApplication.cs");
+        string optionParser = ReadText("src/NvtFwCombiner.Cli/CliOptionParser.cs");
+        string profiles = ReadText("src/NvtFwCombiner.Cli/CliApplication.Profiles.cs");
+        string result = ReadText("src/NvtFwCombiner.Cli/CliApplication.Result.cs");
+        string standardMerge = ReadText("src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs");
+        string usage = ReadText("src/NvtFwCombiner.Cli/CliApplication.Usage.cs");
 
         Assert.Contains("RunAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task<int> RunStandardMergeAsync", root, StringComparison.Ordinal);
@@ -168,13 +180,17 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("private static bool TryParseOptions", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task PrintRunResultAsync", root, StringComparison.Ordinal);
         Assert.DoesNotContain("private static async Task WriteUsageAsync", root, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryParse", options, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CliApplication.Options.cs")));
         Assert.Contains("CliOptionParser.TryParse", standardMerge, StringComparison.Ordinal);
         Assert.Contains("internal static bool TryParse", optionParser, StringComparison.Ordinal);
         Assert.Contains("internal sealed record ParsedCliOptions", optionParser, StringComparison.Ordinal);
         Assert.Contains("private static async Task<int> RunProfilesAsync", profiles, StringComparison.Ordinal);
         Assert.Contains("GetStandardMergeProfileSummaries", profiles, StringComparison.Ordinal);
-        Assert.Contains("GetReplaceProfileSummaries", profiles, StringComparison.Ordinal);
+        Assert.Contains("GetDpReplaceProfileSummaries", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInStandardMergeProfiles", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("BuiltInReplaceProfiles", profiles, StringComparison.Ordinal);
@@ -188,51 +204,50 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void ReplaceCliUsesWorkbenchCompiledArtifactsOnly()
     {
-        string handler = ReadText("src/NvtFwCombiner.Bootstrap/ReplaceCliCommandHandler.cs");
+        string handler = ReadText("src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs");
 
-        Assert.Contains("RunWorkbenchDpReplaceAsync", handler, StringComparison.Ordinal);
-        Assert.Contains("RunWorkbenchCtrlRamReplaceAsync", handler, StringComparison.Ordinal);
-        Assert.Contains("RunWorkbenchGeneralReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.Contains("RunDpReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.Contains("RunCtrlRamReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.Contains("RunGeneralReplaceAsync", handler, StringComparison.Ordinal);
+        Assert.DoesNotContain("RunWorkbench", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCompileProfile", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("TryCreateIcNumberSelection", handler, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionProfileDefinition", handler, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies Standard Merge CLI and Workbench Run share one compiled-resolution boundary.</summary>
+    /// <summary>Verifies Standard Merge CLI and desktop share one compiled-resolution boundary.</summary>
     [Fact]
     public void StandardMergeRuntimeConsumesSharedCompiledResolver()
     {
-        string cli = ReadText("src/NvtFwCombiner.Bootstrap/CliApplication.StandardMerge.cs");
-        string run = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Run.cs");
-        string display = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Display.cs");
+        string cli = ReadText("src/NvtFwCombiner.Cli/CliApplication.StandardMerge.cs");
+        string run = ReadText("src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
+        string sharedRun = run;
         string generalMergeProfile = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.GeneralMerge.Profile.cs");
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs");
         string resolver = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Compilation.cs");
+            "src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs");
 
         string[] compileSources =
         [
             .. Directory.EnumerateFiles(
-                    Path.Combine(Root.FullName, "src", "NvtFwCombiner.Bootstrap"),
+                    Path.Combine(Root.FullName, "src"),
                     "*.cs",
-                    SearchOption.TopDirectoryOnly)
+                    SearchOption.AllDirectories)
                 .Where(path => File.ReadAllText(path).Contains("TryCompileStandardMerge(", StringComparison.Ordinal))
-                .Select(static path => Path.GetFileName(path))
+                .Select(path => Path.GetRelativePath(
+                    Path.Combine(Root.FullName, "src"),
+                    path).Replace('\\', '/'))
                 .Order(StringComparer.Ordinal),
         ];
         Assert.Equal(
             [
-                "CliApplication.StandardMerge.cs",
-                "WorkbenchCompositionService.GeneralMerge.Profile.cs",
-                "WorkbenchCompositionService.StandardMerge.Authoring.cs",
-                "WorkbenchCompositionService.StandardMerge.Compilation.cs",
-                "WorkbenchCompositionService.StandardMerge.Display.cs",
-                "WorkbenchCompositionService.StandardMerge.Run.cs",
+                "NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs",
+                "NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.cs",
+                "NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
             ],
             compileSources);
 
-        foreach (string runtimeSource in new[] { cli, run, display, generalMergeProfile })
+        foreach (string runtimeSource in new[] { generalMergeProfile })
         {
             Assert.Contains("TryCompileStandardMerge", runtimeSource, StringComparison.Ordinal);
             Assert.DoesNotContain("CompositionProfileDefinition", runtimeSource, StringComparison.Ordinal);
@@ -242,12 +257,14 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("NvtFwCombiner.Profiles", runtimeSource, StringComparison.Ordinal);
         }
 
-        Assert.Equal(2, CountOccurrences(cli, "TryCompileStandardMerge("));
-        Assert.Equal(1, CountOccurrences(run, "TryCompileStandardMerge("));
-        Assert.Equal(1, CountOccurrences(display, "TryCompileStandardMerge("));
+        Assert.Equal(0, CountOccurrences(cli, "TryCompileStandardMerge("));
+        Assert.Contains("StandardMergeAuthoring.PrepareSession(", cli, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryCompileStandardMerge(", run, StringComparison.Ordinal);
+        Assert.Contains("ExecuteAcceptedCompositionAsync(", run, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(sharedRun, "AcceptedSessionExecutionInputs.CreateBindings("));
         Assert.Equal(1, CountOccurrences(generalMergeProfile, "TryCompileStandardMerge("));
         Assert.Contains("out CompiledComposition? composition", resolver, StringComparison.Ordinal);
-        Assert.Contains("GetStandardMergeInputAddressSpaces", cli, StringComparison.Ordinal);
+        Assert.Contains("StandardMergeAuthoring.GetInputAddressSpaces", cli, StringComparison.Ordinal);
         Assert.Contains("InputOptionsByAddressSpace", cli, StringComparison.Ordinal);
         Assert.Contains("TryGetBuiltInV2StandardMergeCompilation", resolver, StringComparison.Ordinal);
         Assert.DoesNotContain("CreateDpPerspectiveProfileForInputLength", resolver, StringComparison.Ordinal);
@@ -266,9 +283,9 @@ public sealed partial class RepositoryBoundaryTests
         string application = ReadText(
             "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
         string authoringAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.Authoring.cs");
+            "src/NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.cs");
         string inspectionAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchCompositionService.StandardMerge.InputInspection.cs");
+            "src/NvtFwCombiner.Application/Authoring/StandardMergeAuthoringExperience.InputInspection.cs");
         string presentation = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.StandardMergeAuthoring.cs");
 

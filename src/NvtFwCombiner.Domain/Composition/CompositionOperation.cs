@@ -21,24 +21,21 @@ public sealed class CompositionOperation
         string reason,
         OperationProvenance? provenance)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetSpaceId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        OperationId = RequiredValue.NotBlank(operationId);
+        TargetSpaceId = RequiredValue.NotBlank(targetSpaceId);
+        Reason = RequiredValue.NotBlank(reason);
         ArgumentOutOfRangeException.ThrowIfNegative(sequence);
 
-        OperationId = operationId;
         Sequence = sequence;
         Kind = kind;
         SourceSpaceId = sourceSpaceId;
         SourceRange = sourceRange;
-        TargetSpaceId = targetSpaceId;
         TargetRange = targetRange;
         OverlapPolicy = overlapPolicy;
         FillByte = fillByte;
         _patchBytes = [.. patchBytes];
         ScalarTransform = scalarTransform;
         ExternalProcessorInvocation = externalProcessorInvocation;
-        Reason = reason;
         Provenance = provenance ?? OperationProvenance.BuiltInProfile;
     }
 
@@ -83,6 +80,42 @@ public sealed class CompositionOperation
 
     /// <summary>Traceable origin for this operation.</summary>
     public OperationProvenance Provenance { get; }
+
+    internal IReadOnlyList<ByteRange> DeclaredWriteRanges =>
+        Kind == CompositionOperationKind.RunExternalProcessor
+            ? ExternalProcessorInvocation!.AllowedWriteRanges
+            : [TargetRange];
+
+    internal bool DeclaredWritesOverlap(CompositionOperation other)
+    {
+        return StringComparer.Ordinal.Equals(TargetSpaceId, other.TargetSpaceId) &&
+            DeclaredWriteRanges.Any(first =>
+                other.DeclaredWriteRanges.Any(first.Overlaps));
+    }
+
+    internal string? GetProfileOverlapError(IReadOnlyList<CompositionOperation> priorWrites)
+    {
+        ArgumentNullException.ThrowIfNull(priorWrites);
+        CompositionOperation[] overlaps = [.. priorWrites.Where(DeclaredWritesOverlap)];
+        if (overlaps.Length == 0)
+        {
+            return OverlapPolicy == OverlapPolicy.ReplaceExisting
+                ? $"Operation '{OperationId}' declares ReplaceExisting but has no earlier write covering its target range in target space '{TargetSpaceId}'."
+                : null;
+        }
+
+        if (OverlapPolicy != OverlapPolicy.ReplaceExisting)
+        {
+            return $"Operation '{OperationId}' overlaps earlier operation '{overlaps[0].OperationId}' in target space '{TargetSpaceId}'.";
+        }
+
+        bool fullyCovered = Kind is CompositionOperationKind.CopyRange or CompositionOperationKind.RunExternalProcessor &&
+            DeclaredWriteRanges.All(writeRange => overlaps.Any(candidate =>
+                candidate.DeclaredWriteRanges.Any(candidateRange => candidateRange.Contains(writeRange))));
+        return fullyCovered
+            ? null
+            : $"Operation '{OperationId}' declares ReplaceExisting but no earlier write fully covers its target range in target space '{TargetSpaceId}'.";
+    }
 
     /// <summary>Creates a copy-range operation.</summary>
     public static CompositionOperation CopyRange(

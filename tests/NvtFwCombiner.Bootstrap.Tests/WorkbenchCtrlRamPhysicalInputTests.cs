@@ -1,7 +1,9 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -45,10 +47,8 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         string number,
         int expectedCount)
     {
-        IReadOnlyList<WorkbenchReplaceInputSlot> slots = WorkbenchCompositionService.GetReplaceInputSlots(
-            icId,
-            number,
-            WorkbenchReplaceModes.CtrlRam);
+        IReadOnlyList<ReplaceInputSlot> slots = BootstrapTestHost.Services.CtrlRamAuthoring
+            .GetDiscoveryDisplay(icId, number, basePath: null).InputSlots;
 
         Assert.Equal(expectedCount, slots.Count);
         Assert.Contains(slots, slot => slot.SlotId == "replace-ctrlram-nf");
@@ -64,11 +64,11 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51932")]
     public void DynamicDiffDlmCascadeHidesIndependentNfSelector(string icId)
     {
-        IReadOnlyList<WorkbenchReplaceInputSlot> slots =
-            WorkbenchCompositionService.GetReplaceInputSlots(
+        IReadOnlyList<ReplaceInputSlot> slots =
+            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
-                WorkbenchIcNumberTokens.CascadeTwoToEight,
-                WorkbenchReplaceModes.CtrlRam);
+                IcNumberSelectionTokens.CascadeTwoToEight,
+                basePath: null).InputSlots;
 
         Assert.Contains(
             slots,
@@ -87,11 +87,11 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51951", "2")]
     public void Nt51950FamilyCascadeHidesIndependentNfSelector(string icId, string number)
     {
-        IReadOnlyList<WorkbenchReplaceInputSlot> slots =
-            WorkbenchCompositionService.GetReplaceInputSlots(
+        IReadOnlyList<ReplaceInputSlot> slots =
+            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 icId,
                 number,
-                WorkbenchReplaceModes.CtrlRam);
+                basePath: null).InputSlots;
 
         Assert.Contains(
             slots,
@@ -110,10 +110,10 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [InlineData("NT51950")]
     public void DiffNfFamiliesDoNotWarnForSingleChip(string icId)
     {
-        WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
+        ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             icId,
             "single",
-            WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.DoesNotContain("DiffNFMerge.exe", nf.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("DiffNFMerge output", nf.Title, StringComparison.Ordinal);
@@ -123,10 +123,10 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
     [Fact]
     public void CtrlRamSlotDescriptionsExposeSectionByteLimits()
     {
-        WorkbenchReplaceInputSlot nf = WorkbenchCompositionService.GetReplaceInputSlots(
+        ReplaceInputSlot nf = BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
             "NT51950",
             "single",
-            WorkbenchReplaceModes.CtrlRam).Single(slot => slot.SlotId == "replace-ctrlram-nf");
+            basePath: null).InputSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
 
         Assert.Equal("NF_Ctrlram.bin · NF CtrlRAM: max 10768 B → 0x22C00", nf.Description);
     }
@@ -147,15 +147,15 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             AssertMappedBytes(request, nfBytes, 0x0000, 0x1F800, 0x0010);
             AssertMappedBytes(request, nfBytes, 0x1F90, 0x1F810, 0x0FC0);
             AssertMappedBytes(request, nfBytes, 0x0000, 0x28800, 0x0FD0);
-            return ExternalProcessorResult.Success(request.InputBytes, []);
+            return ExternalProcessorResult.Success(request.InputBytes, [], []);
         });
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = basePath,
+            [CompositionSlotIds.ReplaceBase] = basePath,
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51927",
             "3",
             slotPaths,
@@ -165,7 +165,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
     }
 
     /// <summary>A zero chip count is warning-only when the selected route does not consume IC Count.</summary>
@@ -180,14 +180,14 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         byte[] nfBytes = [.. Enumerable.Range(0, 0x2F50).Select(index => unchecked((byte)((index * 37) + 11)))];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = basePath,
+            [CompositionSlotIds.ReplaceBase] = basePath,
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51927",
             "3",
             slotPaths,
@@ -197,10 +197,10 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement issue = Assert.Single(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
             candidate => candidate.GetProperty("Code").GetString() ==
@@ -222,63 +222,57 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
         byte[] nfBytes = [0x10, 0x21, 0x32, 0x43, 0x54, 0x65, 0x76, 0x87];
         string nfPath = workspace.Write("NF_Ctrlram.bin", nfBytes);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = basePath,
+            [CompositionSlotIds.ReplaceBase] = basePath,
             ["replace-ctrlram-nf"] = nfPath,
         };
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+            BootstrapTestHost.Canonical,
             "NT51927",
             "single",
             slotPaths,
-            build: false,
-            outputPath: null,
-            firmwareVersionEdit: null,
-            externalProcessor: processor,
-            cancellationToken: TestContext.Current.CancellationToken);
+            firmwareVersionEdit: null);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Null(snapshot);
         Assert.Equal(0, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch, issue.GetProperty("Code").GetString());
-        Assert.Contains("Selected Number is 1 IC", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
-        Assert.Contains("reports 3 IC", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
-        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+        CompositionIssue issue = Assert.Single(issues);
+        Assert.Equal(CompositionPlanningIssueCodes.ReplaceCtrlRamIcNumberMismatch, issue.Code);
+        Assert.Contains("Selected Number is 1 IC", issue.Message, StringComparison.Ordinal);
+        Assert.Contains("reports 3 IC", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>An unavailable firmware count may fail other admission checks, but never fabricates a mismatch.</summary>
     [Fact]
-    public async Task UnavailableFirmwareChipCountDoesNotCreateMismatchIssue()
+    public void UnavailableFirmwareChipCountDoesNotCreateMismatchIssue()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-unavailable-chip-count");
         string basePath = workspace.Write("base.bin", new byte[0x40000]);
         string nfPath = workspace.Write("NF_Ctrlram.bin", [0x10]);
         var processor = new InspectingProcessor(request =>
-            ExternalProcessorResult.Success(request.InputBytes, []));
+            ExternalProcessorResult.Success(request.InputBytes, [], []));
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+            BootstrapTestHost.Canonical,
             "NT51927",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = basePath,
+                [CompositionSlotIds.ReplaceBase] = basePath,
                 ["replace-ctrlram-nf"] = nfPath,
             },
-            build: false,
-            outputPath: null,
-            firmwareVersionEdit: null,
-            externalProcessor: processor,
-            cancellationToken: TestContext.Current.CancellationToken);
+            firmwareVersionEdit: null);
 
-        Assert.False(result.Succeeded, result.ReportJson);
-        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.Null(snapshot);
+        Assert.Equal(0, processor.CallCount);
         Assert.DoesNotContain(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceCtrlRamIcNumberMismatch);
+            issues,
+            issue => issue.Code == CompositionPlanningIssueCodes.ReplaceCtrlRamIcNumberMismatch);
     }
 
     private static void AssertMappedBytes(
@@ -299,7 +293,7 @@ public sealed class WorkbenchCtrlRamPhysicalInputTests
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
         JsonElement baseArtifact = goldenCase.GetProperty("artifacts").EnumerateArray().Single(item =>
-            item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+            item.GetProperty("slotId").GetString() == CompositionSlotIds.ReplaceBase);
         return CanonicalGoldenTestData.ArtifactPath(baseArtifact);
     }
 

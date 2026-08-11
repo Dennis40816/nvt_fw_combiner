@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
@@ -42,7 +43,7 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Equal(new AuthoringRevision(3), dp.AuthoringRevision);
         Assert.Equal("dp-input", dp.SlotIdentity.DefinitionId);
         Assert.Equal("dp-input.bin", dp.SlotIdentity.SelectedPath);
-        Assert.Equal(Capacity, dp.SlotIdentity.FileStamp!.Value.Length);
+        Assert.Equal(Capacity, dp.SlotIdentity.FileStamp!.Value.AcceptedLength);
         Assert.All(
             snapshot.PendingItems,
             static item =>
@@ -99,16 +100,16 @@ public sealed partial class MemoryLayoutProjectorTests
             snapshot.AfterSegments.Select(static segment => segment.Range));
         Assert.Equal(
             ["copy-first"],
-            snapshot.AfterSegments[0].ContributingOperationIds);
+            snapshot.AfterSegments[0].ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Equal(
             ["copy-first", "copy-overlap"],
-            snapshot.AfterSegments[1].ContributingOperationIds);
+            snapshot.AfterSegments[1].ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Equal(
             ["copy-touching"],
-            snapshot.AfterSegments[2].ContributingOperationIds);
+            snapshot.AfterSegments[2].ContributingOperations.Select(static operation => operation.OperationId));
         Assert.Equal("tp-input", snapshot.AfterSegments[1].SourceSlotId);
         Assert.Equal("tp-input", snapshot.AfterSegments[2].SourceSlotId);
-        Assert.Empty(snapshot.AfterSegments[3].ContributingOperationIds);
+        Assert.Empty(snapshot.AfterSegments[3].ContributingOperations);
         Assert.All(
             snapshot.AfterSegments,
             static segment => Assert.True(segment.Range.Length > 0));
@@ -155,5 +156,104 @@ public sealed partial class MemoryLayoutProjectorTests
                     OverlapPolicy.Reject,
                     "touch the prior exclusive end"),
             ]);
+    }
+
+    /// <summary>Retains kept subranges under one primary canonical segment.</summary>
+    [Fact]
+    public void PreservationDetailsRemainSubordinateToOneCanonicalSegment()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace);
+        MemoryLayoutPreservationDetail detail = new(
+            "active-nf-0",
+            blockIndex: 0,
+            MemoryEndpointIdentity.Slave,
+            "diffdlm-input",
+            new ByteRange(0x0B90, 0x0870),
+            new ByteRange(2, 2));
+        var segment = MemoryLayoutSegment.Create(
+            "dp-code:0-8",
+            "flash",
+            new ByteRange(0, 8),
+            fixture.DpRegion,
+            MemoryContentRole.Dp,
+            MemoryWorkflowDisposition.WillReplace,
+            MemoryEndpointIdentity.NotApplicable,
+            MemoryBankIdentity.NotApplicable,
+            MemoryProcessorEffect.None,
+            MemoryDiagnosticSeverity.None,
+            MemoryObservedChange.NotObserved,
+            MemorySelectionState.Selected,
+            MemoryFocusState.NotFocused,
+            "diffdlm-input",
+            "diffdlm",
+            fixture.Composition.Plan.OrderedOperations,
+            [detail]);
+
+        MemoryLayoutPreservationDetail actual = Assert.Single(segment.PreservationDetails);
+        Assert.Same(detail, actual);
+        Assert.Equal(MemoryWorkflowDisposition.Kept, actual.Disposition);
+        Assert.Equal(new ByteRange(0, 8), segment.Range);
+        Assert.Equal(new ByteRange(2, 2), actual.ResolvedRange);
+        Assert.Same(fixture.DpRegion, segment.CanonicalRegion);
+    }
+
+    /// <summary>Exposes projection collections as immutable snapshots.</summary>
+    [Fact]
+    public void SnapshotCollectionsAreImmutable()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Merge);
+        ActiveSessionSnapshot session = CreateSession(
+            fixture,
+            Slot("dp-input", AuthoringSlotLifecycle.Verified, Capacity),
+            Slot("tp-input", AuthoringSlotLifecycle.Empty));
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
+            fixture.Capability,
+            session,
+            fixture.Composition);
+
+        Assert.True(((IList<MemoryLayoutSegment>)snapshot.AfterSegments).IsReadOnly);
+        Assert.True(((IList<FirmwareRegion>)snapshot.CanonicalRegions).IsReadOnly);
+        Assert.True(((IList<MemoryLayoutPendingItem>)snapshot.PendingItems).IsReadOnly);
+    }
+
+    /// <summary>Rejects subordinate kept details that overlap inside their primary segment.</summary>
+    [Fact]
+    public void PreservationDetailsRemainCheckedAndNonAuthoritative()
+    {
+        ProjectionFixture fixture = CreateFixture(CompositionKind.Replace);
+        MemoryLayoutPreservationDetail first = new(
+            "nf-0",
+            0,
+            MemoryEndpointIdentity.Slave,
+            "diffdlm-input",
+            new ByteRange(0, 2),
+            new ByteRange(1, 2));
+        MemoryLayoutPreservationDetail overlapping = new(
+            "nf-1",
+            1,
+            MemoryEndpointIdentity.Slave,
+            "diffdlm-input",
+            new ByteRange(2, 2),
+            new ByteRange(2, 2));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            MemoryLayoutSegment.Create(
+                "dp-code:0-8",
+                "flash",
+                new ByteRange(0, 8),
+                fixture.DpRegion,
+                MemoryContentRole.Dp,
+                MemoryWorkflowDisposition.WillReplace,
+                MemoryEndpointIdentity.NotApplicable,
+                MemoryBankIdentity.NotApplicable,
+                MemoryProcessorEffect.None,
+                MemoryDiagnosticSeverity.None,
+                MemoryObservedChange.NotObserved,
+                MemorySelectionState.Selected,
+                MemoryFocusState.NotFocused,
+                "diffdlm-input",
+                "diffdlm",
+                fixture.Composition.Plan.OrderedOperations,
+                [first, overlapping]));
     }
 }

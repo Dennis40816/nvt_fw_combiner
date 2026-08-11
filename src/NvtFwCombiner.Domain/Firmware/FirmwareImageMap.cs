@@ -14,13 +14,10 @@ public sealed class FirmwareImageMap
 {
     private readonly FirmwareMapFactBinding<FirmwareRegionSet>[] _regionSetBindings;
     private readonly FirmwareMapFactBinding<FirmwareMetadataSet>[] _metadataSetBindings;
-    private readonly FirmwareRegionSet[] _regionSets;
     private readonly FirmwareRegion[] _regions;
-    private readonly string[] _metadataSetIds;
-    private readonly string[] _evidenceRefs;
 
     /// <summary>Creates a checked physical image map from member-scoped immutable fact bindings.</summary>
-    public FirmwareImageMap(
+    internal FirmwareImageMap(
         string mapId,
         string addressSpaceId,
         FirmwareMapApplicability applicability,
@@ -32,10 +29,7 @@ public sealed class FirmwareImageMap
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentNullException.ThrowIfNull(applicability);
-        if (!Enum.IsDefined(coveragePolicy))
-        {
-            throw new ArgumentOutOfRangeException(nameof(coveragePolicy), coveragePolicy, "Unknown map coverage policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(coveragePolicy, "Unknown map coverage policy.");
 
         _regionSetBindings = SnapshotBindings(
             regionSetBindings,
@@ -54,20 +48,17 @@ public sealed class FirmwareImageMap
         ValidateBindingCoverage(_metadataSetBindings, applicability.MemberIds, FirmwareFactKind.MetadataSet);
         ValidateCanonicalValueIdentity(_regionSetBindings);
         ValidateCanonicalValueIdentity(_metadataSetBindings);
-        _regionSets = DeriveCanonicalValues(_regionSetBindings, addressSpaceId);
-        _regions = [.. _regionSets.SelectMany(static set => set.Regions)];
-        if (_regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _regions.Length)
-        {
-            throw new ArgumentException(
-                "Firmware region ids must be ordinally unique across a map.",
-                nameof(regionSetBindings));
-        }
+        FirmwareRegionSet[] regionSetsSnapshot = DeriveCanonicalValues(_regionSetBindings, addressSpaceId);
+        _regions = [.. regionSetsSnapshot.SelectMany(static set => set.Regions)];
+        DomainInvariant.Reject(
+            _regions.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+            _regions.Length,
+            "Firmware region ids must be ordinally unique across a map.",
+            nameof(regionSetBindings));
 
         Array.Sort(_regions, FirmwareRangeOrdering.Compare);
         ValidateRegionGraph(_regions, applicability.CapacityBytes);
-        _metadataSetIds = DeriveCanonicalIds(_metadataSetBindings);
-        _evidenceRefs = ImmutableStringSnapshot.Create(
+        string[] evidenceRefsSnapshot = ImmutableStringSnapshot.Create(
             evidenceRefs,
             nameof(evidenceRefs),
             "At least one identifier is required.",
@@ -80,10 +71,9 @@ public sealed class FirmwareImageMap
         CoveragePolicy = coveragePolicy;
         RegionSetBindings = Array.AsReadOnly(_regionSetBindings);
         MetadataSetBindings = Array.AsReadOnly(_metadataSetBindings);
-        RegionSets = Array.AsReadOnly(_regionSets);
+        RegionSets = Array.AsReadOnly(regionSetsSnapshot);
         Regions = Array.AsReadOnly(_regions);
-        MetadataSetIds = Array.AsReadOnly(_metadataSetIds);
-        EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
+        EvidenceRefs = Array.AsReadOnly(evidenceRefsSnapshot);
     }
 
     /// <summary>Stable canonical image-map identifier.</summary>
@@ -101,20 +91,15 @@ public sealed class FirmwareImageMap
     /// <summary>Physical coverage invariant enforced by this map.</summary>
     public FirmwareImageMapCoveragePolicy CoveragePolicy { get; }
 
-    /// <summary>Member-specific region-set bindings that provide the map's canonical region graph.</summary>
-    public IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings { get; }
+    internal IReadOnlyList<FirmwareMapFactBinding<FirmwareRegionSet>> RegionSetBindings { get; }
 
     /// <summary>Member-specific metadata-set bindings selected by this physical map.</summary>
     public IReadOnlyList<FirmwareMapFactBinding<FirmwareMetadataSet>> MetadataSetBindings { get; }
 
-    /// <summary>Canonical region-set projection derived only from <see cref="RegionSetBindings"/>.</summary>
-    public IReadOnlyList<FirmwareRegionSet> RegionSets { get; }
+    internal IReadOnlyList<FirmwareRegionSet> RegionSets { get; }
 
     /// <summary>Flattened physical region graph in deterministic range order.</summary>
     public IReadOnlyList<FirmwareRegion> Regions { get; }
-
-    /// <summary>Canonical metadata-set id projection derived only from <see cref="MetadataSetBindings"/>.</summary>
-    public IReadOnlyList<string> MetadataSetIds { get; }
 
     /// <summary>Map-level evidence manifest ids in ordinal order.</summary>
     public IReadOnlyList<string> EvidenceRefs { get; }
@@ -133,24 +118,21 @@ public sealed class FirmwareImageMap
 
         foreach (FirmwareMapFactBinding<TFact> binding in snapshot)
         {
-            if (!StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapId) ||
+            DomainInvariant.Reject(
+                !StringComparer.Ordinal.Equals(binding.EffectiveKey.MapId, mapId) ||
                 (!StringComparer.Ordinal.Equals(binding.DirectSourceKey.MapId, mapId) &&
-                binding.Provenance.AliasChain.Count == 0))
-            {
-                throw new ArgumentException("Direct map bindings must use the containing map id.", nameof(bindings));
-            }
+                binding.Provenance.AliasChain.Count == 0),
+                "Direct map bindings must use the containing map id.", nameof(bindings));
 
-            if (binding.EffectiveKey.FactKind != expectedKind ||
-                binding.DirectSourceKey.FactKind != expectedKind)
-            {
-                throw new ArgumentException("Image-map bindings use the wrong fact kind.", nameof(bindings));
-            }
+            DomainInvariant.Reject(
+                binding.EffectiveKey.FactKind != expectedKind ||
+                binding.DirectSourceKey.FactKind != expectedKind,
+                "Image-map bindings use the wrong fact kind.", nameof(bindings));
         }
 
-        if (snapshot.Select(static binding => binding.EffectiveKey).Distinct().Count() != snapshot.Length)
-        {
-            throw new ArgumentException("Image-map binding effective keys must be unique.", nameof(bindings));
-        }
+        DomainInvariant.Reject(
+            snapshot.Select(static binding => binding.EffectiveKey).Distinct().Count() != snapshot.Length,
+            "Image-map binding effective keys must be unique.", nameof(bindings));
 
         Array.Sort(snapshot, CompareBindings);
         return snapshot;
@@ -167,24 +149,20 @@ public sealed class FirmwareImageMap
                      StringComparer.Ordinal))
         {
             FirmwareMapFactBinding<TFact>[] references = [.. group];
-            if (references.Any(binding => !memberIds.Contains(binding.EffectiveKey.MemberId, StringComparer.Ordinal)) ||
+            DomainInvariant.Reject(
+                references.Any(binding => !memberIds.Contains(binding.EffectiveKey.MemberId, StringComparer.Ordinal)) ||
                 references.Select(static binding => binding.EffectiveKey.MemberId).Distinct(StringComparer.Ordinal).Count() !=
                 memberIds.Count ||
-                references.Length != memberIds.Count)
-            {
-                throw new ArgumentException(
-                    "Every image-map fact reference must bind exactly once for every map member.",
-                    nameof(bindings));
-            }
+                references.Length != memberIds.Count,
+                "Every image-map fact reference must bind exactly once for every map member.",
+                nameof(bindings));
 
-            if (references.Any(binding => binding.EffectiveKey.FactKind != expectedKind) ||
+            DomainInvariant.Reject(
+                references.Any(binding => binding.EffectiveKey.FactKind != expectedKind) ||
                 references.Select(static binding => binding.CanonicalFactId).Distinct(StringComparer.Ordinal).Count() != 1 ||
-                references.Skip(1).Any(binding => !ReferenceEquals(binding.Value, references[0].Value)))
-            {
-                throw new ArgumentException(
-                    "One image-map fact reference must retain one canonical immutable value for all members.",
-                    nameof(bindings));
-            }
+                references.Skip(1).Any(binding => !ReferenceEquals(binding.Value, references[0].Value)),
+                "One image-map fact reference must retain one canonical immutable value for all members.",
+                nameof(bindings));
         }
     }
 
@@ -197,26 +175,22 @@ public sealed class FirmwareImageMap
         var mapFactApplicability = FirmwareFactApplicability.FromMap(mapApplicability);
         foreach (FirmwareMapFactBinding<TFact> binding in bindings)
         {
-            if (!FirmwareFactApplicabilityRelations.HasSameScope(
-                    binding.Applicability,
-                    mapFactApplicability,
-                    structuresById))
-            {
-                throw new ArgumentException(
-                    "Physical fact bindings must equal the containing map applicability.",
-                    nameof(bindings));
-            }
+            DomainInvariant.Reject(
+                !FirmwareFactApplicabilityRelations.HasSameScope(
+                binding.Applicability,
+                mapFactApplicability,
+                structuresById),
+                "Physical fact bindings must equal the containing map applicability.",
+                nameof(bindings));
 
-            if (binding.Provenance.AliasChain.Count != 0 &&
+            DomainInvariant.Reject(
+                binding.Provenance.AliasChain.Count != 0 &&
                 !FirmwareFactApplicabilityRelations.HasSameScope(
                     binding.Applicability,
                     binding.Provenance.AliasChain[0].Applicability,
-                    structuresById))
-            {
-                throw new ArgumentException(
-                    "An alias binding must equal its first target-to-source hop applicability.",
-                    nameof(bindings));
-            }
+                    structuresById),
+                "An alias binding must equal its first target-to-source hop applicability.",
+                nameof(bindings));
         }
     }
 
@@ -229,12 +203,10 @@ public sealed class FirmwareImageMap
                      .Select(static group => group.First().Value)
                      .SelectMany(static set => set.Structures))
         {
-            if (!structuresById.TryAdd(structure.StructureId, structure))
-            {
-                throw new ArgumentException(
-                    $"Metadata structure id '{structure.StructureId}' is ambiguous within one image map.",
-                    nameof(bindings));
-            }
+            DomainInvariant.Reject(
+                !structuresById.TryAdd(structure.StructureId, structure),
+                $"Metadata structure id '{structure.StructureId}' is ambiguous within one image map.",
+                nameof(bindings));
         }
 
         return structuresById;
@@ -265,25 +237,11 @@ public sealed class FirmwareImageMap
                      StringComparer.Ordinal))
         {
             FirmwareMapFactBinding<TFact> first = group.First();
-            if (group.Skip(1).Any(binding => !ReferenceEquals(binding.Value, first.Value)))
-            {
-                throw new ArgumentException(
-                    "Bindings sharing one canonical fact id must share one immutable value instance.",
-                    nameof(bindings));
-            }
+            DomainInvariant.Reject(
+                group.Skip(1).Any(binding => !ReferenceEquals(binding.Value, first.Value)),
+                "Bindings sharing one canonical fact id must share one immutable value instance.",
+                nameof(bindings));
         }
-    }
-
-    private static string[] DeriveCanonicalIds(
-        IReadOnlyList<FirmwareMapFactBinding<FirmwareMetadataSet>> bindings)
-    {
-        return
-        [
-            .. bindings
-                .Select(static binding => binding.CanonicalFactId)
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal),
-        ];
     }
 
     private static int CompareBindings<TFact>(
@@ -311,24 +269,20 @@ public sealed class FirmwareImageMap
 
         foreach (FirmwareRegion region in regions)
         {
-            if (region.Range.EndExclusive > capacityBytes)
-            {
-                throw new ArgumentException(
-                    $"Firmware region '{region.RegionId}' exceeds the map capacity.",
-                    nameof(regions));
-            }
+            DomainInvariant.Reject(
+                region.Range.EndExclusive > capacityBytes,
+                $"Firmware region '{region.RegionId}' exceeds the map capacity.",
+                nameof(regions));
 
             if (region.ParentRegionId is not { } parentId)
             {
                 continue;
             }
 
-            if (!regionsById.ContainsKey(parentId))
-            {
-                throw new ArgumentException(
-                    $"Firmware region '{region.RegionId}' references unknown parent '{parentId}'.",
-                    nameof(regions));
-            }
+            DomainInvariant.Reject(
+                !regionsById.ContainsKey(parentId),
+                $"Firmware region '{region.RegionId}' references unknown parent '{parentId}'.",
+                nameof(regions));
         }
 
         ValidateAcyclicParents(regions, regionsById);
@@ -340,12 +294,10 @@ public sealed class FirmwareImageMap
             }
 
             FirmwareRegion parent = regionsById[parentId];
-            if (parent.Range == region.Range || !parent.Range.Contains(region.Range))
-            {
-                throw new ArgumentException(
-                    $"Firmware parent '{parentId}' must properly contain child '{region.RegionId}'.",
-                    nameof(regions));
-            }
+            DomainInvariant.Reject(
+                parent.Range == region.Range || !parent.Range.Contains(region.Range),
+                $"Firmware parent '{parentId}' must properly contain child '{region.RegionId}'.",
+                nameof(regions));
         }
 
         ValidateCompletePartitions(regions, regionsById, capacityBytes);
@@ -355,44 +307,12 @@ public sealed class FirmwareImageMap
         IEnumerable<FirmwareRegion> regions,
         Dictionary<string, FirmwareRegion> regionsById)
     {
-        var states = regions.ToDictionary(
-            static region => region.RegionId,
-            static _ => ParentVisitState.Unvisited,
+        _ = AcyclicDependencyGraph.Sort(
+            regions.Select(static region => region.RegionId),
+            regionId => regionsById[regionId].ParentRegionId is { } parentId ? [parentId] : [],
+            static (_, _) => new ArgumentException(
+                "Firmware region parent relationships cannot contain cycles.", nameof(regions)),
             StringComparer.Ordinal);
-        foreach (FirmwareRegion region in regions)
-        {
-            if (states[region.RegionId] != ParentVisitState.Unvisited)
-            {
-                continue;
-            }
-
-            List<string> path = [];
-            FirmwareRegion? current = region;
-            while (current is not null)
-            {
-                ParentVisitState state = states[current.RegionId];
-                if (state == ParentVisitState.Visiting)
-                {
-                    throw new ArgumentException("Firmware region parent relationships cannot contain cycles.", nameof(regions));
-                }
-
-                if (state == ParentVisitState.Visited)
-                {
-                    break;
-                }
-
-                states[current.RegionId] = ParentVisitState.Visiting;
-                path.Add(current.RegionId);
-                current = current.ParentRegionId is { } parentId
-                    ? regionsById[parentId]
-                    : null;
-            }
-
-            foreach (string regionId in path)
-            {
-                states[regionId] = ParentVisitState.Visited;
-            }
-        }
     }
 
     private static void ValidateCompletePartitions(
@@ -434,28 +354,18 @@ public sealed class FirmwareImageMap
         long coveredUntil = expectedRange.Start;
         foreach (FirmwareRegion region in regions)
         {
-            if (region.Range.Start != coveredUntil)
-            {
-                throw new ArgumentException(
-                    $"Firmware children of {subject} must partition its range without overlap or implicit gaps.",
-                    nameof(regions));
-            }
+            DomainInvariant.Reject(
+                region.Range.Start != coveredUntil,
+                $"Firmware children of {subject} must partition its range without overlap or implicit gaps.",
+                nameof(regions));
 
             coveredUntil = region.Range.EndExclusive;
         }
 
-        if (regions.Count == 0 || coveredUntil != expectedRange.EndExclusive)
-        {
-            throw new ArgumentException(
-                $"Firmware children of {subject} must cover its exact range.",
-                nameof(regions));
-        }
+        DomainInvariant.Reject(
+            regions.Count == 0 || coveredUntil != expectedRange.EndExclusive,
+            $"Firmware children of {subject} must cover its exact range.",
+            nameof(regions));
     }
 
-    private enum ParentVisitState
-    {
-        Unvisited,
-        Visiting,
-        Visited,
-    }
 }

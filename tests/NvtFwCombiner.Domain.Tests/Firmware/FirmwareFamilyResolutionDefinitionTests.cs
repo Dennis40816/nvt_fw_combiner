@@ -36,7 +36,6 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         Assert.Equal(
             ["metadata-a", "metadata-z"],
             definition.MetadataSets.Select(static set => set.MetadataSetId));
-        Assert.Equal(["display-firmware", "tp-firmware"], definition.RequiredArtifactBindingIds);
         Assert.Equal(["config"],
             definition.GetStructuresForMap("map-a").Select(static structure => structure.StructureId));
 
@@ -46,21 +45,16 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         IList<FirmwareMetadataSet> setView = Assert.IsType<IList<FirmwareMetadataSet>>(
             definition.MetadataSets,
             exactMatch: false);
-        IList<string> bindingView = Assert.IsType<IList<string>>(
-            definition.RequiredArtifactBindingIds,
-            exactMatch: false);
         IList<FirmwareMetadataStructure> structureView =
             Assert.IsType<IList<FirmwareMetadataStructure>>(
                 definition.GetStructuresForMap("map-a"),
                 exactMatch: false);
         Assert.True(mapView.IsReadOnly);
         Assert.True(setView.IsReadOnly);
-        Assert.True(bindingView.IsReadOnly);
         Assert.True(structureView.IsReadOnly);
         _ = Assert.Throws<NotSupportedException>(() => mapView[0] = Map("changed"));
         _ = Assert.Throws<NotSupportedException>(() =>
             setView[0] = MetadataSet("changed", Structure("changed")));
-        _ = Assert.Throws<NotSupportedException>(() => bindingView[0] = "changed");
         _ = Assert.Throws<NotSupportedException>(() => structureView[0] = Structure("changed"));
     }
 
@@ -98,7 +92,6 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             []);
 
         Assert.Empty(definition.MetadataSets);
-        Assert.Empty(definition.RequiredArtifactBindingIds);
         Assert.Empty(definition.GetStructuresForMap("plain-map"));
     }
 
@@ -115,15 +108,11 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             ["capability-evidence"]);
         FirmwareMapFactKey key = new("NT00001", "plain-map", FirmwareFactKind.Capability, "ab-code-evidence");
         var binding = new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            value.CanonicalFactId,
-            value,
             new FirmwareFactApplicability(
                 ["standard"],
                 TopologyRequirement.NoTopologyConstraint(),
                 16),
-            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+            new FirmwareFactProvenance(key, value, []));
 
         var definition = new FirmwareFamilyResolutionDefinition(
             "synthetic-family",
@@ -131,12 +120,12 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             FamilyHash,
             [map],
             [],
-            [binding]);
+            [binding],
+            []);
 
         FirmwareMapFactBinding<FirmwareCapabilityFact> stored = Assert.Single(definition.CapabilityBindings);
         Assert.Same(value, stored.Value);
         Assert.Equal(["plain-map"], definition.ImageMaps.Select(static item => item.MapId));
-        Assert.Empty(definition.RequiredArtifactBindingIds);
         Assert.Equal(
             [FirmwareFactKind.RegionSet, FirmwareFactKind.Capability],
             definition.ImageMaps
@@ -152,7 +141,10 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             exactMatch: false);
         Assert.True(view.IsReadOnly);
         Assert.DoesNotContain(
-            typeof(FirmwareFamilyResolutionDefinition).GetConstructors(),
+            typeof(FirmwareFamilyResolutionDefinition).GetConstructors(
+                System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic),
             constructor => constructor.GetParameters().Length == 6);
     }
 
@@ -174,7 +166,6 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
         Assert.Equal(
             ["alpha", "zeta"],
             definition.GetStructuresForMap("map").Select(static structure => structure.StructureId));
-        Assert.Equal(["shared-firmware"], definition.RequiredArtifactBindingIds);
     }
 
     /// <summary>Verifies both relative locator forms retain valid boundary declarations.</summary>
@@ -389,6 +380,7 @@ public sealed class FirmwareFamilyResolutionDefinitionTests
             Marker("other", 0, 4, 0, "root"),
             Marker("flash", 15, 2, 0, "root"),
             Marker("flash", 0, 4, 0, "missing"),
+            Marker("flash", 0, 4, -4, "root"),
         ];
 
         foreach (FirmwareMetadataLocator locator in invalidLocators)

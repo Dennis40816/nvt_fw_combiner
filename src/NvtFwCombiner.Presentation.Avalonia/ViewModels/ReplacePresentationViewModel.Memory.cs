@@ -1,4 +1,4 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -6,21 +6,9 @@ public sealed partial class ReplacePresentationViewModel
 {
     internal void RefreshContextState(bool preserveSlotFiles = false)
     {
-        RefreshCtrlRamRegions();
         RefreshReplaceModeState(preserveSlotFiles: preserveSlotFiles);
         RefreshReplaceMemoryMapState();
         NotifyContextChanged();
-    }
-
-    private void RefreshCtrlRamRegions()
-    {
-        CtrlRamRegions.Clear();
-        foreach (CtrlRamRegionViewModel region in UiCompositionRunner.GetCtrlRamRegions(
-            SelectedIc,
-            SelectedNumber))
-        {
-            CtrlRamRegions.Add(region);
-        }
     }
 
     private void RefreshReplaceSlotGroups()
@@ -42,7 +30,8 @@ public sealed partial class ReplacePresentationViewModel
     private void RefreshReplaceCoverageGroups()
     {
         ReplaceCoverageGroups.Clear();
-        if (!IsCtrlRamReplaceModeSelected)
+        if (!IsCtrlRamReplaceModeSelected ||
+            ReplaceCoverageSegments.Any(static segment => segment.RegionId is null))
         {
             return;
         }
@@ -67,7 +56,7 @@ public sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
-    internal void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
+    internal void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
     {
         ArgumentNullException.ThrowIfNull(display);
 
@@ -75,24 +64,31 @@ public sealed partial class ReplacePresentationViewModel
         RefreshReplaceModeState(
             preserveSlotFiles: true,
             ctrlRamInputSlots: UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots));
+        ActiveSessionSnapshot? acceptedSession =
+            _ctrlRamReplaceSession.CurrentSnapshot;
         (
             string rangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> rows,
             IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-            UiCompositionRunner.GetReplaceMemoryDisplay(
-                display.MemoryDisplay,
-                GetSelectedReplaceRegionIds(),
-                Text);
+            acceptedSession?.ExactCapability is null
+                ? UiCompositionRunner.GetPendingMemoryDisplay(
+                    "Select and inspect the required inputs to resolve the compiled memory layout.")
+                : UiCompositionRunner.GetMemoryDisplay(
+                    _compositionServices,
+                    acceptedSession,
+                    Text,
+                    ctrlRamRegions: display.Regions);
         ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
     }
 
-    internal void RefreshReplaceMemoryMapState()
+    internal void RefreshReplaceMemoryMapState(bool refreshAuthoring = true)
     {
         if (IsCtrlRamReplaceModeSelected && ReplaceBaseSlot.HasFile)
         {
             if (_stateBindings.GetBaseInspection() is { } inspection)
             {
                 ApplyCtrlRamInspectionDisplay(FirmwareInspectionProjection.ResolveCtrlRamDisplay(
+                    _compositionServices.FirmwareInspection,
                     inspection,
                     SelectedIc,
                     SelectedNumber));
@@ -105,53 +101,16 @@ public sealed partial class ReplacePresentationViewModel
             return;
         }
 
-        if (IsGeneralReplaceModeSelected)
+        if (IsGeneralReplaceModeSelected && refreshAuthoring)
         {
             RefreshGeneralReplaceAuthoringState();
-            if (_generalReplaceAdmission is not null &&
-                _stateBindings.GetInspectedFileLength(ReplaceBaseSlot) is long capacity &&
-                capacity > 0)
-            {
-                (
-                    string rangeLabel,
-                    IReadOnlyList<MemoryMapRowViewModel> rows,
-                    IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-                    UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
-                        capacity,
-                        _generalReplaceAdmission);
-                ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
-                OnPropertyChanged(nameof(ReplaceOutputFileName));
-                return;
-            }
-
-            if (_generalReplaceDraft is null &&
-                _generalReplaceAuthoringStates.Count > 0 &&
-                _stateBindings.GetInspectedFileLength(ReplaceBaseSlot) is long invalidDraftCapacity &&
-                invalidDraftCapacity > 0)
-            {
-                (
-                    string rangeLabel,
-                    IReadOnlyList<MemoryMapRowViewModel> rows,
-                    IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-                    UiCompositionRunner.GetGeneralReplaceMemoryDisplay(
-                        invalidDraftCapacity,
-                        _generalReplaceAuthoringStates);
-                ApplyReplaceMemoryDisplay(rangeLabel, rows, coverageSegments);
-                OnPropertyChanged(nameof(ReplaceOutputFileName));
-                return;
-            }
         }
 
         (
             string replaceRangeLabel,
             IReadOnlyList<MemoryMapRowViewModel> replaceRows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) = UiCompositionRunner.GetReplaceMemoryDisplay(
-            SelectedIc,
-            SelectedNumber,
-            SelectedReplaceMode,
-            GetSelectedReplaceBaseLength(),
-            GetSelectedReplaceRegionIds(),
-            Text);
+            IReadOnlyList<MemoryCoverageSegmentViewModel> replaceCoverageSegments) =
+            GetSelectedReplaceMemoryDisplay();
         ApplyReplaceMemoryDisplay(replaceRangeLabel, replaceRows, replaceCoverageSegments);
 
         OnPropertyChanged(nameof(ReplaceOutputFileName));
@@ -172,25 +131,43 @@ public sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(IsReplaceCoverageFlat));
     }
 
-    private long? GetSelectedReplaceBaseLength()
+    private (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetSelectedReplaceMemoryDisplay()
     {
-        return SelectedReplaceMode == DpReplaceMode &&
-            WorkbenchCompositionService.HasBuiltInV2DpReplace(SelectedIc)
-                ? _stateBindings.GetInspectedFileLength(ReplaceBaseSlot)
-                : null;
-    }
-
-    private IEnumerable<string> GetSelectedReplaceRegionIds()
-    {
-        return ReplaceSlots
-            .Where(static slot => slot.HasFile && slot.RegionId is not null)
-            .Select(static slot => slot.RegionId!);
+        ActiveSessionSnapshot? acceptedSession = SelectedReplaceMode switch
+        {
+            DpReplaceMode => _dpReplaceSession.CurrentSnapshot,
+            CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot,
+            GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot,
+            _ => null,
+        };
+        return acceptedSession?.ExactCapability is null
+            ? UiCompositionRunner.GetPendingMemoryDisplay(
+                "Select and inspect the required inputs to resolve the compiled memory layout.")
+            : UiCompositionRunner.GetMemoryDisplay(_compositionServices, acceptedSession, Text);
     }
 
     private void RefreshReplaceModeState(
         bool preserveSlotFiles = false,
         IReadOnlyList<FirmwareSlotViewModel>? ctrlRamInputSlots = null)
     {
+        if (IsCtrlRamReplaceModeSelected && ctrlRamInputSlots is null)
+        {
+            CtrlRamInspectionDisplay display =
+                _compositionServices.CtrlRamAuthoring.GetDiscoveryDisplay(
+                    SelectedIc,
+                    SelectedNumber,
+                    basePath: null);
+            ReplaceRows(CtrlRamRegions, UiCompositionRunner.GetCtrlRamRegions(display.Regions));
+            ctrlRamInputSlots = UiCompositionRunner.GetCtrlRamReplaceInputSlots(display.InputSlots);
+        }
+        else if (!IsCtrlRamReplaceModeSelected)
+        {
+            CtrlRamRegions.Clear();
+        }
+
         Dictionary<string, string?> preservedSlotFiles = preserveSlotFiles
             ? ReplaceSlots
                 .Where(slot => !ReferenceEquals(slot, ReplaceBaseSlot))
@@ -204,10 +181,11 @@ public sealed partial class ReplacePresentationViewModel
             IReadOnlyList<FirmwareSlotViewModel> inputSlots =
                 SelectedReplaceMode == CtrlRamReplaceMode && ctrlRamInputSlots is not null
                     ? ctrlRamInputSlots
-                    : UiCompositionRunner.GetReplaceInputSlots(
-                        SelectedIc,
-                        SelectedNumber,
-                        SelectedReplaceMode);
+                    : SelectedReplaceMode == DpReplaceMode
+                        ? UiCompositionRunner.GetDpReplaceInputSlots(
+                            ResolveDpReplaceAuthoringSnapshot([]))
+                        : ctrlRamInputSlots ?? throw new InvalidOperationException(
+                            "CtrlRAM mode requires one coherent discovery publication.");
             foreach (FirmwareSlotViewModel slot in inputSlots)
             {
                 RestorePreservedSlotFile(slot, preservedSlotFiles);

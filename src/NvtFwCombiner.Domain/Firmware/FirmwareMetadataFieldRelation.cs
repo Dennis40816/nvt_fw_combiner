@@ -8,45 +8,34 @@ public enum FirmwareMetadataFieldRelationKind
 }
 
 /// <summary>Immutable typed relation between two fields in one metadata structure.</summary>
-public sealed class FirmwareMetadataFieldRelation
+public sealed class FirmwareMetadataFieldRelation(
+    string relationId,
+    FirmwareMetadataFieldRelationKind kind,
+    string sourceFieldId,
+    string relatedFieldId)
 {
-    /// <summary>Creates one checked relation declaration.</summary>
-    public FirmwareMetadataFieldRelation(
-        string relationId,
-        FirmwareMetadataFieldRelationKind kind,
-        string sourceFieldId,
-        string relatedFieldId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relationId);
-        if (!Enum.IsDefined(kind))
-        {
-            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata field relation kind.");
-        }
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(sourceFieldId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(relatedFieldId);
-        if (StringComparer.Ordinal.Equals(sourceFieldId, relatedFieldId))
-        {
-            throw new ArgumentException("Metadata relations require two distinct fields.");
-        }
-
-        RelationId = relationId;
-        Kind = kind;
-        SourceFieldId = sourceFieldId;
-        RelatedFieldId = relatedFieldId;
-    }
-
     /// <summary>Stable relation identifier unique inside one metadata structure.</summary>
-    public string RelationId { get; }
+    public string RelationId { get; } = RequiredValue.NotBlank(relationId);
 
     /// <summary>Closed relation kind.</summary>
-    public FirmwareMetadataFieldRelationKind Kind { get; }
+    public FirmwareMetadataFieldRelationKind Kind { get; } = ClosedEnum.IsDefined(kind)
+        ? kind
+        : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown metadata field relation kind.");
 
     /// <summary>Canonical source-field identifier.</summary>
-    public string SourceFieldId { get; }
+    public string SourceFieldId { get; } = RequiredValue.NotBlank(sourceFieldId);
 
     /// <summary>Canonical related-field identifier.</summary>
-    public string RelatedFieldId { get; }
+    public string RelatedFieldId { get; } = RequireDistinct(
+        RequiredValue.NotBlank(relatedFieldId),
+        sourceFieldId);
+
+    private static string RequireDistinct(string relatedFieldId, string sourceFieldId)
+    {
+        return !StringComparer.Ordinal.Equals(sourceFieldId, relatedFieldId)
+            ? relatedFieldId
+            : throw new ArgumentException("Metadata relations require two distinct fields.");
+    }
 
     internal bool Evaluate(
         IReadOnlyDictionary<string, FirmwareMetadataValue> values,

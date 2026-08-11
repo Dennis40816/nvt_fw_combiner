@@ -59,7 +59,6 @@ internal sealed class V2CompositionPlanCompileResult
 /// <summary>Profiles-owned lowering slice for admitted V2 Merge and reference-clone Replace declarations.</summary>
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string PreparationNotAdmitted = "profile.v2.plan.preparation-not-admitted";
     private const string UnsupportedDeclaration = "profile.v2.plan.unsupported-declaration";
     private const string InvalidView = "profile.v2.plan.invalid-view";
     private const string InvalidInputGeometry = "profile.v2.plan.invalid-input-geometry";
@@ -72,21 +71,46 @@ internal static partial class V2CompositionPlanCompiler
     private const string RegionAccessDenied = "profile.v2.plan.region-access-denied";
 
     /// <summary>Lowers the closed V2 operation subset and grants runtime eligibility only for supported token-free profiles.</summary>
-    internal static V2CompositionPlanCompileResult Compile(
-        V2CompositionPreparationResult preparation,
+    private static V2CompositionPlanCompileResult CompileAdmittedCore(
+        ProfileBundleIdentity bundleIdentity,
+        TrustedCompositionProfileCatalogEntry profileEntry,
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
-        ArgumentNullException.ThrowIfNull(preparation);
-        if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
+        ArgumentNullException.ThrowIfNull(bundleIdentity);
+        ArgumentNullException.ThrowIfNull(profileEntry);
+        ArgumentNullException.ThrowIfNull(resolvedMap);
+        ArgumentNullException.ThrowIfNull(capabilityAdmissions);
+        CompositionProfileDefinition profile = profileEntry.Profile;
+        var issues = new List<CompositionIssue>();
+        if (profile.Promotion.Stage < CompiledProfilePromotionStage.Compilable)
         {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(PreparationNotAdmitted, "V2 plan lowering requires an admitted trusted preparation.")]);
+            AddUnsupported(issues, "promotion stage must be Compilable or later");
         }
 
-        CompositionProfileDefinition profile = preparation.Admission.Profile;
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.Admission.ResolvedMap;
-        var issues = new List<CompositionIssue>();
-        ValidateSupportedProfile(profile, issues);
+        if (profile.Promotion.Stage == CompiledProfilePromotionStage.Supported &&
+            !profile.Output.AllowsRuntimeExecution(profile.CompositionKind))
+        {
+            AddUnsupported(issues, "supported profiles require a typed reject output renderer admitted for the declared composition kind");
+        }
+
+        if (profile.Validations.Any(static validation =>
+                validation is not SourceViewNonUniformValidationDefinition))
+        {
+            AddUnsupported(issues, "only warning-only non-uniform-region validations are lowered in this slice");
+        }
+
+        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
+        if (output.Capacity is RuntimeRequestProfileCapacity)
+        {
+            AddUnsupported(issues, "runtime-request output capacity requires logical-output V2 lowering");
+        }
+        else if (output.Capacity is not ResolvedMapProfileCapacity)
+        {
+            AddUnsupported(issues, "map-bound output images require resolved-map capacity");
+        }
+
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
@@ -104,7 +128,7 @@ internal static partial class V2CompositionPlanCompiler
 
         Dictionary<string, AddressSpace> spaces = LowerAddressSpaces(
             profile,
-            preparation.Admission.Family,
+            profileEntry.Family.Family,
             resolvedMap,
             issues,
             inputSelection.ActiveSlotIds);
@@ -149,7 +173,6 @@ internal static partial class V2CompositionPlanCompiler
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
-        MutableCompositionProfileSpace output = AssertOutputSpace(profile);
         ImageInitialization[] initializations = LowerInitializations(profile, spaces, issues);
         if (issues.Count != 0)
         {
@@ -163,7 +186,8 @@ internal static partial class V2CompositionPlanCompiler
             operations);
         return Succeed(
             profile,
-            preparation.Selection,
+            bundleIdentity,
+            profileEntry.EntryIdentity,
             new ResolvedMapV2CompilationContext(resolvedMap),
             plan,
             profile.InputSlots
@@ -177,9 +201,8 @@ internal static partial class V2CompositionPlanCompiler
                 .Where(space => inputSelection.ActiveSlotIds.Contains(space.SlotId))
                 .Select(MapInputSpaceBinding),
             regionAccess.Contract,
-            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.Admission,
-            runtimeExecutable: profile.Promotion.Stage == CompositionProfilePromotionStage.Supported,
+            capabilityAdmissions,
+            runtimeExecutable: profile.Promotion.Stage == CompiledProfilePromotionStage.Supported,
             additionalValidationRequirements: LowerInputValidations(profile, views),
             inputSelectionGroups: inputSelection.Groups);
     }
@@ -188,36 +211,29 @@ internal static partial class V2CompositionPlanCompiler
         CompositionProfileDefinition profile,
         CloneProfileInitializer clone)
     {
-        InputArtifactProfileSpace inputSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        CompositionProfileInputSlot slot = profile.InputSlots.Single(candidate =>
-            StringComparer.Ordinal.Equals(candidate.SlotId, clone.SourceSlotId));
-        return slot.ArtifactClass == CompositionProfileArtifactClass.ReferenceImage &&
-            slot.LengthRule is ExactResolvedMapCapacityLengthRule &&
-            slot.Normalization is NoInputNormalization
-            ? inputSpace.SpaceId
-            : throw new InvalidOperationException(
-                "Validated Replace lowering requires its clone source to be one exact unnormalized reference-image input.");
+        return profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
+            StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId))
+            .SpaceId;
     }
 
-    private static bool IsDpReplacePayloadInputSource(
+    private static bool IsReplacePayloadInputSource(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation)
+        CompositionOperationDefinition operation)
     {
         string sourceSpaceId = profile.Views.Single(view =>
             StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
         InputArtifactProfileSpace? sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
             StringComparer.Ordinal.Equals(space.SpaceId, sourceSpaceId));
-        CompositionProfileArtifactClass? artifactClass = sourceSpace is null
+        CompiledInputArtifactClass? artifactClass = sourceSpace is null
             ? null
             : profile.InputSlots.Single(slot =>
                 StringComparer.Ordinal.Equals(slot.SlotId, sourceSpace.SlotId)).ArtifactClass;
-        return artifactClass is CompositionProfileArtifactClass.DpFirmware or CompositionProfileArtifactClass.Auxiliary;
+        return artifactClass is CompiledInputArtifactClass.DpFirmware or CompiledInputArtifactClass.Auxiliary;
     }
 
-    private static bool TryAuthorizeDpReplacePayloadTarget(
+    private static bool TryAuthorizeReplacePayloadTarget(
         CompositionProfileDefinition profile,
-        CopyOrReplaceProfileOperation operation,
+        CompositionOperationDefinition operation,
         ResolvedView target,
         List<CompositionIssue> issues)
     {
@@ -225,20 +241,20 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(view.ViewId, operation.SourceViewId)).SpaceId;
         InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SpaceId, sourceSpaceId));
-        CompositionProfileArtifactClass artifactClass = profile.InputSlots.Single(slot =>
+        CompiledInputArtifactClass artifactClass = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, sourceSpace.SlotId)).ArtifactClass;
         FirmwareRegionOwner? targetOwner = target.GoverningRegionChain.Count == 0
             ? null
             : target.GoverningRegionChain[^1].Owner;
         bool isAuthorized = artifactClass switch
         {
-            CompositionProfileArtifactClass.DpFirmware => targetOwner == FirmwareRegionOwner.Dp,
-            CompositionProfileArtifactClass.Auxiliary => targetOwner == FirmwareRegionOwner.Ldc,
-            CompositionProfileArtifactClass.TpFirmware or
-            CompositionProfileArtifactClass.ReferenceImage or
-            CompositionProfileArtifactClass.CtrlRamReplacement => false,
+            CompiledInputArtifactClass.DpFirmware => targetOwner == FirmwareRegionOwner.Dp,
+            CompiledInputArtifactClass.Auxiliary => targetOwner == FirmwareRegionOwner.Ldc,
+            CompiledInputArtifactClass.TpFirmware or
+            CompiledInputArtifactClass.ReferenceImage or
+            CompiledInputArtifactClass.CtrlRamReplacement => false,
             _ => throw new InvalidOperationException(
-                $"Validated DP Replace lowering encountered unknown input artifact class '{artifactClass}'."),
+                $"Validated Replace lowering encountered unknown input artifact class '{artifactClass}'."),
         };
         if (isAuthorized)
         {
@@ -248,7 +264,7 @@ internal static partial class V2CompositionPlanCompiler
         AddAccessDenied(
             issues,
             operation.OperationId,
-            $"DP Replace payload class '{artifactClass}' cannot target physical owner '{targetOwner?.ToString() ?? "none"}'");
+            $"Replace payload class '{artifactClass}' cannot target physical owner '{targetOwner?.ToString() ?? "none"}'");
         return false;
     }
 
@@ -270,12 +286,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!spaces.TryGetValue(view.SpaceId, out AddressSpace? space))
-            {
-                issues.Add(new CompositionIssue(InvalidView, $"View '{view.ViewId}' names an unsupported space '{view.SpaceId}'.", view.ViewId));
-                continue;
-            }
-
+            AddressSpace space = spaces[view.SpaceId];
             if (!TryResolveViewRange(view, resolvedMap, space, out ByteRange range, out string? error))
             {
                 issues.Add(new CompositionIssue(InvalidView, error!, view.ViewId));
@@ -382,21 +393,17 @@ internal static partial class V2CompositionPlanCompiler
                 }
             }
 
-            if (!TryResolveGoverningRegionChain(region.Range, regionsById, out FirmwareRegion[] governingRegionChain))
-            {
-                issues.Add(new CompositionIssue(
-                    InvalidRegionAccess,
-                    $"Region access rule '{rule.RegionId}' does not resolve to one canonical physical region chain.",
-                    rule.RegionId));
-                continue;
-            }
+            _ = TryResolveGoverningRegionChain(
+                region.Range,
+                regionsById,
+                out FirmwareRegion[] governingRegionChain);
 
             var requirement = new CompiledRegionAccessRequirement(
                 rule.RegionId,
-                MapRegionAccessKind(rule.Access),
+                rule.Access,
                 rule.Reason,
                 rule.AllowedSubregionIds,
-                ToCompiledRegionChain(governingRegionChain));
+                governingRegionChain);
             requirements.Add(requirement);
             resolvedRules.Add(rule.RegionId, new ResolvedRegionAccessRule(region, requirement));
         }
@@ -408,7 +415,7 @@ internal static partial class V2CompositionPlanCompiler
                 entry.Key,
                 entry.Value.SpaceId,
                 entry.Value.Range,
-                ToCompiledRegionChain(entry.Value.GoverningRegionChain)))];
+                entry.Value.GoverningRegionChain))];
         return new LoweredRegionAccess(
             new CompiledRegionAccessContract(requirements, resolvedViews),
             resolvedRules,
@@ -562,13 +569,13 @@ internal static partial class V2CompositionPlanCompiler
             Owner: FirmwareRegionOwner.Tp,
             Kind: FirmwareRegionKind.CtrlRam,
         };
-        CompiledRegionAccessKind mostSpecificAccess = applicableRules
+        RegionAccessKind mostSpecificAccess = applicableRules
             .OrderBy(static rule => rule.Region.Range.Length)
             .ThenBy(static rule => rule.Region.RegionId, StringComparer.Ordinal)
             .First()
             .Requirement.Access;
         if (!isAuthorableTpCtrlRam &&
-            mostSpecificAccess is not (CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly))
+            mostSpecificAccess is not (RegionAccessKind.Hidden or RegionAccessKind.ReadOnly))
         {
             AddAccessDenied(
                 issues,
@@ -599,12 +606,12 @@ internal static partial class V2CompositionPlanCompiler
     {
         return rule.Requirement.Access switch
         {
-            CompiledRegionAccessKind.Hidden or CompiledRegionAccessKind.ReadOnly => false,
-            CompiledRegionAccessKind.Whole => rule.Region.Range == targetRange,
-            CompiledRegionAccessKind.Parts => rule.Requirement.AllowedSubregionIds.Any(subregionId =>
+            RegionAccessKind.Hidden or RegionAccessKind.ReadOnly => false,
+            RegionAccessKind.Whole => rule.Region.Range == targetRange,
+            RegionAccessKind.Parts => rule.Requirement.AllowedSubregionIds.Any(subregionId =>
                 regionsById[subregionId].Range == targetRange &&
                 StringComparer.Ordinal.Equals(regionsById[subregionId].ParentRegionId, rule.Region.RegionId)),
-            CompiledRegionAccessKind.ExplicitRange =>
+            RegionAccessKind.ExplicitRange =>
                 rule.Region.Range.Contains(targetRange) && IsAligned(targetRange, rule.Region.Alignment),
             _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown region access kind."),
         };
@@ -641,28 +648,6 @@ internal static partial class V2CompositionPlanCompiler
             RegionAccessDenied,
             $"Operation '{operationId}' {detail}.",
             operationId));
-    }
-
-    private static CompiledPhysicalRegionConstraint[] ToCompiledRegionChain(
-        IEnumerable<FirmwareRegion> governingRegionChain)
-    {
-        return [.. governingRegionChain.Select(static region => new CompiledPhysicalRegionConstraint(
-            region.RegionId,
-            region.WriteConstraint,
-            region.Alignment))];
-    }
-
-    private static CompiledRegionAccessKind MapRegionAccessKind(RegionAccessKind access)
-    {
-        return access switch
-        {
-            RegionAccessKind.Hidden => CompiledRegionAccessKind.Hidden,
-            RegionAccessKind.ReadOnly => CompiledRegionAccessKind.ReadOnly,
-            RegionAccessKind.Whole => CompiledRegionAccessKind.Whole,
-            RegionAccessKind.Parts => CompiledRegionAccessKind.Parts,
-            RegionAccessKind.ExplicitRange => CompiledRegionAccessKind.ExplicitRange,
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown region access kind."),
-        };
     }
 
     private sealed record ResolvedView(

@@ -20,7 +20,11 @@ from canonical_golden_validation import (
     validate_canonical_golden,
     validate_standard_merge_release_allowlist,
 )
-from code_size_policy import is_physical_source_file, review_code_size_policy
+from code_size_policy import (
+    is_physical_source_file,
+    review_code_size_policy,
+    validate_code_size_policy,
+)
 from coverage_configuration_policy import (
     is_approved_package_analyzer,
     is_approved_sdk_analyzer,
@@ -45,18 +49,6 @@ from skill_metadata_validation import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS = {
-    (
-        "docs/contracts/support-publication-policy-v1.0.0.json",
-        "publicationPolicy",
-        "365a6ee92776bbd6b1aaa155919121dfbbbfc67046c3ab6a2fbfe7fa5d45c5c2",
-    ),
-    (
-        "docs/contracts/support-publication-policy-v1.json",
-        "publicationPolicy",
-        "b8d50829608c452124a010d78d8cd0df249f239fd272be35e87bdb8d7ea416ff",
-    )
-}
 REQUIRED_FILES = {
     "README.md",
     "LICENSE",
@@ -121,6 +113,9 @@ REQUIRED_FILES = {
     "docs/contracts/coverage-baseline-v1.json",
     "docs/contracts/coverage-baseline-v1.md",
     "docs/contracts/canonical-golden-manifest-v1.md",
+    "docs/contracts/canonical-capability-policy-v1.json",
+    "docs/contracts/canonical-capability-policy-v1.md",
+    "docs/contracts/canonical-capability-policy-v1.schema.json",
     "docs/contracts/composition-profile-v2.md",
     "docs/contracts/composition-profile-v2.schema.json",
     "docs/contracts/composition-request-v1.schema.json",
@@ -174,6 +169,7 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+    "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
@@ -201,18 +197,21 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
-        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
     },
+    "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+    },
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
-        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj"
@@ -251,6 +250,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     },
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },
@@ -412,6 +412,26 @@ def validate_structured_files(files: Iterable[Path], errors: list[str]) -> None:
                 ET.parse(path)
             except (OSError, ET.ParseError) as exc:
                 errors.append(f"invalid XML {path.relative_to(ROOT)}: {exc}")
+
+
+def validate_canonical_capability_policy_contract(errors: list[str]) -> None:
+    policy_path = ROOT / "docs/contracts/canonical-capability-policy-v1.json"
+    schema_path = ROOT / "docs/contracts/canonical-capability-policy-v1.schema.json"
+    policy = load_json(policy_path, errors)
+    schema = load_json(schema_path, errors)
+    if policy is None or schema is None:
+        return
+    try:
+        from jsonschema import Draft202012Validator
+    except ImportError:
+        # Keep the dependency policy aligned with validate_structured_files: clean
+        # repository verification does not require the optional jsonschema package.
+        # The schema and instance are still parsed as JSON here, while focused .NET
+        # contract tests validate the runtime publication-policy semantics.
+        return
+    for finding in Draft202012Validator(schema).iter_errors(policy):
+        location = "/".join(str(part) for part in finding.absolute_path) or "<root>"
+        errors.append(f"canonical capability policy schema error at {location}: {finding.message}")
 
 
 def validate_python_syntax(files: Iterable[Path], errors: list[str]) -> None:
@@ -1380,8 +1400,6 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
         APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
         errors,
     )
-    validate_support_publication_policy_package_contracts(ROOT, errors)
-
     for script_name in ("package.ps1", "smoke-release.ps1"):
         text = (ROOT / "scripts" / script_name).read_text(encoding="utf-8")
         match = re.search(
@@ -1403,98 +1421,6 @@ def validate_packaging_policy(files: Iterable[Path], errors: list[str]) -> None:
                 f"{script_name} external tool allowlist differs from the approved package paths: "
                 f"{', '.join(str(path) for path in sorted(declared_paths))}"
             )
-
-
-def validate_support_publication_policy_package_contracts(
-    root: Path, errors: list[str]
-) -> None:
-    """Keep runtime, packager, and smoke bound to one exact policy identity."""
-
-    contract_pattern = re.compile(
-        r"\$ApprovedSupportPublicationPolicyPackageContracts\s*=\s*@\((.*?)\)\s*(?:\r?\n)",
-        flags=re.DOTALL,
-    )
-    entry_pattern = re.compile(
-        r"\[pscustomobject\]@\{\s*"
-        r"path\s*=\s*'([^']+)'\s*"
-        r"role\s*=\s*'([^']+)'\s*"
-        r"sha256\s*=\s*'([^']+)'\s*"
-        r"\}",
-        flags=re.DOTALL,
-    )
-    for script_name in ("package.ps1", "smoke-release.ps1"):
-        text = (root / "scripts" / script_name).read_text(encoding="utf-8")
-        match = contract_pattern.search(text)
-        if match is None:
-            errors.append(
-                f"{script_name} must declare a fixed "
-                "ApprovedSupportPublicationPolicyPackageContracts array"
-            )
-            continue
-
-        entries = entry_pattern.findall(match.group(1))
-        declared_contracts = set(entries)
-        if not entries:
-            errors.append(
-                f"{script_name} support publication policy package contract "
-                "must not be empty"
-            )
-        if match.group(1).count("[pscustomobject]@{") != len(entries):
-            errors.append(
-                f"{script_name} has a malformed support publication policy "
-                "package contract"
-            )
-        if declared_contracts != APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS:
-            errors.append(
-                f"{script_name} support publication policy package contract "
-                "differs from the approved path, role, and SHA-256"
-            )
-
-    runtime_path = (
-        root
-        / "src/NvtFwCombiner.Infrastructure/Support/"
-        "BuiltInSupportPublicationPolicy.cs"
-    )
-    runtime = runtime_path.read_text(encoding="utf-8")
-    runtime_shas = dict(re.findall(
-        r'private const string (\w+Sha256)\s*=\s*"([0-9a-f]{64})";',
-        runtime,
-    ))
-    runtime_files = re.findall(
-        r'new\(\s*"([^"]+)",\s*(\w+Sha256)\)',
-        runtime,
-        flags=re.DOTALL,
-    )
-    runtime_contracts = {
-        (path, runtime_shas.get(hash_name))
-        for path, hash_name in runtime_files
-    }
-    expected_runtime_contracts = {
-        (path, sha256)
-        for path, _, sha256 in
-        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
-    }
-    if runtime_contracts != expected_runtime_contracts:
-        errors.append(
-            "BuiltInSupportPublicationPolicy runtime history differs from the "
-            "approved release package contracts"
-        )
-
-    for expected_path, _, expected_sha in sorted(
-        APPROVED_SUPPORT_PUBLICATION_POLICY_PACKAGE_CONTRACTS
-    ):
-        policy_path = root / expected_path
-        if not policy_path.is_file():
-            errors.append(
-                "approved support publication policy file is missing: "
-                f"{expected_path}"
-            )
-        elif hashlib.sha256(policy_path.read_bytes()).hexdigest() != expected_sha:
-            errors.append(
-                "approved support publication policy bytes differ from the "
-                f"release package SHA-256: {expected_path}"
-            )
-
 
 def validate_agent_files(errors: list[str]) -> None:
     if (ROOT / "AGENTS.md").stat().st_size > 16 * 1024:
@@ -1555,11 +1481,13 @@ def validate_agent_files(errors: list[str]) -> None:
 
 def validate() -> list[str]:
     errors: list[str] = []
+    errors.extend(validate_code_size_policy(ROOT))
     files = repository_files()
     validate_required_files(errors)
     validate_forbidden_tracked_content(files, errors)
     validate_coverage_exclusion_policy(ROOT, files, errors)
     validate_structured_files(files, errors)
+    validate_canonical_capability_policy_contract(errors)
     validate_python_syntax(files, errors)
     validate_markdown_links(files, errors)
     validate_ab_merge_golden_fixtures(

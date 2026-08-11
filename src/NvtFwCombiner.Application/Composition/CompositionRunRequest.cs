@@ -436,7 +436,7 @@ public sealed class CompositionRunRequest
         CompiledComposition compiledComposition,
         IcNumberSelection? selection)
     {
-        if (compiledComposition.IcNumberPolicy == CompiledIcNumberPolicy.NotApplicable)
+        if (compiledComposition.V2Details.IcNumberInputMode is not { } expectedMode)
         {
             if (selection is not null)
             {
@@ -451,18 +451,6 @@ public sealed class CompositionRunRequest
             throw new ArgumentException("Replace runs require an IC number selection.", nameof(selection));
         }
 
-        IcNumberInputMode expectedMode = compiledComposition.IcNumberPolicy switch
-        {
-            CompiledIcNumberPolicy.SingleSelector => IcNumberInputMode.SingleSelector,
-            CompiledIcNumberPolicy.CascadeSelector => IcNumberInputMode.CascadeSelector,
-            CompiledIcNumberPolicy.NumericSelector => IcNumberInputMode.NumericSelector,
-            CompiledIcNumberPolicy.NotApplicable => throw new InvalidOperationException(
-                "A non-applicable IC-number policy cannot require a selection."),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(compiledComposition),
-                compiledComposition.IcNumberPolicy,
-                "Unknown compiled IC-number policy."),
-        };
         if (selection.Mode != expectedMode)
         {
             throw new ArgumentException(
@@ -525,7 +513,7 @@ public sealed class CompositionRunRequest
 
     private static void ValidateRuntimeValidationRequirements(CompiledComposition compiledComposition)
     {
-        foreach (CompiledValidationRequirement requirement in compiledComposition.ValidationRequirements)
+        foreach (CompiledValidationRequirement requirement in compiledComposition.V2Details.Provenance.ValidationRequirements)
         {
             if (requirement switch
             {

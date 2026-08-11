@@ -3,9 +3,6 @@ namespace NvtFwCombiner.Domain.Composition;
 /// <summary>Declares a named byte address space used by a composition plan.</summary>
 public sealed class AddressSpace
 {
-    private readonly long[] _allowedInputLengths;
-    private readonly long[] _expectedInputLengths;
-
     /// <summary>Creates an address space with a checked non-empty byte length.</summary>
     public AddressSpace(
         string addressSpaceId,
@@ -19,24 +16,19 @@ public sealed class AddressSpace
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
-        if (!Enum.IsDefined(inputOversizePolicy))
-        {
-            throw new ArgumentOutOfRangeException(nameof(inputOversizePolicy), inputOversizePolicy, "Unknown input oversize policy.");
-        }
+        ClosedEnum.ThrowIfUndefined(inputOversizePolicy, "Unknown input oversize policy.");
 
-        _allowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
-        _expectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);
+        AllowedInputLengths = NormalizeAllowedInputLengths(allowedInputLengths, length);
+        ExpectedInputLengths = NormalizeExpectedInputLengths(expectedInputLengths, length);
         if (unexpectedInputLengthIssueCode is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(unexpectedInputLengthIssueCode);
-            if (mutability != AddressSpaceMutability.Immutable ||
+            DomainInvariant.Reject(
+                mutability != AddressSpaceMutability.Immutable ||
                 inputOversizePolicy != InputOversizePolicy.ExtractDeclaredRange ||
-                _expectedInputLengths.Length == 0)
-            {
-                throw new ArgumentException(
-                    "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
-                    nameof(unexpectedInputLengthIssueCode));
-            }
+                ExpectedInputLengths.Count == 0,
+                "An unexpected-length warning code requires declared-range extraction with expected input lengths.",
+                nameof(unexpectedInputLengthIssueCode));
         }
 
         AddressSpaceId = addressSpaceId;
@@ -63,10 +55,10 @@ public sealed class AddressSpace
     public InputOversizePolicy InputOversizePolicy { get; }
 
     /// <summary>Exact source artifact lengths accepted for this address space; empty means any length allowed by padding/truncation policy.</summary>
-    public IReadOnlyList<long> AllowedInputLengths => _allowedInputLengths;
+    public IReadOnlyList<long> AllowedInputLengths { get; }
 
     /// <summary>Known source artifact lengths that remain non-blocking expectations for diagnostics and traceability.</summary>
-    public IReadOnlyList<long> ExpectedInputLengths => _expectedInputLengths;
+    public IReadOnlyList<long> ExpectedInputLengths { get; }
 
     /// <summary>Optional profile-owned warning code emitted when a declared-range extraction input has an unexpected outer length.</summary>
     public string? UnexpectedInputLengthIssueCode { get; }
@@ -84,10 +76,9 @@ public sealed class AddressSpace
             return [];
         }
 
-        if (allowedInputLengths.Count == 0)
-        {
-            throw new ArgumentException("Allowed input lengths cannot be empty when supplied.", nameof(allowedInputLengths));
-        }
+        DomainInvariant.Reject(
+            allowedInputLengths.Count == 0,
+            "Allowed input lengths cannot be empty when supplied.", nameof(allowedInputLengths));
 
         long[] normalized = [.. allowedInputLengths.Order().Distinct()];
         foreach (long allowedLength in normalized)
@@ -111,10 +102,9 @@ public sealed class AddressSpace
             return [];
         }
 
-        if (expectedInputLengths.Count == 0)
-        {
-            throw new ArgumentException("Expected input lengths cannot be empty when supplied.", nameof(expectedInputLengths));
-        }
+        DomainInvariant.Reject(
+            expectedInputLengths.Count == 0,
+            "Expected input lengths cannot be empty when supplied.", nameof(expectedInputLengths));
 
         long[] normalized = [.. expectedInputLengths.Order().Distinct()];
         foreach (long expectedLength in normalized)

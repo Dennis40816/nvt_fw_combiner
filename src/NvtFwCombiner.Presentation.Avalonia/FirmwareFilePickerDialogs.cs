@@ -97,6 +97,26 @@ internal static class FirmwareFilePickerDialogs
         });
     }
 
+    public static Task<IStorageFile?> PickDiagnosticsSaveFileAsync(
+        IStorageProvider storageProvider,
+        string suggestedFileName)
+    {
+        return storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Export system diagnostics",
+            SuggestedFileName = suggestedFileName,
+            FileTypeChoices =
+            [
+                new FilePickerFileType("System diagnostics JSON")
+                {
+                    Patterns = ["*.json"],
+                    MimeTypes = ["application/json"],
+                },
+                FilePickerFileTypes.All,
+            ],
+        });
+    }
+
     private static IReadOnlyList<FilePickerFileType> CreateFirmwareBinChoices()
     {
         return

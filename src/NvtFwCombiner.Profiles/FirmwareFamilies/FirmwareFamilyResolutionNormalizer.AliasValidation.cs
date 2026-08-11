@@ -1,9 +1,10 @@
 using NvtFwCombiner.Contracts.Firmware;
+using NvtFwCombiner.Domain;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Profiles.FirmwareFamilies;
 
-public static partial class FirmwareFamilyResolutionNormalizer
+internal static partial class FirmwareFamilyResolutionNormalizer
 {
     private static FirmwareMapFactBinding<FirmwareCapabilityFact>[] NormalizeCapabilities(
         IReadOnlyList<FirmwareCapabilityFactDocument> documents,
@@ -13,12 +14,11 @@ public static partial class FirmwareFamilyResolutionNormalizer
         Dictionary<string, FirmwareMapApplicability> mapApplicabilities,
         Dictionary<FirmwareMapFactKey, FirmwareFactApplicability> aliasApplicabilities)
     {
-        var direct = new Dictionary<FirmwareMapFactKey, CapabilityDirect>();
+        var direct = new Dictionary<FirmwareMapFactKey,
+            (FirmwareCapabilityFact Value, FirmwareFactApplicability Applicability)>();
         for (int index = 0; index < documents.Count; index++)
         {
-            FirmwareCapabilityFactDocument document = documents[index] ?? throw Error(
-                $"capabilities[{index}]",
-                "Capability fact cannot be null.");
+            FirmwareCapabilityFactDocument document = documents[index];
             string path = $"capabilities[{index}]";
 
             FirmwareImageMap map = mapsById.TryGetValue(document.MapId, out FirmwareImageMap? candidate)
@@ -58,7 +58,7 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 document.MapId,
                 FirmwareFactKind.Capability,
                 document.CapabilityFactId);
-            if (!direct.TryAdd(key, new CapabilityDirect(value, applicability)))
+            if (!direct.TryAdd(key, (Value: value, Applicability: applicability)))
             {
                 throw Error(path, $"Duplicate direct capability fact '{DescribeKey(key)}'.");
             }
@@ -230,45 +230,12 @@ public static partial class FirmwareFamilyResolutionNormalizer
             }
         }
 
-        var states = new Dictionary<FirmwareMapFactKey, DependencyVisitState>();
-        foreach (FirmwareMapFactKey key in dependencies.Keys)
-        {
-            if (states.TryGetValue(key, out DependencyVisitState rootState) &&
-                rootState == DependencyVisitState.Resolved)
-            {
-                continue;
-            }
-
-            states[key] = DependencyVisitState.Visiting;
-            var pending = new Stack<DependencyFrame>();
-            pending.Push(new DependencyFrame(key, [.. dependencies[key].Distinct()]));
-            while (pending.Count != 0)
-            {
-                DependencyFrame frame = pending.Peek();
-                if (frame.NextIndex == frame.Dependencies.Length)
-                {
-                    states[frame.Key] = DependencyVisitState.Resolved;
-                    _ = pending.Pop();
-                    continue;
-                }
-
-                FirmwareMapFactKey dependency = frame.Dependencies[frame.NextIndex++];
-                if (states.TryGetValue(dependency, out DependencyVisitState dependencyState))
-                {
-                    if (dependencyState == DependencyVisitState.Visiting)
-                    {
-                        throw Error(
-                            "factAliases",
-                            $"Alias predicate dependency cycle includes '{DescribeKey(dependency)}'.");
-                    }
-
-                    continue;
-                }
-
-                states[dependency] = DependencyVisitState.Visiting;
-                pending.Push(new DependencyFrame(dependency, [.. dependencies[dependency].Distinct()]));
-            }
-        }
+        _ = AcyclicDependencyGraph.Sort(
+            dependencies.Keys,
+            key => dependencies[key].Distinct(),
+            (_, dependency) => Error(
+                "factAliases",
+                $"Alias predicate dependency cycle includes '{DescribeKey(dependency)}'."));
     }
 
     private static FirmwareMapFactKey FindMetadataBindingForStructure(
@@ -312,20 +279,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
         }
     }
 
-    private static void ValidateDistinctFactIds(IReadOnlyList<string>? ids, string path)
-    {
-        IReadOnlyList<string> required = RequireList(ids, path);
-        if (required.Any(string.IsNullOrWhiteSpace))
-        {
-            throw Error(path, "Fact identifiers cannot contain null or whitespace.");
-        }
-
-        if (required.Distinct(StringComparer.Ordinal).Count() != required.Count)
-        {
-            throw Error(path, "Fact identifiers must be ordinally unique within one image map.");
-        }
-    }
-
     private static MapInput FindMap(
         IReadOnlyDictionary<string, MapInput> mapsById,
         string mapId,
@@ -365,22 +318,6 @@ public static partial class FirmwareFamilyResolutionNormalizer
                 path,
                 $"Image map '{map.Document.MapId}' does not declare fact '{factId}'.");
         }
-    }
-
-    private static FirmwareImageMapCoveragePolicy NormalizeCoveragePolicy(string value, string path)
-    {
-        return value switch
-        {
-            "complete-with-explicit-gaps" => FirmwareImageMapCoveragePolicy.CompleteWithExplicitGaps,
-            _ => throw Error(path, "Unknown image-map coverage policy."),
-        };
-    }
-
-    private static string RequireFactId(string value, string path)
-    {
-        return !string.IsNullOrWhiteSpace(value)
-            ? value
-            : throw Error(path, "Fact identifier cannot be null or whitespace.");
     }
 
     private static string FactCollectionName(FirmwareFactKind kind)

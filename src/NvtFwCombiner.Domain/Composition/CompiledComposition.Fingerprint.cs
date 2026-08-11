@@ -11,50 +11,9 @@ public sealed partial class CompiledComposition
     private const string V2FingerprintFormat = "nfc.compiled-composition.profile-v2.v5";
     private const string CapabilityBoundV2FingerprintFormat =
         "nfc.compiled-composition.profile-v2.v7";
-    private const string IntegrityFingerprintFormat =
-        "nfc.compiled-composition.integrity.v1";
     private const string V2CompilerModelVersion = "1.0";
 
-    private static string? CalculateIntegrityFingerprint(CompositionPlan plan)
-    {
-        CompositionOperation[] operations =
-        [
-            .. plan.OrderedOperations.Where(static operation =>
-                operation.Kind is
-                    CompositionOperationKind.RunExternalProcessor or
-                    CompositionOperationKind.TransformScalar),
-        ];
-        if (operations.Length == 0)
-        {
-            return null;
-        }
-
-        var builder = new StringBuilder();
-        AppendField(builder, "format", IntegrityFingerprintFormat);
-        AppendInteger(builder, "integrity-operation.count", operations.Length);
-        for (int index = 0; index < operations.Length; index++)
-        {
-            CompositionOperation operation = operations[index];
-            string prefix =
-                FormattableString.Invariant($"integrity-operation.{index}");
-            AppendOperationExecutionSemantics(builder, operation, prefix);
-            AppendProcessor(
-                builder,
-                prefix,
-                operation.ExternalProcessorInvocation);
-        }
-
-        return Convert.ToHexString(
-                SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
-            .ToLowerInvariant();
-    }
-
     private static string CalculateCompilationFingerprint(CompiledComposition composition)
-    {
-        return CalculateV2CompilationFingerprint(composition);
-    }
-
-    private static string CalculateV2CompilationFingerprint(CompiledComposition composition)
     {
         V2CompiledCompositionDetails details = composition.V2Details;
         return details.Provenance.Context switch
@@ -118,12 +77,13 @@ public sealed partial class CompiledComposition
             builder,
             "authority.model-version",
             V2CompilerModelVersion);
-        AppendField(builder, "profile.id", composition.ProfileId);
-        AppendField(builder, "profile.version", composition.ProfileVersion);
-        AppendField(builder, "profile.ic", composition.IcId);
-        AppendField(builder, "profile.mode", composition.ModeId);
-        AppendField(builder, "profile.experience", composition.ExperienceId);
-        AppendEnum(builder, "profile.composition-kind", composition.CompositionKind);
+        V2CompiledCompositionDetails details = composition.V2Details;
+        AppendField(builder, "profile.id", details.ProfileId);
+        AppendField(builder, "profile.version", details.ProfileVersion);
+        AppendField(builder, "profile.ic", details.Provenance.Context.MemberId);
+        AppendField(builder, "profile.mode", details.Provenance.Context.ModeId);
+        AppendField(builder, "profile.experience", details.ExperienceId);
+        AppendEnum(builder, "profile.composition-kind", details.CompositionKind);
     }
 
     private static void AppendCapabilityFingerprint(
@@ -141,7 +101,7 @@ public sealed partial class CompiledComposition
         CompiledComposition composition,
         V2CompilationProvenance provenance)
     {
-        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendIcNumberInputMode(builder, composition.V2Details.IcNumberInputMode);
         AppendEnum(builder, "eligibility", composition.Eligibility);
         AppendField(builder, "bundle.id", provenance.Bundle.BundleId);
         AppendField(builder, "bundle.version", provenance.Bundle.BundleVersion);
@@ -155,8 +115,18 @@ public sealed partial class CompiledComposition
         StringBuilder builder,
         CompiledComposition composition)
     {
-        AppendEnum(builder, "run-policy.ic-number", composition.IcNumberPolicy);
+        AppendIcNumberInputMode(builder, composition.V2Details.IcNumberInputMode);
         AppendEnum(builder, "eligibility", composition.Eligibility);
+    }
+
+    private static void AppendIcNumberInputMode(
+        StringBuilder builder,
+        IcNumberInputMode? inputMode)
+    {
+        AppendInteger(
+            builder,
+            "run-policy.ic-number",
+            inputMode is { } mode ? (long)mode + 1 : 0);
     }
 
     private static string CompleteV2Fingerprint(
@@ -170,21 +140,12 @@ public sealed partial class CompiledComposition
         if (includeDefinitionProvenance)
         {
             AppendEnum(builder, "promotion.stage", provenance.Promotion.Stage);
-            AppendInteger(builder, "promotion.blocker.count", provenance.Promotion.Blockers.Count);
-            for (int index = 0; index < provenance.Promotion.Blockers.Count; index++)
-            {
-                CompiledProfilePromotionBlocker blocker = provenance.Promotion.Blockers[index];
-                string prefix = FormattableString.Invariant($"promotion.blocker.{index}");
-                AppendField(builder, $"{prefix}.id", blocker.BlockerId);
-                AppendEnum(builder, $"{prefix}.kind", blocker.Kind);
-                AppendField(builder, $"{prefix}.reason", blocker.Reason);
-                AppendStringList(builder, $"{prefix}.evidence", blocker.EvidenceRefs);
-            }
+            AppendList(builder, "promotion.blocker", provenance.Promotion.Blockers, AppendPromotionBlocker);
 
             AppendStringList(builder, "profile.evidence", provenance.ProfileEvidenceRefs);
         }
 
-        AppendValidationRequirements(builder, composition.ValidationRequirements);
+        AppendValidationRequirements(builder, provenance.ValidationRequirements);
         AppendCapabilityAdmissions(builder, provenance.RequiredCapabilities);
         AppendInputContract(builder, details.InputContract);
         AppendRegionAccessContract(builder, details.RegionAccessContract);
@@ -192,37 +153,23 @@ public sealed partial class CompiledComposition
         AppendInteger(builder, "output.allow-override", output.AllowOverride ? 1 : 0);
         AppendEnum(builder, "output.invalid-character-policy", output.InvalidCharacterPolicy);
         AppendEnum(builder, "output.renderer", output.RendererKind);
-        AppendStringList(builder, "output.required-token", output.RequiredTokenIds);
+        AppendStringList(
+            builder,
+            "output.required-token",
+            [.. output.TokenRequirements.Select(static requirement => requirement.TokenId)]);
         if (output.RuleId is not null)
         {
             AppendField(builder, "output.rule-id", output.RuleId);
             AppendEnum(builder, "output.artifact-type", output.OutputArtifactType);
-            AppendInteger(
+            AppendList(builder, "output.token-requirement", output.TokenRequirements, AppendOutputTokenRequirement);
+        }
+        if (details.AdditionalDeliveries.Count > 0)
+        {
+            AppendList(
                 builder,
-                "output.token-requirement.count",
-                output.TokenRequirements.Count);
-            for (int index = 0; index < output.TokenRequirements.Count; index++)
-            {
-                CompiledOutputTokenRequirement requirement =
-                    output.TokenRequirements[index];
-                string prefix =
-                    FormattableString.Invariant($"output.token-requirement.{index}");
-                AppendField(builder, $"{prefix}.id", requirement.TokenId);
-                AppendEnum(builder, $"{prefix}.source", requirement.SourceKind);
-                AppendField(
-                    builder,
-                    $"{prefix}.metadata-binding",
-                    requirement.MetadataBindingId ?? string.Empty);
-                AppendField(
-                    builder,
-                    $"{prefix}.metadata-space",
-                    requirement.MetadataSpaceId ?? string.Empty);
-                AppendEnum(builder, $"{prefix}.missing", requirement.MissingPolicy);
-                AppendField(
-                    builder,
-                    $"{prefix}.placeholder",
-                    requirement.Placeholder ?? string.Empty);
-            }
+                "output.additional-delivery",
+                details.AdditionalDeliveries,
+                AppendAdditionalDelivery);
         }
         AppendPlan(builder, composition.Plan);
 
@@ -230,58 +177,92 @@ public sealed partial class CompiledComposition
             .ToLowerInvariant();
     }
 
+    private static void AppendAdditionalDelivery(
+        StringBuilder builder,
+        string prefix,
+        CompiledAdditionalDelivery delivery)
+    {
+        AppendField(builder, $"{prefix}.kind", delivery.Kind);
+        AppendRange(builder, $"{prefix}.source-range", delivery.SourceRange);
+        AppendField(builder, $"{prefix}.template", delivery.FileNameTemplate);
+        AppendStringList(builder, $"{prefix}.required-token", delivery.RequiredTokenIds);
+    }
+
+    private static void AppendPromotionBlocker(
+        StringBuilder builder,
+        string prefix,
+        CompiledProfilePromotionBlocker blocker)
+    {
+        AppendField(builder, $"{prefix}.id", blocker.BlockerId);
+        AppendEnum(builder, $"{prefix}.kind", blocker.Kind);
+        AppendField(builder, $"{prefix}.reason", blocker.Reason);
+        AppendStringList(builder, $"{prefix}.evidence", blocker.EvidenceRefs);
+    }
+
+    private static void AppendOutputTokenRequirement(
+        StringBuilder builder,
+        string prefix,
+        CompiledOutputTokenRequirement requirement)
+    {
+        AppendField(builder, $"{prefix}.id", requirement.TokenId);
+        AppendEnum(builder, $"{prefix}.source", requirement.SourceKind);
+        AppendField(builder, $"{prefix}.metadata-binding", requirement.MetadataBindingId ?? string.Empty);
+        AppendField(builder, $"{prefix}.metadata-space", requirement.MetadataSpaceId ?? string.Empty);
+        AppendEnum(builder, $"{prefix}.missing", requirement.MissingPolicy);
+        AppendField(builder, $"{prefix}.placeholder", requirement.Placeholder ?? string.Empty);
+    }
+
     private static void AppendPlan(StringBuilder builder, CompositionPlan plan)
     {
         AppendField(builder, "plan.output-space", plan.OutputSpaceId);
 
         ImageInitialization[] initializations = [.. plan.Initializations.OrderBy(item => item.TargetSpaceId, StringComparer.Ordinal)];
-        AppendInteger(builder, "plan.initializer.count", initializations.Length);
-        for (int index = 0; index < initializations.Length; index++)
-        {
-            ImageInitialization initialization = initializations[index];
-            string prefix = FormattableString.Invariant($"plan.initializer.{index}");
-            AppendEnum(builder, $"{prefix}.kind", initialization.Kind);
-            AppendField(builder, $"{prefix}.target-space", initialization.TargetSpaceId);
-            AppendField(builder, $"{prefix}.reference-space", initialization.ReferenceSpaceId ?? string.Empty);
-            AppendInteger(builder, $"{prefix}.capacity", initialization.Capacity);
-            AppendInteger(builder, $"{prefix}.fill-byte", initialization.FillByte);
-        }
+        AppendList(builder, "plan.initializer", initializations, AppendInitialization);
 
         AddressSpace[] addressSpaces = [.. plan.AddressSpaces.OrderBy(item => item.AddressSpaceId, StringComparer.Ordinal)];
-        AppendInteger(builder, "plan.address-space.count", addressSpaces.Length);
-        for (int index = 0; index < addressSpaces.Length; index++)
-        {
-            AddressSpace addressSpace = addressSpaces[index];
-            string prefix = FormattableString.Invariant($"plan.address-space.{index}");
-            AppendField(builder, $"{prefix}.id", addressSpace.AddressSpaceId);
-            AppendInteger(builder, $"{prefix}.length", addressSpace.Length);
-            AppendEnum(builder, $"{prefix}.mutability", addressSpace.Mutability);
-            AppendField(
-                builder,
-                $"{prefix}.input-padding-byte",
-                addressSpace.InputPaddingByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
-            AppendEnum(builder, $"{prefix}.input-oversize-policy", addressSpace.InputOversizePolicy);
-            AppendIntegerList(builder, $"{prefix}.allowed-input-length", addressSpace.AllowedInputLengths);
-            AppendIntegerList(builder, $"{prefix}.expected-input-length", addressSpace.ExpectedInputLengths);
-            if (addressSpace.UnexpectedInputLengthIssueCode is { } unexpectedInputLengthIssueCode)
-            {
-                AppendField(builder, $"{prefix}.unexpected-input-length-issue-code", unexpectedInputLengthIssueCode);
-            }
-        }
+        AppendList(builder, "plan.address-space", addressSpaces, AppendAddressSpace);
 
-        AppendInteger(builder, "plan.operation.count", plan.OrderedOperations.Count);
-        for (int index = 0; index < plan.OrderedOperations.Count; index++)
+        AppendList(builder, "plan.operation", plan.OrderedOperations, AppendOperation);
+    }
+
+    private static void AppendInitialization(
+        StringBuilder builder,
+        string prefix,
+        ImageInitialization initialization)
+    {
+        AppendEnum(builder, $"{prefix}.kind", initialization.Kind);
+        AppendField(builder, $"{prefix}.target-space", initialization.TargetSpaceId);
+        AppendField(builder, $"{prefix}.reference-space", initialization.ReferenceSpaceId ?? string.Empty);
+        AppendInteger(builder, $"{prefix}.capacity", initialization.Capacity);
+        AppendInteger(builder, $"{prefix}.fill-byte", initialization.FillByte);
+    }
+
+    private static void AppendAddressSpace(
+        StringBuilder builder,
+        string prefix,
+        AddressSpace addressSpace)
+    {
+        AppendField(builder, $"{prefix}.id", addressSpace.AddressSpaceId);
+        AppendInteger(builder, $"{prefix}.length", addressSpace.Length);
+        AppendEnum(builder, $"{prefix}.mutability", addressSpace.Mutability);
+        AppendField(
+            builder,
+            $"{prefix}.input-padding-byte",
+            addressSpace.InputPaddingByte?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+        AppendEnum(builder, $"{prefix}.input-oversize-policy", addressSpace.InputOversizePolicy);
+        AppendIntegerList(builder, $"{prefix}.allowed-input-length", addressSpace.AllowedInputLengths);
+        AppendIntegerList(builder, $"{prefix}.expected-input-length", addressSpace.ExpectedInputLengths);
+        if (addressSpace.UnexpectedInputLengthIssueCode is { } unexpectedInputLengthIssueCode)
         {
-            AppendOperation(builder, plan.OrderedOperations[index], index);
+            AppendField(builder, $"{prefix}.unexpected-input-length-issue-code", unexpectedInputLengthIssueCode);
         }
     }
 
     private static void AppendOperation(
         StringBuilder builder,
-        CompositionOperation operation,
-        int index)
+        string prefix,
+        CompositionOperation operation)
     {
-        string prefix = FormattableString.Invariant($"plan.operation.{index}");
         AppendOperationExecutionSemantics(builder, operation, prefix);
         AppendField(builder, $"{prefix}.reason", operation.Reason);
         AppendField(builder, $"{prefix}.provenance.kind", operation.Provenance.Kind);
@@ -350,11 +331,7 @@ public sealed partial class CompiledComposition
         string fieldPrefix,
         IReadOnlyList<ByteRange> ranges)
     {
-        AppendInteger(builder, $"{fieldPrefix}.count", ranges.Count);
-        for (int index = 0; index < ranges.Count; index++)
-        {
-            AppendRange(builder, FormattableString.Invariant($"{fieldPrefix}.{index}"), ranges[index]);
-        }
+        AppendList(builder, fieldPrefix, ranges, AppendRequiredRange);
     }
 
     private static void AppendIntegerList(
@@ -362,11 +339,12 @@ public sealed partial class CompiledComposition
         string fieldPrefix,
         IReadOnlyList<long> values)
     {
-        AppendInteger(builder, $"{fieldPrefix}.count", values.Count);
-        for (int index = 0; index < values.Count; index++)
-        {
-            AppendInteger(builder, FormattableString.Invariant($"{fieldPrefix}.{index}"), values[index]);
-        }
+        AppendList(builder, fieldPrefix, values, AppendInteger);
+    }
+
+    private static void AppendRequiredRange(StringBuilder builder, string fieldName, ByteRange range)
+    {
+        AppendRange(builder, fieldName, range);
     }
 
     private static void AppendValidationRequirements(
@@ -382,7 +360,19 @@ public sealed partial class CompiledComposition
             AppendEnum(builder, $"{prefix}.stage", requirement.Stage);
             AppendEnum(builder, $"{prefix}.severity", requirement.Severity);
             AppendField(builder, $"{prefix}.issue-code", requirement.IssueCode);
-            AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+            AppendInteger(builder, $"{prefix}.kind", requirement switch
+            {
+                CompiledMetadataValueValidation => 0,
+                CompiledPidSanityValidation => 1,
+                CompiledMetadataEqualityValidation => 2,
+                CompiledRejectMetadataBytePatternValidation => 3,
+                CompiledViewByteAssertionValidation => 4,
+                CompiledFirmwareConfigBackupVersionValidation => 5,
+                CompiledFirmwareConfigBackupPlacementAuthorityValidation => 6,
+                CompiledFirmwareConfigBackupExpectedAddressValidation => 7,
+                CompiledUniformInputRangeValidation => 8,
+                _ => throw new InvalidOperationException("Unknown compiled validation kind."),
+            });
             switch (requirement)
             {
                 case CompiledMetadataValueValidation metadata:
@@ -507,7 +497,16 @@ public sealed partial class CompiledComposition
         string prefix,
         CompiledInputLengthRequirement requirement)
     {
-        AppendEnum(builder, $"{prefix}.kind", requirement.Kind);
+        AppendInteger(builder, $"{prefix}.kind", requirement switch
+        {
+            CompiledExactBytesInputLengthRequirement => 0,
+            CompiledExactResolvedMapCapacityInputLengthRequirement => 1,
+            CompiledBoundedInputLengthRequirement => 2,
+            CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: not null } => 4,
+            CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: not null } => 5,
+            CompiledSourceViewCoverageInputLengthRequirement => 6,
+            _ => throw new InvalidOperationException("Unknown compiled input length requirement."),
+        });
         switch (requirement)
         {
             case CompiledExactBytesInputLengthRequirement exact:
@@ -520,18 +519,17 @@ public sealed partial class CompiledComposition
                 AppendInteger(builder, $"{prefix}.minimum-bytes", bounded.MinimumBytes);
                 AppendInteger(builder, $"{prefix}.maximum-bytes", bounded.MaximumBytes);
                 break;
-            case CompiledNormalDpExtractWithWarningInputLengthRequirement normalDp:
-                AppendField(builder, $"{prefix}.issue-code", normalDp.IssueCode);
-                AppendIntegerList(builder, $"{prefix}.expected-input-length", normalDp.ExpectedInputLengths);
-                break;
-            case CompiledDeclaredPrefixWithWarningInputLengthRequirement declaredPrefix:
-                AppendInteger(builder, $"{prefix}.required-end-exclusive", declaredPrefix.RequiredEndExclusive);
-                AppendIntegerList(builder, $"{prefix}.expected-outer-length", declaredPrefix.ExpectedOuterLengths);
-                AppendField(builder, $"{prefix}.short-input-issue-code", declaredPrefix.ShortInputIssueCode);
+            case CompiledSourceViewCoverageInputLengthRequirement { RequiredEndExclusive: { } requiredEnd } sourceView:
+                AppendInteger(builder, $"{prefix}.required-end-exclusive", requiredEnd);
+                AppendIntegerList(builder, $"{prefix}.expected-outer-length", sourceView.ExpectedOuterLengths);
+                AppendField(builder, $"{prefix}.short-input-issue-code", sourceView.ShortInputIssueCode!);
                 AppendField(
                     builder,
                     $"{prefix}.unexpected-outer-length-issue-code",
-                    declaredPrefix.UnexpectedOuterLengthIssueCode);
+                    sourceView.UnexpectedOuterLengthIssueCode!);
+                break;
+            case CompiledSourceViewCoverageInputLengthRequirement { MaximumBytes: { } maximumBytes }:
+                AppendInteger(builder, $"{prefix}.maximum-bytes", maximumBytes);
                 break;
             case CompiledSourceViewCoverageInputLengthRequirement sourceView:
                 AppendIntegerList(
@@ -545,10 +543,6 @@ public sealed partial class CompiledComposition
                         $"{prefix}.unexpected-outer-length-issue-code",
                         unexpectedOuterLengthIssueCode);
                 }
-
-                break;
-            case CompiledTpMaximum256KInputLengthRequirement:
-                AppendInteger(builder, $"{prefix}.maximum-bytes", CompiledTpMaximum256KInputLengthRequirement.MaximumBytes);
                 break;
             default:
                 throw new InvalidOperationException("Unknown compiled input length requirement.");
@@ -560,7 +554,13 @@ public sealed partial class CompiledComposition
         string prefix,
         CompiledInputNormalization normalization)
     {
-        AppendEnum(builder, $"{prefix}.kind", normalization.Kind);
+        AppendInteger(builder, $"{prefix}.kind", normalization switch
+        {
+            CompiledNoInputNormalization => 0,
+            CompiledPadShorterInputNormalization => 1,
+            CompiledTruncateCtrlRamInputNormalization => 2,
+            _ => throw new InvalidOperationException("Unknown compiled input normalization."),
+        });
         switch (normalization)
         {
             case CompiledNoInputNormalization:
@@ -580,16 +580,15 @@ public sealed partial class CompiledComposition
 
     private static void AppendCapabilityAdmissions(
         StringBuilder builder,
-        IReadOnlyList<CompiledCapabilityAdmission> admissions)
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> admissions)
     {
         AppendInteger(builder, "capability-admission.count", admissions.Count);
         for (int index = 0; index < admissions.Count; index++)
         {
-            CompiledCapabilityAdmission admission = admissions[index];
-            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = admission.Binding;
+            FirmwareMapFactBinding<FirmwareCapabilityFact> binding = admissions[index];
             FirmwareCapabilityFact capability = binding.Value;
             string prefix = FormattableString.Invariant($"capability-admission.{index}");
-            AppendField(builder, $"{prefix}.required-capability-id", admission.RequiredCapabilityId);
+            AppendField(builder, $"{prefix}.required-capability-id", capability.CapabilityId);
             AppendFactKey(builder, $"{prefix}.effective-key", binding.EffectiveKey);
             AppendFactKey(builder, $"{prefix}.direct-source-key", binding.DirectSourceKey);
             AppendField(builder, $"{prefix}.canonical-fact-id", binding.CanonicalFactId);
@@ -622,7 +621,12 @@ public sealed partial class CompiledComposition
         {
             CompiledValidationScalarLiteral value = values[index];
             string valuePrefix = FormattableString.Invariant($"{prefix}.{index}");
-            AppendEnum(builder, $"{valuePrefix}.kind", value.Kind);
+            AppendInteger(builder, $"{valuePrefix}.kind", value switch
+            {
+                CompiledValidationIntegerLiteral => 0,
+                CompiledValidationTextLiteral => 1,
+                _ => throw new InvalidOperationException("Unknown compiled validation literal kind."),
+            });
             switch (value)
             {
                 case CompiledValidationIntegerLiteral integer:

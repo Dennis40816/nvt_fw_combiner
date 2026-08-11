@@ -2,65 +2,16 @@ using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>Closed profile access vocabulary retained independently from Profiles normalization types.</summary>
-public enum CompiledRegionAccessKind
-{
-    /// <summary>The region is not authorable.</summary>
-    Hidden,
-
-    /// <summary>The region is inspectable but never writable.</summary>
-    ReadOnly,
-
-    /// <summary>Only one exact whole-region target is authorable.</summary>
-    Whole,
-
-    /// <summary>Only explicitly named direct child regions are authorable.</summary>
-    Parts,
-
-    /// <summary>Checked, aligned subranges are authorable.</summary>
-    ExplicitRange,
-}
-
-/// <summary>One resolved physical constraint retained without duplicating its map range.</summary>
-public sealed class CompiledPhysicalRegionConstraint
-{
-    internal CompiledPhysicalRegionConstraint(
-        string regionId,
-        FirmwareWriteConstraint writeConstraint,
-        int alignment)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        if (!Enum.IsDefined(writeConstraint))
-        {
-            throw new ArgumentOutOfRangeException(nameof(writeConstraint), writeConstraint, "Unknown firmware write constraint.");
-        }
-
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(alignment);
-        RegionId = regionId;
-        WriteConstraint = writeConstraint;
-        Alignment = alignment;
-    }
-
-    /// <summary>Canonical region id resolved from the selected map.</summary>
-    public string RegionId { get; }
-
-    /// <summary>Non-relaxable physical write constraint selected from the canonical map.</summary>
-    public FirmwareWriteConstraint WriteConstraint { get; }
-
-    /// <summary>Physical write alignment selected from the canonical map.</summary>
-    public int Alignment { get; }
-}
-
 /// <summary>One logical profile view and the canonical physical ancestor chain governing its resolved range.</summary>
 public sealed class CompiledResolvedPhysicalView
 {
-    private readonly CompiledPhysicalRegionConstraint[] _governingRegionChain;
+    private readonly FirmwareRegion[] _governingRegionChain;
 
     internal CompiledResolvedPhysicalView(
         string viewId,
         string addressSpaceId,
         ByteRange range,
-        IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
+        IEnumerable<FirmwareRegion> governingRegionChain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(viewId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
@@ -69,13 +20,11 @@ public sealed class CompiledResolvedPhysicalView
             governingRegionChain,
             "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
             requireValue: true);
-        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
-            _governingRegionChain.Length)
-        {
-            throw new ArgumentException(
-                "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
-                nameof(governingRegionChain));
-        }
+        DomainInvariant.Reject(
+            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+            _governingRegionChain.Length,
+            "Resolved physical views require one non-empty, non-repeating region ancestor chain.",
+            nameof(governingRegionChain));
 
         ViewId = viewId;
         AddressSpaceId = addressSpaceId;
@@ -93,57 +42,50 @@ public sealed class CompiledResolvedPhysicalView
     public ByteRange Range { get; }
 
     /// <summary>Physical ancestor chain in root-to-leaf order; canonical map regions remain the physical range authority.</summary>
-    public IReadOnlyList<CompiledPhysicalRegionConstraint> GoverningRegionChain { get; }
+    public IReadOnlyList<FirmwareRegion> GoverningRegionChain { get; }
 }
 
 /// <summary>One profile-owned access rule resolved against the selected canonical physical map.</summary>
 public sealed class CompiledRegionAccessRequirement
 {
-    private readonly string[] _allowedSubregionIds;
-    private readonly CompiledPhysicalRegionConstraint[] _governingRegionChain;
+    private readonly FirmwareRegion[] _governingRegionChain;
 
     internal CompiledRegionAccessRequirement(
         string regionId,
-        CompiledRegionAccessKind access,
+        RegionAccessKind access,
         string reason,
         IEnumerable<string> allowedSubregionIds,
-        IEnumerable<CompiledPhysicalRegionConstraint> governingRegionChain)
+        IEnumerable<FirmwareRegion> governingRegionChain)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
-        if (!Enum.IsDefined(access))
-        {
-            throw new ArgumentOutOfRangeException(nameof(access), access, "Unknown compiled region access kind.");
-        }
+        ClosedEnum.ThrowIfUndefined(access, "Unknown compiled region access kind.");
 
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        _allowedSubregionIds = ImmutableStringSnapshot.Create(
+        string[] allowedSubregionIdsSnapshot = ImmutableStringSnapshot.Create(
             allowedSubregionIds,
             nameof(allowedSubregionIds),
-            access == CompiledRegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
+            access == RegionAccessKind.Parts ? "Identifiers must be non-empty values." : null,
             "Identifiers must be non-empty values.",
             "Identifiers must be ordinally unique.");
-        if (access != CompiledRegionAccessKind.Parts && _allowedSubregionIds.Length != 0)
-        {
-            throw new ArgumentException("Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
-        }
+        DomainInvariant.Reject(
+            access != RegionAccessKind.Parts && allowedSubregionIdsSnapshot.Length != 0,
+            "Only parts access can declare allowed subregions.", nameof(allowedSubregionIds));
 
         _governingRegionChain = ImmutableReferenceSnapshot.Create(
             governingRegionChain,
             "Compiled region access requires one non-empty, non-repeating ancestor chain ending at the target region.",
             requireValue: true);
-        if (_governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
+        DomainInvariant.Reject(
+            _governingRegionChain.Select(static region => region.RegionId).Distinct(StringComparer.Ordinal).Count() !=
             _governingRegionChain.Length ||
-            !StringComparer.Ordinal.Equals(_governingRegionChain[^1].RegionId, regionId))
-        {
-            throw new ArgumentException(
-                "Compiled access rules require the complete root-to-declared-region physical chain.",
-                nameof(governingRegionChain));
-        }
+            !StringComparer.Ordinal.Equals(_governingRegionChain[^1].RegionId, regionId),
+            "Compiled access rules require the complete root-to-declared-region physical chain.",
+            nameof(governingRegionChain));
 
         RegionId = regionId;
         Access = access;
         Reason = reason;
-        AllowedSubregionIds = Array.AsReadOnly(_allowedSubregionIds);
+        AllowedSubregionIds = Array.AsReadOnly(allowedSubregionIdsSnapshot);
         GoverningRegionChain = Array.AsReadOnly(_governingRegionChain);
     }
 
@@ -151,45 +93,42 @@ public sealed class CompiledRegionAccessRequirement
     public string RegionId { get; }
 
     /// <summary>Closed authoring access mode.</summary>
-    public CompiledRegionAccessKind Access { get; }
+    public RegionAccessKind Access { get; }
 
     /// <summary>Profile-owned reason retained for report and approval evidence.</summary>
     public string Reason { get; }
 
-    /// <summary>Canonical direct child regions allowed only for <see cref="CompiledRegionAccessKind.Parts"/>.</summary>
+    /// <summary>Canonical direct child regions allowed only for <see cref="RegionAccessKind.Parts"/>.</summary>
     public IReadOnlyList<string> AllowedSubregionIds { get; }
 
     /// <summary>Physical ancestor chain that governed this profile declaration.</summary>
-    public IReadOnlyList<CompiledPhysicalRegionConstraint> GoverningRegionChain { get; }
+    public IReadOnlyList<FirmwareRegion> GoverningRegionChain { get; }
 }
 
 /// <summary>Complete immutable V2 region-access policy and logical-to-physical view provenance.</summary>
 public sealed class CompiledRegionAccessContract
 {
-    private readonly CompiledRegionAccessRequirement[] _requirements;
-    private readonly CompiledResolvedPhysicalView[] _resolvedViews;
-
     internal CompiledRegionAccessContract(
         IEnumerable<CompiledRegionAccessRequirement> requirements,
         IEnumerable<CompiledResolvedPhysicalView> resolvedViews)
     {
-        _requirements = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledRegionAccessRequirement[] requirementsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             requirements,
             static requirement => requirement.RegionId,
             "Compiled region access requirements must be non-null with ordinally unique region ids.",
             "Compiled region access requirements must be non-null with ordinally unique region ids.",
             StringComparer.Ordinal);
-        _resolvedViews = ImmutableReferenceSnapshot.CreateUnique(
+        CompiledResolvedPhysicalView[] resolvedViewsSnapshot = ImmutableReferenceSnapshot.CreateUnique(
             resolvedViews,
             static view => view.ViewId,
             "Compiled resolved views must be non-null with ordinally unique view ids.",
             "Compiled resolved views must be non-null with ordinally unique view ids.",
             StringComparer.Ordinal);
 
-        Array.Sort(_requirements, static (left, right) => StringComparer.Ordinal.Compare(left.RegionId, right.RegionId));
-        Array.Sort(_resolvedViews, static (left, right) => StringComparer.Ordinal.Compare(left.ViewId, right.ViewId));
-        Requirements = Array.AsReadOnly(_requirements);
-        ResolvedViews = Array.AsReadOnly(_resolvedViews);
+        Array.Sort(requirementsSnapshot, static (left, right) => StringComparer.Ordinal.Compare(left.RegionId, right.RegionId));
+        Array.Sort(resolvedViewsSnapshot, static (left, right) => StringComparer.Ordinal.Compare(left.ViewId, right.ViewId));
+        Requirements = Array.AsReadOnly(requirementsSnapshot);
+        ResolvedViews = Array.AsReadOnly(resolvedViewsSnapshot);
     }
 
     /// <summary>Complete profile-owned access rules resolved against canonical physical constraints.</summary>

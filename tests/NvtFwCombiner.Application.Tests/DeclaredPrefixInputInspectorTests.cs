@@ -4,32 +4,32 @@ using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests;
 
-/// <summary>Behavior evidence for the Application-owned declared-prefix diagnostic substrate.</summary>
+/// <summary>Behavior evidence for compiler-owned declared-prefix input inspection.</summary>
 public sealed class DeclaredPrefixInputInspectorTests
 {
-    private const string ShortCode = "test.input.required-prefix-missing";
-    private const string OuterLengthCode = "test.input.outer-length-unexpected";
+    private const string ShortCode = "TEST_INPUT_REQUIRED_PREFIX_MISSING";
+    private const string OuterLengthCode = "TEST_INPUT_OUTER_LENGTH_UNEXPECTED";
 
     /// <summary>A source one byte short is blocking and cannot claim an accepted snapshot.</summary>
     [Fact]
     public void OneByteShortBlocksWithoutAcceptedSnapshot()
     {
-        DeclaredPrefixInputInspectionPolicy policy = Policy(requiredEndExclusive: 16, expectedOuterLengths: [16]);
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+            Sequence(15));
 
-        InputArtifactInspection result = DeclaredPrefixInputInspector.Inspect(policy, Sequence(15));
-
-        Assert.Equal(InputArtifactInspectionLifecycle.Inspected, result.Lifecycle);
-        Assert.Equal(15, result.ActualSource.Length);
+        Assert.Equal(15, result.ActualLength);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Sequence(15))), result.ActualSha256);
         Assert.Equal(16, result.RequiredEndExclusive);
         Assert.Equal([16L], result.ExpectedOuterLengths);
-        Assert.Null(result.AcceptedSnapshot);
         Assert.Null(result.AcceptedSnapshotRange);
+        Assert.Null(result.AcceptedSnapshotSha256);
         Assert.Null(result.IgnoredTrailingRange);
         Assert.Equal(0, result.IgnoredTrailingBytes);
-        Assert.Equal(InputArtifactInspectionSeverity.Blocking, result.Severity);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Blocking, result.Severity);
         Assert.Equal(ShortCode, result.IssueCode);
-        Assert.Equal(InputArtifactBuildImpact.Blocked, result.BuildImpact);
-        Assert.Equal(InputArtifactInspectionNextAction.SelectCompatibleInput, result.NextAction);
+        Assert.True(result.BlocksBuild);
+        Assert.Equal(CompiledInputArtifactInspectionNextAction.SelectCompatibleInput, result.NextAction);
     }
 
     /// <summary>An exact source retains identical full-source and accepted-prefix identities.</summary>
@@ -38,18 +38,17 @@ public sealed class DeclaredPrefixInputInspectorTests
     {
         byte[] source = Sequence(16);
 
-        InputArtifactInspection result = DeclaredPrefixInputInspector.Inspect(
-            Policy(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             source);
 
-        InputArtifactContentIdentity accepted = Assert.IsType<InputArtifactContentIdentity>(result.AcceptedSnapshot);
-        Assert.Equal(result.ActualSource, accepted);
+        Assert.Equal(result.ActualSha256, result.AcceptedSnapshotSha256);
         Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
         Assert.Null(result.IgnoredTrailingRange);
-        Assert.Equal(InputArtifactInspectionSeverity.Valid, result.Severity);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Valid, result.Severity);
         Assert.Equal(InputArtifactInspectionIssueCodes.Ready, result.IssueCode);
-        Assert.Equal(InputArtifactBuildImpact.None, result.BuildImpact);
-        Assert.Equal(InputArtifactInspectionNextAction.None, result.NextAction);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(CompiledInputArtifactInspectionNextAction.None, result.NextAction);
     }
 
     /// <summary>A one-byte unexpected tail is accepted, identified, and reported as half-open.</summary>
@@ -58,17 +57,17 @@ public sealed class DeclaredPrefixInputInspectorTests
     {
         byte[] source = Sequence(17);
 
-        InputArtifactInspection result = DeclaredPrefixInputInspector.Inspect(
-            Policy(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             source);
 
         Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
         Assert.Equal(ByteRange.FromStartEndExclusive(16, 17), result.IgnoredTrailingRange);
         Assert.Equal(1, result.IgnoredTrailingBytes);
-        Assert.Equal(InputArtifactInspectionSeverity.Warning, result.Severity);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, result.Severity);
         Assert.Equal(OuterLengthCode, result.IssueCode);
-        Assert.Equal(InputArtifactBuildImpact.None, result.BuildImpact);
-        Assert.Equal(InputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes, result.NextAction);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(CompiledInputArtifactInspectionNextAction.ReviewIgnoredTrailingBytes, result.NextAction);
     }
 
     /// <summary>A large tail cannot influence the accepted snapshot identity.</summary>
@@ -80,19 +79,19 @@ public sealed class DeclaredPrefixInputInspectorTests
         exact.CopyTo(tailed, 0);
         Array.Fill(tailed, (byte)0xA5, 16, tailed.Length - 16);
 
-        InputArtifactInspection exactResult = DeclaredPrefixInputInspector.Inspect(
-            Policy(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+        CompiledInputArtifactInspectionResult exactResult = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             exact);
-        InputArtifactInspection tailedResult = DeclaredPrefixInputInspector.Inspect(
-            Policy(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+        CompiledInputArtifactInspectionResult tailedResult = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             tailed);
 
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(tailed)), tailedResult.ActualSource.Sha256);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(tailed)), tailedResult.ActualSha256);
         Assert.Equal(
             Convert.ToHexStringLower(SHA256.HashData(tailed.AsSpan(0, 16))),
-            tailedResult.AcceptedSnapshot!.Sha256);
-        Assert.Equal(exactResult.AcceptedSnapshot, tailedResult.AcceptedSnapshot);
-        Assert.NotEqual(exactResult.ActualSource, tailedResult.ActualSource);
+            tailedResult.AcceptedSnapshotSha256);
+        Assert.Equal(exactResult.AcceptedSnapshotSha256, tailedResult.AcceptedSnapshotSha256);
+        Assert.NotEqual(exactResult.ActualSha256, tailedResult.ActualSha256);
         Assert.Equal(1024 * 1024, tailedResult.IgnoredTrailingBytes);
         Assert.Equal(
             ByteRange.FromStartEndExclusive(16, tailed.LongLength),
@@ -103,15 +102,33 @@ public sealed class DeclaredPrefixInputInspectorTests
     [Fact]
     public void ExpectedLargerOuterLengthIsValidAndStillReportsIgnoredTail()
     {
-        InputArtifactInspection result = DeclaredPrefixInputInspector.Inspect(
-            Policy(requiredEndExclusive: 16, expectedOuterLengths: [16, 32]),
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16, 32]),
             Sequence(32));
 
-        Assert.Equal(InputArtifactInspectionSeverity.Valid, result.Severity);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Valid, result.Severity);
         Assert.Equal(InputArtifactInspectionIssueCodes.Ready, result.IssueCode);
         Assert.Equal(16, result.IgnoredTrailingBytes);
         Assert.Equal(ByteRange.FromStartEndExclusive(16, 32), result.IgnoredTrailingRange);
-        Assert.Equal(InputArtifactInspectionNextAction.None, result.NextAction);
+        Assert.Equal(CompiledInputArtifactInspectionNextAction.None, result.NextAction);
+    }
+
+    /// <summary>An accepted required prefix with no tail still reports an unexpected outer container.</summary>
+    [Fact]
+    public void UnexpectedRequiredLengthWithoutTailRequestsOuterLengthReview()
+    {
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [32]),
+            Sequence(16));
+
+        Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
+        Assert.Null(result.IgnoredTrailingRange);
+        Assert.Equal(CompiledInputArtifactInspectionSeverity.Warning, result.Severity);
+        Assert.Equal(OuterLengthCode, result.IssueCode);
+        Assert.False(result.BlocksBuild);
+        Assert.Equal(
+            CompiledInputArtifactInspectionNextAction.ReviewUnexpectedOuterLength,
+            result.NextAction);
     }
 
     /// <summary>Inspection snapshots identities without changing caller-owned bytes.</summary>
@@ -120,14 +137,14 @@ public sealed class DeclaredPrefixInputInspectorTests
     {
         byte[] source = Sequence(64);
         byte[] before = [.. source];
-        DeclaredPrefixInputInspectionPolicy policy = Policy(16, [16]);
+        CompiledSourceViewCoverageInputLengthRequirement requirement = PrefixRequirement(16, [16]);
 
-        InputArtifactInspection first = DeclaredPrefixInputInspector.Inspect(policy, source);
-        InputArtifactInspection second = DeclaredPrefixInputInspector.Inspect(policy, source);
+        CompiledInputArtifactInspectionResult first = Inspect(requirement, source);
+        CompiledInputArtifactInspectionResult second = Inspect(requirement, source);
 
         Assert.Equal(before, source);
-        Assert.Equal(first.ActualSource, second.ActualSource);
-        Assert.Equal(first.AcceptedSnapshot, second.AcceptedSnapshot);
+        Assert.Equal(first.ActualSha256, second.ActualSha256);
+        Assert.Equal(first.AcceptedSnapshotSha256, second.AcceptedSnapshotSha256);
         Assert.Equal(first.IssueCode, second.IssueCode);
         Assert.Equal(first.IgnoredTrailingRange, second.IgnoredTrailingRange);
     }
@@ -137,66 +154,67 @@ public sealed class DeclaredPrefixInputInspectorTests
     public void ReinspectionDetectsChangedSourceIdentity()
     {
         byte[] source = Sequence(16);
-        DeclaredPrefixInputInspectionPolicy policy = Policy(16, [16]);
-        InputArtifactInspection loadInspection = DeclaredPrefixInputInspector.Inspect(policy, source);
-        string loadActualHash = loadInspection.ActualSource.Sha256;
-        string loadAcceptedHash = loadInspection.AcceptedSnapshot!.Sha256;
+        CompiledSourceViewCoverageInputLengthRequirement requirement = PrefixRequirement(16, [16]);
+        CompiledInputArtifactInspectionResult loadInspection = Inspect(requirement, source);
+        string loadActualHash = loadInspection.ActualSha256;
+        string loadAcceptedHash = loadInspection.AcceptedSnapshotSha256!;
 
         source[0] ^= 0xFF;
-        InputArtifactInspection buildReinspection = DeclaredPrefixInputInspector.Inspect(policy, source);
+        CompiledInputArtifactInspectionResult buildReinspection = Inspect(requirement, source);
 
-        Assert.Equal(loadActualHash, loadInspection.ActualSource.Sha256);
-        Assert.Equal(loadAcceptedHash, loadInspection.AcceptedSnapshot!.Sha256);
-        Assert.NotEqual(loadInspection.ActualSource.Sha256, buildReinspection.ActualSource.Sha256);
-        Assert.NotEqual(loadInspection.AcceptedSnapshot!.Sha256, buildReinspection.AcceptedSnapshot!.Sha256);
-        Assert.Equal(InputArtifactBuildImpact.None, buildReinspection.BuildImpact);
+        Assert.Equal(loadActualHash, loadInspection.ActualSha256);
+        Assert.Equal(loadAcceptedHash, loadInspection.AcceptedSnapshotSha256);
+        Assert.NotEqual(loadInspection.ActualSha256, buildReinspection.ActualSha256);
+        Assert.NotEqual(loadInspection.AcceptedSnapshotSha256, buildReinspection.AcceptedSnapshotSha256);
+        Assert.False(buildReinspection.BlocksBuild);
     }
 
     /// <summary>Policy rejects invalid, descending, duplicate, and runtime-overflow geometry.</summary>
     [Fact]
-    public void PolicyRejectsInvalidOrOverflowGeometry()
+    public void CompiledRequirementRejectsInvalidOrOverflowGeometry()
     {
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Policy(0, [1]));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Policy((long)int.MaxValue + 1, [(long)int.MaxValue + 1]));
-        _ = Assert.Throws<ArgumentException>(() => Policy(16, [(long)int.MaxValue + 1]));
-        _ = Assert.Throws<ArgumentException>(() => Policy(16, []));
-        _ = Assert.Throws<ArgumentException>(() => Policy(16, [15]));
-        _ = Assert.Throws<ArgumentException>(() => Policy(16, [32, 16]));
-        _ = Assert.Throws<ArgumentException>(() => Policy(16, [16, 16]));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => PrefixRequirement(0, [1]));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PrefixRequirement((long)int.MaxValue + 1, [(long)int.MaxValue + 1]));
+        _ = Assert.Throws<ArgumentException>(() => PrefixRequirement(16, [(long)int.MaxValue + 1]));
+        _ = Assert.Throws<ArgumentException>(() => PrefixRequirement(16, []));
+        _ = Assert.Throws<ArgumentException>(() => PrefixRequirement(16, [15]));
+        _ = Assert.Throws<ArgumentException>(() => PrefixRequirement(16, [32, 16]));
+        _ = Assert.Throws<ArgumentException>(() => PrefixRequirement(16, [16, 16]));
     }
 
     /// <summary>The generic inspector accepts no IC, filename, PID, version, or hash routing input.</summary>
     [Fact]
     public void InspectionAuthorityHasNoInformationalRoutingParameters()
     {
+        System.Reflection.MethodInfo inspect = Assert.Single(
+            typeof(CompiledInputArtifactInspectionService)
+                .GetMethods(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public),
+            static method => method.Name == "Inspect");
         Type[] parameters =
         [
-            .. typeof(DeclaredPrefixInputInspector)
-            .GetMethod("Inspect", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
-            .GetParameters()
-            .Select(static parameter => parameter.ParameterType),
+            .. inspect.GetParameters().Select(static parameter => parameter.ParameterType),
         ];
 
-        Assert.Equal([typeof(DeclaredPrefixInputInspectionPolicy), typeof(ReadOnlyMemory<byte>)], parameters);
+        Assert.Equal([typeof(CompiledComposition), typeof(string), typeof(ReadOnlyMemory<byte>)], parameters);
     }
 
     /// <summary>The public use case obtains geometry and issue codes only from the compiled contract.</summary>
     [Fact]
     public void CompiledContractProjectionPreservesTypedHealthAndEvidence()
     {
-        CompiledInputContract contract = Contract(requiredEndExclusive: 16, expectedOuterLengths: [16]);
-
-        CompiledInputArtifactInspectionResult result =
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
-                contract,
-                "source-input",
-                Sequence(17));
+        CompiledInputArtifactInspectionResult result = Inspect(
+            PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
+            Sequence(17));
 
         Assert.Equal("source-input", result.AddressSpaceId);
-        Assert.Equal("source-slot", result.SlotId);
+        Assert.Equal("source-input-slot", result.SlotId);
         Assert.Equal(17, result.ActualLength);
         Assert.Equal(16, result.RequiredEndExclusive);
         Assert.Equal([16L], result.ExpectedOuterLengths);
+        var mutableExpectedLengths = (IList<long>)result.ExpectedOuterLengths;
+        Assert.True(mutableExpectedLengths.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() => mutableExpectedLengths[0] = 32);
         Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
         Assert.NotNull(result.AcceptedSnapshotSha256);
         Assert.Equal(ByteRange.FromStartEndExclusive(16, 17), result.IgnoredTrailingRange);
@@ -213,24 +231,9 @@ public sealed class DeclaredPrefixInputInspectorTests
     [Fact]
     public void CompiledContractProjectionRejectsExactLengthMismatch()
     {
-        var slot = new CompiledInputSlotRequirement(
-            "source-slot",
-            "source",
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"],
+        CompiledInputArtifactInspectionResult result = Inspect(
             new CompiledExactResolvedMapCapacityInputLengthRequirement(16),
-            new CompiledNoInputNormalization());
-        var contract = new CompiledInputContract(
-            [slot],
-            [new CompiledInputSpaceBinding(
-                "source-input",
-                slot.SlotId,
-                CompiledInputInstancePolicy.Singleton)]);
-
-        CompiledInputArtifactInspectionResult result =
-            CompiledInputArtifactInspectionService.Inspect(contract, "source-input", Sequence(17));
+            Sequence(17));
 
         Assert.Equal(16, result.RequiredEndExclusive);
         Assert.Equal([16L], result.ExpectedOuterLengths);
@@ -244,74 +247,73 @@ public sealed class DeclaredPrefixInputInspectorTests
             result.NextAction);
     }
 
-    /// <summary>Unknown spaces and non-declared-prefix rules cannot be inspected through this use case.</summary>
+    /// <summary>Unknown spaces cannot select a compiled inspection policy.</summary>
     [Fact]
     public void CompiledContractProjectionRejectsUnownedPolicySelection()
     {
-        CompiledInputContract declaredPrefix = Contract(16, [16]);
+        CompiledComposition declaredPrefix = Composition(PrefixRequirement(16, [16]));
         _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
+            CompiledInputArtifactInspectionService.Inspect(
                 declaredPrefix,
                 "other-input",
                 Sequence(16)));
-
-        var exactSlot = new CompiledInputSlotRequirement(
-            "source-slot",
-            "source",
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"],
-            new CompiledExactBytesInputLengthRequirement(16),
-            new CompiledNoInputNormalization());
-        var exactContract = new CompiledInputContract(
-            [exactSlot],
-            [new CompiledInputSpaceBinding(
-                "source-input",
-                exactSlot.SlotId,
-                CompiledInputInstancePolicy.Singleton)]);
-
-        _ = Assert.Throws<ArgumentException>(() =>
-            CompiledInputArtifactInspectionService.InspectDeclaredPrefix(
-                exactContract,
-                "source-input",
-                Sequence(16)));
     }
 
-    private static DeclaredPrefixInputInspectionPolicy Policy(
-        long requiredEndExclusive,
-        IEnumerable<long> expectedOuterLengths)
-    {
-        return new DeclaredPrefixInputInspectionPolicy(
-            requiredEndExclusive,
-            expectedOuterLengths,
-            ShortCode,
-            OuterLengthCode);
-    }
-
-    private static CompiledInputContract Contract(
+    private static CompiledSourceViewCoverageInputLengthRequirement PrefixRequirement(
         long requiredEndExclusive,
         IReadOnlyList<long> expectedOuterLengths)
     {
-        var slot = new CompiledInputSlotRequirement(
-            "source-slot",
-            "source",
-            CompiledInputArtifactClass.Auxiliary,
-            required: true,
-            CompiledInputSlotCardinality.ExactlyOne,
-            [".bin"],
-            new CompiledDeclaredPrefixWithWarningInputLengthRequirement(
-                requiredEndExclusive,
-                expectedOuterLengths,
-                ShortCode,
-                OuterLengthCode),
-            new CompiledNoInputNormalization());
-        return new CompiledInputContract(
-            [slot],
-            [new CompiledInputSpaceBinding(
-                "source-input",
-                slot.SlotId,
-                CompiledInputInstancePolicy.Singleton)]);
+        return new CompiledSourceViewCoverageInputLengthRequirement(
+            expectedOuterLengths,
+            OuterLengthCode,
+            requiredEndExclusive,
+            ShortCode);
+    }
+
+    private static CompiledInputArtifactInspectionResult Inspect(
+        CompiledInputLengthRequirement requirement,
+        ReadOnlyMemory<byte> sourceBytes)
+    {
+        return CompiledInputArtifactInspectionService.Inspect(
+            Composition(requirement),
+            "source-input",
+            sourceBytes);
+    }
+
+    private static CompiledComposition Composition(CompiledInputLengthRequirement requirement)
+    {
+        var plan = new CompositionPlan(
+            ImageInitialization.Blank("output-image", 16, 0),
+            [
+                new AddressSpace(
+                    "source-input",
+                    16,
+                    AddressSpaceMutability.Immutable,
+                    inputOversizePolicy: InputOversizePolicy.ExtractDeclaredRange),
+                new AddressSpace("output-image", 16, AddressSpaceMutability.Mutable),
+            ],
+            [
+                CompositionOperation.CopyRange(
+                    "copy-source",
+                    100,
+                    "source-input",
+                    new ByteRange(0, 16),
+                    "output-image",
+                    new ByteRange(0, 16),
+                    OverlapPolicy.Reject,
+                    "Copy the synthetic source."),
+            ]);
+        return CompiledCompositionTestFactory.Create(
+            plan,
+            new TestCompiledCompositionIdentity(
+                "declared-prefix-test",
+                "1.0.0",
+                "NT-TEST",
+                "standard",
+                ExperienceIds.StandardMerge,
+                CompositionKind.Merge),
+            "declared-prefix.bin",
+            inputLengthRequirement: requirement);
     }
 
     private static byte[] Sequence(int length)

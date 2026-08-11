@@ -29,6 +29,19 @@ public sealed class FirmwareMapResolutionTests
             resolved.FactProvenance.Select(static provenance => provenance.EffectiveKey));
     }
 
+    /// <summary>Verifies a mode outside the map's declared applicability is a closed no-match.</summary>
+    [Fact]
+    public void ResolveMapRejectsModeOutsideDeclaredApplicability()
+    {
+        FirmwareImageMap map = Map("map", []);
+
+        FirmwareMapResolutionResult result = Definition([map], []).ResolveMap(Inputs([], modeId: "other"));
+
+        Assert.Equal(FirmwareMapResolutionStatus.Rejected, result.Status);
+        Assert.Equal(FirmwareMapResolutionRejectionKind.NoMatchingMap, result.RejectionKind);
+        Assert.Null(result.ResolvedMap);
+    }
+
     /// <summary>Map-selected metadata that is not an applicability predicate remains available for later inspection.</summary>
     [Fact]
     public void ResolveMapForSelectionDoesNotExecuteInspectionOnlyMetadata()
@@ -38,15 +51,20 @@ public sealed class FirmwareMapResolutionTests
         FirmwareFamilyResolutionDefinition definition = Definition([map], [metadata]);
 
         _ = Assert.Throws<ArgumentNullException>(() =>
-            definition.ResolveMapWithinForSelection(Inputs([]), null!));
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            definition.ResolveMapWithinForSelection(
+            definition.ResolveMapWithinForProfile(
                 Inputs([]),
+                null!,
+                new HashSet<string>(StringComparer.Ordinal)));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            definition.ResolveMapWithinForProfile(
+                Inputs([]),
+                new HashSet<string>(StringComparer.Ordinal),
                 new HashSet<string>(StringComparer.Ordinal)));
 
-        FirmwareMapResolutionResult result = definition.ResolveMapWithinForSelection(
+        FirmwareMapResolutionResult result = definition.ResolveMapWithinForProfile(
             Inputs([]),
-            new HashSet<string>(["map"], StringComparer.Ordinal));
+            new HashSet<string>(["map"], StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal));
 
         Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
         ResolvedFirmwareImageMap resolved = Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap);
@@ -60,23 +78,23 @@ public sealed class FirmwareMapResolutionTests
         Assert.Equal(FirmwareMetadataStructureResolutionFailure.MissingArtifact, inspection.Failure);
     }
 
-    /// <summary>Verifies an absent map-selected artifact yields one exact missing-artifact requirement.</summary>
+    /// <summary>Verifies supplying a required map-selection artifact transitions pending resolution to unique.</summary>
     [Fact]
-    public void ResolveMapReportsCandidateSpecificMissingArtifact()
+    public void ResolveMapTransitionsFromPendingWhenRequiredArtifactIsSupplied()
     {
         FirmwareMetadataSet metadata = MetadataSet(Config("config", "tp-firmware"));
         FirmwareImageMap map = Map("map", [metadata]);
+        FirmwareFamilyResolutionDefinition definition = Definition([map], [metadata]);
 
-        FirmwareMapResolutionResult result = Definition([map], [metadata]).ResolveMap(Inputs(
+        FirmwareMapResolutionResult pending = definition.ResolveMap(Inputs(
             [new FirmwareArtifactPayload("dp-firmware", [0x00])]));
+        FirmwareMapResolutionResult unique = definition.ResolveMap(Inputs(
+            [new FirmwareArtifactPayload("tp-firmware", [0x02])]));
 
-        Assert.Equal(FirmwareMapResolutionStatus.Pending, result.Status);
-        Assert.Equal(
-            [new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "tp-firmware")],
-            result.PendingRequirements);
-        Assert.Null(result.ResolvedMap);
+        Assert.Equal(FirmwareMapResolutionStatus.Pending, pending.Status);
+        Assert.Null(pending.ResolvedMap);
+        Assert.Equal(FirmwareMapResolutionStatus.Unique, unique.Status);
+        Assert.Equal("map", Assert.IsType<ResolvedFirmwareImageMap>(unique.ResolvedMap).ImageMap.MapId);
     }
 
     /// <summary>Verifies an observed locator contradiction rejects a candidate even when another required artifact is absent.</summary>
@@ -93,7 +111,6 @@ public sealed class FirmwareMapResolutionTests
 
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, result.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.NoMatchingMap, result.RejectionKind);
-        Assert.Empty(result.PendingRequirements);
     }
 
     /// <summary>Verifies a known metadata contradiction rejects even when Common FW derivation is otherwise pending.</summary>
@@ -340,11 +357,7 @@ public sealed class FirmwareMapResolutionTests
         FirmwareMapResolutionResult result = Definition([matching, pending], [metadata]).ResolveMap(Inputs([]));
 
         Assert.Equal(FirmwareMapResolutionStatus.Pending, result.Status);
-        Assert.Equal(
-            [new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "tp-firmware")],
-            result.PendingRequirements);
+        Assert.Null(result.ResolvedMap);
     }
 
     /// <summary>Verifies a pending candidate outside the selected member does not block an existing unique map.</summary>
@@ -363,35 +376,7 @@ public sealed class FirmwareMapResolutionTests
             [metadata]).ResolveMap(Inputs([]));
 
         Assert.Equal(FirmwareMapResolutionStatus.Unique, result.Status);
-        Assert.Empty(result.PendingRequirements);
         Assert.Equal("matching", Assert.IsType<ResolvedFirmwareImageMap>(result.ResolvedMap).ImageMap.MapId);
-    }
-
-    /// <summary>Verifies pending requirements aggregate across viable candidates without duplicate artifact rows.</summary>
-    [Fact]
-    public void ResolveMapDeduplicatesPendingRequirementsAcrossCandidates()
-    {
-        FirmwareMetadataSet tpMetadata = MetadataSet("metadata-tp", Config("config-tp", "tp-firmware"));
-        FirmwareMetadataSet dpMetadata = MetadataSet("metadata-dp", Config("config-dp", "dp-firmware"));
-        FirmwareImageMap firstTp = Map("first-tp", [tpMetadata]);
-        FirmwareImageMap secondTp = Map("second-tp", [tpMetadata]);
-        FirmwareImageMap dp = Map("dp", [dpMetadata]);
-
-        FirmwareMapResolutionResult result = Definition(
-            [firstTp, secondTp, dp],
-            [tpMetadata, dpMetadata]).ResolveMap(Inputs([]));
-
-        Assert.Equal(FirmwareMapResolutionStatus.Pending, result.Status);
-        Assert.Equal(
-        [
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "dp-firmware"),
-            new FirmwareMapResolutionPendingRequirement(
-                FirmwareMapResolutionPendingKind.ArtifactMissing,
-                "tp-firmware"),
-        ],
-            result.PendingRequirements);
     }
 
     /// <summary>Verifies ambiguity wins over a third candidate whose result remains pending.</summary>
@@ -418,9 +403,10 @@ public sealed class FirmwareMapResolutionTests
         FirmwareFamilyResolutionDefinition definition = Definition([first, second], []);
 
         FirmwareMapResolutionResult unscoped = definition.ResolveMap(Inputs([]));
-        FirmwareMapResolutionResult scoped = definition.ResolveMapWithin(
+        FirmwareMapResolutionResult scoped = definition.ResolveMapWithinForProfile(
             Inputs([]),
-            new HashSet<string>(["second"], StringComparer.Ordinal));
+            new HashSet<string>(["second"], StringComparer.Ordinal),
+            new HashSet<string>(StringComparer.Ordinal));
 
         Assert.Equal(FirmwareMapResolutionStatus.Rejected, unscoped.Status);
         Assert.Equal(FirmwareMapResolutionRejectionKind.AmbiguousMaps, unscoped.RejectionKind);
@@ -441,22 +427,19 @@ public sealed class FirmwareMapResolutionTests
             ["capability-evidence"]);
         FirmwareMapFactKey key = new("NT00001", "map", FirmwareFactKind.Capability, "ab-code-evidence");
         var binding = new FirmwareMapFactBinding<FirmwareCapabilityFact>(
-            key,
-            key,
-            capability.CanonicalFactId,
-            capability,
             new FirmwareFactApplicability(
                 ["standard"],
                 TopologyRequirement.NoTopologyConstraint(),
                 32),
-            new FirmwareFactProvenance(key, key, [], capability.EvidenceRefs));
+            new FirmwareFactProvenance(key, capability, []));
         var definition = new FirmwareFamilyResolutionDefinition(
             "synthetic-family",
             "1.0.0",
             FamilyHash,
             [map],
             [],
-            [binding]);
+            [binding],
+            []);
 
         FirmwareMapResolutionResult result = definition.ResolveMap(Inputs([]));
 

@@ -1,5 +1,3 @@
-using System.Reflection;
-using System.Text.Json;
 using Json.Schema;
 
 namespace NvtFwCombiner.Infrastructure.Bundles;
@@ -13,20 +11,12 @@ internal static class ProfileBundlePackageTrustIndexSchema
     private const string ResourceName =
         "NvtFwCombiner.Infrastructure.Bundles.Schemas.profile-bundle-package-trust-index-v1.schema.json";
 
-    private static readonly Lazy<JsonSchema> LazySchema = new(LoadSchema);
-
-    internal static JsonSchema Schema => LazySchema.Value;
-
-    private static JsonSchema LoadSchema()
-    {
-        Assembly assembly = typeof(ProfileBundlePackageTrustIndexSchema).Assembly;
-        using Stream stream = assembly.GetManifestResourceStream(ResourceName) ??
-            throw new InvalidOperationException(
-                $"Embedded package trust-index schema resource '{ResourceName}' is missing.");
-        using var document = JsonDocument.Parse(stream);
-        return ProfileBundleSchemaValidator.ParseSchema(
+    private static readonly Lazy<JsonSchema> LazySchema = new(() =>
+        ProfileBundleSchemaValidator.LoadEmbeddedSchema(
+            typeof(ProfileBundlePackageTrustIndexSchema),
             ResourceName,
             SchemaId,
-            document.RootElement);
-    }
+            $"Embedded package trust-index schema resource '{ResourceName}' is missing."));
+
+    internal static JsonSchema Schema => LazySchema.Value;
 }

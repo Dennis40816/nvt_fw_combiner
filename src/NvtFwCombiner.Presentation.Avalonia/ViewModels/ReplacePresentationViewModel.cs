@@ -1,18 +1,21 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Owns Replace-page presentation state, commands, and workflow-specific lifetime.</summary>
 public sealed partial class ReplacePresentationViewModel : ObservableObject
 {
+    private readonly PresentationCompositionServices _compositionServices;
     private readonly ReplaceStateBindings _stateBindings;
 
     internal ReplacePresentationViewModel(
+        PresentationCompositionServices compositionServices,
         ReplaceStateBindings stateBindings,
-        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
     {
+        _compositionServices = compositionServices ??
+            throw new ArgumentNullException(nameof(compositionServices));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
         _ctrlRamFirmwareVersionMetadataReader = firmwareConfigMetadataReader ??
             throw new ArgumentNullException(nameof(firmwareConfigMetadataReader));

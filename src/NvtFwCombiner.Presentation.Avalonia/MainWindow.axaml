@@ -2,6 +2,7 @@
     x:Class="NvtFwCombiner.Presentation.Avalonia.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="using:NvtFwCombiner.Presentation.Avalonia.Behaviors"
     xmlns:converters="using:NvtFwCombiner.Presentation.Avalonia"
     xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
@@ -109,25 +110,33 @@
             </StackPanel>
           </Button>
           <Button
-              Classes="reportAction"
-              Command="{Binding Reports.ShowReportCommand}"
-              IsEnabled="{Binding Reports.CanOpenReport}"
-              ToolTip.Tip="{Binding Text.ReportModalActionLabel}">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+              Classes="iconButton"
+              AutomationProperties.LiveSetting="Polite"
+              AutomationProperties.Name="{Binding MessageCenter.MessageCenterAccessibleName}"
+              Command="{Binding MessageCenter.OpenCommand}"
+              ToolTip.Tip="{Binding Text.MessageCenterTooltip}">
+            <Grid Width="28" Height="24">
               <TextBlock
+                  HorizontalAlignment="Center"
                   VerticalAlignment="Center"
-                  FontSize="15"
+                  FontSize="17"
                   Text="▤" />
-              <StackPanel Grid.Column="1" Spacing="0">
+              <Border
+                  MinWidth="16"
+                  Height="16"
+                  Padding="3,0"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Background="{DynamicResource NfcDangerTextBrush}"
+                  CornerRadius="{DynamicResource NfcPillCornerRadius}"
+                  IsVisible="{Binding MessageCenter.HasActiveDiagnostics}">
                 <TextBlock
-                    FontSize="{DynamicResource NfcFontSize12}"
-                    FontWeight="SemiBold"
-                    Text="{Binding Reports.ReportActionLabel}" />
-                <TextBlock
-                    FontSize="{DynamicResource NfcFontSize10}"
-                    Opacity="0.82"
-                    Text="{Binding Reports.ReportActionStatus}" />
-              </StackPanel>
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="9"
+                    Foreground="White"
+                    Text="{Binding MessageCenter.ActiveBadgeCount}" />
+              </Border>
             </Grid>
           </Button>
         </StackPanel>
@@ -189,7 +198,7 @@
                         SelectedItem="{Binding SelectedReplaceMode, Mode=TwoWay}">
                       <ComboBox.ItemTemplate>
                         <DataTemplate>
-                          <TextBlock Text="{Binding Converter={x:Static converters:WorkbenchModeDisplayConverters.DisplayName}}" />
+                          <TextBlock Text="{Binding Converter={x:Static converters:WorkflowModeDisplayConverters.DisplayName}}" />
                         </DataTemplate>
                       </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -264,7 +273,7 @@
                       SelectedItem="{Binding SelectedMergeMode, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                       <DataTemplate>
-                        <TextBlock Text="{Binding Converter={x:Static converters:WorkbenchModeDisplayConverters.DisplayName}}" />
+                        <TextBlock Text="{Binding Converter={x:Static converters:WorkflowModeDisplayConverters.DisplayName}}" />
                       </DataTemplate>
                     </ComboBox.ItemTemplate>
                   </ComboBox>
@@ -323,44 +332,84 @@
             </Border>
           </Grid>
         </Button>
-        <Button
-            Classes="railAction primaryRailAction buildRailAction"
-            Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
-            AutomationProperties.HelpText="{Binding Merge.MergeReadinessStatus}"
-            AutomationProperties.Name="{Binding Text.BuildActionLabel}"
-            Click="BuildMergeButton_OnClick"
-            IsEnabled="{Binding Merge.CanBuildMerge}"
-            IsVisible="{Binding IsMergeVisible}">
-          <Grid ColumnDefinitions="*,44">
-            <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
-            <Border Grid.Column="1" Classes="railActionIconSlot">
-              <Path
-                  Width="18"
-                  Height="18"
-                  Classes="railActionIcon"
-                  Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
-            </Border>
-          </Grid>
-        </Button>
-        <Button
-            Classes="railAction primaryRailAction buildRailAction"
-            Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
-            AutomationProperties.HelpText="{Binding Replace.ReplaceReadinessStatus}"
-            AutomationProperties.Name="{Binding Text.BuildActionLabel}"
-            Click="BuildReplaceButton_OnClick"
-            IsEnabled="{Binding Replace.CanBuildReplace}"
-            IsVisible="{Binding IsReplaceVisible}">
-          <Grid ColumnDefinitions="*,44">
-            <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
-            <Border Grid.Column="1" Classes="railActionIconSlot">
-              <Path
-                  Width="18"
-                  Height="18"
-                  Classes="railActionIcon"
-                  Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
-            </Border>
-          </Grid>
-        </Button>
+        <Grid IsVisible="{Binding IsMergeVisible}">
+          <Button
+              Classes="railAction primaryRailAction buildRailAction"
+              Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+              AutomationProperties.HelpText="{Binding Merge.MergeReadinessStatus}"
+              AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              Click="BuildMergeButton_OnClick"
+              IsEnabled="{Binding Merge.CanBuildMerge}">
+            <Grid ColumnDefinitions="*,44">
+              <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
+              <Border Grid.Column="1" Classes="railActionIconSlot">
+                <Path
+                    Width="18"
+                    Height="18"
+                    Classes="railActionIcon"
+                    Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
+              </Border>
+            </Grid>
+          </Button>
+          <Border
+              Width="24"
+              Height="24"
+              Classes="warningSurface buildBlockerBadge"
+              Focusable="True"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              AutomationProperties.HelpText="{Binding MergeBuildBlockerText}"
+              AutomationProperties.Name="{Binding MergeBuildBlockerText}"
+              behaviors:FocusToolTipBehavior.IsEnabled="True"
+              IsVisible="{Binding HasMergeBuildBlocker}"
+              ToolTip.Tip="{Binding MergeBuildBlockerText}">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="!" />
+          </Border>
+        </Grid>
+        <Grid IsVisible="{Binding IsReplaceVisible}">
+          <Button
+              Classes="railAction primaryRailAction buildRailAction"
+              Classes.reducedMotion="{Binding IsReducedMotionEnabled}"
+              AutomationProperties.HelpText="{Binding Replace.ReplaceReadinessStatus}"
+              AutomationProperties.Name="{Binding Text.BuildActionLabel}"
+              Click="BuildReplaceButton_OnClick"
+              IsEnabled="{Binding Replace.CanBuildReplace}">
+            <Grid ColumnDefinitions="*,44">
+              <TextBlock Grid.Column="0" Classes="railActionLabel" Text="{Binding Text.BuildActionLabel}" />
+              <Border Grid.Column="1" Classes="railActionIconSlot">
+                <Path
+                    Width="18"
+                    Height="18"
+                    Classes="railActionIcon"
+                    Data="M4 8.5H11V5L16 10L11 15V11.5H4Z" />
+              </Border>
+            </Grid>
+          </Button>
+          <Border
+              Width="24"
+              Height="24"
+              Classes="warningSurface buildBlockerBadge"
+              Focusable="True"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              AutomationProperties.HelpText="{Binding ReplaceBuildBlockerText}"
+              AutomationProperties.Name="{Binding ReplaceBuildBlockerText}"
+              behaviors:FocusToolTipBehavior.IsEnabled="True"
+              IsVisible="{Binding HasReplaceBuildBlocker}"
+              ToolTip.Tip="{Binding ReplaceBuildBlockerText}">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Foreground="{DynamicResource NfcWarningTextBrush}"
+                Text="!" />
+          </Border>
+        </Grid>
     </StackPanel>
 
     <ContentControl
@@ -460,6 +509,17 @@
       <ContentControl.ContentTemplate>
         <DataTemplate DataType="vm:HexEditorWorkspaceViewModel">
           <views:HexEditorSaveModal IsVisible="{Binding IsSaveConfirmationOpen}" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
+
+    <ContentControl
+        x:Name="MessageCenterModalHost"
+        Grid.RowSpan="5"
+        IsVisible="{Binding MessageCenter.IsOpen}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:MessageCenterViewModel">
+          <views:MessageCenterModal />
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>

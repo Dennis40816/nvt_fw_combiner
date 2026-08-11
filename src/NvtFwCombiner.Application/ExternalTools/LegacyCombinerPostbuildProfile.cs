@@ -1,3 +1,6 @@
+using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Domain.Composition;
+
 namespace NvtFwCombiner.Application.ExternalTools;
 
 /// <summary>Postbuild command profile for one IC family.</summary>
@@ -8,6 +11,7 @@ public sealed class LegacyCombinerPostbuildProfile
     private readonly LegacyCombinerPostbuildCommand[]? _twoChipCommands;
     private readonly LegacyCombinerPostbuildCommand[]? _threeChipCommands;
     private readonly LegacyCombinerPostbuildPlanSelector[] _planSelectors;
+    private readonly CompiledPlanTemplate[] _compiledPlans;
 
     /// <summary>Creates a postbuild command profile.</summary>
     public LegacyCombinerPostbuildProfile(
@@ -69,6 +73,10 @@ public sealed class LegacyCombinerPostbuildProfile
         EffectiveCommonFwVersion = effectiveCommonFwVersion ?? LegacyCombinerCommonFwVersion.MinimumSupported;
         FirmwareConfigWriteRoute = firmwareConfigWriteRoute;
         DiffDlmPolicy = diffDlmPolicy;
+        _compiledPlans =
+        [
+            .. _planSelectors.Select(selector => new CompiledPlanTemplate(this, selector)),
+        ];
     }
 
     /// <summary>Processor id referenced by composition profiles.</summary>
@@ -115,6 +123,154 @@ public sealed class LegacyCombinerPostbuildProfile
 
     /// <summary>Optional canonical count-dependent DiffDLM preservation policy.</summary>
     public LegacyCombinerDiffDlmPolicy? DiffDlmPolicy { get; }
+
+    /// <summary>Resolves one already-compiled command shape from IC-number context.</summary>
+    public LegacyCombinerPostbuildCommandPlan ResolvePlan(
+        IcNumberSelection? icNumberSelection,
+        int? reportedChipCount = null)
+    {
+        LegacyCombinerPostbuildPlanSelector selector = ResolveSelector(icNumberSelection);
+        int topologyCount = icNumberSelection is null
+            ? 1
+            : selector.ResolveTopologyCount(icNumberSelection, reportedChipCount);
+        return ResolvePlan(selector, topologyCount);
+    }
+
+    /// <summary>Returns the reviewed minimum-count binding of one owned compiled selector.</summary>
+    public LegacyCombinerPostbuildCommandPlan ResolvePlan(LegacyCombinerPostbuildPlanSelector selector)
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return ResolvePlan(selector, selector.MinimumCount);
+    }
+
+    /// <summary>Binds an exact topology count to an owned, already-compiled command shape.</summary>
+    public LegacyCombinerPostbuildCommandPlan ResolvePlan(
+        LegacyCombinerPostbuildPlanSelector selector,
+        int topologyCount)
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        return _compiledPlans.SingleOrDefault(candidate =>
+                ReferenceEquals(candidate.Selector, selector))?.Bind(topologyCount) ??
+            throw new ArgumentException(
+                "The selected postbuild plan selector must belong to the supplied profile.",
+                nameof(selector));
+    }
+
+    internal bool Owns(LegacyCombinerPostbuildCommandPlan plan)
+    {
+        return ReferenceEquals(plan.Profile, this) &&
+            _compiledPlans.Any(template => template.Owns(plan));
+    }
+
+    private LegacyCombinerPostbuildPlanSelector ResolveSelector(IcNumberSelection? selection)
+    {
+        if (selection is null)
+        {
+            return _planSelectors.Single(static selector =>
+                selector.Kind == LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
+        }
+
+        LegacyCombinerPostbuildPlanSelector[] matches =
+        [
+            .. _planSelectors.Where(selector => selector.Matches(selection)),
+        ];
+        return matches.Length == 1
+            ? matches[0]
+            : throw new ArgumentException(
+                $"IC number selection '{(selection.Parts.Count == 0 ? "<empty>" : selection.Parts[^1])}' is not supported by postbuild profile '{ProcessorId}'.");
+    }
+
+    internal sealed class CompiledPlanTemplate
+    {
+        private readonly CompiledCommandShape _invariantShape;
+        private readonly Dictionary<int, CompiledCommandShape>? _countedShapes;
+        private readonly LegacyCombinerPostbuildProfile _profile;
+
+        internal CompiledPlanTemplate(
+            LegacyCombinerPostbuildProfile profile,
+            LegacyCombinerPostbuildPlanSelector selector)
+        {
+            _profile = profile;
+            Selector = selector;
+            if (selector.Branch == LegacyCombinerPostbuildBranch.Cascade &&
+                profile.DiffDlmPolicy is { } policy)
+            {
+                _countedShapes = Enumerable.Range(
+                        Math.Max(selector.MinimumCount, policy.MinimumIcCount),
+                        Math.Min(selector.MaximumCount, policy.MaximumIcCount) -
+                        Math.Max(selector.MinimumCount, policy.MinimumIcCount) + 1)
+                    .ToDictionary(
+                        static count => count,
+                        count => CompileShape(profile, selector, count));
+                _invariantShape = _countedShapes[selector.MinimumCount];
+            }
+            else
+            {
+                _invariantShape = CompileShape(profile, selector, selector.MinimumCount);
+            }
+        }
+
+        internal LegacyCombinerPostbuildPlanSelector Selector { get; }
+
+        internal LegacyCombinerPostbuildCommandPlan Bind(int topologyCount)
+        {
+            if (!Selector.MatchesReportedChipCount(topologyCount))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(topologyCount),
+                    topologyCount,
+                    "Topology count is outside the selected postbuild plan.");
+            }
+
+            CompiledCommandShape shape = _countedShapes is null
+                ? _invariantShape
+                : _countedShapes.TryGetValue(topologyCount, out CompiledCommandShape? counted)
+                    ? counted
+                    : throw CreateUnsupportedCount(topologyCount);
+            return new LegacyCombinerPostbuildCommandPlan(
+                _profile,
+                this,
+                topologyCount,
+                shape.Commands,
+                shape.ProtocolPlan);
+        }
+
+        internal bool Owns(LegacyCombinerPostbuildCommandPlan plan)
+        {
+            if (!ReferenceEquals(plan.Template, this))
+            {
+                return false;
+            }
+
+            CompiledCommandShape shape = _countedShapes is null
+                ? _invariantShape
+                : _countedShapes[plan.TopologyCount];
+            return ReferenceEquals(plan.ProtocolPlan, shape.ProtocolPlan) &&
+                ReferenceEquals(plan.Commands, shape.Commands);
+        }
+
+        private static CompiledCommandShape CompileShape(
+            LegacyCombinerPostbuildProfile profile,
+            LegacyCombinerPostbuildPlanSelector selector,
+            int topologyCount)
+        {
+            IReadOnlyList<LegacyCombinerPostbuildCommand> commands =
+                LegacyCombinerPostbuildPlanCompiler.ResolveCommands(profile, selector, topologyCount);
+            return new CompiledCommandShape(
+                commands,
+                LegacyCombinerPostbuildPlanCompiler.CompileProtocol(profile, commands));
+        }
+
+        private ArgumentOutOfRangeException CreateUnsupportedCount(int topologyCount)
+        {
+            _ = _profile.DiffDlmPolicy!.GetActiveRecordCount(topologyCount);
+            throw new System.Diagnostics.UnreachableException();
+        }
+
+        private sealed record CompiledCommandShape(
+            IReadOnlyList<LegacyCombinerPostbuildCommand> Commands,
+            ExternalProcessorProtocolPlan ProtocolPlan);
+    }
 
     private static LegacyCombinerPostbuildPlanSelector[] BuildPlanSelectors(
         IEnumerable<LegacyCombinerPostbuildPlanSelector>? planSelectors)

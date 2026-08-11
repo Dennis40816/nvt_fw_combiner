@@ -23,11 +23,30 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("No `File.ReadAllBytes` or `Process.Start` in ViewModels", boundaries, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies Presentation uses Application only for approved typed contracts, never firmware catalogs.</summary>
+    /// <summary>Verifies Presentation consumes focused Application contracts, never concrete firmware adapters.</summary>
     [Fact]
-    public void PresentationUsesBootstrapFacadeInsteadOfFirmwareCatalogs()
+    public void PresentationUsesFocusedApplicationContractsInsteadOfConcreteAdapters()
     {
         string project = ReadText("src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj");
+        string compositionRoot = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/PresentationCompositionServices.cs");
+        string hostServices = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/PresentationHostServices.cs");
+        string desktopProgram = ReadText(
+            "src/NvtFwCombiner.Desktop/Program.cs");
+        string applicationContracts = ReadText(
+            "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs");
+        string applicationGlobalUsing = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ApplicationCompositionGlobalUsings.cs");
+        string presentationConsumers = ReadPresentationSources(
+            "PresentationCompositionServices.cs",
+            "PresentationHostServices.cs");
+        string injectedViewModels = string.Join(
+            Environment.NewLine,
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowSessionPresentationViewModel.cs"),
+            ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/WorkflowContextSetupViewModel.cs"));
         string progressProjection = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/CompositionRunProgressViewModel.cs");
         string progressResources = ReadText(
@@ -59,7 +78,6 @@ public sealed partial class RepositoryBoundaryTests
             "ReportReviewViewModel.OutputDifferences.cs");
         string[] forbiddenTokens =
         [
-            "NvtFwCombiner.Application.Composition",
             "NvtFwCombiner.Application.ExternalTools",
             "NvtFwCombiner.Application.FlashMaps",
             "NvtFwCombiner.Domain.",
@@ -74,26 +92,69 @@ public sealed partial class RepositoryBoundaryTests
             "PostbuildSetup_",
         ];
 
-        Assert.Contains("NvtFwCombiner.Bootstrap.csproj", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("NvtFwCombiner.Bootstrap.csproj", project, StringComparison.Ordinal);
         Assert.Contains("NvtFwCombiner.Application.csproj", project, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Domain.csproj", project, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Infrastructure.csproj", project, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles.csproj", project, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionService", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionService", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("ICompositionCapabilityExperience", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("IStandardMergeAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("IAbMergeAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("IDpReplaceAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("IGeneralAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("ICtrlRamAuthoring", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("ICompositionOutputNaming", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("ICompositionExecution", compositionRoot, StringComparison.Ordinal);
+        Assert.Contains("interface ICompositionCapabilityExperience", applicationContracts, StringComparison.Ordinal);
+        Assert.Contains("interface ICtrlRamAuthoring", applicationContracts, StringComparison.Ordinal);
+        Assert.Contains("interface ICompositionOutputNaming", applicationContracts, StringComparison.Ordinal);
+        Assert.Contains("interface ICompositionExecution", applicationContracts, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.Execution", presentationConsumers, StringComparison.Ordinal);
+        Assert.Contains("_compositionServices.OutputNaming", presentationConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("_compositionServices.AbMergeDeliveryPlanning", presentationConsumers, StringComparison.Ordinal);
+        Assert.DoesNotContain("_compositionServices.Memory", presentationConsumers, StringComparison.Ordinal);
+        Assert.Contains("public sealed class PresentationCompositionServices", compositionRoot, StringComparison.Ordinal);
+        Assert.DoesNotContain("static class PresentationCompositionServices", compositionRoot, StringComparison.Ordinal);
+        Assert.DoesNotContain("PresentationCompositionServices.", presentationConsumers, StringComparison.Ordinal);
+        Assert.Contains("CompositionHostServices", desktopProgram, StringComparison.Ordinal);
+        Assert.Contains("PresentationHostServices", hostServices, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionHostServices", presentationConsumers, StringComparison.Ordinal);
+        Assert.Equal(4, CountOccurrences(
+            injectedViewModels,
+            "private readonly PresentationCompositionServices _compositionServices;"));
+        string[] concreteAdapterTokens =
+        [
+            "CanonicalCapabilityProjection",
+            "CanonicalAuthoringAdapter",
+            "CompositionAuthoringSessionAdapter",
+            "CompositionExecutionAdapter",
+            "CompositionMemoryProjection",
+            "FirmwareInspectionAdapter",
+            "CompositionOutputNaming.",
+        ];
+        foreach (string token in concreteAdapterTokens)
+        {
+            Assert.DoesNotContain(token, presentationConsumers, StringComparison.Ordinal);
+        }
+
         Assert.Contains("NvtFwCombiner.Application.HexEditor", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("NvtFwCombiner.Application.Composition", progressProjection, StringComparison.Ordinal);
-        Assert.Contains("NvtFwCombiner.Application.Composition", progressResources, StringComparison.Ordinal);
-        Assert.Contains("NvtFwCombiner.Application.Composition", progressConsumer, StringComparison.Ordinal);
+        Assert.Contains("global using NvtFwCombiner.Application.Composition", applicationGlobalUsing, StringComparison.Ordinal);
+        Assert.Contains("CompositionRunPhase", progressProjection, StringComparison.Ordinal);
+        Assert.Contains("CompositionRunPhase", progressResources, StringComparison.Ordinal);
+        Assert.Contains("CompositionRunProgressFeed", progressConsumer, StringComparison.Ordinal);
         Assert.Contains("CompositionRunInspectionSnapshot", inspectionProjection, StringComparison.Ordinal);
-        Assert.Contains("NvtFwCombiner.Application.Composition", inspectionProjection, StringComparison.Ordinal);
         foreach (string token in forbiddenTokens)
         {
-            Assert.DoesNotContain(token, presentationSource, StringComparison.Ordinal);
-            if (!string.Equals(token, "NvtFwCombiner.Application.Composition", StringComparison.Ordinal))
+            if (!StringComparer.Ordinal.Equals(token, "NvtFwCombiner.Domain."))
             {
-                Assert.DoesNotContain(token, progressProjection, StringComparison.Ordinal);
-                Assert.DoesNotContain(token, progressResources, StringComparison.Ordinal);
-                Assert.DoesNotContain(token, progressConsumer, StringComparison.Ordinal);
+                Assert.DoesNotContain(token, presentationSource, StringComparison.Ordinal);
+            }
+            Assert.DoesNotContain(token, progressProjection, StringComparison.Ordinal);
+            Assert.DoesNotContain(token, progressResources, StringComparison.Ordinal);
+            Assert.DoesNotContain(token, progressConsumer, StringComparison.Ordinal);
+            if (!StringComparer.Ordinal.Equals(token, "NvtFwCombiner.Domain."))
+            {
                 Assert.DoesNotContain(token, inspectionProjection, StringComparison.Ordinal);
             }
         }
@@ -104,7 +165,7 @@ public sealed partial class RepositoryBoundaryTests
     public void FileRevealProcessAuthorityStaysOutsidePresentation()
     {
         string port = ReadText("src/NvtFwCombiner.Application/Ports/IFileRevealService.cs");
-        string hostFactory = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchHostServices.cs");
+        string hostFactory = ReadText("src/NvtFwCombiner.Bootstrap/CompositionHostServices.cs");
         string adapter = ReadText("src/NvtFwCombiner.Infrastructure/Shell/WindowsExplorerFileRevealService.cs");
         string presentation = string.Join(
             Environment.NewLine,

@@ -53,6 +53,22 @@ def test_process_invalid_json_has_stable_exit_and_no_traceback() -> None:
     assert response["error"]["code"] == "CRC_PROTOCOL_INVALID_JSON"
 
 
+def test_process_bounds_error_message_for_long_unsupported_value() -> None:
+    request = valid_request()
+    request["protocolVersion"] = "x" * 4096
+
+    completed = run_worker(request)
+
+    assert completed.returncode == 3
+    assert completed.stderr == b""
+    assert completed.stdout.count(b"\n") == 1
+    assert len(completed.stdout) <= 64 * 1024
+    response = json.loads(completed.stdout)
+    assert response["requestId"] == "process-test"
+    assert response["error"]["code"] == "CRC_PROTOCOL_UNSUPPORTED_VERSION"
+    assert len(response["error"]["message"]) == 512
+
+
 def test_process_replays_identically_except_no_nondeterministic_fields() -> None:
     first = run_worker(valid_request())
     second = run_worker(valid_request())

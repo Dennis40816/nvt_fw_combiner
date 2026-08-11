@@ -1,4 +1,4 @@
-using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -99,14 +99,14 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerDiffDlmPolicy? maskedDiffDlm =
                 plan.Branch == LegacyCombinerPostbuildBranch.Cascade
                     ? profile.DiffDlmPolicy
                     : null;
             string[] expectedFileNames =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                     .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
                     .Where(block => maskedDiffDlm is null || !maskedDiffDlm.IsIndependentNfBlock(block))
                     .Select(block => block.SourceFileName)
@@ -208,7 +208,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             Assert.True(BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMap));
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerBlockArgument[] sourceBlocks =
             [
                 .. plan.Commands
@@ -294,13 +294,13 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
                 profile.IcId,
                 selection,
                 null,
                 TpFlashMapRegionKind.CtrlRam);
-            foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
+            foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan))
             {
                 Assert.Contains(
                     regions,
@@ -339,22 +339,22 @@ public sealed class BuiltInTpFlashMapCatalogTests
     [Fact]
     public void NumberSelectionChoicesGroupEquivalentCascadeAliases()
     {
-        IReadOnlyList<IcNumberChoice> nt51932 = IcNumberChoicePolicy.GetNumberSelectionChoices(
+        IReadOnlyList<CapabilityNumberChoice> nt51932 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51932"));
-        IReadOnlyList<IcNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
+        IReadOnlyList<CapabilityNumberChoice> nt51927 = IcNumberChoicePolicy.GetNumberSelectionChoices(
             LegacyCombinerPostbuildCatalog.GetProfiles("NT51927"));
 
         Assert.Equal(
             [
-                new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("cascade_2to8", "2–8 IC"),
+                new CapabilityNumberChoice("single", "1 IC"),
+                new CapabilityNumberChoice("cascade_2to8", "2–8 IC"),
             ],
             nt51932);
         Assert.Equal(
             [
-                new IcNumberChoice("single", "1 IC"),
-                new IcNumberChoice("2", "2 IC"),
-                new IcNumberChoice("3", "3 IC"),
+                new CapabilityNumberChoice("single", "1 IC"),
+                new CapabilityNumberChoice("2", "2 IC"),
+                new CapabilityNumberChoice("3", "3 IC"),
             ],
             nt51927);
     }

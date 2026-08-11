@@ -50,8 +50,6 @@ internal sealed record ProfileBundleEntry
 /// <summary>Immutable manifest semantics before bundle-root and entry trust verification.</summary>
 internal sealed class ProfileBundleManifest
 {
-    private readonly ProfileBundleEntry[] _entries;
-
     internal ProfileBundleManifest(
         string bundleId,
         string bundleVersion,
@@ -64,18 +62,18 @@ internal sealed class ProfileBundleManifest
         ArgumentException.ThrowIfNullOrWhiteSpace(contentHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(trustAnchorBindingId);
         ArgumentNullException.ThrowIfNull(entries);
-        _entries = [.. entries];
-        if (_entries.Length == 0 || _entries.Any(static entry => entry is null))
+        ProfileBundleEntry[] entrySnapshot = [.. entries];
+        if (entrySnapshot.Length == 0 || entrySnapshot.Any(static entry => entry is null))
         {
             throw new ArgumentException("Bundle manifests require non-null entries.", nameof(entries));
         }
 
-        Array.Sort(_entries, static (left, right) => StringComparer.Ordinal.Compare(left.EntryId, right.EntryId));
+        Array.Sort(entrySnapshot, static (left, right) => StringComparer.Ordinal.Compare(left.EntryId, right.EntryId));
         BundleId = bundleId;
         BundleVersion = bundleVersion;
         ContentHash = contentHash;
         TrustAnchorBindingId = trustAnchorBindingId;
-        Entries = Array.AsReadOnly(_entries);
+        Entries = Array.AsReadOnly(entrySnapshot);
     }
 
     internal string BundleId { get; }

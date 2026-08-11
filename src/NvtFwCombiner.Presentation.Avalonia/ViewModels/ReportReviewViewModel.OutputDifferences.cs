@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Contracts.Reports;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -332,9 +331,9 @@ public sealed partial class ReportReviewViewModel
     {
         return classification switch
         {
-            WorkbenchOutputDifferenceClassifications.DeclaredReplacement => T(language, "replacement", "替換"),
-            WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader => T(language, "CRC/header", "CRC/header"),
-            WorkbenchOutputDifferenceClassifications.Unexpected => T(language, "unexpected", "意外"),
+            OutputDifferenceClassifications.DeclaredReplacement => T(language, "replacement", "替換"),
+            OutputDifferenceClassifications.PostbuildCrcHeader => T(language, "CRC/header", "CRC/header"),
+            OutputDifferenceClassifications.Unexpected => T(language, "unexpected", "意外"),
             _ => classification,
         };
     }
@@ -398,7 +397,7 @@ public sealed partial class ReportReviewViewModel
         return GetBool(difference, "IsAccepted") &&
             !string.Equals(
                 classification,
-                WorkbenchOutputDifferenceClassifications.Unexpected,
+                OutputDifferenceClassifications.Unexpected,
                 StringComparison.Ordinal);
     }
 
@@ -421,9 +420,9 @@ public sealed partial class ReportReviewViewModel
     {
         return classification switch
         {
-            WorkbenchOutputDifferenceClassifications.DeclaredReplacement => T(language, "Declared replacement", "宣告替換區段"),
-            WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader => T(language, "Header / CRC refresh", "Header / CRC refresh"),
-            WorkbenchOutputDifferenceClassifications.Unexpected => T(language, "Unexpected range", "非預期區段"),
+            OutputDifferenceClassifications.DeclaredReplacement => T(language, "Declared replacement", "宣告替換區段"),
+            OutputDifferenceClassifications.PostbuildCrcHeader => T(language, "Header / CRC refresh", "Header / CRC refresh"),
+            OutputDifferenceClassifications.Unexpected => T(language, "Unexpected range", "非預期區段"),
             _ => classification,
         };
     }
@@ -438,8 +437,8 @@ public sealed partial class ReportReviewViewModel
             ? T(language, "Not accepted by the selected profile; review before release.", "所選 profile 未接受此差異；release 前必須審查。")
             : classification switch
             {
-                WorkbenchOutputDifferenceClassifications.DeclaredReplacement => T(language, "Expected replacement bytes copied by this run.", "本次執行預期複製的 replacement bytes。"),
-                WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader => T(
+                OutputDifferenceClassifications.DeclaredReplacement => T(language, "Expected replacement bytes copied by this run.", "本次執行預期複製的 replacement bytes。"),
+                OutputDifferenceClassifications.PostbuildCrcHeader => T(
                     language,
                     $"Expected {NormalizePostbuildSectionForReason(sectionLabel)} update written by postbuild.",
                     $"Postbuild 預期更新 {NormalizePostbuildSectionForReason(sectionLabel)}。"),

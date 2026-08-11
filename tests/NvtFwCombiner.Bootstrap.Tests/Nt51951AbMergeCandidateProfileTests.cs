@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.V2;
@@ -28,8 +27,8 @@ public sealed class Nt51951AbMergeCandidateProfileTests
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         Assert.True(composition.IsV2AbFunctionOpenCandidate);
         Assert.Equal(
-            "6a5888486d14dc81df85f30bb5529816919d31993c0001580fa0479fde777e97",
-            composition.IntegrityFingerprint);
+            "f29aff9ccf4159cd00cf37bfa80b1ab3cb357fe3d783ec0e42d5c6e560e13247",
+            composition.CompilationFingerprint);
         Assert.Equal("nt51951-ab-merge-1024k", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, details.Provenance.Promotion.Stage);
         Assert.Equal(
@@ -88,7 +87,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
             "ab-candidate",
             composition,
             CreateRuntimeBindings(),
-            composition.DefaultOutputFileName);
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate);
 
         Assert.Same(composition, request.CompiledComposition);
     }
@@ -98,8 +97,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
     public void CandidateProfileRejectsHiddenTopologySelection()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51951-ab-candidate");
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
             "0.3.0",
             "NT51951",
@@ -169,8 +167,7 @@ public sealed class Nt51951AbMergeCandidateProfileTests
 
     private static CompiledComposition CompileCandidate(TempWorkspace workspace)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, BundleDirectory, BundleContentHash).Compile(
             "nt51951-ab-merge",
             "0.3.0",
             "NT51951",

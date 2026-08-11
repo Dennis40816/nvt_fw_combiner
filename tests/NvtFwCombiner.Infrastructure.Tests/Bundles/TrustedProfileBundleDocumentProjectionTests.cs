@@ -120,7 +120,7 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
 
         TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
 
-        Assert.Equal(8, bundle.Entries.Count);
+        Assert.Equal(8, bundle.Manifest.Entries.Count);
         _ = Assert.Single(projection.Families);
         _ = Assert.Single(projection.Profiles);
     }

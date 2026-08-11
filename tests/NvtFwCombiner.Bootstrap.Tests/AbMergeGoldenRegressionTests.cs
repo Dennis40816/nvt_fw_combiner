@@ -422,8 +422,7 @@ public sealed class AbMergeGoldenRegressionTests
         long mapCapacity)
     {
         V2CompositionPlanCompileResult compilation = StringComparer.Ordinal.Equals(icId, "NT51950")
-            ? TrustedV2CompositionCompiler.Compile(
-                catalog,
+            ? catalog.Compile(
                 profileId,
                 profileVersion,
                 icId,
@@ -431,8 +430,7 @@ public sealed class AbMergeGoldenRegressionTests
                 mapCapacity,
                 new TopologySelection(1, "1 IC", TopologySelectionSource.Requested, "test"),
                 [])
-            : TrustedV2CompositionCompiler.Compile(
-                catalog,
+            : catalog.Compile(
                 profileId,
                 profileVersion,
                 icId,

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/nfc/schemas/canonical-capability-policy-v1.schema.json",
+  "title": "NVT FW Combiner Canonical Capability Policy 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "catalogId", "catalogVersion", "issuedOn", "routes"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "catalogId": { "const": "canonical-capability-policy" },
+    "catalogVersion": { "$ref": "#/$defs/semver" },
+    "issuedOn": { "$ref": "#/$defs/isoDate" },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/route" }
+    }
+  },
+  "$defs": {
+    "nonBlank": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "isoDate": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "routeId": {
+      "type": "string",
+      "pattern": "^route-[a-z0-9-]+$"
+    },
+    "decisionBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decisionId", "routeId", "capabilityFingerprint", "value", "sourceReference"],
+      "properties": {
+        "decisionId": { "$ref": "#/$defs/nonBlank" },
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "value": { "$ref": "#/$defs/nonBlank" },
+        "sourceReference": { "$ref": "#/$defs/nonBlank" }
+      }
+    },
+    "authoringDecision": {
+      "allOf": [
+        { "$ref": "#/$defs/decisionBase" },
+        { "properties": { "value": { "enum": ["available", "unavailable"] } } }
+      ]
+    },
+    "publicationDecision": {
+      "allOf": [
+        { "$ref": "#/$defs/decisionBase" },
+        { "properties": { "value": { "enum": ["supported", "candidate", "internal", "test-only"] } } }
+      ]
+    },
+    "evidenceDecision": {
+      "allOf": [
+        { "$ref": "#/$defs/decisionBase" },
+        { "properties": { "value": { "enum": ["direct-golden", "approved-alias", "synthetic-oracle", "contract-only", "missing"] } } }
+      ]
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "icId",
+        "workflowId",
+        "icCountVariant",
+        "mapVariant",
+        "routeId",
+        "capabilityFingerprint",
+        "authoring",
+        "publication",
+        "evidence"
+      ],
+      "properties": {
+        "icId": { "type": "string", "pattern": "^NT[0-9]{5}$" },
+        "workflowId": {
+          "enum": ["standard-merge", "ab-merge", "dp-replace", "ctrlram-replace", "general-merge", "general-replace"]
+        },
+        "icCountVariant": { "$ref": "#/$defs/nonBlank" },
+        "mapVariant": { "$ref": "#/$defs/nonBlank" },
+        "routeId": { "$ref": "#/$defs/routeId" },
+        "capabilityFingerprint": { "$ref": "#/$defs/sha256" },
+        "authoring": { "$ref": "#/$defs/authoringDecision" },
+        "publication": { "$ref": "#/$defs/publicationDecision" },
+        "evidence": { "$ref": "#/$defs/evidenceDecision" }
+      }
+    }
+  }
+}

@@ -1,7 +1,5 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
-using NvtFwCombiner.Application.Composition;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -14,7 +12,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CompositionProgressPrecedesBackgroundRunWork()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         int eventSequence = 0;
         int progressSequence = 0;
         int workerSequence = 0;
@@ -146,7 +144,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CancellingPlanningRunStopsProgressObserver()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.IsReducedMotionEnabled = true;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         bool usedStaticProgress = false;
@@ -181,7 +179,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ActiveRunKeepsProgressContextAcrossNavigation()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -230,10 +228,10 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ActiveRunDisplaysItsCapturedDeviceContext()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
         var workerStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseWorker = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         string activeContextLabel = string.Empty;
@@ -284,7 +282,7 @@ public sealed partial class ShellViewModelTests
 
                 startNotifications = [.. notifications];
                 viewModel.WorkflowSession.SelectedIc = "NT51927";
-                viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+                viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
                 activeContextLabel = viewModel.RunSession.ActiveRunContextLabel;
                 activeDeviceStatus = viewModel.WorkflowSession.DeviceContextStatus;
                 selectionWasReadOnly = !viewModel.WorkflowSession.IsDeviceContextSelectionVisible;
@@ -330,42 +328,35 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-progress-observer-fault");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
-        AuthoringMappingState mapping = WorkbenchCompositionService.CreateGeneralMergeAuthoringState(
+        AuthoringMappingState mapping = GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
             "map-1",
             sourcePath,
             "0x0",
             "0x4",
             "0x4");
-        Assert.True(WorkbenchCompositionService.TryCreateGeneralMergeAuthoringDraft(
+        Assert.True(GeneralAuthoringMappingUseCase.TryCreateGeneralMergeAuthoringDraft(
             [mapping],
             out GeneralMappingDraftState? mappingsDraft,
             out _));
-        Assert.True(WorkbenchCompositionService.TryResolveGeneralMergeOutputInitializer(
+        Assert.True(GeneralMergeAuthoringUseCase.TryResolveOutputInitializer(
             "0x10",
             outputFillByte: null,
-            out WorkbenchGeneralMergeInitializer? initializer));
-        GeneralMergeDraftState draft = WorkbenchCompositionService.CreateGeneralMergeDraft(
+            out GeneralMergeInitializer? initializer));
+        GeneralMergeDraftState draft = GeneralMergeAuthoringUseCase.CreateDraft(
             initializer!,
             mappingsDraft!);
-        AuthoringSessionState session = MergeAuthoringSessionSet.CreateEphemeral(
+        var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
-        AuthoringSlotInspectionStartResult started =
-            WorkbenchCompositionService.BeginGeneralMergeSelectedFileInspection(
-                session, "NT51926", draft, "map-1", observedLength: 4);
-        GeneralSelectedFileInspectionResult inspection =
-            await WorkbenchCompositionService.InspectGeneralSelectedFileAsync(
-                "map-1",
-                sourcePath,
-                started.Snapshot!.AuthoringRevision,
-                expectedLength: 4,
+        GeneralAuthoringSessionPreparation prepared =
+            await TestHost.GeneralAuthoring
+                .PrepareMergeSessionAsync(
+                session,
+                "NT51926",
+                draft,
                 TestContext.Current.CancellationToken);
-        Assert.True(session.TryAcceptSlotFileInspection(
-            started.Lease!, inspection.Inspection!).Succeeded);
-        draft = Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot!.DraftState);
-        Assert.NotNull(WorkbenchCompositionService.GetGeneralMergeActionReadiness(
-            session, "NT51926", draft));
-        ActiveSessionSnapshot acceptedSession = session.CurrentSnapshot!;
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues));
+        ActiveSessionSnapshot acceptedSession = prepared.AcceptedSession!;
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.RunSession.CompositionProgress.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(CompositionRunProgressViewModel.CurrentPhase))
@@ -380,10 +371,11 @@ public sealed partial class ShellViewModelTests
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 viewModel.RunSession.RunCompositionAsync(
                     build: false,
-                    (progress, cancellationToken) => WorkbenchCompositionService.RunGeneralMergeAcceptedSessionWithProgressAsync(
-                        "NT51926",
-                        acceptedSession,
-                        build: false,
+                    (progress, cancellationToken) => TestHost.CompositionExecution.ExecuteAsync(
+                        new AcceptedCompositionExecutionRequest(
+                            acceptedSession,
+                            new Dictionary<string, string>(StringComparer.Ordinal),
+                            build: false),
                         progress,
                         cancellationToken),
                     (_, _) => { }));
@@ -400,10 +392,10 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-snapshot");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.GeneralMergeOutputLength = "0x10";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";
@@ -413,8 +405,15 @@ public sealed partial class ShellViewModelTests
 
         Task previewTask = viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
-        mapping.TargetStartAddress = "0x8";
+        GeneralMergeMappingViewModel currentMapping = Assert.Single(
+            viewModel.Merge.GeneralMergeMappings);
+        currentMapping.TargetStartAddress = "0x8";
+        await viewModel.WorkflowSession.SetSlotFileAsync(
+            currentMapping.MappingId,
+            sourcePath,
+            TestContext.Current.CancellationToken);
         await previewTask;
+        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
 
         Assert.Equal("NT51926", viewModel.Reports.LoadedReport.IcId);
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
@@ -422,7 +421,11 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(4, operation.GetProperty("TargetRange").GetProperty("Start").GetInt64());
         Assert.False(viewModel.RunSession.IsRunInProgress);
 
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+        Assert.True(
+            viewModel.Merge.PreviewMergeCommand.CanExecute(null),
+            $"Readiness: {viewModel.Merge.MergeReadinessStatus}; " +
+            $"row issue: {currentMapping.IssueMessage}; " +
+            $"stamp: {currentMapping.AcceptedFileStamp}");
         await viewModel.Merge.PreviewMergeCommand.ExecuteAsync(null);
         Assert.Equal("NT51927", viewModel.Reports.LoadedReport.IcId);
         using var currentReport = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
@@ -443,7 +446,7 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-run-progress");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create(language);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(language);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         golden.CopyInputFilesToMergeSlots(viewModel, workspace, goldenCase);
         List<string> activeLabels = [];
@@ -482,10 +485,10 @@ public sealed partial class ShellViewModelTests
     private static MainWindowViewModel ConfigureRunnableGeneralMerge(TempWorkspace workspace)
     {
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.Merge.SelectedMergeMode = "General";
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.GeneralMergeOutputLength = "0x10";
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         mapping.SourceStartAddress = "0x0";

@@ -83,7 +83,6 @@ internal sealed class TrustedProfileBundle
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumJsonDepth);
         ManifestSha256 = manifestSnapshot.ActualSha256;
         Manifest = entrySnapshots.Manifest;
-        Entries = entrySnapshots.Entries;
         _entrySnapshots = entrySnapshots;
         _maximumJsonDepth = maximumJsonDepth;
     }
@@ -91,8 +90,6 @@ internal sealed class TrustedProfileBundle
     internal string ManifestSha256 { get; }
 
     internal ProfileBundleManifest Manifest { get; }
-
-    internal IReadOnlyList<ProfileBundleEntrySnapshot> Entries { get; }
 
     /// <summary>Projects immutable canonical JSON trees after source-generated DTO compatibility validation.</summary>
     internal TrustedProfileBundleDocumentProjection CreateDocumentProjection()

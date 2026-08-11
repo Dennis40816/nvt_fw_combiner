@@ -55,7 +55,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
         using var workspace = TempWorkspace.Create($"nfc-nt51926-fw200-{topology}");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -66,8 +66,8 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             TestContext.Current.CancellationToken,
             referencePath);
 
-        Assert.True(standardMerge.Succeeded, standardMerge.ReportJson);
-        Assert.Equal("nt51926-standard-merge-gen-flash", ReadProfileId(standardMerge.ReportJson));
+        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        Assert.Equal("nt51926-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(standardMerge)));
         byte[] reference = File.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
@@ -77,7 +77,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath,
+            [CompositionSlotIds.ReplaceBase] = referencePath,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-mp"] = evidence.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
@@ -89,16 +89,16 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         }
 
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             topology,
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, v2.ReportJson);
+        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(currentOutputSha256, Hash(v2Bytes));
         Assert.Equal(currentOutputSha256, v2.OutputSha256);
@@ -117,7 +117,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             ownerDifferenceRanges);
         Assert.True(reference.AsSpan(TpWorkCapacity).SequenceEqual(v2Bytes.AsSpan(TpWorkCapacity)));
 
-        using var v2Report = JsonDocument.Parse(v2.ReportJson);
+        using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
 
@@ -145,7 +145,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         OwnerCase evidence = ReadOwnerCase(CascadeCaseId);
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw200-negative-route");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -155,7 +155,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, standardMerge.ReportJson);
+        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
 
         byte[] reference = File.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
@@ -168,7 +168,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath,
+            [CompositionSlotIds.ReplaceBase] = referencePath,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-mp"] = evidence.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
@@ -180,18 +180,18 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         }
 
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             number,
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(
             number == "single"
                 ? "nt51926-ctrlram-replace-fw200-runtime-single"
@@ -211,14 +211,14 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw200-canonical-id");
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = evidence.Expected.Path,
+            [CompositionSlotIds.ReplaceBase] = evidence.Expected.Path,
             ["replace-ctrlram-normal"] = evidence.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path,
             ["replace-ctrlram-mp"] = evidence.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-vn"] = evidence.Require("VN_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = evidence.Require("NF_Ctrlram.bin").Path,
         };
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             icId,
             "cascade",
             slotPaths,
@@ -228,8 +228,8 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(report.RootElement, "nt51926-ctrlram-replace-fw200-runtime-cascade");
     }
 
@@ -435,7 +435,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             ExternalProcessorRequest request,
             CancellationToken cancellationToken)
         {
-            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, []));
+            return ValueTask.FromResult(ExternalProcessorResult.Success(request.InputBytes, [], []));
         }
     }
 

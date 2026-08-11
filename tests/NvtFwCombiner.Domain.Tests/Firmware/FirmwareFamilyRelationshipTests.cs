@@ -226,6 +226,92 @@ public sealed class FirmwareFamilyRelationshipTests
             ["SPEC.md"]));
     }
 
+    /// <summary>The family definition, not Profiles, owns perfect-family map coverage.</summary>
+    [Fact]
+    public void DefinitionRejectsPerfectFamilyMemberMapOverride()
+    {
+        PerfectFamilyRelationship relationship = Perfect();
+
+        _ = Assert.ThrowsAny<ArgumentException>(() => Definition(
+            [Map("family-map"), Map("member-map", ["NT51919"])],
+            [relationship]));
+    }
+
+    /// <summary>Perfect-family members cannot carry aliases or capability overrides.</summary>
+    [Fact]
+    public void DefinitionRejectsPerfectFamilyMemberFactOverrides()
+    {
+        PerfectFamilyRelationship relationship = Perfect();
+        FirmwareImageMap aliasedMap = Map("family-map", aliasedMember: "NT51919");
+        FirmwareCapabilityFact capability = new(
+            "capability-fact",
+            "synthetic-capability",
+            FirmwareCapabilityState.ConfirmedPresent,
+            "Synthetic evidence.",
+            ["capability-evidence"]);
+
+        _ = Assert.ThrowsAny<ArgumentException>(() => Definition([aliasedMap], [relationship]));
+        _ = Assert.ThrowsAny<ArgumentException>(() => Definition(
+            [Map("family-map")],
+            [relationship],
+            [DirectBinding("NT51919", "family-map", capability)]));
+    }
+
+    /// <summary>One canonical map fact cannot belong to two shared relationships.</summary>
+    [Fact]
+    public void DefinitionRejectsDuplicateSharedFactBindings()
+    {
+        FirmwareImageMap map = Map("family-map");
+        var reference =
+            FirmwareSharedFactReference.ForRegion(map.Regions[0]);
+
+        _ = Assert.ThrowsAny<ArgumentException>(() => Definition(
+            [map],
+            [
+                Shared("first", map, reference),
+                Shared("second", map, reference),
+            ]));
+    }
+
+    private static PerfectFamilyRelationship Perfect()
+    {
+        return new PerfectFamilyRelationship(
+            "perfect",
+            ["NT51919", "NT51929"],
+            "Owner-confirmed perfect family.",
+            ["SPEC.md"]);
+    }
+
+    private static SharedFactRelationship Shared(
+        string relationshipId,
+        FirmwareImageMap map,
+        FirmwareSharedFactReference reference)
+    {
+        return new SharedFactRelationship(
+            relationshipId,
+            FirmwareSharedFactRole.TpShared,
+            ["NT51919", "NT51929"],
+            [map],
+            [reference],
+            "Only the declared facts are shared.",
+            ["SPEC.md"]);
+    }
+
+    private static FirmwareFamilyResolutionDefinition Definition(
+        IEnumerable<FirmwareImageMap> maps,
+        IEnumerable<FirmwareFamilyRelationship> relationships,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>>? capabilities = null)
+    {
+        return new FirmwareFamilyResolutionDefinition(
+            "test-family",
+            "1.0.0",
+            new string('a', 64),
+            maps,
+            [],
+            capabilities ?? [],
+            relationships);
+    }
+
     private static SharedFactRelationship Shared(
         IEnumerable<FirmwareImageMap> applicableMaps,
         IEnumerable<FirmwareSharedFactReference> sharedFactReferences)
@@ -243,7 +329,8 @@ public sealed class FirmwareFamilyRelationshipTests
     private static FirmwareImageMap Map(
         string mapId,
         IReadOnlyList<string>? members = null,
-        IReadOnlyList<FirmwareMetadataStructureDefinition>? metadataDefinitions = null)
+        IReadOnlyList<FirmwareMetadataStructureDefinition>? metadataDefinitions = null,
+        string? aliasedMember = null)
     {
         FirmwareRegionSet regionSet = new(
             "regions",
@@ -261,7 +348,9 @@ public sealed class FirmwareFamilyRelationshipTests
         IReadOnlyList<string> selectedMembers = members ?? ["NT51919", "NT51929"];
         FirmwareMapFactBinding<FirmwareRegionSet>[] bindings =
         [
-            .. selectedMembers.Select(memberId => DirectBinding(memberId, mapId, regionSet)),
+            .. selectedMembers.Select(memberId => StringComparer.Ordinal.Equals(memberId, aliasedMember)
+                ? AliasedBinding(memberId, selectedMembers.First(other => other != memberId), mapId, regionSet)
+                : DirectBinding(memberId, mapId, regionSet)),
         ];
         FirmwareMapFactBinding<FirmwareMetadataSet>[] metadataBindings =
             CreateMetadataBindings(mapId, selectedMembers, metadataDefinitions ?? []);
@@ -325,11 +414,32 @@ public sealed class FirmwareFamilyRelationshipTests
             TopologyRequirement.NoTopologyConstraint(),
             16);
         return new FirmwareMapFactBinding<TFact>(
-            key,
-            key,
-            value.CanonicalFactId,
-            value,
             applicability,
-            new FirmwareFactProvenance(key, key, [], value.EvidenceRefs));
+            new FirmwareFactProvenance(key, value, []));
+    }
+
+    private static FirmwareMapFactBinding<TFact> AliasedBinding<TFact>(
+        string memberId,
+        string sourceMemberId,
+        string mapId,
+        TFact value)
+        where TFact : class, IFirmwareMapFact
+    {
+        FirmwareMapFactKey target = new(memberId, mapId, value.FactKind, value.CanonicalFactId);
+        FirmwareMapFactKey source = new(sourceMemberId, mapId, value.FactKind, value.CanonicalFactId);
+        var applicability = new FirmwareFactApplicability(
+            ["standard"],
+            TopologyRequirement.NoTopologyConstraint(),
+            16);
+        var hop = new FirmwareFactAliasHop(
+            "member-alias",
+            target,
+            source,
+            applicability,
+            "Synthetic alias.",
+            ["alias-evidence"]);
+        return new FirmwareMapFactBinding<TFact>(
+            applicability,
+            new FirmwareFactProvenance(target, value, [hop]));
     }
 }

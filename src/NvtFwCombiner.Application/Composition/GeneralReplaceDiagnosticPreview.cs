@@ -122,3 +122,75 @@ public static class GeneralReplaceDiagnosticPreviewProjector
             coverage.AsReadOnly());
     }
 }
+
+/// <summary>Creates the canonical typed report for one non-executing General Replace Preview.</summary>
+public static class GeneralReplaceDiagnosticPreviewReportProjector
+{
+    private const string EmptySha256 =
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+    /// <summary>Projects an accepted plan-only outcome without reopening inputs or executing bytes.</summary>
+    public static CompositionRunReport Project(
+        ActiveSessionSnapshot acceptedSession,
+        GeneralAuthoringAdmissionResult admission,
+        GeneralReplaceDiagnosticPreviewSummary diagnostic,
+        DateTimeOffset timestamp)
+    {
+        ArgumentNullException.ThrowIfNull(acceptedSession);
+        ArgumentNullException.ThrowIfNull(admission);
+        ArgumentNullException.ThrowIfNull(diagnostic);
+        ResolvedCapability capability = acceptedSession.GetAcceptedCapability(
+                AuthoringDerivedResultKind.Validation) ??
+            throw new ArgumentException(
+                "Diagnostic Preview requires one exact accepted General Replace capability.",
+                nameof(acceptedSession));
+        CompiledComposition composition = capability.CompiledComposition;
+        InputArtifactSummary[] inputs =
+        [
+            .. acceptedSession.Slots
+                .Where(static slot => slot.FileStamp is not null)
+                .OrderBy(static slot => slot.DefinitionId, StringComparer.Ordinal)
+                .Select(static slot => new InputArtifactSummary(
+                    slot.DefinitionId,
+                    slot.DefinitionId,
+                    slot.FileStamp!.Value.AcceptedLength,
+                    slot.FileStamp.Value.Sha256,
+                    slot.SelectedPath is null ? null : Path.GetFileName(slot.SelectedPath))),
+        ];
+        OperationRunSummary[] operations =
+        [
+            .. composition.Plan.OrderedOperations
+                .Where(static operation =>
+                    operation.Kind == CompositionOperationKind.ReplaceRange)
+                .Select(CompositionRunService.ToPlanningOperationSummary),
+        ];
+        CompositionIssue issue = new(
+            diagnostic.Blocker.Code,
+            diagnostic.Blocker.Message,
+            diagnostic.Blocker.SubjectId);
+        return new CompositionRunReport(
+            $"ui-replace-general-preview-{timestamp.ToUnixTimeMilliseconds()}",
+            composition.V2Details.ProfileId,
+            composition.V2Details.ProfileVersion,
+            capability.Identity.IcId,
+            capability.Identity.WorkflowId,
+            capability.Identity.WorkflowId,
+            composition.V2Details.CompositionKind,
+            timestamp,
+            timestamp,
+            inputs,
+            operations,
+            mutations: [],
+            issues: [issue],
+            new OutputArtifactSummary(
+                composition.V2Details.OutputNamingRequirement.FileNameTemplate,
+                size: 0,
+                EmptySha256,
+                committed: false),
+            compilationFingerprint: composition.CompilationFingerprint,
+            generalAdmission: admission.ToSummary(),
+            imageInitialization: ImageInitializationSummary.FromCompiled(
+                composition.Plan.OutputInitialization),
+            diagnosticPreview: diagnostic);
+    }
+}

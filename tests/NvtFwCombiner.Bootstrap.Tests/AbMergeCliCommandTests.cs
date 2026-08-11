@@ -247,13 +247,13 @@ public sealed class AbMergeCliCommandTests
             [CompositionAddressSpaceIds.TpBInput] = tpBPath,
         };
 
-        WorkbenchRunResult result = await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             slots,
             build: true,
             outputPath: null,
             previewOutputFileName: null,
-            abMergeTopologySelection: null,
+            topologySelection: null,
             automaticOutputDirectory: workspace.Root,
             reportPath: null,
             cancellationToken: TestContext.Current.CancellationToken);
@@ -261,7 +261,7 @@ public sealed class AbMergeCliCommandTests
         Assert.True(result.Succeeded, result.Status.ToString());
         Assert.NotNull(result.CommittedOutputId);
         Assert.Equal(workspace.Root, Path.GetDirectoryName(result.CommittedOutputId));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.False(report.RootElement.GetProperty("OutputNaming").GetProperty("IsExplicitOverride").GetBoolean());
     }
 
@@ -279,20 +279,20 @@ public sealed class AbMergeCliCommandTests
             [CompositionAddressSpaceIds.TpAInput] = workspace.Write("tp-a.bin", CreateTp(0x80, 0x04)),
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("tp-b.bin", CreateTp(0x81, 0x02)),
         };
-        string outputFileName = await AbMergeWorkbenchCompositionService.ResolveAutomaticOutputFileNameAsync(
+        string outputFileName = (await AbMergeTestSupport.PrepareOutputAsync(BootstrapTestHost.Services,
             "NT51929",
             slots,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken)).OutputName.FileName;
         string reportPath = workspace.PathFor(outputFileName);
 
         _ = await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await AbMergeWorkbenchCompositionService.RunAbMergeForCliAsync(
+            await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
                 "NT51929",
                 slots,
                 build: true,
                 outputPath: null,
                 previewOutputFileName: null,
-                abMergeTopologySelection: null,
+                topologySelection: null,
                 automaticOutputDirectory: workspace.Root,
                 reportPath: reportPath,
                 cancellationToken: TestContext.Current.CancellationToken));
@@ -300,9 +300,9 @@ public sealed class AbMergeCliCommandTests
         Assert.False(File.Exists(reportPath));
     }
 
-    /// <summary>Automatic Build retains the normal failed JSON report when filename admission cannot resolve.</summary>
+    /// <summary>Automatic Build reports readiness without fabricating a run report when admission fails.</summary>
     [Fact]
-    public async Task CliAutomaticBuildWritesFailureReportWhenInputAdmissionFailsAsync()
+    public async Task CliAutomaticBuildDoesNotCreateRunReportWhenInputAdmissionFailsAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-cli-automatic-failure-report");
         string reportPath = workspace.PathFor("failed-build.json");
@@ -325,11 +325,9 @@ public sealed class AbMergeCliCommandTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(1, result.ExitCode);
-        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
-            reportPath,
-            TestContext.Current.CancellationToken));
-        Assert.NotEmpty(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Contains("Status: Failed", result.Output, StringComparison.Ordinal);
+        Assert.False(File.Exists(reportPath));
+        Assert.Contains("Issues:", result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("Status:", result.Output, StringComparison.Ordinal);
     }
 
     private static void SetCmiDpVersion(byte[] image, int bankStart, byte major, byte minor)

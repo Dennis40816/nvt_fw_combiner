@@ -5,8 +5,6 @@ namespace NvtFwCombiner.Profiles.V2;
 
 internal static partial class V2CompositionPlanCompiler
 {
-    private const string RuntimeReferencePreparationNotAdmitted = "profile.v2.runtime-reference-replace.preparation-not-admitted";
-    private const string RuntimeReferenceProfileShapeInvalid = "profile.v2.runtime-reference-replace.profile-shape-invalid";
     private const string RuntimeReferenceBindingInvalid = "profile.v2.runtime-reference-replace.binding-invalid";
     private const string RuntimeReferenceMappingInvalid = "profile.v2.runtime-reference-replace.mapping-invalid";
     private const string RuntimeReferenceSourceOutOfBounds = "profile.v2.runtime-reference-replace.source-out-of-bounds";
@@ -16,43 +14,29 @@ internal static partial class V2CompositionPlanCompiler
     private const string RuntimeReferenceProcessorRequired = "profile.v2.runtime-reference-replace.processor-required";
     private const string RuntimeReferenceProcessorOrderInvalid = "profile.v2.runtime-reference-replace.processor-order-invalid";
 
-    /// <summary>Lowers one admitted map-bound runtime reference Replace request through the shared plan algebra.</summary>
-    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplace(
-        V2CompositionPreparationResult preparation,
+    /// <summary>Lowers one catalog-prepared runtime reference Replace request through the shared plan algebra.</summary>
+    internal static V2CompositionPlanCompileResult CompileRuntimeReferenceReplacePrepared(
+        V2CompositionPreparationService.PreparedCompilation preparation,
         V2RuntimeReferenceReplaceCompileRequest request)
     {
         ArgumentNullException.ThrowIfNull(preparation);
         ArgumentNullException.ThrowIfNull(request);
-        if (!preparation.IsAdmitted || preparation.Selection is null || preparation.Admission is null)
-        {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(
-                    RuntimeReferencePreparationNotAdmitted,
-                    "Runtime reference-replace plan lowering requires an admitted trusted preparation.")]);
-        }
-
-        CompositionProfileDefinition profile = preparation.Admission.Profile;
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.Admission.ResolvedMap;
+        TrustedCompositionProfileCatalogEntry profileEntry = preparation.ProfileEntry;
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = preparation.ResolvedMap;
+        IReadOnlyList<FirmwareMapFactBinding<FirmwareCapabilityFact>> capabilityAdmissions =
+            preparation.CapabilityAdmissions;
+        CompositionProfileDefinition profile = profileEntry.Profile;
         var issues = new List<CompositionIssue>();
-        if (!IsRuntimeReferenceReplaceProfile(profile))
-        {
-            return V2CompositionPlanCompileResult.Failed([
-                new CompositionIssue(
-                    RuntimeReferenceProfileShapeInvalid,
-                    "The admitted profile is not a closed map-bound runtime reference-replace shape.")]);
-        }
-
         RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings =
-            ValidateRuntimeReferenceReplaceBindings(shape, resolvedMap, request, issues);
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings =
+            ValidateRuntimeReferenceReplaceBindings(shape, request, issues);
         if (issues.Count != 0)
         {
             return V2CompositionPlanCompileResult.Failed(issues);
         }
 
         bool truncateCtrlRamSources =
-            StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) &&
-            shape.SourceSlot.Normalization is TruncateCtrlRamInputNormalization;
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
         var spaces = bindings.Values.ToDictionary(
             static binding => binding.BindingId,
             binding => new AddressSpace(
@@ -98,7 +82,12 @@ internal static partial class V2CompositionPlanCompiler
                 mapping.Provenance)),
         ];
         RuntimeFirmwareVersionEditLowering firmwareVersionEdit = LowerRuntimeFirmwareVersionEdit(
-            profile, shape, resolvedMap, request.FirmwareVersionEdit, regionAccess, issues);
+            shape,
+            resolvedMap,
+            truncateCtrlRamSources,
+            request.FirmwareVersionEdit,
+            regionAccess,
+            issues);
         ValidateOperationOverlaps([.. firmwareVersionEdit.Operations, .. mappingOperations], issues);
         if (issues.Count != 0)
         {
@@ -120,6 +109,7 @@ internal static partial class V2CompositionPlanCompiler
 
         ValidatePostbuildPolicy(
             resolvedMap,
+            truncateCtrlRamSources,
             request.PostbuildPolicy,
             bindings,
             mappingOperations,
@@ -133,15 +123,17 @@ internal static partial class V2CompositionPlanCompiler
         CompositionOperation[] processorOperations = touchesTp
             ? NarrowRuntimeReferenceProcessorAuthority(
                 resolvedMap,
+                truncateCtrlRamSources,
                 mappingOperations,
                 firmwareVersionEdit.PostbuildWriteRanges,
                 request.PostbuildPolicy,
                 request.PostbuildWriteRangeSections,
+                request.ProcessorProtocolPlan,
                 declaredProcessorOperations)
             : [];
         CompositionOperation[] operations = [.. firmwareVersionEdit.Operations, .. mappingOperations, .. processorOperations];
 
-        V2RuntimeReferenceReplaceInputBinding referenceBinding = bindings.Values.Single(binding =>
+        V2ExplicitMappingInputBinding referenceBinding = bindings.Values.Single(binding =>
             StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId));
         var plan = new CompositionPlan(
             [ImageInitialization.Reference(shape.Output.SpaceId, referenceBinding.BindingId, resolvedMap.CapacityBytes)],
@@ -199,11 +191,11 @@ internal static partial class V2CompositionPlanCompiler
             ];
         return Succeed(
             profile,
-            preparation.Selection,
+            preparation.BundleIdentity,
+            profileEntry.EntryIdentity,
             new RuntimeReferenceReplaceV2CompilationContext(
                 resolvedMap,
-                ((RuntimeReferenceReplaceProfileCompilationContext)profile.CompilationContext)
-                    .AllowsConditionalProcessor,
+                profile.Header.AllowsConditionalProcessor,
                 processorWriteViewIds),
             plan,
             profile.InputSlots.Select(slot => MapInputSlot(slot, resolvedMap)),
@@ -214,8 +206,7 @@ internal static partial class V2CompositionPlanCompiler
                     ? CompiledInputInstancePolicy.Singleton
                     : CompiledInputInstancePolicy.PerBinding)),
             regionAccess.Contract,
-            CompiledIcNumberPolicies.From(profile.IcNumberInputMode),
-            preparation.Admission,
+            capabilityAdmissions,
             additionalValidationRequirements:
             [
                 .. inputValidations,
@@ -225,9 +216,9 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private static RuntimeFirmwareVersionEditLowering LowerRuntimeFirmwareVersionEdit(
-        CompositionProfileDefinition profile,
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
+        bool truncatesCtrlRamSources,
         V2RuntimeReferenceReplaceFirmwareVersionEdit? edit,
         LoweredRegionAccess regionAccess, List<CompositionIssue> issues)
     {
@@ -236,7 +227,7 @@ internal static partial class V2CompositionPlanCompiler
             return RuntimeFirmwareVersionEditLowering.Empty;
         }
 
-        if (!StringComparer.Ordinal.Equals(profile.Experience.ExperienceId, ExperienceIds.CtrlRamReplace) ||
+        if (!truncatesCtrlRamSources ||
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
@@ -280,12 +271,6 @@ internal static partial class V2CompositionPlanCompiler
         out ByteRange[] postbuildWriteRanges)
     {
         postbuildWriteRanges = [];
-        if (!sourceRegion.Range.Contains(edit.SourceFirmwareVersionAndBarRange) ||
-            !sourceRegion.Range.Contains(edit.SourceFirmwareSubVersionRange))
-        {
-            return false;
-        }
-
         long versionOffset = checked(edit.SourceFirmwareVersionAndBarRange.Start - sourceRegion.Range.Start);
         long subVersionOffset = checked(edit.SourceFirmwareSubVersionRange.Start - sourceRegion.Range.Start);
         ByteRange[] candidates =
@@ -314,115 +299,52 @@ internal static partial class V2CompositionPlanCompiler
     }
 
 
-    private static bool IsRuntimeReferenceReplaceProfile(CompositionProfileDefinition profile)
-    {
-        bool isGeneralReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
-            ExperienceIds.GeneralReplace);
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
-            ExperienceIds.CtrlRamReplace);
-        return profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext &&
-            profile.CompositionKind == CompositionKind.Replace &&
-            ((isGeneralReplace &&
-              profile.Experience.LayoutPolicy == LayoutPolicy.UserDefined &&
-              profile.Experience.InputPolicy == InputPolicy.Extensible) ||
-             (isCtrlRamReplace &&
-              profile.Experience.LayoutPolicy == LayoutPolicy.Fixed &&
-              profile.Experience.InputPolicy == InputPolicy.Fixed)) &&
-            profile.MetadataBindings.Count == 0 &&
-            profile.RegionAccessRules.Count != 0 &&
-            profile.Validations.Count == 0 &&
-            ((!isCtrlRamReplace && profile.ProcessorStages.Count == 0) ||
-             profile.CompilationContext is RuntimeReferenceReplaceProfileCompilationContext
-             {
-                 AllowsConditionalProcessor: true,
-             });
-    }
-
-    internal static bool TryGetRuntimeReferenceReplaceReferenceSlotId(
+    internal static bool TryGetRuntimeReferenceReplaceSelectionShape(
         CompositionProfileDefinition profile,
-        out string referenceSlotId)
+        out string referenceSlotId,
+        out bool allowsTopologyDisambiguation)
     {
         ArgumentNullException.ThrowIfNull(profile);
         referenceSlotId = string.Empty;
-        if (!IsRuntimeReferenceReplaceProfile(profile))
+        allowsTopologyDisambiguation = false;
+        if (profile.Header.CompilationContextKind != V2CompilationContextKind.RuntimeReferenceReplace)
         {
             return false;
         }
 
-        try
-        {
-            referenceSlotId = AssertRuntimeReferenceReplaceProfileShape(profile).ReferenceSlot.SlotId;
-            return true;
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
+        RuntimeReferenceReplaceProfileShape shape = AssertRuntimeReferenceReplaceProfileShape(profile);
+        referenceSlotId = shape.ReferenceSlot.SlotId;
+        allowsTopologyDisambiguation =
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
+        return true;
     }
 
     private static RuntimeReferenceReplaceProfileShape AssertRuntimeReferenceReplaceProfileShape(
         CompositionProfileDefinition profile)
     {
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            profile.Experience.ExperienceId,
-            ExperienceIds.CtrlRamReplace);
-        CompositionProfileArtifactClass expectedSourceClass = isCtrlRamReplace
-            ? CompositionProfileArtifactClass.CtrlRamReplacement
-            : CompositionProfileArtifactClass.Auxiliary;
         MutableCompositionProfileSpace output = AssertOutputSpace(profile);
-        CloneProfileInitializer clone = output.Capacity is RuntimeRequestProfileCapacity &&
-            output.Initializer is CloneProfileInitializer initializer
-            ? initializer
-            : throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid output space.");
-        CompositionProfileInputSlot reference = profile.InputSlots.Single(slot =>
+        var clone = (CloneProfileInitializer)output.Initializer;
+        CompositionInputSlotDefinition reference = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
-        CompositionProfileInputSlot source = profile.InputSlots.Single(slot =>
+        CompositionInputSlotDefinition source = profile.InputSlots.Single(slot =>
             !StringComparer.Ordinal.Equals(slot.SlotId, clone.SourceSlotId));
-        InputArtifactProfileSpace referenceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, reference.SlotId));
-        InputArtifactProfileSpace sourceSpace = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
-            StringComparer.Ordinal.Equals(space.SlotId, source.SlotId));
-        bool sourceNormalizationIsValid = isCtrlRamReplace
-            ? source.Normalization is TruncateCtrlRamInputNormalization
-            : source.Normalization is NoInputNormalization;
-        return reference is not
-        {
-            Required: true,
-            ArtifactClass: CompositionProfileArtifactClass.ReferenceImage,
-            Cardinality: CompositionProfileSlotCardinality.ExactlyOne,
-            LengthRule: ExactResolvedMapCapacityLengthRule,
-            Normalization: NoInputNormalization,
-        } ||
-            source is not
-            {
-                Required: true,
-                Cardinality: CompositionProfileSlotCardinality.OneOrMore,
-                LengthRule: BoundedLengthRule { MinimumBytes: 1, MaximumBytes: int.MaxValue },
-            } ||
-            source.ArtifactClass != expectedSourceClass ||
-            !sourceNormalizationIsValid ||
-            referenceSpace.InstancePolicy != CompositionProfileInstancePolicy.Singleton ||
-            sourceSpace.InstancePolicy != CompositionProfileInstancePolicy.PerBinding
-            ? throw new InvalidOperationException("Validated runtime reference-replace profile has an invalid input contract.")
-            : new RuntimeReferenceReplaceProfileShape(
-                reference,
-                source,
-                output,
-                profile.Operations.OfType<RunProcessorProfileOperation>().SingleOrDefault());
+        return new RuntimeReferenceReplaceProfileShape(
+            reference,
+            source,
+            output,
+            profile.Operations.SingleOrDefault(static operation =>
+                operation.Kind == CompositionOperationKind.RunExternalProcessor));
     }
 
-    private static Dictionary<string, V2RuntimeReferenceReplaceInputBinding> ValidateRuntimeReferenceReplaceBindings(
+    private static Dictionary<string, V2ExplicitMappingInputBinding> ValidateRuntimeReferenceReplaceBindings(
         RuntimeReferenceReplaceProfileShape shape,
-        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
         List<CompositionIssue> issues)
     {
-        var bindings = new Dictionary<string, V2RuntimeReferenceReplaceInputBinding>(StringComparer.Ordinal);
+        var bindings = new Dictionary<string, V2ExplicitMappingInputBinding>(StringComparer.Ordinal);
         int referenceCount = 0;
         int sourceCount = 0;
-        foreach (V2RuntimeReferenceReplaceInputBinding? binding in request.Bindings)
+        foreach (V2ExplicitMappingInputBinding? binding in request.Bindings)
         {
             bool isReference = binding is not null && StringComparer.Ordinal.Equals(binding.SlotId, shape.ReferenceSlot.SlotId);
             bool isSource = binding is not null && StringComparer.Ordinal.Equals(binding.SlotId, shape.SourceSlot.SlotId);
@@ -431,9 +353,7 @@ internal static partial class V2CompositionPlanCompiler
                 !StringComparer.Ordinal.Equals(binding.BindingId, shape.Output.SpaceId) &&
                 (isReference || isSource) &&
                 binding.ExactLengthBytes > 0 &&
-                (isReference
-                    ? binding.ExactLengthBytes == resolvedMap.CapacityBytes
-                    : binding.ExactLengthBytes <= int.MaxValue) &&
+                (isReference || binding.ExactLengthBytes <= int.MaxValue) &&
                 bindings.TryAdd(binding.BindingId, binding);
             if (!valid)
             {
@@ -451,7 +371,7 @@ internal static partial class V2CompositionPlanCompiler
         {
             issues.Add(new CompositionIssue(
                 RuntimeReferenceBindingInvalid,
-                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more experience-owned source bindings."));
+                "Runtime reference-replace compilation requires exactly one map-capacity reference binding and one or more typed per-binding sources."));
         }
 
         return bindings;
@@ -461,14 +381,13 @@ internal static partial class V2CompositionPlanCompiler
         RuntimeReferenceReplaceProfileShape shape,
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap,
         V2RuntimeReferenceReplaceCompileRequest request,
-        Dictionary<string, V2RuntimeReferenceReplaceInputBinding> bindings,
+        Dictionary<string, V2ExplicitMappingInputBinding> bindings,
         LoweredRegionAccess regionAccess,
         List<CompositionIssue> issues)
     {
         bool touchesTp = false;
-        bool isCtrlRamReplace = StringComparer.Ordinal.Equals(
-            resolvedMap.ModeId,
-            ExperienceIds.CtrlRamReplace);
+        bool restrictsTargetsToTpCtrlRam =
+            shape.SourceSlot.Normalization is CompiledTruncateCtrlRamInputNormalization;
 
         var mappingIds = new HashSet<string>(StringComparer.Ordinal);
         var sequences = new HashSet<int>();
@@ -476,15 +395,13 @@ internal static partial class V2CompositionPlanCompiler
         foreach (ExplicitMapping? mapping in request.Mappings)
         {
             if (mapping is null ||
-                string.IsNullOrWhiteSpace(mapping.MappingId) ||
                 !mappingIds.Add(mapping.MappingId) ||
                 !sequences.Add(mapping.Sequence) ||
                 mapping.OperationKind != ExplicitMappingOperationKind.ReplaceRange ||
                 mapping.OverlapPolicy != OverlapPolicy.Reject ||
                 !StringComparer.Ordinal.Equals(mapping.TargetSpaceId, shape.Output.SpaceId) ||
                 mapping.TargetRegionId is not null ||
-                mapping.Alignment != 1 ||
-                mapping.SourceRange.Length != mapping.TargetRange.Length)
+                mapping.Alignment != 1)
             {
                 issues.Add(new CompositionIssue(
                     RuntimeReferenceMappingInvalid,
@@ -493,7 +410,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2RuntimeReferenceReplaceInputBinding? source) ||
+            if (!bindings.TryGetValue(mapping.SourceBindingId, out V2ExplicitMappingInputBinding? source) ||
                 !StringComparer.Ordinal.Equals(source.SlotId, shape.SourceSlot.SlotId))
             {
                 issues.Add(new CompositionIssue(
@@ -534,7 +451,7 @@ internal static partial class V2CompositionPlanCompiler
             }
 
             FirmwareRegion governingRegion = governingRegionChain[^1];
-            if (isCtrlRamReplace &&
+            if (restrictsTargetsToTpCtrlRam &&
                 (governingRegion.Owner != FirmwareRegionOwner.Tp ||
                  governingRegion.Kind != FirmwareRegionKind.CtrlRam))
             {
@@ -591,10 +508,10 @@ internal static partial class V2CompositionPlanCompiler
     }
 
     private sealed record RuntimeReferenceReplaceProfileShape(
-        CompositionProfileInputSlot ReferenceSlot,
-        CompositionProfileInputSlot SourceSlot,
+        CompositionInputSlotDefinition ReferenceSlot,
+        CompositionInputSlotDefinition SourceSlot,
         MutableCompositionProfileSpace Output,
-        RunProcessorProfileOperation? ProcessorOperation);
+        CompositionOperationDefinition? ProcessorOperation);
 
     private sealed record RuntimeFirmwareVersionEditLowering(
         CompositionOperation[] Operations,

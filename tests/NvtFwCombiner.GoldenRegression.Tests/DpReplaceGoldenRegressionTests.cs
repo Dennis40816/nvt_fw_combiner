@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.GoldenRegression.Tests;
@@ -31,10 +31,9 @@ public sealed class DpReplaceGoldenRegressionTests
         string replacementDpPath = workspace.Write("replacement-dp.bin", replacementDpBytes);
         string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");
 
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await GoldenTestHost.RunDpReplaceAsync(
                 $"NT{ic}",
-                "single",
-                "DP",
+                ExperienceIds.DpReplace,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["replace-base"] = basePath,
@@ -44,7 +43,7 @@ public sealed class DpReplaceGoldenRegressionTests
                 TestContext.Current.CancellationToken,
                 outputPath);
 
-        Assert.True(result.Succeeded, result.Status);
+        Assert.True(result.Succeeded, result.OutcomeStatus);
         Assert.NotNull(result.CommittedOutputId);
         Assert.True(File.Exists(result.CommittedOutputId), result.CommittedOutputId);
         byte[] actualBytes = await File.ReadAllBytesAsync(result.CommittedOutputId, TestContext.Current.CancellationToken);
@@ -52,7 +51,7 @@ public sealed class DpReplaceGoldenRegressionTests
         Assert.Equal(expectedBaseBytes.LongLength, result.OutputSize);
         Assert.Equal(Sha256Hex(expectedBaseBytes), result.OutputSha256);
 
-        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        using var reportDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = reportDocument.RootElement;
         Assert.Equal($"nt{ic}-dp-replace-dp-perspective", root.GetProperty("ProfileId").GetString());
         Assert.Equal($"NT{ic}", root.GetProperty("IcId").GetString());
@@ -108,20 +107,19 @@ public sealed class DpReplaceGoldenRegressionTests
         }
 
         string outputPath = workspace.PathFor($"nt{ic}-dp-replace.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await GoldenTestHost.RunDpReplaceAsync(
             $"NT{ic}",
-            "single",
-            "DP",
+            ExperienceIds.DpReplace,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(expectedBaseBytes, await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken));
         Assert.Equal(expectedBaseBytes.LongLength, result.OutputSize);
         Assert.Equal(Sha256Hex(expectedBaseBytes), result.OutputSha256);
-        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        using var reportDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = reportDocument.RootElement;
         Assert.Equal(expectedProfileId, root.GetProperty("ProfileId").GetString());
         JsonElement[] issues = [.. root.GetProperty("Issues").EnumerateArray()];
@@ -161,10 +159,9 @@ public sealed class DpReplaceGoldenRegressionTests
         using var workspace = TempWorkspace.Create(
             "nvt-fw-combiner-dp-replace-changed-51929");
         string outputPath = workspace.PathFor("nt51929-dp-replace-changed.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await GoldenTestHost.RunDpReplaceAsync(
             "NT51929",
-            "single",
-            "DP",
+            ExperienceIds.DpReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["replace-base"] = workspace.Write("reference-flash.bin", reference),
@@ -174,7 +171,7 @@ public sealed class DpReplaceGoldenRegressionTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] actual = await File.ReadAllBytesAsync(
             outputPath,
             TestContext.Current.CancellationToken);
@@ -185,7 +182,7 @@ public sealed class DpReplaceGoldenRegressionTests
             Enumerable.Range(0, 0x6000)
                 .Where(index => actual[index] != reference[index]));
         Assert.Equal(reference.AsSpan(0x6000).ToArray(), actual.AsSpan(0x6000).ToArray());
-        using var reportDocument = JsonDocument.Parse(result.ReportJson);
+        using var reportDocument = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement report = reportDocument.RootElement;
         Assert.Equal("nt51929-dp-replace-gen-flash", report.GetProperty("ProfileId").GetString());
         Assert.Equal(

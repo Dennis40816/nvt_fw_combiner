@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -14,7 +13,7 @@ public sealed partial class ShellViewModelTests
         const int differenceCount = 1_000;
         const int sectionCount = 40;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(differenceCount, sectionCount);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         await viewModel.Reports.LoadReportJsonAsync(
             json,
@@ -80,7 +79,7 @@ public sealed partial class ShellViewModelTests
     public void LargeChangeReportBoundsLegacyFullHexDisplay()
     {
         string json = ReportJsonSamples.ReplaceWithFullHexOutputDifference(byteCount: 4_096);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(json, "legacy-full-hex.json");
 
@@ -179,7 +178,7 @@ public sealed partial class ShellViewModelTests
     public async Task CancelledChangeReportProjectionPublishesNoPartialState()
     {
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 1_000, sectionCount: 40);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
 
@@ -195,8 +194,8 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
     {
-        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
 
@@ -213,7 +212,7 @@ public sealed partial class ShellViewModelTests
     public async Task ChangeReportProjectionReplaysWhenLanguageChangesInFlight()
     {
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 2_000, sectionCount: 40);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task loading = viewModel.Reports.LoadReportJsonAsync(
             json,
@@ -243,7 +242,7 @@ public sealed partial class ShellViewModelTests
     {
         string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 10_000, sectionCount: 40);
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task olderLoad = viewModel.Reports.LoadReportJsonAsync(
             olderJson,
@@ -262,20 +261,18 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task RunHexDiffProjectionUsesLatestReportGeneration()
     {
-        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
-        using var source = JsonDocument.Parse(result.ReportJson);
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
-        WorkbenchRunResult largeResult = result with
-        {
-            ReportJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(
+        CompositionRunResult largeResult = WithReport(
+            result,
+            CreateLargeDifferenceReport(
+                result.Report,
                 count: 10_000,
                 sectionCount: 40,
-                runId: runId,
-                outputSize: result.OutputSize,
-                outputSha256: result.OutputSha256),
-        };
+                runId: runId));
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-report");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Task olderProjection = viewModel.RunSession.ProjectAndApplyRunResultAsync(
             largeResult,
@@ -300,7 +297,7 @@ public sealed partial class ShellViewModelTests
         string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 10_000, sectionCount: 40);
         string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-report");
         string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-after-history");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.Reports.LoadReportJson(olderJson, "older-history-report.json");
         ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
         viewModel.Reports.LoadReportJson(currentJson, "current-report.json");
@@ -329,7 +326,7 @@ public sealed partial class ShellViewModelTests
         {
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-before-action");
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.Reports.LoadReportJson(olderJson, "older-action-report.json");
             ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
             viewModel.Reports.LoadReportJson(currentJson, "current-before-action.json");
@@ -401,7 +398,7 @@ public sealed partial class ShellViewModelTests
         {
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string currentJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "current-language");
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.Reports.LoadReportJson(olderJson, "older-language-report.json");
             ReportHistoryEntryViewModel olderEntry = viewModel.Reports.ReportHistoryEntries[0];
             viewModel.Reports.LoadReportJson(currentJson, "current-language-report.json");
@@ -426,7 +423,7 @@ public sealed partial class ShellViewModelTests
         await uiThread.InvokeAsync(async () =>
         {
             string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.Reports.LoadReportJson(json, "large-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
@@ -453,7 +450,7 @@ public sealed partial class ShellViewModelTests
         {
             string olderJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
             string newerJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "newer-language-report");
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.Reports.LoadReportJson(olderJson, "older-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
@@ -479,7 +476,7 @@ public sealed partial class ShellViewModelTests
         await uiThread.InvokeAsync(async () =>
         {
             string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 5_000, sectionCount: 40);
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.Reports.LoadReportJson(json, "rapid-language-report.json");
 
             viewModel.SelectedLanguage = "Traditional Chinese";
@@ -505,7 +502,7 @@ public sealed partial class ShellViewModelTests
     {
         string oldJson = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(runId: "old-report");
         string newJson = ReportJsonSamples.ReplaceWithManyOutputDifferences(count: 10_000, sectionCount: 40);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.Reports.LoadReportJson(oldJson, "old-report.json");
 
         Task newLoad = viewModel.Reports.LoadReportJsonAsync(
@@ -519,5 +516,56 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(newJson, viewModel.Reports.LoadedReportJson);
         Assert.Contains(viewModel.Reports.LoadedReport.OutputDifferences[0].Badges, badge => badge.Text == "預期");
         Assert.Equal("new-large-report.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
+    }
+
+    private static CompositionRunReport CreateLargeDifferenceReport(
+        CompositionRunReport source,
+        int count,
+        int sectionCount,
+        string runId)
+    {
+        OutputDifferenceSummary[] differences =
+        [
+            .. Enumerable.Range(0, count).Select(index => new OutputDifferenceSummary(
+                $"diff-{index:D5}",
+                new Domain.Composition.ByteRange(index * 4L, 4),
+                changedByteCount: 4,
+                index == count - 1
+                    ? Contracts.Reports.OutputDifferenceClassifications.Unexpected
+                    : Contracts.Reports.OutputDifferenceClassifications.DeclaredReplacement,
+                isAccepted: index != count - 1,
+                $"evidence-{index:D5}",
+                $"difference {index}",
+                $"Section {index % sectionCount:D2}",
+                "11111111111111111111",
+                "22222222222222222222",
+                beforeHexPreview: "AABBCCDD",
+                afterHexPreview: "11223344",
+                hexPreviewByteCount: 4,
+                isHexPreviewComplete: true)),
+        ];
+        return new CompositionRunReport(
+            runId,
+            source.ProfileId,
+            source.ProfileVersion,
+            source.IcId,
+            source.ModeId,
+            source.ExperienceId,
+            source.CompositionKind,
+            source.StartedAtUtc,
+            source.CompletedAtUtc,
+            source.Inputs,
+            source.Operations,
+            source.Mutations,
+            source.Issues,
+            source.Output,
+            differences,
+            source.CompilationFingerprint,
+            source.Validations,
+            source.OutputNaming,
+            source.DeliveryArtifacts,
+            source.GeneralAdmission,
+            source.ImageInitialization,
+            source.DiagnosticPreview);
     }
 }

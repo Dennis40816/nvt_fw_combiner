@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -43,6 +44,17 @@ public sealed record CtrlRamFirmwareVersionDraftState : AuthoringDraftState
             FirmwareVersion == edit.FirmwareVersion &&
             FirmwareSubVersion == edit.FirmwareSubVersion;
     }
+}
+
+/// <summary>Result of compiling and re-inspecting one typed CtrlRAM authoring transition.</summary>
+public sealed record CtrlRamAuthoringTransitionResult(
+    ActiveSessionSnapshot? Session,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    /// <summary>True only when the new exact compilation owns current accepted input inspection.</summary>
+    public bool Succeeded =>
+        Session?.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection) is not null &&
+        Issues.Count == 0;
 }
 
 /// <summary>Closed typed draft carried by one authoring session.</summary>

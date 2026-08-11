@@ -1,76 +1,46 @@
 using System.Collections.ObjectModel;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Authoring;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MergePresentationViewModel
 {
-    internal void RefreshMergeMemoryMapState()
+    private readonly Lock _memoryProjectionGate = new();
+
+    internal void RefreshMergeMemoryMapState(bool refreshAuthoring = true)
     {
-        if (IsGeneralMergeModeSelected)
+        lock (_memoryProjectionGate)
         {
-            RefreshGeneralMergeAuthoringState();
-        }
-
-        long? selectedMergeDpInputLength = GetSelectedMergeDpInputLength();
-        long? selectedAbMergeDpInputLength = GetSelectedAbMergeDpInputLength();
-        (
-            string rangeLabel,
-            IReadOnlyList<MemoryMapRowViewModel> rows,
-            IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) = SelectedMergeMode switch
+            if (refreshAuthoring && IsGeneralMergeModeSelected)
             {
-                GeneralMergeMode => GetGeneralMergeMemoryDisplay(),
-                AbCodeMergeMode => UiCompositionRunner.GetAbMergeMemoryDisplay(
-                    SelectedIc,
-                    GetSelectedAbMergeTopologyToken(),
-                    selectedAbMergeDpInputLength),
-                _ => UiCompositionRunner.GetStandardMergeMemoryDisplay(
-                    SelectedIc,
-                    selectedMergeDpInputLength),
+                RefreshGeneralMergeAuthoringState();
+            }
+
+            ActiveSessionSnapshot? acceptedSession = SelectedMergeMode switch
+            {
+                GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
+                AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
+                _ => _standardMergeSession.CurrentSnapshot,
             };
-        MergeMemoryRangeLabel = rangeLabel;
-        ReplaceRows(MergeMemoryRows, rows);
-        ReplaceRows(MergeCoverageSegments, coverageSegments);
+            (
+                string rangeLabel,
+                IReadOnlyList<MemoryMapRowViewModel> rows,
+                IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
+                    acceptedSession?.ExactCapability is null
+                    ? UiCompositionRunner.GetPendingMemoryDisplay(
+                        "Select and inspect the required inputs to resolve the compiled memory layout.")
+                    : UiCompositionRunner.GetMemoryDisplay(
+                        _compositionServices,
+                        acceptedSession,
+                        Text,
+                        IsGeneralMergeModeSelected ? _generalMergeAdmission : null);
+            MergeMemoryRangeLabel = rangeLabel;
+            ReplaceRows(MergeMemoryRows, rows);
+            ReplaceRows(MergeCoverageSegments, coverageSegments);
 
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-    }
-
-    private (
-        string RangeLabel,
-        IReadOnlyList<MemoryMapRowViewModel> Rows,
-        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetGeneralMergeMemoryDisplay()
-    {
-        return TryResolveGeneralMergeOutputInitializer(out WorkbenchGeneralMergeInitializer? initializer)
-            ? UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                initializer!,
-                _generalMergeAuthoringStates,
-                _generalMergeAdmission)
-            : UiCompositionRunner.GetGeneralMergeMemoryDisplay(
-                SelectedIc,
-                GeneralMergeOutputLength,
-                GeneralMergeOutputFillByte);
-    }
-
-    private long? GetSelectedMergeDpInputLength()
-    {
-        return WorkbenchCompositionService.IsDpPerspectiveIc(SelectedIc) &&
-            _stateBindings.GetInspectedFileLength(MergeDpSlot) is long length
-                ? length
-                : null;
-    }
-
-    private long? GetSelectedAbMergeDpInputLength()
-    {
-        WorkbenchAbMergeInputSlot? dpInput = WorkbenchCompositionService
-            .GetAbMergeInputSlots(SelectedIc, GetSelectedAbMergeTopologyToken())
-            .SingleOrDefault(static input => input.Role == WorkbenchAbMergeInputRole.DpAb);
-        return dpInput is not null &&
-            _abMergeSlotsByAddressSpace.TryGetValue(dpInput.AddressSpaceId, out FirmwareSlotViewModel? slot) &&
-            _stateBindings.GetInspectedFileLength(slot) is long length
-                ? length
-                : null;
+            OnPropertyChanged(nameof(MergeMemoryRangeLabel));
+            OnPropertyChanged(nameof(MergeMemorySummary));
+        }
     }
 
     private static void ReplaceRows<T>(ObservableCollection<T> target, IEnumerable<T> rows)

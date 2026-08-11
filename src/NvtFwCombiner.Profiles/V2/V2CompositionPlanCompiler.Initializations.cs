@@ -61,14 +61,8 @@ internal static partial class V2CompositionPlanCompiler
     {
         sourceSpaceId = null;
         error = null;
-        InputArtifactProfileSpace? source = profile.Spaces.OfType<InputArtifactProfileSpace>().SingleOrDefault(space =>
+        InputArtifactProfileSpace source = profile.Spaces.OfType<InputArtifactProfileSpace>().Single(space =>
             StringComparer.Ordinal.Equals(space.SlotId, clone.SourceSlotId));
-        if (source is null)
-        {
-            error = $"mutable space '{mutableSpace.SpaceId}' clone source slot '{clone.SourceSlotId}' has no immutable input space";
-            return false;
-        }
-
         if (spaces[source.SpaceId].Length != spaces[mutableSpace.SpaceId].Length)
         {
             error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' does not match its capacity";
@@ -80,20 +74,13 @@ internal static partial class V2CompositionPlanCompiler
             sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.Reject &&
             sourceAddressSpace.AllowedInputLengths.Count == 0 &&
             sourceAddressSpace.ExpectedInputLengths.Count == 0;
-        CompositionProfileInputSlot sourceSlot = profile.InputSlots.Single(slot =>
+        CompositionInputSlotDefinition sourceSlot = profile.InputSlots.Single(slot =>
             StringComparer.Ordinal.Equals(slot.SlotId, source.SlotId));
-        bool usesDeclaredPrefixSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
-            sourceSlot.LengthRule is DeclaredPrefixWithWarningLengthRule declaredPrefix &&
-            declaredPrefix.RequiredEndExclusive == spaces[mutableSpace.SpaceId].Length &&
-            sourceAddressSpace.InputPaddingByte is null &&
-            sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
-            sourceAddressSpace.AllowedInputLengths.Count == 0 &&
-            sourceAddressSpace.ExpectedInputLengths.SequenceEqual(declaredPrefix.ExpectedOuterLengths) &&
-            StringComparer.Ordinal.Equals(
-                sourceAddressSpace.UnexpectedInputLengthIssueCode,
-                declaredPrefix.UnexpectedOuterLengthIssueCode);
+        var sourceView = sourceSlot.LengthRequirement as SourceViewCoverageInputLengthDefinition;
         bool usesSourceViewSnapshot = mutableSpace.Kind == CompositionProfileSpaceKind.WorkBuffer &&
-            sourceSlot.LengthRule is SourceViewCoverageLengthRule sourceView &&
+            sourceView is { MaximumBytes: null } &&
+            (sourceView.RequiredEndExclusive is null ||
+             sourceView.RequiredEndExclusive == spaces[mutableSpace.SpaceId].Length) &&
             sourceAddressSpace.InputPaddingByte is null &&
             sourceAddressSpace.InputOversizePolicy == InputOversizePolicy.ExtractDeclaredRange &&
             sourceAddressSpace.AllowedInputLengths.Count == 0 &&
@@ -101,16 +88,9 @@ internal static partial class V2CompositionPlanCompiler
             StringComparer.Ordinal.Equals(
                 sourceAddressSpace.UnexpectedInputLengthIssueCode,
                 sourceView.UnexpectedOuterLengthIssueCode);
-        if (!usesExactGeometry && !usesDeclaredPrefixSnapshot && !usesSourceViewSnapshot)
+        if (!usesExactGeometry && !usesSourceViewSnapshot)
         {
             error = $"mutable space '{mutableSpace.SpaceId}' clone source '{source.SpaceId}' must use exact immutable or checked equal-length source-snapshot geometry";
-            return false;
-        }
-
-        if (mutableSpace.Kind == CompositionProfileSpaceKind.OutputImage &&
-            ResolveCloneReferenceSourceSpaceId(profile, clone) != source.SpaceId)
-        {
-            error = "the output image clone source does not meet the Replace reference-image contract";
             return false;
         }
 

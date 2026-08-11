@@ -33,8 +33,8 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(candidate.V2Details);
         Assert.Equal(CompiledProfilePromotionStage.Supported, details.Provenance.Promotion.Stage);
         Assert.Empty(details.Provenance.Promotion.Blockers);
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, candidate.IcNumberPolicy);
-        Assert.Equal($"nt{icId[2..]}-dp-replace.bin", candidate.DefaultOutputFileName);
+        Assert.Equal(IcNumberInputMode.SingleSelector, candidate.V2Details.IcNumberInputMode);
+        Assert.Equal($"nt{icId[2..]}-dp-replace.bin", candidate.V2Details.OutputNamingRequirement.FileNameTemplate);
         AssertMapProtection(candidate);
         AssertPlanContract(candidate.Plan, capacity);
 
@@ -157,8 +157,7 @@ public sealed class Nt51950Nt51951V2DpReplaceProfileTests
 
     private static CompiledComposition CompileSupportedProfile(string icId, int capacity)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash),
+        V2CompositionPlanCompileResult compilation = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(BundleDirectory, BundleContentHash).Compile(
             $"nt{icId[2..]}-dp-replace-dp-perspective",
             "0.8.0",
             icId,

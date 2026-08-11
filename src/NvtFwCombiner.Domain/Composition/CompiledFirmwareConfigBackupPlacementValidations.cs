@@ -50,14 +50,11 @@ public sealed record CompiledFirmwareConfigBackupPlacementAuthorityValidation :
             ruleId,
             CompiledValidationStage.FinalOutput,
             CompiledValidationSeverity.Error,
-            issueCode,
-            CompiledValidationKind.FirmwareConfigBackupPlacementAuthority)
+            issueCode)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(backupLength);
-        ArgumentException.ThrowIfNullOrWhiteSpace(inactiveMutationIssueCode);
-        ArgumentException.ThrowIfNullOrWhiteSpace(referenceAddressSpaceId);
-        InactiveMutationIssueCode = inactiveMutationIssueCode;
-        ReferenceAddressSpaceId = referenceAddressSpaceId;
+        InactiveMutationIssueCode = RequiredValue.NotBlank(inactiveMutationIssueCode);
+        ReferenceAddressSpaceId = RequiredValue.NotBlank(referenceAddressSpaceId);
         AuthorityRange = authorityRange;
         BackupLength = backupLength;
     }
@@ -87,8 +84,7 @@ public sealed record CompiledFirmwareConfigBackupExpectedAddressValidation :
             ruleId,
             CompiledValidationStage.FinalOutput,
             CompiledValidationSeverity.Warning,
-            issueCode,
-            CompiledValidationKind.FirmwareConfigBackupExpectedAddress)
+            issueCode)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(expectedStart);
         ExpectedStart = expectedStart;

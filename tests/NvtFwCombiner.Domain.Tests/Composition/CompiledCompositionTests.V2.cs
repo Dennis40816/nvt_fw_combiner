@@ -12,15 +12,15 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateV2();
 
-        Assert.Equal("profile-v2", composition.ProfileId);
-        Assert.Equal("2.0.0", composition.ProfileVersion);
-        Assert.Equal("NT-SYNTHETIC", composition.IcId);
-        Assert.Equal("standard", composition.ModeId);
-        Assert.Equal("standard-merge", composition.ExperienceId);
-        Assert.Equal(CompositionKind.Merge, composition.CompositionKind);
-        Assert.Equal("{original-name}_merged.bin", composition.DefaultOutputFileName);
+        Assert.Equal("profile-v2", composition.V2Details.ProfileId);
+        Assert.Equal("2.0.0", composition.V2Details.ProfileVersion);
+        Assert.Equal("NT-SYNTHETIC", composition.V2Details.Provenance.Context.MemberId);
+        Assert.Equal("standard", composition.V2Details.Provenance.Context.ModeId);
+        Assert.Equal("standard-merge", composition.V2Details.ExperienceId);
+        Assert.Equal(CompositionKind.Merge, composition.V2Details.CompositionKind);
+        Assert.Equal("{original-name}_merged.bin", composition.V2Details.OutputNamingRequirement.FileNameTemplate);
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
-        Assert.Equal(CompiledIcNumberPolicy.NotApplicable, composition.IcNumberPolicy);
+        Assert.Null(composition.V2Details.IcNumberInputMode);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
         V2CompilationProvenance provenance = details.Provenance;
         Assert.Equal("bundle-v2", provenance.Bundle.BundleId);
@@ -29,7 +29,7 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(CompiledProfilePromotionStage.Compilable, provenance.Promotion.Stage);
         Assert.Equal(["profile-evidence"], provenance.ProfileEvidenceRefs);
         CompiledOutputNamingRequirement output = details.OutputNamingRequirement;
-        Assert.Equal(["original-name"], output.RequiredTokenIds);
+        Assert.Equal(["original-name"], output.TokenRequirements.Select(static requirement => requirement.TokenId));
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
         Assert.Equal(
@@ -38,16 +38,15 @@ public sealed partial class CompiledCompositionTests
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
 
-    /// <summary>Verifies a v2 artifact cannot be minted before profile compilation evidence is sufficient.</summary>
+    /// <summary>Compiled artifacts reject IC-number modes outside the canonical closed vocabulary.</summary>
     [Fact]
-    public void V2PlanArtifactRejectsPromotionBelowCompilable()
+    public void V2DetailsRejectUnknownIcNumberInputMode()
     {
-        CompiledProfilePromotion promotion = new(CompiledProfilePromotionStage.Authorable, []);
-
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(promotion: promotion));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CreateV2(icNumberInputMode: (IcNumberInputMode)99));
     }
 
-    /// <summary>Verifies only a supported token-free reject-policy V2 artifact can receive runtime eligibility.</summary>
+    /// <summary>Verifies compiler-established runtime eligibility retains its supported output policy.</summary>
     [Fact]
     public void V2RuntimeArtifactRequiresSupportedUnblockedTokenFreePromotion()
     {
@@ -59,7 +58,7 @@ public sealed partial class CompiledCompositionTests
             runtimeExecutable: true);
 
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, runtime.Eligibility);
-        Assert.Equal("runtime.bin", runtime.DefaultOutputFileName);
+        Assert.Equal("runtime.bin", runtime.V2Details.OutputNamingRequirement.FileNameTemplate);
         CompiledComposition overridable = CreateV2(
             promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
             outputTemplate: "runtime.bin",
@@ -68,13 +67,6 @@ public sealed partial class CompiledCompositionTests
             allowOutputOverride: true,
             runtimeExecutable: true);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, overridable.Eligibility);
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            promotion: new CompiledProfilePromotion(CompiledProfilePromotionStage.Supported, []),
-            outputTemplate: "runtime.bin",
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.ReplaceUnderscore,
-            requiredOutputTokenIds: [],
-            runtimeExecutable: true));
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(runtimeExecutable: true));
     }
 
     /// <summary>Canonical normal FlashCode and TP-firmware renderers are closed executable contracts.</summary>
@@ -110,12 +102,6 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(
             CompiledCompositionEligibility.V2RuntimeExecutable,
             tpFirmware.Eligibility);
-        _ = Assert.Throws<ArgumentException>(() => CreateV2(
-            promotion: supported,
-            outputTemplate: CompiledOutputNamingRequirement.NormalFlashCodeV1Template,
-            outputInvalidCharacterPolicy: CompiledOutputInvalidCharacterPolicy.Reject,
-            requiredOutputTokenIds: ["date", "dp-version", "ic", "tp-version"],
-            runtimeExecutable: true));
     }
 
     /// <summary>Verifies profile-bundle and output requirement values cannot be forged with malformed or ambiguous identities.</summary>
@@ -186,7 +172,7 @@ public sealed partial class CompiledCompositionTests
             allowOverride: false,
             CompiledOutputInvalidCharacterPolicy.Reject,
             ["original-name"]);
-        Assert.Equal(["original-name"], repeated.RequiredTokenIds);
+        Assert.Equal(["original-name"], repeated.TokenRequirements.Select(static requirement => requirement.TokenId));
     }
 
     /// <summary>
@@ -306,19 +292,25 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void V2FingerprintBindsRegionAccessAndPhysicalViewProvenance()
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        FirmwareRegion root = resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
         CompiledComposition readOnly = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.ReadOnly,
-            "Source bytes are inspectable only."));
+            RegionAccessKind.ReadOnly,
+            "Source bytes are inspectable only.",
+            root), resolvedMap: resolvedMap);
         CompiledComposition hidden = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Hidden,
-            "Source bytes are inspectable only."));
+            RegionAccessKind.Hidden,
+            "Source bytes are inspectable only.",
+            root), resolvedMap: resolvedMap);
         CompiledComposition changedReason = CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.ReadOnly,
-            "Source bytes require a different review rule."));
+            RegionAccessKind.ReadOnly,
+            "Source bytes require a different review rule.",
+            root), resolvedMap: resolvedMap);
 
         CompiledRegionAccessRequirement access = Assert.Single(readOnly.V2Details.RegionAccessContract.Requirements);
         Assert.Equal("root", access.RegionId);
-        Assert.Equal(CompiledRegionAccessKind.ReadOnly, access.Access);
+        Assert.Equal(RegionAccessKind.ReadOnly, access.Access);
         Assert.Equal(["root"], access.GoverningRegionChain.Select(static region => region.RegionId));
         Assert.Equal(["input", "output"], readOnly.V2Details.RegionAccessContract.ResolvedViews.Select(static view => view.ViewId));
         Assert.NotEqual(readOnly.CompilationFingerprint, hidden.CompilationFingerprint);
@@ -329,14 +321,25 @@ public sealed partial class CompiledCompositionTests
     [Fact]
     public void V2RegionAccessContractRejectsMapMismatches()
     {
+        FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap resolvedMap = CreateResolvedMap(
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+        FirmwareRegion canonicalRoot = resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
+        var wrongConstraint = new FirmwareRegion(
+            "root",
+            parentRegionId: null,
+            FirmwareRegionOwner.System,
+            FirmwareRegionKind.Image,
+            new ByteRange(0, 4),
+            FirmwareWriteConstraint.WholeRegion);
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Whole,
+            RegionAccessKind.Whole,
             "Incorrect physical constraint.",
-            writeConstraint: FirmwareWriteConstraint.WholeRegion)));
+            wrongConstraint), resolvedMap: resolvedMap));
         _ = Assert.Throws<ArgumentException>(() => CreateV2(regionAccessContract: CreateRegionAccessContract(
-            CompiledRegionAccessKind.Parts,
+            RegionAccessKind.Parts,
             "Unknown child.",
-            allowedSubregionIds: ["missing-child"])));
+            canonicalRoot,
+            allowedSubregionIds: ["missing-child"]), resolvedMap: resolvedMap));
     }
 
     /// <summary>Verifies resolved-view provenance cannot omit either the canonical root or deepest containing region.</summary>
@@ -344,8 +347,8 @@ public sealed partial class CompiledCompositionTests
     public void V2RegionAccessContractRejectsTruncatedPhysicalViewChains()
     {
         FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap nestedMap = CreateResolvedNestedMap();
-        CompiledPhysicalRegionConstraint root = new("root", FirmwareWriteConstraint.DeclaredSubregions, 1);
-        CompiledPhysicalRegionConstraint left = new("left", FirmwareWriteConstraint.WholeRegion, 1);
+        FirmwareRegion root = nestedMap.ImageMap.Regions.Single(static region => region.RegionId == "root");
+        FirmwareRegion left = nestedMap.ImageMap.Regions.Single(static region => region.RegionId == "left");
         CompiledRegionAccessContract leafOnly = new(
             [],
             [new CompiledResolvedPhysicalView("input", "input", new ByteRange(0, 2), [left])]);
@@ -384,7 +387,7 @@ public sealed partial class CompiledCompositionTests
             CreateV2(validationRequirements:
             [new CompiledViewByteAssertionValidation(
                 "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-                new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0xF0]))]),
+                new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0xF0]))]),
         ];
 
         Assert.All(variants, variant => Assert.NotEqual(baseline.CompilationFingerprint, variant.CompilationFingerprint));
@@ -438,13 +441,13 @@ public sealed partial class CompiledCompositionTests
 
         string withoutMask = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0])));
+            new FirmwareMetadataBytes([0xA0])));
         string masked = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0xF0])));
+            new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0xF0])));
         string changedMask = CalculateFingerprint(new CompiledViewByteAssertionValidation(
             "view", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "VIEW", "output-view",
-            new CompiledValidationBytes([0xA0]), new CompiledValidationBytes([0x0F])));
+            new FirmwareMetadataBytes([0xA0]), new FirmwareMetadataBytes([0x0F])));
         Assert.NotEqual(withoutMask, masked);
         Assert.NotEqual(masked, changedMask);
 
@@ -477,7 +480,7 @@ public sealed partial class CompiledCompositionTests
         IEnumerable<string>? requiredOutputTokenIds = null,
         IEnumerable<string>? profileEvidenceRefs = null,
         IEnumerable<CompiledValidationRequirement>? validationRequirements = null,
-        IEnumerable<CompiledCapabilityAdmission>? requiredCapabilities = null,
+        IEnumerable<FirmwareMapFactBinding<FirmwareCapabilityFact>>? requiredCapabilities = null,
         CompiledInputContract? inputContract = null,
         CompiledRegionAccessContract? regionAccessContract = null,
         CompiledOutputNamingRequirement? outputNaming = null,
@@ -487,9 +490,10 @@ public sealed partial class CompiledCompositionTests
         string modeId = "standard",
         string experienceId = "standard-merge",
         CompositionKind compositionKind = CompositionKind.Merge,
-        CompiledIcNumberPolicy icNumberPolicy = CompiledIcNumberPolicy.NotApplicable,
+        IcNumberInputMode? icNumberInputMode = null,
         string profileId = "profile-v2",
-        string profileVersion = "2.0.0")
+        string profileVersion = "2.0.0",
+        IEnumerable<CompiledAdditionalDelivery>? additionalDeliveries = null)
     {
         resolvedMap ??= CreateResolvedMap(familyContentHash, modeId: modeId);
         var bundle = new ProfileBundleIdentity(
@@ -501,7 +505,7 @@ public sealed partial class CompiledCompositionTests
         var provenance = new V2CompilationProvenance(
             bundle,
             entry,
-            resolvedMap,
+            new ResolvedMapV2CompilationContext(resolvedMap),
             promotion ?? new CompiledProfilePromotion(CompiledProfilePromotionStage.Compilable, []),
             profileEvidenceRefs ?? ["profile-evidence"],
             validationRequirements ?? [],
@@ -512,16 +516,16 @@ public sealed partial class CompiledCompositionTests
             outputInvalidCharacterPolicy,
             requiredOutputTokenIds ?? ["original-name"]);
         var details = new V2CompiledCompositionDetails(
-            provenance,
-            inputContract ?? CreateInputContract(),
-            regionAccessContract ?? new CompiledRegionAccessContract([], []),
-            output);
-        var identity = new V2CompiledCompositionIdentity(
             profileId,
             profileVersion,
             experienceId,
             compositionKind,
-            details);
+            provenance,
+            inputContract ?? CreateInputContract(),
+            regionAccessContract ?? new CompiledRegionAccessContract([], []),
+            output,
+            icNumberInputMode,
+            additionalDeliveries);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -542,20 +546,14 @@ public sealed partial class CompiledCompositionTests
                 OverlapPolicy.Reject,
                 "copy synthetic immutable input")]);
         return runtimeExecutable
-            ? CompiledComposition.CreateV2RuntimeExecutable(
-                plan,
-                identity,
-                icNumberPolicy)
-            : CompiledComposition.CreateV2(
-                plan,
-                identity,
-                icNumberPolicy);
+            ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
+            : CompiledComposition.CreateV2(plan, details);
     }
 
     private static CompiledInputContract CreateInputContract()
     {
         return new CompiledInputContract(
-            [new CompiledInputSlotRequirement(
+            [CompiledInputSlotTestFactory.Create(
                 "input-slot",
                 "input",
                 CompiledInputArtifactClass.ReferenceImage,
@@ -571,15 +569,12 @@ public sealed partial class CompiledCompositionTests
     }
 
     private static CompiledRegionAccessContract CreateRegionAccessContract(
-        CompiledRegionAccessKind access,
+        RegionAccessKind access,
         string reason,
-        FirmwareWriteConstraint writeConstraint = FirmwareWriteConstraint.Forbidden,
+        FirmwareRegion region,
         IReadOnlyList<string>? allowedSubregionIds = null)
     {
-        CompiledPhysicalRegionConstraint[] chain = [new CompiledPhysicalRegionConstraint(
-            "root",
-            writeConstraint,
-            alignment: 1)];
+        FirmwareRegion[] chain = [region];
         return new CompiledRegionAccessContract(
             [new CompiledRegionAccessRequirement(
                 "root",

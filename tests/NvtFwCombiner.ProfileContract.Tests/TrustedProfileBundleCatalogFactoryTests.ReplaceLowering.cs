@@ -11,12 +11,12 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringClonesReferenceAndPadsDeclaredDpInput()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace());
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace());
 
         Assert.Empty(compilation.Issues);
         CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
-        Assert.Equal(CompositionKind.Replace, composition.CompositionKind);
-        Assert.Equal(CompiledIcNumberPolicy.SingleSelector, composition.IcNumberPolicy);
+        Assert.Equal(CompositionKind.Replace, composition.V2Details.CompositionKind);
+        Assert.Equal(IcNumberInputMode.SingleSelector, composition.V2Details.IcNumberInputMode);
         ImageInitialization initialization = composition.Plan.OutputInitialization;
         Assert.Equal(ImageInitializationKind.Reference, initialization.Kind);
         Assert.Equal("reference-source", initialization.ReferenceSpaceId);
@@ -69,7 +69,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringRejectsCopyRangeInsteadOfReplaceRange()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
             JsonObject operation = Assert.IsType<JsonObject>(Assert.Single(Assert.IsType<JsonArray>(profile["operations"])));
             operation["kind"] = "copy-range";
@@ -83,7 +83,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringRejectsAuxiliaryPayloadForDpRegion()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
             JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
             dpSlot["artifactClass"] = "auxiliary";
@@ -98,7 +98,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringAcceptsAuxiliaryPayloadForDeclaredLdcRegion()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(
             profile =>
             {
                 JsonArray requiredRegions = Assert.IsType<JsonArray>(
@@ -213,34 +213,57 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             execution.OutputBytes.ToArray());
     }
 
-    /// <summary>Verifies no other Replace experience can enter the DP runtime lowering subset.</summary>
+    /// <summary>Verifies the closed DP operation shape lowers independently of its trusted workflow identity.</summary>
     [Fact]
-    public void DpReplaceLoweringRejectsNonDpReplaceExperience()
+    public void DpReplaceLoweringDoesNotBranchOnWorkflowIdentity()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
             JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
             Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] = new JsonObject { ["kind"] = "none" };
         }, modeId: "general-replace"));
 
-        Assert.Null(compilation.CompiledComposition);
-        Assert.Equal(2, compilation.Issues.Count);
-        Assert.All(
-            compilation.Issues,
-            issue => Assert.Equal("profile.v2.plan.unsupported-declaration", issue.Code));
+        Assert.Empty(compilation.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal("general-replace", composition.V2Details.ExperienceId);
+        Assert.Equal(
+            [CompositionOperationKind.ReplaceRange],
+            composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
     }
 
-    /// <summary>Verifies CtrlRAM Replace cannot admit a DP Replace range without its processor contract.</summary>
+    /// <summary>Verifies a workflow name cannot replace the closed operation and input vocabulary.</summary>
     [Fact]
-    public void CtrlRamReplaceLoweringRejectsDpReplaceRange()
+    public void ReplaceRangeAdmissionDoesNotBranchOnCtrlRamWorkflowName()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(
+        V2CompositionPlanCompileResult compilation = Compile(
             PrepareSupportedDpReplace(profile =>
             {
                 JsonObject dpSlot = Assert.IsType<JsonObject>(Assert.IsType<JsonArray>(profile["inputSlots"])[1]);
                 Assert.IsType<JsonObject>(dpSlot["acceptance"])["normalization"] =
                     new JsonObject { ["kind"] = "none" };
             }, modeId: "ctrlram-replace"));
+
+        Assert.Empty(compilation.Issues);
+        CompiledComposition composition = Assert.IsType<CompiledComposition>(compilation.CompiledComposition);
+        Assert.Equal("ctrlram-replace", composition.V2Details.ExperienceId);
+        Assert.Equal(
+            [CompositionOperationKind.ReplaceRange],
+            composition.Plan.OrderedOperations.Select(static operation => operation.Kind));
+    }
+
+    /// <summary>Verifies the AB Code renderer cannot grant runtime eligibility to reference-clone Replace.</summary>
+    [Fact]
+    public void ReplaceLoweringRejectsAbCodeOutputRenderer()
+    {
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
+        {
+            JsonObject promotion = Assert.IsType<JsonObject>(profile["promotion"]);
+            promotion["stage"] = "supported";
+            promotion["blockers"] = new JsonArray();
+            JsonObject output = Assert.IsType<JsonObject>(profile["output"]);
+            output["fileNameTemplate"] = CompiledOutputNamingRequirement.AbCodeV1Template;
+            output["requiredTokenIds"] = new JsonArray("date", "dp-a", "dp-b", "ic", "tp-a", "tp-b");
+        }));
 
         Assert.Null(compilation.CompiledComposition);
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
@@ -250,7 +273,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringAcceptsReferenceRestoreAfterReplaceRange()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
             JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
             Assert.IsType<JsonObject>(views[0])["selector"] = new JsonObject
@@ -296,7 +319,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
     [Fact]
     public void DpReplaceLoweringRejectsCrossOffsetReferenceRestore()
     {
-        V2CompositionPlanCompileResult compilation = V2CompositionPlanCompiler.Compile(PrepareSupportedDpReplace(profile =>
+        V2CompositionPlanCompileResult compilation = Compile(PrepareSupportedDpReplace(profile =>
         {
             JsonArray views = Assert.IsType<JsonArray>(profile["views"]);
             Assert.IsType<JsonObject>(views[0])["selector"] = new JsonObject
@@ -329,7 +352,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.Equal("profile.v2.plan.unsupported-declaration", Assert.Single(compilation.Issues).Code);
     }
 
-    private static V2CompositionPreparationResult PrepareSupportedDpReplace(
+    private static PreparedProfile PrepareSupportedDpReplace(
         Action<JsonObject>? configureProfile = null,
         string modeId = "dp-replace",
         Action<JsonObject>? configureFamily = null)
@@ -418,14 +441,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         configureProfile?.Invoke(profile);
         string profileJson = profile.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
         TrustedProfileBundleCatalog catalog = CreateCatalog(familyJson, profileJson);
-        TrustedProfileBundleCatalog.ProfileSelection selection = Assert.IsType<TrustedProfileBundleCatalog.ProfileSelection>(
-            catalog.SelectProfile("profile", "1.0.0").Selection);
-        V2CompositionPreparationResult preparation = V2CompositionPreparationService.Prepare(
-            catalog,
-            Request(selection, modeId: modeId));
-        Assert.Empty(preparation.Issues);
-        Assert.Equal(V2CompositionPreparationStatus.Admitted, preparation.Status);
-        Assert.True(preparation.IsAdmitted);
-        return preparation;
+        TrustedCompositionProfileCatalogEntry selection = Select(catalog);
+        return PrepareAdmitted(catalog, selection, Inputs(modeId: modeId));
     }
 }

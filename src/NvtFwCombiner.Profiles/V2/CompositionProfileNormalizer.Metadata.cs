@@ -10,50 +10,29 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMetadataBindingDocument document,
         string path = "metadataBindings[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
-        IReadOnlyList<string> purposeDocuments = RequireList(document.Purposes, $"{path}.purposes");
-        var purposes = new CompositionProfileMetadataPurpose[purposeDocuments.Count];
-        for (int index = 0; index < purposeDocuments.Count; index++)
-        {
-            purposes[index] = NormalizeMetadataPurpose(
-                purposeDocuments[index],
-                $"{path}.purposes[{index}]");
-        }
+        IReadOnlyList<string> purposeDocuments = document.Purposes;
+        CompositionProfileMetadataPurpose[] purposes = NormalizeList(
+            purposeDocuments,
+            $"{path}.purposes",
+            NormalizeMetadataPurpose);
 
         bool hasTypedTargets = document.TargetReferences is not null;
-        if (hasTypedTargets && document.FieldIds is not null)
-        {
-            throw Error(
-                path,
-                "Metadata bindings cannot mix legacy fieldIds with typed targetReferences.");
-        }
-
         FirmwareMetadataReferenceTarget[] targets;
         IReadOnlyList<string> evidenceRefs;
         if (hasTypedTargets)
         {
             IReadOnlyList<CompositionProfileMetadataTargetReferenceDocument> targetDocuments =
-                RequireList(document.TargetReferences, $"{path}.targetReferences");
-            targets = new FirmwareMetadataReferenceTarget[targetDocuments.Count];
-            for (int index = 0; index < targetDocuments.Count; index++)
-            {
-                targets[index] = NormalizeMetadataTarget(
-                    targetDocuments[index],
-                    $"{path}.targetReferences[{index}]");
-            }
+                document.TargetReferences!;
+            targets = NormalizeList(
+                targetDocuments,
+                $"{path}.targetReferences",
+                NormalizeMetadataTarget);
 
-            evidenceRefs = RequireList(document.EvidenceRefs, $"{path}.evidenceRefs");
-            if (evidenceRefs.Count == 0)
-            {
-                throw Error(
-                    $"{path}.evidenceRefs",
-                    "Typed metadata target references require evidence.");
-            }
+            evidenceRefs = document.EvidenceRefs!;
         }
         else
         {
-            IReadOnlyList<string> fieldIds =
-                RequireList(document.FieldIds, $"{path}.fieldIds");
+            IReadOnlyList<string> fieldIds = document.FieldIds!;
             targets =
             [
                 .. fieldIds.Select(static fieldId =>
@@ -77,7 +56,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileRegionAccessRuleDocument document,
         string path = "regionAccessRules[0]")
     {
-        ArgumentNullException.ThrowIfNull(document);
         return Wrap(path, () => new CompositionProfileRegionAccess(
             document.RegionId,
             NormalizeRegionAccess(document.Access, $"{path}.access"),
@@ -110,7 +88,6 @@ internal static partial class CompositionProfileNormalizer
         CompositionProfileMetadataTargetReferenceDocument document,
         string path)
     {
-        ArgumentNullException.ThrowIfNull(document);
         FirmwareMetadataReferenceTargetKind kind = document.TargetKind switch
         {
             "span" => FirmwareMetadataReferenceTargetKind.Span,

@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Profiles.V2;
@@ -61,8 +60,7 @@ internal static class V2StandardMergeGoldenTestSupport
         long? requestedMapCapacity = null,
         IReadOnlyCollection<string>? selectedInputSlotIds = null)
     {
-        V2CompositionPlanCompileResult compilation = TrustedV2CompositionCompiler.Compile(
-            catalog,
+        V2CompositionPlanCompileResult compilation = catalog.Compile(
             profileId,
             profileVersion,
             icId,
@@ -107,20 +105,20 @@ internal static class V2StandardMergeGoldenTestSupport
         IReadOnlyDictionary<string, byte[]> inputs)
     {
         var reader = new FakeArtifactReader(inputs.ToDictionary(
-            item => $"{compiledComposition.ProfileId}:{item.Key}",
+            item => $"{compiledComposition.V2Details.ProfileId}:{item.Key}",
             static item => item.Value,
             StringComparer.Ordinal));
         InputArtifactBinding[] bindings =
         [
             .. inputs.Keys.Order(StringComparer.Ordinal)
-                .Select(addressSpaceId => CreateInputBinding(compiledComposition.ProfileId, addressSpaceId)),
+                .Select(addressSpaceId => CreateInputBinding(compiledComposition.V2Details.ProfileId, addressSpaceId)),
         ];
         var service = new CompositionRunService(reader, new FakeClock([StartedAtUtc, CompletedAtUtc]));
         var request = new CompositionRunRequest(
-            $"golden-{compiledComposition.IcId.ToLowerInvariant()}",
+            $"golden-{compiledComposition.V2Details.Provenance.Context.MemberId.ToLowerInvariant()}",
             compiledComposition,
             bindings,
-            compiledComposition.DefaultOutputFileName);
+            compiledComposition.V2Details.OutputNamingRequirement.FileNameTemplate);
         return await service.PreviewAsync(request, CancellationToken.None).ConfigureAwait(false);
     }
 

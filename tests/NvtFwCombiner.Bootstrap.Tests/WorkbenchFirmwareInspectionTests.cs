@@ -2,12 +2,13 @@ using System.Text;
 using System.Text.RegularExpressions;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.InputInspection;
+using NvtFwCombiner.Domain.Composition;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Parity and read-count evidence for the shell firmware inspection facade.</summary>
-public sealed partial class WorkbenchFirmwareInspectionTests
+public sealed partial class FirmwareInspectionSnapshotTests
 {
     /// <summary>NT51950/NT51951 recognize a plausible TP overlay in their standalone 0x37000 TP FW shape.</summary>
     [Theory]
@@ -20,14 +21,14 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         byte[] tpFirmware = new byte[0x37000];
         tpFirmware[0xA000] = 0x5A;
 
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             icId,
             "tp-fw.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => tpFirmware);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.TpFirmware, inspection.BaseFirmwareArtifactKind);
         Assert.Null(inspection.DpVersion);
         Assert.Null(inspection.CmiDpCode);
     }
@@ -41,21 +42,21 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         byte[] flashCode = (byte[])tpOnly.Clone();
         flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot tp = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51929",
             "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => tpOnly);
-        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot flash = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51929",
             "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
         Assert.Null(tp.DpVersion);
         Assert.Null(tp.CmiDpCode);
         Assert.NotNull(flash.ArtifactClassification);
@@ -68,14 +69,14 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         byte[] initialCode = new byte[0x40000];
         initialCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51929",
             "initial-code.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => initialCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.Unknown, inspection.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.Unknown, inspection.BaseFirmwareArtifactKind);
         Assert.Equal(
             CompiledFirmwareArtifactKind.Unknown,
             Assert.IsType<CompiledFirmwareArtifactClassification>(inspection.ArtifactClassification).Kind);
@@ -90,21 +91,21 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         byte[] flashCode = (byte[])tpOnly.Clone();
         flashCode[0] = 0x5A;
 
-        WorkbenchFirmwareInspection tp = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot tp = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             "tp.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => tpOnly);
-        WorkbenchFirmwareInspection flash = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot flash = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             "flash.bin",
             tpPath: null,
             ctrlRamRequest: null,
             _ => flashCode);
 
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
-        Assert.Equal(WorkbenchBaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.TpFirmware, tp.BaseFirmwareArtifactKind);
+        Assert.Equal(BaseFirmwareArtifactKind.FlashCode, flash.BaseFirmwareArtifactKind);
     }
 
     /// <summary>A dynamic Standard Merge route projects DP DPCMI from its canonical metadata plan.</summary>
@@ -114,13 +115,13 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         string dpPath = GoldenArtifactPath("51926", "dp-input");
         string tpPath = GoldenArtifactPath("51926", "tp-input");
 
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             dpPath,
             tpPath);
 
-        Assert.Equal("0100", Assert.IsType<WorkbenchDpVersionMetadata>(inspection.DpVersion).VersionToken);
-        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(inspection.CmiDpCode);
+        Assert.Equal("0100", Assert.IsType<DpVersionMetadata>(inspection.DpVersion).VersionToken);
+        CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(inspection.CmiDpCode);
         Assert.Equal((byte)0x01, cmi.MajorVersionByte);
         Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
         Assert.Equal((ushort)597, cmi.JiraNumber);
@@ -131,47 +132,36 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     public void InspectionMatchesExistingFirmwareAndCtrlRamDisplayReaders()
     {
         string basePath = GoldenArtifactPath("51926", "expected-output");
-        var ctrlRamRequest = new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade);
+        var ctrlRamRequest = new CtrlRamInspectionRequest(IcNumberSelectionTokens.Cascade);
 
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             basePath,
             basePath,
             ctrlRamRequest);
 
         Assert.Equal(
-            WorkbenchCompositionService.TryReadFirmwareConfigMetadata("NT51926", basePath),
+            BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51926", basePath),
             inspection.FirmwareConfig);
         Assert.Equal(
-            WorkbenchCompositionService.TryReadDpVersionMetadata("NT51926", basePath),
+            FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51926", basePath),
             inspection.DpVersion);
         Assert.Equal(
-            WorkbenchCompositionService.TryReadCmiDpCodeMetadata("NT51926", basePath, basePath),
+            FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51926", basePath, basePath),
             inspection.CmiDpCode);
         Assert.Equal(
-            WorkbenchCompositionService.TryReadFirmwareContextSuggestion("NT51926", basePath),
+            FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", basePath),
             inspection.ContextSuggestion);
 
-        WorkbenchCtrlRamInspectionDisplay display = Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(inspection.CtrlRamDisplay);
-        Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
-        Assert.Equal(
-            WorkbenchCompositionService.GetCtrlRamRegions("NT51926", ctrlRamRequest.NumberToken, basePath),
-            display.Regions);
-        Assert.Equal(
-            WorkbenchCompositionService.GetReplaceInputSlots(
+        CtrlRamInspectionDisplay display = Assert.IsType<CtrlRamInspectionDisplay>(inspection.CtrlRamDisplay);
+        CtrlRamInspectionDisplay expectedDisplay =
+            BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplay(
                 "NT51926",
                 ctrlRamRequest.NumberToken,
-                WorkbenchReplaceModes.CtrlRam,
-                basePath),
-            display.InputSlots);
-        WorkbenchMemoryDisplay expectedMemory = WorkbenchCompositionService.GetReplaceMemoryDisplay(
-            "NT51926",
-            ctrlRamRequest.NumberToken,
-            WorkbenchReplaceModes.CtrlRam,
-            ctrlRamBasePath: basePath);
-        Assert.Equal(expectedMemory.RangeLabel, display.MemoryDisplay.RangeLabel);
-        Assert.Equal(expectedMemory.MemoryMapRows, display.MemoryDisplay.MemoryMapRows);
-        Assert.Equal(expectedMemory.CoverageSegments, display.MemoryDisplay.CoverageSegments);
+                basePath);
+        Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
+        Assert.Equal(expectedDisplay.Regions, display.Regions);
+        Assert.Equal(expectedDisplay.InputSlots, display.InputSlots);
     }
 
     /// <summary>Each distinct path is read once; a missing primary prevents any secondary read.</summary>
@@ -194,24 +184,24 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             return artifacts.GetValueOrDefault(path);
         }
 
-        WorkbenchFirmwareInspection samePath = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot samePath = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "base.bin",
             "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
+            new CtrlRamInspectionRequest(IcNumberSelectionTokens.Cascade),
             readFirmwareImage: Read);
         Assert.NotNull(samePath.FirmwareConfig);
         Assert.Equal(["base.bin"], reads);
 
         reads.Clear();
-        WorkbenchFirmwareInspection distinctPaths = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot distinctPaths = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             "dp.bin",
             "tp.bin",
             ctrlRamRequest: null,
             readFirmwareImage: Read);
         Assert.Equal("CC00", distinctPaths.DpVersion?.VersionToken);
-        WorkbenchCmiDpCodeMetadata cmi = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
+        CmiDpCodeMetadata cmi = Assert.IsType<CmiDpCodeMetadata>(
             distinctPaths.CmiDpCode);
         Assert.Equal((byte)0xCC, cmi.MajorVersionByte);
         Assert.Equal((byte)0x00, cmi.MinorVersionNibble);
@@ -220,7 +210,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Equal(["dp.bin", "tp.bin"], reads);
 
         reads.Clear();
-        WorkbenchFirmwareInspection missingPrimary = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot missingPrimary = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51950",
             "missing.bin",
             "tp.bin",
@@ -242,7 +232,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Encoding.ASCII.GetBytes("NT51926").CopyTo(headerBytes, 16);
         Encoding.ASCII.GetBytes("NT51929").CopyTo(headerBytes, (256 * 1024) + 8);
 
-        WorkbenchFirmwareInspection fileNameHint = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot fileNameHint = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "NT51927TT_payload.bin",
             tpPath: null,
@@ -250,7 +240,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             _ => headerBytes);
         Assert.Equal("NT51927", fileNameHint.DetectedIcId);
 
-        WorkbenchFirmwareInspection unreadableFileNameHint = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot unreadableFileNameHint = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "NT51927_unreadable.bin",
             tpPath: null,
@@ -259,7 +249,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Equal("NT51927", unreadableFileNameHint.DetectedIcId);
         Assert.Null(unreadableFileNameHint.FirmwareConfig);
 
-        WorkbenchFirmwareInspection headerHint = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot headerHint = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "payload.bin",
             tpPath: null,
@@ -268,7 +258,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Equal("NT51926", headerHint.DetectedIcId);
 
         Array.Clear(headerBytes, 16, "NT51926".Length);
-        WorkbenchFirmwareInspection outOfProbeHint = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot outOfProbeHint = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "payload.bin",
             tpPath: null,
@@ -277,7 +267,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Assert.Null(outOfProbeHint.DetectedIcId);
 
         Assert.DoesNotContain(
-            typeof(WorkbenchFirmwareInspection).GetProperties(),
+            typeof(FirmwareInspectionSnapshot).GetProperties(),
             property => property.PropertyType == typeof(byte[]) ||
                 property.PropertyType == typeof(ReadOnlyMemory<byte>));
     }
@@ -326,7 +316,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         const int probeLength = 256 * 1024;
         byte[] headerBytes = new byte[probeLength];
         Encoding.ASCII.GetBytes("NT51926").CopyTo(headerBytes, probeLength - "NT51926".Length);
-        _ = WorkbenchCompositionService.InspectFirmware(
+        _ = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "payload.bin",
             tpPath: null,
@@ -334,7 +324,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             _ => headerBytes);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "payload.bin",
             tpPath: null,
@@ -351,13 +341,13 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     public void InspectionKeepsMultiProfileSelectionIndependentFromFirmwareVersionBar()
     {
         byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
-        WorkbenchFirmwareInspection validInspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot validInspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "base.bin",
             "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
+            new CtrlRamInspectionRequest(IcNumberSelectionTokens.Cascade),
             _ => validBytes);
-        WorkbenchFirmwareConfigMetadata validMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+        FirmwareConfigMetadataSnapshot validMetadata = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             validInspection.FirmwareConfig);
         Assert.True(validMetadata.IsFirmwareVersionBarValid);
         Assert.NotNull(validMetadata.PostbuildCategory);
@@ -367,17 +357,17 @@ public sealed partial class WorkbenchFirmwareInspectionTests
             (int)validMetadata.FirmwareConfigBackupStart + FirmwareConfigLayout.FirmwareVersionBarOffset);
         invalidBytes[versionBarOffset] ^= 0x01;
 
-        WorkbenchFirmwareInspection invalidInspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot invalidInspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "base.bin",
             "base.bin",
-            new WorkbenchCtrlRamInspectionRequest(WorkbenchIcNumberTokens.Cascade),
+            new CtrlRamInspectionRequest(IcNumberSelectionTokens.Cascade),
             _ => invalidBytes);
-        WorkbenchFirmwareConfigMetadata invalidMetadata = Assert.IsType<WorkbenchFirmwareConfigMetadata>(
+        FirmwareConfigMetadataSnapshot invalidMetadata = Assert.IsType<FirmwareConfigMetadataSnapshot>(
             invalidInspection.FirmwareConfig);
         Assert.False(invalidMetadata.IsFirmwareVersionBarValid);
         Assert.Equal(validMetadata.PostbuildCategory, invalidMetadata.PostbuildCategory);
-        Assert.NotEmpty(Assert.IsType<WorkbenchCtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
+        Assert.NotEmpty(Assert.IsType<CtrlRamInspectionDisplay>(invalidInspection.CtrlRamDisplay).InputSlots);
     }
 
     private static void AssertHeaderHintMatchesLegacyRegex(byte[] image, Regex legacyMarker)
@@ -385,7 +375,7 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         Match expectedMatch = legacyMarker.Match(Encoding.ASCII.GetString(image));
         string? expected = expectedMatch.Success ? $"NT{expectedMatch.Groups["ic"].Value}" : null;
 
-        WorkbenchFirmwareInspection inspection = WorkbenchCompositionService.InspectFirmware(
+        FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "payload.bin",
             tpPath: null,
@@ -411,12 +401,12 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         };
         var reads = new List<string>();
 
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            WorkbenchCompositionService.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51950",
                 [
-                    new WorkbenchFirmwareInspectionInput("tp", "tp.bin"),
-                    new WorkbenchFirmwareInspectionInput("dp", "dp.bin", "tp.bin"),
+                    new FirmwareInspectionSnapshotInput("tp", "tp.bin"),
+                    new FirmwareInspectionSnapshotInput("dp", "dp.bin", "tp.bin"),
                 ],
                 path =>
                 {
@@ -436,11 +426,11 @@ public sealed partial class WorkbenchFirmwareInspectionTests
     {
         int reads = 0;
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            WorkbenchCompositionService.InspectFirmwareBatch(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51926",
                 [
-                    new WorkbenchFirmwareInspectionInput("slot", "first.bin"),
-                    new WorkbenchFirmwareInspectionInput("slot", "second.bin"),
+                    new FirmwareInspectionSnapshotInput("slot", "first.bin"),
+                    new FirmwareInspectionSnapshotInput("slot", "second.bin"),
                 ],
                 _ =>
                 {
@@ -459,10 +449,10 @@ public sealed partial class WorkbenchFirmwareInspectionTests
         int reads = 0;
 
         _ = Assert.Throws<ArgumentNullException>(() =>
-            WorkbenchCompositionService.InspectFirmwareBatch(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51926",
                 [
-                    new WorkbenchFirmwareInspectionInput("first", "first.bin"),
+                    new FirmwareInspectionSnapshotInput("first", "first.bin"),
                     null!,
                 ],
                 _ =>

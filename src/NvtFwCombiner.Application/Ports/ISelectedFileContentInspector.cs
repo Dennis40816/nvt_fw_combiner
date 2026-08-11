@@ -8,12 +8,6 @@ namespace NvtFwCombiner.Application.Ports;
 /// </summary>
 public interface ISelectedFileContentInspector
 {
-    /// <summary>Observes the bounded current length before exact input-contract compilation.</summary>
-    ValueTask<long> ObserveLengthAsync(
-        string selectedPath,
-        long maximumBytes,
-        CancellationToken cancellationToken);
-
     /// <summary>Inspects the complete currently selected file exactly once.</summary>
     ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
@@ -45,8 +39,8 @@ public sealed class SelectedFileSizeLimitExceededException : Exception
 }
 
 /// <summary>
-/// Immutable host inspection result. Only <see cref="FileStamp"/> participates
-/// in accepted byte identity; the remaining values are hints.
+/// Immutable host inspection result. <see cref="FileStamp"/> identifies the
+/// retained accepted bytes; display name and timestamp are hints only.
 /// </summary>
 public sealed record SelectedFileContentInspection
 {
@@ -54,7 +48,8 @@ public sealed record SelectedFileContentInspection
     public SelectedFileContentInspection(
         FileStamp fileStamp,
         string? displayNameHint = null,
-        DateTimeOffset? lastWriteTimeUtcHint = null)
+        DateTimeOffset? lastWriteTimeUtcHint = null,
+        ReadOnlyMemory<byte>? acceptedBytes = null)
     {
         if (displayNameHint is not null)
         {
@@ -72,6 +67,14 @@ public sealed record SelectedFileContentInspection
         FileStamp = fileStamp;
         DisplayNameHint = displayNameHint;
         LastWriteTimeUtcHint = lastWriteTimeUtcHint;
+        AcceptedByteArray = acceptedBytes?.ToArray();
+        if (AcceptedByteArray is not null &&
+            FileStamp.FromBytes(AcceptedByteArray) != fileStamp)
+        {
+            throw new ArgumentException(
+                "Accepted bytes must match the inspected file identity.",
+                nameof(acceptedBytes));
+        }
     }
 
     /// <summary>Accepted complete-file content identity.</summary>
@@ -82,4 +85,11 @@ public sealed record SelectedFileContentInspection
 
     /// <summary>Non-authoritative UTC filesystem timestamp hint.</summary>
     public DateTimeOffset? LastWriteTimeUtcHint { get; }
+
+    /// <summary>Immutable complete bytes captured by this exact inspection.</summary>
+    public ReadOnlyMemory<byte>? AcceptedBytes => AcceptedByteArray is null
+        ? null
+        : new ReadOnlyMemory<byte>(AcceptedByteArray);
+
+    internal byte[]? AcceptedByteArray { get; }
 }

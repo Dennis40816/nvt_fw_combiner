@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -37,7 +36,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
 
         using var workspace = TempWorkspace.Create("nfc-nt51950-owner-standard-merge");
         string outputPath = workspace.PathFor("nt51950-standard-merge.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult result = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51950",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -48,8 +47,8 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        Assert.Equal("nt51950-standard-merge-dp-perspective", ReadProfileId(result.ReportJson));
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.Equal("nt51950-standard-merge-dp-perspective", ReadProfileId(CompositionRunReportJson.Serialize(result)));
         byte[] expected = File.ReadAllBytes(PathForRole("expected-final-output"));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(expectedSha256, result.OutputSha256);
@@ -79,7 +78,7 @@ public sealed class Nt51950Nt51951V2StandardMergeGoldenTests
             icId,
             capacity);
 
-        Assert.Equal(expectedOutputFileName, v2.DefaultOutputFileName);
+        Assert.Equal(expectedOutputFileName, v2.V2Details.OutputNamingRequirement.FileNameTemplate);
         AssertDeclaredDpPerspectivePlan(v2.Plan, capacity);
         CompositionRunResult result = await V2StandardMergeGoldenTestSupport.PreviewAsync(v2, inputs);
 

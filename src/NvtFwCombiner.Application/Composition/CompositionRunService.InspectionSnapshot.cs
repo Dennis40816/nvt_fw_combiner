@@ -11,7 +11,7 @@ public sealed partial class CompositionRunService
         int outputLength)
     {
         if (runStatus != CompositionExecutionStatus.Succeeded ||
-            request.CompiledComposition.CompositionKind != CompositionKind.Replace ||
+            request.CompiledComposition.V2Details.CompositionKind != CompositionKind.Replace ||
             request.CompiledComposition.Plan.OutputInitialization.Kind != ImageInitializationKind.Reference ||
             request.CompiledComposition.Plan.OutputInitialization.ReferenceSpaceId is not { } candidateSpaceId ||
             !inputBytes.TryGetValue(candidateSpaceId, out byte[]? candidateBytes) ||

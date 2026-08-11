@@ -39,7 +39,7 @@ public sealed partial class CompositionRunRequestV2Tests
         [
             "postbuild-processor:nfc.synthetic.postbuild",
             "postbuild-selector:single",
-            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
+            $"postbuild-plan:{LegacyCombinerPostbuildPlanCompiler.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
         ];
         ResolvedCapabilityRoute route = CreateRoute(reviewedBindings);
 
@@ -93,39 +93,11 @@ public sealed partial class CompositionRunRequestV2Tests
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 wrongTopology,
                 postbuildPlan));
-        var fabricatedCommand = new LegacyCombinerPostbuildCommand(
-            "fabricated-command",
-            LegacyCombinerCommandFamily.NormalMode,
-            "CRC_Disable",
-            crcArgument: null,
-            [new LegacyCombinerBlockArgument(
-                "fabricated-block",
-                LegacyCombinerBlockSourceKind.StagedFile,
-                "source.bin",
-                0,
-                new ByteRange(1, 1))]);
-        var fabricatedPlan = new LegacyCombinerPostbuildCommandPlan(
-            postbuildPlan.Profile,
-            postbuildPlan.Selector,
-            [fabricatedCommand]);
-        _ = Assert.Throws<ArgumentException>(() =>
-            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
-                composition,
-                fabricatedPlan));
+        Assert.Empty(typeof(LegacyCombinerPostbuildCommandPlan).GetConstructors());
         _ = Assert.Throws<ArgumentException>(() =>
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 CreateRuntimeReferenceCandidate(),
                 postbuildPlan));
-        _ = Assert.Throws<ArgumentException>(() =>
-            CreateRuntimeReferenceCandidate(
-                allowsConditionalProcessor: true,
-                includeProcessorView: true,
-                modeId: ExperienceIds.CtrlRamReplace,
-                experienceId: ExperienceIds.CtrlRamReplace,
-                sourceArtifactClass:
-                    CompiledInputArtifactClass.CtrlRamReplacement,
-                rootOwner: FirmwareRegionOwner.Tp,
-                rootKind: FirmwareRegionKind.CtrlRam));
         CompiledComposition driftedWrites = CreateRuntimeReferenceCandidate(
             allowsConditionalProcessor: true,
             includeProcessorView: true,
@@ -223,8 +195,8 @@ public sealed partial class CompositionRunRequestV2Tests
         ResolvedCapabilityRoute CreateRoute(IReadOnlyList<string> bindings)
         {
             var contract = new CanonicalCapabilityCompilationContract(
-                composition.ProfileId,
-                composition.ProfileVersion,
+                composition.V2Details.ProfileId,
+                composition.V2Details.ProfileVersion,
                 composition.V2Details.Provenance.Bundle.ContentHash,
                 ["map"],
                 CapabilityDefinitionFingerprint.RuntimeReferenceReplaceCompilerSemanticId,
@@ -306,20 +278,6 @@ public sealed partial class CompositionRunRequestV2Tests
             composition.V2Details.Provenance.Context);
     }
 
-    /// <summary>Verifies a generic resolved-map context cannot mint the runtime-reference candidate shape.</summary>
-    [Fact]
-    public void GenericResolvedMapContextCannotMintRuntimeReferenceCandidate()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(useRuntimeContext: false));
-    }
-
-    /// <summary>Verifies the runtime-reference context cannot mint a singleton-only map-bound artifact.</summary>
-    [Fact]
-    public void RuntimeReferenceContextCannotMintSingletonOnlyCandidate()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(includeAuxiliarySource: false));
-    }
-
     /// <summary>Verifies the runtime-reference context has an explicit compilation-fingerprint vector.</summary>
     [Fact]
     public void RuntimeReferenceCandidateHasStableCompilationFingerprint()
@@ -342,14 +300,6 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.True(Assert.IsType<RuntimeReferenceReplaceV2CompilationContext>(
             conditional.V2Details.Provenance.Context).AllowsConditionalProcessor);
         Assert.NotEqual(baseline.CompilationFingerprint, conditional.CompilationFingerprint);
-    }
-
-    /// <summary>Verifies legacy runtime-reference contracts cannot retain processor-only physical views.</summary>
-    [Fact]
-    public void RuntimeReferenceContextRejectsProcessorViewsWithoutCapability()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
-            includeProcessorView: true));
     }
 
     /// <summary>Verifies runtime-reference bindings retain their compiler-materialized identities.</summary>
@@ -381,32 +331,7 @@ public sealed partial class CompositionRunRequestV2Tests
             icNumberSelection: new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
     }
 
-    /// <summary>Verifies only the closed General Replace mode and experience can mint this candidate context.</summary>
-    [Theory]
-    [InlineData("other-replace", ExperienceIds.GeneralReplace)]
-    [InlineData(ExperienceIds.GeneralReplace, "other-replace")]
-    public void RuntimeReferenceContextCannotMintWrongModeOrExperienceCandidate(
-        string modeId,
-        string experienceId)
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
-            modeId: modeId,
-            experienceId: experienceId));
-    }
-
-    /// <summary>Verifies a hand-minted CtrlRAM context cannot target a non-CtrlRAM physical map region.</summary>
-    [Fact]
-    public void RuntimeReferenceContextCannotMintCtrlRamMappingOverSystemRegion()
-    {
-        _ = Assert.Throws<ArgumentException>(() => CreateRuntimeReferenceCandidate(
-            modeId: ExperienceIds.CtrlRamReplace,
-            experienceId: ExperienceIds.CtrlRamReplace,
-            sourceArtifactClass: CompiledInputArtifactClass.CtrlRamReplacement));
-    }
-
     private static CompiledComposition CreateRuntimeReferenceCandidate(
-        bool useRuntimeContext = true,
-        bool includeAuxiliarySource = true,
         bool allowsConditionalProcessor = false,
         bool includeProcessorView = false,
         string modeId = ExperienceIds.GeneralReplace,
@@ -431,22 +356,17 @@ public sealed partial class CompositionRunRequestV2Tests
             rootOwner: rootOwner,
             rootKind: rootKind,
             includeNestedCtrlRamRegion: useNestedCtrlRamMap);
-        var rootConstraint = new CompiledPhysicalRegionConstraint(
-            "root",
-            FirmwareWriteConstraint.ExplicitRange,
-            alignment: 1);
-        CompiledPhysicalRegionConstraint[] rootChain =
+        FirmwareRegion rootRegion = resolvedMap.ImageMap.Regions.Single(
+            static region => region.RegionId == "root");
+        FirmwareRegion[] rootChain =
         [
-            rootConstraint,
+            rootRegion,
         ];
-        CompiledPhysicalRegionConstraint[] writeChain = useNestedCtrlRamMap
+        FirmwareRegion[] writeChain = useNestedCtrlRamMap
             ?
             [
-                rootConstraint,
-                new CompiledPhysicalRegionConstraint(
-                    "ctrlram",
-                    FirmwareWriteConstraint.ExplicitRange,
-                    alignment: 1),
+                rootRegion,
+                resolvedMap.ImageMap.Regions.Single(static region => region.RegionId == "ctrlram"),
             ]
             : rootChain;
         string writeRegionId = useNestedCtrlRamMap ? "ctrlram" : "root";
@@ -459,17 +379,15 @@ public sealed partial class CompositionRunRequestV2Tests
             new ProfileBundleEntryIdentity(
                 "runtime-reference-profile",
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-            useRuntimeContext
-                ? new RuntimeReferenceReplaceV2CompilationContext(
-                    resolvedMap,
-                    allowsConditionalProcessor || processorId is not null,
-                    processorId is null ? [] : ["processor-write"])
-                : new ResolvedMapV2CompilationContext(resolvedMap),
+            new RuntimeReferenceReplaceV2CompilationContext(
+                resolvedMap,
+                allowsConditionalProcessor || processorId is not null,
+                processorId is null ? [] : ["processor-write"]),
             new CompiledProfilePromotion(CompiledProfilePromotionStage.ExecutableCandidate, []),
             ["runtime-reference-evidence"],
             [],
             []);
-        var referenceSlot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement referenceSlot = CompiledInputSlotTestFactory.Create(
             "reference-slot",
             "reference",
             CompiledInputArtifactClass.ReferenceImage,
@@ -478,7 +396,7 @@ public sealed partial class CompositionRunRequestV2Tests
             [".bin"],
             new CompiledExactResolvedMapCapacityInputLengthRequirement(4),
             new CompiledNoInputNormalization());
-        var sourceSlot = new CompiledInputSlotRequirement(
+        CompiledInputSlotRequirement sourceSlot = CompiledInputSlotTestFactory.Create(
             "source-slot",
             "source",
             sourceArtifactClass,
@@ -488,7 +406,7 @@ public sealed partial class CompositionRunRequestV2Tests
             new CompiledBoundedInputLengthRequirement(1, int.MaxValue),
             sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
                 ? new CompiledTruncateCtrlRamInputNormalization(
-                    "synthetic.ctrlram-truncated",
+                    "SYNTHETIC_CTRLRAM_TRUNCATED",
                     "synthetic-ctrlram-normalization")
                 : new CompiledNoInputNormalization());
         var referenceBinding = new CompiledInputSpaceBinding(
@@ -500,13 +418,13 @@ public sealed partial class CompositionRunRequestV2Tests
             "source-slot",
             CompiledInputInstancePolicy.PerBinding);
         var inputContract = new CompiledInputContract(
-            includeAuxiliarySource ? [referenceSlot, sourceSlot] : [referenceSlot],
-            includeAuxiliarySource ? [referenceBinding, sourceBinding] : [referenceBinding]);
+            [referenceSlot, sourceSlot],
+            [referenceBinding, sourceBinding]);
         var regionAccess = new CompiledRegionAccessContract(
             [
                 new CompiledRegionAccessRequirement(
                     writeRegionId,
-                    CompiledRegionAccessKind.ExplicitRange,
+                    RegionAccessKind.ExplicitRange,
                     "Synthetic runtime reference-replace target.",
                     [],
                     writeChain),
@@ -526,44 +444,38 @@ public sealed partial class CompositionRunRequestV2Tests
                         writeChain),
                 ]
                 : []);
-        var identity = new V2CompiledCompositionIdentity(
+        var details = new V2CompiledCompositionDetails(
             "runtime-reference-profile",
             "1.0.0",
             experienceId,
             CompositionKind.Replace,
-            new V2CompiledCompositionDetails(
-                provenance,
-                inputContract,
-                regionAccess,
-                new CompiledOutputNamingRequirement(
-                    "runtime-reference.bin",
-                    allowOverride: false,
-                    CompiledOutputInvalidCharacterPolicy.Reject,
-                    [])));
-        AddressSpace[] spaces = includeAuxiliarySource
-            ?
-            [
-                new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
-                new AddressSpace(
-                    "source-a",
-                    2,
-                    AddressSpaceMutability.Immutable,
-                    inputOversizePolicy:
-                        sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
-                            ? InputOversizePolicy.TruncateWithWarning
-                            : InputOversizePolicy.Reject),
-                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
-            ]
-            :
-            [
-                new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
-                new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
-            ];
+            provenance,
+            inputContract,
+            regionAccess,
+            new CompiledOutputNamingRequirement(
+                "runtime-reference.bin",
+                allowOverride: false,
+                CompiledOutputInvalidCharacterPolicy.Reject,
+                []),
+            IcNumberInputMode.SingleSelector);
+        AddressSpace[] spaces =
+        [
+            new AddressSpace("reference", 4, AddressSpaceMutability.Immutable),
+            new AddressSpace(
+                "source-a",
+                2,
+                AddressSpaceMutability.Immutable,
+                inputOversizePolicy:
+                    sourceArtifactClass == CompiledInputArtifactClass.CtrlRamReplacement
+                        ? InputOversizePolicy.TruncateWithWarning
+                        : InputOversizePolicy.Reject),
+            new AddressSpace("output-image", 4, AddressSpaceMutability.Mutable),
+        ];
         ByteRange effectiveMappingRange =
             processorWriteRange ?? new ByteRange(1, 2);
-        CompositionOperation[] mappingOperations = includeAuxiliarySource
-            ?
-            [CompositionOperation.ReplaceRange(
+        CompositionOperation[] mappingOperations =
+        [
+            CompositionOperation.ReplaceRange(
                 "replace-source",
                 10,
                 "source-a",
@@ -571,8 +483,8 @@ public sealed partial class CompositionRunRequestV2Tests
                 "output-image",
                 effectiveMappingRange,
                 OverlapPolicy.Reject,
-                "Replace synthetic runtime source.")]
-            : [];
+                "Replace synthetic runtime source."),
+        ];
         CompositionOperation[] processorOperations = processorId is null
             ? []
             :
@@ -601,10 +513,7 @@ public sealed partial class CompositionRunRequestV2Tests
             ImageInitialization.Reference("output-image", "reference", 4),
             spaces,
             [.. mappingOperations, .. processorOperations]);
-        return CompiledComposition.CreateV2(
-            plan,
-            identity,
-            CompiledIcNumberPolicy.SingleSelector);
+        return CompiledComposition.CreateV2(plan, details);
 
         static IReadOnlyList<ExternalProcessorWriteRangeSection>
             CreateSyntheticPostbuildWriteSections(
@@ -615,12 +524,12 @@ public sealed partial class CompositionRunRequestV2Tests
                 CreateSyntheticPostbuildPlan();
             ByteRange[] stagedTargetRanges =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                     .Select(static block => block.FirmwareRange),
             ];
             return
             [
-                .. LegacyCombinerPostbuildPlanner
+                .. LegacyCombinerPostbuildPlanCompiler
                     .GetAllowedWriteRangeSectionsForStagedSources(
                         plan,
                         4,
@@ -665,6 +574,6 @@ public sealed partial class CompositionRunRequestV2Tests
             profile.PlanSelectors.Single(static candidate =>
                 candidate.Kind ==
                     LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
-        return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selector);
+        return profile.ResolvePlan(selector);
     }
 }

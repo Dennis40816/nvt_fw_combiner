@@ -39,7 +39,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-fw141-single-route");
         string referencePath = workspace.PathFor("reference.bin");
-        WorkbenchRunResult reference = await WorkbenchCompositionService.RunStandardMergeAsync(
+        CompositionRunResult reference = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51926",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -49,16 +49,16 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(reference.Succeeded, reference.ReportJson);
+        Assert.True(reference.Succeeded, CompositionRunReportJson.Serialize(reference));
 
         string outputPath = workspace.PathFor("single-output.bin");
-        WorkbenchRunResult result = await WorkbenchCompositionService.RunReplaceAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "single",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = referencePath,
+                [CompositionSlotIds.ReplaceBase] = referencePath,
                 ["replace-ctrlram-normal"] = PathFor("postbuild-normal-ctrlram"),
                 ["replace-ctrlram-mp"] = PathFor("postbuild-mp-ctrlram"),
                 ["replace-ctrlram-vn"] = PathFor("postbuild-vn-ctrlram"),
@@ -68,7 +68,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] expected = File.ReadAllBytes(PathFor("expected-output"));
         byte[] actual = File.ReadAllBytes(outputPath);
         int[] differences = [
@@ -83,7 +83,7 @@ public sealed class Nt51926CtrlRamFw141SingleRouteTests
                 0x3304C, 0x3304D, 0x3304E, 0x3304F,
             ],
             differences);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal(
             "nt51926-ctrlram-replace-fw141-runtime-single",
             report.RootElement.GetProperty("ProfileId").GetString());
