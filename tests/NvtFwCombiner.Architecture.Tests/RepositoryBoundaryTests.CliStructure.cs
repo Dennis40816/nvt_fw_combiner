@@ -233,6 +233,7 @@ public sealed partial class RepositoryBoundaryTests
                     Path.Combine(Root.FullName, "src"),
                     "*.cs",
                     SearchOption.AllDirectories)
+                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Where(path => File.ReadAllText(path).Contains("TryCompileStandardMerge(", StringComparison.Ordinal))
                 .Select(path => Path.GetRelativePath(
                     Path.Combine(Root.FullName, "src"),

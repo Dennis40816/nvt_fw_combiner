@@ -223,6 +223,7 @@ public sealed partial class RepositoryBoundaryTests
                     Path.Combine(Root.FullName, "src", "NvtFwCombiner.Domain"),
                     "*.cs",
                     SearchOption.AllDirectories)
+                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));
         string testSources = string.Join(

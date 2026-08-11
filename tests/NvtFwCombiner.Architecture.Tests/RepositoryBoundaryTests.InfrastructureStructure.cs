@@ -15,6 +15,7 @@ public sealed partial class RepositoryBoundaryTests
                     Path.Combine(Root.FullName, "src", "NvtFwCombiner.Infrastructure"),
                     "*.cs",
                     SearchOption.AllDirectories)
+                .Where(path => !HasPathSegment(path, "bin") && !HasPathSegment(path, "obj"))
                 .Select(File.ReadAllText));
 
         Assert.Contains("byte[] snapshot = utf8Json.ToArray();", reader, StringComparison.Ordinal);
