@@ -221,6 +221,7 @@
                 <views:HexViewportControl
                     x:Name="HexViewport"
                     Snapshot="{Binding ViewportSnapshot}"
+                    IsReducedMotionEnabled="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
                     AutomationProperties.AccessibilityView="Content"
                     AutomationProperties.Name="{Binding Text.HexEditorTitle}"
                     AutomationProperties.HelpText="{Binding SelectedByteAccessibleLabel}" />

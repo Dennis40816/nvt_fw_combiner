@@ -22,6 +22,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   coverage roles and the custom Hex viewport consume those tokens instead of
   hard-coded light colors, preserving non-color state cues while fixing dark-
   theme text, selection, report diff, warning, and memory-layout contrast.
+- Hex Editor, BIN Inspector, and Report Hex Diff now resolve their monospace
+  font from the shared theme token. Undo/Redo feedback follows the shell's
+  reduced-motion preference, retaining a static visible cue without running
+  the decorative timer.
 - A post-refactor architecture audit records the next evidence-backed
   performance and ownership opportunities without treating large canonical
   firmware owners as automatic deletion candidates.

@@ -31,6 +31,7 @@ public sealed partial class HexViewportControl
         "NfcInfoTextBrush",
         "NfcSuccessAccentBrush",
         "NfcReferenceInputTextBrush",
+        "NfcHexEditorAccentBrush",
     ];
 
     private IBrush[] _themeBrushes = [];
@@ -59,6 +60,7 @@ public sealed partial class HexViewportControl
     private IBrush StructuralLabelBrush => ThemeBrush(HexViewportBrushRole.StructuralLabelSurface);
     private IBrush SearchMatchBrush => ThemeBrush(HexViewportBrushRole.SearchMatchSurface);
     private IBrush ChangedMarkerBrush => ThemeBrush(HexViewportBrushRole.ChangedMarker);
+    private IBrush HistoryFeedbackAccentBrush => ThemeBrush(HexViewportBrushRole.HistoryFeedbackAccent);
     private IPen SelectedPen => SelectedPenValue ?? throw ThemePaletteNotResolved();
     private IPen ChangedPen => ChangedPenValue ?? throw ThemePaletteNotResolved();
     private IPen StructuralPen => StructuralPenValue ?? throw ThemePaletteNotResolved();
@@ -116,6 +118,9 @@ public sealed partial class HexViewportControl
 
     private void RebuildThemeTextCaches()
     {
+        FontFamily fontFamily = ResolveThemeFontFamily("NfcTechnicalFontFamily");
+        _normalTypeface = new Typeface(fontFamily);
+        _strongTypeface = new Typeface(fontFamily, FontStyle.Normal, FontWeight.SemiBold);
         _normalHex = CreateHexTextCache(NormalTextBrush, NormalTypeface);
         _selectedHex = CreateHexTextCache(SelectedTextBrush, StrongTypeface);
         _changedHex = CreateHexTextCache(ChangedTextBrush, StrongTypeface);
@@ -130,6 +135,15 @@ public sealed partial class HexViewportControl
         _referenceChangedAscii = CreateAsciiTextCache(ReferenceTextBrush, StrongTypeface);
         _structuralAscii = CreateAsciiTextCache(StructuralTextBrush, NormalTypeface);
         _searchMatchAscii = CreateAsciiTextCache(SearchMatchTextBrush, StrongTypeface);
+        RefreshHistoryFeedbackBrush();
+    }
+
+    private FontFamily ResolveThemeFontFamily(string key)
+    {
+        return this.TryFindResource(key, ActualThemeVariant, out object? resource) && resource is FontFamily fontFamily
+            ? fontFamily
+            : throw new InvalidOperationException(
+                $"Hex viewport theme font resource '{key}' is unavailable for {ActualThemeVariant}.");
     }
 
     private IBrush ThemeBrush(HexViewportBrushRole role)
@@ -170,6 +184,7 @@ public sealed partial class HexViewportControl
         HoverBorder,
         SearchMatchBorder,
         ReferenceChangedBorder,
+        HistoryFeedbackAccent,
         Count,
     }
 }

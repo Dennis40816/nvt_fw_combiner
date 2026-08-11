@@ -17,11 +17,8 @@ public sealed partial class HexViewportControl : Control
     private const double RowHeight = 25;
     private const int BytesPerRow = 16;
 
-    private static readonly Typeface NormalTypeface = new(new FontFamily("Cascadia Mono, Consolas"));
-    private static readonly Typeface StrongTypeface = new(
-        new FontFamily("Cascadia Mono, Consolas"),
-        FontStyle.Normal,
-        FontWeight.SemiBold);
+    private Typeface? _normalTypeface;
+    private Typeface? _strongTypeface;
 
     internal static readonly StyledProperty<HexViewportSnapshot?> SnapshotProperty =
         AvaloniaProperty.Register<HexViewportControl, HexViewportSnapshot?>(nameof(Snapshot));
@@ -33,6 +30,9 @@ public sealed partial class HexViewportControl : Control
         AvaloniaProperty.Register<HexViewportControl, string>(
             nameof(ComparisonRowLabel),
             "orig");
+
+    internal static readonly StyledProperty<bool> IsReducedMotionEnabledProperty =
+        AvaloniaProperty.Register<HexViewportControl, bool>(nameof(IsReducedMotionEnabled));
 
     private FormattedText[] _normalHex = [];
     private FormattedText[] _selectedHex = [];
@@ -50,6 +50,9 @@ public sealed partial class HexViewportControl : Control
     private FormattedText[] _searchMatchAscii = [];
 
     internal long? HoveredAddress { get; private set; }
+
+    private Typeface NormalTypeface => _normalTypeface ?? throw ThemePaletteNotResolved();
+    private Typeface StrongTypeface => _strongTypeface ?? throw ThemePaletteNotResolved();
 
     /// <summary>Creates the low-allocation renderer and its source-neutral interaction surface.</summary>
     public HexViewportControl()
@@ -85,6 +88,12 @@ public sealed partial class HexViewportControl : Control
     {
         get => GetValue(ComparisonRowLabelProperty);
         set => SetValue(ComparisonRowLabelProperty, value);
+    }
+
+    internal bool IsReducedMotionEnabled
+    {
+        get => GetValue(IsReducedMotionEnabledProperty);
+        set => SetValue(IsReducedMotionEnabledProperty, value);
     }
 
     internal event EventHandler<HexViewportInteractionEventArgs>? InteractionRequested;
@@ -180,6 +189,10 @@ public sealed partial class HexViewportControl : Control
         else if (change.Property == ComparisonRowLabelProperty)
         {
             InvalidateVisual();
+        }
+        else if (change.Property == IsReducedMotionEnabledProperty)
+        {
+            RefreshHistoryFeedbackMotion();
         }
     }
 
