@@ -3,20 +3,32 @@ using NvtFwCombiner.Application.Capabilities;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Protects focused Support Matrix wiring over the Application-owned catalog.</summary>
-[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class CanonicalSupportMatrixHostTests
 {
-    /// <summary>Shared publication reload coverage cannot run beside capability-bound executions.</summary>
+    /// <summary>Explicit hosts publish independently without process-wide serialization.</summary>
     [Fact]
-    public void CatalogTestsUseCanonicalPublicationSerializationCollection()
+    public void ExplicitHostsOwnIndependentCatalogPublications()
     {
-        object attribute = Assert.Single(
-            typeof(CanonicalSupportMatrixHostTests).GetCustomAttributes(
-                typeof(CollectionAttribute),
-                inherit: false));
-        CollectionAttribute collection = Assert.IsType<CollectionAttribute>(attribute);
+        var first = new IsolatedBootstrapTestHost();
+        var second = new IsolatedBootstrapTestHost();
 
-        Assert.Equal(CanonicalCapabilityCatalogPublicationGroup.Name, collection.Name);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            first.Services.CanonicalSupportMatrixQuery.Query().State);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            second.Services.CanonicalSupportMatrixQuery.Query().State);
+
+        CapabilityCatalogReloadResult reload = first.Catalog.Reload(
+            TestContext.Current.CancellationToken);
+
+        Assert.True(reload.Succeeded);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Current,
+            first.Services.CanonicalSupportMatrixQuery.Query().State);
+        Assert.Equal(
+            CanonicalSupportMatrixCatalogState.Loading,
+            second.Services.CanonicalSupportMatrixQuery.Query().State);
     }
 
     /// <summary>An in-flight worker load cannot block the UI reporting query.</summary>

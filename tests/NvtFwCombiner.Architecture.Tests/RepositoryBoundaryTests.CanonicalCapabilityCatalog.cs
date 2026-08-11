@@ -33,6 +33,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("static CanonicalCapabilityCompilerAdapter", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityProjection", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices.Canonical", bootstrap, StringComparison.Ordinal);
+        AssertBootstrapTestsDoNotMutateTheSharedCatalogPublication();
     }
 
     /// <summary>The injected execution port is the execution owner, not a second forwarding shell.</summary>
