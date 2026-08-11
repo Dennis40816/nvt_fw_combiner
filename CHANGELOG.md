@@ -14,6 +14,17 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - The controlled exact `win-x64` candidate acceptance target is one unscored
   warm-up plus five Home launches with a process-to-window median at or below
   700 ms; the first cold launch remains separately recorded.
+- Canonical catalog publication now uses a reusable, input-blocking foreground
+  loading surface with truthful indeterminate/determinate progress, reduced-
+  motion behavior, accessible status, and explicit retry recovery. The shell
+  remains visible while catalog-owned workflow choices stay unavailable.
+- Light and Dark themes now own complete semantic brush dictionaries. Memory
+  coverage roles and the custom Hex viewport consume those tokens instead of
+  hard-coded light colors, preserving non-color state cues while fixing dark-
+  theme text, selection, report diff, warning, and memory-layout contrast.
+- A post-refactor architecture audit records the next evidence-backed
+  performance and ownership opportunities without treating large canonical
+  firmware owners as automatic deletion candidates.
 
 ## [0.10.3] - 2026-08-11
 

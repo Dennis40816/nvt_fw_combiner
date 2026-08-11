@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window, IDisposable
     private readonly LatestSnapshotPersistenceCoordinator<ShellPreferenceSnapshot>
         _shellPreferencePersistence = new(ShellPreferenceFileStore.SaveAsync, static snapshot => snapshot);
     private readonly CancellationTokenSource _startupLoadCancellation = new();
+    private readonly ForegroundLoadingState _catalogLoading = new();
     private readonly PresentationHostServices _hostServices;
     private readonly UiLaunchOptions _launchOptions;
     private readonly StartupTraceSession _startupTrace;
@@ -25,6 +26,8 @@ public sealed partial class MainWindow : Window, IDisposable
     private bool _isReportHistoryPersistenceComplete;
     private bool _isDisposed;
     private bool _isStartupLoadStarted;
+    private bool _isCanonicalCatalogWarmupInProgress;
+    private bool _isDeferredStartupComplete;
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
@@ -69,6 +72,9 @@ public sealed partial class MainWindow : Window, IDisposable
             ShellTextResources.LanguageFromPreference(preferences.Language));
         _startupTrace.Mark("shell-view-model.created");
         viewModel.LoadShellPreferences(preferences);
+        _catalogLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        _catalogLoading.Begin(viewModel.Text.CatalogLoadingTitle, viewModel.Text.CatalogLoadingDetail);
+        CatalogLoadingSurfaceHost.DataContext = _catalogLoading;
         _startupTrace.Mark("shell-preferences.applied");
         DataContext = viewModel;
         _startupTrace.Mark("shell-data-context.assigned");
@@ -194,15 +200,23 @@ public sealed partial class MainWindow : Window, IDisposable
 
         _isStartupLoadStarted = true;
         CancellationToken startupCancellation = _startupLoadCancellation.Token;
+        CatalogLoadingSurfaceHost.Content = _catalogLoading;
         await Task.Yield();
+        await ContinueStartupAsync(viewModel, startupCancellation);
+    }
+
+    private async Task ContinueStartupAsync(
+        MainWindowViewModel viewModel,
+        CancellationToken startupCancellation)
+    {
+        if (!await TryWarmCanonicalCatalogAsync(viewModel, startupCancellation) ||
+            _isDeferredStartupComplete)
+        {
+            return;
+        }
+
         try
         {
-            var catalogWarmup = Task.Run(
-                () => _hostServices.WarmCanonicalCapabilities(startupCancellation),
-                startupCancellation);
-            await catalogWarmup;
-            viewModel.PublishCanonicalCatalogState();
-            _startupTrace.Mark("startup-warmup.catalog-state.published");
             ApplyLaunchPage(viewModel, _launchOptions.Page);
             _startupTrace.Mark("startup-launch-page.ready");
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
@@ -215,6 +229,7 @@ public sealed partial class MainWindow : Window, IDisposable
 
             _startupTrace.Mark("startup-warmup.catalogs.ready");
             await WarmDeferredShellAsync(viewModel, startupCancellation);
+            _isDeferredStartupComplete = true;
             _ = _startupTrace.Complete("startup-warmup.completed");
         }
         catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
@@ -223,10 +238,68 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         catch (Exception exception)
         {
-            // Catalog-backed entry stays unavailable when its canonical publication cannot be established.
             Trace.TraceWarning("Deferred shell warm-up did not complete: {0}", exception.Message);
             _ = _startupTrace.Complete("startup-warmup.failed");
         }
+    }
+
+    private async Task<bool> TryWarmCanonicalCatalogAsync(
+        MainWindowViewModel viewModel,
+        CancellationToken startupCancellation)
+    {
+        if (viewModel.WorkflowSession.IsCanonicalCatalogReady)
+        {
+            _catalogLoading.Complete();
+            return true;
+        }
+
+        if (_isCanonicalCatalogWarmupInProgress)
+        {
+            return false;
+        }
+
+        _isCanonicalCatalogWarmupInProgress = true;
+        _catalogLoading.Begin(viewModel.Text.CatalogLoadingTitle, viewModel.Text.CatalogLoadingDetail);
+        try
+        {
+            await Task.Run(
+                () => _hostServices.WarmCanonicalCapabilities(startupCancellation),
+                startupCancellation);
+            viewModel.PublishCanonicalCatalogState();
+            _catalogLoading.Complete();
+            _startupTrace.Mark("startup-warmup.catalog-state.published");
+            return true;
+        }
+        catch (OperationCanceledException) when (startupCancellation.IsCancellationRequested)
+        {
+            _catalogLoading.Complete();
+            _ = _startupTrace.Complete("startup-warmup.cancelled");
+            return false;
+        }
+        catch (Exception exception)
+        {
+            _catalogLoading.Fail(
+                viewModel.Text.CatalogLoadingFailedTitle,
+                viewModel.Text.CatalogLoadingFailedDetail,
+                viewModel.Text.RetryLabel);
+            Trace.TraceWarning("Canonical catalog warm-up did not complete: {0}", exception.Message);
+            _ = _startupTrace.Complete("startup-warmup.failed");
+            return false;
+        }
+        finally
+        {
+            _isCanonicalCatalogWarmupInProgress = false;
+        }
+    }
+
+    private async void CatalogLoadingSurface_OnRetryRequested(object? sender, EventArgs e)
+    {
+        if (_isDisposed || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        await ContinueStartupAsync(viewModel, _startupLoadCancellation.Token);
     }
 
     private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -241,6 +314,12 @@ public sealed partial class MainWindow : Window, IDisposable
         if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
         {
             ApplyThemePreference(viewModel.SelectedTheme);
+        }
+
+        if (e.PropertyName is nameof(MainWindowViewModel.SelectedLanguage) or
+            nameof(MainWindowViewModel.IsReducedMotionEnabled))
+        {
+            RefreshCatalogLoadingPresentation(viewModel);
         }
 
         if (IsShellPreferenceProperty(e.PropertyName))
@@ -330,5 +409,24 @@ public sealed partial class MainWindow : Window, IDisposable
             "Dark" => ThemeVariant.Dark,
             _ => ThemeVariant.Default,
         };
+    }
+
+    private void RefreshCatalogLoadingPresentation(MainWindowViewModel viewModel)
+    {
+        _catalogLoading.SetReducedMotion(viewModel.IsReducedMotionEnabled);
+        if (_catalogLoading.IsRunning)
+        {
+            _catalogLoading.Begin(
+                viewModel.Text.CatalogLoadingTitle,
+                viewModel.Text.CatalogLoadingDetail,
+                _catalogLoading.Progress);
+        }
+        else if (_catalogLoading.HasFailed)
+        {
+            _catalogLoading.Fail(
+                viewModel.Text.CatalogLoadingFailedTitle,
+                viewModel.Text.CatalogLoadingFailedDetail,
+                viewModel.Text.RetryLabel);
+        }
     }
 }

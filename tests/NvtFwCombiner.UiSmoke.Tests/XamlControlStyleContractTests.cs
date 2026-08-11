@@ -260,21 +260,29 @@ public sealed partial class XamlControlStyleContractTests
         app.Initialize();
 
         foreach (string key in ReadThemeTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
+                     .Select(static definition => definition.Groups["key"].Value)
+                     .Distinct(StringComparer.Ordinal))
         {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<SolidColorBrush>(resource);
+            foreach (ThemeVariant theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+            {
+                Assert.True(
+                    app.TryGetResource(key, theme, out object? resource),
+                    $"{theme} theme token '{key}' was not available from Application.Resources.");
+                _ = Assert.IsType<SolidColorBrush>(resource);
+            }
         }
 
         foreach (string key in ReadThemeShadowTokenDefinitions()
-                     .Select(static definition => definition.Groups["key"].Value))
+                     .Select(static definition => definition.Groups["key"].Value)
+                     .Distinct(StringComparer.Ordinal))
         {
-            Assert.True(
-                app.TryGetResource(key, ThemeVariant.Default, out object? resource),
-                $"Theme token '{key}' was not available from Application.Resources.");
-            _ = Assert.IsType<BoxShadows>(resource);
+            foreach (ThemeVariant theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+            {
+                Assert.True(
+                    app.TryGetResource(key, theme, out object? resource),
+                    $"{theme} theme token '{key}' was not available from Application.Resources.");
+                _ = Assert.IsType<BoxShadows>(resource);
+            }
         }
 
         foreach (string key in ReadThemeCornerRadiusTokenDefinitions()

@@ -15,6 +15,7 @@ public sealed partial class XamlControlStyleContractTests
         string shell = ReadPresentationFile("MainWindow.axaml");
         string hexEditor = ReadPresentationFile("Views/HexEditorPanel.axaml");
         string viewport = ReadPresentationFile("Views/HexViewportControl.cs");
+        string viewportTheme = ReadPresentationFile("Views/HexViewportControl.Theme.cs");
         string historyFeedback = ReadPresentationFile("Views/HexViewportControl.HistoryFeedback.cs");
         string renderingSupport = ReadPresentationFile("Views/HexViewportControl.RenderingSupport.cs");
         string sharedStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
@@ -26,6 +27,15 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("IsComparisonRowVisible", viewport, StringComparison.Ordinal);
         Assert.Contains("DrawReferenceRow", viewport, StringComparison.Ordinal);
         Assert.Contains("ReferenceChangedBrush", viewport, StringComparison.Ordinal);
+        Assert.Contains("ActualThemeVariant", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("ActualThemeVariantChanged", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("InvalidateVisual();", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("TryFindResource", viewportTheme, StringComparison.Ordinal);
+        Assert.Contains("EnsureThemePalette();", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("Brush.Parse", viewportTheme, StringComparison.Ordinal);
+        Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", viewport);
+        Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", viewportTheme);
         Assert.Contains("DrawAsciiStructuralBlocks", viewport, StringComparison.Ordinal);
         Assert.DoesNotContain("IBrush StructuralBrush =", viewport, StringComparison.Ordinal);
         Assert.Contains("$\"0x{address:X6}  {ComparisonRowLabel}\"", renderingSupport, StringComparison.Ordinal);

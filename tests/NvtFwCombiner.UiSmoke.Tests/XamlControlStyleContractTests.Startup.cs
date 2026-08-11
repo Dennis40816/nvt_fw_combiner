@@ -63,11 +63,22 @@ public sealed partial class XamlControlStyleContractTests
             lifecycle.IndexOf("WarmCanonicalCapabilities", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
         Assert.Contains("WarmCanonicalCapabilities(startupCancellation)", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("viewModel.PublishCanonicalCatalogState()", lifecycle, StringComparison.Ordinal);
+        int warm = lifecycle.IndexOf("await Task.Run(", StringComparison.Ordinal);
+        int publish = lifecycle.IndexOf(
+            "viewModel.PublishCanonicalCatalogState()",
+            warm,
+            StringComparison.Ordinal);
+        int loadingComplete = lifecycle.IndexOf(
+            "_catalogLoading.Complete();",
+            publish,
+            StringComparison.Ordinal);
+        int successfulWarmup = lifecycle.IndexOf("return true;", loadingComplete, StringComparison.Ordinal);
+        Assert.True(warm >= 0 && warm < publish);
+        Assert.True(publish < loadingComplete);
+        Assert.True(loadingComplete < successfulWarmup);
         Assert.True(
-            lifecycle.IndexOf("await catalogWarmup", StringComparison.Ordinal) <
-            lifecycle.IndexOf("viewModel.PublishCanonicalCatalogState()", StringComparison.Ordinal));
-        Assert.True(
-            lifecycle.IndexOf("viewModel.PublishCanonicalCatalogState()", StringComparison.Ordinal) <
+            lifecycle.IndexOf("TryWarmCanonicalCatalogAsync(viewModel, startupCancellation)", StringComparison.Ordinal) <
             lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal));
         Assert.True(
             lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal) <
@@ -90,6 +101,15 @@ public sealed partial class XamlControlStyleContractTests
             Assert.Contains($"{hostName},", warmup, StringComparison.Ordinal);
         }
 
+        Assert.Contains(
+            "ReplacePageHost,\n            viewModel.Replace,",
+            warmup,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "MergePageHost,\n            viewModel.Merge,",
+            warmup,
+            StringComparison.Ordinal);
+
         Assert.DoesNotContain("ReportModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("ReportToastHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("FirmwareIcMismatchModalHost,", warmup, StringComparison.Ordinal);
@@ -97,6 +117,51 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("MessageCenterModalHost,", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("File.", warmup, StringComparison.Ordinal);
         Assert.DoesNotContain("Process.", warmup, StringComparison.Ordinal);
+    }
+
+    /// <summary>Catalog warm-up uses the reusable foreground surface without fabricating percentage progress.</summary>
+    [Fact]
+    public void CatalogWarmupUsesAccessibleRetryableForegroundLoadingSurface()
+    {
+        string surface = ReadPresentationFile("Views/ForegroundLoadingSurface.axaml");
+        string surfaceCode = ReadPresentationFile("Views/ForegroundLoadingSurface.axaml.cs");
+        string shell = ReadPresentationFile("MainWindow.axaml");
+        string lifecycle = ReadPresentationFile("MainWindow.axaml.cs");
+        var surfaceDocument = XDocument.Parse(surface);
+        XElement[] detailText =
+        [
+            .. surfaceDocument.Descendants()
+                .Where(element =>
+                    element.Name.LocalName == "TextBlock" &&
+                    (string?)element.Attribute("Text") == "{Binding Detail}"),
+        ];
+
+        Assert.Contains("x:DataType=\"vm:ForegroundLoadingState\"", surface, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", surface, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleStatus}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{DynamicResource NfcModalScrimBrush}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("<ProgressBar", surface, StringComparison.Ordinal);
+        Assert.Contains("Maximum=\"1\"", surface, StringComparison.Ordinal);
+        Assert.Contains("IsIndeterminate=\"{Binding ShouldAnimate}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("Value=\"{Binding Progress}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding IsRunning}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding CanRetry}\"", surface, StringComparison.Ordinal);
+        Assert.Contains("behaviors:FocusOnRevealBehavior.IsEnabled=\"True\"", surface, StringComparison.Ordinal);
+        Assert.Equal(2, detailText.Length);
+        Assert.Contains(detailText, element => (string?)element.Attribute("IsVisible") == "{Binding IsRunning}");
+        Assert.Contains(
+            detailText,
+            element => element.Ancestors().Any(ancestor =>
+                (string?)ancestor.Attribute("IsVisible") == "{Binding HasFailed}"));
+        Assert.Contains("RetryRequested", surfaceCode, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CatalogLoadingSurfaceHost\"", shell, StringComparison.Ordinal);
+        Assert.Contains("RetryRequested=\"CatalogLoadingSurface_OnRetryRequested\"", shell, StringComparison.Ordinal);
+        Assert.Contains("_catalogLoading.Begin(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("_catalogLoading.Complete();", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("_catalogLoading.Fail(", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("CatalogLoadingSurfaceHost.DataContext = _catalogLoading;", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("CatalogLoadingSurfaceHost.Content = _catalogLoading;", lifecycle, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReportProgress(", lifecycle, StringComparison.Ordinal);
     }
 
     /// <summary>The clear confirmation identifies the pending route visually and to assistive technology.</summary>

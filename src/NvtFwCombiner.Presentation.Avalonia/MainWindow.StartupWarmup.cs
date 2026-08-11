@@ -17,12 +17,12 @@ public sealed partial class MainWindow
             cancellationToken);
         await WarmContentAsync(
             ReplacePageHost,
-            viewModel,
+            viewModel.Replace,
             "startup-warmup.replace-view",
             cancellationToken);
         await WarmContentAsync(
             MergePageHost,
-            viewModel,
+            viewModel.Merge,
             "startup-warmup.merge-view",
             cancellationToken);
         await WarmContentAsync(
@@ -39,12 +39,12 @@ public sealed partial class MainWindow
 
     private async Task WarmContentAsync(
         ContentControl host,
-        MainWindowViewModel viewModel,
+        object dataContext,
         string traceStage,
         CancellationToken cancellationToken)
     {
         await RunWarmupStepAsync(
-            () => MaterializeContent(host, viewModel),
+            () => MaterializeContent(host, dataContext),
             traceStage,
             cancellationToken);
     }

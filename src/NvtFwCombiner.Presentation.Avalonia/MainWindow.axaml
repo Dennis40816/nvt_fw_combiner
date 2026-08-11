@@ -545,5 +545,17 @@
         </DataTemplate>
       </ContentControl.ContentTemplate>
     </ContentControl>
+
+    <ContentControl
+        x:Name="CatalogLoadingSurfaceHost"
+        Grid.RowSpan="5"
+        IsHitTestVisible="{ReflectionBinding IsVisible}"
+        IsVisible="{ReflectionBinding IsVisible}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="vm:ForegroundLoadingState">
+          <views:ForegroundLoadingSurface RetryRequested="CatalogLoadingSurface_OnRetryRequested" />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
   </Grid>
 </Window>
