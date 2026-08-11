@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Locks runtime-reference compilation and execution to one per-run base snapshot.</summary>
     [Fact]

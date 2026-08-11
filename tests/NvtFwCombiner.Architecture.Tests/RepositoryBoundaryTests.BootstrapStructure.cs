@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class BootstrapCliBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Verifies CLI and Workbench share the Application-owned single-run automatic Build gate.</summary>
     [Fact]

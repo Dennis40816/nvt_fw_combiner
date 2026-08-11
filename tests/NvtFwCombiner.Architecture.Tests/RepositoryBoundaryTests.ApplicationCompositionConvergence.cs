@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Application composition and external-tool compatibility shells stay retired.</summary>
     [Fact]

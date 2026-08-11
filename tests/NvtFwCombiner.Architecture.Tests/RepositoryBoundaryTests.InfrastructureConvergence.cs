@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class InfrastructureBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>The pinned JSON loader keeps only its two live hash modes.</summary>
     [Fact]

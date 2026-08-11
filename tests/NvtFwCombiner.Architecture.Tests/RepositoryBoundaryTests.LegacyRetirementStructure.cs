@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>
     /// Prevents new production callers from expanding the four remaining compatibility authorities while

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Catalog client disclosure is Application-owned and Bootstrap only registers it.</summary>
     [Fact]

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class PresentationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Verifies firmware slot model, icons, and fact badges stay split by UI responsibility.</summary>
     [Fact]

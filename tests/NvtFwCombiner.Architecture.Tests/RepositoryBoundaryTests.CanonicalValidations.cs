@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Normalized validations reuse Domain definitions and retain only unresolved source-view state.</summary>
     [Fact]

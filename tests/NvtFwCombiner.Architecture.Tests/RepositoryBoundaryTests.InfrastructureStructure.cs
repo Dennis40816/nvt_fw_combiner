@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class InfrastructureBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Locks the one private bundle snapshot fast path without weakening general caller isolation.</summary>
     [Fact]

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Authoring and compiled artifacts share one IC-number mode vocabulary.</summary>
     [Fact]

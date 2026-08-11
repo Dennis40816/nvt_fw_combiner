@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>General authoring and execution retain one accepted-session path.</summary>
     [Fact]

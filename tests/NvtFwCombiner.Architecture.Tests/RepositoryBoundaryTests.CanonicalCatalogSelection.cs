@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class CanonicalCompositionBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>The exact immutable catalog entry is the selection; duplicate token and result models cannot return.</summary>
     [Fact]

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Compiled profiles and Application Build are the only AB additional-delivery semantic owners.</summary>
     [Fact]

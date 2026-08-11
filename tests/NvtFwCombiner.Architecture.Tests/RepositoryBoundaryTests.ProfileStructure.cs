@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class ProfileBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Workflow labels may remain wire tokens, but cannot survive as normalized or compiled semantic types.</summary>
     [Fact]

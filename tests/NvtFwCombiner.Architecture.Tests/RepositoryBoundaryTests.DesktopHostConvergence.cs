@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class BootstrapCliBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Keeps the desktop executable as wiring while Presentation consumes Application ports directly.</summary>
     [Fact]

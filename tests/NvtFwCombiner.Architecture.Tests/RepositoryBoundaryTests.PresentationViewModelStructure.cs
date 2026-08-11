@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class PresentationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Merge-only presentation lifetime belongs to a focused child rather than the shell.</summary>
     [Fact]

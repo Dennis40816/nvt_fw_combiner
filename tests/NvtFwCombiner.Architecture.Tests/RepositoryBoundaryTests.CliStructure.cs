@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class BootstrapCliBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Verifies Replace CLI dispatch stays split from parsing, usage, and Workbench reporting.</summary>
     [Fact]

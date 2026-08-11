@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>The compiled V2 details object is the sole retained compiled identity and policy form.</summary>
     [Fact]

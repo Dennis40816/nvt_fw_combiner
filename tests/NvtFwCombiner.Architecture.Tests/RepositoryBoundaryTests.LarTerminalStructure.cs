@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Bootstrap remains an explicit composition root with no workflow-semantic source files.</summary>
     [Fact]

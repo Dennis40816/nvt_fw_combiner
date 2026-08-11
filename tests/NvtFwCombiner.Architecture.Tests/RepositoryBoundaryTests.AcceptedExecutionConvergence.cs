@@ -1,6 +1,7 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+/// <summary>Application composition and execution boundary checks.</summary>
+public sealed partial class ApplicationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Accepted immutable sessions enter the Application run service through one owner.</summary>
     [Fact]

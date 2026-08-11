@@ -1,6 +1,7 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+/// <summary>Infrastructure and input-inspection boundary checks.</summary>
+public sealed partial class InfrastructureBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>General slot health cannot regress to UI counters or nullable inspection failures.</summary>
     [Fact]

@@ -1,6 +1,7 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+/// <summary>Bootstrap, desktop-host, and CLI boundary checks.</summary>
+public sealed partial class BootstrapCliBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Bootstrap and CLI keep only production-owned inspection and dispatch entry points.</summary>
     [Fact]

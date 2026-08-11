@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
 {
     private const int MaximumFocusedBootstrapPartialTypeLines = 3_000;
 

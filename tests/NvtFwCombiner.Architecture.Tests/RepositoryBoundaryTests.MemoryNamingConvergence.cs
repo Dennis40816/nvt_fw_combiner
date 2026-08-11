@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RetirementBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Memory and naming stay owned by their Application projections without Bootstrap recomputation.</summary>
     [Fact]

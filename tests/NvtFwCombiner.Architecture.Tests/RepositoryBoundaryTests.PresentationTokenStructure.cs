@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class PresentationBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Verifies Presentation consumes the canonical Domain workflow ids without a Bootstrap mirror.</summary>
     [Fact]

@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Architecture.Tests;
 
-public sealed partial class RepositoryBoundaryTests
+public sealed partial class RepositoryGovernanceBoundaryTests : RepositoryBoundaryTestBase
 {
     /// <summary>Verifies canonical NT-prefixed IC normalization stays identifier-owned.</summary>
     [Fact]
