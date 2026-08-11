@@ -5,6 +5,17 @@ namespace NvtFwCombiner.Application.Composition;
 /// <summary>IC number context selected by the user before a Replace run is planned.</summary>
 public sealed class IcNumberSelection
 {
+    /// <summary>Creates the canonical typed selection represented by one UI/CLI number token.</summary>
+    public static IcNumberSelection FromToken(string token)
+    {
+        IcNumberInputMode mode = IcNumberSelectionTokens.IsSingle(token)
+            ? IcNumberInputMode.SingleSelector
+            : int.TryParse(token, out _)
+                ? IcNumberInputMode.NumericSelector
+                : IcNumberInputMode.CascadeSelector;
+        return new IcNumberSelection(mode, [token]);
+    }
+
     /// <summary>Creates a validated IC number selection.</summary>
     public IcNumberSelection(IcNumberInputMode mode, IReadOnlyList<string> parts)
     {

@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.HexEditor;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -16,7 +15,7 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
     private const int BytesPerRow = 16;
     private static readonly int CurrentViewportRowCount = HexViewportCapabilityProfile.RawEditor.InitialRows;
     private readonly RawBinaryEditorSession _editor = new();
-    private readonly WorkbenchRawBinaryEditorSession _files;
+    private readonly IRawBinaryEditorFileSession _files;
     private readonly Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> _findAsciiAsync;
     private RawBinaryEditorState _state = new(false, 0, 0, 0, 0, false);
     private long? _activeInlineEditAddress;
@@ -29,11 +28,14 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
         "raw-binary-work-buffer");
 
     /// <summary>Creates the standalone raw-BIN workspace with its initial localized text bundle.</summary>
-    public HexEditorWorkspaceViewModel(ShellTextResources text)
+    public HexEditorWorkspaceViewModel(
+        ShellTextResources text,
+        IRawBinaryEditorFileSessionFactory fileSessions)
     {
         ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(fileSessions);
 
-        _files = new WorkbenchRawBinaryEditorSession(_editor);
+        _files = fileSessions.Create(_editor);
         _findAsciiAsync = _files.FindAsciiAsync;
         Text = text;
         ChangedBlockPage = CreateChangedBlockPage([]);
@@ -69,8 +71,9 @@ public sealed partial class HexEditorWorkspaceViewModel : ObservableObject
 
     internal HexEditorWorkspaceViewModel(
         ShellTextResources text,
+        IRawBinaryEditorFileSessionFactory fileSessions,
         Func<string, long, CancellationToken, Task<RawBinaryEditorSearchResult>> findAsciiAsync)
-        : this(text)
+        : this(text, fileSessions)
     {
         _findAsciiAsync = findAsciiAsync ?? throw new ArgumentNullException(nameof(findAsciiAsync));
     }

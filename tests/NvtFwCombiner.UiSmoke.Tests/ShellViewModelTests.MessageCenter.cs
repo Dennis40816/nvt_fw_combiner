@@ -2,8 +2,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
-using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -27,7 +26,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("0.10.3-test"),
+            PresentationTestHost.CreateServices("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -76,7 +75,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.ChineseTraditional,
-            DesktopCompositionRoot.Create("0.10.3-test"),
+            PresentationTestHost.CreateServices("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -141,15 +140,15 @@ public sealed partial class ShellViewModelTests
                 new CapabilityCatalogIssue("catalog.reload.failed", "private", null)));
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            FirmwareInspectionAdapter.InspectFirmwareBatch);
+            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")),
             TestContext.Current.CancellationToken);
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeTp,
+            CompositionSlotIds.MergeTp,
             golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input")),
             TestContext.Current.CancellationToken);
         Assert.True(viewModel.Merge.CanBuildMerge);
@@ -177,12 +176,12 @@ public sealed partial class ShellViewModelTests
             Result(CanonicalSupportMatrixCatalogState.Current, Matrix("catalog:after")));
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(catalog, reader.Read);
         viewModel.WorkflowSession.SelectedIc = "NT51928";
-        OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
         viewModel.SetSlotFile(
-            WorkbenchSlotIds.ReplaceBase,
+            CompositionSlotIds.ReplaceBase,
             workspace.Write("reference.bin", new byte[0x40000]));
         viewModel.SetSlotFile(
-            WorkbenchSlotIds.ReplaceDp,
+            CompositionSlotIds.ReplaceDp,
             workspace.Write("initial-code.bin", CreatePattern(0x40000, 0x41)));
         Assert.True(viewModel.Replace.CanBuildReplace);
         reader.BlockNextBatch();
@@ -214,7 +213,7 @@ public sealed partial class ShellViewModelTests
         using var catalog = new BlockingReloadCatalog();
         MainWindowViewModel viewModel = CreateDiagnosticsViewModel(
             catalog,
-            FirmwareInspectionAdapter.InspectFirmwareBatch);
+            TestHost.FirmwareInspectionExperience.InspectFirmwareBatch);
         Task refresh = viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
         try
         {
@@ -256,7 +255,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("0.10.3-test"),
+            PresentationTestHost.CreateServices("0.10.3-test"),
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
@@ -299,8 +298,8 @@ public sealed partial class ShellViewModelTests
         ICanonicalSupportMatrixQuery catalog,
         Func<
             string,
-            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader)
+            IReadOnlyList<FirmwareInspectionSnapshotInput>,
+            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader)
     {
         ICanonicalCapabilityCatalogReloader reloader = catalog as ICanonicalCapabilityCatalogReloader ??
             throw new ArgumentException("The diagnostic test catalog must support reload.", nameof(catalog));
@@ -314,7 +313,7 @@ public sealed partial class ShellViewModelTests
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("0.10.3-test"),
+            PresentationTestHost.CreateServices("0.10.3-test"),
             static (_, _) => null,
             firmwareInspectionReader,
             systemInformationService: diagnostics,
@@ -397,9 +396,9 @@ public sealed partial class ShellViewModelTests
             Volatile.Write(ref _blockNextBatch, 1);
         }
 
-        internal IReadOnlyList<WorkbenchFirmwareInspectionResult> Read(
+        internal IReadOnlyList<FirmwareInspectionSnapshotResult> Read(
             string selectedIc,
-            IReadOnlyList<WorkbenchFirmwareInspectionInput> inputs)
+            IReadOnlyList<FirmwareInspectionSnapshotInput> inputs)
         {
             if (Interlocked.Exchange(ref _blockNextBatch, 0) == 1)
             {
@@ -407,7 +406,10 @@ public sealed partial class ShellViewModelTests
                 ReleaseInspection.Wait(TestContext.Current.CancellationToken);
             }
 
-            return FirmwareInspectionAdapter.InspectFirmwareBatch(selectedIc, inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                selectedIc,
+                inputs);
         }
 
         public void Dispose()

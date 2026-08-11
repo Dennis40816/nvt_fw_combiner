@@ -989,7 +989,7 @@ $Python = (Get-Command python -ErrorAction Stop).Source
 Remove-Item -LiteralPath $ReleaseRoot, $WorkRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $ReleaseRoot, $PackageRoot, $AppPublish, $WorkerBuild, $WorkerDist | Out-Null
 
-$AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj'
+$AppProject = Join-Path $RepoRoot 'src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj'
 $SourcePackageLockSnapshots = Save-SourcePackageLocks
 try {
     & $DotNet restore $AppProject -r win-x64 -p:PublishReadyToRun=true
@@ -1016,7 +1016,7 @@ finally {
 }
 if ($PublishExitCode -ne 0) { throw 'dotnet publish failed.' }
 
-$PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Presentation.Avalonia.exe'
+$PublishedApp = Join-Path $AppPublish 'NvtFwCombiner.Desktop.exe'
 if (-not (Test-Path -LiteralPath $PublishedApp -PathType Leaf)) {
     throw "Published application was not found at $PublishedApp"
 }

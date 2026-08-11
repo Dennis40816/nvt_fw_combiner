@@ -21,7 +21,8 @@ public sealed class ExternalProcessorRequest
         IcNumberSelection? icNumberSelection = null,
         IEnumerable<ExternalProcessorStagedSource>? stagedSources = null,
         IEnumerable<ExternalProcessorStagedArtifact>? stagedArtifacts = null,
-        int? resolvedIcCount = null)
+        int? resolvedIcCount = null,
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(runId);
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
@@ -51,6 +52,7 @@ public sealed class ExternalProcessorRequest
         ToolBindingId = toolBindingId;
         IcNumberSelection = icNumberSelection;
         ResolvedIcCount = resolvedIcCount;
+        ProtocolPlan = protocolPlan;
         _inputBytes = inputBytes.ToArray();
         _allowedWriteRanges = [.. allowedWriteRanges.OrderBy(range => range.Start).ThenBy(range => range.Length)];
         _stagedSources = [
@@ -105,6 +107,9 @@ public sealed class ExternalProcessorRequest
 
     /// <summary>Exact IC Count already resolved by the compiler from the admitted topology facts.</summary>
     public int? ResolvedIcCount { get; }
+
+    /// <summary>Exact compiled adapter protocol plan; adapters must not reconstruct it from runtime hints.</summary>
+    public ExternalProcessorProtocolPlan? ProtocolPlan { get; }
 
     private static bool IsSafeId(string value)
     {

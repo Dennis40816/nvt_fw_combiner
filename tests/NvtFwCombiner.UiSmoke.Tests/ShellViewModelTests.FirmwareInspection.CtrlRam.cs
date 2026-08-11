@@ -1,4 +1,4 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -27,13 +27,16 @@ public sealed partial class ShellViewModelTests
                     FileShare.Read);
                 stream.WriteByte(0x02);
             }
-            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.ReplaceBase,
+            CompositionSlotIds.ReplaceBase,
             basePath,
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
@@ -49,7 +52,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.False(replacement.IsInputInspectionPending);
         Assert.Equal(
-            WorkbenchInputInspectionSeverity.Blocking,
+            FirmwareInputInspectionSeverity.Blocking,
             replacement.InputInspectionSeverity);
         Assert.Contains(
             "file changed",

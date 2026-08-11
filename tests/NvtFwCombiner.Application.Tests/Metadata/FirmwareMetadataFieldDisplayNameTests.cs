@@ -25,4 +25,28 @@ public sealed class FirmwareMetadataFieldDisplayNameTests
                 "common-header-crc",
                 "u32HeaderCrc"));
     }
+
+    /// <summary>Every shared acronym and fallback shape is projected deterministically.</summary>
+    [Theory]
+    [InlineData("dlm-crc-7", null, "DLM CRC 7")]
+    [InlineData("command-mode", null, "Command header mode")]
+    [InlineData(
+        "bin-crc-ctrlram-diff-dlm-fw-ic-ilm-mp-ov-spi-sram-svn-t12",
+        null,
+        "BIN CRC CtrlRAM DIFF DLM FW IC ILM MP OV SPI SRAM SVN T12")]
+    [InlineData("auto-build-version", null, "Auto-build version")]
+    [InlineData("Already formatted", null, "Already formatted")]
+    [InlineData("common-header-crc", " ", "Common Header CRC")]
+    [InlineData("command-", null, "Command header ")]
+    [InlineData("command-fw", null, "Command header fW")]
+    [InlineData("-", null, "")]
+    public void FormatsSharedTokensAndFallbackShapes(
+        string fieldId,
+        string? sourceName,
+        string expected)
+    {
+        Assert.Equal(
+            expected,
+            FirmwareMetadataFieldDisplayName.Format(fieldId, sourceName));
+    }
 }

@@ -237,7 +237,7 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void LegacyTypedProfileModelsStayDeleted()
     {
-        string v2Registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        string v2Registration = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -295,7 +295,7 @@ public sealed partial class RepositoryBoundaryTests
             "src",
             "NvtFwCombiner.Profiles",
             "SyntheticCompositionProfiles.cs")));
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs");
+        string registration = ReadText("src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs");
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
             "tests",
@@ -311,10 +311,11 @@ public sealed partial class RepositoryBoundaryTests
         string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
         string versionDecoder = ReadText(
             "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
-        string inputProjection = ReadText("src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
+        string inputProjection = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string topologyValidation = ReadText("src/NvtFwCombiner.Application/Composition/CompositionRunService.AbMergeTopology.cs");
         string executionAdapter = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.AbMerge.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionExecutionExperience.cs");
 
         Assert.Contains("CompiledInputArtifactObservationService.DecodeDpRegion", outputNaming, StringComparison.Ordinal);
         Assert.Contains("Provenance.ResolvedMap.ImageMap.Regions", versionDecoder, StringComparison.Ordinal);
@@ -466,13 +467,13 @@ public sealed partial class RepositoryBoundaryTests
         string[] productionOwners =
         [
             "src/NvtFwCombiner.Domain/Composition/ExperienceIds.cs",
-            "src/NvtFwCombiner.Bootstrap/BuiltInV2Bundle.cs",
-            "src/NvtFwCombiner.Bootstrap/BuiltInV2RegistrationRegistry.cs",
-            "src/NvtFwCombiner.Bootstrap/CtrlRamV2RouteRegistry.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2Bundle.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/BuiltInV2RegistrationRegistry.cs",
+            "src/NvtFwCombiner.Infrastructure/Composition/CtrlRamV2RouteRegistry.cs",
             "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
             "src/NvtFwCombiner.Application/ExternalTools/PostbuildWriteSections.cs",
             "src/NvtFwCombiner.Application/Composition/CompositionRunService.ReportMetadata.cs",
-            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanner.IntegrityRanges.cs",
+            "src/NvtFwCombiner.Application/ExternalTools/LegacyCombinerPostbuildPlanCompiler.IntegrityRanges.cs",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog.cs",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog.Loader.cs",
             "profiles/built-in/ctrlram-postbuild-v2/catalog.json",
@@ -595,9 +596,9 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void DpPerspectiveFactsStayOwnedByTrustedV2Profiles()
     {
-        string registration = ReadText("src/NvtFwCombiner.Bootstrap/CanonicalCapabilityProjection.DpReplace.cs");
-        string display = ReadText("src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Dp.cs");
-        string planning = ReadText("src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.Planning.cs");
+        string registration = ReadText(
+            "src/NvtFwCombiner.Application/Authoring/DpReplaceAuthoringExperience.cs");
+        string display = ReadText("src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
 
         Assert.False(File.Exists(Path.Combine(
             Root.FullName,
@@ -605,14 +606,21 @@ public sealed partial class RepositoryBoundaryTests
             "NvtFwCombiner.Profiles",
             "DpPerspectiveCatalog.cs")));
         Assert.DoesNotContain("BuiltInReplaceProfiles", registration, StringComparison.Ordinal);
-        Assert.Contains("TryResolveBuiltInV2DpReplaceDisplay", registration, StringComparison.Ordinal);
-        Assert.Contains("composition.Plan.OrderedOperations", display, StringComparison.Ordinal);
-        Assert.DoesNotContain("BuiltInTpFlashMapCatalog", planning, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetDpReplaceRegions", planning, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionOperationKind", planning, StringComparison.Ordinal);
+        Assert.Contains("TryResolveDpReplaceContracts", registration, StringComparison.Ordinal);
+        Assert.Contains("plan.OrderedOperations", display, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionMemoryProjection.Replace.Dp.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "CompositionPlanningAdapter.Replace.Planning.cs")));
+        Assert.DoesNotContain("GetDpReplaceRegions", ReadBootstrapSources(), StringComparison.Ordinal);
         Assert.DoesNotContain("DpPerspectiveCatalog", ReadBootstrapSources(), StringComparison.Ordinal);
     }
-
     /// <summary>Partial family vocabulary cannot expand back into role-specific runtime forms.</summary>
     [Fact]
     public void FamilyRelationshipsRetainExactlyTwoRuntimeForms()
@@ -689,5 +697,4 @@ public sealed partial class RepositoryBoundaryTests
             relationshipSchema + tpHeaderSchema + productionFamilyJson,
             StringComparison.Ordinal);
     }
-
 }

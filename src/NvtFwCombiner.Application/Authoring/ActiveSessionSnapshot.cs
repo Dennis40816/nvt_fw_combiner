@@ -1,4 +1,6 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -23,7 +25,9 @@ public sealed class ActiveSessionSnapshot
         IEnumerable<AuthoringDerivedPublication> derivedPublications,
         string? compilationFingerprint = null,
         ResolvedCapability? exactCapability = null,
-        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
+        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null,
+        IEnumerable<InputSelectionMemberReadiness>? inputSelectionReadiness = null,
+        MetadataInspectionSnapshot? metadataInspection = null)
     {
         WorkflowId = workflowId;
         ResolutionToken = resolutionToken;
@@ -41,6 +45,7 @@ public sealed class ActiveSessionSnapshot
         Slots = Array.AsReadOnly([.. slots]);
         DerivedPublications = Array.AsReadOnly([.. derivedPublications]);
         InputSlotStatuses = Array.AsReadOnly([.. inputSlotStatuses ?? []]);
+        InputSelectionReadiness = Array.AsReadOnly([.. inputSelectionReadiness ?? []]);
         if (InputSlotStatuses.Select(static status => status.SlotId)
                 .Distinct(StringComparer.Ordinal).Count() != InputSlotStatuses.Count)
         {
@@ -51,6 +56,22 @@ public sealed class ActiveSessionSnapshot
 
         DraftState = draftState;
         DraftCapabilityFingerprint = draftCapabilityFingerprint;
+        if (metadataInspection is not null &&
+            (exactCapability is null ||
+             metadataInspection.ResolutionToken != exactCapability.MetadataPlan.ResolutionToken ||
+             metadataInspection.AuthoringRevision != authoringRevision.Value ||
+             metadataInspection.Results.Count != exactCapability.MetadataPlan.Entries.Count ||
+             metadataInspection.Results.Where((result, index) =>
+                 !ReferenceEquals(
+                     result.PlanEntry,
+                     exactCapability.MetadataPlan.Entries[index])).Any()))
+        {
+            throw new ArgumentException(
+                "Session metadata inspection must retain the exact capability plan and authoring revision.",
+                nameof(metadataInspection));
+        }
+
+        MetadataInspection = metadataInspection;
     }
 
     /// <summary>Mode/workflow identity for this isolated session.</summary>
@@ -106,17 +127,38 @@ public sealed class ActiveSessionSnapshot
     /// <summary>Complete per-slot readiness and terminal health for the current inspection batch.</summary>
     public IReadOnlyList<AuthoringInputSlotStatus> InputSlotStatuses { get; }
 
+    /// <summary>Current compiler-owned picker readiness for this exact authoring revision.</summary>
+    public IReadOnlyList<InputSelectionMemberReadiness> InputSelectionReadiness { get; }
+
+    /// <summary>Canonical metadata inspection published with this exact input batch.</summary>
+    public MetadataInspectionSnapshot? MetadataInspection { get; }
+
     /// <summary>True when every current slot has terminal accepted health under this exact compilation.</summary>
-    public bool HasCurrentInputInspection => CompilationFingerprint is { } fingerprint &&
-        DerivedPublications.Any(publication =>
-            publication.Kind == AuthoringDerivedResultKind.Inspection &&
-            StringComparer.Ordinal.Equals(publication.CompilationFingerprint, fingerprint)) &&
-        Slots.Count > 0 && Slots.All(static slot =>
-            slot.SelectedPath is not null && slot.FileStamp is not null &&
-            slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning) &&
-        InputSlotStatuses.Count == Slots.Count && InputSlotStatuses.All(status =>
-            status.IsTerminal &&
-            StringComparer.Ordinal.Equals(status.CompilationFingerprint, fingerprint));
+    public bool HasCurrentInputInspection
+    {
+        get
+        {
+            if (CompilationFingerprint is not { } fingerprint ||
+                !DerivedPublications.Any(publication =>
+                    publication.Kind == AuthoringDerivedResultKind.Inspection &&
+                    StringComparer.Ordinal.Equals(publication.CompilationFingerprint, fingerprint)))
+            {
+                return false;
+            }
+
+            AuthoringSlotState[] inspectionSlots =
+            [
+                .. Slots.Where(IsRequiredOrSelectedInput),
+            ];
+            return inspectionSlots.Length > 0 && inspectionSlots.All(static slot =>
+                    slot.SelectedPath is not null && slot.FileStamp is not null &&
+                    slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning) &&
+                InputSlotStatuses.Count == inspectionSlots.Length && InputSlotStatuses.All(status =>
+                    status.IsTerminal &&
+                    status.AcceptedByteArray is not null &&
+                    StringComparer.Ordinal.Equals(status.CompilationFingerprint, fingerprint));
+        }
+    }
 
     /// <summary>Returns the exact capability only after the requested result is current.</summary>
     public ResolvedCapability? GetAcceptedCapability(AuthoringDerivedResultKind kind)
@@ -129,5 +171,24 @@ public sealed class ActiveSessionSnapshot
                     capability.CompiledComposition.CompilationFingerprint))
                 ? capability
                 : null;
+    }
+
+    private bool IsRequiredOrSelectedInput(AuthoringSlotState slot)
+    {
+        if (slot.SelectedPath is not null)
+        {
+            return true;
+        }
+
+        CompiledInputContract? contract = ExactCapability?.CompiledComposition.V2Details.InputContract;
+        return contract is not null && contract.SpaceBindings.Any(binding =>
+            StringComparer.Ordinal.Equals(
+                binding.InstancePolicy == CompiledInputInstancePolicy.PerBinding
+                    ? binding.AddressSpaceId
+                    : binding.SlotId,
+                slot.DefinitionId) &&
+            contract.Slots.Single(requirement => StringComparer.Ordinal.Equals(
+                requirement.SlotId,
+                binding.SlotId)).Required);
     }
 }

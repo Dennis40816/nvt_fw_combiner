@@ -17,15 +17,11 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInTpFlashMapCatalog",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.CtrlRam.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.Coverage.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Context.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.FirmwareVersion.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Planning.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionAuthoringSessionAdapter.Replace.General.Readiness.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionExecutionAdapter.Replace.General.cs",
-                "src/NvtFwCombiner.Bootstrap/CompositionMemoryProjection.Replace.CtrlRamSlots.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.FirmwareVersion.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Planning.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
@@ -33,9 +29,13 @@ public sealed partial class RepositoryBoundaryTests
             "BuiltInPostbuildProfileCatalog",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
-                "src/NvtFwCombiner.Bootstrap/CanonicalDynamicRouteInventory.cs",
-                "src/NvtFwCombiner.Bootstrap/ExternalProcessorFactory.cs",
-                "src/NvtFwCombiner.Bootstrap/CanonicalCapabilityProjection.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInPostbuildProfileResolver.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.Metadata.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInFirmwareInspection.cs",
             ]);
         AssertNoProductionText("CurrentSupportMatrixCatalog");
     }

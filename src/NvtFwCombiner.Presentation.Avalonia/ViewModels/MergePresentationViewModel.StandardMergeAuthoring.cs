@@ -6,12 +6,12 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MergePresentationViewModel
 {
     internal AuthoringRevision StandardMergeAuthoringRevision =>
-        _authoringSessions.StandardMerge.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
+        _standardMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
 
     internal void InvalidateCanonicalCatalogSessions()
     {
-        _authoringSessions.StandardMerge.InvalidateCanonicalPublication();
-        _authoringSessions.AbMerge.InvalidateCanonicalPublication();
+        _standardMergeSession.InvalidateCanonicalPublication();
+        _abMergeSession.InvalidateCanonicalPublication();
     }
 
     internal IReadOnlyDictionary<string, AuthoringSlotInspectionLease>
@@ -26,13 +26,13 @@ public sealed partial class MergePresentationViewModel
         CompiledAuthoringSelectionSnapshot projection =
             ResolveStandardMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
-            _authoringSessions.StandardMerge.Activate(projection.Catalog);
+            _standardMergeSession.Activate(projection);
         ApplyStandardMergeReadiness(projection);
         SyncStandardMergeMembership(activated.Snapshot);
         return !activated.Succeeded
             ? EmptyInspectionLeases()
             : BeginInputInspections(
-                _authoringSessions.StandardMerge,
+                _standardMergeSession,
                 activated.Snapshot!,
                 slots,
                 static slot => slot.AddressSpaceId);
@@ -40,14 +40,14 @@ public sealed partial class MergePresentationViewModel
 
     internal bool TryCompleteStandardMergeInputBatch(
         IReadOnlyList<FirmwareInspectionItemRequest> items,
-        IReadOnlyDictionary<string, WorkbenchFirmwareInspection> inspections)
+        IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspections)
     {
         FirmwareInspectionItemRequest[] selected =
         [
             .. items.Where(static item => item.StandardMergeAddressSpaceId is not null),
         ];
         bool completed = TryCompleteInputBatch(
-            _authoringSessions.StandardMerge,
+            _standardMergeSession,
             selected,
             inspections,
             static item => item.StandardMergeInspectionLease,
@@ -61,7 +61,7 @@ public sealed partial class MergePresentationViewModel
 
     internal void ClearStandardMergeAuthoringSelections()
     {
-        ActiveSessionSnapshot? snapshot = _authoringSessions.StandardMerge.CurrentSnapshot;
+        ActiveSessionSnapshot? snapshot = _standardMergeSession.CurrentSnapshot;
         if (snapshot is null)
         {
             return;
@@ -69,7 +69,7 @@ public sealed partial class MergePresentationViewModel
 
         foreach (AuthoringSlotState slot in snapshot.Slots.Where(static slot => slot.SelectedPath is not null))
         {
-            _ = _authoringSessions.StandardMerge.SetSlotFile(slot.DefinitionId, null, null);
+            _ = _standardMergeSession.SetSlotFile(slot.DefinitionId, null, null);
         }
     }
 
@@ -83,7 +83,7 @@ public sealed partial class MergePresentationViewModel
         CompiledAuthoringSelectionSnapshot projection =
             ResolveStandardMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
-            _authoringSessions.StandardMerge.Activate(projection.Catalog);
+            _standardMergeSession.Activate(projection);
         ApplyStandardMergeReadiness(projection);
         SyncStandardMergeMembership(activated.Snapshot);
     }
@@ -106,15 +106,15 @@ public sealed partial class MergePresentationViewModel
                 .Select(static slotId => slotId!),
         ];
         Dictionary<string, FileStamp> accepted = AcceptedInputStamps(
-            _authoringSessions.StandardMerge,
+            _standardMergeSession,
             StandardMergeSlots,
             static slot => slot.AddressSpaceId);
-        return _compositionServices.Authoring.GetStandardMergeAuthoringSnapshot(
+        return _compositionServices.StandardMergeAuthoring.GetAuthoringSnapshot(
             SelectedIc,
             selectedSlotIds,
             accepted,
             StandardMergeAuthoringRevision,
-            _authoringSessions.StandardMerge.CurrentSnapshot);
+            _standardMergeSession.CurrentSnapshot);
     }
 
     private void ApplyStandardMergeReadiness(CompiledAuthoringSelectionSnapshot projection)
@@ -152,7 +152,7 @@ public sealed partial class MergePresentationViewModel
     private static bool TryCompleteInputBatch(
         AuthoringSessionState session,
         FirmwareInspectionItemRequest[] selected,
-        IReadOnlyDictionary<string, WorkbenchFirmwareInspection> inspections,
+        IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspections,
         Func<FirmwareInspectionItemRequest, AuthoringSlotInspectionLease?> selectLease,
         out ActiveSessionSnapshot? snapshot)
     {
@@ -162,7 +162,7 @@ public sealed partial class MergePresentationViewModel
             return true;
         }
 
-        WorkbenchFirmwareInspection[] results = [.. selected.Select(item => inspections[item.SlotId])];
+        FirmwareInspectionSnapshot[] results = [.. selected.Select(item => inspections[item.SlotId])];
         AuthoringCapabilityCatalogSnapshot? catalog = results[0].InputSlotCatalog;
         AuthoringSlotInspectionLease?[] leases = [.. selected.Select(selectLease)];
         if (catalog is null || leases.Any(static lease => lease is null) || results.Any(

@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -52,7 +52,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     /// <summary>Gets or sets the selected IC count/variant in the shared workflow context.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DeviceContextStatus))]
-    public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
+    public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
     /// <summary>Gets the shared device-context status.</summary>
     public string DeviceContextStatus => IsNumberSelectorVisible
@@ -103,15 +103,15 @@ public sealed partial class WorkflowSessionPresentationViewModel
     public string SelectedIcDetailRuntime => Text.GetIcDetailRuntimeValue(
         _merge.IsStandardMergeSupported,
         _merge.IsAbMergeSupported,
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.Dp).IsAvailable,
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.CtrlRam).IsAvailable,
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.General).IsAvailable);
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.DpReplace).IsAvailable,
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.CtrlRamReplace).IsAvailable,
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.GeneralReplace).IsAvailable);
 
     /// <summary>Evidence summary shown without badge clusters.</summary>
     public string SelectedIcDetailEvidence => Text.GetIcDetailEvidenceValue(
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.Dp),
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.CtrlRam),
-        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, WorkbenchReplaceModes.General));
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.DpReplace),
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.CtrlRamReplace),
+        _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, ExperienceIds.GeneralReplace));
 
     /// <summary>Support boundary shown inside the IC selector detail card.</summary>
     public string SelectedIcDetailSupport => Text.GetIcDetailSupportValue(_merge.IsAbMergeSupported);
@@ -150,9 +150,9 @@ public sealed partial class WorkflowSessionPresentationViewModel
         {
             RefreshNumberChoicesForSelectedIc();
             _merge.GeneralMergeOutputLength =
-                _compositionServices.Authoring.GetGeneralMergeDefaultOutputLength(SelectedIc);
+                _compositionServices.GeneralAuthoring.GetDefaultOutputLength(SelectedIc);
             _merge.GeneralMergeOutputFillByte =
-                _compositionServices.Authoring.GetGeneralMergeDefaultOutputFillByte(SelectedIc);
+                _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(SelectedIc);
             _replace.AddGeneralReplaceMapping();
             _merge.AddGeneralMergeMapping();
             IsWorkflowLoaded = true;
@@ -166,7 +166,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
     internal void RefreshNumberChoicesForSelectedIc()
     {
         IReadOnlyList<IcNumberChoiceViewModel> nextDisplayChoices = IsAbMergeContextActive
-            ? [.. _compositionServices.Authoring.GetAbMergeTopologyChoices(SelectedIc)
+            ? [.. _compositionServices.AbMergeAuthoring.GetTopologyChoices(SelectedIc)
                 .Select(static choice => new IcNumberChoiceViewModel(choice.Token, choice.DisplayLabel))]
             : UiCompositionRunner.GetNumberSelectionChoices(_compositionServices, SelectedIc);
         NumberSelectionChoices = nextDisplayChoices;
@@ -180,7 +180,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
                 string.Equals(choice.Token, SelectedNumber, StringComparison.Ordinal)))
         {
             SelectedNumber = nextDisplayChoices.FirstOrDefault(choice =>
-                string.Equals(choice.Token, WorkbenchIcNumberTokens.SingleChip, StringComparison.Ordinal))?.Token ??
+                string.Equals(choice.Token, IcNumberSelectionTokens.SingleChip, StringComparison.Ordinal))?.Token ??
                 nextDisplayChoices[0].Token;
         }
 
@@ -278,18 +278,19 @@ public sealed partial class WorkflowSessionPresentationViewModel
         InvalidateFirmwareInspection(clearBaseCache: true, clearFileProjections: true);
         _replace.InvalidateCtrlRamFirmwareVersionContextState();
         if (_merge.IsAbCodeMergeModeSelected &&
-            !_compositionServices.Authoring.IsAbMergeAvailable(value))
+            !_compositionServices.AbMergeAuthoring.IsAvailable(value))
         {
-            _merge.SelectMergeMode(WorkbenchMergeModes.Standard);
+            _merge.SelectMergeMode(ExperienceIds.StandardMerge);
         }
 
         IsRefreshingFirmwareInspectionContext = true;
         try
         {
             RefreshNumberChoicesForSelectedIc();
-            _merge.GeneralMergeOutputLength = _compositionServices.Authoring.GetGeneralMergeDefaultOutputLength(value);
+            _merge.GeneralMergeOutputLength =
+                _compositionServices.GeneralAuthoring.GetDefaultOutputLength(value);
             _merge.GeneralMergeOutputFillByte =
-                _compositionServices.Authoring.GetGeneralMergeDefaultOutputFillByte(value);
+                _compositionServices.GeneralAuthoring.GetDefaultOutputFillByte(value);
         }
         finally
         {

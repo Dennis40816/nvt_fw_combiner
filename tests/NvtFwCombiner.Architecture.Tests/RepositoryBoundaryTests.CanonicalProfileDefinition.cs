@@ -164,12 +164,10 @@ public sealed partial class RepositoryBoundaryTests
         string familyNormalizerSources = string.Join(
             Environment.NewLine,
             ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareFamilyNormalizationException.cs"),
-            ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareMetadataStructureDefinitionResolver.cs"),
-            ReadText("src/NvtFwCombiner.Profiles/IcIdentifier.cs"));
+            ReadText("src/NvtFwCombiner.Profiles/FirmwareFamilies/FirmwareMetadataStructureDefinitionResolver.cs"));
         Assert.DoesNotContain("public sealed class FirmwareFamilyNormalizationException", familyNormalizerSources, StringComparison.Ordinal);
         Assert.DoesNotContain("record FirmwareMetadataStructureDefinitionReference", familyNormalizerSources, StringComparison.Ordinal);
         Assert.DoesNotContain("public interface IFirmwareMetadataStructureDefinitionResolver", familyNormalizerSources, StringComparison.Ordinal);
-        Assert.DoesNotContain("public static class IcIdentifier", familyNormalizerSources, StringComparison.Ordinal);
 
         string imageMapSources = ReadText("src/NvtFwCombiner.Domain/Firmware/FirmwareImageMap.cs");
         Assert.DoesNotContain("public FirmwareImageMap(", imageMapSources, StringComparison.Ordinal);
@@ -342,13 +340,17 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Profiles/V2/TrustedProfileBundleCatalogFactory.cs");
         string profiles = ReadProfileSources();
         string bootstrap = ReadBootstrapSources();
+        string infrastructureComposition = ReadInfrastructureCompositionSources();
         _ = Assert.Single(BundleIdentityParameterRegex().Matches(factory));
         Assert.Empty(LooseBundleIdentityParameterRegex().Matches(factory));
         Assert.DoesNotContain("TrustedProfileBundleCatalogSource", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("TrustedFirmwareFamilyJsonSource", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("TrustedCompositionProfileJsonSource", profiles, StringComparison.Ordinal);
         Assert.DoesNotContain("TrustedProfileBundleCatalogSource", bootstrap, StringComparison.Ordinal);
-        Assert.Equal(1, CountOccurrences(bootstrap, "TrustedProfileBundleCatalogFactory.Create("));
+        Assert.Equal(0, CountOccurrences(bootstrap, "TrustedProfileBundleCatalogFactory.Create("));
+        Assert.Equal(1, CountOccurrences(
+            infrastructureComposition,
+            "TrustedProfileBundleCatalogFactory.Create("));
     }
 
     [GeneratedRegex(

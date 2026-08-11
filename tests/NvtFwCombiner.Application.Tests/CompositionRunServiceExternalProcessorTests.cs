@@ -13,12 +13,23 @@ public sealed partial class CompositionRunServiceTests
     [Fact]
     public async Task PreviewRunsExternalProcessorOperationThroughPort()
     {
+        var protocolPlan = new ExternalProcessorProtocolPlan(
+            "synthetic-protocol-v1",
+            "firmware.bin",
+            [
+                new ExternalProcessorProtocolCommand(
+                    "crc",
+                    ["CRC_Enable", ExternalProcessorProtocolArgumentTokens.TargetFile],
+                    [],
+                    retainShortOutputTail: false),
+            ]);
         var processor = new FakeExternalProcessor(request =>
         {
             Assert.Equal("run-external.run-crc", request.RunId);
             Assert.Equal("processor-v1", request.ProcessorId);
             Assert.Equal("tool-v1", request.ToolBindingId);
             Assert.Equal([new ByteRange(1, 1)], request.AllowedWriteRanges);
+            Assert.Same(protocolPlan, request.ProtocolPlan);
             byte[] output = request.InputBytes.ToArray();
             output[1] = 0x7E;
             return ExternalProcessorResult.Success(
@@ -38,7 +49,7 @@ public sealed partial class CompositionRunServiceTests
             processor);
 
         CompositionRunResult result = await service.PreviewAsync(
-            CreateExternalProcessorRequest(),
+            CreateExternalProcessorRequest(protocolPlan),
             CancellationToken.None);
 
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);

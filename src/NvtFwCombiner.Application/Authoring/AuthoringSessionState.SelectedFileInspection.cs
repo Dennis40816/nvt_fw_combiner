@@ -1,6 +1,7 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -135,7 +136,8 @@ public sealed partial class AuthoringSessionState
     public AuthoringSessionTransitionResult TryCompleteSlotFileInspectionBatch(
         AuthoringCapabilityCatalogSnapshot catalog,
         IReadOnlyCollection<AuthoringSlotInspectionLease> leases,
-        IReadOnlyDictionary<string, AuthoringInputSlotStatus> statuses)
+        IReadOnlyDictionary<string, AuthoringInputSlotStatus> statuses,
+        MetadataInspectionSnapshot? metadataInspection = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(leases);
@@ -315,6 +317,48 @@ public sealed partial class AuthoringSessionState
                         resultReference,
                         route.CompilationFingerprint)]
                     : [];
+            FirmwareArtifactPayload[] acceptedArtifacts =
+            [
+                .. orderedStatuses
+                    .Where(static status => status.AcceptedBytes is { Length: > 0 })
+                    .Select(static status => new FirmwareArtifactPayload(
+                        status.AddressSpaceId,
+                        status.AcceptedBytes!.Value.Span)),
+            ];
+            metadataInspection ??= route.ExactCapability is null ||
+                route.CompilationFingerprint is null
+                    ? null
+                    : FirmwareMetadataInspector.Inspect(
+                        new MetadataInspectionRequest(
+                            route.ExactCapability.MetadataPlan,
+                            _current.AuthoringRevision.Value,
+                            acceptedArtifacts));
+            if (metadataInspection is not null &&
+                (route.ExactCapability is null ||
+                 !MetadataInspectionPublicationGate.IsCurrent(
+                     metadataInspection,
+                     route.ExactCapability.MetadataPlan,
+                     _current.AuthoringRevision.Value,
+                     acceptedArtifacts)))
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.StaleInspection,
+                    "The metadata inspection does not match the complete current input batch.",
+                    _current.SelectedRouteId);
+            }
+
+            IReadOnlyList<InputSelectionMemberReadiness> selectionReadiness =
+                route.ExactCapability is null
+                    ? _current.InputSelectionReadiness
+                    :
+                    [
+                        .. InputSelectionReadinessResolver.Resolve(
+                                _current.AuthoringRevision,
+                                route.ExactCapability.CompiledComposition.V2Details.InputContract
+                                    .SelectionGroups,
+                                orderedStatuses.Select(static status => status.SlotId))
+                            .Groups.SelectMany(static group => group.Members),
+                    ];
             ActiveSessionSnapshot snapshot = CreateSnapshot(
                 catalog,
                 route,
@@ -323,7 +367,9 @@ public sealed partial class AuthoringSessionState
                 _current.DraftState,
                 _current.DraftCapabilityFingerprint,
                 publications,
-                orderedStatuses);
+                orderedStatuses,
+                selectionReadiness,
+                metadataInspection);
             _catalog = catalog;
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
@@ -406,7 +452,8 @@ public sealed partial class AuthoringSessionState
                 lease.DefinitionId,
                 lease.SelectedPath,
                 inspection.FileStamp,
-                AuthoringSlotLifecycle.Verified);
+                AuthoringSlotLifecycle.Verified,
+                acceptedBytes: inspection.AcceptedByteArray);
             ActiveSessionSnapshot snapshot = CopySnapshot(
                 _current,
                 _current.AuthoringRevision,
@@ -414,11 +461,6 @@ public sealed partial class AuthoringSessionState
                 acceptedDraft,
                 _current.DraftCapabilityFingerprint,
                 []);
-            _generalInspectionCache[inspection.DefinitionId] =
-                new CachedGeneralSelectedFileInspection(
-                    _current.ResolutionToken,
-                    _current.CapabilityFingerprint,
-                    inspection);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
         }
@@ -617,7 +659,8 @@ public sealed partial class AuthoringSessionState
                 draft.Rows.Select(row =>
                     ReferenceEquals(row, selected)
                         ? replace(row)
-                        : row));
+                        : row),
+                draft.SavedRuleResourcePolicy);
     }
 
     private static GeneralMappingDraftState? ReplaceGeneralDraftRowByDefinition(
@@ -634,6 +677,7 @@ public sealed partial class AuthoringSessionState
                 draft.Rows.Select(row =>
                     ReferenceEquals(row, selected)
                         ? replace(row)
-                        : row));
+                        : row),
+                draft.SavedRuleResourcePolicy);
     }
 }

@@ -57,6 +57,48 @@ public sealed class CanonicalMemoryLayoutProjectionTests
         AssertCanonicalProjection(fixture, snapshot);
     }
 
+    /// <summary>DP Replace keeps retained base ranges distinct from compiled replacement ranges.</summary>
+    [Fact]
+    public void DpReplaceDistinguishesBaseFirmwareFromReplacementInputs()
+    {
+        MemoryLayoutSnapshot layout =
+            CanonicalMemoryLayoutTestSupport.PrepareDpReplace("NT51951", 0x80000);
+
+        Assert.Contains(layout.BeforeSegments, static segment =>
+            segment.Disposition == MemoryWorkflowDisposition.Kept);
+        Assert.Contains(layout.AfterSegments, static segment =>
+            segment.Disposition == MemoryWorkflowDisposition.WillReplace &&
+            segment.SourceSpaceId is CompositionAddressSpaceIds.DpReplacement or
+                CompositionAddressSpaceIds.InitialCodeReplacement);
+        Assert.DoesNotContain(layout.AfterSegments, static segment =>
+            segment.Disposition == MemoryWorkflowDisposition.Kept &&
+            segment.SourceSpaceId is CompositionAddressSpaceIds.DpReplacement or
+                CompositionAddressSpaceIds.InitialCodeReplacement);
+    }
+
+    /// <summary>Projects the real AB Merge overlay chain without a Bootstrap display replica.</summary>
+    [Fact]
+    public void Nt51929AbMergeProjectsThePublishedCanonicalCapability()
+    {
+        PilotFixture fixture = CreatePilot(ExperienceIds.AbMerge);
+
+        MemoryLayoutSnapshot snapshot = MemoryLayoutProjector.Project(
+            fixture.Capability,
+            fixture.Session,
+            fixture.Capability.CompiledComposition);
+
+        Assert.Equal(0x80000, snapshot.Capacity);
+        IReadOnlyList<string> requiredInputs = fixture.Capability.CompiledComposition
+            .Plan.RequiredInputAddressSpaceIds;
+        Assert.Contains(CompositionAddressSpaceIds.DpAbInput, requiredInputs);
+        Assert.Contains(CompositionAddressSpaceIds.TpAInput, requiredInputs);
+        Assert.Contains(CompositionAddressSpaceIds.TpBInput, requiredInputs);
+        Assert.Contains(snapshot.AfterSegments, static segment =>
+            segment.ContributingOperations.Any(static operation =>
+                StringComparer.Ordinal.Equals(operation.OperationId, "copy-tpb")));
+        AssertCanonicalProjection(fixture, snapshot);
+    }
+
     private static void AssertCanonicalProjection(
         PilotFixture fixture,
         MemoryLayoutSnapshot snapshot)
@@ -75,7 +117,7 @@ public sealed class CanonicalMemoryLayoutProjectionTests
     private static PilotFixture CreatePilot(string workflowId)
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload =
             catalog.Reload(TestContext.Current.CancellationToken);
         Assert.True(

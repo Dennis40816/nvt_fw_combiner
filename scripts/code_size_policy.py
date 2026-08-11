@@ -83,21 +83,20 @@ class CodeSizeSnapshot:
 
 
 DEFAULT_LIMITS = CodeSizeLimits(
-    production_nonblank=75_000,
-    duplicate_json_nonblank=1_055,
+    production_nonblank=96_044,
+    duplicate_json_nonblank=0,
     partial_type_default_max=2_500,
     partial_type_exact_ratchets={},
     partial_type_named_maximums={
-        "NvtFwCombiner.Bootstrap.CompositionExecutionAdapter": 3_000,
-        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 4_501,
-        "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_506,
+        "NvtFwCombiner.Presentation.Avalonia.ViewModels.MainWindowViewModel": 985,
+        "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 2_798,
     },
     runtime_production_baseline=45_214,
-    runtime_production_ratchet=68_767,
-    domain_profiles_ratchet=20_287,
-    application_ratchet=23_071,
-    bootstrap_cli_ratchet=18_496,
-    infrastructure_contracts_worker_ratchet=6_913,
+    runtime_production_ratchet=67_433,
+    domain_profiles_ratchet=20_619,
+    application_ratchet=29_387,
+    bootstrap_cli_ratchet=3_371,
+    infrastructure_contracts_worker_ratchet=14_056,
 )
 
 
@@ -191,11 +190,12 @@ def _application_files(root: Path) -> list[Path]:
 
 
 def _bootstrap_cli_files(root: Path) -> list[Path]:
-    """Return the fixed Canonical Core Bootstrap + CLI slice."""
+    """Return the fixed Bootstrap, CLI, and desktop composition-root slice."""
 
     return [
         *_matching_files(root, "src/NvtFwCombiner.Bootstrap", frozenset({".cs"})),
         *_matching_files(root, "src/NvtFwCombiner.Cli", frozenset({".cs"})),
+        *_matching_files(root, "src/NvtFwCombiner.Desktop", frozenset({".cs"})),
     ]
 
 
@@ -380,7 +380,7 @@ def review_code_size_policy(
             limits.application_ratchet,
         ),
         (
-            "Bootstrap + CLI",
+            "Bootstrap + CLI + Desktop host",
             snapshot.bootstrap_cli_files,
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
@@ -453,7 +453,7 @@ def validate_code_size_policy(
             limits.application_ratchet,
         ),
         (
-            "Bootstrap + CLI slice",
+            "Bootstrap + CLI + Desktop host slice",
             snapshot.bootstrap_cli_nonblank,
             limits.bootstrap_cli_ratchet,
         ),

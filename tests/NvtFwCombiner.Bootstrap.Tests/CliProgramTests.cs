@@ -1,5 +1,3 @@
-using NvtFwCombiner.Cli;
-
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Coverage for the thin process entry point retained outside the Bootstrap assembly.</summary>

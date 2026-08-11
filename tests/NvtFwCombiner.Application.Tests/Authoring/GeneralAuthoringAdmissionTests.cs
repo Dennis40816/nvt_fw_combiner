@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Safety-contract tests for canonical General occupancy and resource admission.</summary>
-public sealed class GeneralAuthoringAdmissionTests
+public sealed partial class GeneralAuthoringAdmissionTests
 {
     /// <summary>Admission snapshots reject null entries in every independently owned collection.</summary>
     [Fact]

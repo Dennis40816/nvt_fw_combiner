@@ -1,5 +1,5 @@
 using System.Text;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void HomeDefersWorkflowProjectionUntilWorkflowNavigation()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.Empty(viewModel.WorkflowSession.NumberSelectionChoices);
         Assert.Empty(viewModel.Merge.GeneralMergeOutputLength);
@@ -37,7 +37,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void SettingsUsesCatalogBackedRowsWithoutDeviceContext()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.Empty(viewModel.Settings.OverviewRows);
         Assert.Empty(viewModel.Settings.CapabilityRows);
@@ -89,7 +89,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void NavigationTrailShowsHierarchyAndBackReturnsToPreviousPage()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.ShowReplaceCommand.Execute(null);
@@ -111,7 +111,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void HomeHexEditorEntryOpensIndependentPage()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.ShowHexEditorCommand.Execute(null);
 
@@ -126,7 +126,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void HomeWorkflowEntriesCollectContextBeforeOpeningWorkflow()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.True(viewModel.WorkflowSession.IsDeviceContextSelectionVisible);
@@ -160,14 +160,14 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ReplaceContextDoesNotInheritAbCodeSelectionOnFirstOpen()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         string expectedReplaceIc = viewModel.WorkflowSession.SelectedIc;
         string expectedReplaceNumber = viewModel.WorkflowSession.SelectedNumber;
 
         viewModel.BeginAbMergeFromHomeCommand.Execute(null);
         viewModel.WorkflowSession.WorkflowContextSetup.SelectedIc = "NT51929";
         viewModel.WorkflowSession.ConfirmWorkflowContextCommand.Execute(null);
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.CascadeTwoToEight;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.CascadeTwoToEight;
         viewModel.GoBackCommand.Execute(null);
 
         Assert.True(viewModel.IsHomeVisible);
@@ -182,7 +182,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void SlotLoadingPromptsForIcMarkerButDoesNotApplyMergeTpNumber()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ic-marker");
         string markedPath = workspace.Write("NT51927TT_test.bin", [0x00]);
@@ -206,7 +206,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void SlotLoadingPromptsForPrintableHeaderIcMarker()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-header-ic-marker");
         byte[] bytes = new byte[0x40000];
@@ -225,7 +225,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void SlotLoadingIgnoresUnsupportedIcMarker()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-unsupported-ic-marker");
         string markedPath = workspace.Write("NT51999TT_test.bin", [0x00]);

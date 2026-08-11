@@ -55,7 +55,8 @@ public sealed partial class CompositionRunService
                 request.IcNumberSelection,
                 stagedSources,
                 stagedArtifacts,
-                ResolveExternalProcessorIcCount(request.CompiledComposition));
+                ResolveExternalProcessorIcCount(request.CompiledComposition),
+                invocation.ProtocolPlan);
         }
         catch (ArgumentException exception)
         {

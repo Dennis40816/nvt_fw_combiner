@@ -22,13 +22,13 @@ public sealed partial class RepositoryBoundaryTests
         string abOutputNaming = ReadText(
             "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
         string abProjection = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchAbMergeInputProjection.cs");
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string abInspection = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CanonicalAuthoringAdapter.AbMerge.InputInspection.cs");
+            "src/NvtFwCombiner.Application/Authoring/AbMergeAuthoringExperience.InputInspection.cs");
         string workbenchModels = ReadText(
-            "src/NvtFwCombiner.Application/Composition/WorkbenchCompositionModels.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
         string workbenchIssueCodes = ReadText(
-            "src/NvtFwCombiner.Bootstrap/WorkbenchIssueCodes.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionPlanningIssueCodes.cs");
         string presentation = ReadPresentationSources();
 
         _ = Assert.Single(inspectorOwners);
@@ -121,7 +121,7 @@ public sealed partial class RepositoryBoundaryTests
         string fileStamp = ReadText(
             "src/NvtFwCombiner.Application/Authoring/FileStamp.cs");
         string workflow = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
+            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string memoryLayout = ReadText(
             "src/NvtFwCombiner.Application/MemoryLayout/MemoryLayoutProjector.cs");
         string versionPlan = ReadText(

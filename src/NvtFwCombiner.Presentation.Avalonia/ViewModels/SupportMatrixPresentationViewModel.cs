@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -11,12 +11,12 @@ public sealed class SupportMatrixPresentationViewModel(
 {
     private static readonly string[] s_preferredWorkflowOrder =
     [
-        WorkbenchWorkflowIds.StandardMerge,
-        WorkbenchWorkflowIds.AbMerge,
-        WorkbenchWorkflowIds.DpReplace,
-        WorkbenchWorkflowIds.CtrlRamReplace,
-        WorkbenchWorkflowIds.GeneralMerge,
-        WorkbenchWorkflowIds.GeneralReplace,
+        ExperienceIds.StandardMerge,
+        ExperienceIds.AbMerge,
+        ExperienceIds.DpReplace,
+        ExperienceIds.CtrlRamReplace,
+        ExperienceIds.GeneralMerge,
+        ExperienceIds.GeneralReplace,
     ];
 
     private readonly ICanonicalSupportMatrixQuery _query =

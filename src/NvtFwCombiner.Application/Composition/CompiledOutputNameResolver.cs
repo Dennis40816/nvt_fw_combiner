@@ -1,4 +1,5 @@
 using System.Globalization;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
@@ -11,7 +12,8 @@ internal static class CompiledOutputNameResolver
         CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
-        DateTimeOffset startedAtUtc)
+        DateTimeOffset startedAtUtc,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         CompiledOutputNamingRequirement output =
@@ -36,7 +38,8 @@ internal static class CompiledOutputNameResolver
                         request.OutputNamingInspection,
                         inputSummaries,
                         startedAtUtc,
-                        request.OutputNamingAdmission),
+                        request.OutputNamingAdmission,
+                        ctrlRamVersionEdit),
             CompiledOutputNameRendererKind.DeferredTokenTemplate =>
                 throw new InvalidOperationException(
                     "A deferred output-name template cannot execute."),
@@ -55,7 +58,8 @@ internal static class CompiledOutputNameResolver
         AcceptedOutputNamingInspection? acceptedInspection,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         DateTimeOffset startedAtUtc,
-        OutputNamingAdmissionIdentity? admission = null)
+        OutputNamingAdmissionIdentity? admission = null,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null)
     {
         ArgumentNullException.ThrowIfNull(output);
         ArgumentException.ThrowIfNullOrWhiteSpace(requestedFileName);
@@ -106,7 +110,8 @@ internal static class CompiledOutputNameResolver
                 output,
                 acceptedInspection,
                 inputSummaries,
-                issues);
+                issues,
+                ctrlRamVersionEdit);
         tokens.Add(tpVersion.Summary);
         string date = startedAtUtc.UtcDateTime.ToString(
             "yyyyMMdd",
@@ -236,9 +241,22 @@ internal static class CompiledOutputNameResolver
         CompiledOutputNamingRequirement output,
         AcceptedOutputNamingInspection? acceptedInspection,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
-        List<CompositionIssue> issues)
+        List<CompositionIssue> issues,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit)
     {
         const string TokenId = "tp-version";
+        if (ctrlRamVersionEdit is not null)
+        {
+            return new TokenResolution(new OutputNamingTokenSummary(
+                TokenId,
+                FormattableString.Invariant(
+                    $"{ctrlRamVersionEdit.FirmwareVersion:X2}{ctrlRamVersionEdit.FirmwareSubVersion:X2}"),
+                IsKnown: true,
+                SourceAddressSpaceId: null,
+                AcceptedSnapshotSha256: null,
+                "accepted-ctrlram-version-draft"));
+        }
+
         CompiledOutputTokenRequirement requirement =
             GetTokenRequirement(
                 output,

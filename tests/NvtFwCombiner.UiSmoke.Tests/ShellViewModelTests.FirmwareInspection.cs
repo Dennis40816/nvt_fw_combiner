@@ -1,6 +1,4 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
@@ -21,11 +19,11 @@ public sealed partial class ShellViewModelTests
         int callerThread = Environment.CurrentManagedThreadId;
         int firstReaderThread = callerThread;
 
-        WorkbenchFirmwareInspection ReadInspection(
+        FirmwareInspectionSnapshot ReadInspection(
             string _,
             string path,
             string? __,
-            WorkbenchCtrlRamInspectionRequest? ___)
+            CtrlRamInspectionRequest? ___)
         {
             if (string.Equals(path, firstPath, StringComparison.Ordinal))
             {
@@ -98,7 +96,7 @@ public sealed partial class ShellViewModelTests
             return DpInspection("0303");
         });
         viewModel.WorkflowSession.SelectedIc = "NT51929";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -108,7 +106,7 @@ public sealed partial class ShellViewModelTests
         FirmwareSlotViewModel slot = viewModel.Merge.MergeSlots.Single(candidate =>
             candidate.SlotId == CompositionAddressSpaceIds.DpAbInput);
         Assert.False(slot.IsInputInspectionPending);
-        Assert.Equal(WorkbenchInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
+        Assert.Equal(FirmwareInputInspectionSeverity.Blocking, slot.InputInspectionSeverity);
         Assert.Contains("file changed", slot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
         Assert.True(slot.BlocksBuild);
         Assert.False(viewModel.Merge.CanBuildMerge);
@@ -123,11 +121,14 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
-            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs);
         });
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.DpAbInput,
@@ -152,20 +153,20 @@ public sealed partial class ShellViewModelTests
             observedTopologies.AddRange(inputs.Select(static input => input.AbMergeTopologyToken));
             return
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new WorkbenchFirmwareInspection(
+                    new FirmwareInspectionSnapshot(
                         null,
                         null,
                         null,
                         null,
-                        new WorkbenchFirmwareContextSuggestion("NT51950", "cascade", 2, "1.0.0", 0x5195),
+                        new FirmwareContextSuggestion("NT51950", "cascade", 2, "1.0.0", 0x5195),
                         null))),
             ];
         });
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.AbCode;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionAddressSpaceIds.TpAInput,
@@ -194,8 +195,8 @@ public sealed partial class ShellViewModelTests
             return DpInspection(reads == 1 ? "0101" : "0202");
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync(
             "replace-base",
             basePath,
@@ -207,7 +208,7 @@ public sealed partial class ShellViewModelTests
         {
             stream.WriteByte(0x00);
         }
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Equal(2, reads);
@@ -222,29 +223,29 @@ public sealed partial class ShellViewModelTests
         Assert.Contains(viewModel.Replace.ReplaceBaseSlot.FirmwareFacts, fact => fact.Value == "D02-02");
     }
 
-    /// <summary>DP memory length uses the selected snapshot until reselection refreshes its worker-owned identity.</summary>
+    /// <summary>Non-canonical fact projections cannot publish a compiled memory layout.</summary>
     [Fact]
-    public async Task MergeDpLengthProjectionKeepsSelectedSnapshotUntilReselection()
+    public async Task MergeMemoryStaysPendingWithoutCanonicalInputPublication()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-dp-length-snapshot");
         string dpPath = workspace.Write("dp.bin", new byte[0x40000]);
         MainWindowViewModel viewModel = CreateInspectionViewModel((_, _, _, _) => DpInspection("0101"));
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
 
         using (var stream = new FileStream(dpPath, FileMode.Open, FileAccess.Write, FileShare.Read))
         {
             stream.SetLength(0x80000);
         }
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.General;
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.Standard;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal("0x00000-0x3FFFF (len 0x40000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x7FFFF (len 0x80000)", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Memory layout pending", viewModel.Merge.MergeMemoryRangeLabel);
     }
 
     /// <summary>Merge-only refreshes cannot overwrite the typed CtrlRAM Replace projection.</summary>
@@ -255,17 +256,17 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-cross-workflow-memory");
         string basePath = golden.ExpectedOutputPath(golden.CaseByIc("51926"));
         string mergeDpPath = workspace.Write("merge-dp.bin", [0x01]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         string replaceRange = viewModel.Replace.ReplaceMemoryRangeLabel;
         string[] replaceRows = [.. viewModel.Replace.ReplaceMemoryRows.Select(static row => row.RangeLabel)];
         string[] replaceCoverage = [.. viewModel.Replace.ReplaceCoverageSegments.Select(static segment => segment.RangeLabel)];
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", mergeDpPath, TestContext.Current.CancellationToken);
-        viewModel.Merge.SelectedMergeMode = WorkbenchMergeModes.General;
+        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
         viewModel.Merge.GeneralMergeOutputLength = "0x80000";
 
         Assert.Equal(replaceRange, viewModel.Replace.ReplaceMemoryRangeLabel);
@@ -283,29 +284,30 @@ public sealed partial class ShellViewModelTests
         string tpPath = workspace.Write("tp.bin", [0x01]);
         MainWindowViewModel viewModel = CreateInspectionViewModel((icId, path, dependentTpPath, request) =>
             string.Equals(path, basePath, StringComparison.Ordinal)
-                ? FirmwareInspectionAdapter.InspectFirmwareBatch(
+                ? BuiltInFirmwareInspection.InspectFirmwareBatch(
+                    (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
                     icId,
-                    [new WorkbenchFirmwareInspectionInput(
+                    [new FirmwareInspectionSnapshotInput(
                         "single",
                         path,
                         dependentTpPath,
                         request)])
                     .Single().Inspection
-                : new WorkbenchFirmwareInspection(
+                : new FirmwareInspectionSnapshot(
                     null,
                     null,
                     null,
                     null,
-                    new WorkbenchFirmwareContextSuggestion(
+                    new FirmwareContextSuggestion(
                         "NT51926",
-                        WorkbenchIcNumberTokens.SingleChip,
+                        IcNumberSelectionTokens.SingleChip,
                         1,
                         "1.4.1",
                         0x5101),
                     null));
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.Contains(
             viewModel.Replace.ReplaceSlots,
@@ -313,7 +315,7 @@ public sealed partial class ShellViewModelTests
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
-        Assert.Equal(WorkbenchIcNumberTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Contains(
             viewModel.Replace.ReplaceSlots,
@@ -332,14 +334,14 @@ public sealed partial class ShellViewModelTests
         string dpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("dp-input"));
         string tpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("tp-input"));
 
-        MainWindowViewModel tpFirst = ShellViewModelFactory.Create();
+        MainWindowViewModel tpFirst = PresentationTestHost.CreateViewModel();
         tpFirst.WorkflowSession.SelectedIc = "NT51950";
         await tpFirst.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
         Assert.False(tpFirst.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-tp").HasFile);
         await tpFirst.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         await tpFirst.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
-        MainWindowViewModel dpFirst = ShellViewModelFactory.Create();
+        MainWindowViewModel dpFirst = PresentationTestHost.CreateViewModel();
         dpFirst.WorkflowSession.SelectedIc = "NT51950";
         await dpFirst.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
         await dpFirst.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
@@ -367,38 +369,38 @@ public sealed partial class ShellViewModelTests
         JsonElement fixture = golden.CaseByIc("51926");
         string dpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("dp-input"));
         string tpPath = golden.ManifestPath(fixture.GetProperty("inputs").GetProperty("tp-input"));
-        var batches = new List<WorkbenchFirmwareInspectionInput[]>();
+        var batches = new List<FirmwareInspectionSnapshotInput[]>();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         {
             batches.Add([.. inputs]);
             return
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new WorkbenchFirmwareInspection(
+                    new FirmwareInspectionSnapshot(
                         null,
                         null,
-                        input.InspectionId == "merge-dp" ? new WorkbenchDpVersionMetadata("0102") : null,
+                        input.InspectionId == "merge-dp" ? new DpVersionMetadata("0102") : null,
                         null,
                         input.InspectionId == "merge-dp"
-                            ? new WorkbenchFirmwareContextSuggestion("NT51926", "cascade", 2, "1.4.1", 0x5102)
+                            ? new FirmwareContextSuggestion("NT51926", "cascade", 2, "1.4.1", 0x5102)
                             : null,
                         null))),
             ];
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-tp", tpPath, TestContext.Current.CancellationToken);
 
-        WorkbenchFirmwareInspectionInput[] pairedBatch = Assert.Single(
+        FirmwareInspectionSnapshotInput[] pairedBatch = Assert.Single(
             batches,
             static batch => batch.Length == 2);
         Assert.Equal(["merge-dp", "merge-tp"], pairedBatch.Select(static input => input.InspectionId));
         Assert.Equal(tpPath, pairedBatch.Single(input => input.InspectionId == "merge-dp").TpPath);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
     }
 
     /// <summary>Accepting an IC hint does not open a Number prompt while that control is hidden.</summary>
@@ -409,28 +411,28 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("NT51927_base.bin", [0x01]);
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         [
-            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+            .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                 input.InspectionId,
-                new WorkbenchFirmwareInspection(
+                new FirmwareInspectionSnapshot(
                     "NT51927",
                     null,
                     null,
                     null,
-                    new WorkbenchFirmwareContextSuggestion("NT51927", "2", 2, "1.4.1", 0x5102),
+                    new FirmwareContextSuggestion("NT51927", "2", 2, "1.4.1", 0x5102),
                     null))),
         ]);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.SingleChip;
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.SingleChip;
 
         await viewModel.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
         Assert.True(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
 
         viewModel.WorkflowSession.AcceptFirmwareIcMismatchCommand.Execute(null);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         Assert.Equal("NT51927", viewModel.WorkflowSession.SelectedIc);
-        Assert.Equal(WorkbenchIcNumberTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
+        Assert.Equal(IcNumberSelectionTokens.SingleChip, viewModel.WorkflowSession.SelectedNumber);
         Assert.False(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
     }
@@ -441,15 +443,15 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-perfect-family-context");
         string basePath = workspace.Write("NT51932_base.bin", [0x01]);
-        var batches = new List<(string IcId, WorkbenchFirmwareInspectionInput[] Inputs)>();
+        var batches = new List<(string IcId, FirmwareInspectionSnapshotInput[] Inputs)>();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             batches.Add((icId, [.. inputs]));
             return
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new WorkbenchFirmwareInspection("NT51932", null, null, null, null, null))),
+                    new FirmwareInspectionSnapshot("NT51932", null, null, null, null, null))),
             ];
         });
         viewModel.WorkflowSession.SelectedIc = "NT51929";
@@ -470,25 +472,25 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-accepted-replacement-ic");
         string replacementPath = workspace.Write("NT51927_replacement.bin", [0x01]);
-        var batches = new List<(string IcId, WorkbenchFirmwareInspectionInput[] Inputs)>();
+        var batches = new List<(string IcId, FirmwareInspectionSnapshotInput[] Inputs)>();
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             batches.Add((icId, [.. inputs]));
             return
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new WorkbenchFirmwareInspection("NT51927", null, null, null, null, null))),
+                    new FirmwareInspectionSnapshot("NT51927", null, null, null, null, null))),
             ];
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
 
-        MainWindowViewModel targetContext = ShellViewModelFactory.Create();
+        MainWindowViewModel targetContext = PresentationTestHost.CreateViewModel();
         targetContext.WorkflowSession.SelectedIc = "NT51927";
         targetContext.WorkflowSession.SelectedNumber = "2";
-        OpenReplace(targetContext, WorkbenchReplaceModes.CtrlRam);
+        OpenReplace(targetContext, ExperienceIds.CtrlRamReplace);
         HashSet<string> targetSlotIds =
         [
             .. targetContext.Replace.ReplaceSlots
@@ -511,7 +513,7 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(
             replacementPath,
             viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == replacement.SlotId).FilePath);
-        (string successorIc, WorkbenchFirmwareInspectionInput[] successorInputs) = batches[^1];
+        (string successorIc, FirmwareInspectionSnapshotInput[] successorInputs) = batches[^1];
         Assert.Equal("NT51927", successorIc);
         Assert.Contains(successorInputs, input => input.InspectionId == replacement.SlotId);
         Assert.False(viewModel.WorkflowSession.IsFirmwareIcMismatchModalOpen);
@@ -525,13 +527,13 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("NT51929_replacement.bin", [0x01]);
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((_, inputs) =>
         [
-            .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+            .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                 input.InspectionId,
-                new WorkbenchFirmwareInspection("NT51929", null, null, null, null, null))),
+                new FirmwareInspectionSnapshot("NT51929", null, null, null, null, null))),
         ]);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.SlotId == "replace-ctrlram-mp");
 
@@ -564,14 +566,14 @@ public sealed partial class ShellViewModelTests
             inspectedIds.AddRange(inputs.Select(static input => input.InspectionId));
             return
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
-                    new WorkbenchFirmwareInspection(null, null, null, null, null, null))),
+                    new FirmwareInspectionSnapshot(null, null, null, null, null, null))),
             ];
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot));
         await viewModel.WorkflowSession.SetSlotFileAsync(
@@ -604,11 +606,14 @@ public sealed partial class ShellViewModelTests
                 releaseFirstBase.Wait(TestContext.Current.CancellationToken);
             }
 
-            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        viewModel.WorkflowSession.SelectedNumber = WorkbenchIcNumberTokens.Cascade;
-        OpenReplace(viewModel, WorkbenchReplaceModes.CtrlRam);
+        viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
+        OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
         FirmwareSlotViewModel replacement = viewModel.Replace.ReplaceSlots.First(slot =>
             !ReferenceEquals(slot, viewModel.Replace.ReplaceBaseSlot) &&
             slot.Title.Contains("VN CtrlRAM", StringComparison.Ordinal));
@@ -642,17 +647,17 @@ public sealed partial class ShellViewModelTests
     }
 
     private static MainWindowViewModel CreateInspectionViewModel(
-        Func<string, string, string?, WorkbenchCtrlRamInspectionRequest?, WorkbenchFirmwareInspection> reader)
+        Func<string, string, string?, CtrlRamInspectionRequest?, FirmwareInspectionSnapshot> reader)
     {
         return new MainWindowViewModel(
             "test-shell",
             "test-app",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("test-app"),
+            PresentationTestHost.CreateServices("test-app"),
             static (_, _) => null,
             (icId, inputs) =>
             [
-                .. inputs.Select(input => new WorkbenchFirmwareInspectionResult(
+                .. inputs.Select(input => new FirmwareInspectionSnapshotResult(
                     input.InspectionId,
                     reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
             ]);
@@ -661,24 +666,24 @@ public sealed partial class ShellViewModelTests
     private static MainWindowViewModel CreateBatchInspectionViewModel(
         Func<
             string,
-            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-            IReadOnlyList<WorkbenchFirmwareInspectionResult>> reader)
+            IReadOnlyList<FirmwareInspectionSnapshotInput>,
+            IReadOnlyList<FirmwareInspectionSnapshotResult>> reader)
     {
         return new MainWindowViewModel(
             "test-shell",
             "test-app",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("test-app"),
+            PresentationTestHost.CreateServices("test-app"),
             static (_, _) => null,
             reader);
     }
 
-    private static WorkbenchFirmwareInspection DpInspection(string versionToken)
+    private static FirmwareInspectionSnapshot DpInspection(string versionToken)
     {
-        return new WorkbenchFirmwareInspection(
+        return new FirmwareInspectionSnapshot(
             null,
             null,
-            new WorkbenchDpVersionMetadata(versionToken),
+            new DpVersionMetadata(versionToken),
             null,
             null,
             null);

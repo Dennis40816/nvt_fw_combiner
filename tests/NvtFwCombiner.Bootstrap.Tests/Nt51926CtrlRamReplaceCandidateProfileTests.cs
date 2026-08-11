@@ -41,9 +41,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompositionOperation processorOperation = Assert.Single(composition.Plan.OrderedOperations);
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
             processorOperation.ExternalProcessorInvocation);
-        LegacyCombinerPostbuildCommandPlan legacyPlan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51926CommonFw141,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+        LegacyCombinerPostbuildCommandPlan legacyPlan = LegacyCombinerPostbuildCatalog.Nt51926CommonFw141.ResolvePlan(new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
@@ -297,20 +295,20 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             static pair => pair.Key,
             static pair => pair.Value.Path,
             StringComparer.Ordinal);
-        slotPaths[WorkbenchSlotIds.ReplaceBase] = baseFile.Path;
+        slotPaths[CompositionSlotIds.ReplaceBase] = baseFile.Path;
 
         using var workspace = TempWorkspace.Create("nfc-nt51926-ctrlram-v2-parity");
         string routedOutputPath = workspace.PathFor("routed-v2-output.bin");
-        WorkbenchRunResult routed = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult routed = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "cascade",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
             routedOutputPath);
-        Assert.True(routed.Succeeded, routed.ReportJson);
-        using (var routedReport = JsonDocument.Parse(routed.ReportJson))
+        Assert.True(routed.Succeeded, CompositionRunReportJson.Serialize(routed));
+        using (var routedReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed)))
         {
             Assert.Equal(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -374,7 +372,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             candidateInputs,
             "nt51926-ctrlram-v2-owner-golden");
 
-        Assert.Equal(CompositionExecutionStatus.Succeeded, v2.Status);
+        Assert.True(
+            v2.Status == CompositionExecutionStatus.Succeeded,
+            FormatIssues(v2.Issues));
         Assert.Empty(v2.Issues);
         Assert.Equal(evidence.Expected.Bytes, v2.OutputBytes.ToArray());
         Assert.Equal(originalReference, referenceBase);
@@ -457,6 +457,8 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             ExternalProcessorFactory.GetOrCreateOrNull(),
             exactMatch: false);
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
+        ExternalProcessorProtocolPlan protocolPlan =
+            LegacyCombinerPostbuildCatalog.Nt51926CommonFw141.ResolvePlan(selection).ProtocolPlan;
         return await CompositionEngine.ExecuteAsync(
             candidate.Plan,
             new CompositionExecutionInput(candidateInputs),
@@ -473,7 +475,8 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                         invocation.AllowedWriteRanges,
                         selection,
                         stagedSources,
-                        stagedArtifacts),
+                        stagedArtifacts,
+                        protocolPlan: protocolPlan),
                     cancellationToken);
                 return result.Succeeded
                     ? CompositionExternalProcessorResult.Success(result.OutputBytes)

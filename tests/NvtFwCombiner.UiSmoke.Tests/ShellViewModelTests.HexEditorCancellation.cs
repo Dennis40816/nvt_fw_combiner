@@ -15,6 +15,7 @@ public sealed partial class ShellViewModelTests
         var releaseSearch = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var editor = new HexEditorWorkspaceViewModel(
             ShellTextResources.For(ShellLanguage.English),
+            PresentationTestHost.CreateRawBinaryEditorFileSessionFactory(),
             async (_, _, cancellationToken) =>
             {
                 Assert.False(cancellationToken.IsCancellationRequested);

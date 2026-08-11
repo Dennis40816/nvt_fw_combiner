@@ -154,7 +154,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.DoesNotContain("DP 與 LD payload", localized, StringComparison.Ordinal);
         Assert.Contains("optional LDC", localized, StringComparison.Ordinal);
         Assert.Contains("選用 LDC", localized, StringComparison.Ordinal);
-        Assert.DoesNotContain("WorkbenchAddressSpaceIds.LdcReplacement", dynamicText, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionAddressSpaceIds.LdcReplacement", dynamicText, StringComparison.Ordinal);
         Assert.DoesNotContain("InputSelectionNextActionKind.LoadPrerequisite", dynamicText, StringComparison.Ordinal);
         Assert.Contains("InputSelectionNextActionKind.LoadArtifactFirst", dynamicText, StringComparison.Ordinal);
     }
@@ -180,7 +180,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.False(slot.IsRequirementLabelVisible);
         Assert.True(slot.HasSemanticState);
 
-        slot.SetInputInspection(WorkbenchInputInspectionSeverity.Valid, "Inspection passed");
+        slot.SetInputInspection(FirmwareInputInspectionSeverity.Valid, "Inspection passed");
 
         Assert.Equal(FirmwareSlotSemanticState.Verified, slot.SemanticState);
         Assert.Equal("Verified", slot.SemanticStateLabel);
@@ -286,7 +286,7 @@ public sealed partial class XamlControlStyleContractTests
             "Load Reference first.",
             "Pending input. Load Reference first.");
         slot.SetInputInspection(
-            WorkbenchInputInspectionSeverity.Blocking,
+            FirmwareInputInspectionSeverity.Blocking,
             "The selected BIN failed structural admission.");
 
         Assert.Equal(FirmwareSlotSemanticState.Error, slot.SemanticState);
@@ -315,7 +315,7 @@ public sealed partial class XamlControlStyleContractTests
             "Reference policy blocks this child.",
             "Blocked. Reference policy blocks this child.");
         slot.SetInputInspection(
-            WorkbenchInputInspectionSeverity.Blocking,
+            FirmwareInputInspectionSeverity.Blocking,
             "The selected BIN failed structural admission.");
 
         Assert.Equal(FirmwareSlotSemanticState.Error, slot.SemanticState);
@@ -396,7 +396,7 @@ public sealed partial class XamlControlStyleContractTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
             new FirmwareSlotFactViewModel("TP", "T01-01", (FirmwareSlotFactState)999, "Invalid", "Invalid state."));
 
-        var emptyInspection = new WorkbenchFirmwareInspection(null, null, null, null, null, null);
+        var emptyInspection = new FirmwareInspectionSnapshot(null, null, null, null, null, null);
         FirmwareSlotFactViewModel localizedUnknown = Assert.Single(
             UiCompositionRunner.GetDpFirmwareSlotFacts(
                 emptyInspection,

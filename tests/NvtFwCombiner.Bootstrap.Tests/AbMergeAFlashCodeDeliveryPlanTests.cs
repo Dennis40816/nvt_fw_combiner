@@ -4,33 +4,26 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class AbMergeRuntimeAdmissionTests
 {
-    /// <summary>Delivery admission retains case-distinct selected source paths for the platform guard.</summary>
+    /// <summary>The Application plan contains only compiled delivery authority and no host input paths.</summary>
     [Fact]
-    public async Task AFlashCodeDeliveryPlanRetainsCaseDistinctInputPathsAsync()
+    public void AFlashCodeDeliveryPlanIsPathFreeAndCompiled()
     {
-        Assert.True(CanonicalCapabilityResolution.TryCompileAbMerge(
+        Assert.True(BootstrapTestHost.Canonical.Compiler.TryCompileAbMerge(
             "NT51929",
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues),
             string.Join(',', issues.Select(static issue => issue.Code)));
         CompiledComposition compiledComposition = Assert.IsType<CompiledComposition>(composition);
-        string firstPath = Path.Combine(Path.GetTempPath(), "ab-a-source.bin");
-        string secondPath = Path.Combine(Path.GetTempPath(), "AB-A-SOURCE.bin");
-        OutputNamingSummary outputNaming = CreateCompletedAbResult("NT51929", DpLength).OutputNaming!;
+        OutputNamingSummary outputNaming = CreateOutputNamingSummary("NT51929");
 
-        WorkbenchAbAFlashCodeDeliveryPlan plan = Assert.IsType<WorkbenchAbAFlashCodeDeliveryPlan>(
-            await AbMergeAFlashCodeExportService.TryCreatePlanAsync(
+        CompositionAdditionalDeliveryPlan plan = Assert.IsType<CompositionAdditionalDeliveryPlan>(
+            CompositionAdditionalDeliveryPlanner.TryCreate(
                 compiledComposition,
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["source-a"] = firstPath,
-                    ["source-b"] = secondPath,
-                },
-                new CompositionOutputNamePreview(outputNaming.ActualFileName, outputNaming, []),
-                TestContext.Current.CancellationToken));
+                outputNaming,
+                CompiledAdditionalDelivery.AbAFlashCodeKind));
 
-        Assert.Equal(
-            [Path.GetFullPath(firstPath), Path.GetFullPath(secondPath)],
-            plan.InputPaths);
+        Assert.Equal(compiledComposition.V2Details.ProfileId, plan.ProfileId);
+        Assert.Equal(CompiledAdditionalDelivery.AbAFlashCodeKind, plan.DeliveryKind);
+        Assert.Equal(compiledComposition.V2Details.AdditionalDeliveries.Single().SourceRange, plan.SourceRange);
     }
 }

@@ -5,16 +5,15 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests caller-owned, mode-isolated Merge authoring sessions.</summary>
-public sealed class MergeAuthoringSessionSetTests
+public sealed class MergeAuthoringSessionIsolationTests
 {
     /// <summary>Each Merge mode has one stable session and never inherits another mode's state.</summary>
     [Fact]
     public void MergeModesRestoreOnlyTheirOwnSelectionsSlotsAndDraft()
     {
-        var sessions = new MergeAuthoringSessionSet();
-        AuthoringSessionState standard = sessions.StandardMerge;
-        AuthoringSessionState ab = sessions.AbMerge;
-        AuthoringSessionState general = sessions.GeneralMerge;
+        var standard = new AuthoringSessionState(ExperienceIds.StandardMerge);
+        var ab = new AuthoringSessionState(ExperienceIds.AbMerge);
+        var general = new AuthoringSessionState(ExperienceIds.GeneralMerge);
 
         _ = Activate(
             standard,
@@ -75,9 +74,6 @@ public sealed class MergeAuthoringSessionSetTests
             general,
             new TestDraftState("row-1"));
 
-        Assert.Same(standard, sessions.StandardMerge);
-        Assert.Same(ab, sessions.AbMerge);
-        Assert.Same(general, sessions.GeneralMerge);
         Assert.Equal(
             @"C:\firmware\standard-dp.bin",
             SelectedPath(standard, "dp"));
@@ -385,8 +381,7 @@ public sealed class MergeAuthoringSessionSetTests
                 "standard-fingerprint",
                 "dp",
                 "tp"));
-        var desktopSessions = new MergeAuthoringSessionSet();
-        AuthoringSessionState desktop = desktopSessions.StandardMerge;
+        var desktop = new AuthoringSessionState(ExperienceIds.StandardMerge);
         var cli = new AuthoringSessionState(
             ExperienceIds.StandardMerge);
         _ = Activate(desktop, catalog);

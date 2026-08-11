@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
@@ -16,7 +16,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
 
     /// <summary>Preserves every historical hash without allowing the superseded short inputs into production.</summary>
     [Fact]
-    public async Task HistoricalHashesRemainImmutableAndProductionRejectsShortInputs()
+    public void HistoricalHashesRemainImmutableAndProductionRejectsShortInputs()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "testdata",
@@ -59,22 +59,20 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
             string basePath = workspace.Write("base.bin", baseBytes);
             string replacementPath = workspace.Write("replacement-dp.bin", replacementBytes);
             string outputPath = workspace.PathFor($"{icId.ToLowerInvariant()}-dp-replace.bin");
-            WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
+            CompiledAuthoringSessionPreparation prepared = GoldenTestHost.PrepareDpReplace(
                 icId,
-                "single",
-                "DP",
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["replace-base"] = basePath,
                     ["replace-dp"] = replacementPath,
-                },
-                build: true,
-                TestContext.Current.CancellationToken,
-                outputPath);
+                });
 
-            Assert.False(result.Succeeded, $"{icId} 0x{capacity:X}: superseded short input was accepted");
+            Assert.False(prepared.Succeeded, $"{icId} 0x{capacity:X}: superseded short input was accepted");
             Assert.False(File.Exists(outputPath), outputPath);
-            Assert.Contains(CompositionIssueCodes.InputAddressSpaceLengthMismatch, result.ReportJson, StringComparison.Ordinal);
+            Assert.Contains(
+                Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot).InputSlotStatuses,
+                status => status.InspectionIssueCode ==
+                    CompositionIssueCodes.InputAddressSpaceLengthMismatch);
         }
     }
 

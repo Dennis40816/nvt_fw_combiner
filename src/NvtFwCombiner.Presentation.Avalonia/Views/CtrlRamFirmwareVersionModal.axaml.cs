@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -20,7 +21,7 @@ public sealed partial class CtrlRamFirmwareVersionModal : UserControl
             return;
         }
 
-        (bool succeeded, WorkbenchCtrlRamFirmwareVersionEdit? edit) =
+        (bool succeeded, CtrlRamFirmwareVersionDraftState? edit) =
             await viewModel.TryCreateCtrlRamFirmwareVersionEditAsync();
         if (!succeeded || TopLevel.GetTopLevel(this) is not { StorageProvider: { } storageProvider })
         {

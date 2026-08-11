@@ -91,7 +91,7 @@ public sealed class CanonicalSourceProjectionByteShapeTests
             CompiledFirmwareArtifactKind.FlashCode,
             CompiledFirmwareArtifactClassifier.Classify(classificationComposition, ownerFlashCode).Kind);
 
-        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51928",
             golden.ExpectedOutput.LongLength,
             [replacementAddressSpaceId],

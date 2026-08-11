@@ -5,22 +5,20 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Tests caller-owned, mode-isolated Replace authoring sessions.</summary>
-public sealed class ReplaceAuthoringSessionSetTests
+public sealed class ReplaceAuthoringSessionIsolationTests
 {
-    /// <summary>Merge and Replace sets expose exactly six distinct workflow sessions.</summary>
+    /// <summary>Six independently owned workflow sessions retain their exact workflow identities.</summary>
     [Fact]
-    public void MergeAndReplaceSetsExposeSixDistinctWorkflowSessions()
+    public void CallerOwnedWorkflowSessionsRemainDistinct()
     {
-        var merge = new MergeAuthoringSessionSet();
-        var replace = new ReplaceAuthoringSessionSet();
         AuthoringSessionState[] sessions =
         [
-            merge.StandardMerge,
-            merge.AbMerge,
-            merge.GeneralMerge,
-            replace.DpReplace,
-            replace.CtrlRamReplace,
-            replace.GeneralReplace,
+            new(ExperienceIds.StandardMerge),
+            new(ExperienceIds.AbMerge),
+            new(ExperienceIds.GeneralMerge),
+            new(ExperienceIds.DpReplace),
+            new(ExperienceIds.CtrlRamReplace),
+            new(ExperienceIds.GeneralReplace),
         ];
 
         Assert.Equal(
@@ -40,10 +38,9 @@ public sealed class ReplaceAuthoringSessionSetTests
     [Fact]
     public void ReplaceModesRestoreOnlyTheirOwnSlotsDraftReadinessAndResults()
     {
-        var sessions = new ReplaceAuthoringSessionSet();
-        AuthoringSessionState dp = sessions.DpReplace;
-        AuthoringSessionState ctrlRam = sessions.CtrlRamReplace;
-        AuthoringSessionState general = sessions.GeneralReplace;
+        var dp = new AuthoringSessionState(ExperienceIds.DpReplace);
+        var ctrlRam = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        var general = new AuthoringSessionState(ExperienceIds.GeneralReplace);
 
         _ = Activate(
             dp,
@@ -110,9 +107,6 @@ public sealed class ReplaceAuthoringSessionSetTests
             AuthoringDerivedResultKind.Preview,
             "general-preview");
 
-        Assert.Same(dp, sessions.DpReplace);
-        Assert.Same(ctrlRam, sessions.CtrlRamReplace);
-        Assert.Same(general, sessions.GeneralReplace);
         Assert.Equal(@"C:\firmware\dp.bin", SelectedPath(dp, "dp"));
         Assert.Empty(dp.CurrentSnapshot!.DerivedPublications);
         Assert.Equal(
@@ -275,8 +269,7 @@ public sealed class ReplaceAuthoringSessionSetTests
                 "ctrlram-fingerprint",
                 "reference",
                 "ctrlram-master"));
-        var desktopSessions = new ReplaceAuthoringSessionSet();
-        AuthoringSessionState desktop = desktopSessions.CtrlRamReplace;
+        var desktop = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         var cli = new AuthoringSessionState(
             ExperienceIds.CtrlRamReplace);
         _ = Activate(desktop, catalog);

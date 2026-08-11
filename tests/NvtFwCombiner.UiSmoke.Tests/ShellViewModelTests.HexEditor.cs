@@ -18,7 +18,7 @@ public sealed partial class ShellViewModelTests
         string sourcePath = workspace.Write(
             "oversized.bin",
             new byte[RawBinaryEditorSession.MaximumDocumentLength + 1]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
 
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
 
@@ -36,7 +36,7 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-load");
         byte[] source = CreateHexPattern(16 * 4_097);
         string sourcePath = workspace.Write("source.bin", source);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
 
         shell.ShowHexEditorCommand.Execute(null);
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -73,7 +73,7 @@ public sealed partial class ShellViewModelTests
         byte[] source = CreateHexPattern(16 * 40);
         string sourcePath = workspace.Write("source.bin", source);
         string outputPath = workspace.PathFor("edited.bin");
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -121,7 +121,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-inline-invalid");
         string sourcePath = workspace.Write("source.bin", [0x10]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -139,7 +139,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-go-to");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(16 * 64));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -158,7 +158,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-ascii-search");
         string sourcePath = workspace.Write("source.bin", "prefix NVT middle NVT"u8.ToArray());
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -183,7 +183,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-original-map");
         string sourcePath = workspace.Write("source.bin", "ABCT"u8.ToArray());
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-changed-blocks");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(16 * 8));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -248,7 +248,7 @@ public sealed partial class ShellViewModelTests
         const int expectedChangedBlocks = documentLength / 2;
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-fragmented-blocks");
         string sourcePath = workspace.Write("source.bin", new byte[documentLength]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -312,7 +312,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-overwrite-boundary");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x20, 0x30]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -351,7 +351,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-structural-block");
         string sourcePath = workspace.Write("source.bin", [.. Enumerable.Repeat((byte)0xAA, 64)]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -374,7 +374,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-delete-last");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x20]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -393,7 +393,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-batch-insert");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(64));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -435,7 +435,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-history-feedback");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(64));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -459,7 +459,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-viewport-height");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(16 * 80));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         HexEditorWorkspaceViewModel editor = shell.HexEditorWorkspace;
 
         await editor.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
@@ -492,7 +492,7 @@ public sealed partial class ShellViewModelTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-raw-hex-page-scope");
         string sourcePath = workspace.Write("source.bin", CreateHexPattern(16 * 40));
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
 
         shell.ShowHexEditorCommand.Execute(null);
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);

@@ -36,7 +36,12 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertTrue(any("runtime production metric" in finding for finding in findings))
         self.assertTrue(any("Domain + Profiles metric" in finding for finding in findings))
         self.assertTrue(any("Application metric" in finding for finding in findings))
-        self.assertTrue(any("Bootstrap + CLI metric" in finding for finding in findings))
+        self.assertTrue(
+            any(
+                "Bootstrap + CLI + Desktop host metric" in finding
+                for finding in findings
+            )
+        )
         self.assertTrue(
             any(
                 "Infrastructure + Contracts + CRC worker metric" in finding
@@ -317,15 +322,19 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.write("src/NvtFwCombiner.Domain/Domain.cs", "domain\n")
         self.write("src/NvtFwCombiner.Application/App.cs", "application\n")
         self.write("src/NvtFwCombiner.Bootstrap/Wiring.cs", "bootstrap\n")
+        self.write("src/NvtFwCombiner.Desktop/Program.cs", "desktop-host\n")
         self.write("src/NvtFwCombiner.Infrastructure/Adapter.cs", "infrastructure\n")
+        snapshot = measure_code_size(self.root)
         limits = self.limits(
-            production=4,
-            runtime_ratchet=4,
+            production=5,
+            runtime_ratchet=5,
             domain_profiles_ratchet=1,
             application_ratchet=1,
-            bootstrap_cli_ratchet=1,
+            bootstrap_cli_ratchet=2,
             infrastructure_contracts_worker_ratchet=1,
         )
+        self.assertEqual(2, snapshot.bootstrap_cli_files)
+        self.assertEqual(2, snapshot.bootstrap_cli_nonblank)
         self.assertEqual([], validate_code_size_policy(self.root, limits))
 
         self.write(
@@ -337,7 +346,8 @@ class CodeSizePolicyTests(unittest.TestCase):
         self.assertEqual(
             [
                 "code-size Application slice grew: 2 > ratchet 1",
-                "code-size Bootstrap + CLI slice improved: lower ratchet 1 to 0",
+                "code-size Bootstrap + CLI + Desktop host slice improved: "
+                "lower ratchet 2 to 1",
             ],
             validate_code_size_policy(self.root, limits),
         )

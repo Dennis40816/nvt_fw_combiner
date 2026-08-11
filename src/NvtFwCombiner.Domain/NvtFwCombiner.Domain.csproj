@@ -8,6 +8,7 @@
     <InternalsVisibleTo Include="NvtFwCombiner.TestSupport" />
     <InternalsVisibleTo Include="NvtFwCombiner.Profiles" />
     <InternalsVisibleTo Include="NvtFwCombiner.Bootstrap" />
+    <InternalsVisibleTo Include="NvtFwCombiner.Infrastructure" />
   </ItemGroup>
 
 </Project>

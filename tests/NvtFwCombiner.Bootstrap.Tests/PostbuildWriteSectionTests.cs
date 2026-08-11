@@ -65,20 +65,20 @@ public sealed class PostbuildWriteSectionTests
         {
             ByteRange[] stagedRanges =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                     .Select(static block => block.FirmwareRange),
             ];
-            long capacity = LegacyCombinerPostbuildPlanner.CalculateRequiredCapacity(
+            long capacity = LegacyCombinerPostbuildPlanCompiler.CalculateRequiredCapacity(
                 plan,
                 stagedRanges);
             ExternalProcessorWriteRangeSection[] sections =
             [
-                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
+                .. LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForStagedSources(
                     plan,
                     capacity,
                     stagedRanges,
                     stagedRanges),
-                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForInPlaceRefresh(
+                .. LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForInPlaceRefresh(
                     plan,
                     capacity),
             ];
@@ -95,7 +95,7 @@ public sealed class PostbuildWriteSectionTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in
                  PostbuildSelectionTestCases.AllProfileBranchSelections())
         {
-            yield return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            yield return profile.ResolvePlan(selection);
         }
     }
 }

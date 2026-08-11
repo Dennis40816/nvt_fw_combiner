@@ -87,7 +87,7 @@ public sealed class Nt51919Nt51929Nt51932AbMergeSupportedProfileTests
         InputArtifactBinding[] bindings =
         [
             .. composition.Plan.RequiredInputAddressSpaceIds.Select(addressSpaceId =>
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     composition,
                     addressSpaceId,
                     Path.Combine(Path.GetTempPath(), $"{addressSpaceId}.bin"))),

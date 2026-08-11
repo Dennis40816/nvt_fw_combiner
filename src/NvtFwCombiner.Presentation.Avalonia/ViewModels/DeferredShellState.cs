@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using NvtFwCombiner.Application.HexEditor;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -11,11 +12,12 @@ internal sealed class DeferredShellState
 
     internal HexEditorWorkspaceViewModel GetHexEditorWorkspace(
         ShellTextResources text,
+        IRawBinaryEditorFileSessionFactory fileSessions,
         PropertyChangedEventHandler propertyChangedHandler)
     {
         if (LoadedHexEditorWorkspace is null)
         {
-            LoadedHexEditorWorkspace = new HexEditorWorkspaceViewModel(text);
+            LoadedHexEditorWorkspace = new HexEditorWorkspaceViewModel(text, fileSessions);
             LoadedHexEditorWorkspace.PropertyChanged += propertyChangedHandler;
         }
 

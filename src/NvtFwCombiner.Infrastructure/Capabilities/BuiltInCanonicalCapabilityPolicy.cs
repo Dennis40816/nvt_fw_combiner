@@ -165,21 +165,6 @@ internal static class BuiltInCanonicalCapabilityPolicy
     }
 }
 
-/// <summary>Typed policy facts ready to be joined with compiler output.</summary>
-internal sealed record CanonicalCapabilityPolicySnapshot(
-    string CatalogId,
-    string CatalogVersion,
-    string SourceSha256,
-    IReadOnlyList<CanonicalCapabilityPolicyRoute> Routes);
-
-/// <summary>One exact-route policy row without duplicated firmware execution facts.</summary>
-internal sealed record CanonicalCapabilityPolicyRoute(
-    CapabilityRouteIdentity Identity,
-    string CapabilityFingerprint,
-    PinnedCapabilityDecision<CapabilityAuthoringAvailability> Authoring,
-    PinnedCapabilityDecision<CapabilityPublicationStatus> Publication,
-    PinnedCapabilityDecision<CapabilityEvidenceStatus> Evidence);
-
 /// <summary>Generated metadata for the exact hash-pinned capability policy.</summary>
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

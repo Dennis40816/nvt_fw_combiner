@@ -53,7 +53,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [new ByteRange(0x32A70, 1)],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -96,7 +99,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             firmware,
             [new ByteRange(1, 2)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
-            [new ExternalProcessorStagedSource(new ByteRange(1, 2), new byte[] { 0xAA, 0xBB })]);
+            [new ExternalProcessorStagedSource(new ByteRange(1, 2), new byte[] { 0xAA, 0xBB })],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -127,7 +133,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             new byte[8],
             [],
-            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2 })]);
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2 })],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -150,7 +159,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             new byte[8],
             [],
-            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 })]);
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 })],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -193,7 +205,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             [
                 new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
                 new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
-            ]);
+            ],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -217,7 +232,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             new byte[8],
             [],
-            stagedArtifacts: [new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 })]);
+            stagedArtifacts: [new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 })],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -246,7 +264,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
                 new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
                 new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
                 new ExternalProcessorStagedArtifact("unused-bank", new byte[] { 0xC1, 0xC2, 0xC3, 0xC4 }),
-            ]);
+            ],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -274,7 +295,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             [
                 new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3 }),
                 new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
-            ]);
+            ],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -309,7 +333,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             [
                 new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
                 new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
-            ]);
+            ],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -337,7 +364,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             [
                 new ExternalProcessorStagedArtifact("a-bank", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 }),
                 new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 }),
-            ]);
+            ],
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -382,7 +412,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [new ByteRange(0x30310, 1)],
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
+            protocolPlan: CompileProtocolPlan(
+                LegacyCombinerPostbuildCatalog.Nt51923.ProcessorId,
+                new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -421,7 +454,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
+            protocolPlan: CompileProtocolPlan(
+                LegacyCombinerPostbuildCatalog.Nt51927.ProcessorId,
+                new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -469,7 +505,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -503,7 +542,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [new ByteRange(0x12, 1)],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -547,7 +589,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -620,7 +665,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [new ByteRange(0x12, 1), new ByteRange(0x30, 1)],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 

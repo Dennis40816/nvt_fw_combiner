@@ -62,20 +62,20 @@ public sealed partial class ReplaceCliCommandTests
         string output = workspace.PathFor("saved-rule-replace.bin");
         (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralReplaceRule(rule, reference, source);
-        WorkbenchRunResult result =
-            await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        CompositionRunResult result =
+            await GeneralWorkflowTestSupport.BuildGeneralReplaceAsync(BootstrapTestHost.Canonical,
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [WorkbenchSlotIds.ReplaceBase] = reference,
+                    [CompositionSlotIds.ReplaceBase] = reference,
                 },
                 draft,
                 output,
                 policy,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(
             reference,
             TestContext.Current.CancellationToken));
@@ -83,7 +83,7 @@ public sealed partial class ReplaceCliCommandTests
             output,
             TestContext.Current.CancellationToken);
         Assert.Equal([0xA5, 0x5A], outputBytes[0x3E020..0x3E022]);
-        using var document = JsonDocument.Parse(result.ReportJson);
+        using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = document.RootElement;
         Assert.Equal(
             "nt51926-general-replace-dp-single-candidate",
@@ -365,7 +365,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        await AssertGeneralReplaceWorkflowNotSupportedAsync(
+        AssertGeneralReplaceWorkflowNotSupported(
             result,
             report,
             outputPath: null);
@@ -400,7 +400,7 @@ public sealed partial class ReplaceCliCommandTests
             report,
         ]);
 
-        await AssertGeneralReplaceWorkflowNotSupportedAsync(result, report, output);
+        AssertGeneralReplaceWorkflowNotSupported(result, report, output);
     }
 
     /// <summary>An unavailable General Replace route rejects before parsing mapping content.</summary>
@@ -560,24 +560,18 @@ public sealed partial class ReplaceCliCommandTests
         Assert.Contains($"unknown option '{option}'", result.Error, StringComparison.Ordinal);
     }
 
-    private static async Task AssertGeneralReplaceWorkflowNotSupportedAsync(
+    private static void AssertGeneralReplaceWorkflowNotSupported(
         CliRunResult result,
         string reportPath,
         string? outputPath)
     {
         Assert.Equal(1, result.ExitCode);
+        Assert.Contains("replace.workflow.not-supported", result.Error, StringComparison.Ordinal);
+        Assert.False(File.Exists(reportPath));
         if (outputPath is not null)
         {
             Assert.False(File.Exists(outputPath));
         }
-
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
-            reportPath,
-            TestContext.Current.CancellationToken));
-        Assert.Contains(
-            document.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == "replace.workflow.not-supported");
-        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
     }
 
     private static void AssertGeneralReplaceUnavailableBeforeRun(

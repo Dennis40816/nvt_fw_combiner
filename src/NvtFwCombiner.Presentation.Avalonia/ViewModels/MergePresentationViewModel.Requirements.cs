@@ -1,6 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -15,28 +15,28 @@ public sealed partial class MergePresentationViewModel
         }
 
         IReadOnlyList<string> required =
-            _compositionServices.Authoring.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+            _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(SelectedIc);
         IReadOnlyList<string> available =
-            _compositionServices.Authoring.GetStandardMergeInputAddressSpaces(SelectedIc);
+            _compositionServices.StandardMergeAuthoring.GetInputAddressSpaces(SelectedIc);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
             slot.ApplyExperienceText(Text);
         }
-        MergeDpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal);
-        MergeTpSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal);
-        MergeLdcSlot.IsOptional = !required.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal);
+        MergeDpSlot.IsOptional = !required.Contains(CompositionAddressSpaceIds.DpInput, StringComparer.Ordinal);
+        MergeTpSlot.IsOptional = !required.Contains(CompositionAddressSpaceIds.TpInput, StringComparer.Ordinal);
+        MergeLdcSlot.IsOptional = !required.Contains(CompositionAddressSpaceIds.LdcInput, StringComparer.Ordinal);
         MergeSlots.Clear();
-        if (available.Contains(WorkbenchAddressSpaceIds.DpInput, StringComparer.Ordinal))
+        if (available.Contains(CompositionAddressSpaceIds.DpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(MergeDpSlot);
         }
 
-        if (available.Contains(WorkbenchAddressSpaceIds.TpInput, StringComparer.Ordinal))
+        if (available.Contains(CompositionAddressSpaceIds.TpInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(MergeTpSlot);
         }
 
-        if (available.Contains(WorkbenchAddressSpaceIds.LdcInput, StringComparer.Ordinal))
+        if (available.Contains(CompositionAddressSpaceIds.LdcInput, StringComparer.Ordinal))
         {
             MergeSlots.Add(MergeLdcSlot);
         }
@@ -54,17 +54,18 @@ public sealed partial class MergePresentationViewModel
     {
         MergeSlots.Clear();
         _abMergeAddressSpaceBySlotId.Clear();
-        foreach (WorkbenchAbMergeInputSlot input in _compositionServices.Authoring.GetAbMergeInputSlots(
-                     SelectedIc,
-                     GetSelectedAbMergeTopologyToken()))
+        _abMergeBindingsByAddressSpace.Clear();
+        CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
+        foreach (CompiledAuthoringInputBinding input in projection.InputBindings)
         {
+            _abMergeBindingsByAddressSpace.Add(input.AddressSpaceId, input);
             if (!_abMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {
                 slot = new FirmwareSlotViewModel(
                     input.SlotId,
                     ShellTextResources.GetAbSlotTitle(input.Role),
                     Text.GetAbSlotDescription(input),
-                    input.Role == WorkbenchAbMergeInputRole.DpAb ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
+                    input.Role == "dp-ab" ? FirmwareSlotKind.Dp : FirmwareSlotKind.Tp);
                 _abMergeSlotsByAddressSpace.Add(input.AddressSpaceId, slot);
             }
 
@@ -78,13 +79,13 @@ public sealed partial class MergePresentationViewModel
             MergeSlots.Add(slot);
         }
 
-        RefreshAbMergeAuthoringState();
+        RefreshAbMergeAuthoringState(projection);
     }
 
     private void RefreshAbMergeTopologyChoices()
     {
         IReadOnlyList<CapabilityTopologyChoice> choices =
-            _compositionServices.Authoring.GetAbMergeTopologyChoices(SelectedIc);
+            _compositionServices.AbMergeAuthoring.GetTopologyChoices(SelectedIc);
         AbMergeTopologyChoices.Clear();
         _abMergeTopologyChoicesIcId = SelectedIc;
         foreach (CapabilityTopologyChoice choice in choices)
@@ -107,7 +108,7 @@ public sealed partial class MergePresentationViewModel
     private string GetRequiredStandardMergeSlotLabels()
     {
         IReadOnlyList<string> required =
-            _compositionServices.Authoring.GetStandardMergeRequiredAddressSpaces(SelectedIc);
+            _compositionServices.StandardMergeAuthoring.GetRequiredAddressSpaces(SelectedIc);
         return required.Count == 0
             ? "none"
             : string.Join(", ", required.Select(AddressSpaceLabel));
@@ -117,16 +118,16 @@ public sealed partial class MergePresentationViewModel
     {
         return addressSpaceId switch
         {
-            WorkbenchAddressSpaceIds.DpInput => "DP",
-            WorkbenchAddressSpaceIds.TpInput => "TP",
-            WorkbenchAddressSpaceIds.LdcInput => "LDC",
+            CompositionAddressSpaceIds.DpInput => "DP",
+            CompositionAddressSpaceIds.TpInput => "TP",
+            CompositionAddressSpaceIds.LdcInput => "LDC",
             _ => addressSpaceId,
         };
     }
 
     private bool CanRunStandardMerge()
     {
-        ActiveSessionSnapshot? session = _authoringSessions.StandardMerge.CurrentSnapshot;
+        ActiveSessionSnapshot? session = _standardMergeSession.CurrentSnapshot;
         return IsNormalMergeModeSelected &&
             session?.HasCurrentInputInspection == true &&
             StringComparer.Ordinal.Equals(session.SelectedIc, SelectedIc);
@@ -141,9 +142,9 @@ public sealed partial class MergePresentationViewModel
     }
 
     internal bool TryResolveGeneralMergeOutputInitializer(
-        out WorkbenchGeneralMergeInitializer? initializer)
+        out GeneralMergeInitializer? initializer)
     {
-        return _compositionServices.Authoring.TryResolveGeneralMergeOutputInitializer(
+        return GeneralMergeAuthoringUseCase.TryResolveOutputInitializer(
             GeneralMergeOutputLength,
             GeneralMergeOutputFillByte,
             out initializer);
@@ -151,7 +152,7 @@ public sealed partial class MergePresentationViewModel
 
     private bool CanRunAbMerge()
     {
-        ActiveSessionSnapshot? session = _authoringSessions.AbMerge.CurrentSnapshot;
+        ActiveSessionSnapshot? session = _abMergeSession.CurrentSnapshot;
         return IsAbCodeMergeModeSelected &&
             IsAbMergeSupported &&
             (!HasAbMergeTopologyChoices || GetSelectedAbMergeTopologyToken() is not null) &&

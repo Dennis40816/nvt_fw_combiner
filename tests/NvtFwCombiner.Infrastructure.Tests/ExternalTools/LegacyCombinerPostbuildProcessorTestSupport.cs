@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
@@ -9,6 +10,24 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    private static ExternalProcessorProtocolPlan CompileProtocolPlan(
+        LegacyCombinerPostbuildProfile profile,
+        IcNumberSelection selection,
+        int? resolvedIcCount = null)
+    {
+        return profile.ResolvePlan(selection, resolvedIcCount).ProtocolPlan;
+    }
+
+    private static ExternalProcessorProtocolPlan CompileProtocolPlan(
+        string processorId,
+        IcNumberSelection selection,
+        int? resolvedIcCount = null)
+    {
+        LegacyCombinerPostbuildProfile profile = LegacyCombinerPostbuildCatalog.All.Single(
+            candidate => StringComparer.Ordinal.Equals(candidate.ProcessorId, processorId));
+        return CompileProtocolPlan(profile, selection, resolvedIcCount);
+    }
+
     private static byte[] CreateFirmwareImage()
     {
         byte[] bytes = new byte[0x40000];
@@ -327,10 +346,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             IExternalProcessRunner runner,
             IEnumerable<LegacyCombinerPostbuildProfile>? profiles = null)
         {
+            _ = profiles;
             var registry = new ExternalCombinerToolRegistry([Manifest(executableSha256)]);
             return new LegacyCombinerPostbuildProcessor(
                 registry,
-                profiles ?? LegacyCombinerPostbuildCatalog.All,
                 ToolRoot,
                 StagingRoot,
                 runner);

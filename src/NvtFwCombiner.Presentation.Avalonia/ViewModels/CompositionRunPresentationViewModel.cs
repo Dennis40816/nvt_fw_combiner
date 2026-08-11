@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -35,8 +36,8 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
 
     /// <summary>Gets the immutable active-run identity shown beside the phase stepper.</summary>
     public string ActiveRunContextLabel => ActiveRunShowsNumberSelector
-        ? $"{ActiveRunMode} · {ActiveRunIc} / {ActiveRunNumber}"
-        : $"{ActiveRunMode} · {ActiveRunIc}";
+        ? $"{WorkflowModeDisplayConverters.GetDisplayName(ActiveRunMode)} · {ActiveRunIc} / {ActiveRunNumber}"
+        : $"{WorkflowModeDisplayConverters.GetDisplayName(ActiveRunMode)} · {ActiveRunIc}";
 
     /// <summary>Gets the localized projection of Application-owned composition phases.</summary>
     public CompositionRunProgressViewModel CompositionProgress { get; }
@@ -156,7 +157,7 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
             progressObservationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationSource.Token);
             progressObservation = ObserveRunProgressAsync(progress, progressObservationSource.Token);
             await Task.Yield();
-            WorkbenchRunResult result = await Task.Run(
+            CompositionRunResult result = await Task.Run(
                 () => run(progress, cancellationSource.Token).AsTask(), cancellationSource.Token);
             await (progress.IsAttached ? progressObservation : Task.CompletedTask);
             await ProjectAndApplyRunResultAsync(result, build, cancellationSource.Token);
@@ -212,17 +213,85 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
         }
     }
 
+    internal async Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        GeneralReplaceDiagnosticPreviewSummary diagnostic = report.DiagnosticPreview ??
+            throw new ArgumentException(
+                "A plan-only Preview requires its typed diagnostic marker.",
+                nameof(report));
+        CancellationTokenSource cancellationSource = BeginRun(build: false);
+        try
+        {
+            await Task.Yield();
+            string reportJson = CompositionRunReportJson.SerializeDiagnosticPreview(report);
+            ReportPresentationViewModel reports = _stateBindings.Reports();
+            long projectionGeneration = reports.BeginReportProjection();
+            ReportReviewViewModel projected = await reports.ProjectReportAsync(
+                reportJson,
+                "preview report",
+                null,
+                cancellationSource.Token,
+                materializationErrorsAsReport: false,
+                inspectionSnapshot: null);
+            cancellationSource.Token.ThrowIfCancellationRequested();
+            LastRunResult = new UiRunResultViewModel(
+                "Preview blocked",
+                diagnostic.Message,
+                "No output",
+                succeeded: false);
+            OnPropertyChanged(nameof(LastRunResult));
+            if (reports.IsCurrentReportProjection(projectionGeneration))
+            {
+                reports.PublishGeneratedReport(
+                    projected,
+                    reportJson,
+                    "Preview",
+                    show: false);
+                CompositionProgress.MarkReportReady(true);
+            }
+        }
+        finally
+        {
+            CompleteRun(cancellationSource);
+        }
+    }
+
+    internal void ShowActionReadiness(
+        CapabilityActionReadinessSnapshot readiness,
+        bool build)
+    {
+        ArgumentNullException.ThrowIfNull(readiness);
+        string action = build ? "Build" : "Preview";
+        CapabilityActionBlocker? blocker = build
+            ? readiness.Build.PrimaryBlocker
+            : readiness.Preview.PrimaryBlocker;
+        LastRunResult = new UiRunResultViewModel(
+            $"{action} blocked",
+            blocker?.Message ?? $"{action} is unavailable.",
+            "No output",
+            succeeded: false);
+        OnPropertyChanged(nameof(LastRunResult));
+    }
+
     /// <summary>Projects one completed run off-dispatcher and publishes it only while its generation is current.</summary>
     internal async Task ProjectAndApplyRunResultAsync(
-        WorkbenchRunResult result,
+        CompositionRunResult result,
         bool build,
         CancellationToken cancellationToken)
     {
         ReportPresentationViewModel reports = _stateBindings.Reports();
+        if (!result.HasRunReport)
+        {
+            ApplyReadinessOnlyResult(result, build);
+            return;
+        }
+
         long reportProjectionGeneration = reports.BeginReportProjection();
         string action = build ? "Build" : "Preview";
+        string reportJson = CompositionRunReportJson.Serialize(result);
         ReportReviewViewModel report = await reports.ProjectReportAsync(
-            result.ReportJson,
+            reportJson,
             $"{action.ToLowerInvariant()} report",
             result.CommittedOutputId,
             cancellationToken,
@@ -233,14 +302,17 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
         ApplyRunResult(
             result,
             build,
-            report, publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration));
+            report,
+            reportJson,
+            publishReport: reports.IsCurrentReportProjection(reportProjectionGeneration));
         CompositionProgress.MarkReportReady(reports.IsCurrentReportProjection(reportProjectionGeneration));
     }
 
     private void ApplyRunResult(
-        WorkbenchRunResult result,
+        CompositionRunResult result,
         bool build,
         ReportReviewViewModel report,
+        string reportJson,
         bool publishReport)
     {
         string action = build ? "Build" : "Preview";
@@ -249,7 +321,7 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
             ? result.DeliveryFailureMessage
             : result.Succeeded
             ? $"{result.ProfileId} / {result.OutputSize} bytes / {_stateBindings.Text().RunResultReportReadyLabel}"
-            : report.Issues.Count == 0 ? result.Status : report.Issues[0].Detail;
+            : report.Issues.Count == 0 ? result.OutcomeStatus : report.Issues[0].Detail;
         LastRunResult = new UiRunResultViewModel(
             result.Succeeded
                 ? deliveryComplete ? $"{action} succeeded" : $"{action} partially delivered"
@@ -267,9 +339,23 @@ public sealed class CompositionRunPresentationViewModel : ObservableObject
 
         _stateBindings.Reports().PublishGeneratedReport(
             report,
-            result.ReportJson,
+            reportJson,
             action,
             show: build && (!deliveryComplete || string.IsNullOrWhiteSpace(result.CommittedOutputId)));
+    }
+
+    private void ApplyReadinessOnlyResult(CompositionRunResult result, bool build)
+    {
+        string action = build ? "Build" : "Preview";
+        CapabilityActionBlocker? blocker = build
+            ? result.ActionReadiness?.Build.PrimaryBlocker
+            : result.ActionReadiness?.Preview.PrimaryBlocker;
+        LastRunResult = new UiRunResultViewModel(
+            $"{action} blocked",
+            blocker?.Message ?? result.OutcomeStatus,
+            "No output",
+            succeeded: false);
+        OnPropertyChanged(nameof(LastRunResult));
     }
 
     private async Task ObserveRunProgressAsync(

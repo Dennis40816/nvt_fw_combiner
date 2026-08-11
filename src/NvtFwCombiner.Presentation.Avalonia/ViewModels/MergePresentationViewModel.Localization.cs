@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Authoring;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MergePresentationViewModel
@@ -31,9 +33,7 @@ public sealed partial class MergePresentationViewModel
         {
             RefreshStandardMergeAuthoringState();
         }
-        foreach (WorkbenchAbMergeInputSlot input in _compositionServices.Authoring.GetAbMergeInputSlots(
-                     SelectedIc,
-                     GetSelectedAbMergeTopologyToken()))
+        foreach (CompiledAuthoringInputBinding input in _abMergeBindingsByAddressSpace.Values)
         {
             if (AbMergeSlotsByAddressSpace.TryGetValue(input.AddressSpaceId, out FirmwareSlotViewModel? slot))
             {

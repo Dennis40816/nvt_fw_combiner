@@ -18,7 +18,8 @@ public sealed class ExternalProcessorInvocation
         IEnumerable<ExternalProcessorStagedSourceBinding>? stagedSourceBindings = null,
         IEnumerable<ExternalProcessorWriteRangeSection>? allowedWriteRangeSections = null,
         IEnumerable<ExternalProcessorStagedArtifactBinding>? stagedArtifactBindings = null,
-        IEnumerable<ExternalProcessorOutputAssertion>? outputAssertions = null)
+        IEnumerable<ExternalProcessorOutputAssertion>? outputAssertions = null,
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
         ArgumentException.ThrowIfNullOrWhiteSpace(toolBindingId);
@@ -88,6 +89,7 @@ public sealed class ExternalProcessorInvocation
 
         ProcessorId = processorId;
         ToolBindingId = toolBindingId;
+        ProtocolPlan = protocolPlan;
     }
 
     /// <summary>Profile-selected processor id.</summary>
@@ -113,6 +115,9 @@ public sealed class ExternalProcessorInvocation
 
     /// <summary>Exact post-transform bytes the host verifies before importing the staged output.</summary>
     public IReadOnlyList<ExternalProcessorOutputAssertion> OutputAssertions { get; }
+
+    /// <summary>Fully selected adapter protocol plan; null only for processors whose protocol needs no compiled payload.</summary>
+    public ExternalProcessorProtocolPlan? ProtocolPlan { get; }
 }
 
 /// <summary>Diagnostic section attached to a declared external-processor write range.</summary>

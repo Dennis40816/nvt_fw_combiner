@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
@@ -67,17 +68,17 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string outputPath = workspace.PathFor("output.bin");
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             evidence.DiffDlm.Path,
             outputPath,
             processor);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(1, processor.CallCount);
         Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51951-ctrlram-replace-fw1x-cascade", report.RootElement.GetProperty("ProfileId").GetString());
     }
 
@@ -94,14 +95,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         string outputPath = workspace.PathFor("output.bin");
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             diffPath,
             outputPath,
             new CountingPassThroughProcessor());
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] output = File.ReadAllBytes(outputPath);
         Assert.Equal(diff.AsSpan(0, DlmLength).ToArray(), output.AsSpan(DiffStart, DlmLength).ToArray());
         Assert.Equal(
@@ -125,20 +126,20 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         string outputPath = workspace.PathFor("output.bin");
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             diffPath,
             outputPath,
             new CountingPassThroughProcessor());
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(evidence.Expected.Bytes, File.ReadAllBytes(outputPath));
     }
 
     /// <summary>A complete active source record is mandatory even though only its DLM prefix is writable.</summary>
     [Fact]
-    public async Task TruncatedActiveRecordBlocksBeforeProcessorInvocationAsync()
+    public void TruncatedActiveRecordBlocksBeforeProcessorInvocation()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-cascade2-truncated-active");
@@ -148,20 +149,20 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             evidence.DiffDlm.Bytes.AsSpan(0, RecordStride - 1).ToArray());
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await RunAsync(
-            evidence,
-            referencePath,
-            diffPath,
-            workspace.PathFor("must-not-exist.bin"),
-            processor);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        IReadOnlyList<CompositionIssue> issues = PrepareRejected(
+            CreateSlotPaths(evidence, referencePath, diffPath),
+            outputPath);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Contains(
+            issues,
+            issue => issue.Code == CompositionIssueCodes.InputAddressSpaceLengthMismatch);
         Assert.Equal(0, processor.CallCount);
     }
 
     /// <summary>A uniform active DLM slice is a blocking placeholder, independent of inactive-record fill.</summary>
     [Fact]
-    public async Task UniformActiveDlmBlocksBeforeProcessorInvocationAsync()
+    public void UniformActiveDlmBlocksBeforeProcessorInvocation()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-cascade2-uniform-active");
@@ -171,38 +172,43 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string diffPath = workspace.Write("DiffDLM.bin", diff);
         var processor = new CountingPassThroughProcessor();
 
-        WorkbenchRunResult result = await RunAsync(
-            evidence,
-            referencePath,
-            diffPath,
-            workspace.PathFor("must-not-exist.bin"),
-            processor);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        IReadOnlyList<CompositionIssue> issues = PrepareRejected(
+            CreateSlotPaths(evidence, referencePath, diffPath),
+            outputPath);
 
-        Assert.False(result.Succeeded, result.ReportJson);
         Assert.Equal(0, processor.CallCount);
-        using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() == WorkbenchIssueCodes.ReplaceCtrlRamDiffDlmPlaceholder);
+            issues,
+            issue => issue.Code == CompositionPlanningIssueCodes.ReplaceCtrlRamDiffDlmPlaceholder);
     }
 
     /// <summary>A stale independent NF binding is rejected by the shared Application/CLI contract.</summary>
     [Fact]
-    public async Task StaleIndependentNfBindingBlocksBeforeProcessorInvocationAsync()
+    public void StaleIndependentNfBindingBlocksBeforeProcessorInvocation()
     {
         OwnerCase evidence = ReadOwnerCase();
         using var workspace = TempWorkspace.Create("nfc-nt51951-cascade2-stale-nf");
         string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
         var processor = new CountingPassThroughProcessor();
         Dictionary<string, string> slots = CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path);
-        slots[WorkbenchSlotIds.CreateReplaceCtrlRam("nf")] = evidence.IndependentNf.Path;
+        slots[DynamicCtrlRamReplacementIds.Create("nf")] = evidence.IndependentNf.Path;
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
-            "NT51951", "cascade", slots, true, workspace.PathFor("must-not-exist.bin"), null,
-            processor, TestContext.Current.CancellationToken);
+        string outputPath = workspace.PathFor("must-not-exist.bin");
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                BootstrapTestHost.Canonical,
+                "NT51951",
+                "cascade",
+                slots,
+                firmwareVersionEdit: null);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.Null(snapshot);
+        Assert.Contains(
+            issues,
+            issue => issue.Code == CompositionPlanningIssueCodes.ReplaceCtrlRamSourceUnavailable);
         Assert.Equal(0, processor.CallCount);
+        Assert.False(File.Exists(outputPath));
     }
 
     /// <summary>Processor mutation of the first inactive target record fails the exact staged-diff audit.</summary>
@@ -213,14 +219,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51951-cascade2-inactive-target");
         string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             evidence.DiffDlm.Path,
             workspace.PathFor("must-not-exist.bin"),
             new UnauthorizedMutationProcessor(DiffStart + RecordStride));
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
     }
 
     /// <summary>Processor mutation of the active record's reference-owned DiffNF tail fails closed.</summary>
@@ -231,14 +237,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         using var workspace = TempWorkspace.Create("nfc-nt51951-cascade2-active-diffnf-tail");
         string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             evidence.DiffDlm.Path,
             workspace.PathFor("must-not-exist.bin"),
             new UnauthorizedMutationProcessor(DiffStart + DlmLength));
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
     }
 
     /// <summary>A coherent marker-derived Backup at any address other than fixed 0x36000 fails closed.</summary>
@@ -253,19 +259,19 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         reference.AsSpan(BackupStart + 0x0FFC, 4).Clear();
         string referencePath = workspace.Write("reference.bin", reference);
 
-        WorkbenchRunResult result = await RunAsync(
+        CompositionRunResult result = await RunAsync(
             evidence,
             referencePath,
             evidence.DiffDlm.Path,
             workspace.PathFor("must-not-exist.bin"),
             new CountingPassThroughProcessor());
 
-        Assert.False(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             report.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() ==
-                     WorkbenchIssueCodes.ReplaceCtrlRamFirmwareConfigBackupPlacementInvalid);
+                     CompositionPlanningIssueCodes.ReplaceCtrlRamFirmwareConfigBackupPlacementInvalid);
     }
 
     /// <summary>The registered, hash-pinned Combiner differs from the owner tool only in the four approved CRC words.</summary>
@@ -282,14 +288,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         string referencePath = workspace.Write("reference.bin", ReconstructReference(evidence));
         string outputPath = workspace.PathFor("output.bin");
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
-            "NT51951", "cascade", WorkbenchReplaceModes.CtrlRam,
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
+            "NT51951", "cascade", ExperienceIds.CtrlRamReplace,
             CreateSlotPaths(evidence, referencePath, evidence.DiffDlm.Path),
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] output = File.ReadAllBytes(outputPath);
         (long differenceCount, ByteRange[] differenceRanges) = FindDifferences(
             evidence.Expected.Bytes,
@@ -306,14 +312,30 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         Assert.Equal("1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd", Hash(output));
     }
 
-    private static async Task<WorkbenchRunResult> RunAsync(
+    private static IReadOnlyList<CompositionIssue> PrepareRejected(
+        IReadOnlyDictionary<string, string> slotPaths,
+        string outputPath)
+    {
+        (ActiveSessionSnapshot? snapshot, IReadOnlyList<CompositionIssue> issues) =
+            CtrlRamReplaceTestSupport.Prepare(
+                BootstrapTestHost.Canonical,
+                "NT51951",
+                "cascade",
+                slotPaths,
+                firmwareVersionEdit: null);
+        Assert.Null(snapshot);
+        Assert.False(File.Exists(outputPath));
+        return issues;
+    }
+
+    private static async Task<CompositionRunResult> RunAsync(
         OwnerCase evidence,
         string referencePath,
         string diffPath,
         string outputPath,
         IExternalProcessor processor)
     {
-        return await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
+        return await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51951", "cascade", CreateSlotPaths(evidence, referencePath, diffPath),
             true, outputPath, null, processor, TestContext.Current.CancellationToken);
     }
@@ -325,10 +347,10 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath,
-            [WorkbenchSlotIds.CreateReplaceCtrlRam("normal")] = evidence.Normal.Path,
-            [WorkbenchSlotIds.CreateReplaceCtrlRam("vn")] = evidence.Vn.Path,
-            [WorkbenchSlotIds.CreateReplaceCtrlRam("diff")] = diffPath,
+            [CompositionSlotIds.ReplaceBase] = referencePath,
+            [DynamicCtrlRamReplacementIds.Create("normal")] = evidence.Normal.Path,
+            [DynamicCtrlRamReplacementIds.Create("vn")] = evidence.Vn.Path,
+            [DynamicCtrlRamReplacementIds.Create("diff")] = diffPath,
         };
     }
 

@@ -11,7 +11,7 @@ public sealed class HeadlessCanonicalConvergenceTests
     public void CurrentSupportMatrixMaterializesExactRouteInventory()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         Assert.True(

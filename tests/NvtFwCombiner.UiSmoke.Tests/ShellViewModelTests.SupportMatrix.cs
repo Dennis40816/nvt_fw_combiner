@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void SettingsOpensCanonicalSupportMatrixFromFocusedChild()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowSettingsCommand.Execute(null);
 
         viewModel.Settings.OpenSupportMatrixCommand.Execute(null);

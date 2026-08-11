@@ -79,21 +79,20 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             var registry = new ExternalCombinerToolRegistry([manifest]);
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                [profile],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());
             var selection = new IcNumberSelection(mode, [selectionToken]);
             LegacyCombinerPostbuildCommandPlan commandPlan =
-                LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+                profile.ResolvePlan(selection);
             ByteRange[] stagedTargetRanges =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(commandPlan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(commandPlan)
                     .Select(block => block.FirmwareRange),
             ];
             List<ByteRange> allowedChanges =
             [
-                .. LegacyCombinerPostbuildPlanner.GetAllowedWriteRangeSectionsForStagedSources(
+                .. LegacyCombinerPostbuildPlanCompiler.GetAllowedWriteRangeSectionsForStagedSources(
                         commandPlan,
                         stagedFirmware.LongLength,
                         stagedTargetRanges,

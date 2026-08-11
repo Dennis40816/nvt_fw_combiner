@@ -28,23 +28,33 @@ public sealed partial class MainWindow : Window, IDisposable
 
     /// <summary>Initializes the main window controls.</summary>
     public MainWindow()
-        : this(UiLaunchOptions.Empty, StartupTraceSession.Disabled)
+        : this(
+            UiLaunchOptions.Empty,
+            StartupTraceSession.Disabled,
+            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."))
     {
     }
 
     /// <summary>Initializes the main window controls with command-line startup state.</summary>
     public MainWindow(UiLaunchOptions launchOptions)
-        : this(launchOptions, StartupTraceSession.Disabled)
+        : this(
+            launchOptions,
+            StartupTraceSession.Disabled,
+            App.HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."))
     {
     }
 
-    internal MainWindow(UiLaunchOptions launchOptions, StartupTraceSession startupTrace)
+    internal MainWindow(
+        UiLaunchOptions launchOptions,
+        StartupTraceSession startupTrace,
+        PresentationHostServices hostServices)
     {
         ArgumentNullException.ThrowIfNull(launchOptions);
         ArgumentNullException.ThrowIfNull(startupTrace);
+        ArgumentNullException.ThrowIfNull(hostServices);
         _launchOptions = launchOptions;
         _startupTrace = startupTrace;
-        _hostServices = DesktopCompositionRoot.Create(ApplicationVersionProvider.InformationalVersion);
+        _hostServices = hostServices;
         _startupTrace.Mark("main-window-constructor.started");
 
         InitializeComponent();

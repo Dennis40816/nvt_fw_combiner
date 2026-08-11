@@ -107,22 +107,22 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 alignment: 1,
                 "General Replace V2 DP parity mapping."),
         ]);
-        WorkbenchRunResult routed = await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        CompositionRunResult routed = await GeneralWorkflowTestSupport.BuildGeneralReplaceAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = basePath,
+                [CompositionSlotIds.ReplaceBase] = basePath,
             },
             mappingDraft,
             routedOutputPath,
             TestContext.Current.CancellationToken);
 
-        Assert.True(routed.Succeeded, routed.ReportJson);
+        Assert.True(routed.Succeeded, CompositionRunReportJson.Serialize(routed));
         Assert.Equal(execution.OutputBytes.ToArray(), await File.ReadAllBytesAsync(
             routedOutputPath,
             TestContext.Current.CancellationToken));
-        using var routedReport = JsonDocument.Parse(routed.ReportJson);
+        using var routedReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(routed));
         Assert.Equal(
             "nt51926-general-replace-dp-single-candidate",
             routedReport.RootElement.GetProperty("ProfileId").GetString());
@@ -174,40 +174,34 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 new string('d', 64),
                 "forged-map"));
 
-        WorkbenchRunResult result =
-            await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        var savedRulePolicy = new GeneralSavedRuleResourcePolicy(
+            new SavedRuleLifecycleSnapshot(
+                forgedIdentity,
+                SavedRuleStorageKind.TrustedCatalog,
+                SavedRuleLifecycleState.Published,
+                hasApproval: true,
+                hasEvidence: true,
+                isTrusted: true),
+            limits);
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+                BootstrapTestHost.Canonical,
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [WorkbenchSlotIds.ReplaceBase] = basePath,
+                    [CompositionSlotIds.ReplaceBase] = basePath,
                 },
                 draft,
-                outputPath,
-                new GeneralSavedRuleResourcePolicy(
-                    new SavedRuleLifecycleSnapshot(
-                        forgedIdentity,
-                        SavedRuleStorageKind.TrustedCatalog,
-                        SavedRuleLifecycleState.Published,
-                        hasApproval: true,
-                        hasEvidence: true,
-                        isTrusted: true),
-                    limits),
+                savedRulePolicy,
                 TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
+        Assert.False(prepared.Succeeded);
         Assert.False(File.Exists(outputPath));
-        using var report = JsonDocument.Parse(result.ReportJson);
         Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => issue.GetProperty("Code").GetString() ==
-                GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
-        Assert.Equal(
-            JsonValueKind.Null,
-            report.RootElement
-                .GetProperty("GeneralAdmission")
-                .GetProperty("SavedRule")
-                .ValueKind);
+            prepared.Issues,
+            issue => issue.Code == GeneralAuthoringIssueCodes.SavedRuleParentMismatch);
+        Assert.Null(prepared.Admission?.SavedRule);
     }
 
     /// <summary>Single-selector virtual patches fail closed until their V2 contract is migrated.</summary>
@@ -218,12 +212,14 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
         string basePath = workspace.Write("base.bin", CreatePattern(FullFlashCapacity, 0x26));
 
         string outputPath = workspace.PathFor("unsupported-output.bin");
-        WorkbenchRunResult result = await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51926",
             "single",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = basePath,
+                [CompositionSlotIds.ReplaceBase] = basePath,
             },
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplacePatch(
@@ -233,13 +229,13 @@ public sealed class Nt51926GeneralReplaceCandidateProfileTests
                 GeneralMappingSourceKind.HexOverwrite,
                 "A5 5A"),
             ]),
-            outputPath,
+            savedRulePolicy: null,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
+        Assert.False(prepared.Succeeded);
+        Assert.Equal(
+            CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
+            Assert.Single(prepared.Issues).Code);
         Assert.False(File.Exists(outputPath));
     }
 

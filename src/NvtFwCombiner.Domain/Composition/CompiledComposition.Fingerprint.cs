@@ -163,10 +163,29 @@ public sealed partial class CompiledComposition
             AppendEnum(builder, "output.artifact-type", output.OutputArtifactType);
             AppendList(builder, "output.token-requirement", output.TokenRequirements, AppendOutputTokenRequirement);
         }
+        if (details.AdditionalDeliveries.Count > 0)
+        {
+            AppendList(
+                builder,
+                "output.additional-delivery",
+                details.AdditionalDeliveries,
+                AppendAdditionalDelivery);
+        }
         AppendPlan(builder, composition.Plan);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())))
             .ToLowerInvariant();
+    }
+
+    private static void AppendAdditionalDelivery(
+        StringBuilder builder,
+        string prefix,
+        CompiledAdditionalDelivery delivery)
+    {
+        AppendField(builder, $"{prefix}.kind", delivery.Kind);
+        AppendRange(builder, $"{prefix}.source-range", delivery.SourceRange);
+        AppendField(builder, $"{prefix}.template", delivery.FileNameTemplate);
+        AppendStringList(builder, $"{prefix}.required-token", delivery.RequiredTokenIds);
     }
 
     private static void AppendPromotionBlocker(

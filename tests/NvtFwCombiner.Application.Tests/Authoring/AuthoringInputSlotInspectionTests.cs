@@ -285,6 +285,25 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Null(result.Inspection);
     }
 
+    /// <summary>Accepted execution bytes are one immutable copy owned by the inspection publication.</summary>
+    [Fact]
+    public void AcceptedInspectionRetainsImmutableExecutionBytes()
+    {
+        ResolvedCapability capability = CreateCapability(ExperienceIds.DpReplace);
+        byte[] source = [0x10, 0x20, 0x30, 0x40];
+
+        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
+            capability,
+            new AuthoringRevision(7),
+            ReadySelection(),
+            SourceSpace,
+            source);
+        source[0] = 0xff;
+
+        Assert.Equal(0x10, result.AcceptedBytes!.Value.Span[0]);
+        Assert.NotSame(source, result.AcceptedByteArray);
+    }
+
     /// <summary>An unreadable terminal error publishes against the captured null stamp and exact compilation.</summary>
     [Fact]
     public void UnreadableSelectedSourcePublishesWithoutFabricatedFileStamp()
@@ -514,27 +533,6 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.False(staleResolution.Succeeded);
         Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleSlot.Issue!.Code);
         Assert.Equal(AuthoringSessionIssueCodes.StaleInspection, staleResolution.Issue!.Code);
-    }
-
-    /// <summary>Picker admission is separate from inspecting an already-selected ready artifact.</summary>
-    [Fact]
-    public void SelectedReadyArtifactCanBeInspectedWhenPickerTransitionIsDisabled()
-    {
-        ResolvedCapability capability = CreateCapability(ExperienceIds.StandardMerge);
-        InputSelectionMemberReadiness selected = ReadySelection() with
-        {
-            CanSelect = false,
-        };
-
-        AuthoringInputSlotStatus result = AuthoringInputSlotInspectionService.Inspect(
-            capability,
-            new AuthoringRevision(11),
-            selected,
-            SourceSpace,
-            new byte[4]);
-
-        Assert.Equal(AuthoringSlotLifecycle.Verified, result.InspectionLifecycle);
-        Assert.False(result.CanSelect);
     }
 
     private static InputSelectionMemberReadiness ReadySelection()

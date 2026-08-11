@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>View model for the production-backed firmware workbench.</summary>
+/// <summary>View model for the production-backed firmware desktop.</summary>
 public sealed partial class MainWindowViewModel : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
 {
 }

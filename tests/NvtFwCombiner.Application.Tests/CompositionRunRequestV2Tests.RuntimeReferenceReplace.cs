@@ -39,7 +39,7 @@ public sealed partial class CompositionRunRequestV2Tests
         [
             "postbuild-processor:nfc.synthetic.postbuild",
             "postbuild-selector:single",
-            $"postbuild-plan:{LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
+            $"postbuild-plan:{LegacyCombinerPostbuildPlanCompiler.CalculateIntegrityFingerprint(postbuildPlan, 4)}",
         ];
         ResolvedCapabilityRoute route = CreateRoute(reviewedBindings);
 
@@ -93,25 +93,7 @@ public sealed partial class CompositionRunRequestV2Tests
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 wrongTopology,
                 postbuildPlan));
-        var fabricatedCommand = new LegacyCombinerPostbuildCommand(
-            "fabricated-command",
-            LegacyCombinerCommandFamily.NormalMode,
-            "CRC_Disable",
-            crcArgument: null,
-            [new LegacyCombinerBlockArgument(
-                "fabricated-block",
-                LegacyCombinerBlockSourceKind.StagedFile,
-                "source.bin",
-                0,
-                new ByteRange(1, 1))]);
-        var fabricatedPlan = new LegacyCombinerPostbuildCommandPlan(
-            postbuildPlan.Profile,
-            postbuildPlan.Selector,
-            [fabricatedCommand]);
-        _ = Assert.Throws<ArgumentException>(() =>
-            RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
-                composition,
-                fabricatedPlan));
+        Assert.Empty(typeof(LegacyCombinerPostbuildCommandPlan).GetConstructors());
         _ = Assert.Throws<ArgumentException>(() =>
             RuntimeReferenceCompilationProof.CreateLegacyPostbuild(
                 CreateRuntimeReferenceCandidate(),
@@ -542,12 +524,12 @@ public sealed partial class CompositionRunRequestV2Tests
                 CreateSyntheticPostbuildPlan();
             ByteRange[] stagedTargetRanges =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                     .Select(static block => block.FirmwareRange),
             ];
             return
             [
-                .. LegacyCombinerPostbuildPlanner
+                .. LegacyCombinerPostbuildPlanCompiler
                     .GetAllowedWriteRangeSectionsForStagedSources(
                         plan,
                         4,
@@ -592,6 +574,6 @@ public sealed partial class CompositionRunRequestV2Tests
             profile.PlanSelectors.Single(static candidate =>
                 candidate.Kind ==
                     LegacyCombinerPostbuildPlanSelectorKind.SingleChip);
-        return LegacyCombinerPostbuildPlanner.CreatePlan(profile, selector);
+        return profile.ResolvePlan(selector);
     }
 }

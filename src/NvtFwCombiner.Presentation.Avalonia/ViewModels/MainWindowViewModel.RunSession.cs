@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Capabilities;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class MainWindowViewModel
@@ -11,6 +13,18 @@ public sealed partial class MainWindowViewModel
         Action<string, string> loadErrorReport)
     {
         return RunSession.RunCompositionAsync(build, run, loadErrorReport);
+    }
+
+    private Task ShowDiagnosticPreviewAsync(CompositionRunReport report)
+    {
+        return RunSession.ShowDiagnosticPreviewAsync(report);
+    }
+
+    private void ShowActionReadiness(
+        CapabilityActionReadinessSnapshot readiness,
+        bool build)
+    {
+        RunSession.ShowActionReadiness(readiness, build);
     }
 
     private bool IsCompositionRunInProgress()

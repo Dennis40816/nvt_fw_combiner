@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class MergePresentationViewModel
 {
     internal AuthoringRevision AbMergeAuthoringRevision =>
-        _authoringSessions.AbMerge.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
+        _abMergeSession.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1);
 
     internal IReadOnlyDictionary<string, AuthoringSlotInspectionLease>
         BeginAbMergeSlotInspections(IEnumerable<FirmwareSlotViewModel> slots)
@@ -18,13 +18,13 @@ public sealed partial class MergePresentationViewModel
 
         CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
         AuthoringSessionTransitionResult activated =
-            _authoringSessions.AbMerge.Activate(projection.Catalog);
+            _abMergeSession.Activate(projection.Catalog);
         ApplyAbMergeReadiness(projection);
         SyncAbMergeMembership(activated.Snapshot);
         return !activated.Succeeded
             ? EmptyInspectionLeases()
             : BeginInputInspections(
-                _authoringSessions.AbMerge,
+                _abMergeSession,
                 activated.Snapshot!,
                 slots,
                 static slot => slot.SlotId);
@@ -32,14 +32,14 @@ public sealed partial class MergePresentationViewModel
 
     internal bool TryCompleteAbMergeInputBatch(
         IReadOnlyList<FirmwareInspectionItemRequest> items,
-        IReadOnlyDictionary<string, WorkbenchFirmwareInspection> inspections)
+        IReadOnlyDictionary<string, FirmwareInspectionSnapshot> inspections)
     {
         FirmwareInspectionItemRequest[] selected =
         [
             .. items.Where(static item => item.AbMergeAddressSpaceId is not null),
         ];
         bool completed = TryCompleteInputBatch(
-            _authoringSessions.AbMerge,
+            _abMergeSession,
             selected,
             inspections,
             static item => item.AbMergeInspectionLease,
@@ -58,9 +58,13 @@ public sealed partial class MergePresentationViewModel
             return;
         }
 
-        CompiledAuthoringSelectionSnapshot projection = ResolveAbMergeAuthoringSnapshot();
+        RefreshAbMergeAuthoringState(ResolveAbMergeAuthoringSnapshot());
+    }
+
+    private void RefreshAbMergeAuthoringState(CompiledAuthoringSelectionSnapshot projection)
+    {
         AuthoringSessionTransitionResult activated =
-            _authoringSessions.AbMerge.Activate(projection.Catalog);
+            _abMergeSession.Activate(projection.Catalog);
         ApplyAbMergeReadiness(projection);
         SyncAbMergeMembership(activated.Snapshot);
     }
@@ -74,16 +78,16 @@ public sealed partial class MergePresentationViewModel
                 .Select(static slot => slot.SlotId),
         ];
         Dictionary<string, FileStamp> accepted = AcceptedInputStamps(
-            _authoringSessions.AbMerge,
+            _abMergeSession,
             AbMergeSlots,
             static slot => slot.SlotId);
-        return _compositionServices.Authoring.GetAbMergeAuthoringSnapshot(
+        return _compositionServices.AbMergeAuthoring.GetAuthoringSnapshot(
             SelectedIc,
             GetSelectedAbMergeTopologyToken(),
             selectedSlotIds,
             accepted,
             AbMergeAuthoringRevision,
-            _authoringSessions.AbMerge.CurrentSnapshot);
+            _abMergeSession.CurrentSnapshot);
     }
 
     private void ApplyAbMergeReadiness(CompiledAuthoringSelectionSnapshot projection)

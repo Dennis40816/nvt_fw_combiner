@@ -48,7 +48,6 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             var registry = new ExternalCombinerToolRegistry([manifest]);
             var processor = new LegacyCombinerPostbuildProcessor(
                 registry,
-                [smokeProfile],
                 toolRoot,
                 stagingRoot,
                 new SystemExternalProcessRunner());
@@ -58,7 +57,9 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
                 "legacy-combiner-1.13.0",
                 goldenBytes,
                 [],
-                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+                protocolPlan: smokeProfile.ResolvePlan(
+                    new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])).ProtocolPlan);
 
             ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 

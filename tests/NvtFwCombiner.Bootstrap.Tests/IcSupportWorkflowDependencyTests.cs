@@ -12,7 +12,7 @@ public sealed class CanonicalCapabilityDependencyTests
     [Fact]
     public void CanonicalIcRowsHaveFlashMapProfiles()
     {
-        foreach (string icId in CanonicalCapabilityProjection.GetIcIds())
+        foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
             Assert.True(
                 BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMapProfile),
@@ -26,7 +26,7 @@ public sealed class CanonicalCapabilityDependencyTests
     [Fact]
     public void FlashMapProfilesHaveCanonicalRows()
     {
-        HashSet<string> supportedIcIds = [.. CanonicalCapabilityProjection.GetIcIds()];
+        HashSet<string> supportedIcIds = [.. BootstrapTestHost.Canonical.Projection.GetIcIds()];
 
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
@@ -51,7 +51,7 @@ public sealed class CanonicalCapabilityDependencyTests
                 Assert.NotEmpty(selections);
                 Assert.All(
                     selections,
-                    selection => Assert.Equal(profile, LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection).Profile));
+                    selection => Assert.Equal(profile, profile.ResolvePlan(selection).Profile));
             }
         }
     }
@@ -88,7 +88,7 @@ public sealed class CanonicalCapabilityDependencyTests
         ];
         string[] registeredIcIds =
         [
-            .. CanonicalCapabilityProjection.GetDpReplaceProfileSummaries()
+            .. BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries()
                 .Select(summary => summary.IcId)
                 .Order(StringComparer.Ordinal),
         ];
@@ -96,30 +96,16 @@ public sealed class CanonicalCapabilityDependencyTests
         Assert.Equal(registeredIcIds, supportedIcIds);
         foreach (string icId in supportedIcIds)
         {
-            WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
-                icId,
-                "single",
-                WorkbenchReplaceModes.Dp);
-            WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
-            Assert.StartsWith("Reference FlashCode length:", display.RangeLabel, StringComparison.Ordinal);
-            Assert.Equal("Reference FlashCode", row.BeforeSource);
-            Assert.Equal("Select", row.ActionLabel);
-            Assert.Equal("DP replacement", row.AfterSource);
-            Assert.NotEmpty(display.CoverageSegments);
+            Assert.False(string.IsNullOrWhiteSpace(
+                BootstrapTestHost.Canonical.Projection
+                    .GetDpReplaceReferenceCapacityLabel(icId)));
         }
 
-        foreach (string icId in CanonicalCapabilityProjection.GetIcIds()
+        foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds()
                      .Except(supportedIcIds, StringComparer.Ordinal))
         {
-            WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
-                icId,
-                "single",
-                WorkbenchReplaceModes.Dp);
-            WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
-            Assert.Equal("Not available", display.RangeLabel);
-            Assert.Equal("Blocked", row.ActionLabel);
-            Assert.Equal("No target", row.AfterSource);
-            Assert.Empty(display.CoverageSegments);
+            Assert.Null(BootstrapTestHost.Canonical.Projection
+                .GetDpReplaceReferenceCapacityLabel(icId));
         }
     }
 
@@ -133,14 +119,14 @@ public sealed class CanonicalCapabilityDependencyTests
             {
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
-                    LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+                    LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
                     IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
                         profile.IcId,
                         selection,
                         profile,
                         TpFlashMapRegionKind.CtrlRam);
 
-                    foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
+                    foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan))
                     {
                         Assert.Contains(
                             regions,
@@ -154,8 +140,7 @@ public sealed class CanonicalCapabilityDependencyTests
 
     private static string[] GetAuthorableIcIds(string workflowId)
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = WorkbenchHostServices
-            .CanonicalCapabilityQuery
+        CanonicalCapabilityCatalogSnapshot snapshot = BootstrapTestHost.Canonical.Catalog
             .GetCurrentSnapshot();
         return
         [

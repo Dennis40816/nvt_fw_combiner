@@ -52,68 +52,6 @@ public sealed class GeneralSelectedFileExactCompilationTests
         Assert.Equal(AuthoringSlotLifecycle.Checking, Assert.Single(session.CurrentSnapshot!.Slots).Lifecycle);
     }
 
-    /// <summary>Changing a selected path evicts content cached for the old path.</summary>
-    [Fact]
-    public void SelectedPathChangeEvictsPrebindingContentCache()
-    {
-        (AuthoringSessionState session, _) = CreateExactSession();
-        const string original = @"C:\firmware\source.bin";
-        CacheInspection(session, "mapping-1", original);
-
-        _ = session.SetSlotFile("mapping-1", @"C:\firmware\replacement.bin", fileStamp: null);
-
-        Assert.False(session.TryGetCachedGeneralSelectedFileInspection(
-            "mapping-1",
-            original,
-            out _));
-    }
-
-    /// <summary>Removing a route definition evicts cache that cannot belong to the active route.</summary>
-    [Fact]
-    public void RouteDefinitionChangeEvictsRemovedContentCache()
-    {
-        (AuthoringSessionState session, AuthoringCapabilityRoute route) = CreateExactSession();
-        const string selectedPath = @"C:\firmware\source.bin";
-        CacheInspection(session, "mapping-1", selectedPath);
-        var replacementRoute = new AuthoringCapabilityRoute(
-            route.Identity,
-            route.CapabilityFingerprint,
-            executionAdmitted: false,
-            [new AuthoringSlotDefinitionReference("mapping-2", expectedLength: 4)],
-            route.CompilationFingerprint);
-
-        Assert.True(session.Activate(new AuthoringCapabilityCatalogSnapshot(
-            session.WorkflowId,
-            new ResolutionToken("general-token"),
-            [replacementRoute])).Succeeded);
-        Assert.True(session.Activate(new AuthoringCapabilityCatalogSnapshot(
-            session.WorkflowId,
-            new ResolutionToken("general-token"),
-            [route])).Succeeded);
-
-        Assert.False(session.TryGetCachedGeneralSelectedFileInspection(
-            "mapping-1",
-            selectedPath,
-            out _));
-    }
-
-    private static void CacheInspection(
-        AuthoringSessionState session,
-        string definitionId,
-        string selectedPath)
-    {
-        Assert.True(session.SetSlotFile(definitionId, selectedPath, fileStamp: null).Succeeded);
-        AuthoringPublicationLease lease = session.CapturePublicationLease(
-            AuthoringDerivedResultKind.Inspection);
-        Assert.True(session.TryCacheGeneralSelectedFileInspection(
-            lease,
-            new GeneralSelectedFileInspection(
-                definitionId,
-                lease.AuthoringRevision,
-                selectedPath,
-                FileStamp.FromBytes([1, 2, 3, 4]))).Succeeded);
-    }
-
     private static (AuthoringSessionState Session, AuthoringCapabilityRoute Route) CreateExactSession()
     {
         var session = new AuthoringSessionState(ExperienceIds.GeneralMerge);

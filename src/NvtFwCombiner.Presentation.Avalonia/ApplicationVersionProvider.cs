@@ -18,5 +18,5 @@ internal static class ApplicationVersionProvider
     }
 
     /// <summary>Gets the shell version label shown in the header.</summary>
-    internal static string WorkbenchLabel => $"{InformationalVersion} workbench";
+    internal static string ShellLabel => $"{InformationalVersion} desktop";
 }

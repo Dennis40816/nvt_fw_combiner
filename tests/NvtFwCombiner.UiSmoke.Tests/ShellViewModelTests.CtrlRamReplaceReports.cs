@@ -16,10 +16,10 @@ public sealed partial class ShellViewModelTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-2chip-self-20260705");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "2";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         FirmwareSlotViewModel regionSlot = viewModel.Replace.ReplaceSlots.Single(slot =>
             slot.Title == "Normal CtrlRAM (Master)");
@@ -56,10 +56,10 @@ public sealed partial class ShellViewModelTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "3";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
 
@@ -103,10 +103,10 @@ public sealed partial class ShellViewModelTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "3";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";
@@ -142,10 +142,10 @@ public sealed partial class ShellViewModelTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectEvidenceCase(
             "ctrlram-replace",
             "nt51927-3chip-self-20260705");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "3";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         fixtures.SetBaseSlot(viewModel, fixtureCase);
         viewModel.WorkflowSession.SelectedNumber = "3";

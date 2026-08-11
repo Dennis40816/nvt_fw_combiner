@@ -4,6 +4,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -74,22 +75,22 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw132-twochip-v2");
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             icId,
             "2",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slots,
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, v2.ReportJson);
+        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58";
         Assert.Equal(outputSha256, Hash(v2Bytes));
         AssertExpectedDerivedCrcOnlyDifference(ownerCase.Base.Bytes, v2Bytes);
 
-        using var v2Report = JsonDocument.Parse(v2.ReportJson);
+        using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, expectedProfileId, icId);
         AssertProcessEvidence(v2Report.RootElement, expectedProcessorId, icId);
         JsonElement[] differences = [.. v2Report.RootElement.GetProperty("OutputDifferences").EnumerateArray()];
@@ -145,9 +146,9 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
 
         string referencePath = workspace.Write("reference.bin", reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
-        slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
+        slots[CompositionSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             icId,
             "2",
             slots,
@@ -157,9 +158,9 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(File.Exists(outputPath));
-        using (var report = JsonDocument.Parse(result.ReportJson))
+        using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {
             AssertReportIdentity(
                 report.RootElement,
@@ -275,7 +276,7 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
     {
         var slots = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = ownerCase.Base.Path,
+            [CompositionSlotIds.ReplaceBase] = ownerCase.Base.Path,
         };
         foreach (OwnerArtifact artifact in ownerCase.Artifacts)
         {
@@ -295,12 +296,12 @@ public sealed class Nt51927CtrlRamFw132TwoChipEvidenceTests
             "nt51927-2chip-self-20260705");
         JsonElement[] canonicalArtifacts = [.. fixtureCase.GetProperty("artifacts").EnumerateArray()];
         JsonElement baseArtifact = canonicalArtifacts.Single(item =>
-            item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+            item.GetProperty("slotId").GetString() == CompositionSlotIds.ReplaceBase);
         OwnerArtifact ownerBase = ReadArtifact(baseArtifact, slotId: null);
         OwnerArtifact[] artifacts = [
             ownerBase,
             .. canonicalArtifacts
-                .Where(item => item.GetProperty("slotId").GetString() != WorkbenchSlotIds.ReplaceBase)
+                .Where(item => item.GetProperty("slotId").GetString() != CompositionSlotIds.ReplaceBase)
                 .Select(item => ReadArtifact(item, item.GetProperty("slotId").GetString())),
         ];
         return new OwnerCase(ownerBase, artifacts);

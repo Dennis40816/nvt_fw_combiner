@@ -2,13 +2,13 @@ using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Protects the focused Support Matrix host wiring during Workbench retirement.</summary>
+/// <summary>Protects focused Support Matrix wiring over the Application-owned catalog.</summary>
 [Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class CanonicalSupportMatrixHostTests
 {
     /// <summary>Shared publication reload coverage cannot run beside capability-bound executions.</summary>
     [Fact]
-    public void HostTestsUseCanonicalPublicationSerializationCollection()
+    public void CatalogTestsUseCanonicalPublicationSerializationCollection()
     {
         object attribute = Assert.Single(
             typeof(CanonicalSupportMatrixHostTests).GetCustomAttributes(
@@ -24,13 +24,12 @@ public sealed class CanonicalSupportMatrixHostTests
     public async Task QueryReturnsLoadingWhileBackgroundWarmIsInFlight()
     {
         CapabilityCatalogLoadResult seed =
-            new CanonicalCapabilityCatalogMigrationSource().Load(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
                 TestContext.Current.CancellationToken);
         using var source = new BlockingProbeSource(seed.Candidate!);
-        var host = new CanonicalCapabilityCatalogHost(source);
-        var query = new CanonicalSupportMatrixQuery(() => host.LatestReload);
+        var catalog = new CanonicalCapabilityCatalog(source);
         var warm = Task.Run(
-            () => host.Warm(TestContext.Current.CancellationToken),
+            () => catalog.Warm(TestContext.Current.CancellationToken),
             TestContext.Current.CancellationToken);
 
         Assert.True(source.LoadStarted.Wait(
@@ -39,7 +38,7 @@ public sealed class CanonicalSupportMatrixHostTests
         try
         {
             Task<CanonicalSupportMatrixQueryResult> queryTask = Task.Run(
-                query.Query,
+                catalog.Query,
                 TestContext.Current.CancellationToken);
             Task completed = await Task.WhenAny(
                 queryTask,
@@ -55,26 +54,25 @@ public sealed class CanonicalSupportMatrixHostTests
         }
 
         await warm;
-        Assert.Equal(CanonicalSupportMatrixCatalogState.Current, query.Query().State);
+        Assert.Equal(CanonicalSupportMatrixCatalogState.Current, catalog.Query().State);
     }
 
     /// <summary>Concurrent reloads cannot publish reporting state out of catalog order.</summary>
     [Fact]
-    public async Task HostSerializesReloadAndReportingPublication()
+    public async Task CatalogSerializesReloadAndReportingPublication()
     {
         CapabilityCatalogLoadResult seed =
-            new CanonicalCapabilityCatalogMigrationSource().Load(
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource().Load(
                 TestContext.Current.CancellationToken);
         var source = new ConcurrentProbeSource(seed.Candidate!);
-        var host = new CanonicalCapabilityCatalogHost(source);
-        var query = new CanonicalSupportMatrixQuery(() => host.LatestReload);
+        var catalog = new CanonicalCapabilityCatalog(source);
 
-        Assert.Equal(CanonicalSupportMatrixCatalogState.Loading, query.Query().State);
+        Assert.Equal(CanonicalSupportMatrixCatalogState.Loading, catalog.Query().State);
         Assert.Equal(0, source.LoadCount);
 
         CapabilityCatalogReloadResult[] reloads = await Task.WhenAll(
             Enumerable.Range(0, 8).Select(_ => Task.Run(
-                () => host.Reload(TestContext.Current.CancellationToken),
+                () => catalog.Reload(TestContext.Current.CancellationToken),
                 TestContext.Current.CancellationToken)));
 
         Assert.Equal(1, source.MaximumConcurrentLoads);
@@ -82,23 +80,23 @@ public sealed class CanonicalSupportMatrixHostTests
             int.Parse(
                 reload.Snapshot!.CatalogVersion.Split('.')[^1],
                 System.Globalization.CultureInfo.InvariantCulture));
-        CapabilityCatalogReloadResult latest = host.LatestReload!;
+        CapabilityCatalogReloadResult latest = catalog.LatestReload!;
         Assert.Equal(
             $"1.0.{latestGeneration}",
             latest.Snapshot!.CatalogVersion);
         Assert.Same(
             latest.Snapshot,
-            host.Read(static catalog => catalog.CurrentSnapshot));
+            catalog.TryGetCurrentSnapshot());
     }
 
-    /// <summary>The focused query and compatibility facade observe one catalog publication.</summary>
+    /// <summary>One explicitly constructed host query observes its own catalog publication.</summary>
     [Fact]
     public void FocusedQueryUsesTheSharedCanonicalCatalogPublication()
     {
-        ICanonicalSupportMatrixQuery query =
-            WorkbenchHostServices.CanonicalSupportMatrixQuery;
+        var host = CompositionHostServices.Create();
+        ICanonicalSupportMatrixQuery query = host.CanonicalSupportMatrixQuery;
         CapabilityCatalogReloadResult reload =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            host.Catalog.Reload(
                 TestContext.Current.CancellationToken);
 
         CanonicalSupportMatrixQueryResult result = query.Query();

@@ -17,6 +17,7 @@ public sealed partial class CompositionRunService
         bool committed,
         string? outputFileName = null,
         OutputNamingSummary? outputNaming = null,
+        IReadOnlyList<DeliveryArtifactSummary>? deliveryArtifacts = null,
         IReadOnlyList<CompositionIssue>? additionalIssues = null,
         IReadOnlyList<ValidationRunSummary>? validations = null,
         Dictionary<string, IReadOnlyList<ExternalProcessInvocation>>? executedCommandsByOperationId = null)
@@ -73,6 +74,7 @@ public sealed partial class CompositionRunService
             request.CompiledComposition.CompilationFingerprint,
             validations,
             outputNaming,
+            deliveryArtifacts,
             generalAdmission: request.GeneralAdmission,
             imageInitialization: StringComparer.Ordinal.Equals(
                 request.CompiledComposition.V2Details.ExperienceId,
@@ -119,5 +121,12 @@ public sealed partial class CompositionRunService
             operation.Reason,
             operation.Provenance,
             executedCommands);
+    }
+
+    internal static OperationRunSummary ToPlanningOperationSummary(
+        CompositionOperation operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        return ToOperationSummary(operation, OperationRunStatus.Skipped, []);
     }
 }

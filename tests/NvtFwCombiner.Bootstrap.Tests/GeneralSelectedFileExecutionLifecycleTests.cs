@@ -12,9 +12,9 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// </summary>
 public sealed class GeneralSelectedFileExecutionLifecycleTests
 {
-    /// <summary>Strict desktop execution rejects an uninspected draft without touching its path.</summary>
+    /// <summary>The canonical preparation path rejects a missing file before accepting a session.</summary>
     [Fact]
-    public async Task AcceptedSessionRunnerRejectsUnboundSelectedFile()
+    public async Task CanonicalPreparationRejectsUnboundSelectedFile()
     {
         var unboundDraft = new GeneralMappingDraftState(
         [
@@ -32,58 +32,54 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
 
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
-        Assert.NotNull(CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
-            session,
-            "NT51950",
-            CanonicalAuthoringAdapter.CreateGeneralMergeDraft(
-                ResolveGeneralMergeInitializer("0x10"),
-                unboundDraft),
-            "mapping-1",
-            observedLength: 1).Lease);
-
-        _ = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareMergeSessionAsync(
+                session,
                 "NT51950",
-                session.CurrentSnapshot!,
-                build: false,
-                new CompositionRunProgressFeed(),
-                TestContext.Current.CancellationToken));
+                GeneralMergeAuthoringUseCase.CreateDraft(
+                    ResolveGeneralMergeInitializer("0x10"),
+                    unboundDraft),
+                TestContext.Current.CancellationToken);
+
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
         Assert.False(File.Exists(@"C:\does-not-exist\source.bin"));
     }
 
     /// <summary>
-    /// General Merge rejects same-size mutation against its Preview snapshot,
-    /// then succeeds after explicit Reload without changing the mapping range.
+    /// General Merge Preview and Build reuse the immutable bytes accepted by one session.
     /// </summary>
     [Fact]
-    public async Task GeneralMergePreviewMutationBuildRequiresExplicitReload()
+    public async Task GeneralMergeBuildReusesAcceptedBytesAfterSelectedPathChanges()
     {
         using var workspace = TempWorkspace.Create("nfc-general-merge-content-lifecycle");
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
         AuthoringMappingState[] inputs =
         [
-            CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
+            GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
                 "mapping-1", sourcePath, "0x0", "0x0", "0x4"),
         ];
         GeneralMergeDraftState pending = GeneralTestDraftFactory.CreateMergeDraft("0x10", inputs);
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
         ActiveSessionSnapshot acceptedSession = await AcceptGeneralMergeSessionAsync(
-            session, "NT51950", pending, "mapping-1", sourcePath, expectedLength: 4);
+            session, "NT51950", pending);
         GeneralMergeDraftState accepted = Assert.IsType<GeneralMergeDraftState>(
             acceptedSession.DraftState);
         ResolvedCapability capability =
             Assert.IsType<ResolvedCapability>(
                 acceptedSession.GetAcceptedCapability(AuthoringDerivedResultKind.Validation));
-        WorkbenchRunResult preview =
-            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
-                "NT51950",
-                acceptedSession,
-                build: false,
+        CompositionRunResult preview =
+            await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    acceptedSession,
+                    new Dictionary<string, string>(StringComparer.Ordinal),
+                    build: false),
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, preview.ReportJson);
+        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
         Assert.Same(capability, preview.ResolvedCapability);
         GeneralMappingDraftState acceptedDraft =
             Assert.IsType<GeneralMappingDraftState>(
@@ -95,67 +91,120 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             sourcePath,
             [0x10, 0x11, 0x99, 0x13],
             TestContext.Current.CancellationToken);
-        string staleOutputPath = workspace.PathFor("stale-output.bin");
-
-        WorkbenchRunResult staleBuild =
-            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
-                "NT51950",
-                acceptedSession,
-                build: true,
-                new CompositionRunProgressFeed(),
-                TestContext.Current.CancellationToken,
-                staleOutputPath);
-
-        Assert.False(staleBuild.Succeeded);
-        Assert.False(File.Exists(staleOutputPath));
-        AssertIssue(
-            staleBuild,
-            CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch);
-        Assert.Equal(
-            acceptedStamp,
-            Assert.Single(staleBuild.AcceptedGeneralMappingDraft!.Rows)
-                .Source.AcceptedFileStamp);
-
-        var rebound = new GeneralMergeDraftState(
-            accepted.OutputInitializer,
-            new GeneralMappingDraftState(acceptedDraft.Rows.Select(static row =>
-                row.RebindSelectedFile(row.Source.Reference))));
-        ActiveSessionSnapshot reloadedSession = await AcceptGeneralMergeSessionAsync(
-            session, "NT51950", rebound, "mapping-1", sourcePath, expectedLength: 4);
-        GeneralMappingDraftRow reloadedRow = Assert.Single(
-            Assert.IsType<GeneralMergeDraftState>(reloadedSession.DraftState).Mappings.Rows);
-        Assert.NotEqual(acceptedStamp, reloadedRow.Source.AcceptedFileStamp);
-        Assert.Equal(acceptedRow.SourceRange, reloadedRow.SourceRange);
-        Assert.Equal(acceptedRow.TargetRange, reloadedRow.TargetRange);
-
         string outputPath = workspace.PathFor("output.bin");
-        WorkbenchRunResult build =
-            await CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync(
-                "NT51950",
-                reloadedSession,
-                build: true,
-                new CompositionRunProgressFeed(),
-                TestContext.Current.CancellationToken,
-                outputPath);
 
-        Assert.True(build.Succeeded, build.ReportJson);
+        CompositionRunResult build =
+            await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    acceptedSession,
+                    new Dictionary<string, string>(StringComparer.Ordinal),
+                    build: true,
+                    outputPath: outputPath),
+                new CompositionRunProgressFeed(),
+                TestContext.Current.CancellationToken);
+
+        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
         Assert.Equal(
-            [0x10, 0x11, 0x99, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0x10, 0x11, 0x12, 0x13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             await File.ReadAllBytesAsync(
                 outputPath,
                 TestContext.Current.CancellationToken));
         AssertReportInputHash(
             build,
             Path.GetFileName(sourcePath),
-            reloadedRow.Source.AcceptedFileStamp!.Value.Sha256);
+            acceptedStamp.Sha256);
+
+        GeneralAuthoringSessionPreparation rebound =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareMergeSessionAsync(
+                    session,
+                    "NT51950",
+                    pending,
+                    TestContext.Current.CancellationToken);
+        Assert.True(
+            rebound.Succeeded,
+            string.Join(" | ", rebound.Issues.Select(static issue => issue.Message)));
+        Assert.Same(
+            capability,
+            rebound.AcceptedSession!.GetAcceptedCapability(
+                AuthoringDerivedResultKind.Validation));
+        Assert.Equal(
+            FileStamp.FromBytes([0x10, 0x11, 0x99, 0x13]),
+            Assert.Single(rebound.AcceptedSession.Slots).FileStamp);
+    }
+
+    /// <summary>High-level General Replace preparation publishes one exact accepted session.</summary>
+    [Fact]
+    public async Task GeneralReplacePreparationPublishesOneAcceptedSession()
+    {
+        using var workspace = TempWorkspace.Create("nfc-general-replace-preparation");
+        string basePath = workspace.Write("base.bin", new byte[0x40000]);
+        string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
+        GeneralMappingDraftState draft = GeneralTestDraftFactory.CreateReplaceDraft(
+        [
+            GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
+                "general-map-1",
+                GeneralMappingSourceKind.FileArtifact,
+                sourcePath,
+                "0x3E020",
+                "0x2"),
+        ]);
+        var session = new AuthoringSessionState(ExperienceIds.GeneralReplace);
+
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
+                session,
+                "NT51926",
+                IcNumberSelectionTokens.SingleChip,
+                basePath,
+                draft,
+                TestContext.Current.CancellationToken);
+
+        Assert.True(
+            prepared.Succeeded,
+            string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
+        ResolvedCapability initialCapability = Assert.IsType<ResolvedCapability>(
+            prepared.AcceptedSession!.GetAcceptedCapability(
+                AuthoringDerivedResultKind.Validation));
+        InputArtifactBinding plannedSource = Assert.Single(
+            initialCapability.GeneralExecutionPlan!.InputBindings,
+            static binding => StringComparer.Ordinal.Equals(
+                binding.BindingId,
+                "general-map-1"));
+        Assert.Null(plannedSource.AcceptedContentStamp);
+
+        await File.WriteAllBytesAsync(
+            sourcePath,
+            [0xA5, 0xC3],
+            TestContext.Current.CancellationToken);
+        GeneralAuthoringSessionPreparation rebound =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
+                session,
+                "NT51926",
+                IcNumberSelectionTokens.SingleChip,
+                basePath,
+                draft,
+                TestContext.Current.CancellationToken);
+        Assert.True(
+            rebound.Succeeded,
+            string.Join(" | ", rebound.Issues.Select(static issue => issue.Message)));
+        Assert.Same(
+            initialCapability,
+            rebound.AcceptedSession!.GetAcceptedCapability(
+                AuthoringDerivedResultKind.Validation));
+        Assert.Equal(
+            FileStamp.FromBytes([0xA5, 0xC3]),
+            rebound.AcceptedSession.Slots.Single(slot =>
+                StringComparer.Ordinal.Equals(slot.DefinitionId, "general-map-1")).FileStamp);
     }
 
     /// <summary>
-    /// General Replace uses the same accepted-draft lifecycle and never
-    /// silently rebinds changed replacement bytes at Build.
+    /// General Replace Preview and Build reuse the immutable bytes accepted by one session.
     /// </summary>
     [Fact]
-    public async Task GeneralReplacePreviewMutationBuildRequiresExplicitReload()
+    public async Task GeneralReplaceBuildReusesAcceptedBytesAfterSelectedPathChanges()
     {
         using var workspace = TempWorkspace.Create("nfc-general-replace-content-lifecycle");
         string basePath = workspace.Write("base.bin", new byte[0x40000]);
@@ -163,11 +212,11 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         IReadOnlyDictionary<string, string> slotPaths =
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = basePath,
+                [CompositionSlotIds.ReplaceBase] = basePath,
             };
         AuthoringMappingState[] inputs =
         [
-            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+            GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
                 "mapping-1",
                 GeneralMappingSourceKind.FileArtifact,
                 sourcePath,
@@ -177,22 +226,23 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(inputs);
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
-        ActiveSessionSnapshot acceptedSession = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, basePath, pending,
-            "mapping-1", sourcePath, expectedLength: 2);
+        (ActiveSessionSnapshot acceptedSession, CapabilityActionReadinessSnapshot readiness) =
+            await AcceptGeneralReplaceSessionAsync(
+                session, "NT51926", "single", basePath, pending);
         ResolvedCapability capability =
             Assert.IsType<ResolvedCapability>(
                 acceptedSession.GetAcceptedCapability(AuthoringDerivedResultKind.Validation));
-        WorkbenchRunResult preview =
-            await CompositionExecutionAdapter.PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
-                "NT51926",
-                "single",
-                slotPaths,
-                acceptedSession,
+        CompositionRunResult preview =
+            await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+                new AcceptedCompositionExecutionRequest(
+                    acceptedSession,
+                     slotPaths,
+                     build: false,
+                     actionReadiness: readiness),
                 new CompositionRunProgressFeed(),
                 TestContext.Current.CancellationToken);
 
-        Assert.True(preview.Succeeded, preview.ReportJson);
+        Assert.True(preview.Succeeded, CompositionRunReportJson.Serialize(preview));
         Assert.Same(capability, preview.ResolvedCapability);
         GeneralMappingDraftState acceptedDraft =
             Assert.IsType<GeneralMappingDraftState>(
@@ -204,59 +254,39 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             sourcePath,
             [0xA5, 0xC3],
             TestContext.Current.CancellationToken);
-        string staleOutputPath = workspace.PathFor("stale-output.bin");
-
-        WorkbenchRunResult staleBuild =
-            await CompositionExecutionAdapter.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
-                    "NT51926",
-                    "single",
-                    slotPaths,
-                    acceptedSession,
-                    new CompositionRunProgressFeed(),
-                    staleOutputPath,
-                    TestContext.Current.CancellationToken);
-
-        Assert.False(staleBuild.Succeeded);
-        Assert.False(File.Exists(staleOutputPath));
-        AssertIssue(
-            staleBuild,
-            CompositionRunIssueCodes.InputArtifactContentSnapshotMismatch);
-
-        var rebound = new GeneralMappingDraftState(acceptedDraft.Rows.Select(static row =>
-            row.RebindSelectedFile(row.Source.Reference)));
-        ActiveSessionSnapshot reloadedSession = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, basePath, rebound,
-            "mapping-1", sourcePath, expectedLength: 2);
-        GeneralMappingDraftRow reloadedRow = Assert.Single(
-            Assert.IsType<GeneralMappingDraftState>(reloadedSession.DraftState).Rows);
-        Assert.NotEqual(acceptedStamp, reloadedRow.Source.AcceptedFileStamp);
-        Assert.Equal(acceptedRow.SourceRange, reloadedRow.SourceRange);
-        Assert.Equal(acceptedRow.TargetRange, reloadedRow.TargetRange);
-
+        byte[] changedBase = new byte[0x40000];
+        changedBase[0] = 0x77;
+        await File.WriteAllBytesAsync(
+            basePath,
+            changedBase,
+            TestContext.Current.CancellationToken);
         string outputPath = workspace.PathFor("output.bin");
-        WorkbenchRunResult build =
-            await CompositionExecutionAdapter.BuildGeneralReplaceAcceptedSessionWithProgressAsync(
-                    "NT51926",
-                    "single",
-                    slotPaths,
-                    reloadedSession,
+
+        CompositionRunResult build =
+            await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+                    new AcceptedCompositionExecutionRequest(
+                        acceptedSession,
+                        slotPaths,
+                         build: true,
+                         outputPath: outputPath,
+                         actionReadiness: readiness),
                     new CompositionRunProgressFeed(),
-                    outputPath,
                     TestContext.Current.CancellationToken);
 
-        Assert.True(build.Succeeded, build.ReportJson);
+        Assert.True(build.Succeeded, CompositionRunReportJson.Serialize(build));
         byte[] output = await File.ReadAllBytesAsync(
             outputPath,
             TestContext.Current.CancellationToken);
         Assert.Equal(0xA5, output[0x3E020]);
-        Assert.Equal(0xC3, output[0x3E021]);
+        Assert.Equal(0x5A, output[0x3E021]);
+        Assert.Equal(0x00, output[0]);
         AssertReportInputHash(
             build,
             Path.GetFileName(sourcePath),
-            reloadedRow.Source.AcceptedFileStamp!.Value.Sha256);
+            acceptedStamp.Sha256);
     }
 
-    /// <summary>Sequential General Merge file inspection retains one exact compilation.</summary>
+    /// <summary>General Merge batch preparation accepts two files under one exact compilation.</summary>
     [Fact]
     public async Task GeneralMergeTwoFilesRetainExactCompilationAndReachReadiness()
     {
@@ -266,42 +296,33 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         GeneralMergeDraftState pending = GeneralTestDraftFactory.CreateMergeDraft(
             "0x10",
             [
-                CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
+                GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
                     "mapping-1", firstPath, "0x0", "0x0", "0x2"),
-                CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
+                GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
                     "mapping-2", secondPath, "0x0", "0x2", "0x2"),
             ]);
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralMerge);
 
-        _ = await AcceptGeneralMergeSessionAsync(
-            session, "NT51950", pending, "mapping-1", firstPath, 2,
-            expectReady: false);
-        GeneralMergeDraftState afterFirst = Assert.IsType<GeneralMergeDraftState>(
-            session.CurrentSnapshot!.DraftState);
-        ActiveSessionSnapshot second = await AcceptGeneralMergeSessionAsync(
-            session, "NT51950", afterFirst, "mapping-2", secondPath, 2,
-            expectReady: false);
-        ResolvedCapability exact = Assert.IsType<ResolvedCapability>(second.ExactCapability);
-        GeneralMergeDraftState afterSecond = Assert.IsType<GeneralMergeDraftState>(
-            second.DraftState);
-        AcceptCachedGeneralMergeInspection(
-            session, "NT51950", afterSecond, "mapping-1", firstPath);
-        CapabilityActionReadinessSnapshot? readiness =
-            CompositionAuthoringSessionAdapter.GetGeneralMergeActionReadiness(
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareMergeSessionAsync(
                 session,
                 "NT51950",
-                Assert.IsType<GeneralMergeDraftState>(session.CurrentSnapshot!.DraftState));
+                pending,
+                TestContext.Current.CancellationToken);
 
-        Assert.Same(exact, session.CurrentSnapshot!.ExactCapability);
-        Assert.All(session.CurrentSnapshot.Slots, static slot => Assert.True(
+        Assert.True(prepared.Succeeded, string.Join(
+            " | ",
+            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.All(prepared.AcceptedSession!.Slots, static slot => Assert.True(
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning));
-        Assert.NotNull(readiness);
-        Assert.NotNull(session.CurrentSnapshot.GetAcceptedCapability(
+        Assert.True(prepared.Readiness!.Build.IsAvailable);
+        Assert.NotNull(prepared.AcceptedSession.GetAcceptedCapability(
             AuthoringDerivedResultKind.Validation));
     }
 
-    /// <summary>Sequential General Replace file inspection retains one exact compilation.</summary>
+    /// <summary>General Replace batch preparation accepts two files under one exact compilation.</summary>
     [Fact]
     public async Task GeneralReplaceTwoFilesRetainExactCompilationAndReachReadiness()
     {
@@ -311,52 +332,33 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string secondPath = workspace.Write("second.bin", [0x41, 0x42]);
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
         [
-            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+            GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
                 "mapping-1", GeneralMappingSourceKind.FileArtifact,
                 firstPath, "0x3E020", "0x2"),
-            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+            GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
                 "mapping-2", GeneralMappingSourceKind.FileArtifact,
                 secondPath, "0x3E022", "0x2"),
         ]);
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
 
-        _ = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, basePath, pending,
-            "mapping-1", firstPath, 2, expectReady: false);
-        GeneralMappingDraftState afterFirst =
-            Assert.IsType<GeneralMappingDraftState>(session.CurrentSnapshot!.DraftState);
-        ActiveSessionSnapshot second = await AcceptGeneralReplaceSessionAsync(
-            session, "NT51926", "single", 0x40000, basePath, afterFirst,
-            "mapping-2", secondPath, 2, expectReady: false);
-        ResolvedCapability exact = Assert.IsType<ResolvedCapability>(second.ExactCapability);
-        GeneralMappingDraftState afterSecond = Assert.IsType<GeneralMappingDraftState>(
-            second.DraftState);
-        AcceptCachedGeneralReplaceInspection(
-            session,
-            "NT51926",
-            "single",
-            0x40000,
-            basePath,
-            afterSecond,
-            "mapping-1",
-            firstPath);
-        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
                 session,
                 "NT51926",
-                "single",
-                0x40000,
-                Assert.IsType<GeneralMappingDraftState>(session.CurrentSnapshot!.DraftState),
+                IcNumberSelectionTokens.SingleChip,
                 basePath,
-                FileStamp.FromBytes(File.ReadAllBytes(basePath)),
-                baseFirmware: null,
+                pending,
                 TestContext.Current.CancellationToken);
 
-        Assert.Same(exact, session.CurrentSnapshot!.ExactCapability);
-        Assert.All(session.CurrentSnapshot.Slots, static slot => Assert.True(
+        Assert.True(prepared.Succeeded, string.Join(
+            " | ",
+            prepared.Issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+        Assert.All(prepared.AcceptedSession!.Slots, static slot => Assert.True(
             slot.Lifecycle is AuthoringSlotLifecycle.Verified or AuthoringSlotLifecycle.Warning));
-        Assert.NotNull(readiness);
-        Assert.NotNull(session.CurrentSnapshot.GetAcceptedCapability(
+        Assert.True(prepared.Readiness!.Build.IsAvailable);
+        Assert.NotNull(prepared.AcceptedSession.GetAcceptedCapability(
             AuthoringDerivedResultKind.Validation));
     }
 
@@ -373,7 +375,7 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         string sourcePath = workspace.Write("source.bin", [0xA5, 0x5A]);
         GeneralMappingDraftState pending = GeneralTestDraftFactory.CreateReplaceDraft(
         [
-            CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+            GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
                 "mapping-1",
                 GeneralMappingSourceKind.FileArtifact,
                 sourcePath,
@@ -383,34 +385,31 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
         ]);
         var session = new AuthoringSessionState(
             ExperienceIds.GeneralReplace);
-        _ = await AcceptGeneralReplaceSessionAsync(
-            session,
-            "NT51926",
-            "single",
-            0x40000,
-            originalBasePath,
-            pending,
-            "mapping-1",
-            sourcePath,
-            expectedLength: 2);
-        GeneralMappingDraftState accepted = Assert.IsType<GeneralMappingDraftState>(
-            session.CurrentSnapshot!.DraftState);
-
-        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
+        GeneralAuthoringSessionPreparation initial =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
                 session,
                 "NT51926",
-                "single",
-                0x40000,
-                accepted,
+                IcNumberSelectionTokens.SingleChip,
+                originalBasePath,
+                pending,
+                TestContext.Current.CancellationToken);
+        Assert.True(initial.Succeeded, string.Join(" | ", initial.Issues));
+
+        GeneralAuthoringSessionPreparation rebound =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
+                session,
+                "NT51926",
+                IcNumberSelectionTokens.SingleChip,
                 reboundBasePath,
-                FileStamp.FromBytes(reboundBase),
-                baseFirmware: null,
+                pending,
                 TestContext.Current.CancellationToken);
 
-        Assert.NotNull(readiness);
+        Assert.True(rebound.Succeeded, string.Join(" | ", rebound.Issues));
         Assert.Equal(
             session.CurrentSnapshot!.AuthoringRevision,
-            readiness.AuthoringRevision);
+            rebound.Readiness!.AuthoringRevision);
         Assert.NotNull(session.CurrentSnapshot.GetAcceptedCapability(
             AuthoringDerivedResultKind.Validation));
     }
@@ -418,245 +417,58 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
     private static async Task<ActiveSessionSnapshot> AcceptGeneralMergeSessionAsync(
         AuthoringSessionState session,
         string icId,
-        GeneralMergeDraftState draft,
-        string mappingId,
-        string sourcePath,
-        long expectedLength,
-        bool expectReady = true)
+        GeneralMergeDraftState draft)
     {
-        AuthoringSlotInspectionStartResult started =
-            CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
-                session, icId, draft, mappingId, expectedLength);
-        if (!started.Succeeded && !expectReady)
-        {
-            Assert.True(CompositionAuthoringSessionAdapter.PrepareGeneralMergeSelectionSession(
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareMergeSessionAsync(
                 session,
                 icId,
-                draft.Mappings.Rows.Select(static row => row.MappingId)));
-            Assert.True(session.SetDraft(draft).Succeeded);
-            Assert.True(session.SetSlotFile(mappingId, sourcePath, fileStamp: null).Succeeded);
-            AuthoringPublicationLease lease = session.CapturePublicationLease(
-                AuthoringDerivedResultKind.Inspection);
-            GeneralSelectedFileInspectionResult cached =
-                await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
-                    mappingId,
-                    sourcePath,
-                    lease.AuthoringRevision,
-                    expectedLength,
-                    TestContext.Current.CancellationToken);
-            Assert.True(session.TryCacheGeneralSelectedFileInspection(
-                lease, cached.Inspection!).Succeeded);
-            return session.CurrentSnapshot!;
-        }
-        Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
-            session, draft.Mappings, mappingId));
-        GeneralSelectedFileInspectionResult inspection =
-            await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
-                mappingId,
-                sourcePath,
-                started.Snapshot!.AuthoringRevision,
-                expectedLength,
+                draft,
                 TestContext.Current.CancellationToken);
-        Assert.True(session.TryAcceptSlotFileInspection(
-            started.Lease!, inspection.Inspection!).Succeeded);
-        GeneralMergeDraftState accepted = Assert.IsType<GeneralMergeDraftState>(
-            session.CurrentSnapshot!.DraftState);
-        CapabilityActionReadinessSnapshot? readiness =
-            CompositionAuthoringSessionAdapter.GetGeneralMergeActionReadiness(
-                session, icId, accepted);
-        Assert.Equal(expectReady, readiness is not null);
-        return session.CurrentSnapshot!;
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues));
+        return prepared.AcceptedSession!;
     }
 
-    private static async Task<ActiveSessionSnapshot> AcceptGeneralReplaceSessionAsync(
+    private static async Task<(
+        ActiveSessionSnapshot Session,
+        CapabilityActionReadinessSnapshot Readiness)> AcceptGeneralReplaceSessionAsync(
         AuthoringSessionState session,
         string icId,
         string number,
-        long capacity,
         string referencePath,
-        GeneralMappingDraftState draft,
-        string mappingId,
-        string sourcePath,
-        long expectedLength,
-        bool expectReady = true)
+        GeneralMappingDraftState draft)
     {
-        AuthoringSlotInspectionStartResult started =
-            CompositionAuthoringSessionAdapter.BeginGeneralReplaceSelectedFileInspection(
+        GeneralAuthoringSessionPreparation prepared =
+            await BootstrapTestHost.Services.GeneralAuthoring
+                .PrepareReplaceSessionAsync(
                 session,
                 icId,
                 number,
-                capacity,
-                draft,
                 referencePath,
-                FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
-                mappingId,
-                expectedLength);
-        if (!started.Succeeded && !expectReady)
-        {
-            Assert.True(CompositionAuthoringSessionAdapter.PrepareGeneralReplaceSelectionSession(
-                session,
-                icId,
-                capacity,
-                draft.Rows.Select(static row => row.MappingId)));
-            Assert.True(session.SetDraft(draft).Succeeded);
-            Assert.True(session.SetSlotFile(mappingId, sourcePath, fileStamp: null).Succeeded);
-            AuthoringPublicationLease lease = session.CapturePublicationLease(
-                AuthoringDerivedResultKind.Inspection);
-            GeneralSelectedFileInspectionResult cached =
-                await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
-                    mappingId,
-                    sourcePath,
-                    lease.AuthoringRevision,
-                    expectedLength,
-                    TestContext.Current.CancellationToken);
-            Assert.True(session.TryCacheGeneralSelectedFileInspection(
-                lease, cached.Inspection!).Succeeded);
-            return session.CurrentSnapshot!;
-        }
-        Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
-            session, draft, mappingId));
-        GeneralSelectedFileInspectionResult inspection =
-            await CanonicalAuthoringAdapter.InspectGeneralSelectedFileAsync(
-                mappingId,
-                sourcePath,
-                started.Snapshot!.AuthoringRevision,
-                expectedLength,
+                draft,
                 TestContext.Current.CancellationToken);
-        Assert.True(session.TryAcceptSlotFileInspection(
-            started.Lease!, inspection.Inspection!).Succeeded);
-        GeneralMappingDraftState accepted = Assert.IsType<GeneralMappingDraftState>(
-            session.CurrentSnapshot!.DraftState);
-        CapabilityActionReadinessSnapshot? readiness = await CompositionAuthoringSessionAdapter.GetGeneralReplaceActionReadinessAsync(
-            session,
-            icId,
-            number,
-            capacity,
-            accepted,
-            referencePath,
-            FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
-            baseFirmware: null,
-            TestContext.Current.CancellationToken);
-        Assert.Equal(expectReady, readiness is not null);
-        return session.CurrentSnapshot!;
+        Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues));
+        return (prepared.AcceptedSession!, prepared.Readiness!);
     }
 
-    private static void AcceptCachedGeneralMergeInspection(
-        AuthoringSessionState session,
-        string icId,
-        GeneralMergeDraftState draft,
-        string mappingId,
-        string sourcePath)
-    {
-        Assert.True(session.TryGetCachedGeneralSelectedFileInspection(
-            mappingId, sourcePath, out GeneralSelectedFileInspection? cached));
-        AuthoringSlotInspectionStartResult started =
-            CompositionAuthoringSessionAdapter.BeginGeneralMergeSelectedFileInspection(
-                session,
-                icId,
-                draft,
-                mappingId,
-                cached.FileStamp.AcceptedLength);
-        Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
-            session, draft.Mappings, mappingId));
-        Assert.True(session.TryAcceptSlotFileInspection(
-            started.Lease!,
-            WithRevision(cached, started.Snapshot!.AuthoringRevision)).Succeeded);
-    }
-
-    private static void AcceptCachedGeneralReplaceInspection(
-        AuthoringSessionState session,
-        string icId,
-        string number,
-        long capacity,
-        string referencePath,
-        GeneralMappingDraftState draft,
-        string mappingId,
-        string sourcePath)
-    {
-        Assert.True(session.TryGetCachedGeneralSelectedFileInspection(
-            mappingId, sourcePath, out GeneralSelectedFileInspection? cached));
-        AuthoringSlotInspectionStartResult started =
-            CompositionAuthoringSessionAdapter.BeginGeneralReplaceSelectedFileInspection(
-                session,
-                icId,
-                number,
-                capacity,
-                draft,
-                referencePath,
-                FileStamp.FromBytes(File.ReadAllBytes(referencePath)),
-                mappingId,
-                cached.FileStamp.AcceptedLength);
-        Assert.True(started.Succeeded, started.Issue?.Message + DescribeGeneralSession(
-            session, draft, mappingId));
-        Assert.True(session.TryAcceptSlotFileInspection(
-            started.Lease!,
-            WithRevision(cached, started.Snapshot!.AuthoringRevision)).Succeeded);
-    }
-
-    private static GeneralSelectedFileInspection WithRevision(
-        GeneralSelectedFileInspection inspection,
-        AuthoringRevision revision)
-    {
-        return new GeneralSelectedFileInspection(
-            inspection.DefinitionId,
-            revision,
-            inspection.SelectedPathHint,
-            inspection.FileStamp,
-            inspection.DisplayNameHint,
-            inspection.LastWriteTimeUtcHint);
-    }
-
-    private static string DescribeGeneralSession(
-        AuthoringSessionState session,
-        GeneralMappingDraftState draft,
-        string mappingId)
-    {
-        ActiveSessionSnapshot? snapshot = session.CurrentSnapshot;
-        GeneralMappingDraftState? current = snapshot?.DraftState switch
-        {
-            GeneralMergeDraftState merge => merge.Mappings,
-            GeneralMappingDraftState replace => replace,
-            _ => null,
-        };
-        string bindings = snapshot?.ExactCapability is null
-            ? "none"
-            : string.Join(",", snapshot.ExactCapability.CompiledComposition.V2Details
-                .InputContract.SpaceBindings.Select(binding =>
-                    $"{binding.SlotId}->{binding.AddressSpaceId}"));
-        string spaces = snapshot?.ExactCapability is null
-            ? "none"
-            : string.Join(",", snapshot.ExactCapability.CompiledComposition.Plan
-                .AddressSpaces.Select(space => $"{space.AddressSpaceId}:{space.Length}"));
-        return $" exact={snapshot?.ExactCapability is not null}; same={current?.HasSameCompilationInputs(draft)}; mapping={mappingId}; bindings={bindings}; spaces={spaces}";
-    }
-
-    private static void AssertIssue(WorkbenchRunResult result, string issueCode)
-    {
-        using var report = JsonDocument.Parse(result.ReportJson);
-        Assert.Contains(
-            report.RootElement.GetProperty("Issues").EnumerateArray(),
-            issue => StringComparer.Ordinal.Equals(
-                issue.GetProperty("Code").GetString(),
-                issueCode));
-    }
-
-    private static WorkbenchGeneralMergeInitializer ResolveGeneralMergeInitializer(
+    private static GeneralMergeInitializer ResolveGeneralMergeInitializer(
         string outputLength)
     {
         Assert.True(
-            CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
+            GeneralMergeAuthoringUseCase.TryResolveOutputInitializer(
                 outputLength,
                 outputFillByte: null,
-                out WorkbenchGeneralMergeInitializer? initializer));
+                out GeneralMergeInitializer? initializer));
         return initializer;
     }
 
     private static void AssertReportInputHash(
-        WorkbenchRunResult result,
+        CompositionRunResult result,
         string originalFileName,
         string expectedSha256)
     {
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement input = Assert.Single(
             report.RootElement.GetProperty("Inputs").EnumerateArray(),
             input => StringComparer.Ordinal.Equals(

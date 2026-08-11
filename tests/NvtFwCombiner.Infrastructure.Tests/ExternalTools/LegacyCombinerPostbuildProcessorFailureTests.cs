@@ -7,6 +7,30 @@ namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 public sealed partial class LegacyCombinerPostbuildProcessorTests
 {
+    /// <summary>Rejects execution when the compiled invocation did not select the adapter protocol plan.</summary>
+    [Fact]
+    public async Task TransformRejectsMissingCompiledProtocolPlanBeforeLaunch()
+    {
+        using var workspace = TempWorkspace.Create();
+        string sha256 = workspace.CreateToolExecutable();
+        FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
+        LegacyCombinerPostbuildProfile profile = CreateCrcOnlyProfile("nfc.test.missing-plan-v1", "test_fw.bin");
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner);
+        ExternalProcessorRequest request = new(
+            "run-missing-plan",
+            profile.ProcessorId,
+            profile.ToolBindingId,
+            CreateFirmwareImage(),
+            [],
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+
+        ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("legacy-combiner.compiled-plan.missing", Assert.Single(result.Issues).Code);
+        Assert.Equal(0, runner.RunCount);
+    }
+
     /// <summary>Rejects a profile-approved tool binding that is absent from the executable registry.</summary>
     [Fact]
     public async Task TransformRejectsUnknownRegisteredToolBindingBeforeLaunch()
@@ -25,7 +49,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             profile.ToolBindingId,
             CreateFirmwareImage(),
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -49,7 +76,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             profile.ToolBindingId,
             CreateFirmwareImage(),
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -66,14 +96,18 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         string sha256 = workspace.CreateToolExecutable();
         byte[] firmware = [0x10, 0x11, 0x20, 0x21];
         FakeProcessRunner runner = new(_ => throw new InvalidOperationException("Process should not run."));
-        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [CreateProjectionConflictProfile()]);
+        LegacyCombinerPostbuildProfile profile = CreateProjectionConflictProfile();
+        LegacyCombinerPostbuildProcessor processor = workspace.CreateProcessor(sha256, runner, [profile]);
         ExternalProcessorRequest request = new(
             "run-projection-conflict",
             "nfc.test.projection-conflict-v1",
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -103,7 +137,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -133,7 +170,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -164,7 +204,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -203,7 +246,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [new ByteRange(0x2D30C, 1)],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                LegacyCombinerPostbuildCatalog.Nt51950.ProcessorId,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -254,7 +300,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 
@@ -305,7 +354,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
             "legacy-combiner-1.13.0",
             firmware,
             [],
-            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]));
+            new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
+            protocolPlan: CompileProtocolPlan(
+                profile,
+                new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"])));
 
         ExternalProcessorResult result = await processor.TransformAsync(request, CancellationToken.None);
 

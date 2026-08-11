@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
     public async Task ReportReviewShowsAcceptedOutputDifferences()
     {
         string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(json, "replace-report.json");
 
@@ -77,7 +77,7 @@ public sealed partial class ShellViewModelTests
         string json = ReportJsonSamples.ReplaceWithAcceptedOutputDifferences(
             isHexPreviewComplete: false,
             hexPreviewByteCount: 2);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(json, "replace-report.json");
 
@@ -90,7 +90,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ReportReviewFormatsCtrlRamInputTitles()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(ReportJsonSamples.CtrlRamInputs(), "ctrlram-inputs.json");
 

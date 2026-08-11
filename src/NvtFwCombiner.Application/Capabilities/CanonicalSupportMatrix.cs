@@ -184,23 +184,9 @@ public interface ICanonicalSupportMatrixQuery
     CanonicalSupportMatrixQueryResult Query();
 }
 
-/// <summary>Projects only the current canonical catalog reload result.</summary>
-public sealed class CanonicalSupportMatrixQuery(
-    Func<CapabilityCatalogReloadResult?> reloadResultProvider) :
-    ICanonicalSupportMatrixQuery
+/// <summary>Pure projection from one catalog publication result.</summary>
+public static class CanonicalSupportMatrixQuery
 {
-    private readonly Func<CapabilityCatalogReloadResult?> _reloadResultProvider =
-        reloadResultProvider ?? throw new ArgumentNullException(nameof(reloadResultProvider));
-
-    /// <inheritdoc />
-    public CanonicalSupportMatrixQueryResult Query()
-    {
-        CapabilityCatalogReloadResult? reload = _reloadResultProvider();
-        return reload is null
-            ? CanonicalSupportMatrixQueryResult.Loading()
-            : Project(reload);
-    }
-
     /// <summary>Projects one catalog reload result without reading another catalog.</summary>
     public static CanonicalSupportMatrixQueryResult Project(
         CapabilityCatalogReloadResult reload)

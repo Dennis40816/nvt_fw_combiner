@@ -11,4 +11,21 @@ public sealed record CapabilityProfileSummary(
     string DefaultOutputFileName,
     IcNumberInputMode? IcNumberInputMode,
     bool CompileSucceeded,
-    IReadOnlyList<string> IssueCodes);
+    IReadOnlyList<string> IssueCodes)
+{
+    internal static CapabilityProfileSummary FromCompiled(
+        CompiledComposition composition)
+    {
+        ArgumentNullException.ThrowIfNull(composition);
+        return new CapabilityProfileSummary(
+            composition.V2Details.ProfileId,
+            composition.V2Details.Provenance.Context.MemberId,
+            composition.V2Details.CompositionKind,
+            Array.AsReadOnly(
+                composition.Plan.RequiredInputAddressSpaceIds.ToArray()),
+            composition.V2Details.OutputNamingRequirement.FileNameTemplate,
+            composition.V2Details.IcNumberInputMode,
+            CompileSucceeded: true,
+            []);
+    }
+}

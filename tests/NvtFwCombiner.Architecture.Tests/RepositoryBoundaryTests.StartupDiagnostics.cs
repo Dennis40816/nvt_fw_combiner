@@ -10,7 +10,7 @@ public sealed partial class RepositoryBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/StartupTraceSession.cs");
         string sink = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/StartupTraceFileSink.cs");
-        string program = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Program.cs");
+        string program = ReadText("src/NvtFwCombiner.Presentation.Avalonia/DesktopApplication.cs");
         string application = ReadText("src/NvtFwCombiner.Presentation.Avalonia/App.axaml.cs");
         string window = ReadText("src/NvtFwCombiner.Presentation.Avalonia/MainWindow.axaml.cs");
         string runner = ReadText("scripts/measure-startup.ps1");

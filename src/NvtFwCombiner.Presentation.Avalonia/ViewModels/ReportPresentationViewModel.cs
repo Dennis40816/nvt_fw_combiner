@@ -1,7 +1,7 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -299,9 +299,9 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         string message,
         IReadOnlyDictionary<string, string> slotPaths,
         string compositionKind = "Merge",
-        string modeId = WorkbenchWorkflowIds.StandardMerge,
-        string experienceId = WorkbenchWorkflowIds.StandardMerge,
-        string issueCode = WorkbenchIssueCodes.UiRunFailed)
+        string modeId = ExperienceIds.StandardMerge,
+        string experienceId = ExperienceIds.StandardMerge,
+        string issueCode = CompositionPlanningIssueCodes.UiRunFailed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentNullException.ThrowIfNull(profileId);
@@ -316,7 +316,7 @@ public sealed partial class ReportPresentationViewModel : ObservableObject
         var report = new
         {
             RunId = $"ui-{action.ToLowerInvariant()}-error-{timestamp.ToUnixTimeMilliseconds()}",
-            ProfileId = string.IsNullOrWhiteSpace(profileId) ? WorkbenchWorkflowIds.StandardMerge : profileId,
+            ProfileId = string.IsNullOrWhiteSpace(profileId) ? ExperienceIds.StandardMerge : profileId,
             ProfileVersion = string.Empty,
             IcId = icId,
             ModeId = modeId,
