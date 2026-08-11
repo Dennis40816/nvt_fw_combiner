@@ -287,6 +287,31 @@ public sealed record CapabilityActionReadinessSnapshot(
 public static class CapabilityActionReadinessResolver
 {
     /// <summary>
+    /// Requires compiled runtime dependencies for Preview when the workflow cannot produce
+    /// a meaningful artifact without running its declared processor.
+    /// </summary>
+    public static CapabilityActionReadinessSnapshot RequireRuntimeDependenciesForPreview(
+        CapabilityActionReadinessSnapshot readiness)
+    {
+        ArgumentNullException.ThrowIfNull(readiness);
+        CapabilityActionBlocker[] previewBlockers =
+        [
+            .. readiness.Preview.Blockers
+                .Concat(readiness.Build.Blockers.Where(static blocker =>
+                    blocker.Dimension == CapabilityReadinessDimension.RuntimeDependency))
+                .Distinct(),
+        ];
+        return previewBlockers.Length == readiness.Preview.Blockers.Count
+            ? readiness
+            : readiness with
+            {
+                Preview = new CapabilityActionAvailability(
+                    previewBlockers.Select(static (blocker, index) =>
+                        new RankedBlocker(index, blocker))),
+            };
+    }
+
+    /// <summary>
     /// Refreshes the exact compiled runtime dependencies and resolves action
     /// state before any run/report object exists.
     /// </summary>

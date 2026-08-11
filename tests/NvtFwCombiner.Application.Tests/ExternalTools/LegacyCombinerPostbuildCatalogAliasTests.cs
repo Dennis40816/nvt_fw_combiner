@@ -102,9 +102,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     {
         var selection = new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]);
 
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51923,
-            selection);
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildCatalog.Nt51923.ResolvePlan(selection);
 
         IReadOnlyList<LegacyCombinerBlockArgument> diffBlocks = [
             .. plan.Commands
@@ -124,15 +122,9 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void Nt51927ResolvesExplicitNumericIcCountBranches()
     {
-        LegacyCombinerPostbuildCommandPlan single = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
-        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-        LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+        LegacyCombinerPostbuildCommandPlan single = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["1"]));
+        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+        LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
 
         Assert.Equal(LegacyCombinerPostbuildBranch.SingleChip, single.Branch);
         Assert.Equal(LegacyCombinerPostbuildBranch.TwoChip, twoChip.Branch);
@@ -149,9 +141,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     public void Nt51927RejectsUnsupportedNumericIcCount()
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            LegacyCombinerPostbuildPlanner.CreatePlan(
-                LegacyCombinerPostbuildCatalog.Nt51927,
-                new IcNumberSelection(IcNumberInputMode.NumericSelector, ["4"])));
+            LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["4"])));
 
         Assert.Contains("is not supported", exception.Message, StringComparison.Ordinal);
     }
@@ -160,12 +150,8 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     [Fact]
     public void Nt51927PostbuildKeepsDifferentRightNfOffsetsByIcCount()
     {
-        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
-        LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+        LegacyCombinerPostbuildCommandPlan threeChip = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
 
         LegacyCombinerBlockArgument twoChipRightNf = twoChip.Commands[4].Blocks.Single(block =>
             block.BlockId == "nf-right-body");
@@ -201,9 +187,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
         Assert.Equal(icId, profile.IcId);
         Assert.Equal(firmwareFileName, profile.FirmwareFileName);
 
-        LegacyCombinerPostbuildCommandPlan twoChip = LegacyCombinerPostbuildPlanner.CreatePlan(
-            profile,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
+        LegacyCombinerPostbuildCommandPlan twoChip = profile.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]));
 
         Assert.Equal(LegacyCombinerPostbuildBranch.TwoChip, twoChip.Branch);
         Assert.Equal(10, twoChip.Commands.Count);

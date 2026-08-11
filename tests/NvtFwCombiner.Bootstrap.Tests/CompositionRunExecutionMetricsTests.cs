@@ -247,7 +247,7 @@ public sealed class CompositionRunExecutionMetricsTests
 
     private static CompositionRunRequest CreateDpReplaceRequest(int outputLength)
     {
-        bool registered = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool registered = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51950",
             outputLength,
             selectedInputSlotIds: [],
@@ -260,11 +260,11 @@ public sealed class CompositionRunExecutionMetricsTests
         return CreateRequest(
             compiledComposition,
             [
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     compiledComposition,
                     CompositionAddressSpaceIds.ReferenceBase,
                     "reference-artifact.bin"),
-                CompiledCompositionInputBindingFactory.Create(
+                AcceptedSessionExecutionInputs.CreateCompiledBinding(
                     compiledComposition,
                     CompositionAddressSpaceIds.DpReplacement,
                     "replacement-artifact.bin"),

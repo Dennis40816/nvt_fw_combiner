@@ -1,4 +1,4 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -18,13 +18,16 @@ public sealed partial class ShellViewModelTests
         MainWindowViewModel viewModel = CreateBatchInspectionViewModel((icId, inputs) =>
         {
             revisions.AddRange(inputs.Select(static input => input.AuthoringRevision));
-            return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
+            return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                icId,
+                inputs);
         });
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, WorkbenchReplaceModes.Dp);
-        viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceBase, referencePath);
+        OpenReplace(viewModel, ExperienceIds.DpReplace);
+        viewModel.SetSlotFile(CompositionSlotIds.ReplaceBase, referencePath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
-        viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceDp, firstDpPath);
+        viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, firstDpPath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
 
         revisions.Clear();
@@ -36,7 +39,7 @@ public sealed partial class ShellViewModelTests
         Assert.True(repeatedRevision > stableRevision);
 
         revisions.Clear();
-        viewModel.SetSlotFile(WorkbenchSlotIds.ReplaceDp, secondDpPath);
+        viewModel.SetSlotFile(CompositionSlotIds.ReplaceDp, secondDpPath);
         await viewModel.WorkflowSession.FirmwareInspectionRefreshTask;
         Assert.True(Assert.Single(revisions.Distinct()) > repeatedRevision);
     }

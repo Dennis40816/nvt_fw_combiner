@@ -36,7 +36,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             bundleDirectory,
             "profile-bundle.json");
         Assert.True(File.Exists(deployedManifestPath), $"Deployed bundle manifest is missing: {deployedManifestPath}");
-        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             icId,
             dpInputLength: null,
             out CompiledComposition? composition,
@@ -64,7 +64,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
     [Fact]
     public void Nt51928StandardMergeLdcSelectionResolvesThe512KVariant()
     {
-        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51928",
             dpInputLength: null,
             [
@@ -114,14 +114,14 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             slotPaths[CompositionAddressSpaceIds.LdcInput] = workspace.Write("ldc.bin", ldc);
         }
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
+        CompositionRunResult result = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             icId,
             slotPaths,
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] expected = new byte[expectedCapacity];
         tp.AsSpan(0, 0x35000).CopyTo(expected.AsSpan(0, 0x35000));
         dp.AsSpan(0x3C000, 0x4000).CopyTo(expected.AsSpan(0x3C000, 0x4000));
@@ -142,7 +142,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string profileId,
         long dpInputLength)
     {
-        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             icId,
             dpInputLength,
             out CompiledComposition? composition,
@@ -252,7 +252,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
         string tpPath = workspace.Write("nt51929-tp.bin", tp);
 
         var progress = new CompositionRunProgressFeed();
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeWithProgressAsync(
+        CompositionRunResult result = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -260,8 +260,8 @@ public sealed class BuiltInV2StandardMergeRoutingTests
                 ["tp-input"] = tpPath,
             },
             build: false,
-            progress,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken,
+            progress: progress);
         List<CompositionRunProgressSnapshot> snapshots = [];
         await foreach (CompositionRunProgressSnapshot snapshot in
             progress.ReadAllAsync(TestContext.Current.CancellationToken))
@@ -269,7 +269,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             snapshots.Add(snapshot);
         }
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(progress.IsAttached);
         Assert.Equal(
             [
@@ -281,7 +281,7 @@ public sealed class BuiltInV2StandardMergeRoutingTests
             ],
             snapshots.Select(static snapshot => snapshot.CurrentPhase));
         Assert.Equal(0x40000, result.OutputSize);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Equal("nt51929-standard-merge-gen-flash", report.RootElement.GetProperty("ProfileId").GetString());
         Assert.Equal(
             ["nt51929-dp.bin", "nt51929-tp.bin"],

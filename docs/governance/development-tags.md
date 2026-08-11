@@ -68,7 +68,12 @@ commit.
   remaining deferred UI adoption, Workbench/parallel-catalog deletion, all four
   Core Convergence slices, their reviewed line-addressed candidate/residual
   ledgers, and #197's exact-ratchet, integration, evidence, and release gates
-  are complete. It is the end of the currently approved refactoring program.
+  are complete. The owner-approved LAR-01 through LAR-12 graph extends this
+  terminal outcome to zero Workbench/renamed parallel owners and one production
+  path per module; LAR-00 closes its exact verifier/golden/size evidence before
+  tagging. The owner authorized the normal feature-branch/PR/merge/release path
+  on 2026-08-10; publication still requires all listed evidence and review
+  gates and cannot be performed from an unmerged working tree.
 - `v0.10.4` — post-refactor simplification audit: measure the `v0.10.3` result
   again and review the new architecture for remaining removable ownership or a
   simpler expression. The milestone does not pre-authorize speculative
@@ -214,7 +219,7 @@ and cannot re-admit a retired IC.
 | `v0.10.0` | Maintainability planning and governance | Publish the approved IC-first architecture, terminology, FlashMap provenance, ADR lifecycle, validation standards, and canonical dependency-gated execution plan without changing firmware behavior or support truth. |
 | `v0.10.1` | Headless canonical foundation | Complete all 78 admitted headless routes, reviewed capability/per-compilation identity, allocated firmware contracts, and explicit retirements without claiming deferred UI, deletion, Core convergence, or support certification. |
 | `v0.10.2` | Canonical desktop adoption and first compatibility deletion | Adopt the canonical headless readiness/inspection and exact-compilation contracts in all six desktop workflows, extract the shallow shell and shared read-only Hex viewport, and delete the General/Saved Rule v1 owners through #254 without support promotion. |
-| `v0.10.3` | Complete canonical refactoring | Complete the remaining deferred UI adoption, Workbench/parallel-catalog deletion, all four evidence-backed Canonical Core Convergence ledgers, exact descending ratchets, and #197 integration/evidence/release gates before tagging. |
+| `v0.10.3` | Complete canonical refactoring | Complete LAR-01 through LAR-12, close LAR-00, remove Workbench/renamed parallel owners, retain one production path per module, complete all four evidence-backed Canonical Core Convergence ledgers, lower exact ratchets, and pass #197 integration/evidence/release gates before tagging. |
 | `v0.10.4` | Post-refactor simplification audit | Re-measure the completed canonical architecture, identify any remaining removable or simplifiable ownership, and accept further changes only with preserved behavior, evidence, and descending size gates. |
 | `v0.10.5` | Unified preload performance control | Optimize startup and background work by making every preload use one observable, cancellable, bounded, and user-controllable lifecycle without changing firmware results or support truth. |
 | `v0.10.6` | Path-based update experience | Reserve a user-facing update flow that obtains reviewed artifacts from a configured path so routine delivery does not require repackaging and email. Exact trust, rollback, version, network/share, and release-policy behavior remains owner-deferred and unimplemented until a later specification review. |

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -142,33 +143,33 @@ public sealed partial class ReplaceCliCommandTests
         string tpOutputPath = workspace.PathFor("output-tp.bin");
         string fullFlashOutputPath = workspace.PathFor("output-flash.bin");
 
-        WorkbenchRunResult tpRun = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult tpRun = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "cascade",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = tpBasePath,
+                [CompositionSlotIds.ReplaceBase] = tpBasePath,
                 ["replace-ctrlram-vn"] = vnPath,
             },
             build: true,
             TestContext.Current.CancellationToken,
             tpOutputPath);
-        WorkbenchRunResult fullFlashRun = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult fullFlashRun = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "cascade",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = fullFlashPath,
+                [CompositionSlotIds.ReplaceBase] = fullFlashPath,
                 ["replace-ctrlram-vn"] = vnPath,
             },
             build: true,
             TestContext.Current.CancellationToken,
             fullFlashOutputPath);
 
-        Assert.True(tpRun.Succeeded, tpRun.ReportJson);
-        Assert.True(fullFlashRun.Succeeded, fullFlashRun.ReportJson);
+        Assert.True(tpRun.Succeeded, CompositionRunReportJson.Serialize(tpRun));
+        Assert.True(fullFlashRun.Succeeded, CompositionRunReportJson.Serialize(fullFlashRun));
         byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
         byte[] fullFlashOutput = File.ReadAllBytes(fullFlashOutputPath);
         Assert.Equal(0x3C000, tpOutput.Length);
@@ -212,27 +213,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains("Base firmware BIN path does not exist.", result.Error, StringComparison.Ordinal);
         Assert.DoesNotContain("Base flash", result.Error, StringComparison.Ordinal);
-        string reportJson = await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken);
-        Assert.DoesNotContain("base flash", reportJson, StringComparison.OrdinalIgnoreCase);
-
-        string basePath = CanonicalGoldenTestData.ArtifactPath(
-            "standard-merge",
-            "51926",
-            "tp-input");
-        WorkbenchRunResult planning = await CompositionExecutionAdapter.RunReplaceAsync(
-            "NT51926",
-            "cascade",
-            "CtrlRAM",
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["replace-base"] = basePath,
-            },
-            build: false,
-            TestContext.Current.CancellationToken);
-
-        Assert.False(planning.Succeeded);
-        Assert.Contains("base firmware BIN for postbuild staging", planning.ReportJson, StringComparison.Ordinal);
-        Assert.DoesNotContain("base flash", planning.ReportJson, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(reportPath));
     }
 
     /// <summary>Verifies real IC CtrlRAM Replace accepts multiple slot-specific replacement inputs in one CLI run.</summary>
@@ -245,7 +226,7 @@ public sealed partial class ReplaceCliCommandTests
             "nt51927-2chip-self-20260705");
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()
-            .Single(item => item.GetProperty("slotId").GetString() == WorkbenchSlotIds.ReplaceBase);
+            .Single(item => item.GetProperty("slotId").GetString() == CompositionSlotIds.ReplaceBase);
         string basePath = CanonicalGoldenTestData.ArtifactPath(baseArtifact);
         JsonElement normalMaster = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()

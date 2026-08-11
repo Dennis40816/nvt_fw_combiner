@@ -141,12 +141,57 @@ internal static partial class V2CompositionPlanCompiler
             new CompiledInputContract(inputSlots, inputBindings, inputSelectionGroups),
             regionAccess,
             profile.Output,
-            profile.IcNumberInputMode);
+            profile.IcNumberInputMode,
+            CreateAdditionalDeliveries(profile, context));
         ValidateArtifactAdmission(details, runtimeExecutable);
         CompiledComposition artifact = runtimeExecutable
             ? CompiledComposition.CreateV2RuntimeExecutable(plan, details)
             : CompiledComposition.CreateV2(plan, details);
         return V2CompositionPlanCompileResult.Succeeded(artifact);
+    }
+
+    private static IReadOnlyList<CompiledAdditionalDelivery> CreateAdditionalDeliveries(
+        CompositionProfileDefinition profile,
+        V2CompilationContext context)
+    {
+        if (profile.Output.RendererKind != CompiledOutputNameRendererKind.AbCodeV1 ||
+            context is not MapBoundV2CompilationContext mapContext)
+        {
+            return [];
+        }
+
+        string[] aBankRegionIds =
+        [
+            "dp-a-before-cmi",
+            "a-cmi-dp-version",
+            "dp-a-after-cmi",
+            "tpa-code",
+        ];
+        var regions = mapContext.ResolvedMap.ImageMap.Regions
+            .ToDictionary(static region => region.RegionId, StringComparer.Ordinal);
+        if (aBankRegionIds.Any(regionId => !regions.ContainsKey(regionId)))
+        {
+            return [];
+        }
+
+        FirmwareRegion[] ordered = [.. aBankRegionIds.Select(regionId => regions[regionId])];
+        if (ordered[0].Range.Start != 0 || ordered.Zip(ordered.Skip(1))
+                .Any(static pair => pair.First.Range.EndExclusive != pair.Second.Range.Start))
+        {
+            return [];
+        }
+
+        var sourceRange = new ByteRange(0, ordered[^1].Range.EndExclusive);
+        return sourceRange.EndExclusive > mapContext.ResolvedMap.ImageMap.CapacityBytes
+            ? []
+            :
+            [
+                new CompiledAdditionalDelivery(
+                    CompiledAdditionalDelivery.AbAFlashCodeKind,
+                    sourceRange,
+                    CompiledAdditionalDelivery.AbAFlashCodeFileNameTemplate,
+                    ["date", "dp-a", "ic", "tp-a"]),
+            ];
     }
 
     private static void ValidateArtifactAdmission(

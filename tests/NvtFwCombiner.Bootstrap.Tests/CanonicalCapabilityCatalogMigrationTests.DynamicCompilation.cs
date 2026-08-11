@@ -66,7 +66,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCtrlRamReportBindingsRequireProfileDeclaration()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute[] reportless =
@@ -103,7 +103,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsExactSemanticDrift()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -158,7 +158,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsMissingCompiledSelectionGroup()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -187,7 +187,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicCompilationContractRejectsLogicalFamilyDrift()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(

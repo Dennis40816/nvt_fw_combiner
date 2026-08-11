@@ -492,7 +492,8 @@ public sealed partial class CompiledCompositionTests
         CompositionKind compositionKind = CompositionKind.Merge,
         IcNumberInputMode? icNumberInputMode = null,
         string profileId = "profile-v2",
-        string profileVersion = "2.0.0")
+        string profileVersion = "2.0.0",
+        IEnumerable<CompiledAdditionalDelivery>? additionalDeliveries = null)
     {
         resolvedMap ??= CreateResolvedMap(familyContentHash, modeId: modeId);
         var bundle = new ProfileBundleIdentity(
@@ -523,7 +524,8 @@ public sealed partial class CompiledCompositionTests
             inputContract ?? CreateInputContract(),
             regionAccessContract ?? new CompiledRegionAccessContract([], []),
             output,
-            icNumberInputMode);
+            icNumberInputMode,
+            additionalDeliveries);
         plan ??= new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [

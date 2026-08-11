@@ -9,7 +9,7 @@ public sealed class BuildResultViewModel : ObservableObject
 {
     private readonly IFileRevealService _fileRevealService;
     private readonly Func<string> _openFolderErrorText;
-    private WorkbenchDeliveryArtifact? _additionalOutput;
+    private CompositionDeliveryArtifact? _additionalOutput;
 
     internal BuildResultViewModel(
         IFileRevealService fileRevealService,
@@ -59,7 +59,7 @@ public sealed class BuildResultViewModel : ObservableObject
     /// <summary>Command that reveals the committed BIN from the Build confirmation.</summary>
     public IRelayCommand RevealOutputCommand { get; }
 
-    internal bool TryShow(WorkbenchRunResult result, bool build)
+    internal bool TryShow(CompositionRunResult result, bool build)
     {
         ArgumentNullException.ThrowIfNull(result);
         if (!build || !result.Succeeded || string.IsNullOrWhiteSpace(result.CommittedOutputId))

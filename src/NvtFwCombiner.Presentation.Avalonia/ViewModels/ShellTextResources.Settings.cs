@@ -2,7 +2,7 @@
 #pragma warning disable CS1591
 
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -220,12 +220,12 @@ public sealed partial class ShellTextResources
     {
         return workflowId switch
         {
-            WorkbenchWorkflowIds.StandardMerge => "Standard Merge",
-            WorkbenchWorkflowIds.AbMerge => "AB Merge",
-            WorkbenchWorkflowIds.GeneralMerge => "General Merge",
-            WorkbenchWorkflowIds.DpReplace => "DP Replace",
-            WorkbenchWorkflowIds.CtrlRamReplace => "CtrlRAM Replace",
-            WorkbenchWorkflowIds.GeneralReplace => "General Replace",
+            ExperienceIds.StandardMerge => "Standard Merge",
+            ExperienceIds.AbMerge => "AB Merge",
+            ExperienceIds.GeneralMerge => "General Merge",
+            ExperienceIds.DpReplace => "DP Replace",
+            ExperienceIds.CtrlRamReplace => "CtrlRAM Replace",
+            ExperienceIds.GeneralReplace => "General Replace",
             _ => workflowId,
         };
     }

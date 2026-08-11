@@ -12,7 +12,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ShellFactoryInitialLanguageAndSelectorStayAligned()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create(ShellLanguage.ChineseTraditional);
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(ShellLanguage.ChineseTraditional);
 
         Assert.Equal("Traditional Chinese", viewModel.SelectedLanguage);
         Assert.Equal("設定", viewModel.SettingsPreview.Title);
@@ -54,7 +54,7 @@ public sealed partial class ShellViewModelTests
         ShellPreferenceFileStore.Save(preferencesPath, updatedPreferences);
         Assert.Equal(updatedPreferences, ShellPreferenceFileStore.Load(preferencesPath));
 
-        MainWindowViewModel restoredViewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel restoredViewModel = PresentationTestHost.CreateViewModel();
         restoredViewModel.LoadShellPreferences(loaded);
 
         Assert.Equal("Dark", restoredViewModel.SelectedTheme);
@@ -83,7 +83,7 @@ public sealed partial class ShellViewModelTests
 
         Assert.Equal(ShellPreferenceSnapshot.Default, ShellPreferenceFileStore.Load(preferencesPath));
 
-        MainWindowViewModel defaultViewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel defaultViewModel = PresentationTestHost.CreateViewModel();
         defaultViewModel.LoadShellPreferences(new ShellPreferenceSnapshot("Blue", "Klingon"));
 
         Assert.Equal("System", defaultViewModel.SelectedTheme);

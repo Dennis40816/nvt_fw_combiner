@@ -1,4 +1,3 @@
-using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -17,7 +16,7 @@ internal static partial class BuiltInTpFlashMapCatalog
             ? []
             : GetPostbuildMappedCtrlRamRegions(
                 icId,
-                LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection));
+                postbuildProfile.ResolvePlan(selection));
     }
 
     /// <summary>Gets mapped CtrlRAM regions from one exact topology-resolved postbuild plan.</summary>
@@ -47,7 +46,7 @@ internal static partial class BuiltInTpFlashMapCatalog
             ? GetPostbuildCtrlRamSources(
                 icId,
                 flashMapProfile,
-                LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection))
+                postbuildProfile.ResolvePlan(selection))
             : [];
     }
 
@@ -122,7 +121,7 @@ internal static partial class BuiltInTpFlashMapCatalog
         LegacyCombinerPostbuildCommandPlan plan)
     {
         IReadOnlyList<LegacyCombinerBlockArgument> blocks =
-            LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan);
+            LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan);
         LegacyCombinerDiffDlmPolicy? policy =
             plan.Branch == LegacyCombinerPostbuildBranch.Cascade
                 ? plan.Profile.DiffDlmPolicy
@@ -146,7 +145,7 @@ internal static partial class BuiltInTpFlashMapCatalog
             return visibleRegions;
         }
 
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(postbuildProfile, selection);
+        LegacyCombinerPostbuildCommandPlan plan = postbuildProfile.ResolvePlan(selection);
         return ApplyPostbuildRangeOverrides(visibleRegions, plan);
     }
 

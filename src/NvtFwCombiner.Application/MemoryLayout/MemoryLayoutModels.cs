@@ -1,157 +1,10 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.MemoryLayout;
-
-/// <summary>Primary source-neutral content role for one projected segment.</summary>
-public enum MemoryContentRole
-{
-    /// <summary>Display or Initial Code.</summary>
-    Dp,
-    /// <summary>Normal touch firmware.</summary>
-    Tp,
-    /// <summary>Backup touch firmware.</summary>
-    TpBackup,
-    /// <summary>LDC.</summary>
-    Ldc,
-    /// <summary>General or otherwise neutral data.</summary>
-    General,
-    /// <summary>Reserved or unmapped structure.</summary>
-    Reserved,
-    /// <summary>CtrlRAM; subtype remains a separate future fact.</summary>
-    CtrlRam,
-}
-
-/// <summary>Planned workflow effect, independent from content and observed bytes.</summary>
-public enum MemoryWorkflowDisposition
-{
-    /// <summary>Resolved physical structure without a selected effect.</summary>
-    Resolved,
-    /// <summary>Blank-initialized Merge structure.</summary>
-    Blank,
-    /// <summary>Selected Merge input will write this range.</summary>
-    WillWrite,
-    /// <summary>Reference bytes remain preserved by Replace.</summary>
-    Kept,
-    /// <summary>Selected Replace input will replace this range.</summary>
-    WillReplace,
-    /// <summary>DP AB seed range.</summary>
-    DpAbBase,
-    /// <summary>TP normal-code overlay in the A bank.</summary>
-    TpaOverlay,
-    /// <summary>TP backup-code overlay in the B bank.</summary>
-    TpbOverlay,
-}
-
-/// <summary>Physical endpoint identity independent from content role.</summary>
-public enum MemoryEndpointIdentity
-{
-    /// <summary>No endpoint distinction applies.</summary>
-    NotApplicable,
-    /// <summary>Single endpoint.</summary>
-    SingleEndpoint,
-    /// <summary>Master endpoint.</summary>
-    Master,
-    /// <summary>Slave endpoint.</summary>
-    Slave,
-}
-
-/// <summary>A/B bank identity independent from content role.</summary>
-public enum MemoryBankIdentity
-{
-    /// <summary>No bank distinction applies.</summary>
-    NotApplicable,
-    /// <summary>A bank.</summary>
-    A,
-    /// <summary>B bank.</summary>
-    B,
-}
-
-/// <summary>Declared processor effect independent from workflow disposition.</summary>
-public enum MemoryProcessorEffect
-{
-    /// <summary>No processor effect contributes.</summary>
-    None,
-    /// <summary>A declared processor has write authority.</summary>
-    DeclaredWrite,
-}
-
-/// <summary>Highest diagnostic severity attached to one projected item.</summary>
-public enum MemoryDiagnosticSeverity
-{
-    /// <summary>No diagnostic applies.</summary>
-    None,
-    /// <summary>Informational prerequisite.</summary>
-    Information,
-    /// <summary>Non-blocking warning.</summary>
-    Warning,
-    /// <summary>Blocking error.</summary>
-    Error,
-}
-
-/// <summary>Observed byte-comparison state, available only after byte evidence exists.</summary>
-public enum MemoryObservedChange
-{
-    /// <summary>No byte comparison has been performed.</summary>
-    NotObserved,
-    /// <summary>Compared bytes are unchanged.</summary>
-    Unchanged,
-    /// <summary>Compared bytes changed.</summary>
-    Changed,
-}
-
-/// <summary>Selection state independent from content and workflow effects.</summary>
-public enum MemorySelectionState
-{
-    /// <summary>No contributing authoring input is selected.</summary>
-    NotSelected,
-    /// <summary>The contributing authoring input is selected and admitted.</summary>
-    Selected,
-}
-
-/// <summary>Focus state independent from content and workflow effects.</summary>
-public enum MemoryFocusState
-{
-    /// <summary>The segment is not focused.</summary>
-    NotFocused,
-    /// <summary>The segment is focused.</summary>
-    Focused,
-}
-
-/// <summary>Non-geometric readiness for an unresolved artifact or part.</summary>
-public enum MemoryLayoutReadiness
-{
-    /// <summary>More authoring input or inspection is required.</summary>
-    PendingInput,
-    /// <summary>A supplied input has a blocking issue.</summary>
-    Blocked,
-}
-
-/// <summary>Typed prerequisite for one non-geometric item.</summary>
-public enum MemoryLayoutPrerequisite
-{
-    /// <summary>Select the required input.</summary>
-    SelectInput,
-    /// <summary>Complete inspection of the selected input.</summary>
-    CompleteInspection,
-    /// <summary>Resolve a blocking input issue.</summary>
-    ResolveInputIssue,
-}
-
-/// <summary>Typed next action for one non-geometric item.</summary>
-public enum MemoryLayoutNextAction
-{
-    /// <summary>Select an input file.</summary>
-    SelectInput,
-    /// <summary>Start input inspection.</summary>
-    RunInspection,
-    /// <summary>Wait for the active inspection.</summary>
-    WaitForInspection,
-    /// <summary>Review and correct the input issue.</summary>
-    ReviewInputIssue,
-}
 
 /// <summary>
 /// Identity-pinned reference to the actual issue that blocks one authoring slot.
@@ -240,7 +93,8 @@ public sealed class MemoryLayoutSegment
         string segmentId,
         string addressSpaceId,
         ByteRange range,
-        FirmwareRegion canonicalRegion,
+        string regionId,
+        FirmwareRegion? canonicalRegion,
         MemoryContentRole contentRole,
         MemoryWorkflowDisposition disposition,
         MemoryEndpointIdentity endpoint,
@@ -252,16 +106,19 @@ public sealed class MemoryLayoutSegment
         MemoryFocusState focus,
         string? sourceSpaceId,
         string? sourceSlotId,
-        IEnumerable<string> contributingOperationIds,
-        IEnumerable<MemoryLayoutPreservationDetail> preservationDetails)
+        IEnumerable<CompositionOperation> contributingOperations,
+        IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
+        ReplaceRegionGroup regionGroup)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segmentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
-        ArgumentNullException.ThrowIfNull(canonicalRegion);
-        if (!canonicalRegion.Range.Contains(range))
+        ArgumentException.ThrowIfNullOrWhiteSpace(regionId);
+        if (canonicalRegion is not null &&
+            (!StringComparer.Ordinal.Equals(canonicalRegion.RegionId, regionId) ||
+             !canonicalRegion.Range.Contains(range)))
         {
             throw new ArgumentException(
-                "Projected range must remain inside its canonical region.",
+                "A physical projected range must retain its exact containing canonical region.",
                 nameof(range));
         }
 
@@ -274,6 +131,7 @@ public sealed class MemoryLayoutSegment
         MemoryLayoutGuard.Defined(observedChange, nameof(observedChange));
         MemoryLayoutGuard.Defined(selection, nameof(selection));
         MemoryLayoutGuard.Defined(focus, nameof(focus));
+        MemoryLayoutGuard.Defined(regionGroup, nameof(regionGroup));
         if (sourceSlotId is not null && sourceSpaceId is null)
         {
             throw new ArgumentException(
@@ -281,13 +139,13 @@ public sealed class MemoryLayoutSegment
                 nameof(sourceSlotId));
         }
 
-        string[] operationIds = [.. contributingOperationIds];
-        if (operationIds.Any(string.IsNullOrWhiteSpace) ||
-            operationIds.Distinct(StringComparer.Ordinal).Count() != operationIds.Length)
+        ArgumentNullException.ThrowIfNull(contributingOperations);
+        CompositionOperation[] operations = [.. contributingOperations];
+        if (operations.Any(static operation => operation is null))
         {
             throw new ArgumentException(
-                "Contributing operation ids must be non-empty and unique.",
-                nameof(contributingOperationIds));
+                "Contributing operations must be non-null.",
+                nameof(contributingOperations));
         }
 
         MemoryLayoutPreservationDetail[] details =
@@ -295,6 +153,7 @@ public sealed class MemoryLayoutSegment
         SegmentId = segmentId;
         AddressSpaceId = addressSpaceId;
         Range = range;
+        RegionId = regionId;
         CanonicalRegion = canonicalRegion;
         ContentRole = contentRole;
         Disposition = disposition;
@@ -307,8 +166,9 @@ public sealed class MemoryLayoutSegment
         Focus = focus;
         SourceSpaceId = sourceSpaceId;
         SourceSlotId = sourceSlotId;
-        ContributingOperationIds = Array.AsReadOnly(operationIds);
+        ContributingOperations = Array.AsReadOnly(operations);
         PreservationDetails = Array.AsReadOnly(details);
+        RegionGroup = regionGroup;
     }
 
     /// <summary>Stable projection-local identity.</summary>
@@ -317,8 +177,10 @@ public sealed class MemoryLayoutSegment
     public string AddressSpaceId { get; }
     /// <summary>Resolved half-open output range.</summary>
     public ByteRange Range { get; }
-    /// <summary>Exact canonical physical-region reference.</summary>
-    public FirmwareRegion CanonicalRegion { get; }
+    /// <summary>Stable physical-region or logical-output identity.</summary>
+    public string RegionId { get; }
+    /// <summary>Exact canonical physical-region reference, or null for logical output.</summary>
+    public FirmwareRegion? CanonicalRegion { get; }
     /// <summary>Primary content role.</summary>
     public MemoryContentRole ContentRole { get; }
     /// <summary>Planned workflow disposition.</summary>
@@ -341,10 +203,12 @@ public sealed class MemoryLayoutSegment
     public string? SourceSpaceId { get; }
     /// <summary>Contributing canonical input slot, if any.</summary>
     public string? SourceSlotId { get; }
-    /// <summary>Ordered operation identities contributing to this segment.</summary>
-    public IReadOnlyList<string> ContributingOperationIds { get; }
+    /// <summary>Exact ordered compiled operations contributing to this segment.</summary>
+    public IReadOnlyList<CompositionOperation> ContributingOperations { get; }
     /// <summary>Typed kept details subordinate to this primary segment.</summary>
     public IReadOnlyList<MemoryLayoutPreservationDetail> PreservationDetails { get; }
+    /// <summary>Application-owned CtrlRAM grouping, or Common for ungrouped geometry.</summary>
+    public ReplaceRegionGroup RegionGroup { get; }
 
     internal static MemoryLayoutSegment Create(
         string segmentId,
@@ -362,13 +226,15 @@ public sealed class MemoryLayoutSegment
         MemoryFocusState focus,
         string? sourceSpaceId,
         string? sourceSlotId,
-        IEnumerable<string> contributingOperationIds,
-        IEnumerable<MemoryLayoutPreservationDetail> preservationDetails)
+        IEnumerable<CompositionOperation> contributingOperations,
+        IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
     {
         return new(
             segmentId,
             addressSpaceId,
             range,
+            canonicalRegion.RegionId,
             canonicalRegion,
             contentRole,
             disposition,
@@ -381,8 +247,51 @@ public sealed class MemoryLayoutSegment
             focus,
             sourceSpaceId,
             sourceSlotId,
-            contributingOperationIds,
-            preservationDetails);
+            contributingOperations,
+            preservationDetails,
+            regionGroup);
+    }
+
+    internal static MemoryLayoutSegment CreateLogical(
+        string segmentId,
+        string addressSpaceId,
+        ByteRange range,
+        string logicalRegionId,
+        MemoryContentRole contentRole,
+        MemoryWorkflowDisposition disposition,
+        MemoryEndpointIdentity endpoint,
+        MemoryBankIdentity bank,
+        MemoryProcessorEffect processorEffect,
+        MemoryDiagnosticSeverity diagnosticSeverity,
+        MemoryObservedChange observedChange,
+        MemorySelectionState selection,
+        MemoryFocusState focus,
+        string? sourceSpaceId,
+        string? sourceSlotId,
+        IEnumerable<CompositionOperation> contributingOperations,
+        IEnumerable<MemoryLayoutPreservationDetail> preservationDetails,
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
+    {
+        return new(
+            segmentId,
+            addressSpaceId,
+            range,
+            logicalRegionId,
+            canonicalRegion: null,
+            contentRole,
+            disposition,
+            endpoint,
+            bank,
+            processorEffect,
+            diagnosticSeverity,
+            observedChange,
+            selection,
+            focus,
+            sourceSpaceId,
+            sourceSlotId,
+            contributingOperations,
+            preservationDetails,
+            regionGroup);
     }
 }
 
@@ -390,6 +299,7 @@ public sealed class MemoryLayoutSegment
 public sealed class MemoryLayoutPendingItem
 {
     internal MemoryLayoutPendingItem(
+        string slotId,
         CompiledInputSlotRequirement requirement,
         MemoryLayoutReadiness readiness,
         MemoryLayoutPrerequisite prerequisite,
@@ -398,6 +308,7 @@ public sealed class MemoryLayoutPendingItem
         MemoryDiagnosticSeverity diagnosticSeverity,
         MemoryLayoutBlockedIssueReference? blockedIssue)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
         ArgumentNullException.ThrowIfNull(requirement);
         MemoryLayoutGuard.Defined(readiness, nameof(readiness));
         MemoryLayoutGuard.Defined(prerequisite, nameof(prerequisite));
@@ -416,7 +327,7 @@ public sealed class MemoryLayoutPendingItem
                 nameof(blockedIssue));
         }
 
-        SlotId = requirement.SlotId;
+        SlotId = slotId;
         Role = requirement.Role;
         ArtifactClass = requirement.ArtifactClass;
         Readiness = readiness;
@@ -458,19 +369,75 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems)
+        : this(
+            capability,
+            authoring,
+            MemoryLayoutGeometryKind.PhysicalMap,
+            map,
+            map.MapId,
+            map.AddressSpaceId,
+            capacity,
+            beforeSegments,
+            afterSegments,
+            pendingItems)
+    {
+    }
+
+    internal MemoryLayoutSnapshot(
+        ResolvedCapability capability,
+        ActiveSessionSnapshot authoring,
+        string logicalAddressSpaceId,
+        long capacity,
+        IReadOnlyList<MemoryLayoutSegment> beforeSegments,
+        IReadOnlyList<MemoryLayoutSegment> afterSegments,
+        IEnumerable<MemoryLayoutPendingItem> pendingItems)
+        : this(
+            capability,
+            authoring,
+            MemoryLayoutGeometryKind.LogicalOutput,
+            map: null,
+            mapId: null,
+            logicalAddressSpaceId,
+            capacity,
+            beforeSegments,
+            afterSegments,
+            pendingItems)
+    {
+    }
+
+    private MemoryLayoutSnapshot(
+        ResolvedCapability capability,
+        ActiveSessionSnapshot authoring,
+        MemoryLayoutGeometryKind geometryKind,
+        FirmwareImageMap? map,
+        string? mapId,
+        string addressSpaceId,
+        long capacity,
+        IReadOnlyList<MemoryLayoutSegment> beforeSegments,
+        IReadOnlyList<MemoryLayoutSegment> afterSegments,
+        IEnumerable<MemoryLayoutPendingItem> pendingItems)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(authoring);
-        ArgumentNullException.ThrowIfNull(map);
+        MemoryLayoutGuard.Defined(geometryKind, nameof(geometryKind));
+        ArgumentException.ThrowIfNullOrWhiteSpace(addressSpaceId);
+        if (geometryKind == MemoryLayoutGeometryKind.PhysicalMap != (map is not null) ||
+            geometryKind == MemoryLayoutGeometryKind.PhysicalMap != (mapId is not null))
+        {
+            throw new ArgumentException(
+                "Only physical memory-layout geometry can retain a canonical map.",
+                nameof(map));
+        }
+
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
-        FirmwareRegion[] regions = [.. map.Regions];
+        FirmwareRegion[] regions = map is null ? [] : [.. map.Regions];
         MemoryLayoutSegment[] before = [.. beforeSegments];
         MemoryLayoutSegment[] after = ReferenceEquals(beforeSegments, afterSegments)
             ? before
             : [.. afterSegments];
         MemoryLayoutPendingItem[] pending = [.. pendingItems];
-        ValidateCoverage(before, map.AddressSpaceId, capacity, regions);
-        ValidateCoverage(after, map.AddressSpaceId, capacity, regions);
+        ValidateCoverage(before, geometryKind, addressSpaceId, capacity, regions);
+        ValidateCoverage(after, geometryKind, addressSpaceId, capacity, regions);
         if (pending.Select(static item => item.SlotId)
             .Distinct(StringComparer.Ordinal).Count() != pending.Length)
         {
@@ -481,11 +448,24 @@ public sealed class MemoryLayoutSnapshot
         CapabilityFingerprint = capability.CapabilityFingerprint;
         CompilationFingerprint =
             capability.CompiledComposition.CompilationFingerprint;
+        ImageInitialization initialization =
+            capability.CompiledComposition.Plan.OutputInitialization;
+        if (initialization.Capacity != capacity)
+        {
+            throw new ArgumentException(
+                "Memory-layout capacity must match the exact compiled initialization.",
+                nameof(capacity));
+        }
+
         ResolutionToken = capability.ResolutionToken;
         AuthoringRevision = authoring.AuthoringRevision;
-        MapId = map.MapId;
-        AddressSpaceId = map.AddressSpaceId;
+        GeometryKind = geometryKind;
+        MapId = mapId;
+        AddressSpaceId = addressSpaceId;
         Capacity = capacity;
+        BlankFillByte = initialization.Kind == ImageInitializationKind.Blank
+            ? initialization.FillByte
+            : null;
         CanonicalRegions = Array.AsReadOnly(regions);
         BeforeSegments = Array.AsReadOnly(before);
         AfterSegments = ReferenceEquals(before, after)
@@ -504,12 +484,16 @@ public sealed class MemoryLayoutSnapshot
     public ResolutionToken ResolutionToken { get; }
     /// <summary>Projected authoring revision.</summary>
     public AuthoringRevision AuthoringRevision { get; }
-    /// <summary>Canonical image-map identity.</summary>
-    public string MapId { get; }
-    /// <summary>Canonical physical output address-space identity.</summary>
+    /// <summary>Closed geometry kind for this projection.</summary>
+    public MemoryLayoutGeometryKind GeometryKind { get; }
+    /// <summary>Canonical image-map identity, or null for logical output.</summary>
+    public string? MapId { get; }
+    /// <summary>Canonical physical or compiler-owned logical output address-space identity.</summary>
     public string AddressSpaceId { get; }
     /// <summary>Exact resolved output capacity.</summary>
     public long Capacity { get; }
+    /// <summary>Exact compiled blank fill byte, or null for reference-clone initialization.</summary>
+    public byte? BlankFillByte { get; }
     /// <summary>Exact canonical region references, including nested regions.</summary>
     public IReadOnlyList<FirmwareRegion> CanonicalRegions { get; }
     /// <summary>Coverage seeded from workflow initialization.</summary>
@@ -521,6 +505,7 @@ public sealed class MemoryLayoutSnapshot
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,
+        MemoryLayoutGeometryKind geometryKind,
         string addressSpaceId,
         long capacity,
         FirmwareRegion[] canonicalRegions)
@@ -535,12 +520,16 @@ public sealed class MemoryLayoutSnapshot
         long expectedStart = 0;
         foreach (MemoryLayoutSegment segment in segments)
         {
+            bool retainsExpectedGeometry = geometryKind == MemoryLayoutGeometryKind.PhysicalMap
+                ? segment.CanonicalRegion is not null &&
+                    canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion))
+                : segment.CanonicalRegion is null;
             if (!StringComparer.Ordinal.Equals(segment.AddressSpaceId, addressSpaceId) ||
                 segment.Range.Start != expectedStart ||
-                !canonicalRegions.Any(region => ReferenceEquals(region, segment.CanonicalRegion)))
+                !retainsExpectedGeometry)
             {
                 throw new ArgumentException(
-                    "Coverage must form an ordered canonical-region-backed partition.",
+                    "Coverage must form an ordered partition backed by its declared geometry.",
                     nameof(segments));
             }
 

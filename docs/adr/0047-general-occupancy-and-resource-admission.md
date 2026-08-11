@@ -4,7 +4,16 @@
 - Date: 2026-07-30
 - Owners: Product owner + architecture owner
 - Amends: ADR 0005
+- Amended by: 2026-08-09 complete legacy-architecture retirement
 - Issue: #250
+
+2026-08-09 amendment: `GeneralAuthoringAdmissionResult`, its exact Parent
+authority, occupancy, and resource-admission semantics remain accepted. The
+shared seam is now consumed directly through the canonical Application
+authoring/session path by Presentation, CLI, Saved Rule, memory projection, and
+compilation. The Bootstrap compatibility Parent/projection described below is a
+historical bridge and must be deleted rather than renamed once its live callers
+migrate.
 
 ## Context
 
@@ -38,7 +47,7 @@ compilation or inline allocation.
    Rule may only narrow that effective Parent contract. Empty intersections or
    attempted broadening block.
 5. The resolved result, including effective limits, observed path-free input
-   lengths, occupancy, and typed blockers, is the shared seam for Workbench,
+   lengths, occupancy, and typed blockers, is the shared seam for Presentation,
    CLI/report, Saved Rule adapters, memory projection, and compilation.
    Application requests observations through an inward port. The filesystem
    adapter may answer that port but cannot define Parent limits, and downstream
@@ -55,8 +64,9 @@ Current callers use a default technical ceiling of 4096 mappings,
 materialized inline bytes. Exact Parent or Saved Rule limits can only reduce
 those values.
 
-Current General V2 profile schema does not yet serialize its resource
-envelope. Until that schema is available, Bootstrap projects a compatibility
+At the #250 pre-retirement checkpoint, the General V2 profile schema did not
+yet serialize its resource envelope. Until that schema is available, Bootstrap
+projects a compatibility
 Parent whose scalar limits equal the Application technical ceilings and whose
 named file slots are the exact typed-draft slot ids with a profile-confirmed
 `1..Int32.MaxValue` interval. This bridge never derives authority from an
@@ -92,6 +102,10 @@ count and total authored bytes before the #254 retirement.
 - `CreateCurrentGeneralTrustedParentPolicy` remains until the composition-profile
   schema declares a resource envelope and trusted-bundle projection supplies
   its exact typed Parent policy to the Application use case.
+- Under the 2026-08-09 terminal-retirement program, that compatibility Parent
+  and Bootstrap projection are deleted in the same slice that supplies and
+  migrates every live caller to the exact typed Parent policy. They cannot be
+  renamed or retained as fallback.
 - Issue #254 deletes the Saved Rule v1 parser, exact-row projection, draft
   adapter, and standalone inspection path. Production accepts Saved Rule v2
   only and rejects v1 with `saved-rule.schema-version.unsupported`; there is no
@@ -116,7 +130,7 @@ rather than authoring policy.
 - Mapping-count, total-write, overflow, whole-file, per-slot,
   safe-materialization, and empty-limit failures.
 - Unreferenced file-tail acceptance and POSTBUILD exclusion.
-- Workbench/CLI report, memory, Preview token, and compiler lowering consume
+- UI/CLI report, memory, Preview token, and compiler lowering consume
   the same admitted snapshot, including observed input lengths.
 - Application and Bootstrap narrow suites, architecture tests, structure gate,
   final verifier, independent architecture/contract review, and scoped

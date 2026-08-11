@@ -56,6 +56,10 @@ public sealed partial class CompiledComposition
 
         AppendList(builder, $"{prefix}.staged-source", invocation.StagedSourceBindings, AppendStagedSource);
         AppendList(builder, $"{prefix}.staged-artifact", invocation.StagedArtifactBindings, AppendStagedArtifact);
+        if (invocation.ProtocolPlan is { } protocolPlan)
+        {
+            AppendProtocolPlan(builder, $"{prefix}.protocol-plan", protocolPlan);
+        }
     }
 
     private static void AppendWriteRangeSection(
@@ -95,5 +99,39 @@ public sealed partial class CompiledComposition
         AppendField(builder, $"{prefix}.id", binding.ArtifactId);
         AppendField(builder, $"{prefix}.source-space", binding.SourceSpaceId);
         AppendRange(builder, $"{prefix}.source-range", binding.SourceRange);
+    }
+
+    private static void AppendProtocolPlan(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolPlan plan)
+    {
+        AppendField(builder, $"{prefix}.id", plan.ProtocolId);
+        AppendField(builder, $"{prefix}.target-file", plan.TargetFileName);
+        AppendList(builder, $"{prefix}.command", plan.Commands, AppendProtocolCommand);
+    }
+
+    private static void AppendProtocolCommand(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolCommand command)
+    {
+        AppendField(builder, $"{prefix}.id", command.CommandId);
+        AppendStringList(builder, $"{prefix}.argument", command.Arguments);
+        AppendInteger(builder, $"{prefix}.retain-short-tail", command.RetainShortOutputTail ? 1 : 0);
+        AppendList(builder, $"{prefix}.block", command.Blocks, AppendProtocolBlock);
+    }
+
+    private static void AppendProtocolBlock(
+        StringBuilder builder,
+        string prefix,
+        ExternalProcessorProtocolBlock block)
+    {
+        AppendField(builder, $"{prefix}.id", block.BlockId);
+        AppendInteger(builder, $"{prefix}.source-kind", (int)block.SourceKind);
+        AppendField(builder, $"{prefix}.source-file", block.SourceFileName);
+        AppendInteger(builder, $"{prefix}.source-offset", block.SourceOffset);
+        AppendRange(builder, $"{prefix}.firmware-range", block.FirmwareRange);
+        AppendField(builder, $"{prefix}.staged-artifact", block.StagedArtifactId ?? string.Empty);
     }
 }

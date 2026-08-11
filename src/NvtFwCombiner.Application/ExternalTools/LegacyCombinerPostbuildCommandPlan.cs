@@ -1,39 +1,29 @@
 using NvtFwCombiner.Application.FlashMaps;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
 /// <summary>Resolved postbuild command plan for one run.</summary>
 public sealed class LegacyCombinerPostbuildCommandPlan
 {
-    private readonly LegacyCombinerPostbuildCommand[] _commands;
-
-    /// <summary>Creates a resolved postbuild command plan.</summary>
-    public LegacyCombinerPostbuildCommandPlan(
+    /// <summary>Binds an exact topology fact to a profile-compiled command shape.</summary>
+    internal LegacyCombinerPostbuildCommandPlan(
         LegacyCombinerPostbuildProfile profile,
-        LegacyCombinerPostbuildPlanSelector selector,
-        IEnumerable<LegacyCombinerPostbuildCommand> commands,
-        int? topologyCount = null)
+        LegacyCombinerPostbuildProfile.CompiledPlanTemplate template,
+        int topologyCount,
+        IReadOnlyList<LegacyCombinerPostbuildCommand> commands,
+        ExternalProcessorProtocolPlan protocolPlan)
     {
         ArgumentNullException.ThrowIfNull(profile);
-        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(commands);
-
-        _commands = [.. commands];
-        if (_commands.Length == 0)
-        {
-            throw new ArgumentException("Resolved postbuild plan must contain at least one command.", nameof(commands));
-        }
-
+        ArgumentNullException.ThrowIfNull(protocolPlan);
         Profile = profile;
-        Selector = selector;
-        TopologyCount = topologyCount ?? selector.MinimumCount;
-        if (!selector.MatchesReportedChipCount(TopologyCount))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(topologyCount),
-                TopologyCount,
-                "Resolved topology count is outside the selected postbuild plan.");
-        }
+        Template = template;
+        Selector = template.Selector;
+        TopologyCount = topologyCount;
+        Commands = commands;
+        ProtocolPlan = protocolPlan;
     }
 
     /// <summary>Profile selected for this run.</summary>
@@ -48,6 +38,9 @@ public sealed class LegacyCombinerPostbuildCommandPlan
     /// <summary>Exact IC Count used to lower count-dependent runtime facts.</summary>
     public int TopologyCount { get; }
 
+    /// <summary>Exact immutable protocol plan compiled from the selected command shape.</summary>
+    public ExternalProcessorProtocolPlan ProtocolPlan { get; }
+
     /// <summary>
     /// Resolved dependency on canonical FWConfig <c>Chip_Num</c>. A masked DiffDLM
     /// policy consumes the value; count-invariant plans only surface zero as a warning.
@@ -59,5 +52,7 @@ public sealed class LegacyCombinerPostbuildCommandPlan
             : FirmwareConfigChipCountRequirement.WarningIfZero;
 
     /// <summary>Process commands in execution order.</summary>
-    public IReadOnlyList<LegacyCombinerPostbuildCommand> Commands => _commands;
+    public IReadOnlyList<LegacyCombinerPostbuildCommand> Commands { get; }
+
+    internal LegacyCombinerPostbuildProfile.CompiledPlanTemplate Template { get; }
 }

@@ -10,7 +10,7 @@ public sealed class WorkbenchGeneralAuthoringTests
     [Fact]
     public void GeneralMergeInvalidAlignmentReturnsIssue()
     {
-        AuthoringMappingState state = CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
+        AuthoringMappingState state = GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
             "mapping-1",
             "input.bin",
             "0",
@@ -18,14 +18,14 @@ public sealed class WorkbenchGeneralAuthoringTests
             "1",
             alignment: 0);
 
-        bool created = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
+        bool created = GeneralAuthoringMappingUseCase.TryCreateGeneralMergeAuthoringDraft(
             [state],
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues);
 
         Assert.False(created);
         Assert.Null(draft);
-        Assert.Contains(issues, static issue => issue.Code == WorkbenchIssueCodes.GeneralMergeRangeInvalid);
+        Assert.Contains(issues, static issue => issue.Code == CompositionPlanningIssueCodes.GeneralMergeRangeInvalid);
     }
 
     /// <summary>Workflow-specific draft seams reject a typed operation from the other workflow.</summary>
@@ -45,7 +45,7 @@ public sealed class WorkbenchGeneralAuthoringTests
             "Replace explicit mapping.",
             fileRangePreset: GeneralMappingFileRangePreset.FromFileStart);
 
-        bool created = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
+        bool created = GeneralAuthoringMappingUseCase.TryCreateGeneralMergeAuthoringDraft(
             [state],
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues);

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -78,7 +78,7 @@ public sealed partial class ReportReviewViewModel
 
     private static string LegacySeverityForIssueCode(string code)
     {
-        return string.Equals(code, WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal)
+        return string.Equals(code, CompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal)
             ? "warning"
             : "error";
     }
@@ -108,7 +108,7 @@ public sealed partial class ReportReviewViewModel
         string source = string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId;
         return ClassifyInput(addressSpaceId) == ReportInputClassifications.Base
             ? "Base flash image"
-            : WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel(source, out string ctrlRamLabel)
+            : DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(source, out string ctrlRamLabel)
                 ? ctrlRamLabel
                 : source;
     }

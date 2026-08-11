@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -24,8 +24,8 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         Action<string, string> showToast,
         Func<
             string,
-            IReadOnlyList<WorkbenchFirmwareInspectionInput>,
-            IReadOnlyList<WorkbenchFirmwareInspectionResult>> firmwareInspectionReader,
+            IReadOnlyList<FirmwareInspectionSnapshotInput>,
+            IReadOnlyList<FirmwareInspectionSnapshotResult>> firmwareInspectionReader,
         WorkflowSessionStateBindings stateBindings)
     {
         _compositionServices = compositionServices ??
@@ -67,7 +67,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
 
     private bool IsReplaceVisible =>
         _stateBindings.SelectedPage() == ShellPage.Replace &&
-        string.Equals(_replace.SelectedReplaceMode, WorkbenchReplaceModes.Dp, StringComparison.Ordinal);
+        string.Equals(_replace.SelectedReplaceMode, ExperienceIds.DpReplace, StringComparison.Ordinal);
 
     private bool IsAbCodeMergeModeSelected => _merge.IsAbCodeMergeModeSelected;
 
@@ -97,7 +97,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         return _merge.GetSelectedAbMergeTopologyToken();
     }
 
-    private void ApplyCtrlRamInspectionDisplay(WorkbenchCtrlRamInspectionDisplay display)
+    private void ApplyCtrlRamInspectionDisplay(CtrlRamInspectionDisplay display)
     {
         _replace.ApplyCtrlRamInspectionDisplay(display);
     }
@@ -137,7 +137,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
                 !InspectionSession.TryGetInspection(
                     slot.SlotId,
                     slot.FilePath,
-                    out WorkbenchFirmwareInspection inspection))
+                    out FirmwareInspectionSnapshot inspection))
             {
                 continue;
             }
@@ -169,7 +169,7 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
             if (!InspectionSession.TryGetInspection(
                     slot.SlotId,
                     slot.FilePath,
-                    out WorkbenchFirmwareInspection projected))
+                    out FirmwareInspectionSnapshot projected))
             {
                 continue;
             }

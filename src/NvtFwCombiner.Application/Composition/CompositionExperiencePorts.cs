@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
@@ -20,8 +19,17 @@ public interface ICompositionCapabilityExperience
     /// <summary>Gets catalog counts for startup and Settings disclosure.</summary>
     CapabilityCatalogSummary GetCatalogSummary();
 
+    /// <summary>Gets current DP Replace Reference capacity disclosure.</summary>
+    string? GetDpReplaceReferenceCapacityLabel(string icId);
+
     /// <summary>Gets authorable AB Merge profiles.</summary>
     IReadOnlyList<CapabilityProfileSummary> GetAbMergeProfileSummaries();
+
+    /// <summary>Gets authorable Standard Merge profiles.</summary>
+    IReadOnlyList<CapabilityProfileSummary> GetStandardMergeProfileSummaries();
+
+    /// <summary>Gets authorable DP Replace profiles.</summary>
+    IReadOnlyList<CapabilityProfileSummary> GetDpReplaceProfileSummaries();
 
     /// <summary>Gets Replace readiness from canonical publication.</summary>
     CapabilityWorkflowReadiness GetReplaceWorkflowReadiness(
@@ -40,46 +48,49 @@ public interface ICompositionCapabilityExperience
     /// <summary>Returns whether the IC uses a DP-perspective composition.</summary>
     bool IsDpPerspectiveIc(string icId);
 
-    /// <summary>Returns whether the IC owns one executable DP Replace capability.</summary>
-    bool HasBuiltInV2DpReplace(string icId);
 }
 
-/// <summary>Typed authoring operations shared by desktop and command-line clients.</summary>
-public interface ICompositionAuthoringExperience
+/// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>
+public interface IStandardMergeAuthoring
 {
-    /// <summary>Returns whether Standard Merge is authorable.</summary>
-    bool IsStandardMergeSupported(string icId);
+    /// <summary>Returns whether the IC has one authorable Standard Merge route.</summary>
+    bool IsSupported(string icId);
 
-    /// <summary>Gets the Standard Merge profile identifier.</summary>
-    string? GetStandardMergeProfileId(string icId);
+    /// <summary>Gets the selected route's profile id.</summary>
+    string? GetProfileId(string icId);
 
-    /// <summary>Gets required Standard Merge input spaces.</summary>
-    IReadOnlyList<string> GetStandardMergeRequiredAddressSpaces(string icId);
+    /// <summary>Gets required compiled input spaces.</summary>
+    IReadOnlyList<string> GetRequiredAddressSpaces(string icId);
 
-    /// <summary>Gets all selectable Standard Merge input spaces.</summary>
-    IReadOnlyList<string> GetStandardMergeInputAddressSpaces(string icId);
+    /// <summary>Gets all selectable compiled input spaces.</summary>
+    IReadOnlyList<string> GetInputAddressSpaces(string icId);
 
-    /// <summary>Projects Standard Merge selection readiness.</summary>
-    CompiledAuthoringSelectionSnapshot GetStandardMergeAuthoringSnapshot(
+    /// <summary>Projects exact selection readiness.</summary>
+    CompiledAuthoringSelectionSnapshot GetAuthoringSnapshot(
         string icId,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
         AuthoringRevision authoringRevision,
         ActiveSessionSnapshot? retainedSession = null);
 
-    /// <summary>Returns whether AB Merge is authorable.</summary>
-    bool IsAbMergeAvailable(string icId);
-
-    /// <summary>Gets AB topology choices from compiled capability facts.</summary>
-    IReadOnlyList<CapabilityTopologyChoice> GetAbMergeTopologyChoices(string icId);
-
-    /// <summary>Gets AB input slots for one topology token.</summary>
-    IReadOnlyList<WorkbenchAbMergeInputSlot> GetAbMergeInputSlots(
+    /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
+    CompiledAuthoringSessionPreparation PrepareSession(
+        AuthoringSessionState session,
         string icId,
-        string? topologyToken);
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+}
 
-    /// <summary>Projects AB Merge selection readiness.</summary>
-    CompiledAuthoringSelectionSnapshot GetAbMergeAuthoringSnapshot(
+/// <summary>Focused AB Merge authoring operations over one canonical workflow owner.</summary>
+public interface IAbMergeAuthoring
+{
+    /// <summary>Returns whether the IC has one authorable AB Merge route.</summary>
+    bool IsAvailable(string icId);
+
+    /// <summary>Gets compiled topology choices.</summary>
+    IReadOnlyList<CapabilityTopologyChoice> GetTopologyChoices(string icId);
+
+    /// <summary>Projects exact selection readiness.</summary>
+    CompiledAuthoringSelectionSnapshot GetAuthoringSnapshot(
         string icId,
         string? topologyToken,
         IReadOnlyCollection<string> selectedSlotIds,
@@ -87,162 +98,118 @@ public interface ICompositionAuthoringExperience
         AuthoringRevision authoringRevision,
         ActiveSessionSnapshot? retainedSession = null);
 
-    /// <summary>Projects DP Replace selection readiness.</summary>
-    CompiledAuthoringSelectionSnapshot GetDpReplaceAuthoringSnapshot(
+    /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
+    CompiledAuthoringSessionPreparation PrepareSession(
+        AuthoringSessionState session,
+        string icId,
+        string? topologyToken,
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+}
+
+/// <summary>Focused DP Replace authoring operations over one canonical workflow owner.</summary>
+public interface IDpReplaceAuthoring
+{
+    /// <summary>Projects exact selection readiness.</summary>
+    CompiledAuthoringSelectionSnapshot GetAuthoringSnapshot(
         string icId,
         IReadOnlyCollection<string> selectedSlotIds,
         IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
         AuthoringRevision authoringRevision,
         ActiveSessionSnapshot? retainedSession = null);
 
-    /// <summary>Gets visible CtrlRAM regions.</summary>
-    IReadOnlyList<WorkbenchCtrlRamRegion> GetCtrlRamRegions(
+    /// <summary>Prepares one exact accepted session from immutable inputs.</summary>
+    CompiledAuthoringSessionPreparation PrepareSession(
+        AuthoringSessionState session,
         string icId,
-        string number,
-        string? basePath = null);
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs);
+}
 
-    /// <summary>Creates one parsed General Merge authoring row.</summary>
-    AuthoringMappingState CreateGeneralMergeAuthoringState(
-        string mappingId,
-        string filePath,
-        string sourceStart,
-        string targetStart,
-        string length,
-        int alignment = 1,
-        string? reason = null,
-        OperationProvenance? provenance = null,
-        FileStamp? acceptedFileStamp = null);
-
-    /// <summary>Creates one parsed General Replace authoring row.</summary>
-    AuthoringMappingState CreateGeneralReplaceAuthoringState(
-        string mappingId,
-        GeneralMappingSourceKind sourceKind,
-        string sourceValue,
-        string targetStart,
-        string length,
-        FileStamp? acceptedFileStamp = null);
-
-    /// <summary>Creates a typed General Merge mapping draft.</summary>
-    bool TryCreateGeneralMergeAuthoringDraft(
-        IReadOnlyList<AuthoringMappingState> states,
-        [NotNullWhen(true)] out GeneralMappingDraftState? draft,
-        out IReadOnlyList<CompositionIssue> issues);
-
-    /// <summary>Creates a typed General Replace mapping draft.</summary>
-    bool TryCreateGeneralReplaceAuthoringDraft(
-        IReadOnlyList<AuthoringMappingState> states,
-        [NotNullWhen(true)] out GeneralMappingDraftState? draft,
-        out IReadOnlyList<CompositionIssue> issues);
-
-    /// <summary>Gets General Merge admission from the same Application use case as execution.</summary>
-    GeneralAuthoringAdmissionResult GetGeneralMergeAuthoringAdmission(
+/// <summary>Focused General Merge and General Replace authoring owner.</summary>
+public interface IGeneralAuthoring
+{
+    /// <summary>Gets General Merge admission from the trusted parent.</summary>
+    GeneralAuthoringAdmissionResult GetMergeAdmission(
         string icId,
         GeneralMergeDraftState draft);
 
-    /// <summary>Gets General Replace admission from the same Application use case as execution.</summary>
-    GeneralAuthoringAdmissionResult? GetGeneralReplaceAuthoringAdmission(
+    /// <summary>Gets General Replace admission from the trusted parent.</summary>
+    GeneralAuthoringAdmissionResult? GetReplaceAdmission(
         string icId,
         long referenceCapacity,
         GeneralMappingDraftState mappingDraft);
 
-    /// <summary>Observes one selected General file length.</summary>
-    ValueTask<GeneralSelectedFileLengthResult> ObserveGeneralSelectedFileLengthAsync(
-        string mappingId,
-        string selectedPath,
-        CancellationToken cancellationToken);
+    /// <summary>Gets the profile-owned default output length text.</summary>
+    string GetDefaultOutputLength(string icId);
 
-    /// <summary>Inspects one selected General file against its exact length.</summary>
-    ValueTask<GeneralSelectedFileInspectionResult> InspectGeneralSelectedFileAsync(
-        string mappingId,
-        string selectedPath,
-        AuthoringRevision authoringRevision,
-        long expectedLength,
-        CancellationToken cancellationToken);
+    /// <summary>Gets the profile-owned default output fill-byte text.</summary>
+    string GetDefaultOutputFillByte(string icId);
 
-    /// <summary>Gets the General Merge default output length text.</summary>
-    string GetGeneralMergeDefaultOutputLength(string icId);
-
-    /// <summary>Gets the General Merge default fill-byte text.</summary>
-    string GetGeneralMergeDefaultOutputFillByte(string icId);
-
-    /// <summary>Gets the General Merge default output filename.</summary>
-    string GetGeneralMergeDefaultOutputFileName(string icId);
-
-    /// <summary>Resolves editable initializer text.</summary>
-    bool TryResolveGeneralMergeOutputInitializer(
-        string? outputLength,
-        string? outputFillByte,
-        [NotNullWhen(true)] out WorkbenchGeneralMergeInitializer? initializer);
-
-    /// <summary>Creates one typed General Merge draft.</summary>
-    GeneralMergeDraftState CreateGeneralMergeDraft(
-        WorkbenchGeneralMergeInitializer initializer,
-        GeneralMappingDraftState mappings);
-}
-
-/// <summary>Authoring-session lifecycle and per-slot readiness operations.</summary>
-public interface ICompositionAuthoringSession
-{
-    /// <summary>Gets General Merge action readiness.</summary>
-    CapabilityActionReadinessSnapshot? GetGeneralMergeActionReadiness(
-        AuthoringSessionState session,
-        string icId,
-        GeneralMergeDraftState draft);
-
-    /// <summary>Publishes General Merge mapping membership.</summary>
-    bool PrepareGeneralMergeSelectionSession(
-        AuthoringSessionState session,
-        string icId,
-        IEnumerable<string> mappingIds);
-
-    /// <summary>Begins exact General Merge file inspection.</summary>
-    AuthoringSlotInspectionStartResult BeginGeneralMergeSelectedFileInspection(
+    /// <summary>Prepares one exact General Merge accepted session.</summary>
+    ValueTask<GeneralAuthoringSessionPreparation> PrepareMergeSessionAsync(
         AuthoringSessionState session,
         string icId,
         GeneralMergeDraftState draft,
-        string mappingId,
-        long observedLength);
-
-    /// <summary>Gets General Replace action readiness.</summary>
-    ValueTask<CapabilityActionReadinessSnapshot?> GetGeneralReplaceActionReadinessAsync(
-        AuthoringSessionState session,
-        string icId,
-        string number,
-        long referenceCapacity,
-        GeneralMappingDraftState mappingDraft,
-        string referencePath,
-        FileStamp acceptedReferenceStamp,
-        WorkbenchFirmwareConfigMetadata? baseFirmware,
         CancellationToken cancellationToken);
 
-    /// <summary>Publishes General Replace mapping membership.</summary>
-    bool PrepareGeneralReplaceSelectionSession(
-        AuthoringSessionState session,
-        string icId,
-        long referenceCapacity,
-        IEnumerable<string> mappingIds);
-
-    /// <summary>Begins exact General Replace file inspection.</summary>
-    AuthoringSlotInspectionStartResult BeginGeneralReplaceSelectedFileInspection(
+    /// <summary>Prepares one exact General Replace accepted session.</summary>
+    ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
         AuthoringSessionState session,
         string icId,
         string number,
-        long referenceCapacity,
-        GeneralMappingDraftState draft,
         string referencePath,
-        FileStamp acceptedReferenceStamp,
-        string mappingId,
-        long observedLength);
+        GeneralMappingDraftState draft,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>Focused trusted Saved Rule v2 authoring operations.</summary>
+public interface ISavedRuleAuthoring
+{
+    /// <summary>Loads one exact General Merge Saved Rule through its trusted Parent.</summary>
+    SavedRuleV2DraftLoadResult<GeneralMergeDraftState> LoadGeneralMergeSavedRule(
+        string icId,
+        string path,
+        IReadOnlyDictionary<string, string> slotsById);
+
+    /// <summary>Gets the exact Parent-owned General Replace reference slot.</summary>
+    string? GetGeneralReplaceSavedRuleReferenceSlotId(string icId);
+
+    /// <summary>Loads one exact General Replace Saved Rule through its trusted Parent.</summary>
+    SavedRuleV2DraftLoadResult<GeneralMappingDraftState> LoadGeneralReplaceSavedRule(
+        string icId,
+        string path,
+        IReadOnlyDictionary<string, string> slotsById);
+
+    /// <summary>Inspects one Saved Rule v2 document against its exact trusted Parent.</summary>
+    SavedRuleV2InspectionResult InspectSavedRuleV2(string path);
+}
+
+/// <summary>Focused CtrlRAM Replace authoring owner.</summary>
+public interface ICtrlRamAuthoring
+{
+    /// <summary>Gets one coherent CtrlRAM region and input-slot discovery publication.</summary>
+    CtrlRamInspectionDisplay GetDiscoveryDisplay(
+        string icId,
+        string number,
+        string? basePath);
+
+    /// <summary>Prepares one exact CtrlRAM Replace session from immutable inputs.</summary>
+    CtrlRamAuthoringSessionPreparation PrepareSession(
+        AuthoringSessionState session,
+        string icId,
+        string number,
+        IReadOnlyDictionary<string, string> slotPaths,
+        IReadOnlyDictionary<string, byte[]> inputBytes,
+        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit = null);
 
     /// <summary>Gets CtrlRAM authoring catalog for selected paths.</summary>
-    AuthoringCapabilityCatalogSnapshot? GetCtrlRamReplaceAuthoringCatalog(
+    AuthoringCapabilityCatalogSnapshot? GetAuthoringCatalog(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
         ActiveSessionSnapshot? retainedSession = null);
 
     /// <summary>Gets CtrlRAM action readiness.</summary>
-    ValueTask<CapabilityActionReadinessSnapshot?> GetCtrlRamReplaceActionReadinessAsync(
+    ValueTask<CapabilityActionReadinessSnapshot?> GetActionReadinessAsync(
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
@@ -250,210 +217,88 @@ public interface ICompositionAuthoringSession
         CancellationToken cancellationToken);
 
     /// <summary>Transitions CtrlRAM firmware-version authoring.</summary>
-    WorkbenchCtrlRamAuthoringTransitionResult TransitionCtrlRamFirmwareVersionCompilation(
+    CtrlRamAuthoringTransitionResult TransitionFirmwareVersionCompilation(
         AuthoringSessionState session,
         string icId,
         string number,
         IReadOnlyDictionary<string, string> slotPaths,
-        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit);
+        CtrlRamFirmwareVersionDraftState? firmwareVersionEdit);
 }
 
-/// <summary>Read-only memory and input-slot projections.</summary>
-public interface ICompositionMemoryPresentation
+/// <summary>Authoring-session lifecycle and per-slot readiness operations.</summary>
+public sealed record GeneralAuthoringSessionPreparation(
+    ActiveSessionSnapshot? AcceptedSession,
+    IReadOnlyList<CompositionIssue> Issues,
+    GeneralAuthoringAdmissionResult? Admission = null,
+    CapabilityActionReadinessSnapshot? Readiness = null,
+    CompositionRunReport? DiagnosticPreviewReport = null)
 {
-    /// <summary>Gets current DP Replace Reference capacity disclosure.</summary>
-    string? GetDpReplaceReferenceCapacityLabel(string icId);
+    /// <summary>True only when one exact accepted session is available.</summary>
+    public bool Succeeded => AcceptedSession is not null && Issues.Count == 0;
 
-    /// <summary>Gets Standard Merge memory display.</summary>
-    WorkbenchMemoryDisplay GetStandardMergeMemoryDisplay(string icId, long? dpInputLength);
+    /// <summary>Projects one mapping-scoped issue without exposing Domain policy to Presentation.</summary>
+    public GeneralSelectedFileInspectionIssue? GetSelectedFileIssue(string definitionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
+        CompositionIssue? issue = Issues.FirstOrDefault(candidate =>
+            StringComparer.Ordinal.Equals(candidate.OperationId, definitionId));
+        return issue is null
+            ? null
+            : new GeneralSelectedFileInspectionIssue(
+                issue.Code,
+                issue.Message,
+                definitionId);
+    }
+}
 
-    /// <summary>Gets parsed General Merge memory display.</summary>
-    WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
-        string icId,
-        string outputLength,
-        string? outputFillByte);
-
-    /// <summary>Gets parsed General Merge memory display.</summary>
-    WorkbenchMemoryDisplay GetGeneralMergeMemoryDisplay(
-        string icId,
-        WorkbenchGeneralMergeInitializer initializer,
-        IReadOnlyList<AuthoringMappingState> states,
-        GeneralAuthoringAdmissionResult? admission);
-
-    /// <summary>Gets AB Merge memory display.</summary>
-    WorkbenchMemoryDisplay GetAbMergeMemoryDisplay(
-        string icId,
-        string? topologyToken,
-        long? dpInputLength);
-
-    /// <summary>Gets Replace input slots.</summary>
-    IReadOnlyList<WorkbenchReplaceInputSlot> GetReplaceInputSlots(
-        string icId,
-        string number,
-        string replaceMode,
-        string? basePath);
-
-    /// <summary>Gets Replace memory display.</summary>
-    WorkbenchMemoryDisplay GetReplaceMemoryDisplay(
-        string icId,
-        string number,
-        string replaceMode,
-        long? dpBaseLength,
-        string? ctrlRamBasePath);
-
-    /// <summary>Applies selected CtrlRAM regions to an existing display.</summary>
-    WorkbenchMemoryDisplay ApplyReplaceCoverageSelection(
-        WorkbenchMemoryDisplay display,
-        IEnumerable<string> selectedRegionIds);
-
-    /// <summary>Gets invalid General Replace authoring display.</summary>
-    WorkbenchMemoryDisplay GetGeneralReplaceMemoryDisplay(
-        long referenceCapacity,
-        GeneralAuthoringAdmissionResult admission);
-
-    /// <summary>Gets invalid General Replace authoring display.</summary>
-    WorkbenchMemoryDisplay GetGeneralReplaceMemoryDisplay(
-        long referenceCapacity,
-        IReadOnlyList<AuthoringMappingState> authoringStates);
+/// <summary>Result of preparing one exact CtrlRAM authoring session.</summary>
+public sealed record CtrlRamAuthoringSessionPreparation(
+    ActiveSessionSnapshot? AcceptedSession,
+    IReadOnlyList<CompositionIssue> Issues)
+{
+    /// <summary>True only when current compiled inspection owns the accepted session.</summary>
+    public bool Succeeded => AcceptedSession is not null && Issues.Count == 0;
 }
 
 /// <summary>Immutable firmware inspection operations.</summary>
 public interface IFirmwareInspection
 {
     /// <summary>Reads FWConfig metadata when the selected image declares it.</summary>
-    WorkbenchFirmwareConfigMetadata? TryReadFirmwareConfigMetadata(string icId, string path);
+    FirmwareConfigMetadataSnapshot? TryReadFirmwareConfigMetadata(string icId, string path);
 
     /// <summary>Inspects a distinct-path batch once.</summary>
-    IReadOnlyList<WorkbenchFirmwareInspectionResult> InspectFirmwareBatch(
+    IReadOnlyList<FirmwareInspectionSnapshotResult> InspectFirmwareBatch(
         string icId,
-        IReadOnlyList<WorkbenchFirmwareInspectionInput> inputs);
+        IReadOnlyList<FirmwareInspectionSnapshotInput> inputs);
 
     /// <summary>Projects CtrlRAM display from an already-inspected base.</summary>
-    WorkbenchCtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
+    CtrlRamInspectionDisplay ProjectCtrlRamInspectionDisplay(
         string icId,
         string numberToken,
-        WorkbenchFirmwareConfigMetadata? baseFirmware);
+        FirmwareConfigMetadataSnapshot? baseFirmware);
 }
 
 /// <summary>Output-name projection from immutable inspections or an accepted AB session.</summary>
 public interface ICompositionOutputNaming
 {
-    /// <summary>Resolves an AB automatic output filename without execution.</summary>
-    ValueTask<string> ResolveAutomaticOutputFileNameAsync(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        CancellationToken cancellationToken,
-        string? abMergeTopologyToken = null,
-        ActiveSessionSnapshot? acceptedSession = null);
+    /// <summary>Resolves the compiled name from one exact accepted session without reopening inputs.</summary>
+    CompositionOutputPreparation ResolveAcceptedOutput(
+        ActiveSessionSnapshot acceptedSession,
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null);
 
-    /// <summary>Creates a FlashCode name with an edited CtrlRAM TP version.</summary>
-    WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileNameFromInspections(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates,
-        DateOnly? effectiveDate = null);
+    /// <summary>Resolves one AB automatic output name and its compiled optional deliveries without execution.</summary>
+    ValueTask<CompositionOutputPreparation> PrepareAutomaticOutputAsync(
+        ActiveSessionSnapshot acceptedSession,
+        CancellationToken cancellationToken);
 
-    /// <summary>Creates a FlashCode name with an edited CtrlRAM TP version.</summary>
-    WorkbenchOutputFileNameSuggestion CreateFlashCodeOutputFileNameFromInspections(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates,
-        WorkbenchCtrlRamFirmwareVersionEdit firmwareVersionEdit,
-        DateOnly? effectiveDate = null);
-
-    /// <summary>Creates a CtrlRAM Replace name from immutable inspections.</summary>
-    WorkbenchOutputFileNameSuggestion CreateCtrlRamReplaceOutputFileNameFromInspections(
-        string icId,
-        IReadOnlyList<WorkbenchOutputNameInspectionCandidate> candidates,
-        WorkbenchCtrlRamFirmwareVersionEdit? firmwareVersionEdit = null,
-        DateOnly? effectiveDate = null);
-}
-
-/// <summary>Read-only planning for optional AB delivery artifacts.</summary>
-public interface IAbMergeDeliveryPlanning
-{
-    /// <summary>Creates an optional A-bank delivery plan without execution.</summary>
-    ValueTask<WorkbenchAbAFlashCodeDeliveryPlan?> TryCreateAFlashCodeDeliveryPlanAsync(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        CancellationToken cancellationToken,
-        string? abMergeTopologyToken = null,
-        ActiveSessionSnapshot? acceptedSession = null);
 }
 
 /// <summary>Preview and Build execution from exact accepted Application sessions.</summary>
 public interface ICompositionExecution
 {
-    /// <summary>Runs Standard Merge from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> RunStandardMergeAcceptedSessionWithProgressAsync(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot acceptedSession,
-        bool build,
-        CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken,
-        string? outputPath = null);
-
-    /// <summary>Runs General Merge from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> RunGeneralMergeAcceptedSessionWithProgressAsync(
-        string icId,
-        ActiveSessionSnapshot acceptedSession,
-        bool build,
-        CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken,
-        string? outputPath = null);
-
-    /// <summary>Runs AB Merge from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> RunAbMergeAcceptedSessionWithProgressAsync(
-        string icId,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot acceptedSession,
-        bool build,
-        CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken,
-        string? outputPath = null,
-        string? abMergeTopologyToken = null,
-        string? aFlashCodeOutputPath = null,
-        bool outputPathUsesAutomaticName = false,
-        bool aFlashCodeOutputPathUsesAutomaticName = false);
-
-    /// <summary>Previews General Replace from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> PreviewGeneralReplaceAcceptedSessionWithProgressAsync(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot acceptedSession,
+    /// <summary>Executes any accepted workflow through the single shared Application operation.</summary>
+    ValueTask<CompositionRunResult> ExecuteAsync(
+        AcceptedCompositionExecutionRequest request,
         CompositionRunProgressFeed progress,
         CancellationToken cancellationToken);
-
-    /// <summary>Builds General Replace from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> BuildGeneralReplaceAcceptedSessionWithProgressAsync(
-        string icId,
-        string number,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot acceptedSession,
-        CompositionRunProgressFeed progress,
-        string? outputPath,
-        CancellationToken cancellationToken);
-
-    /// <summary>Runs DP or CtrlRAM Replace from an exact accepted session.</summary>
-    ValueTask<WorkbenchRunResult> RunReplaceAcceptedSessionWithProgressAsync(
-        string icId,
-        string number,
-        string replaceMode,
-        IReadOnlyDictionary<string, string> slotPaths,
-        ActiveSessionSnapshot acceptedSession,
-        bool build,
-        CompositionRunProgressFeed progress,
-        CancellationToken cancellationToken,
-        string? outputPath = null,
-        WorkbenchCtrlRamFirmwareVersionEdit? ctrlRamFirmwareVersionEdit = null);
-
-    /// <summary>Creates typed diagnostics for a rejected Replace attempt.</summary>
-    WorkbenchRunResult CreateRejectedReplaceAttemptResult(
-        string icId,
-        string number,
-        string replaceMode,
-        IReadOnlyDictionary<string, string> slotPaths,
-        IReadOnlyList<CompositionIssue> authoringIssues,
-        bool build);
 }
-

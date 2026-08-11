@@ -258,10 +258,22 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void AuthoringConvenienceFacadesStayCollapsed()
     {
-        string mergeSessions = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/MergeAuthoringSessionSet.cs");
-        string replaceSessions = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/ReplaceAuthoringSessionSet.cs");
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "Authoring",
+            "MergeAuthoringSessionSet.cs")));
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Application",
+            "Authoring",
+            "ReplaceAuthoringSessionSet.cs")));
+        string mergeState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
+        string replaceState = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.State.cs");
         string rangeCodec = ReadText(
             "src/NvtFwCombiner.Application/Authoring/AuthoringByteRangeCodec.cs");
         string mappingDraft = ReadText(
@@ -269,18 +281,14 @@ public sealed partial class RepositoryBoundaryTests
         string mergeDraft = ReadText(
             "src/NvtFwCombiner.Application/Authoring/GeneralMergeDraftState.cs");
 
-        Assert.Equal(0, CountOccurrences(mergeSessions, "ForWorkflow("));
-        Assert.Equal(0, CountOccurrences(replaceSessions, "ForWorkflow("));
-        Assert.Equal(0, CountOccurrences(mergeSessions, "CreateEphemeral("));
-        Assert.Equal(0, CountOccurrences(replaceSessions, "CreateEphemeral("));
-        Assert.Contains(
-            "StandardMerge = new AuthoringSessionState(ExperienceIds.StandardMerge);",
-            mergeSessions,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "DpReplace = new AuthoringSessionState(ExperienceIds.DpReplace);",
-            replaceSessions,
-            StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(mergeState, "new(ExperienceIds."));
+        Assert.Equal(3, CountOccurrences(replaceState, "new(ExperienceIds."));
+        Assert.Contains("ExperienceIds.StandardMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.AbMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", mergeState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.DpReplace", replaceState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.CtrlRamReplace", replaceState, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralReplace", replaceState, StringComparison.Ordinal);
         Assert.Equal(0, CountOccurrences(rangeCodec, "GetEndInclusive("));
         Assert.Equal(1, CountOccurrences(mappingDraft, "WithAcceptedFileStamp("));
         Assert.Equal(1, CountOccurrences(mappingDraft, "RebindSelectedFile("));

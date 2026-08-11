@@ -62,7 +62,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create($"nfc-nt51923-fw141-{topology}-parity");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -72,8 +72,8 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, standardMerge.ReportJson);
-        using (var standardMergeReport = JsonDocument.Parse(standardMerge.ReportJson))
+        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        using (var standardMergeReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(standardMerge)))
         {
             Assert.Equal("nt51923-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
@@ -81,22 +81,22 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51923",
             topology,
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slots,
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, v2.ReportJson);
+        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         Assert.Equal(outputSha256, Hash(v2Bytes));
         Assert.Equal(outputSha256, v2.OutputSha256);
         AssertOwnerCrcOnlyDifference(ownerCase.Expected.Bytes, v2Bytes);
 
-        using var v2Report = JsonDocument.Parse(v2.ReportJson);
+        using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
         Assert.Equal(ownerExpectedSha256, Hash(File.ReadAllBytes(referencePath)));
@@ -142,19 +142,19 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
 
         File.WriteAllBytes(referencePath, reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
-        slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
+        slots[CompositionSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51923",
             number,
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slots,
             build: true,
             TestContext.Current.CancellationToken,
             outputPath);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var report = JsonDocument.Parse(result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         AssertReportIdentity(
             report.RootElement,
             topology == "single"
@@ -296,7 +296,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     {
         var slots = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath ?? ownerCase.Expected.Path,
+            [CompositionSlotIds.ReplaceBase] = referencePath ?? ownerCase.Expected.Path,
             ["replace-ctrlram-normal"] = ownerCase.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-mp"] = ownerCase.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = ownerCase.Require("NF_Ctrlram.bin").Path,

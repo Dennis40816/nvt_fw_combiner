@@ -16,10 +16,10 @@ public sealed partial class ShellViewModelTests
             "ctrlram-replace",
             "nt51927-2chip-self-20260705");
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-build");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51927";
         viewModel.WorkflowSession.SelectedNumber = "2";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         string outputPath = workspace.PathFor("ctrlram-build-output.bin");
 
@@ -74,10 +74,10 @@ public sealed partial class ShellViewModelTests
             Assert.Equal("CtrlRAM", fixtureCase.GetProperty("mode").GetString());
             string caseId = fixtureCase.GetProperty("id").GetString()!;
             using var workspace = TempWorkspace.Create("nvt-fw-combiner-private-ctrlram");
-            MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+            MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
             viewModel.WorkflowSession.SelectedIc = fixtureCase.GetProperty("ic").GetString()!;
             viewModel.WorkflowSession.SelectedNumber = fixtureCase.GetProperty("icNum").GetString()!;
-            OpenReplace(viewModel, "CtrlRAM");
+            OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
             fixtures.SetBaseSlot(viewModel, fixtureCase);
             fixtures.SetReplacementSlots(viewModel, fixtureCase);
 

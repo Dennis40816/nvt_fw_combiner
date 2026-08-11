@@ -106,13 +106,15 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappin
         IEnumerable<ExplicitMapping> mappings,
         V2RuntimeReferenceReplaceFirmwareVersionEdit? firmwareVersionEdit = null,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy = null,
-        IEnumerable<ExternalProcessorWriteRangeSection>? postbuildWriteRangeSections = null)
+        IEnumerable<ExternalProcessorWriteRangeSection>? postbuildWriteRangeSections = null,
+        ExternalProcessorProtocolPlan? processorProtocolPlan = null)
         : base(bindings, mappings)
     {
         PostbuildWriteRangeSections = Array.AsReadOnly(
             [.. postbuildWriteRangeSections ?? []]);
         FirmwareVersionEdit = firmwareVersionEdit;
         PostbuildPolicy = postbuildPolicy;
+        ProcessorProtocolPlan = processorProtocolPlan;
     }
 
     internal V2RuntimeReferenceReplaceFirmwareVersionEdit? FirmwareVersionEdit { get; }
@@ -121,4 +123,7 @@ internal sealed class V2RuntimeReferenceReplaceCompileRequest : V2ExplicitMappin
 
     /// <summary>Compiler input annotations for the exact resolved postbuild processor plan.</summary>
     internal IReadOnlyList<ExternalProcessorWriteRangeSection> PostbuildWriteRangeSections { get; }
+
+    /// <summary>Exact already-selected adapter protocol plan bound into the compiled processor invocation.</summary>
+    internal ExternalProcessorProtocolPlan? ProcessorProtocolPlan { get; }
 }

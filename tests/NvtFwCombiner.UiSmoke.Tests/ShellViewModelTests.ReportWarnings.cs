@@ -9,7 +9,7 @@ public sealed partial class ShellViewModelTests
     public void ReportReviewSeparatesWarningsFromBlockingIssues()
     {
         string json = ReportJsonSamples.CtrlRamWarning();
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
 
         viewModel.Reports.LoadReportJson(json, "warning-report.json");
 

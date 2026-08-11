@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Cli;
 
 internal static class Program

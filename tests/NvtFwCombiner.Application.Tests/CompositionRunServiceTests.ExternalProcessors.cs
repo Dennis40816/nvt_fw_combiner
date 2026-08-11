@@ -8,7 +8,8 @@ namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunServiceTests
 {
-    private static CompositionRunRequest CreateExternalProcessorRequest()
+    private static CompositionRunRequest CreateExternalProcessorRequest(
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         AddressSpace[] addressSpaces =
         [
@@ -28,7 +29,8 @@ public sealed partial class CompositionRunServiceTests
                         "processor-v1",
                         "tool-v1",
                         [new ByteRange(0, 4)],
-                        [new ByteRange(1, 1)]),
+                        [new ByteRange(1, 1)],
+                        protocolPlan: protocolPlan),
                     OverlapPolicy.Reject,
                     "run synthetic external processor"),
             ]);

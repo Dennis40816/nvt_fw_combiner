@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using System.Diagnostics;
 
@@ -20,25 +19,15 @@ public sealed partial class MainWindow
         {
             _ = composition.Capabilities.GetCatalogSummary();
             _ = composition.Capabilities.GetNumberSelectionChoices(icId);
-            _ = composition.Authoring.GetGeneralMergeDefaultOutputLength(icId);
-            _ = composition.Authoring.GetStandardMergeRequiredAddressSpaces(icId);
-            _ = composition.Authoring.GetCtrlRamRegions(icId, number, basePath: null);
-            _ = composition.Memory.GetReplaceInputSlots(
-                icId,
-                number,
-                WorkbenchReplaceModes.Dp,
-                basePath: null);
-            _ = composition.Memory.GetReplaceInputSlots(
-                icId,
-                number,
-                WorkbenchReplaceModes.CtrlRam,
-                basePath: null);
+            _ = composition.GeneralAuthoring.GetDefaultOutputLength(icId);
+            _ = composition.StandardMergeAuthoring.GetRequiredAddressSpaces(icId);
+            _ = composition.CtrlRamAuthoring.GetDiscoveryDisplay(icId, number, basePath: null);
         }
         catch (Exception exception) when (
             exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             Trace.TraceWarning(
-                "Deferred legacy catalog warm-up did not complete: {0}",
+                "Deferred catalog warm-up did not complete: {0}",
                 exception.Message);
         }
         cancellationToken.ThrowIfCancellationRequested();

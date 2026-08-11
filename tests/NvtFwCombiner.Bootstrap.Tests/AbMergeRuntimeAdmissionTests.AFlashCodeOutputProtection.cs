@@ -19,30 +19,30 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         WriteCmi(dp, bankStart: 0, major: 0x06, minor: 0x05, jira: 0x123);
         WriteCmi(dp, bankStart: TpLength, major: 0x07, minor: 0x08, jira: 0x456);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
-        string staleSuggestedName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
+        string staleSuggestedName = (await AbMergeTestSupport.PrepareOutputAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken)).OutputName.FileName;
 
         WriteCmi(dp, bankStart: 0, major: 0x0A, minor: 0x01, jira: 0x123);
         await File.WriteAllBytesAsync(dpPath, dp, TestContext.Current.CancellationToken);
-        string renderedName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
+        string renderedName = (await AbMergeTestSupport.PrepareOutputAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken)).OutputName.FileName;
         string stalePrimaryPath = workspace.PathFor($"output/{staleSuggestedName}");
         string aFlashCodePath = workspace.PathFor($"output/{renderedName}");
         var progress = new CompositionRunProgressFeed();
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            CompositionExecutionAdapter.RunAbMergeWithProgressAsync(
+            AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
                 "NT51929",
                 paths,
                 build: true,
                 progress: progress,
                 cancellationToken: TestContext.Current.CancellationToken,
                 outputPath: stalePrimaryPath,
-                abMergeTopologySelection: null,
+                topologySelection: null,
                 aFlashCodeOutputPath: aFlashCodePath,
                 outputPathUsesAutomaticName: true).AsTask());
 

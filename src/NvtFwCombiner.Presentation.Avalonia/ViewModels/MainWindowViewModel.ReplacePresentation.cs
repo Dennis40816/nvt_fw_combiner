@@ -15,12 +15,12 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private WorkbenchFirmwareInspection? GetSelectedReplaceBaseInspection()
+    private FirmwareInspectionSnapshot? GetSelectedReplaceBaseInspection()
     {
         return WorkflowSession.InspectionSession.TryGetBase(
             WorkflowSession.SelectedIc,
             Replace.ReplaceBaseSlot.FilePath,
-            out WorkbenchFirmwareInspection inspection)
+            out FirmwareInspectionSnapshot inspection)
                 ? inspection
                 : null;
     }

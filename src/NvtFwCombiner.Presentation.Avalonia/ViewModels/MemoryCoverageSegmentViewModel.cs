@@ -19,7 +19,7 @@ public sealed class MemoryCoverageSegmentViewModel
         bool isDiffDlm = false,
         IReadOnlyList<MemoryLayoutPreservationDetail>? preservationDetails = null,
         ShellTextResources? text = null,
-        WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common)
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
@@ -73,7 +73,7 @@ public sealed class MemoryCoverageSegmentViewModel
     /// <summary>Short display note for this segment.</summary>
     public string Detail { get; }
 
-    /// <summary>Compact display note for dense workbench legends.</summary>
+    /// <summary>Compact display note for dense memory legends.</summary>
     public string CompactDetail { get; }
 
     /// <summary>Brush color used by the visual strip.</summary>
@@ -105,7 +105,7 @@ public sealed class MemoryCoverageSegmentViewModel
     public bool IsDiffDlm { get; }
 
     /// <summary>Typed Replace grouping supplied before localized display text.</summary>
-    public WorkbenchReplaceRegionGroup RegionGroup { get; }
+    public ReplaceRegionGroup RegionGroup { get; }
 
     /// <summary>Reference-owned active Diff NF details, empty for full-artifact replacement.</summary>
     public IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails { get; }

@@ -18,7 +18,7 @@ public sealed partial class FirmwareSlotViewModel
 
     /// <summary>One presentation state composed from selection readiness and typed input inspection.</summary>
     public FirmwareSlotSemanticState SemanticState =>
-        InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking
+        InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking
             ? FirmwareSlotSemanticState.Error
             : SelectionReadinessState switch
             {
@@ -28,9 +28,9 @@ public sealed partial class FirmwareSlotViewModel
                 ResolvedChildReadiness.Ready or null when IsInputInspectionPending => FirmwareSlotSemanticState.Checking,
                 ResolvedChildReadiness.Ready or null => InputInspectionSeverity switch
                 {
-                    WorkbenchInputInspectionSeverity.Blocking => FirmwareSlotSemanticState.Error,
-                    WorkbenchInputInspectionSeverity.Warning => FirmwareSlotSemanticState.Warning,
-                    WorkbenchInputInspectionSeverity.Valid => FirmwareSlotSemanticState.Verified,
+                    FirmwareInputInspectionSeverity.Blocking => FirmwareSlotSemanticState.Error,
+                    FirmwareInputInspectionSeverity.Warning => FirmwareSlotSemanticState.Warning,
+                    FirmwareInputInspectionSeverity.Valid => FirmwareSlotSemanticState.Verified,
                     null when HasFile => FirmwareSlotSemanticState.Checking,
                     null => FirmwareSlotSemanticState.Empty,
                     _ => FirmwareSlotSemanticState.Error,
@@ -39,7 +39,7 @@ public sealed partial class FirmwareSlotViewModel
             };
 
     private bool SelectionReadinessOwnsSemanticText =>
-        InputInspectionSeverity != WorkbenchInputInspectionSeverity.Blocking &&
+        InputInspectionSeverity != FirmwareInputInspectionSeverity.Blocking &&
         SelectionReadinessState is ResolvedChildReadiness.Blocked or
             ResolvedChildReadiness.NotApplicable or
             ResolvedChildReadiness.PendingInput;

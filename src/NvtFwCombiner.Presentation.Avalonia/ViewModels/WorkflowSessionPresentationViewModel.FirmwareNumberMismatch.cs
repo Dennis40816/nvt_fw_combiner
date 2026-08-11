@@ -33,7 +33,7 @@ public sealed partial class WorkflowSessionPresentationViewModel
 
     internal void PromptForFirmwareNumberMismatch(
         FirmwareSlotViewModel slot,
-        WorkbenchFirmwareContextSuggestion? suggestion)
+        FirmwareContextSuggestion? suggestion)
     {
         if (suggestion is null ||
             !slot.HasFile ||

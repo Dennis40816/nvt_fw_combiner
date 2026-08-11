@@ -19,10 +19,10 @@ public sealed class AbMergeInputRootTests
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("Foo/tp-b.bin", CreateTpImage(0x82, 0x03)),
         };
 
-        string fileName = await CompositionOutputNaming.ResolveAutomaticOutputFileNameAsync(
+        string fileName = (await AbMergeTestSupport.PrepareOutputAsync(BootstrapTestHost.Services,
             "NT51929",
             slots,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken)).OutputName.FileName;
 
         Assert.StartsWith("NT51929_FlashCode_A_", fileName, StringComparison.Ordinal);
         Assert.EndsWith(".bin", fileName, StringComparison.Ordinal);

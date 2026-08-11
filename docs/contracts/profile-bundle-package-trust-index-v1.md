@@ -35,9 +35,11 @@ declares a selection group additionally declare the reviewed
 Fields that do not belong to the selected workflow are forbidden.
 
 The admitted workflow vocabulary is fixed by the schema. Existing-vocabulary
-IC onboarding changes the manifest-pinned bundle plus this index; Bootstrap
-registries, CLI, Workbench, capability inventory, and support projections only
-project typed registrations and must not add IC-specific route tables. A new
+IC onboarding changes the manifest-pinned bundle plus this index; the
+Application capability catalog, UI, CLI, capability inventory, and support
+projections only consume typed registrations and must not add IC-specific route
+tables. Bootstrap registers the loader/compiler ports but owns no registry or
+projection. A new
 workflow vocabulary or compiler semantic is a separate contract and
 architecture change.
 

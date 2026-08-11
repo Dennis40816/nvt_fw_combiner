@@ -12,7 +12,7 @@ internal static class GeneralTestDraftFactory
         string targetStart,
         string length)
     {
-        return CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+        return GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
             id,
             GeneralMappingSourceKind.FileArtifact,
             path,
@@ -27,7 +27,7 @@ internal static class GeneralTestDraftFactory
         GeneralMappingSourceKind kind,
         string value)
     {
-        return CanonicalAuthoringAdapter.CreateGeneralReplaceAuthoringState(
+        return GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
             id,
             kind,
             value,
@@ -40,15 +40,15 @@ internal static class GeneralTestDraftFactory
         IReadOnlyList<AuthoringMappingState> mappings,
         string? outputFillByte = null)
     {
-        if (!CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
+        if (!GeneralMergeAuthoringUseCase.TryResolveOutputInitializer(
                 outputLength,
                 outputFillByte,
-                out WorkbenchGeneralMergeInitializer? initializer))
+                out GeneralMergeInitializer? initializer))
         {
             throw new InvalidOperationException("Test input must contain a valid General Merge initializer.");
         }
 
-        GeneralMappingDraftState mappingDraft = CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
+        GeneralMappingDraftState mappingDraft = GeneralAuthoringMappingUseCase.TryCreateGeneralMergeAuthoringDraft(
                 mappings,
                 out GeneralMappingDraftState? draft,
                 out IReadOnlyList<CompositionIssue> issues)
@@ -56,13 +56,13 @@ internal static class GeneralTestDraftFactory
             : throw new InvalidOperationException(
                 string.Join("; ", issues.Select(static issue => issue.Message)));
 
-        return CanonicalAuthoringAdapter.CreateGeneralMergeDraft(initializer, mappingDraft);
+        return GeneralMergeAuthoringUseCase.CreateDraft(initializer, mappingDraft);
     }
 
     internal static GeneralMappingDraftState CreateReplaceDraft(
         IReadOnlyList<AuthoringMappingState> mappings)
     {
-        return CanonicalAuthoringAdapter.TryCreateGeneralReplaceAuthoringDraft(
+        return GeneralAuthoringMappingUseCase.TryCreateGeneralReplaceAuthoringDraft(
             mappings,
             out GeneralMappingDraftState? draft,
             out IReadOnlyList<CompositionIssue> issues)
@@ -71,31 +71,4 @@ internal static class GeneralTestDraftFactory
                     string.Join("; ", issues.Select(static issue => issue.Message)));
     }
 
-    internal static WorkbenchMemoryDisplay GetMergeDisplay(
-        string icId,
-        string outputLength,
-        IReadOnlyList<AuthoringMappingState> mappings,
-        string? outputFillByte = null)
-    {
-        return !CanonicalAuthoringAdapter.TryResolveGeneralMergeOutputInitializer(
-                outputLength,
-                outputFillByte,
-                out WorkbenchGeneralMergeInitializer? initializer)
-            ? CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
-                icId,
-                outputLength,
-                outputFillByte)
-            : CanonicalAuthoringAdapter.TryCreateGeneralMergeAuthoringDraft(
-                mappings,
-                out GeneralMappingDraftState? mappingDraft,
-                out _)
-                ? CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
-                    icId,
-                    CanonicalAuthoringAdapter.CreateGeneralMergeDraft(initializer, mappingDraft))
-                : CompositionMemoryProjection.GetGeneralMergeMemoryDisplay(
-                    icId,
-                    initializer,
-                    mappings,
-                    admission: null);
-    }
 }

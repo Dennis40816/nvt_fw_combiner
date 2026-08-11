@@ -99,14 +99,14 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerDiffDlmPolicy? maskedDiffDlm =
                 plan.Branch == LegacyCombinerPostbuildBranch.Cascade
                     ? profile.DiffDlmPolicy
                     : null;
             string[] expectedFileNames =
             [
-                .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+                .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                     .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
                     .Where(block => maskedDiffDlm is null || !maskedDiffDlm.IsIndependentNfBlock(block))
                     .Select(block => block.SourceFileName)
@@ -208,7 +208,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
             Assert.True(BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMap));
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerBlockArgument[] sourceBlocks =
             [
                 .. plan.Commands
@@ -294,13 +294,13 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
-            LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(profile, selection);
+            LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
                 profile.IcId,
                 selection,
                 null,
                 TpFlashMapRegionKind.CtrlRam);
-            foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan))
+            foreach (LegacyCombinerBlockArgument block in LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan))
             {
                 Assert.Contains(
                     regions,

@@ -12,6 +12,7 @@ internal static partial class V2CompositionPlanCompiler
         IReadOnlyList<ByteRange> postbuildFirmwareVersionWrites,
         V2RuntimeReferenceReplacePostbuildPolicy? postbuildPolicy,
         IReadOnlyList<ExternalProcessorWriteRangeSection> postbuildWriteRangeSections,
+        ExternalProcessorProtocolPlan? processorProtocolPlan,
         CompositionOperation[] processorOperations)
     {
         if (!narrowsCtrlRamProcessorAuthority || processorOperations.Length == 0)
@@ -78,7 +79,8 @@ internal static partial class V2CompositionPlanCompiler
                     resolvedAllowedWrites.Any(range => range.Contains(section.Range)))
                 .DistinctBy(section => (section.SectionId, section.Range, section.SourceRange)),
             declared.StagedArtifactBindings,
-            declared.OutputAssertions);
+            declared.OutputAssertions,
+            processorProtocolPlan ?? declared.ProtocolPlan);
         return
         [
             CompositionOperation.RunExternalProcessor(

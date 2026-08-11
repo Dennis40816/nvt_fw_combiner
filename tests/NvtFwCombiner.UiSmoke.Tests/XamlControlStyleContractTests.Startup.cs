@@ -69,7 +69,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.True(
             lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal) <
             lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
-        Assert.Contains("Deferred legacy catalog warm-up did not complete", warmup, StringComparison.Ordinal);
+        Assert.Contains("Deferred catalog warm-up did not complete", warmup, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);

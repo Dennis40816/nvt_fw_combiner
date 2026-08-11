@@ -2,7 +2,7 @@ using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
-using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
+using static NvtFwCombiner.Application.Composition.CompositionPlanningIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -92,12 +92,12 @@ public sealed partial class GeneralMergeCliCommandTests
             Mapping("general-merge-map-1", source, "0x0", "0x0", "0x1"),
         ];
 
-        WorkbenchRunResult zero = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult zero = await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x4", mappings, "0x00"),
             build: false,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult ff = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult ff = await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x4", mappings, "0xFF"),
             build: false,
@@ -108,8 +108,8 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.NotNull(zero.PreviewToken);
         Assert.NotNull(ff.PreviewToken);
         Assert.NotEqual(zero.PreviewToken, ff.PreviewToken);
-        using var zeroReport = JsonDocument.Parse(zero.ReportJson);
-        using var ffReport = JsonDocument.Parse(ff.ReportJson);
+        using var zeroReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(zero));
+        using var ffReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(ff));
         Assert.NotEqual(
             zeroReport.RootElement.GetProperty("CompilationFingerprint").GetString(),
             ffReport.RootElement.GetProperty("CompilationFingerprint").GetString());
@@ -117,25 +117,6 @@ public sealed partial class GeneralMergeCliCommandTests
             0xFF,
             ffReport.RootElement.GetProperty("ImageInitialization")
                 .GetProperty("FillByte").GetInt32());
-    }
-
-    /// <summary>The typed display seam uses the same exact initializer as execution.</summary>
-    [Fact]
-    public void GeneralMergeDisplayConsumesCanonicalDraftInitializer()
-    {
-        var draft = new GeneralMergeDraftState(
-            new GeneralMergeOutputInitializer(4, 0x5A),
-            new GeneralMappingDraftState([]));
-
-        WorkbenchMemoryDisplay display =
-            CompositionMemoryProjection.GetGeneralMergeMemoryDisplay("NT51950", draft);
-
-        Assert.Equal(
-            "Blank output 0x5A",
-            Assert.Single(display.MemoryMapRows).AfterSource);
-        Assert.Equal(
-            "Blank 0x5A",
-            Assert.Single(display.CoverageSegments).SourceLabel);
     }
 
     /// <summary>Verifies General Merge build copies explicit source ranges over a blank output image.</summary>
@@ -238,20 +219,20 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11]);
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
                 [Mapping("general-merge-map-1", source, "0x1", "0x4", "0x3")]),
-            build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        CompositionIssue issue = Assert.Single(prepared.Issues);
         Assert.Equal(
             "general.admission.source-out-of-bounds",
-            issue.GetProperty("Code").GetString());
+            issue.Code);
     }
 
     /// <summary>Prints General Merge issues directly when no report path is requested.</summary>
@@ -302,7 +283,7 @@ public sealed partial class GeneralMergeCliCommandTests
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12]);
         string output = workspace.Write("out.bin", [0xFE, 0xED]);
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult result = await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x4",
@@ -315,128 +296,6 @@ public sealed partial class GeneralMergeCliCommandTests
         Assert.Equal([0x10, 0x11, 0x00, 0x00], await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
     }
 
-    /// <summary>Keeps adjacent General Merge mappings visually distinct even when they use the same color.</summary>
-    [Fact]
-    public void GeneralMergeCoverageKeepsAdjacentMappingRowsDistinct()
-    {
-        using var workspace = TempWorkspace.Create();
-        string first = workspace.Write("first.bin", new byte[4]);
-        string second = workspace.Write("second.bin", new byte[4]);
-        WorkbenchMemoryDisplay display = GeneralTestDraftFactory.GetMergeDisplay(
-            "NT51950",
-            "0x10",
-            [
-                Mapping("general-merge-map-1", first, "0x0", "0x0", "0x4"),
-                Mapping("general-merge-map-2", second, "0x0", "0x4", "0x4"),
-            ]);
-
-        WorkbenchMemoryCoverageSegment[] changed = [.. display.CoverageSegments.Where(segment => segment.IsChanged)];
-        Assert.Equal(2, changed.Length);
-        Assert.Contains("general-merge-map-1", changed[0].Detail, StringComparison.Ordinal);
-        Assert.Contains("general-merge-map-2", changed[1].Detail, StringComparison.Ordinal);
-    }
-
-    /// <summary>Keeps invalid and out-of-output mappings visible without painting unsupported coverage.</summary>
-    [Fact]
-    public void GeneralMergeDisplayKeepsBlockedRowsAndRangeStateTogether()
-    {
-        WorkbenchMemoryDisplay invalid =
-            GeneralTestDraftFactory.GetMergeDisplay(
-                "NT51950",
-                "",
-                []);
-
-        Assert.Equal("Enter a valid output length", invalid.RangeLabel);
-        Assert.Equal("Blocked", Assert.Single(invalid.MemoryMapRows).ActionLabel);
-        Assert.Equal("Pending", Assert.Single(invalid.CoverageSegments).SourceLabel);
-
-        WorkbenchMemoryDisplay display = GeneralTestDraftFactory.GetMergeDisplay(
-            "NT51950",
-            "0x10",
-            [
-                Mapping("invalid-map", "invalid.bin", "", "0x0", "0x1"),
-                Mapping("outside-map", "outside.bin", "0x0", "0x10", "0x1"),
-            ]);
-
-        Assert.Equal("0x00000-0x0000F (len 0x10)", display.RangeLabel);
-        Assert.Equal(3, display.MemoryMapRows.Count);
-        Assert.Contains("invalid-map", display.MemoryMapRows[1].RangeLabel, StringComparison.Ordinal);
-        Assert.Contains("0x00010", display.MemoryMapRows[2].RangeLabel, StringComparison.Ordinal);
-        Assert.DoesNotContain(display.CoverageSegments, segment => segment.IsChanged);
-    }
-
-    /// <summary>Memory projection consumes the same occupancy result as Preview/Build.</summary>
-    [Fact]
-    public void GeneralMergeDisplayKeepsMappingSpansAndMarksOnlyExactIntersection()
-    {
-        using var workspace = TempWorkspace.Create();
-        string first = workspace.Write("first.bin", new byte[4]);
-        string second = workspace.Write("second.bin", new byte[4]);
-        WorkbenchMemoryDisplay display = GeneralTestDraftFactory.GetMergeDisplay(
-            "NT51950",
-            "0x10",
-            [
-                Mapping(
-                    "stable-a",
-                    first,
-                    "0x0",
-                    "0x4",
-                    "0x4"),
-                Mapping(
-                    "stable-b",
-                    second,
-                    "0x0",
-                    "0x6",
-                    "0x4"),
-            ]);
-
-        Assert.Equal(2, display.MemoryMapRows.Count(row => row.ActionLabel == "WillWrite"));
-        Assert.DoesNotContain(display.MemoryMapRows, row => row.ActionLabel == "Blocked");
-        WorkbenchMemoryCoverageSegment overlap = Assert.Single(
-            display.CoverageSegments,
-            segment => segment.SourceLabel == "Overlap error");
-        Assert.Equal(new ByteRange(0x6, 0x2), overlap.Range);
-        Assert.Contains(
-            display.CoverageSegments,
-            segment => segment.IsChanged && segment.SourceLabel == "Source BIN");
-        Assert.Contains(
-            display.MemoryMapRows,
-            row => row.Detail.Contains("[0x6, 0x8)", StringComparison.Ordinal));
-    }
-
-    /// <summary>Draft-wide admission blockers are visible in memory projection and prevent changed coverage.</summary>
-    [Fact]
-    public void GeneralMergeDisplayBlocksEveryRowWhenMappingCountExceedsCeiling()
-    {
-        using var workspace = TempWorkspace.Create();
-        string source = workspace.Write("source.bin", [0xA5]);
-        AuthoringMappingState[] mappings =
-        [
-            .. Enumerable.Range(0, 4097).Select(index =>
-                Mapping(
-                    $"map-{index:D4}",
-                    source,
-                    "0x0",
-                    $"0x{index:X}",
-                    "0x1")),
-        ];
-
-        WorkbenchMemoryDisplay display =
-            GeneralTestDraftFactory.GetMergeDisplay(
-                "NT51950",
-                "0x1001",
-                mappings);
-
-        Assert.Contains(
-            display.MemoryMapRows,
-            row => row.Detail.Contains(
-                "mapping count 4097 exceeds the effective maximum 4096",
-                StringComparison.Ordinal));
-        Assert.DoesNotContain(
-            display.CoverageSegments,
-            segment => segment.IsChanged);
-    }
-
     /// <summary>Rejects overlapping General Merge targets through Application admission.</summary>
     [Fact]
     public async Task GeneralMergePreviewRejectsOverlappingTargetMappings()
@@ -444,36 +303,33 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [
                 Mapping("general-merge-map-1", source, "0x0", "0x4", "0x3"),
                 Mapping("general-merge-map-2", source, "0x1", "0x5", "0x2"),
             ]),
-            build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        CompositionIssue issue = Assert.Single(prepared.Issues);
         Assert.Equal(
             "general.admission.target-intersection",
-            issue.GetProperty("Code").GetString());
+            issue.Code);
         Assert.Contains(
             "[0x5, 0x7)",
-            issue.GetProperty("Message").GetString(),
+            issue.Message,
             StringComparison.Ordinal);
         Assert.Contains(
             "general-merge-map-1",
-            issue.GetProperty("Message").GetString(),
+            issue.Message,
             StringComparison.Ordinal);
         Assert.Contains(
             "general-merge-map-2",
-            issue.GetProperty("Message").GetString(),
+            issue.Message,
             StringComparison.Ordinal);
-        Assert.All(
-            document.RootElement.GetProperty("Operations").EnumerateArray(),
-            operation => Assert.Equal("CopyRange", operation.GetProperty("Kind").GetString()));
     }
 
     /// <summary>Reordering stable General mapping ids preserves the same overlap blocker.</summary>
@@ -485,24 +341,22 @@ public sealed partial class GeneralMergeCliCommandTests
         AuthoringMappingState first = Mapping("stable-a", source, "0x0", "0x4", "0x3");
         AuthoringMappingState second = Mapping("stable-b", source, "0x1", "0x5", "0x2");
 
-        WorkbenchRunResult forward = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation forward =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [first, second]),
-            build: false,
             TestContext.Current.CancellationToken);
-        WorkbenchRunResult reverse = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation reverse =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [second, first]),
-            build: false,
             TestContext.Current.CancellationToken);
 
-        using var forwardDocument = JsonDocument.Parse(forward.ReportJson);
-        using var reverseDocument = JsonDocument.Parse(reverse.ReportJson);
-        JsonElement forwardIssue = Assert.Single(
-            forwardDocument.RootElement.GetProperty("Issues").EnumerateArray());
-        JsonElement reverseIssue = Assert.Single(
-            reverseDocument.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(forwardIssue.GetRawText(), reverseIssue.GetRawText());
+        CompositionIssue forwardIssue = Assert.Single(forward.Issues);
+        CompositionIssue reverseIssue = Assert.Single(reverse.Issues);
+        Assert.Equal(
+            (forwardIssue.Code, forwardIssue.Message, forwardIssue.OperationId, forwardIssue.Severity),
+            (reverseIssue.Code, reverseIssue.Message, reverseIssue.OperationId, reverseIssue.Severity));
     }
 
     /// <summary>Verifies a rejected V2 General Merge request does not disable unrelated Standard Merge or Replace workflows.</summary>
@@ -512,20 +366,20 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10, 0x11, 0x12, 0x13]);
 
-        WorkbenchRunResult rejected = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation rejected =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51950",
             GeneralTestDraftFactory.CreateMergeDraft("0x10", [
                 Mapping("general-merge-map-1", source, "0x0", "0x4", "0x3"),
                 Mapping("general-merge-map-2", source, "0x1", "0x5", "0x2"),
             ]),
-            build: false,
             TestContext.Current.CancellationToken);
 
         Assert.False(rejected.Succeeded);
 
         string dp = workspace.Write("standard-dp.bin", new byte[0x40000]);
         string tp = workspace.Write("standard-tp.bin", new byte[0x3C000]);
-        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51923",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -585,7 +439,7 @@ public sealed partial class GeneralMergeCliCommandTests
             Mapping("general-merge-map-3", firstSource, "0x0", "0x8", "0x1"),
         ];
         string output = workspace.PathFor("output.bin");
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult result = await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
             icId,
             GeneralTestDraftFactory.CreateMergeDraft("0x10", mappings),
             build: true,
@@ -598,7 +452,7 @@ public sealed partial class GeneralMergeCliCommandTests
             [0x11, 0x12, 0x13, 0, 0, 0, 0x20, 0x21, 0x10, 0, 0, 0, 0, 0, 0, 0],
             await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken));
 
-        using var report = JsonDocument.Parse(result.ReportJson);
+        using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement root = report.RootElement;
         Assert.Equal(candidateProfileId, root.GetProperty("ProfileId").GetString());
         Assert.Equal("general-merge", root.GetProperty("ExperienceId").GetString());
@@ -612,7 +466,7 @@ public sealed partial class GeneralMergeCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10]);
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        CompositionRunResult result = await GeneralWorkflowTestSupport.RunGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51926",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
@@ -631,19 +485,19 @@ public sealed partial class GeneralMergeCliCommandTests
         using var workspace = TempWorkspace.Create();
         string source = workspace.Write("source.bin", [0x10]);
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunGeneralMergeEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralMergeAsync(BootstrapTestHost.Canonical,
             "NT51999",
             GeneralTestDraftFactory.CreateMergeDraft(
                 "0x10",
                 [Mapping("general-merge-map-1", source, "0x0", "0x0", "0x1")]),
-            build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal("general-merge-logical-output-candidate", result.ProfileId);
-        using var report = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(report.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal("general-merge.v2-candidate.member-not-admitted", issue.GetProperty("Code").GetString());
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        Assert.Equal(
+            "general-merge.v2-candidate.member-not-admitted",
+            Assert.Single(prepared.Issues).Code);
 
     }
 
@@ -659,7 +513,7 @@ public sealed partial class GeneralMergeCliCommandTests
         string targetStart,
         string length)
     {
-        return CanonicalAuthoringAdapter.CreateGeneralMergeAuthoringState(
+        return GeneralAuthoringMappingUseCase.CreateGeneralMergeAuthoringState(
             id,
             path,
             sourceStart,

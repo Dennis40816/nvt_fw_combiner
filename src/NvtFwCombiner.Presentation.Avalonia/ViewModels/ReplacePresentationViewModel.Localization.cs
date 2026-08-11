@@ -1,5 +1,3 @@
-using NvtFwCombiner.Bootstrap;
-
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReplacePresentationViewModel
@@ -11,7 +9,7 @@ public sealed partial class ReplacePresentationViewModel
             Text.GetReplaceBaseDescription(
                 SelectedReplaceMode,
                 _stateBindings.IsWorkflowLoaded()
-                    ? _compositionServices.Memory.GetDpReplaceReferenceCapacityLabel(SelectedIc)
+                    ? _compositionServices.Capabilities.GetDpReplaceReferenceCapacityLabel(SelectedIc)
                     : null),
             Text.RequiredLabel,
             Text.OptionalLabel,
@@ -30,7 +28,7 @@ public sealed partial class ReplacePresentationViewModel
 
     private void ApplyReplaceSlotText(FirmwareSlotViewModel slot)
     {
-        if (string.Equals(slot.SlotId, WorkbenchSlotIds.ReplaceDp, StringComparison.Ordinal))
+        if (string.Equals(slot.SlotId, CompositionSlotIds.ReplaceDp, StringComparison.Ordinal))
         {
             slot.ApplyDisplayText(
                 Text.DpReplacementBinTitle,

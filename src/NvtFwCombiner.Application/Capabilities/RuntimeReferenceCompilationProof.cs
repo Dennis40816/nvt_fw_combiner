@@ -84,40 +84,27 @@ public sealed class RuntimeReferenceCompilationProof
         }
 
         long capacity = composition.Plan.OutputInitialization.Capacity;
-        LegacyCombinerPostbuildCommandPlan resolvedPlan =
-            LegacyCombinerPostbuildPlanner.CreatePlan(
-                plan.Profile,
-                plan.Selector,
-                plan.TopologyCount);
-        if (!StringComparer.Ordinal.Equals(
-                LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
-                    plan,
-                    capacity),
-                LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
-                    resolvedPlan,
-                    capacity)))
+        if (!plan.Profile.Owns(plan))
         {
             throw new ArgumentException(
-                "The supplied postbuild command plan is not the exact planner-owned topology expansion.",
+                "The supplied postbuild command plan is not the exact profile-compiled topology binding.",
                 nameof(plan));
         }
 
         ValidateProcessorWriteAuthority(
             composition,
             invocation,
-            resolvedPlan,
+            plan,
             capacity);
 
         LegacyCombinerPostbuildCommandPlan reviewedPlan =
-            LegacyCombinerPostbuildPlanner.CreatePlan(
-                plan.Profile,
-                plan.Selector);
+            plan.Profile.ResolvePlan(plan.Selector);
         return new RuntimeReferenceCompilationProof(
             composition.CompilationFingerprint,
             invocation.ProcessorId,
             invocation.ToolBindingId,
             plan.Selector.Token,
-            LegacyCombinerPostbuildPlanner.CalculateIntegrityFingerprint(
+            LegacyCombinerPostbuildPlanCompiler.CalculateIntegrityFingerprint(
                 reviewedPlan,
                 capacity),
             invocation,
@@ -209,7 +196,7 @@ public sealed class RuntimeReferenceCompilationProof
     {
         ByteRange[] stagedTargetRanges =
         [
-            .. LegacyCombinerPostbuildPlanner.GetStagedFileBlocks(plan)
+            .. LegacyCombinerPostbuildPlanCompiler.GetStagedFileBlocks(plan)
                 .Select(static block => block.FirmwareRange)
                 .Distinct()
                 .OrderBy(static range => range.Start)
@@ -217,7 +204,7 @@ public sealed class RuntimeReferenceCompilationProof
         ];
         ExternalProcessorWriteRangeSection[] plannerStagedSections =
         [
-            .. LegacyCombinerPostbuildPlanner
+            .. LegacyCombinerPostbuildPlanCompiler
                 .GetAllowedWriteRangeSectionsForStagedSources(
                     plan,
                     capacity,

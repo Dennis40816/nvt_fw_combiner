@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
@@ -11,8 +12,6 @@ public sealed partial class AuthoringSessionState
 {
     private readonly Lock _transitionLock = new();
     private readonly object _publicationIdentity = new();
-    private readonly Dictionary<string, CachedGeneralSelectedFileInspection> _generalInspectionCache =
-        new(StringComparer.Ordinal);
     private AuthoringCapabilityCatalogSnapshot? _catalog;
     private ActiveSessionSnapshot? _current;
 
@@ -39,7 +38,6 @@ public sealed partial class AuthoringSessionState
         lock (_transitionLock)
         {
             _catalog = null;
-            _generalInspectionCache.Clear();
             Volatile.Write(ref _current, null);
         }
     }
@@ -92,20 +90,6 @@ public sealed partial class AuthoringSessionState
             AuthoringCapabilityRoute route = FindSelectedRoute(
                 catalog,
                 resolution.Snapshot!.SelectedRouteId);
-            foreach (string cachedDefinitionId in _generalInspectionCache
-                .Where(entry =>
-                    entry.Value.ResolutionToken != catalog.ResolutionToken ||
-                    !StringComparer.Ordinal.Equals(
-                        entry.Value.CapabilityFingerprint,
-                        route.CapabilityFingerprint) ||
-                    !route.SlotDefinitions.Any(slot => StringComparer.Ordinal.Equals(
-                        slot.DefinitionId,
-                        entry.Key)))
-                .Select(static entry => entry.Key)
-                .ToArray())
-            {
-                _ = _generalInspectionCache.Remove(cachedDefinitionId);
-            }
             bool sameSelection = previous is not null &&
                 StringComparer.Ordinal.Equals(
                     previous.SelectedRouteId,
@@ -157,6 +141,41 @@ public sealed partial class AuthoringSessionState
                     : route.CapabilityFingerprint,
                 []);
             _catalog = catalog;
+            Volatile.Write(ref _current, snapshot);
+            return new AuthoringSessionTransitionResult(snapshot, null);
+        }
+    }
+
+    /// <summary>Activates one compiled selection and retains its readiness on the same revision.</summary>
+    public AuthoringSessionTransitionResult Activate(
+        CompiledAuthoringSelectionSnapshot selection)
+    {
+        ArgumentNullException.ThrowIfNull(selection);
+        AuthoringSessionTransitionResult activated = Activate(selection.Catalog);
+        if (!activated.Succeeded)
+        {
+            return activated;
+        }
+
+        lock (_transitionLock)
+        {
+            if (!ReferenceEquals(_current, activated.Snapshot))
+            {
+                return Failure(
+                    AuthoringSessionIssueCodes.StalePublication,
+                    "The compiled selection changed before its readiness could be retained.",
+                    WorkflowId);
+            }
+
+            ActiveSessionSnapshot snapshot = CopySnapshot(
+                _current!,
+                _current!.AuthoringRevision,
+                _current.Slots,
+                _current.DraftState,
+                _current.DraftCapabilityFingerprint,
+                _current.DerivedPublications,
+                _current.InputSlotStatuses,
+                selection.Slots);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringSessionTransitionResult(snapshot, null);
         }
@@ -261,11 +280,6 @@ public sealed partial class AuthoringSessionState
                 existing.FileStamp == fileStamp)
             {
                 return new AuthoringSessionTransitionResult(_current, null);
-            }
-
-            if (!StringComparer.Ordinal.Equals(existing.SelectedPath, selectedPath))
-            {
-                _ = _generalInspectionCache.Remove(slotDefinitionId);
             }
 
             AuthoringSlotState[] slots = [.. _current.Slots];
@@ -425,7 +439,8 @@ public sealed partial class AuthoringSessionState
                 _current.DraftState,
                 _current.DraftCapabilityFingerprint,
                 publications,
-                _current.InputSlotStatuses);
+                _current.InputSlotStatuses,
+                metadataInspection: _current.MetadataInspection);
             Volatile.Write(ref _current, snapshot);
             return new AuthoringPublicationResult(true, null);
         }
@@ -548,7 +563,9 @@ public sealed partial class AuthoringSessionState
         AuthoringDraftState? draftState,
         string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> publications,
-        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
+        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null,
+        IEnumerable<InputSelectionMemberReadiness>? inputSelectionReadiness = null,
+        MetadataInspectionSnapshot? metadataInspection = null)
     {
         return new ActiveSessionSnapshot(
             catalog.WorkflowId,
@@ -568,7 +585,9 @@ public sealed partial class AuthoringSessionState
             publications,
             route.CompilationFingerprint,
             route.ExactCapability,
-            inputSlotStatuses);
+            inputSlotStatuses,
+            inputSelectionReadiness,
+            metadataInspection);
     }
 
     private static ActiveSessionSnapshot CopySnapshot(
@@ -578,7 +597,9 @@ public sealed partial class AuthoringSessionState
         AuthoringDraftState? draftState,
         string? draftCapabilityFingerprint,
         IEnumerable<AuthoringDerivedPublication> publications,
-        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null)
+        IEnumerable<AuthoringInputSlotStatus>? inputSlotStatuses = null,
+        IEnumerable<InputSelectionMemberReadiness>? inputSelectionReadiness = null,
+        MetadataInspectionSnapshot? metadataInspection = null)
     {
         return new ActiveSessionSnapshot(
             current.WorkflowId,
@@ -598,7 +619,9 @@ public sealed partial class AuthoringSessionState
             publications,
             current.CompilationFingerprint,
             current.ExactCapability,
-            inputSlotStatuses);
+            inputSlotStatuses,
+            inputSelectionReadiness ?? current.InputSelectionReadiness,
+            metadataInspection);
     }
 
     private static bool LeaseMatches(
@@ -657,8 +680,4 @@ public sealed partial class AuthoringSessionState
             new AuthoringSessionIssue(code, message));
     }
 
-    private sealed record CachedGeneralSelectedFileInspection(
-        ResolutionToken ResolutionToken,
-        string CapabilityFingerprint,
-        GeneralSelectedFileInspection Inspection);
 }

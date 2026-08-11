@@ -101,7 +101,7 @@ Update only the rows that are relevant to the new IC/mode.
 | --- | --- | --- |
 | IC support / exposure policy | `docs/contracts/canonical-capability-policy-v1.{json,md,schema.json}` | Runtime onboarding through the package trust index does not itself expose or promote support. Add or revise an exact route only in its separately approved policy ticket; every authoring/publication/evidence decision must pin the canonical route and capability fingerprint. |
 | V2 family/map/profile facts | `profiles/built-in/<bundle>/{families,maps,profiles}` plus its manifest | Put shared family facts, supported capacities, canonical named ranges, operations, and access rules in the manifest-pinned V2 bundle. Runtime and display projections must consume the resolved map and compiled plan; do not add a companion C# family-fact catalog or duplicate facts in UI/CLI code. |
-| Built-in bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus `profiles/built-in/package-trust-index.json` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schemas from `docs/contracts`; do not add source schema snapshots. After evidence review, add one hash-pinned bundle entry and its closed-vocabulary runtime registrations to the package trust index. Existing-vocabulary onboarding requires no IC-specific Domain, Application, Bootstrap, CLI, or Workbench route edit. Candidate-only staging must not enter the package index. |
+| Built-in bundle / deployment / runtime registration | `profiles/built-in/<bundle>/{profile-bundle.json,families,profiles}` plus `profiles/built-in/package-trust-index.json` | Add a manifest-pinned V2 family/profile source bundle. The build materializer injects the selected canonical schemas from `docs/contracts`; do not add source schema snapshots. After evidence review, add one hash-pinned bundle entry and its closed-vocabulary runtime registrations to the package trust index. Existing-vocabulary onboarding requires no IC-specific Domain, Application, Bootstrap, CLI, or Presentation route edit. Candidate-only staging must not enter the package index. |
 | Replace profile / V2 deployment | The same bundle and package trust-index entry | Add an evidence-backed V2 Replace profile and the exact `dp-replace`, `general-replace`, or `ctrlram-replace` data registration before routing an IC. Processor and branch fields are allowed only for CtrlRAM registrations. Synthetic compiler fixtures are test-only under `tests/NvtFwCombiner.TestSupport/` and are never a production fallback. |
 | Profile compiler rules | `src/NvtFwCombiner.Profiles/V2/` | Change only for general validation gaps, not to special-case one IC. The V1 `CompositionProfileCompiler` is retired. |
 | TP/DP/CtrlRAM compatibility catalog | `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | Add reviewed TP/full-Flash shapes and TP Overview rows as hash-pinned config facts. Canonical CtrlRAM eligibility is physical `owner = tp` plus `kind = ctrlram`; do not add a parallel C# or tag authority. |
@@ -120,7 +120,7 @@ Do not add IC-specific byte behavior to:
 
 - `src/NvtFwCombiner.Presentation.Avalonia/**`
 - `src/NvtFwCombiner.Cli/**`
-- `src/NvtFwCombiner.Bootstrap/CliApplication*`
+- `src/NvtFwCombiner.Cli/CliApplication*`
 - focused Bootstrap port adapters, unless the change is only adapting compiled profile data into an existing typed request.
 
 ## Standard Merge steps
@@ -137,10 +137,10 @@ Do not add IC-specific byte behavior to:
 Minimum tests:
 
 - the focused trusted-V2 bundle/routing tests matching the changed profile family
-- direct V2 plan contract tests plus `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`; no C# profile oracle remains after the retirement matrix closes the family
+- direct V2 plan contract tests plus the deployed Standard Merge golden suite (currently named `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs` on the pre-retirement baseline); no C# profile oracle remains after the retirement matrix closes the family
 - canonical capability policy schema/loader tests and exact-route projection tests when support exposure or family facts change
 - direct trusted-V2 map/plan contract tests for every shared family fact or declared capacity that changes
-- `tests/NvtFwCombiner.GoldenRegression.Tests/StandardMergeWorkbenchGoldenTests.cs`, which exercises the deployed V2 workbench runtime against every approved Standard Merge fixture
+- the deployed Standard Merge golden suite, which exercises the canonical V2 runtime against every approved Standard Merge fixture; the pre-retirement filename above is renamed when the last Workbench symbol is deleted
 - CLI/UI smoke tests only when the new IC changes surfaced selector behavior or output naming.
 
 ## DP Replace steps
@@ -192,7 +192,7 @@ Minimum tests:
 ## General Replace steps
 
 1. Define the allowed explicit-mapping envelope and protected ranges in the profile/catalog.
-2. Add the exact `general-replace` IC/profile/version registration to the package trust index; do not add an IC-specific Workbench or CLI branch.
+2. Add the exact `general-replace` IC/profile/version registration to the package trust index; do not add an IC-specific Application, Bootstrap, UI, or CLI branch.
 3. Compile runtime mappings into normal `replace-range` operations; do not generate scripts.
 4. If a General Replace mapping writes any TP/TP-CtrlRAM/CRC-covered range for the selected IC, the profile must declare the same approved post-processing requirement as the normal workflow. The UI must not decide this.
 5. Reject overlap, out-of-bounds, protected-range, and unsupported post-processing cases before execution.

@@ -94,6 +94,25 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Equal(Route.RouteId, resolution.Capability!.Identity.RouteId);
     }
 
+    /// <summary>Availability and execution retention are resolved by the publication owner.</summary>
+    [Fact]
+    public void CatalogOwnsAvailabilityAndCurrentCompilationRetention()
+    {
+        var catalog = new CanonicalCapabilityCatalog(
+            new QueueCapabilitySource(
+                CapabilityCatalogLoadResult.Success(CreateCandidate())));
+        _ = catalog.Reload(TestContext.Current.CancellationToken);
+        ResolvedCapability capability = catalog.Resolve(Route.RouteId).Capability!;
+
+        Assert.True(catalog.HasAuthorableCapability("NT51929", "standard-merge"));
+        Assert.Same(
+            capability,
+            catalog.ResolveCurrentCompilation(
+                capability.CompiledComposition,
+                capability));
+        Assert.Null(catalog.ResolveCurrentCompilation(CreateCompiledComposition()));
+    }
+
     /// <summary>Every successful publication receives a fresh token even for identical source bytes.</summary>
     [Fact]
     public void RepeatedSuccessfulReloadPublishesFreshResolutionToken()

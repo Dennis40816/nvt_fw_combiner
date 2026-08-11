@@ -11,8 +11,8 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
-        WorkbenchRunResult result = await CreateDpReplaceInspectionResultAsync();
-        using var source = JsonDocument.Parse(result.ReportJson);
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(
             count: 10_000,

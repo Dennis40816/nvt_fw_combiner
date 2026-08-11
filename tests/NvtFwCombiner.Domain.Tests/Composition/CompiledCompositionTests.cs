@@ -263,6 +263,53 @@ public sealed partial class CompiledCompositionTests
                     baseline.CompilationFingerprint,
                     variant.CompilationFingerprint);
             });
+
+        string protocolBaseline = CreateProcessorComposition(
+            protocolPlan: CreateProtocolPlan()).CompilationFingerprint;
+        ExternalProcessorProtocolPlan[] protocolVariants =
+        [
+            CreateProtocolPlan("protocol-b"),
+            CreateProtocolPlan("protocol-a", targetFileName: "other.bin"),
+            CreateProtocolPlan("protocol-a", modeArgument: "MODE_B"),
+            CreateProtocolPlan("protocol-a", sourceOffset: 1),
+        ];
+        Assert.All(
+            protocolVariants,
+            plan => Assert.NotEqual(
+                protocolBaseline,
+                CreateProcessorComposition(protocolPlan: plan).CompilationFingerprint));
+    }
+
+    /// <summary>The exact optional delivery contract is part of one compiled-plan identity.</summary>
+    [Fact]
+    public void CompilationFingerprintBindsAdditionalDeliveries()
+    {
+        string baseline = CreateV2(additionalDeliveries:
+        [
+            Delivery("delivery-a", new ByteRange(0, 2), "a.bin", ["ic"]),
+        ]).CompilationFingerprint;
+        CompiledAdditionalDelivery[] variants =
+        [
+            Delivery("delivery-b", new ByteRange(0, 2), "a.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(1, 2), "a.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(0, 2), "b.bin", ["ic"]),
+            Delivery("delivery-a", new ByteRange(0, 2), "a.bin", ["date"]),
+        ];
+
+        Assert.All(
+            variants,
+            delivery => Assert.NotEqual(
+                baseline,
+                CreateV2(additionalDeliveries: [delivery]).CompilationFingerprint));
+
+        static CompiledAdditionalDelivery Delivery(
+            string kind,
+            ByteRange range,
+            string template,
+            IEnumerable<string> tokenIds)
+        {
+            return new CompiledAdditionalDelivery(kind, range, template, tokenIds);
+        }
     }
 
     private static CompiledComposition CreateMerge(
@@ -431,7 +478,8 @@ public sealed partial class CompiledCompositionTests
         string stagedArtifactId = "artifact-a",
         string stagedArtifactSourceSpaceId = "source",
         long stagedArtifactSourceStart = 0,
-        ExternalProcessorOutputAssertion? outputAssertion = null)
+        ExternalProcessorOutputAssertion? outputAssertion = null,
+        ExternalProcessorProtocolPlan? protocolPlan = null)
     {
         var invocation = new ExternalProcessorInvocation(
             processorId,
@@ -456,7 +504,8 @@ public sealed partial class CompiledCompositionTests
                     stagedArtifactSourceSpaceId,
                     new ByteRange(stagedArtifactSourceStart, 1)),
             ],
-            outputAssertions: outputAssertion is null ? [] : [outputAssertion]);
+            outputAssertions: outputAssertion is null ? [] : [outputAssertion],
+            protocolPlan: protocolPlan);
         var plan = new CompositionPlan(
             ImageInitialization.Blank("output-image", 4, 0),
             [
@@ -486,6 +535,27 @@ public sealed partial class CompiledCompositionTests
             modeId: "processor",
             profileId: "processor-profile",
             profileVersion: "1.0.0");
+    }
+
+    private static ExternalProcessorProtocolPlan CreateProtocolPlan(
+        string protocolId = "protocol-a",
+        string targetFileName = "firmware.bin",
+        string modeArgument = "MODE_A",
+        long sourceOffset = 0)
+    {
+        return new ExternalProcessorProtocolPlan(
+            protocolId,
+            targetFileName,
+            [new ExternalProcessorProtocolCommand(
+                "command-a",
+                [modeArgument, ExternalProcessorProtocolArgumentTokens.TargetFile],
+                [new ExternalProcessorProtocolBlock(
+                    "block-a",
+                    ExternalProcessorProtocolBlockSourceKind.StagedFile,
+                    "source.bin",
+                    sourceOffset,
+                    new ByteRange(0, 1))],
+                retainShortOutputTail: false)]);
     }
 
     private static CompiledInputContract CreateExactMapInputContract(

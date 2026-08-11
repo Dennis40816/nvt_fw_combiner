@@ -16,7 +16,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     {
         ReloadCatalog();
         CompiledAuthoringSelectionSnapshot withoutLdc =
-            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
+            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51928",
                 [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal)
@@ -26,7 +26,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 },
                 new AuthoringRevision(1));
         CompiledAuthoringSelectionSnapshot withLdc =
-            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
+            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51928",
                 [
                     CompositionAddressSpaceIds.DpInput,
@@ -59,7 +59,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     {
         ReloadCatalog();
         CompiledAuthoringSelectionSnapshot snapshot =
-            CanonicalAuthoringAdapter.GetStandardMergeAuthoringSnapshot(
+            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51928",
                 [
                     CompositionAddressSpaceIds.DpInput,
@@ -90,21 +90,21 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void StandardMergeBatchRetainsPadShortWarningUnderSelectedExactMap()
     {
         ReloadCatalog();
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
                 [
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "dp",
                         "dp.bin",
                         AuthoringRevision: 3,
                         StandardMergeAddressSpaceId: CompositionAddressSpaceIds.DpInput),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "tp",
                         "tp.bin",
                         AuthoringRevision: 3,
                         StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "ldc",
                         "ldc.bin",
                         AuthoringRevision: 3,
@@ -142,17 +142,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void DpReplaceMissingReferencePublishesPreCompilationReadiness()
     {
         ReloadCatalog();
-        bool resolved = CanonicalCapabilityProjection.TryResolveBuiltInV2DpReplaceInputSelection(
-            "NT51928",
-            baseCapacity: null,
-            ["initial-code-replacement"],
-            new AuthoringRevision(1),
-            out InputSelectionReadinessSnapshot? readiness,
-            out IReadOnlyList<CompositionIssue> readinessIssues);
-        Assert.True(resolved, FormatIssues(readinessIssues));
-        InputSelectionMemberReadiness member = readiness!.Groups
-            .SelectMany(static group => group.Members)
-            .Single(candidate => StringComparer.Ordinal.Equals(
+        CompiledAuthoringSelectionSnapshot selection =
+            BootstrapTestHost.Services.DpReplaceAuthoring.GetAuthoringSnapshot(
+                "NT51928",
+                ["initial-code-replacement"],
+                new Dictionary<string, FileStamp>(StringComparer.Ordinal),
+                new AuthoringRevision(1));
+        Assert.Empty(selection.Issues);
+        InputSelectionMemberReadiness member = selection.Slots.Single(candidate =>
+            StringComparer.Ordinal.Equals(
                 candidate.SlotId,
                 "initial-code-replacement"));
 
@@ -169,7 +167,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 member.SlotId));
 
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
@@ -206,13 +204,13 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ];
         string[] reverse = [.. forward.Reverse()];
 
-        bool firstCompiled = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool firstCompiled = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51928",
             0x80000,
             forward,
             out CompiledComposition? first,
             out IReadOnlyList<CompositionIssue> firstIssues);
-        bool secondCompiled = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool secondCompiled = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51928",
             0x80000,
             reverse,
@@ -232,15 +230,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void StandardMergeProfilePublishesTerminalSlotHealth()
     {
         ReloadCatalog();
-        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51929",
             dpInputLength: null,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(compiled, FormatIssues(issues));
 
-        ResolvedCapability capability = CanonicalCapabilityResolution
-            .ResolveCanonicalCapabilityForRun(composition!)!;
+        ResolvedCapability capability = BootstrapTestHost.Canonical.Catalog
+            .ResolveCurrentCompilation(composition!)!;
         (CompiledInputSpaceBinding binding, _, AddressSpace space) =
             SelectSource(capability, static candidate =>
                 candidate.ArtifactClass != CompiledInputArtifactClass.ReferenceImage);
@@ -263,7 +261,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         ReloadCatalog();
         byte[] source = [.. Enumerable.Range(0, 0x40000).Select(static index => (byte)index)];
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
             new(
                 "dp",
@@ -277,8 +275,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
         ];
 
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51926",
                 inputs,
                 path =>
@@ -306,14 +304,14 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void DpReplaceProfilePublishesTerminalSlotHealth()
     {
         ReloadCatalog();
-        bool compiled = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51929",
             baseCapacity: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
         Assert.True(compiled && composition is not null, FormatIssues(issues));
         ResolvedCapability? capability =
-            CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(composition);
+            BootstrapTestHost.Canonical.Catalog.ResolveCurrentCompilation(composition);
         Assert.NotNull(capability);
 
         (CompiledInputSpaceBinding binding, _, AddressSpace space) =
@@ -340,15 +338,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
         string slotAddressSpaceId = CompositionAddressSpaceIds.InitialCodeReplacement;
 
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
                 [
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "reference",
                         "reference.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "dp-input",
                         "dp.bin",
                         DpReplaceAddressSpaceId: slotAddressSpaceId),
@@ -373,10 +371,10 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     {
         ReloadCatalog();
         byte[] reference = new byte[0x40000];
-        WorkbenchFirmwareInspectionResult result = Assert.Single(
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        FirmwareInspectionSnapshotResult result = Assert.Single(
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
-                [new WorkbenchFirmwareInspectionInput(
+                [new FirmwareInspectionSnapshotInput(
                     "reference",
                     "reference.bin",
                     DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase)],
@@ -397,7 +395,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         byte[] reference = new byte[0x40000];
         byte[] initialCode = [.. Enumerable.Range(0, 0x40000).Select(static index => (byte)index)];
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
             new("reference", "reference.bin", DpReplaceAddressSpaceId:
                 CompositionAddressSpaceIds.ReferenceBase, AuthoringRevision: 6),
@@ -405,8 +403,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 CompositionAddressSpaceIds.InitialCodeReplacement, AuthoringRevision: 6),
         ];
 
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
                 inputs,
                 path =>
@@ -433,15 +431,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     {
         ReloadCatalog();
         var reads = new Dictionary<string, int>(StringComparer.Ordinal);
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
                 [
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "reference",
                         "reference.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "dp-input",
                         "missing.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
@@ -470,15 +468,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void DpReplaceUnreadableReferencePublishesBlockedPreCompilationReadiness()
     {
         ReloadCatalog();
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51928",
                 [
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "reference",
                         "missing-reference.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "initial",
                         "initial.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.InitialCodeReplacement),
@@ -508,15 +506,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     public void DpReplaceUnsupportedReferenceCapacityPublishesBlockedPreCompilationReadiness()
     {
         ReloadCatalog();
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch(
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
                 "NT51950",
                 [
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "reference",
                         "reference.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.ReferenceBase),
-                    new WorkbenchFirmwareInspectionInput(
+                    new FirmwareInspectionSnapshotInput(
                         "dp",
                         "dp.bin",
                         DpReplaceAddressSpaceId: CompositionAddressSpaceIds.DpReplacement),
@@ -536,15 +534,15 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         });
     }
 
-    private static WorkbenchFirmwareInspection InspectStandardMergeInput(
+    private static FirmwareInspectionSnapshot InspectStandardMergeInput(
         string icId,
         string path,
         AuthoringRevision revision,
         int length)
     {
-        return Assert.Single(FirmwareInspectionAdapter.InspectFirmwareBatch(
+        return Assert.Single(BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
             icId,
-            [new WorkbenchFirmwareInspectionInput(
+            [new FirmwareInspectionSnapshotInput(
                 "dp",
                 path,
                 AuthoringRevision: revision.Value,
@@ -587,7 +585,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
     private static void ReloadCatalog()
     {
         CapabilityCatalogReloadResult reload =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
         Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
     }

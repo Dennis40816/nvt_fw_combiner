@@ -32,9 +32,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     {
         const string firmwarePath = "output/nt51927_fw.bin";
         const string binDirectory = "BIN";
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51927,
-            new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildCatalog.Nt51927.ResolvePlan(new IcNumberSelection(IcNumberInputMode.NumericSelector, ["3"]));
 
         IReadOnlyList<string> mergeArguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
             plan.Commands[0],
@@ -76,9 +74,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     {
         const string firmwarePath = "output/nt51950_fw.bin";
         const string binDirectory = "BIN";
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            LegacyCombinerPostbuildCatalog.Nt51950,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildCatalog.Nt51950.ResolvePlan(new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
         IReadOnlyList<string> arguments = LegacyCombinerPostbuildCommandLineBuilder.CreateArguments(
             plan.Commands[0],

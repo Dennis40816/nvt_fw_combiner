@@ -30,24 +30,6 @@ public sealed class FileContentSnapshotInspector
     }
 
     /// <inheritdoc />
-    public ValueTask<long> ObserveLengthAsync(
-        string selectedPath,
-        long maximumBytes,
-        CancellationToken cancellationToken)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
-        cancellationToken.ThrowIfCancellationRequested();
-        string path = FileSystemPathGuard.ResolveExistingFileUnderRoots(
-            selectedPath,
-            _allowedRoots);
-        long observedLength = new FileInfo(path).Length;
-        return observedLength <= maximumBytes
-            ? ValueTask.FromResult(observedLength)
-            : ValueTask.FromException<long>(
-                new SelectedFileSizeLimitExceededException(observedLength, maximumBytes));
-    }
-
-    /// <inheritdoc />
     public async ValueTask<SelectedFileContentInspection> InspectAsync(
         string selectedPath,
         long maximumBytes,
@@ -75,7 +57,7 @@ public sealed class FileContentSnapshotInspector
                 maximumBytes);
         }
 
-        byte[] sha256 = await HashExactLengthAsync(
+        (byte[] acceptedBytes, byte[] sha256) = await ReadAndHashExactLengthAsync(
                 stream,
                 observedLength,
                 cancellationToken)
@@ -85,7 +67,8 @@ public sealed class FileContentSnapshotInspector
                 new FileStamp(
                     observedLength,
                     Convert.ToHexStringLower(sha256)),
-                Path.GetFileName(path))
+                Path.GetFileName(path),
+                acceptedBytes: acceptedBytes)
             : throw new IOException(
                 "Selected file length changed during complete-content inspection.");
     }
@@ -99,16 +82,32 @@ public sealed class FileContentSnapshotInspector
         long observedLength,
         CancellationToken cancellationToken)
     {
+        (_, byte[] sha256) = await ReadAndHashExactLengthAsync(
+                stream,
+                observedLength,
+                cancellationToken)
+            .ConfigureAwait(false);
+        return sha256;
+    }
+
+    private static async ValueTask<(byte[] AcceptedBytes, byte[] Sha256)>
+        ReadAndHashExactLengthAsync(
+            Stream stream,
+            long observedLength,
+            CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentOutOfRangeException.ThrowIfNegative(observedLength);
 
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        byte[] buffer = new byte[64 * 1024];
-        long remaining = observedLength;
-        while (remaining > 0)
+        byte[] acceptedBytes = new byte[checked((int)observedLength)];
+        int offset = 0;
+        while (offset < acceptedBytes.Length)
         {
             int read = await stream.ReadAsync(
-                    buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)),
+                    acceptedBytes.AsMemory(
+                        offset,
+                        Math.Min(64 * 1024, acceptedBytes.Length - offset)),
                     cancellationToken)
                 .ConfigureAwait(false);
             if (read == 0)
@@ -117,16 +116,17 @@ public sealed class FileContentSnapshotInspector
                     "Selected file length changed during complete-content inspection.");
             }
 
-            hash.AppendData(buffer, 0, read);
-            remaining -= read;
+            hash.AppendData(acceptedBytes, offset, read);
+            offset += read;
         }
 
+        byte[] trailing = new byte[1];
         int trailingRead = await stream.ReadAsync(
-                buffer.AsMemory(0, 1),
+                trailing,
                 cancellationToken)
             .ConfigureAwait(false);
         return trailingRead == 0
-            ? hash.GetHashAndReset()
+            ? (acceptedBytes, hash.GetHashAndReset())
             : throw new IOException(
                 "Selected file length changed during complete-content inspection.");
     }

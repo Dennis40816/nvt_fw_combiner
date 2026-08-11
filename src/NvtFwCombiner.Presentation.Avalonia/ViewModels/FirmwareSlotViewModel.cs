@@ -20,8 +20,8 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
         bool isOptional = false,
         string? regionId = null,
         string? addressSpaceId = null,
-        WorkbenchReplaceRegionGroup regionGroup = WorkbenchReplaceRegionGroup.Common,
-        WorkbenchReplaceInputRole replaceInputRole = WorkbenchReplaceInputRole.None,
+        ReplaceRegionGroup regionGroup = ReplaceRegionGroup.Common,
+        ReplaceInputRole replaceInputRole = ReplaceInputRole.None,
         string? compiledSlotId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slotId);
@@ -45,10 +45,10 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public string SlotId { get; }
 
     /// <summary>Canonical fixed Replace workflow role projected by Bootstrap.</summary>
-    public WorkbenchReplaceInputRole ReplaceInputRole { get; }
+    public ReplaceInputRole ReplaceInputRole { get; }
 
     /// <summary>Typed Replace grouping supplied by the Bootstrap projection.</summary>
-    public WorkbenchReplaceRegionGroup RegionGroup { get; }
+    public ReplaceRegionGroup RegionGroup { get; }
 
     /// <summary>Displayed slot title.</summary>
     public string Title { get; private set; }
@@ -106,14 +106,14 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>True when the latest completed input inspection blocks Build.</summary>
     public bool BlocksBuild =>
-        InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking ||
+        InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking ||
         SelectionReadinessState == ResolvedChildReadiness.Blocked;
 
     /// <summary>True while the selected source awaits a current inspection.</summary>
     public bool IsInputInspectionPending { get; private set; }
 
     /// <summary>Highest completed typed input health, or null before inspection.</summary>
-    public WorkbenchInputInspectionSeverity? InputInspectionSeverity { get; private set; }
+    public FirmwareInputInspectionSeverity? InputInspectionSeverity { get; private set; }
 
     /// <summary>Concise localized health and next-action line.</summary>
     public string InputInspectionStatus { get; private set; } = string.Empty;
@@ -140,13 +140,13 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
     public string SelectionReadinessAutomationText { get; private set; } = string.Empty;
 
     /// <summary>True when the highest completed input health is blocking.</summary>
-    public bool IsInputInspectionBlocking => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Blocking;
+    public bool IsInputInspectionBlocking => InputInspectionSeverity == FirmwareInputInspectionSeverity.Blocking;
 
     /// <summary>True when the highest completed input health is warning.</summary>
-    public bool IsInputInspectionWarning => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Warning;
+    public bool IsInputInspectionWarning => InputInspectionSeverity == FirmwareInputInspectionSeverity.Warning;
 
     /// <summary>True when the highest completed input health is valid.</summary>
-    public bool IsInputInspectionValid => InputInspectionSeverity == WorkbenchInputInspectionSeverity.Valid;
+    public bool IsInputInspectionValid => InputInspectionSeverity == FirmwareInputInspectionSeverity.Valid;
 
     /// <summary>Selected local file path.</summary>
     [ObservableProperty]
@@ -233,7 +233,7 @@ public sealed partial class FirmwareSlotViewModel : ObservableObject
 
     /// <summary>Applies one completed highest-severity typed input diagnostic.</summary>
     public void SetInputInspection(
-        WorkbenchInputInspectionSeverity severity,
+        FirmwareInputInspectionSeverity severity,
         string status)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);

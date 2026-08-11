@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -33,7 +33,7 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 
     /// <summary>Gets or sets the planner token selected by the grouped choice.</summary>
     [ObservableProperty]
-    public partial string SelectedNumber { get; set; } = WorkbenchIcNumberTokens.SingleChip;
+    public partial string SelectedNumber { get; set; } = IcNumberSelectionTokens.SingleChip;
 
     /// <summary>Gets or sets the selected grouped IC-count choice.</summary>
     public IcNumberChoiceViewModel? SelectedNumberChoice
@@ -87,7 +87,7 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
             SelectedIc);
         SelectedNumber = NumberChoices.FirstOrDefault(choice =>
             string.Equals(choice.Token, preferredToken, StringComparison.Ordinal))?.Token ??
-            (NumberChoices.Count > 0 ? NumberChoices[0].Token : WorkbenchIcNumberTokens.SingleChip);
+            (NumberChoices.Count > 0 ? NumberChoices[0].Token : IcNumberSelectionTokens.SingleChip);
         OnPropertyChanged(nameof(SelectedNumberChoice));
     }
 }

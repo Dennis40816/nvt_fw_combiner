@@ -24,20 +24,20 @@ public sealed partial class ReplaceCliCommandTests
         string output = workspace.PathFor("parent-slot.bin");
         (GeneralMappingDraftState draft, GeneralSavedRuleResourcePolicy policy) =
             LoadTrustedGeneralReplaceRule(rule, reference, sourcePath: null);
-        WorkbenchRunResult result =
-            await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        CompositionRunResult result =
+            await GeneralWorkflowTestSupport.BuildGeneralReplaceAsync(BootstrapTestHost.Canonical,
                 "NT51926",
                 "single",
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    [WorkbenchSlotIds.ReplaceBase] = reference,
+                    [CompositionSlotIds.ReplaceBase] = reference,
                 },
                 draft,
                 output,
                 policy,
                 TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         byte[] outputBytes = await File.ReadAllBytesAsync(
             output,
             TestContext.Current.CancellationToken);

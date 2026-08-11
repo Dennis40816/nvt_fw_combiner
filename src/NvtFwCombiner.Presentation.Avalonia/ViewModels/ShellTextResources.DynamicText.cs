@@ -5,7 +5,7 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -66,13 +66,13 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchReplaceModes.Dp => SelectLanguage(
+            ExperienceIds.DpReplace => SelectLanguage(
                 "Replace DP and optional LDC payloads without CRC postbuild.",
                 "取代 DP 與選用 LDC payload；不執行 CRC postbuild。"),
-            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+            ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Replace CtrlRAM payloads, then run combiner.exe postbuild for CRC/header refresh.",
                 "取代 CtrlRAM payload 後執行 combiner.exe postbuild 更新 CRC/header。"),
-            WorkbenchReplaceModes.General => SelectLanguage(
+            ExperienceIds.GeneralReplace => SelectLanguage(
                 "Author explicit profile-approved ranges; TP ranges require combiner.exe CRC/header refresh.",
                 "編輯 profile 核准的明確範圍；碰到 TP 範圍時必須執行 combiner.exe CRC/header 更新。"),
             _ => SelectLanguage("Select a replace mode.", "選擇一個 Replace 模式。"),
@@ -83,10 +83,10 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+            ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Base firmware (FlashCode / TP FW)",
                 "基底韌體 (FlashCode / TP FW)"),
-            WorkbenchReplaceModes.Dp or WorkbenchReplaceModes.General => SelectLanguage(
+            ExperienceIds.DpReplace or ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base firmware (FlashCode)",
                 "基底韌體 (FlashCode)"),
             _ => SelectLanguage("Base firmware", "基底韌體"),
@@ -97,13 +97,13 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchReplaceModes.Dp => SelectLanguage(
+            ExperienceIds.DpReplace => SelectLanguage(
                 $"Complete FlashCode for the same IC ({dpReferenceCapacityLabel ?? "profile-declared"}). Only declared DP ranges change.",
                 $"同一 IC 的完整 FlashCode（{dpReferenceCapacityLabel ?? "由 profile 宣告"}）；只變更已宣告的 DP 範圍。"),
-            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+            ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Complete FlashCode or TP FW recognized for this IC. Other regions remain unchanged.",
                 "此 IC 可辨識的完整 FlashCode 或 TP FW；其他區域保持不變。"),
-            WorkbenchReplaceModes.General => SelectLanguage(
+            ExperienceIds.GeneralReplace => SelectLanguage(
                 "Complete FlashCode or base image. Only approved mappings change.",
                 "完整 FlashCode 或基底映像；只變更核准的 mappings。"),
             _ => SelectLanguage("Complete source image cloned before replacement.", "Replace 前完整複製的來源映像。"),
@@ -149,33 +149,34 @@ public sealed partial class ShellTextResources
                 $"Family：{family.FamilyId}\n可沿用範圍：{family.Scope}\nFamily 關係本身不會擴張可執行的 firmware range。");
     }
 
-    public static string GetAbSlotTitle(WorkbenchAbMergeInputRole role)
+    public static string GetAbSlotTitle(string role)
     {
         return role switch
         {
-            WorkbenchAbMergeInputRole.DpAb => "DP_AB BIN",
-            WorkbenchAbMergeInputRole.TpA => "TPA BIN",
-            WorkbenchAbMergeInputRole.TpB => "TPB BIN",
-            _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
+            "dp-ab" => "DP_AB BIN",
+            "tp-a" => "TPA BIN",
+            "tp-b" => "TPB BIN",
+            _ => throw new InvalidOperationException($"Unknown AB input role '{role}'."),
         };
     }
 
-    public string GetAbSlotDescription(WorkbenchAbMergeInputSlot slot)
+    public string GetAbSlotDescription(CompiledAuthoringInputBinding input)
     {
-        ArgumentNullException.ThrowIfNull(slot);
-        string size = FormatInputLength(slot.RequiredEndExclusive);
-        return slot.Role switch
+        ArgumentNullException.ThrowIfNull(input);
+        string size = FormatInputLength(input.RequiredEndExclusive ?? throw new InvalidOperationException(
+            $"AB input '{input.SlotId}' has no compiled length contract."));
+        return input.Role switch
         {
-            WorkbenchAbMergeInputRole.DpAb => SelectLanguage(
+            "dp-ab" => SelectLanguage(
                 $"Complete two-bank DP container. Required prefix: {size}.",
                 $"完整雙 bank DP container；必要 prefix：{size}。"),
-            WorkbenchAbMergeInputRole.TpA => SelectLanguage(
+            "tp-a" => SelectLanguage(
                 $"Touch payload for bank A. Required prefix: {size}.",
                 $"Bank A 的 Touch payload；必要 prefix：{size}。"),
-            WorkbenchAbMergeInputRole.TpB => SelectLanguage(
+            "tp-b" => SelectLanguage(
                 $"Touch payload for bank B; relocation uses the compiled plan. Required prefix: {size}.",
                 $"Bank B 的 Touch payload；relocation 由 compiled plan 定義。必要 prefix：{size}。"),
-            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot.Role, null),
+            _ => throw new InvalidOperationException($"Unknown AB input role '{input.Role}'."),
         };
     }
 
@@ -364,13 +365,13 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchReplaceModes.Dp => SelectLanguage(
+            ExperienceIds.DpReplace => SelectLanguage(
                 "Blue shows new DP bytes; gray shows sections preserved or restored from the Reference FlashCode.",
                 "藍色代表新的 DP bytes；灰色代表從 Reference FlashCode 保留或還原的區段。"),
-            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+            ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Solid blocks are changed; diagonal blocks keep bytes from the base firmware.",
                 "實色區塊表示已變更；斜線區塊保留 base firmware 的 bytes。"),
-            WorkbenchReplaceModes.General => SelectLanguage(
+            ExperienceIds.GeneralReplace => SelectLanguage(
                 "Base flash stays unchanged except approved explicit replacement ranges.",
                 "Base flash 只會在核准的明確取代範圍內改變。"),
             _ => SelectLanguage(
@@ -383,22 +384,22 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchReplaceModes.Dp when canRun => SelectLanguage(
+            ExperienceIds.DpReplace when canRun => SelectLanguage(
                 "Ready: Build will validate DP Replace inputs, then write output and report.",
                 "Ready：Build 會先驗證 DP Replace input，再寫出 output 與 report。"),
-            WorkbenchReplaceModes.Dp => SelectLanguage(
+            ExperienceIds.DpReplace => SelectLanguage(
                 "Build blocked: Reference FlashCode and required DP replacement inputs are required.",
                 "Build blocked：需要 Reference FlashCode 與必要的 DP replacement input。"),
-            WorkbenchReplaceModes.CtrlRam when canRun => SelectLanguage(
+            ExperienceIds.CtrlRamReplace when canRun => SelectLanguage(
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
                 "Ready：Build 會取代選定的 CtrlRAM region 並執行 postbuild。"),
-            WorkbenchReplaceModes.CtrlRam => SelectLanguage(
+            ExperienceIds.CtrlRamReplace => SelectLanguage(
                 "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
                 "Build blocked：需要 base BIN 與至少一個 CtrlRAM region BIN。"),
-            WorkbenchReplaceModes.General when canRun => SelectLanguage(
+            ExperienceIds.GeneralReplace when canRun => SelectLanguage(
                 "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
                 "Ready：Build 會編譯明確 mapping；碰到 TP range 時會執行 postbuild。"),
-            WorkbenchReplaceModes.General => SelectLanguage(
+            ExperienceIds.GeneralReplace => SelectLanguage(
                 "Build blocked: base BIN and at least one explicit replacement mapping are required.",
                 "Build blocked：需要 base BIN 與至少一筆 replacement mapping。"),
             _ => SelectLanguage("Build blocked: select a Replace mode.", "Build blocked：請選擇 Replace 模式。"),
@@ -472,9 +473,9 @@ public sealed partial class ShellTextResources
         ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
         return artifactId switch
         {
-            WorkbenchAddressSpaceIds.ReferenceBase => "Reference",
-            WorkbenchAddressSpaceIds.DpInput => "DP",
-            WorkbenchAddressSpaceIds.TpInput => "TP",
+            CompositionAddressSpaceIds.ReferenceBase => "Reference",
+            CompositionAddressSpaceIds.DpInput => "DP",
+            CompositionAddressSpaceIds.TpInput => "TP",
             _ => artifactId,
         };
     }
@@ -502,19 +503,19 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchMergeModes.Standard when isStandardMergeSupported => SelectLanguage(
+            ExperienceIds.StandardMerge when isStandardMergeSupported => SelectLanguage(
                 "The bar shows which input file occupies each final flash position.",
                 "此圖顯示每個最終 flash 位置由哪個 input file 寫入。"),
-            WorkbenchMergeModes.Standard => SelectLanguage(
+            ExperienceIds.StandardMerge => SelectLanguage(
                 "No merge profile is available for the selected IC.",
                 "所選 IC 尚未有 Merge profile。"),
-            WorkbenchMergeModes.General when hasGeneralMapping => SelectLanguage(
+            ExperienceIds.GeneralMerge when hasGeneralMapping => SelectLanguage(
                 "The bar starts reserved and marks each explicit source mapping written into the output.",
                 "輸出先以 reserved byte 初始化，再標出每筆明確 source mapping 寫入的位置。"),
-            WorkbenchMergeModes.General => SelectLanguage(
+            ExperienceIds.GeneralMerge => SelectLanguage(
                 "The bar starts reserved and marks each explicit source mapping written into the output.",
                 "輸出先以 reserved byte 初始化；新增 mapping 後會標出寫入位置。"),
-            WorkbenchMergeModes.AbCode => SelectLanguage(
+            ExperienceIds.AbMerge => SelectLanguage(
                 "The bar shows final DP_AB ownership after the compiled TPA and relocated TPB overlays.",
                 "此圖顯示 compiled TPA 與 relocated TPB overlay 後的最終 DP_AB ownership。"),
             _ => SelectLanguage("This merge mode is reserved.", "此 Merge 模式保留中。"),
@@ -534,16 +535,16 @@ public sealed partial class ShellTextResources
     {
         return mode switch
         {
-            WorkbenchMergeModes.Standard when isStandardMergeSupported => SelectLanguage(
+            ExperienceIds.StandardMerge when isStandardMergeSupported => SelectLanguage(
                 $"{ic}: drop {requiredSlots} BIN files.",
                 $"{ic}：放入 {requiredSlots} BIN files。"),
-            WorkbenchMergeModes.Standard => SelectLanguage(
+            ExperienceIds.StandardMerge => SelectLanguage(
                 $"{ic}: Standard Merge is not available yet.",
                 $"{ic}：Standard Merge 尚未可用。"),
-            WorkbenchMergeModes.General when generalMappingFileCount > 0 => SelectLanguage(
+            ExperienceIds.GeneralMerge when generalMappingFileCount > 0 => SelectLanguage(
                 $"{ic}: Customized Merge maps {generalMappingFileCount} source BIN file(s) into a blank output.",
                 $"{ic}：Customized Merge 會將 {generalMappingFileCount} 個 source BIN mapping 寫入 blank output。"),
-            WorkbenchMergeModes.General => SelectLanguage(
+            ExperienceIds.GeneralMerge => SelectLanguage(
                 $"{ic}: add at least one source BIN mapping.",
                 $"{ic}：至少新增一筆 source BIN mapping。"),
             _ => SelectLanguage(

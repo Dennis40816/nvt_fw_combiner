@@ -2,14 +2,15 @@ namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
 {
-    /// <summary>Verifies Presentation receives workflow id tokens through Bootstrap instead of duplicating contract strings.</summary>
+    /// <summary>Verifies Presentation consumes the canonical Domain workflow ids without a Bootstrap mirror.</summary>
     [Fact]
-    public void PresentationUsesBootstrapWorkflowIds()
+    public void PresentationUsesCanonicalWorkflowIds()
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchWorkflowIds.StandardMerge", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchWorkflowIds.GeneralMerge", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.StandardMerge", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchWorkflowIds", presentationSource, StringComparison.Ordinal);
         foreach (string workflowLiteral in new[]
         {
             "\"standard-merge\"",
@@ -23,15 +24,16 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies Presentation receives address-space ids through Bootstrap instead of duplicating contract strings.</summary>
+    /// <summary>Verifies Presentation consumes the canonical Domain address-space ids without a Bootstrap mirror.</summary>
     [Fact]
-    public void PresentationUsesBootstrapAddressSpaceIds()
+    public void PresentationUsesCanonicalAddressSpaceIds()
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchAddressSpaceIds.DpInput", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchAddressSpaceIds.TpInput", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchAddressSpaceIds.LdcInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.DpInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.TpInput", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionAddressSpaceIds.LdcInput", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchAddressSpaceIds", presentationSource, StringComparison.Ordinal);
         foreach (string addressSpaceLiteral in new[]
         {
             "\"dp-input\"",
@@ -54,12 +56,12 @@ public sealed partial class RepositoryBoundaryTests
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchSlotIds.MergeDp", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeTp", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.MergeLdc", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchSlotIds.TryFormatReplaceCtrlRamLabel", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionSlotIds.MergeDp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionSlotIds.MergeTp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionSlotIds.MergeLdc", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionSlotIds.ReplaceBase", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionSlotIds.ReplaceDp", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("DynamicCtrlRamReplacementIds.TryFormatDisplayLabel", presentationSource, StringComparison.Ordinal);
         foreach (string slotLiteral in new[]
         {
             "\"merge-dp\"",
@@ -82,11 +84,11 @@ public sealed partial class RepositoryBoundaryTests
         string dynamicText = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ShellTextResources.DynamicText.cs");
 
-        Assert.Contains("WorkbenchMergeModes.Standard", viewModels, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchMergeModes.AbCode", viewModels, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchMergeModes.General", viewModels, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchMergeModes.Standard", dynamicText, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchMergeModes.General", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.StandardMerge", viewModels, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.AbMerge", viewModels, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", viewModels, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.StandardMerge", dynamicText, StringComparison.Ordinal);
+        Assert.Contains("ExperienceIds.GeneralMerge", dynamicText, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Normal\"", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("\"AB Code\"", viewModels, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Normal\" when", dynamicText, StringComparison.Ordinal);
@@ -140,26 +142,27 @@ public sealed partial class RepositoryBoundaryTests
     public void ReplaceRegionGroupsDoNotDependOnLocalizedLabels()
     {
         string models = ReadText(
-            "src/NvtFwCombiner.Application/Composition/WorkbenchCompositionModels.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs");
         string builder = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplaceRegionGroupBuilder.cs");
 
-        Assert.Contains("public enum WorkbenchReplaceRegionGroup", models, StringComparison.Ordinal);
+        Assert.Contains("public enum ReplaceRegionGroup", models, StringComparison.Ordinal);
         Assert.Contains("GroupBy(static slot => slot.RegionGroup)", builder, StringComparison.Ordinal);
         Assert.Contains("GroupBy(static segment => segment.RegionGroup)", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("SourceLabel", builder, StringComparison.Ordinal);
         Assert.DoesNotContain("Title.Contains", builder, StringComparison.Ordinal);
     }
 
-    /// <summary>Verifies Presentation reads report output-difference classifications through Bootstrap tokens.</summary>
+    /// <summary>Verifies Presentation reads report output-difference classifications from Contracts directly.</summary>
     [Fact]
-    public void PresentationUsesBootstrapOutputDifferenceClassifications()
+    public void PresentationUsesContractOutputDifferenceClassifications()
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchOutputDifferenceClassifications.DeclaredReplacement", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchOutputDifferenceClassifications.PostbuildCrcHeader", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchOutputDifferenceClassifications.Unexpected", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.DeclaredReplacement", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.PostbuildCrcHeader", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("OutputDifferenceClassifications.Unexpected", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchOutputDifferenceClassifications", presentationSource, StringComparison.Ordinal);
         foreach (string classificationLiteral in new[]
         {
             "\"DeclaredReplacement\"",
@@ -172,14 +175,15 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies Presentation reads composition issue codes through Bootstrap tokens.</summary>
+    /// <summary>Verifies Presentation reads composition issue codes from Domain directly.</summary>
     [Fact]
-    public void PresentationUsesBootstrapCompositionIssueCodes()
+    public void PresentationUsesDomainCompositionIssueCodes()
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchCompositionIssueCodes.InputAddressSpaceLengthMismatch", presentationSource, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceLengthMismatch", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionIssueCodes.InputAddressSpaceTruncated", presentationSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorkbenchCompositionIssueCodes", presentationSource, StringComparison.Ordinal);
         foreach (string issueCodeLiteral in new[]
         {
             "\"input.address-space.length-mismatch\"",
@@ -190,13 +194,13 @@ public sealed partial class RepositoryBoundaryTests
         }
     }
 
-    /// <summary>Verifies Presentation receives UI fallback run issue codes through Bootstrap tokens.</summary>
+    /// <summary>Verifies Presentation receives fallback run issue codes from the Application contract.</summary>
     [Fact]
-    public void PresentationUsesBootstrapWorkbenchIssueCodes()
+    public void PresentationUsesApplicationCompositionPlanningIssueCodes()
     {
         string presentationSource = ReadPresentationSources();
 
-        Assert.Contains("WorkbenchIssueCodes.UiRunFailed", presentationSource, StringComparison.Ordinal);
+        Assert.Contains("CompositionPlanningIssueCodes.UiRunFailed", presentationSource, StringComparison.Ordinal);
         Assert.DoesNotContain("\"ui.run.failed\"", presentationSource, StringComparison.Ordinal);
     }
 }

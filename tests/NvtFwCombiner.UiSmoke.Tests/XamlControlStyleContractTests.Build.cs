@@ -1,22 +1,22 @@
 using System.Xml.Linq;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class XamlControlStyleContractTests
 {
-    /// <summary>Mode selectors use new product wording while stable contract tokens remain unchanged.</summary>
+    /// <summary>Mode selectors display product wording without exposing canonical workflow ids.</summary>
     [Fact]
     public void CompositionModeSelectorsUseDisplayOnlyProductNames()
     {
         string shell = ReadPresentationFile("MainWindow.axaml");
 
-        Assert.Equal("Normal", WorkbenchMergeModes.Standard);
-        Assert.Equal("General", WorkbenchMergeModes.General);
-        Assert.Equal("Standard", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.Standard));
-        Assert.Equal("Customized", WorkbenchModeDisplayConverters.GetDisplayName(WorkbenchMergeModes.General));
-        Assert.Equal(2, shell.Split("WorkbenchModeDisplayConverters.DisplayName", StringSplitOptions.None).Length - 1);
+        Assert.Equal("standard-merge", ExperienceIds.StandardMerge);
+        Assert.Equal("general-merge", ExperienceIds.GeneralMerge);
+        Assert.Equal("Standard", WorkflowModeDisplayConverters.GetDisplayName(ExperienceIds.StandardMerge));
+        Assert.Equal("Customized", WorkflowModeDisplayConverters.GetDisplayName(ExperienceIds.GeneralMerge));
+        Assert.Equal(2, shell.Split("WorkflowModeDisplayConverters.DisplayName", StringSplitOptions.None).Length - 1);
     }
 
     /// <summary>FWConfig Number mismatch uses the shared modal surface with explicit accessible actions.</summary>

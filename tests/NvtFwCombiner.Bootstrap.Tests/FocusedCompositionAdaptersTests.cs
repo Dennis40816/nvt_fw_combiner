@@ -1,11 +1,13 @@
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Application.Ports;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
-using static NvtFwCombiner.Bootstrap.WorkbenchIssueCodes;
+using static NvtFwCombiner.Application.Composition.CompositionPlanningIssueCodes;
 using static NvtFwCombiner.Bootstrap.Tests.BootstrapTestData;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
@@ -13,65 +15,49 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Focused composition-adapter tests for report generation around gated workflows.</summary>
 public sealed class FocusedCompositionAdaptersTests
 {
-    /// <summary>General facades expose typed drafts without restoring raw mapping compatibility overloads.</summary>
+    /// <summary>Execution is reachable only through the accepted-session Application port.</summary>
     [Fact]
     public void GeneralFacadesExposeTypedDraftsWithoutRawMappingOverloads()
     {
-        MethodInfo[] workbenchMethods = typeof(CompositionExecutionAdapter).GetMethods(
-            BindingFlags.Public | BindingFlags.Static);
-        MethodInfo[] executionMethods = typeof(CompositionExecutionAdapter).GetMethods(
-            BindingFlags.Public | BindingFlags.Static);
-        MethodInfo[] standardMerge =
-            [.. executionMethods.Where(static method => method.Name == "RunStandardMergeAsync")];
-        MethodInfo[] generalMerge =
-            [.. workbenchMethods.Where(static method => method.Name == "RunGeneralMergeAsync")];
-        MethodInfo[] replace =
-            [.. workbenchMethods.Where(static method => method.Name == "RunReplaceAsync")];
+        MethodInfo[] publicStaticRuns =
+        [
+            .. typeof(CompositionExecutionExperience)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(static method => method.Name.StartsWith("Run", StringComparison.Ordinal)),
+        ];
+        MethodInfo execution = Assert.Single(
+            typeof(ICompositionExecution).GetMethods(),
+            static method => method.ReturnType == typeof(ValueTask<CompositionRunResult>));
 
-        Assert.Equal([5], standardMerge.Select(static method => method.GetParameters().Length));
-        Assert.Empty(generalMerge);
-        Assert.Equal([8], replace.Select(static method => method.GetParameters().Length));
-        Assert.All(
-            standardMerge.Concat(generalMerge).Concat(replace),
-            static method => Assert.DoesNotContain(
-                method.GetParameters(),
-                static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed)));
-        AssertProgressAwareMethod(
-            executionMethods,
-            "RunStandardMergeWithProgressAsync",
-            expectedParameterCount: 6);
-        AssertProgressAwareMethod(workbenchMethods, "RunGeneralMergeAcceptedSessionWithProgressAsync", expectedParameterCount: 6);
-        AssertProgressAwareMethod(workbenchMethods, "PreviewGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 6);
-        AssertProgressAwareMethod(workbenchMethods, "BuildGeneralReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 7);
-        AssertProgressAwareMethod(workbenchMethods, "RunReplaceAcceptedSessionWithProgressAsync", expectedParameterCount: 10);
-        AssertProgressAwareMethod(workbenchMethods, "RunReplaceWithProgressAsync", expectedParameterCount: 9);
+        Assert.Empty(publicStaticRuns);
+        Assert.Equal("ExecuteAsync", execution.Name);
+        Assert.Collection(
+            execution.GetParameters(),
+            static parameter => Assert.Equal(
+                typeof(AcceptedCompositionExecutionRequest),
+                parameter.ParameterType),
+            static parameter => Assert.Equal(
+                typeof(CompositionRunProgressFeed),
+                parameter.ParameterType),
+            static parameter => Assert.Equal(
+                typeof(CancellationToken),
+                parameter.ParameterType));
     }
 
     /// <summary>General Replace Preview/Build crosses workflow boundaries as explicit entry points.</summary>
     [Fact]
     public void GeneralReplaceRunBoundaryDoesNotExposeBooleanActionAdapters()
     {
-        MethodInfo[] methods = typeof(CompositionExecutionAdapter).GetMethods(
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-        MethodInfo[] generalReplace =
-        [
-            .. methods.Where(static method =>
-                method.Name.Contains("GeneralReplace", StringComparison.Ordinal) &&
-                (method.Name.Contains("Run", StringComparison.Ordinal) ||
-                 method.Name.Contains("Preview", StringComparison.Ordinal) ||
-                 method.Name.Contains("Build", StringComparison.Ordinal) ||
-                 method.Name == "TryCreateGeneralReplaceRunContext")),
-        ];
+        MethodInfo execution = Assert.Single(
+            typeof(CompositionExecutionExperience).GetMethods(
+                BindingFlags.NonPublic | BindingFlags.Instance),
+            static method => method.Name == "ExecuteGeneralReplaceAsync");
 
-        Assert.NotEmpty(generalReplace);
-        Assert.All(
-            generalReplace,
-            static method => Assert.DoesNotContain(
-                method.GetParameters(),
-                static parameter => parameter.ParameterType == typeof(bool)));
+        Assert.DoesNotContain(
+            execution.GetParameters(),
+            static parameter => parameter.ParameterType == typeof(bool));
     }
 
-    private const string EmptySha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
     private sealed class CountingExternalProcessor : IExternalProcessor
     {
@@ -121,17 +107,17 @@ public sealed class FocusedCompositionAdaptersTests
             ["tp-input"] = GoldenArtifactPath("51926", "tp-input"),
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunStandardMergeAsync(
+        CompositionRunResult result = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51926",
             slotPaths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(),
             result.OutputSha256);
-        using var document = JsonDocument.Parse(result.ReportJson);
+        using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Empty(document.RootElement.GetProperty("Issues").EnumerateArray());
     }
 
@@ -139,7 +125,7 @@ public sealed class FocusedCompositionAdaptersTests
     [Fact]
     public void FirmwareConfigMetadataShortensPostbuildSetupCategoryForDisplay()
     {
-        WorkbenchFirmwareConfigMetadata? metadata = FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata(
+        FirmwareConfigMetadataSnapshot? metadata = BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical,
             "NT51926",
             GoldenArtifactPath("51926", "expected-output"));
 
@@ -156,7 +142,7 @@ public sealed class FocusedCompositionAdaptersTests
     [Fact]
     public void FirmwareContextSuggestionUsesVerifiedNvtBackupAndApprovedBranch()
     {
-        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
+        FirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
             "NT51926",
             GoldenArtifactPath("51926", "expected-output"));
 
@@ -178,7 +164,7 @@ public sealed class FocusedCompositionAdaptersTests
         bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
         string path = workspace.Write("fwconfig-mismatch.bin", bytes);
 
-        WorkbenchFirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
+        FirmwareContextSuggestion? suggestion = FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion(
             "NT51926",
             path);
 
@@ -202,12 +188,12 @@ public sealed class FocusedCompositionAdaptersTests
         bytes[start + FirmwareConfigLayout.ChipNumberOffset] = 1;
         string path = workspace.Write("fw200-single.bin", bytes);
 
-        WorkbenchFirmwareContextSuggestion suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
+        FirmwareContextSuggestion suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", path));
 
         Assert.Equal("single", suggestion.NumberToken);
         Assert.Equal("2.0.0", suggestion.CommonFwVersion);
-        WorkbenchFirmwareContextSuggestion nt51928Suggestion = Assert.IsType<WorkbenchFirmwareContextSuggestion>(
+        FirmwareContextSuggestion nt51928Suggestion = Assert.IsType<FirmwareContextSuggestion>(
             FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51928", path));
         Assert.Equal("NT51928", nt51928Suggestion.IcId);
         Assert.Equal("single", nt51928Suggestion.NumberToken);
@@ -223,7 +209,7 @@ public sealed class FocusedCompositionAdaptersTests
 
         Assert.Null(FirmwareInspectionTestSupport.TryReadDpVersionMetadata("NT51950", missing));
         Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51950", missing));
-        Assert.Null(FirmwareInspectionAdapter.TryReadFirmwareConfigMetadata("NT51926", missing));
+        Assert.Null(BuiltInFirmwareInspection.TryReadFirmwareConfigMetadata(BootstrapTestHost.Canonical, "NT51926", missing));
         Assert.Null(FirmwareInspectionTestSupport.TryReadFirmwareContextSuggestion("NT51926", missing));
     }
 
@@ -236,7 +222,7 @@ public sealed class FocusedCompositionAdaptersTests
 
         Assert.Null(FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata("NT51950", dpPath));
 
-        WorkbenchCmiDpCodeMetadata metadata = Assert.IsType<WorkbenchCmiDpCodeMetadata>(
+        CmiDpCodeMetadata metadata = Assert.IsType<CmiDpCodeMetadata>(
             FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
                 "NT51950",
                 dpPath,
@@ -262,17 +248,23 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.BuildGeneralReplaceEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x00100", "0x2"),
             ]),
-            outputPath,
+            savedRulePolicy: null,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result, outputPath);
+        Assert.False(prepared.Succeeded);
+        Assert.Contains(
+            prepared.Issues,
+            issue => issue.Code == ReplaceWorkflowNotSupported);
+        Assert.False(File.Exists(outputPath));
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -290,16 +282,22 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x22C00", "0x2"),
             ]),
+            savedRulePolicy: null,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result);
+        Assert.False(prepared.Succeeded);
+        Assert.Contains(
+            prepared.Issues,
+            issue => issue.Code == ReplaceWorkflowNotSupported);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -315,16 +313,22 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-base"] = basePath,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51950",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([
                 GeneralTestDraftFactory.ReplaceFile("general-map-1", replacementPath, "0x36000", "0x1"),
             ]),
+            savedRulePolicy: null,
             TestContext.Current.CancellationToken);
 
-        AssertWorkflowNotSupported(result);
+        Assert.False(prepared.Succeeded);
+        Assert.Contains(
+            prepared.Issues,
+            issue => issue.Code == ReplaceWorkflowNotSupported);
     }
 
     /// <summary>Rejects Workbench DP Replace build outputs that would overwrite selected input BINs.</summary>
@@ -342,10 +346,9 @@ public sealed class FocusedCompositionAdaptersTests
         };
 
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            CompositionExecutionAdapter.RunReplaceAsync(
+            DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
                     "NT51950",
-                    "single",
-                    "DP",
+                    ExperienceIds.DpReplace,
                     slotPaths,
                     build: true,
                     TestContext.Current.CancellationToken,
@@ -374,16 +377,16 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-ctrlram-normal"] = replacementPath,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "cascade",
-            "CtrlRAM",
+            ExperienceIds.CtrlRamReplace,
             slotPaths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        using var document = JsonDocument.Parse(result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.DoesNotContain(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamPostbuildCategoryUnknown);
@@ -420,17 +423,17 @@ public sealed class FocusedCompositionAdaptersTests
             return ExternalProcessorResult.Success(output, [], []);
         });
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "single",
             slotPaths,
             build: true,
             outputPath: outputPath,
-            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            firmwareVersionEdit: new CtrlRamFirmwareVersionDraftState(0x27, 0x04),
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
         byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
@@ -442,7 +445,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.Equal(0xD8, backup.FirmwareVersionBar);
         Assert.Equal(0x04, backup.FirmwareSubVersion);
 
-        using var document = JsonDocument.Parse(result.ReportJson);
+        using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         JsonElement[] operations = [.. document.RootElement.GetProperty("Operations").EnumerateArray()];
         int versionPatch = Array.FindIndex(operations, operation =>
             operation.GetProperty("OperationId").GetString() == "patch-fw-version-and-bar");
@@ -472,21 +475,21 @@ public sealed class FocusedCompositionAdaptersTests
         };
         var processor = new CountingExternalProcessor();
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             "NT51926",
             "single",
             slotPaths,
             build: true,
             outputPath: outputPath,
-            firmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04),
+            firmwareVersionEdit: new CtrlRamFirmwareVersionDraftState(0x27, 0x04),
             externalProcessor: processor,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.False(File.Exists(outputPath));
         Assert.Equal(1, processor.CallCount);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
-        using var document = JsonDocument.Parse(result.ReportJson);
+        using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Contains(
             document.RootElement.GetProperty("Issues").EnumerateArray(),
             issue => issue.GetProperty("Code").GetString() == ReplaceCtrlRamFirmwareVersionOutputMismatch);
@@ -509,20 +512,23 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-ctrlram-normal"] = replacementPath,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
+        var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
+        CtrlRamAuthoringSessionPreparation preparation =
+            BootstrapTestHost.Services.CtrlRamAuthoring.PrepareSession(
+            session,
             "NT51926",
             "single",
-            "CtrlRAM",
             slotPaths,
-            build: true,
-            TestContext.Current.CancellationToken,
-            outputPath);
+            slotPaths.ToDictionary(
+                static pair => pair.Key,
+                static pair => File.ReadAllBytes(pair.Value),
+                StringComparer.Ordinal),
+            firmwareVersionEdit: null);
 
-        Assert.False(result.Succeeded, result.ReportJson);
+        Assert.False(preparation.Succeeded);
+        Assert.Null(preparation.AcceptedSession);
         Assert.False(File.Exists(outputPath));
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(ReplaceCtrlRamIcNumberMismatch, issue.GetProperty("Code").GetString());
+        Assert.Equal(ReplaceCtrlRamIcNumberMismatch, Assert.Single(preparation.Issues).Code);
         Assert.Equal(baseBytes, await File.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken));
     }
 
@@ -531,14 +537,14 @@ public sealed class FocusedCompositionAdaptersTests
     public async Task CtrlRamReplacePreviewRejectsFirmwareVersionEdit()
     {
         ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            CompositionExecutionAdapter.RunReplaceAsync(
+            CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
                 "NT51926",
                 "single",
-                "CtrlRAM",
+                ExperienceIds.CtrlRamReplace,
                 new Dictionary<string, string>(StringComparer.Ordinal),
                 build: false,
                 TestContext.Current.CancellationToken,
-                ctrlRamFirmwareVersionEdit: new WorkbenchCtrlRamFirmwareVersionEdit(0x27, 0x04)).AsTask());
+                ctrlRamFirmwareVersionEdit: new CtrlRamFirmwareVersionDraftState(0x27, 0x04)).AsTask());
 
         Assert.Contains("CtrlRAM Replace Build", exception.Message, StringComparison.Ordinal);
     }
@@ -554,58 +560,27 @@ public sealed class FocusedCompositionAdaptersTests
             ["replace-base"] = missingBase,
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.PreviewGeneralReplaceEphemeralDraftAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51926",
             "single",
             slotPaths,
             GeneralTestDraftFactory.CreateReplaceDraft([]),
+            savedRulePolicy: null,
             CancellationToken.None);
 
-        Assert.False(result.Succeeded);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement input = Assert.Single(document.RootElement.GetProperty("Inputs").EnumerateArray());
-        Assert.Equal("replace-base", input.GetProperty("AddressSpaceId").GetString());
-        Assert.Equal("missing-base.bin", input.GetProperty("ArtifactId").GetString());
-        Assert.Equal(0, input.GetProperty("Size").GetInt64());
-        Assert.Equal(EmptySha256, input.GetProperty("Sha256").GetString());
-
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(InputArtifactReadFailed, issue.GetProperty("Code").GetString());
-        Assert.Equal("error", issue.GetProperty("Severity").GetString());
-        Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        Assert.Equal(InputArtifactReadFailed, Assert.Single(prepared.Issues).Code);
     }
 
     /// <summary>An unknown IC DP Replace stays blocked without projecting legacy flash-map operations.</summary>
     [Fact]
-    public async Task UnsupportedDpReplacePlanningReportHasNoLegacyOperations()
+    public void UnsupportedDpReplaceHasNoExecutableProfile()
     {
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
-            "NT00000",
-            "single",
-            "DP",
-            new Dictionary<string, string>(StringComparer.Ordinal),
-            build: false,
-            CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
-        Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
-    }
-
-    private static void AssertWorkflowNotSupported(WorkbenchRunResult result, string? outputPath = null)
-    {
-        Assert.False(result.Succeeded, result.ReportJson);
-        if (outputPath is not null)
-        {
-            Assert.False(File.Exists(outputPath));
-        }
-
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
-        Assert.False(document.RootElement.GetProperty("Output").GetProperty("Committed").GetBoolean());
+        Assert.False(BootstrapTestHost.Services.CompositionCapabilityExperience
+            .IsReplaceWorkflowAvailable("NT00000", ExperienceIds.DpReplace));
     }
 
     private static byte[] ReadNt51926Fw200SingleReference()
@@ -616,21 +591,6 @@ public sealed class FocusedCompositionAdaptersTests
         JsonElement expected = goldenCase.GetProperty("artifacts").EnumerateArray().Single(artifact =>
             artifact.GetProperty("role").GetString() == "expected");
         return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expected));
-    }
-
-    private static void AssertProgressAwareMethod(
-        IEnumerable<MethodInfo> methods,
-        string name,
-        int expectedParameterCount)
-    {
-        MethodInfo method = Assert.Single(
-            methods,
-            candidate =>
-                candidate.Name == name &&
-                candidate.GetParameters().Length == expectedParameterCount);
-        Assert.Contains(
-            method.GetParameters(),
-            static parameter => parameter.ParameterType == typeof(CompositionRunProgressFeed));
     }
 
 }

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -10,6 +11,9 @@ public sealed partial class ReplacePresentationViewModel
     private GeneralMappingDraftState? _generalReplaceDraft;
     private GeneralAuthoringAdmissionResult? _generalReplaceAdmission;
     private CapabilityActionReadinessSnapshot? _generalReplaceActionReadiness;
+    private CompositionRunReport? _generalReplaceDiagnosticPreviewReport;
+    private bool _isApplyingGeneralReplacePreparation;
+    private readonly SerialTaskQueue _generalReplacePreparationQueue = new();
 
     internal Task GeneralReplaceReadinessRefreshTask { get; private set; } = Task.CompletedTask;
 
@@ -32,7 +36,7 @@ public sealed partial class ReplacePresentationViewModel
         [
             .. GeneralReplaceMappings
                 .Where(mapping => mapping.HasSource)
-                .Select(mapping => _compositionServices.Authoring.CreateGeneralReplaceAuthoringState(
+                .Select(mapping => GeneralAuthoringMappingUseCase.CreateGeneralReplaceAuthoringState(
                     mapping.MappingId,
                     mapping.SelectedSource.Kind,
                     mapping.UsesFileSource ? mapping.FilePath! : mapping.InlineValue,
@@ -47,195 +51,127 @@ public sealed partial class ReplacePresentationViewModel
         _generalReplaceAuthoringStates = CreateGeneralReplaceAuthoringStates();
         _generalReplaceAdmission = null;
         _generalReplaceActionReadiness = null;
+        _generalReplaceDiagnosticPreviewReport = null;
         long? inspectedCapacity = _stateBindings.GetInspectedFileLength(ReplaceBaseSlot);
-        string[] fileMappingIds =
-        [
-            .. GeneralReplaceMappings
-                .Where(static mapping => mapping.UsesFileSource)
-                .Select(static mapping => mapping.MappingId),
-        ];
         bool canSelectFile = inspectedCapacity is > 0 &&
-            (fileMappingIds.Length == 0 ||
-                _compositionServices.AuthoringSession.PrepareGeneralReplaceSelectionSession(
-                    _authoringSessions.GeneralReplace,
-                    SelectedIc,
-                    inspectedCapacity.Value,
-                    fileMappingIds));
+            _compositionServices.Capabilities.IsReplaceWorkflowAvailable(
+                SelectedIc,
+                GeneralReplaceMode);
         foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
         {
+            mapping.ApplyAuthoringIssue(null);
             mapping.SetFileSelectionAvailability(
                 canSelectFile,
                 Text.FirmwareSlotPendingFactDetail);
         }
-        _generalReplaceDraft =
-            _generalReplaceAuthoringStates.Count > 0 &&
-            _compositionServices.Authoring.TryCreateGeneralReplaceAuthoringDraft(
+        GeneralMappingDraftState? draft = null;
+        IReadOnlyList<CompositionIssue> draftIssues = [];
+        bool hasDraft = _generalReplaceAuthoringStates.Count > 0 &&
+            GeneralAuthoringMappingUseCase.TryCreateGeneralReplaceAuthoringDraft(
                 _generalReplaceAuthoringStates,
-                out GeneralMappingDraftState? draft,
-                out _)
-                ? draft
-                : null;
+                out draft,
+                out draftIssues);
+        _generalReplaceDraft = hasDraft ? draft : null;
+        ApplyGeneralReplaceAuthoringIssues(
+            draftIssues
+                .Where(static issue => !string.IsNullOrWhiteSpace(issue.OperationId))
+                .Select(static issue => (issue.OperationId!, issue.Message)));
         if (_generalReplaceDraft is not null &&
             inspectedCapacity is long capacity &&
             capacity > 0)
         {
-            _generalReplaceAdmission = _compositionServices.Authoring
-                .GetGeneralReplaceAuthoringAdmission(
+            _generalReplaceAdmission = _compositionServices.GeneralAuthoring
+                .GetReplaceAdmission(
                     SelectedIc,
                     capacity,
                     _generalReplaceDraft);
-            if (_generalReplaceDraft.Rows.Any(static row =>
-                    row.Source.Kind == GeneralMappingSourceKind.FileArtifact &&
-                    row.Source.AcceptedFileStamp is null))
+            ApplyGeneralReplaceAuthoringIssues(
+                _generalReplaceAdmission?.Issues.SelectMany(static issue =>
+                    issue.MappingIds.Select(mappingId => (mappingId, issue.Message))) ?? []);
+            if (!string.IsNullOrWhiteSpace(ReplaceBaseSlot.FilePath))
             {
-                _ = _compositionServices.AuthoringSession.PrepareGeneralReplaceSelectionSession(
-                        _authoringSessions.GeneralReplace,
-                        SelectedIc,
-                        capacity,
-                        _generalReplaceDraft.Rows.Select(static row => row.MappingId)) &&
-                    _authoringSessions.GeneralReplace.SetDraft(_generalReplaceDraft).Succeeded;
+                GeneralReplaceReadinessRefreshTask = PrepareGeneralReplaceSessionAsync(
+                    _generalReplaceDraft,
+                    ReplaceBaseSlot.FilePath);
             }
-            GeneralReplaceReadinessRefreshTask = RefreshGeneralReplaceActionReadinessAsync(
-                _generalReplaceDraft,
-                capacity);
         }
     }
 
-    internal AuthoringPublicationLease? CaptureGeneralReplacePrebindingLease(
-        GeneralReplaceMappingViewModel mapping,
-        string path)
-    {
-        return mapping.CapturePrebindingLease(_authoringSessions.GeneralReplace, path);
-    }
-
-    internal bool TryCacheGeneralReplaceInspection(
-        GeneralReplaceMappingViewModel mapping,
-        AuthoringPublicationLease lease,
-        GeneralSelectedFileInspectionResult result)
-    {
-        return mapping.TryCacheInspection(_authoringSessions.GeneralReplace, lease, result);
-    }
-
-    private bool TryAcceptCachedGeneralReplaceInspection(
+    private Task PrepareGeneralReplaceSessionAsync(
         GeneralMappingDraftState draft,
-        long capacity)
+        string referencePath)
     {
-        return TryGetAcceptedGeneralReplaceReference(
-                out string referencePath,
-                out FileStamp referenceStamp) &&
-            GeneralReplaceMappings
-            .Where(static mapping => mapping.UsesFileSource)
-            .OrderBy(mapping => mapping.IsInspectionVerified(_authoringSessions.GeneralReplace))
-            .Any(mapping => mapping.TryAcceptCachedInspection(
-                _authoringSessions.GeneralReplace,
-                cached => _compositionServices.AuthoringSession.BeginGeneralReplaceSelectedFileInspection(
-                    _authoringSessions.GeneralReplace,
-                    SelectedIc,
-                    SelectedNumber,
-                    capacity,
-                    draft,
-                    referencePath,
-                    referenceStamp,
-                    mapping.MappingId,
-                    cached.FileStamp.AcceptedLength)));
+        return _generalReplacePreparationQueue.Enqueue(
+            () => PrepareGeneralReplaceSessionCoreAsync(draft, referencePath));
     }
 
-    private async Task RefreshGeneralReplaceActionReadinessAsync(
+    private async Task PrepareGeneralReplaceSessionCoreAsync(
         GeneralMappingDraftState draft,
-        long capacity)
+        string referencePath)
     {
-        if (!TryGetAcceptedGeneralReplaceReference(out string referencePath, out FileStamp referenceStamp))
+        if (!ReferenceEquals(_generalReplaceDraft, draft) ||
+            !StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath))
         {
             return;
         }
 
-        CapabilityActionReadinessSnapshot? readiness =
-            await _compositionServices.AuthoringSession.GetGeneralReplaceActionReadinessAsync(
-                _authoringSessions.GeneralReplace,
+        GeneralAuthoringSessionPreparation prepared =
+            await _compositionServices.GeneralAuthoring.PrepareReplaceSessionAsync(
+                _generalReplaceSession,
                 SelectedIc,
                 SelectedNumber,
-                capacity,
-                draft,
                 referencePath,
-                referenceStamp,
-                _stateBindings.GetBaseInspection()?.FirmwareConfig,
-                CancellationToken.None);
-        while (readiness is null &&
-            TryAcceptCachedGeneralReplaceInspection(draft, capacity) &&
-            _generalReplaceDraft is { } acceptedDraft)
-        {
-            draft = acceptedDraft;
-            readiness = await _compositionServices.AuthoringSession.GetGeneralReplaceActionReadinessAsync(
-                _authoringSessions.GeneralReplace,
-                SelectedIc,
-                SelectedNumber,
-                capacity,
                 draft,
-                referencePath,
-                referenceStamp,
-                _stateBindings.GetBaseInspection()?.FirmwareConfig,
                 CancellationToken.None);
-        }
-        if (readiness is null)
+        if (!ReferenceEquals(_generalReplaceDraft, draft) ||
+            !StringComparer.Ordinal.Equals(ReplaceBaseSlot.FilePath, referencePath))
         {
             return;
         }
 
-        _generalReplaceActionReadiness = readiness;
+        _isApplyingGeneralReplacePreparation = true;
+        try
+        {
+            _generalReplaceAdmission = prepared.Admission ?? _generalReplaceAdmission;
+            _generalReplaceActionReadiness = prepared.Readiness;
+            _generalReplaceDiagnosticPreviewReport = prepared.DiagnosticPreviewReport;
+            ApplyGeneralReplaceAuthoringIssues(
+                _generalReplaceAdmission?.Issues.SelectMany(static issue =>
+                    issue.MappingIds.Select(mappingId => (mappingId, issue.Message))) ?? []);
+            if (prepared.AcceptedSession?.DraftState is GeneralMappingDraftState accepted)
+            {
+                _generalReplaceDraft = accepted;
+            }
+            foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings.Where(
+                         static mapping => mapping.UsesFileSource))
+            {
+                mapping.ApplyPreparation(prepared);
+            }
+        }
+        finally
+        {
+            _isApplyingGeneralReplacePreparation = false;
+        }
+        RefreshReplaceMemoryMapState(refreshAuthoring: false);
         RefreshCommandState();
     }
 
-    internal AuthoringSlotInspectionStartResult BeginGeneralReplaceFileInspection(
-        GeneralReplaceMappingViewModel mapping,
-        long observedLength)
+    private void ApplyGeneralReplaceAuthoringIssues(
+        IEnumerable<(string MappingId, string Message)> issues)
     {
-        long? capacity = _stateBindings.GetInspectedFileLength(ReplaceBaseSlot);
-        return capacity is null ||
-            _generalReplaceDraft is null ||
-            !TryGetAcceptedGeneralReplaceReference(
-                out string referencePath,
-                out FileStamp referenceStamp)
-            ? new AuthoringSlotInspectionStartResult(
-                _authoringSessions.GeneralReplace.CurrentSnapshot,
-                Lease: null,
-                new AuthoringSessionIssue(
-                    AuthoringSessionIssueCodes.DraftUnavailable,
-                    "General Replace requires an inspected Reference and valid typed draft before file inspection.",
-                    mapping.MappingId))
-            : _compositionServices.AuthoringSession.BeginGeneralReplaceSelectedFileInspection(
-            _authoringSessions.GeneralReplace,
-            SelectedIc,
-            SelectedNumber,
-            capacity.Value,
-            _generalReplaceDraft,
-            referencePath,
-            referenceStamp,
-            mapping.MappingId,
-            observedLength);
-    }
-
-    private bool TryGetAcceptedGeneralReplaceReference(
-        out string referencePath,
-        out FileStamp referenceStamp)
-    {
-        referencePath = ReplaceBaseSlot.FilePath ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(referencePath) &&
-            _stateBindings.GetBaseInspection()?.FileStamp is { } acceptedStamp)
+        var messages = issues
+            .GroupBy(static issue => issue.MappingId, StringComparer.Ordinal)
+            .ToDictionary(
+                static group => group.Key,
+                static group => string.Join(
+                    Environment.NewLine,
+                    group.Select(static issue => issue.Message)
+                        .Distinct(StringComparer.Ordinal)),
+                StringComparer.Ordinal);
+        foreach (GeneralReplaceMappingViewModel mapping in GeneralReplaceMappings)
         {
-            referenceStamp = acceptedStamp;
-            return true;
+            mapping.ApplyAuthoringIssue(messages.GetValueOrDefault(mapping.MappingId));
         }
-
-        referenceStamp = default;
-        return false;
-    }
-
-    internal bool TryPublishGeneralReplaceFileInspection(
-        GeneralReplaceMappingViewModel mapping,
-        AuthoringSlotInspectionLease lease,
-        GeneralSelectedFileInspectionResult result)
-    {
-        return mapping.TryPublishInspection(_authoringSessions.GeneralReplace, lease, result);
     }
 
     internal bool RemoveGeneralMapping(GeneralReplaceMappingViewModel mapping)
@@ -265,6 +201,17 @@ public sealed partial class ReplacePresentationViewModel
 
     private void GeneralReplaceMappingPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (_isApplyingGeneralReplacePreparation ||
+            e.PropertyName is not (
+                nameof(GeneralMappingRowViewModel.FilePath) or
+                nameof(GeneralMappingRowViewModel.SourceStartAddress) or
+                nameof(GeneralMappingRowViewModel.TargetStartAddress) or
+                nameof(GeneralMappingRowViewModel.Length) or
+                nameof(GeneralReplaceMappingViewModel.SelectedSource) or
+                nameof(GeneralReplaceMappingViewModel.InlineValue)))
+        {
+            return;
+        }
         RefreshReplaceMemoryMapState();
         RefreshCommandState();
     }

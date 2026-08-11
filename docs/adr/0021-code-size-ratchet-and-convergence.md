@@ -299,6 +299,41 @@ anti-relocation rules, byte/golden/processor/coverage/security evidence, or
 independent review. It changes only the disproven numeric landing assumptions
 and removes their dormant verifier activation path.
 
+### 2026-08-09 complete-retirement assessment amendment
+
+The owner-approved legacy-architecture retirement scope is measured from the
+reviewed #352 predecessor commit
+`6ba7217299c3e2ddb1c38467e6f288d5710ffef1`. That tree contains 68,767 runtime
+production nonblank lines and 97,498 full-production nonblank lines including
+Presentation. The audited direct Workbench/Bootstrap/Application migration
+surface is 14,543 nonblank lines. Required canonical contract additions, unique
+trust/profile/diagnostic/delivery behavior, CLI relocation, and retained
+platform adapters mean that gross surface is not a deletion promise.
+
+The pre-implementation assessment was a net reduction of 7,800–10,200
+nonblank production lines, with a descriptive range of 58,600–61,000 runtime
+lines and 87,300–89,700 full-production lines. Terminal implementation
+evidence supersedes that estimate: 67,433 runtime and 96,044 full-production
+lines, respectively 1,334 and 1,454 below the predecessor. The estimate
+overstated the duplicate share because unique trust, route, admission,
+reporting, delivery, and processor behavior had to move to its canonical owner
+and the one-path boundary required explicit accepted-identity contracts.
+
+These measured values are exact descending ratchets, not new final targets or
+reusable budgets. In particular, 25,000 lines for the entire runtime is not a
+credible behavior-preserving target. The exact method, gross/add/net ledger,
+and inventory are recorded in
+[`0.10.x-legacy-architecture-retirement-size-assessment.md`](../governance/0.10.x-legacy-architecture-retirement-size-assessment.md).
+
+Implementation remains governed by the exact descending ratchets and
+candidate-ledger contract above. Each vertical retirement slice reports gross
+removal, required additions by receiving owner, cross-assembly relocation, and
+net runtime/full-production deltas; migrates every named live caller; deletes
+the displaced semantic owner in the same reviewed aggregate; and contributes
+to a net-negative terminal runtime and full-production result. The measured
+result does not complete LAR-00 until the terminal frozen diff and all
+byte/golden/architecture/release evidence pass.
+
 Every Canonical Core Convergence PR must reduce both its slice measurement and
 the total counted production metric. It cannot create temporary deletion debt.
 Before that phase, a firmware/route migration may temporarily add counted code

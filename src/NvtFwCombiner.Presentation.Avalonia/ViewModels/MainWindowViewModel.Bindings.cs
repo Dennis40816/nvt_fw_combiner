@@ -15,7 +15,10 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>Gets the standalone raw-BIN utility workspace exposed from Home Util Tools.</summary>
     public HexEditorWorkspaceViewModel HexEditorWorkspace =>
-        _deferredState.GetHexEditorWorkspace(Text, HexEditorWorkspace_OnPropertyChanged);
+        _deferredState.GetHexEditorWorkspace(
+            Text,
+            _rawBinaryEditorFileSessions,
+            HexEditorWorkspace_OnPropertyChanged);
 
     internal HexEditorWorkspaceViewModel? LoadedHexEditorWorkspace => _deferredState.LoadedHexEditorWorkspace;
 

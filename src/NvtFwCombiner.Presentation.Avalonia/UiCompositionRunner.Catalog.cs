@@ -1,5 +1,5 @@
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
@@ -23,7 +23,7 @@ public static partial class UiCompositionRunner
 
         return choices.Count > 0
             ? choices
-            : [new IcNumberChoiceViewModel(WorkbenchIcNumberTokens.SingleChip, "1 IC")];
+            : [new IcNumberChoiceViewModel(IcNumberSelectionTokens.SingleChip, "1 IC")];
     }
 
 }

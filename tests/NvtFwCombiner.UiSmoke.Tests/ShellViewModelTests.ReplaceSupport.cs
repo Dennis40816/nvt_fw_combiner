@@ -8,9 +8,9 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void ReplaceEvidenceBadgeDoesNotTurnPendingGoldenIntoFeatureBan()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "DP");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.DpReplace);
 
         Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
         Assert.Equal("Evidence open", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
@@ -19,7 +19,7 @@ public sealed partial class ShellViewModelTests
         Assert.Contains("Only declared DP ranges change", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
 
         viewModel.WorkflowSession.SelectedIc = "NT51932";
-        OpenReplace(viewModel, "CtrlRAM");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.CtrlRamReplace);
 
         Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
         Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
@@ -35,7 +35,7 @@ public sealed partial class ShellViewModelTests
     [InlineData("NT51927", "Perfect IC Family")]
     public void IcFamilyBadgeExplainsOwnerDeclaredReuse(string icId, string expectedLabel)
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = icId;
 
         Assert.True(viewModel.WorkflowSession.HasSelectedIcFamily);

@@ -12,7 +12,7 @@ public sealed partial class ReplacePresentationViewModel : ObservableObject
     internal ReplacePresentationViewModel(
         PresentationCompositionServices compositionServices,
         ReplaceStateBindings stateBindings,
-        Func<string, string, WorkbenchFirmwareConfigMetadata?> firmwareConfigMetadataReader)
+        Func<string, string, FirmwareConfigMetadataSnapshot?> firmwareConfigMetadataReader)
     {
         _compositionServices = compositionServices ??
             throw new ArgumentNullException(nameof(compositionServices));

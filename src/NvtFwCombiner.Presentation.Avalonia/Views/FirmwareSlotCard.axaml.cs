@@ -27,7 +27,7 @@ public sealed partial class FirmwareSlotCard : UserControl
     }
 
     private MainWindowViewModel? ShellViewModel =>
-        WorkbenchShellViewModelLocator.Find(this);
+        ShellViewModelLocator.Find(this);
 
     private void SlotDragOver_OnDragOver(object? sender, DragEventArgs e)
     {

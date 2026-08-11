@@ -1,5 +1,7 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Composition;
@@ -71,6 +73,63 @@ public sealed class AcceptedOutputNamingInspection
                 capability.CompiledComposition.CompilationFingerprint,
                 capability.MetadataPlan,
                 snapshot);
+    }
+
+    /// <summary>
+    /// Accepts the canonical metadata publication already retained by one exact
+    /// authoring session without reopening paths or decoding firmware again.
+    /// </summary>
+    public static AcceptedOutputNamingInspection Accept(ActiveSessionSnapshot session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ResolvedCapability capability = session.HasCurrentInputInspection
+            ? session.GetAcceptedCapability(AuthoringDerivedResultKind.Inspection) ??
+                throw new InvalidOperationException(
+                    "Output naming requires the exact inspected session capability.")
+            : throw new InvalidOperationException(
+                "Output naming requires one current complete input inspection.");
+        MetadataInspectionSnapshot snapshot = session.MetadataInspection ??
+            throw new InvalidOperationException(
+                "Output naming requires the canonical session metadata inspection.");
+        FirmwareArtifactPayload[] artifacts =
+        [
+            .. session.InputSlotStatuses.Select(status =>
+            {
+                ReadOnlyMemory<byte> bytes = status.AcceptedBytes ??
+                    throw new InvalidOperationException(
+                        $"Output naming input '{status.AddressSpaceId}' has no accepted bytes.");
+                return new FirmwareArtifactPayload(status.AddressSpaceId, bytes.Span);
+            }),
+        ];
+        return Accept(
+            capability,
+            snapshot,
+            session.AuthoringRevision.Value,
+            artifacts);
+    }
+
+    /// <summary>
+    /// Captures the exact inspection and publication identity only for a compiled
+    /// renderer that consumes canonical metadata.
+    /// </summary>
+    public static AcceptedOutputNamingPublication? TryAcceptForCompiledRenderer(
+        ActiveSessionSnapshot session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ResolvedCapability capability = session.ExactCapability ??
+            throw new InvalidOperationException(
+                "Output naming requires one exact session capability.");
+        CompiledOutputNameRendererKind renderer = capability.CompiledComposition
+            .V2Details.OutputNamingRequirement.RendererKind;
+        return renderer is not (
+            CompiledOutputNameRendererKind.NormalFlashCodeV1 or
+            CompiledOutputNameRendererKind.TpFirmwareV1)
+                ? null
+                : new AcceptedOutputNamingPublication(
+                    Accept(session),
+                    OutputNamingAdmissionIdentity.Capture(
+                        capability,
+                        session.AuthoringRevision.Value));
     }
 
     /// <summary>Stable exact route of the accepted capability publication.</summary>
@@ -228,3 +287,8 @@ public sealed class AcceptedOutputNamingInspection
         }
     }
 }
+
+/// <summary>Exact canonical inspection and publication identity used by one naming run.</summary>
+public sealed record AcceptedOutputNamingPublication(
+    AcceptedOutputNamingInspection Inspection,
+    OutputNamingAdmissionIdentity Admission);

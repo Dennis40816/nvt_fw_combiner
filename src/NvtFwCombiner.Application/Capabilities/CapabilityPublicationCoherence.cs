@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -9,6 +10,17 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 internal static class CapabilityPublicationCoherence
 {
+    internal static TopologySelection? GetAcceptedAbMergeTopologySelection(
+        ResolvedCapability capability)
+    {
+        ArgumentNullException.ThrowIfNull(capability);
+        return capability.CompiledComposition.V2Details.Provenance.Context is
+            MapBoundV2CompilationContext mapContext
+                ? mapContext.ResolvedMap.TopologySelection
+                : throw new InvalidOperationException(
+                    "Accepted AB Merge execution requires one map-bound compiled capability.");
+    }
+
     internal static bool IsExecutionAdmitted(
         CompiledComposition composition)
     {

@@ -21,14 +21,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
                 CreateTpImage(0x82, 0x01, chipCount: 2, length: 0x37000)),
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51951",
             paths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        Assert.DoesNotContain("AB_TP_TOPOLOGY", result.ReportJson, StringComparison.Ordinal);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.DoesNotContain("AB_TP_TOPOLOGY", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
     }
 
     /// <summary>Selector-free NT51951 retains non-blocking unknown metadata rather than requiring FWConfig Backup topology facts.</summary>
@@ -43,14 +43,14 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             [CompositionAddressSpaceIds.TpBInput] = workspace.Write("inputs/tp-b.bin", new byte[0x37000]),
         };
 
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunAbMergeAsync(
+        CompositionRunResult result = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51951",
             paths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
-        Assert.DoesNotContain("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", result.ReportJson, StringComparison.Ordinal);
-        Assert.Contains("output-naming.metadata-unknown", result.ReportJson, StringComparison.Ordinal);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.DoesNotContain("AB_TP_FIRMWARE_CONFIG_BACKUP_INVALID", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
+        Assert.Contains("output-naming.metadata-unknown", CompositionRunReportJson.Serialize(result), StringComparison.Ordinal);
     }
 }

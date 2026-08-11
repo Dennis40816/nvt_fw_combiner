@@ -42,6 +42,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.False(Directory.Exists(infrastructureSupportDirectory));
 
         string production = ReadProductionSources();
+        Assert.DoesNotContain("workbench", production, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("WorkbenchCompositionService", production, StringComparison.Ordinal);
         Assert.DoesNotContain("AbMergeWorkbenchCompositionService", production, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Application.Support", production, StringComparison.Ordinal);
@@ -56,7 +57,10 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("public sealed record CapabilityWorkflowReadiness", production, StringComparison.Ordinal);
         Assert.Contains("public sealed record CapabilityFamilySummary", production, StringComparison.Ordinal);
         Assert.Contains("public sealed partial class CompositionRunService", production, StringComparison.Ordinal);
-        Assert.Contains("public static class MemoryLayoutProjector", production, StringComparison.Ordinal);
+        Assert.Contains(
+            "public static partial class MemoryLayoutProjector",
+            production,
+            StringComparison.Ordinal);
         Assert.Contains("public interface ICanonicalSupportMatrixQuery", production, StringComparison.Ordinal);
     }
 
@@ -66,7 +70,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         string contracts = string.Join(
             Environment.NewLine,
-            ReadText("src/NvtFwCombiner.Application/Composition/WorkbenchCompositionModels.cs"),
+            ReadText("src/NvtFwCombiner.Application/Composition/CompositionClientModels.cs"),
             ReadText("src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs"));
 
         Assert.DoesNotContain("BarWidth", contracts, StringComparison.Ordinal);
@@ -81,31 +85,28 @@ public sealed partial class RepositoryBoundaryTests
     {
         string contracts = ReadText(
             "src/NvtFwCombiner.Application/Composition/CompositionExperiencePorts.cs");
-        string memory = SliceInterface(contracts, "ICompositionMemoryPresentation", "IFirmwareInspection");
-        string naming = SliceInterface(contracts, "ICompositionOutputNaming", "IAbMergeDeliveryPlanning");
-        string delivery = SliceInterface(contracts, "IAbMergeDeliveryPlanning", "ICompositionExecution");
+        string naming = SliceInterface(contracts, "ICompositionOutputNaming", "ICompositionExecution");
         string execution = contracts[contracts.IndexOf(
             "public interface ICompositionExecution",
             StringComparison.Ordinal)..];
 
-        Assert.Contains("GetDpReplaceReferenceCapacityLabel", memory, StringComparison.Ordinal);
-        Assert.Contains("ResolveAutomaticOutputFileNameAsync", naming, StringComparison.Ordinal);
-        Assert.Contains("TryCreateAFlashCodeDeliveryPlanAsync", delivery, StringComparison.Ordinal);
-        Assert.DoesNotContain("GetDpReplaceReferenceCapacityLabel", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolveAutomaticOutputFileNameAsync", execution, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryCreateAFlashCodeDeliveryPlanAsync", execution, StringComparison.Ordinal);
-        Assert.Contains("RunStandardMergeAcceptedSessionWithProgressAsync", execution, StringComparison.Ordinal);
-        Assert.Contains("RunReplaceAcceptedSessionWithProgressAsync", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("ICompositionMemoryPresentation", contracts, StringComparison.Ordinal);
+        Assert.Contains("PrepareAutomaticOutputAsync", naming, StringComparison.Ordinal);
+        Assert.Contains("CompositionOutputPreparation", naming, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProjectMemoryLayout", execution, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrepareAutomaticOutputAsync", execution, StringComparison.Ordinal);
+        Assert.Contains("ExecuteAsync", execution, StringComparison.Ordinal);
+        Assert.Contains("AcceptedCompositionExecutionRequest", execution, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(execution, "ValueTask<CompositionRunResult>"));
 
         string namingImplementation = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionExperienceAdapters.cs");
-        namingImplementation = namingImplementation[namingImplementation.IndexOf(
-            "internal sealed class CompositionOutputNamingAdapter",
-            StringComparison.Ordinal)..];
-        string deliveryImplementation = ReadText(
-            "src/NvtFwCombiner.Bootstrap/AbMergeDeliveryPlanningPort.cs");
+            "src/NvtFwCombiner.Application/Composition/CompositionOutputNamingExperience.cs");
         Assert.DoesNotContain("CompositionExecutionAdapter", namingImplementation, StringComparison.Ordinal);
-        Assert.DoesNotContain("CompositionExecutionAdapter", deliveryImplementation, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Bootstrap",
+            "AbMergeDeliveryPlanningPort.cs")));
 
         string executionImplementation = string.Join(
             Environment.NewLine,
@@ -115,58 +116,7 @@ public sealed partial class RepositoryBoundaryTests
                     SearchOption.TopDirectoryOnly)
                 .Select(File.ReadAllText));
         Assert.DoesNotContain("GetDpReplaceInputSlots", executionImplementation, StringComparison.Ordinal);
-        Assert.DoesNotContain("ResolveAutomaticOutputFileNameAsync", executionImplementation, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryCreateAFlashCodeDeliveryPlanAsync", executionImplementation, StringComparison.Ordinal);
-    }
-
-    /// <summary>DP Replace preserves compiler slot identity separately from its bound address space end to end.</summary>
-    [Fact]
-    public void DpReplaceSlotAndAddressSpaceIdentitiesStayExplicitEndToEnd()
-    {
-        string application = ReadText(
-            "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.cs");
-        string acceptedBinding = ReadText(
-            "src/NvtFwCombiner.Bootstrap/AcceptedAuthoringSessionBinding.cs");
-        string ctrlRamBindings = ReadText(
-            "src/NvtFwCombiner.Bootstrap/CompositionPlanningAdapter.Replace.CtrlRam.Context.cs");
-        string slotViewModel = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/FirmwareSlotViewModel.cs");
-        string replaceAuthoring = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Authoring.cs");
-        string replaceExecution = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/ReplacePresentationViewModel.Execution.cs");
-        string replaceProjection = ReadText(
-            "src/NvtFwCombiner.Presentation.Avalonia/UiCompositionRunner.Replace.cs");
-
-        Assert.Contains(
-            "CompiledAuthoringInputBinding(string SlotId, string AddressSpaceId)",
-            application,
-            StringComparison.Ordinal);
-        Assert.Contains("ProjectInputBindings(capability)", application, StringComparison.Ordinal);
-        Assert.Contains("ResolveSlotDefinitionId(", acceptedBinding, StringComparison.Ordinal);
-        Assert.Contains(
-            "compiledComposition.V2Details.InputContract.SpaceBindings",
-            acceptedBinding,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "acceptedSession,\n                        sourceSpaceId)",
-            ctrlRamBindings.ReplaceLineEndings("\n"),
-            StringComparison.Ordinal);
-        Assert.Contains("public string? CompiledSlotId { get; }", slotViewModel, StringComparison.Ordinal);
-        Assert.Contains("ReplaceDefinitionId(candidate, dpProjection)", replaceAuthoring, StringComparison.Ordinal);
-        Assert.Contains("SelectedReplaceMode == CtrlRamReplaceMode", replaceAuthoring, StringComparison.Ordinal);
-        Assert.Contains("WorkbenchAddressSpaceIds.ReferenceBase", replaceAuthoring, StringComparison.Ordinal);
-        Assert.Contains("binding.AddressSpaceId", replaceAuthoring, StringComparison.Ordinal);
-        Assert.Contains("slot.CompiledSlotId", replaceAuthoring, StringComparison.Ordinal);
-        Assert.Contains(
-            "candidate.SlotId, slot.CompiledSlotId",
-            replaceExecution,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "candidate.SlotId, slot.AddressSpaceId",
-            replaceExecution,
-            StringComparison.Ordinal);
-        Assert.Contains("compiledSlotId: slot.CompiledSlotId", replaceProjection, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrepareAutomaticOutputAsync", executionImplementation, StringComparison.Ordinal);
     }
 
     /// <summary>Prevents the retired facade from returning under a new broad partial-type name.</summary>
@@ -210,14 +160,7 @@ public sealed partial class RepositoryBoundaryTests
         }
 
         string production = ReadProductionSources();
-        Assert.Contains(
-            "internal static partial class CompositionPlanningAdapter",
-            production,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "public static partial class CompositionPlanningAdapter",
-            production,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("CompositionPlanningAdapter", production, StringComparison.Ordinal);
         Assert.DoesNotContain("WorkflowExecutionService", production, StringComparison.Ordinal);
     }
 
@@ -234,7 +177,7 @@ public sealed partial class RepositoryBoundaryTests
                 .Order(StringComparer.Ordinal),
         ];
         Assert.Equal(
-            ["V2CompositionPlanCompiler"],
+            ["LegacyCombinerPostbuildPlanCompiler", "V2CompositionPlanCompiler"],
             compilerTypes);
 
         Assert.Empty(WorkflowSpecificExecutionTypeRegex().Matches(production));

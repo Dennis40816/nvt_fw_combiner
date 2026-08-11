@@ -4,6 +4,7 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using System.Text.Json;
 
 namespace NvtFwCombiner.Application.Tests.Composition;
 
@@ -91,6 +92,55 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
             CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked,
             result.Blocker.Code);
         Assert.Same(readiness.Build.PrimaryBlocker, result.Blocker);
+    }
+
+    /// <summary>The durable plan-only projection cannot be mistaken for a produced firmware artifact.</summary>
+    [Fact]
+    public void DiagnosticPreviewJsonExplicitlyOmitsOutputArtifact()
+    {
+        CapabilityActionReadinessSnapshot readiness = CreateReadiness(
+            executionAdmitted: false,
+            new CapabilityActionBlocker(
+                CapabilityActionReadinessIssueCodes.PostbuildStageAuthorityMissing,
+                CapabilityReadinessDimension.Execution,
+                "parent-profile",
+                "The exact Parent omits POSTBUILD.",
+                CapabilityReadinessNextAction.ReviewCompilation),
+            []);
+        GeneralReplaceDiagnosticPreviewSummary diagnostic =
+            GeneralReplaceDiagnosticPreviewProjector.Project(
+                20,
+                CreateAdmission(),
+                readiness,
+                requiredStageId: null);
+        var report = new CompositionRunReport(
+            "diagnostic-preview",
+            "general-replace",
+            "1.0.0",
+            "NT51950",
+            ExperienceIds.GeneralReplace,
+            ExperienceIds.GeneralReplace,
+            CompositionKind.Replace,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            inputs: [],
+            operations: [],
+            mutations: [],
+            issues: [],
+            new OutputArtifactSummary(
+                "diagnostic.bin",
+                size: 0,
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                committed: false),
+            diagnosticPreview: diagnostic);
+
+        using var json = JsonDocument.Parse(
+            CompositionRunReportJson.SerializeDiagnosticPreview(report));
+
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("Output").ValueKind);
+        Assert.Equal(
+            "diagnostic-plan-only",
+            json.RootElement.GetProperty("DiagnosticPreview").GetProperty("Mode").GetString());
     }
 
     private static GeneralAuthoringAdmissionResult CreateAdmission()

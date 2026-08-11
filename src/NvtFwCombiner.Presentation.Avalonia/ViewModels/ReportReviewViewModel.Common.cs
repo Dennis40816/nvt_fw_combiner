@@ -1,4 +1,4 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -24,7 +24,7 @@ public sealed partial class ReportReviewViewModel
         return string.Equals(issue.Severity, "warning", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(issue.Severity, "info", StringComparison.OrdinalIgnoreCase) ||
             (string.IsNullOrWhiteSpace(issue.Severity) &&
-                string.Equals(issue.Title, WorkbenchCompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal));
+                string.Equals(issue.Title, CompositionIssueCodes.InputAddressSpaceTruncated, StringComparison.Ordinal));
     }
 
     private static string Shorten(string text, int keep)

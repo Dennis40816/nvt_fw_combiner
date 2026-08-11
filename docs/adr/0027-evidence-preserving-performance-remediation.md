@@ -4,8 +4,19 @@
 - Date: 2026-07-18
 - Owners: Product owner + architecture owner + firmware/process reviewer + UI reviewer
 - Amends: ADR 0009's General Replace Build-orchestration clause; validation remains mandatory inside one authoritative Build execution
+- Amended by: 2026-08-09 complete legacy-architecture retirement
 - Supersedes: The former `v0.9.10` candidate-intake assignment
 - Superseded by: None
+
+2026-08-09 amendment: the performance, evidence, immutable-byte, replay, and
+single-execution decisions in this ADR remain accepted. The complete-retirement
+program supersedes only the migration-era requirement to preserve the
+`WorkbenchRunResult` positional CLR ABI or transport the inspection snapshot
+through that envelope. `CompositionRunResult` and its typed report/inspection
+results become the sole in-process Application outcome, while persisted report
+wire compatibility and older report readability remain unchanged. References
+below to the Workbench transport describe the historical `v0.9.10` solution,
+not terminal architecture authority.
 
 ## Context
 
@@ -110,8 +121,8 @@ reference-space id and the authoritative compiled output-space id from the
 Application plan. Merge, input failure, validation or preview-token publication
 failure, planning-only, and blocked results carry no snapshot.
 
-Bootstrap transports the snapshot through an additive non-positional
-`WorkbenchRunResult` property. The existing positional constructor and
+At the `v0.9.10` checkpoint, Bootstrap transported the snapshot through an
+additive non-positional `WorkbenchRunResult` property. The then-existing positional constructor and
 `Deconstruct` shape stay intact. The property is JSON-ignored. The snapshot is
 not part of `CompositionRunReport`, `composition-report-v1`, raw report JSON,
 saved report history, or report export.
@@ -269,10 +280,12 @@ Canonical verifier lanes must not execute the same test owner twice.
 
 ## Compatibility and release impact
 
-The target is byte-, command-, naming-, report-schema-, support-, and package-
-neutral. Typed progress and the in-memory inspection snapshot are additive
-Application/Bootstrap/UI contracts. The snapshot transport preserves the
-existing `WorkbenchRunResult` positional ABI and is excluded from JSON.
+The target was byte-, command-, naming-, report-schema-, support-, and package-
+neutral. Typed progress and the in-memory inspection snapshot were additive
+Application/Bootstrap/UI contracts. That checkpoint's snapshot transport
+preserved the `WorkbenchRunResult` positional ABI and was excluded from JSON;
+the 2026-08-09 amendment retires that CLR transport while preserving these
+external and evidence properties.
 
 Candidate-IC intake, new workflow support, profile promotion, range changes,
 processor authority, report-schema redesign, and release publication are not

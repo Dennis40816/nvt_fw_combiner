@@ -253,6 +253,57 @@ public sealed class RawBinaryEditorSessionTests
             session.DeleteByte("0x1").Issue?.Code);
     }
 
+    /// <summary>Every memory-editor command fails closed before mutation when input is absent or malformed.</summary>
+    [Fact]
+    public void MissingDocumentAndMalformedCommandsReturnTypedIssues()
+    {
+        var session = new RawBinaryEditorSession();
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => session.CreatePage(0, 0));
+        Assert.Equal(RawBinaryEditorIssueCode.NoDocument, session.CreatePage(0, 1).Issue?.Code);
+        AssertIssue(session.OverwriteByte("0x0", "00"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.OverwriteRange("0x0", "0x0", "00"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.FillRange("0x0", "0x0", "00"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.InsertZeroBefore("0x0"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.InsertZeroAfter("0x0"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.InsertZeroBytesBefore("0x0", 1), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.InsertZeroBytesAfter("0x0", 1), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.DeleteByte("0x0"), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.Undo(), RawBinaryEditorIssueCode.NoDocument);
+        AssertIssue(session.Redo(), RawBinaryEditorIssueCode.NoDocument);
+        Assert.False(session.TryCopyWorkingBytes(out byte[]? missing));
+        Assert.Null(missing);
+
+        _ = session.Load([]);
+        Assert.Equal(
+            RawBinaryEditorIssueCode.AddressOutOfRange,
+            session.CreatePage(0, 1).Issue?.Code);
+
+        _ = session.Load([0x10, 0x20]);
+        AssertIssue(session.OverwriteByte("bad", "00"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.OverwriteByte("0x0", "0000"), RawBinaryEditorIssueCode.InvalidHexByte);
+        AssertIssue(session.OverwriteByte("0x2", "00"), RawBinaryEditorIssueCode.AddressOutOfRange);
+        AssertIssue(session.OverwriteRange("bad", "0x1", "00"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.OverwriteRange("0x1", "bad", "00"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.OverwriteRange("0x1", "0x0", "00"), RawBinaryEditorIssueCode.InvalidRange);
+        AssertIssue(session.OverwriteRange("0x0", "0x2", "00"), RawBinaryEditorIssueCode.AddressOutOfRange);
+        AssertIssue(session.OverwriteRange("0x0", "0x1", " "), RawBinaryEditorIssueCode.InvalidHexBytes);
+        AssertIssue(session.OverwriteRange("0x0", "0x1", "0"), RawBinaryEditorIssueCode.InvalidHexBytes);
+        AssertIssue(session.OverwriteRange("0x0", "0x1", "GG"), RawBinaryEditorIssueCode.InvalidHexBytes);
+        AssertIssue(session.FillRange("0x1", "0x0", "00"), RawBinaryEditorIssueCode.InvalidRange);
+        AssertIssue(session.FillRange("0x0", "0x1", "GG"), RawBinaryEditorIssueCode.InvalidHexByte);
+        AssertIssue(session.InsertZeroBefore("bad"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.InsertZeroAfter("bad"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.InsertZeroBytesBefore("bad", 1), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.InsertZeroBytesAfter("bad", 1), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.InsertZeroBytesBefore("0x2", 1), RawBinaryEditorIssueCode.AddressOutOfRange);
+        AssertIssue(session.InsertZeroBytesAfter("0x0", -1), RawBinaryEditorIssueCode.InvalidByteCount);
+        AssertIssue(session.DeleteByte("bad"), RawBinaryEditorIssueCode.InvalidAddress);
+        AssertIssue(session.DeleteByte("0x2"), RawBinaryEditorIssueCode.AddressOutOfRange);
+        AssertIssue(session.Undo(), RawBinaryEditorIssueCode.NothingToUndo);
+        AssertIssue(session.Redo(), RawBinaryEditorIssueCode.NothingToRedo);
+    }
+
     /// <summary>Finds printable ASCII in the memory buffer and wraps only after the requested starting point.</summary>
     [Fact]
     public void FindAsciiUsesTheCurrentWorkBufferAndCyclesMatches()
@@ -572,5 +623,13 @@ public sealed class RawBinaryEditorSessionTests
     {
         Assert.True(session.TryCopyWorkingBytes(out byte[]? bytes));
         return RawBinaryEditorSearch.Find(bytes, session.State, text, startOffset, cancellationToken);
+    }
+
+    private static void AssertIssue(
+        RawBinaryEditorOperationResult result,
+        RawBinaryEditorIssueCode expected)
+    {
+        Assert.False(result.Succeeded);
+        Assert.Equal(expected, result.Issue?.Code);
     }
 }

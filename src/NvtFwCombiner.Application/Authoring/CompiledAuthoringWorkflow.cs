@@ -3,69 +3,16 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.Authoring;
-
-/// <summary>Compiler adapter used by one Application-owned fixed authoring workflow.</summary>
-public interface ICompiledAuthoringWorkflowResolver
-{
-    /// <summary>Workflow identity permanently owned by this resolver.</summary>
-    string WorkflowId { get; }
-
-    /// <summary>Returns the reviewed route and complete authoring membership before exact compilation.</summary>
-    CompiledAuthoringWorkflowDiscovery Discover(string icId);
-
-    /// <summary>Compiles one exact selected-input state without fallback.</summary>
-    CompiledAuthoringWorkflowResolution ResolveExact(
-        string icId,
-        long? prerequisiteLength,
-        IReadOnlyCollection<string> selectedSlotIds);
-}
-
-/// <summary>Reviewed pre-compilation facts exposed by a compiler adapter.</summary>
-public sealed record CompiledAuthoringWorkflowDiscovery(
-    ResolvedCapability DiscoveryCapability,
-    IReadOnlyList<string> AvailableSlotIds,
-    string? CompilationPrerequisiteSlotId,
-    ReviewedDiscoveryTransition? DiscoveryTransition = null);
-
-/// <summary>One exact compiler result with its original issues retained.</summary>
-public sealed record CompiledAuthoringWorkflowResolution(
-    ResolvedCapability? Capability,
-    IReadOnlyList<CompositionIssue> Issues)
-{
-    /// <summary>True only when one exact compiled capability exists without issues.</summary>
-    public bool Succeeded => Capability is not null && Issues.Count == 0;
-}
-
-/// <summary>One already-read immutable selected input supplied by a host adapter.</summary>
-public sealed record CompiledAuthoringSelectedInput(
-    string SlotId,
-    string SelectedPathHint,
-    ReadOnlyMemory<byte>? Bytes);
-
-/// <summary>Compiler-owned slot identity paired with its immutable input address space.</summary>
-public sealed record CompiledAuthoringInputBinding(string SlotId, string AddressSpaceId);
-
-/// <summary>Application-owned picker projection for one authoring revision.</summary>
-public sealed record CompiledAuthoringSelectionSnapshot(
-    AuthoringCapabilityCatalogSnapshot Catalog,
-    IReadOnlyList<InputSelectionMemberReadiness> Slots,
-    IReadOnlyList<CompiledAuthoringInputBinding> InputBindings,
-    IReadOnlyList<CompositionIssue> Issues);
-
-/// <summary>Application-owned coherent inspection result for one exact selected batch.</summary>
-public sealed record CompiledAuthoringInspectionBatch(
-    AuthoringCapabilityCatalogSnapshot Catalog,
-    IReadOnlyDictionary<string, AuthoringInputSlotStatus> Statuses,
-    IReadOnlyList<CompositionIssue> Issues);
 
 /// <summary>
 /// Owns prerequisite readiness, exact compilation selection, and immutable
 /// input inspection for one fixed workflow. Hosts only read bytes and adapt
 /// compiler calls; Presentation only renders these typed results.
 /// </summary>
-public sealed class CompiledAuthoringWorkflowService
+public sealed partial class CompiledAuthoringWorkflowService
 {
     private readonly ICompiledAuthoringWorkflowResolver _resolver;
 
@@ -77,96 +24,90 @@ public sealed class CompiledAuthoringWorkflowService
         _resolver = resolver;
     }
 
-    /// <summary>Projects current picker readiness from accepted content identities only.</summary>
-    public CompiledAuthoringSelectionSnapshot ProjectSelection(
+    /// <summary>
+    /// Resolves one exact selected-input state, advances one session inspection
+    /// revision, and atomically publishes the immutable inspected bytes.
+    /// </summary>
+    public CompiledAuthoringSessionPreparation PrepareExactSession(
         string icId,
-        AuthoringRevision authoringRevision,
-        IReadOnlyCollection<string> selectedSlotIds,
-        IReadOnlyDictionary<string, FileStamp> acceptedFileStamps,
-        ActiveSessionSnapshot? retainedSession = null)
+        AuthoringSessionState session,
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(selectedSlotIds);
-        ArgumentNullException.ThrowIfNull(acceptedFileStamps);
-        CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
-        ValidateDiscovery(discovery);
-        ResolvedCapability? retained = TryRetainExactCapability(
-            retainedSession,
+        ArgumentNullException.ThrowIfNull(session);
+        if (!StringComparer.Ordinal.Equals(session.WorkflowId, _resolver.WorkflowId))
+        {
+            throw new ArgumentException(
+                "A compiled authoring service can prepare only its own workflow session.",
+                nameof(session));
+        }
+
+        CompiledAuthoringSelectedInput[] selected = SnapshotInputs(inputs);
+        var acceptedFileStamps = selected
+            .Where(static input => input.Bytes is not null)
+            .ToDictionary(
+                static input => input.SlotId,
+                static input => FileStamp.FromBytes(input.Bytes!.Value.Span),
+                StringComparer.Ordinal);
+        CompiledAuthoringSelectionSnapshot selection = ProjectSelection(
             icId,
-            selectedSlotIds,
+            session.CurrentSnapshot?.AuthoringRevision ?? new AuthoringRevision(1),
+            [.. selected.Select(static input => input.SlotId)],
             acceptedFileStamps,
-            discovery.CompilationPrerequisiteSlotId is null
-                ? discovery.DiscoveryCapability
-                : null);
-        if (retained is null &&
-            discovery.CompilationPrerequisiteSlotId is { } prerequisite &&
-            !acceptedFileStamps.ContainsKey(prerequisite))
+            session.CurrentSnapshot);
+        selected = NormalizeSelectedInputs(selected, selection.InputBindings);
+        if (selection.Issues.Count != 0 ||
+            selection.Catalog.Routes.SingleOrDefault()?.ExactCapability is null)
         {
-            return new CompiledAuthoringSelectionSnapshot(
-                DiscoveryCatalog(discovery),
-                ProjectPendingPrerequisite(
-                    discovery,
-                    selectedSlotIds,
-                    prerequisite),
-                ProjectInputBindings(discovery.DiscoveryCapability),
-                []);
+            return new CompiledAuthoringSessionPreparation(
+                session.CurrentSnapshot,
+                selection,
+                Inspection: null,
+                SessionIssue: null);
         }
 
-        long? prerequisiteLength = discovery.CompilationPrerequisiteSlotId is { } prerequisiteSlot
-            ? acceptedFileStamps[prerequisiteSlot].AcceptedLength
-            : null;
-        CompiledAuthoringWorkflowResolution exact = retained is null
-            ? _resolver.ResolveExact(icId, prerequisiteLength, selectedSlotIds)
-            : new CompiledAuthoringWorkflowResolution(retained, []);
-        if (!exact.Succeeded)
+        AuthoringSessionTransitionResult activated = session.Activate(selection);
+        if (!activated.Succeeded)
         {
-            ResolvedCapability? nearestCapability = selectedSlotIds
-                .Where(slotId => !StringComparer.Ordinal.Equals(
-                    slotId, discovery.CompilationPrerequisiteSlotId))
-                .Select(removed => _resolver.ResolveExact(
-                    icId,
-                    prerequisiteLength,
-                    [.. selectedSlotIds.Where(slotId => !StringComparer.Ordinal.Equals(slotId, removed))]))
-                .FirstOrDefault(static candidate => candidate.Succeeded)?.Capability;
-            return new CompiledAuthoringSelectionSnapshot(
-                DiscoveryCatalog(discovery),
-                nearestCapability is null
-                    ? ProjectRejectedSelection(
-                        discovery, selectedSlotIds, prerequisiteLength, exact.Issues)
-                    : ProjectExactSelection(
-                        discovery, nearestCapability, authoringRevision,
-                        selectedSlotIds, prerequisiteLength),
-                ProjectInputBindings(nearestCapability ?? discovery.DiscoveryCapability),
-                exact.Issues);
+            return new CompiledAuthoringSessionPreparation(
+                activated.Snapshot,
+                selection,
+                Inspection: null,
+                activated.Issue);
         }
 
-        ResolvedCapability capability = RetainEquivalentExactCapability(
-            retainedSession?.ExactCapability,
-            exact.Capability!);
-        return new CompiledAuthoringSelectionSnapshot(
-            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
-                capability,
-                discovery.DiscoveryTransition),
-            ProjectExactSelection(
-                discovery,
-                capability,
-                authoringRevision,
-                selectedSlotIds,
-                prerequisiteLength),
-            ProjectInputBindings(capability),
-            []);
-    }
+        AuthoringSlotInspectionBatchStartResult started = session.BeginSlotFileInspections(
+            selected.ToDictionary(
+                static input => input.SlotId,
+                static input => input.SelectedPathHint,
+                StringComparer.Ordinal));
+        if (!started.Succeeded)
+        {
+            return new CompiledAuthoringSessionPreparation(
+                started.Snapshot,
+                selection,
+                Inspection: null,
+                started.Issue);
+        }
 
-    private static ReadOnlyCollection<CompiledAuthoringInputBinding> ProjectInputBindings(
-        ResolvedCapability capability)
-    {
-        return Array.AsReadOnly(
-        [
-            .. capability.CompiledComposition.V2Details.InputContract.SpaceBindings
-                .Select(static binding => new CompiledAuthoringInputBinding(
-                    binding.SlotId,
-                    binding.AddressSpaceId)),
-        ]);
+        CompiledAuthoringInspectionBatch inspection = InspectBatch(
+            icId,
+            started.Snapshot!.AuthoringRevision,
+            selected,
+            started.Snapshot.ExactCapability);
+        AuthoringSessionTransitionResult completed =
+            session.TryCompleteSlotFileInspectionBatch(
+                inspection.Catalog,
+                started.Leases,
+                inspection.Statuses.Values.ToDictionary(
+                    static status => status.SlotId,
+                    StringComparer.Ordinal),
+                inspection.MetadataInspection);
+        return new CompiledAuthoringSessionPreparation(
+            completed.Snapshot,
+            selection,
+            inspection,
+            completed.Issue);
     }
 
     /// <summary>Resolves and inspects one immutable selected-input batch without fallback.</summary>
@@ -177,17 +118,17 @@ public sealed class CompiledAuthoringWorkflowService
         ResolvedCapability? retainedCapability = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
-        ArgumentNullException.ThrowIfNull(inputs);
-        CompiledAuthoringSelectedInput[] selected = [.. inputs];
-        if (selected.Length == 0 ||
-            selected.Any(static input => input is null) ||
-            selected.Select(static input => input.SlotId)
-                .Distinct(StringComparer.Ordinal).Count() != selected.Length)
-        {
-            throw new ArgumentException(
-                "A compiled authoring inspection batch requires unique selected slots.",
-                nameof(inputs));
-        }
+        CompiledAuthoringSelectedInput[] captured = SnapshotInputs(inputs);
+        CompiledAuthoringSelectedInput[] selected = retainedCapability is null
+            ? captured
+            : NormalizeSelectedInputs(
+                captured,
+                [
+                    .. retainedCapability.CompiledComposition.V2Details.InputContract.SpaceBindings
+                        .Select(static binding => new CompiledAuthoringInputBinding(
+                            binding.SlotId,
+                            binding.AddressSpaceId)),
+                ]);
 
         string[] selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
         if (retainedCapability is not null &&
@@ -206,6 +147,8 @@ public sealed class CompiledAuthoringWorkflowService
 
         CompiledAuthoringWorkflowDiscovery discovery = _resolver.Discover(icId);
         ValidateDiscovery(discovery);
+        selected = NormalizeSelectedInputs(captured, ProjectInputBindings(discovery));
+        selectedSlotIds = [.. selected.Select(static input => input.SlotId)];
         CompiledAuthoringSelectedInput? prerequisiteInput =
             discovery.CompilationPrerequisiteSlotId is { } prerequisiteSlotId
                 ? selected.SingleOrDefault(input => StringComparer.Ordinal.Equals(
@@ -221,7 +164,11 @@ public sealed class CompiledAuthoringWorkflowService
                         InputArtifactInspectionIssueCodes.SourceUnreadable,
                         "The exact authoring compilation prerequisite is unreadable.",
                         discovery.CompilationPrerequisiteSlotId)])
-                : _resolver.ResolveExact(icId, prerequisiteLength, selectedSlotIds);
+                : _resolver.ResolveExact(
+                    icId,
+                    authoringRevision,
+                    prerequisiteLength,
+                    selectedSlotIds);
         if (!exact.Succeeded || !ContainsEverySelectedSlot(exact.Capability, selectedSlotIds))
         {
             IReadOnlyList<CompositionIssue> issues = exact.Issues.Count == 0
@@ -261,6 +208,25 @@ public sealed class CompiledAuthoringWorkflowService
             discovery.DiscoveryTransition);
     }
 
+    private static CompiledAuthoringSelectedInput[] SnapshotInputs(
+        IReadOnlyCollection<CompiledAuthoringSelectedInput> inputs)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        CompiledAuthoringSelectedInput[] selected = [.. inputs];
+        bool invalid = selected.Length == 0 ||
+            selected.Any(static input => input is null) ||
+            selected.Any(static input =>
+                string.IsNullOrWhiteSpace(input.SlotId) ||
+                string.IsNullOrWhiteSpace(input.SelectedPathHint)) ||
+            selected.Select(static input => input.SlotId)
+                .Distinct(StringComparer.Ordinal).Count() != selected.Length;
+        return invalid
+            ? throw new ArgumentException(
+                "A compiled authoring inspection batch requires unique selected slots and paths.",
+                nameof(inputs))
+            : selected;
+    }
+
     private static CompiledAuthoringInspectionBatch InspectExactBatch(
         ResolvedCapability capability,
         AuthoringRevision authoringRevision,
@@ -281,10 +247,7 @@ public sealed class CompiledAuthoringWorkflowService
             static binding => binding.AddressSpaceId,
             binding => selectedBySlotId[binding.SlotId].Bytes,
             StringComparer.Ordinal);
-        return new CompiledAuthoringInspectionBatch(
-            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
-                capability,
-                discoveryTransition),
+        IReadOnlyDictionary<string, AuthoringInputSlotStatus> statuses =
             AuthoringInputSlotInspectionService.InspectBatch(
                 capability,
                 authoringRevision,
@@ -293,8 +256,27 @@ public sealed class CompiledAuthoringWorkflowService
                     static binding => binding.AddressSpaceId,
                     binding => selectedBySlotId[binding.SlotId].SelectedPathHint,
                     StringComparer.Ordinal),
-                selectedSlotIds),
-            []);
+                selectedSlotIds);
+        FirmwareArtifactPayload[] acceptedArtifacts =
+        [
+            .. statuses.Values
+                .Where(static status => status.AcceptedBytes is { Length: > 0 })
+                .Select(static status => new FirmwareArtifactPayload(
+                    status.AddressSpaceId,
+                    status.AcceptedBytes!.Value.Span)),
+        ];
+        MetadataInspectionSnapshot metadataInspection = FirmwareMetadataInspector.Inspect(
+            new MetadataInspectionRequest(
+                capability.MetadataPlan,
+                authoringRevision.Value,
+                acceptedArtifacts));
+        return new CompiledAuthoringInspectionBatch(
+            AuthoringCapabilityCatalogSnapshot.FromResolvedCapability(
+                capability,
+                discoveryTransition),
+            statuses,
+            [],
+            metadataInspection);
     }
 
     private bool CanInspectRetainedExactCapability(
@@ -365,7 +347,24 @@ public sealed class CompiledAuthoringWorkflowService
             contract.SelectionGroups,
             selectedSlotIds.Where(groupMembers.Contains));
         var resolvedMembers = readiness.Groups
-            .SelectMany(static group => group.Members)
+            .SelectMany(static group => group.Members.Select(member =>
+            {
+                InputSelectionReadinessIssue? issue = group.Issue;
+                bool ownsIssue = issue is not null &&
+                    (StringComparer.Ordinal.Equals(issue.SubjectId, member.SlotId) ||
+                        (StringComparer.Ordinal.Equals(issue.SubjectId, group.GroupId) &&
+                            StringComparer.Ordinal.Equals(
+                                member.SlotId,
+                                group.Members[0].SlotId)));
+                return ownsIssue
+                    ? member with
+                    {
+                        Reason = issue!.Message,
+                        NextAction = issue.NextAction,
+                        IssueCode = issue.Code,
+                    }
+                    : member;
+            }))
             .ToDictionary(static member => member.SlotId, StringComparer.Ordinal);
         return Array.AsReadOnly(
         [
@@ -376,6 +375,7 @@ public sealed class CompiledAuthoringWorkflowService
                         member.Readiness != ResolvedChildReadiness.NotApplicable ||
                         !_resolver.ResolveExact(
                             capability.Identity.IcId,
+                            authoringRevision,
                             prerequisiteLength,
                             [.. selectedSlotIds, slotId]).Succeeded))
                 {
@@ -398,6 +398,7 @@ public sealed class CompiledAuthoringWorkflowService
                 bool selected = selectedSlotIds.Contains(slotId, StringComparer.Ordinal);
                 bool alternate = !selected && _resolver.ResolveExact(
                     capability.Identity.IcId,
+                    authoringRevision,
                     prerequisiteLength,
                     [.. selectedSlotIds, slotId]).Succeeded;
                 return new InputSelectionMemberReadiness(
@@ -506,10 +507,41 @@ public sealed class CompiledAuthoringWorkflowService
 
     private ReadOnlyCollection<InputSelectionMemberReadiness> ProjectRejectedSelection(
         CompiledAuthoringWorkflowDiscovery discovery,
+        AuthoringRevision authoringRevision,
         IReadOnlyCollection<string> selectedSlotIds,
         long? prerequisiteLength,
-        IReadOnlyList<CompositionIssue> issues)
+        IReadOnlyList<CompositionIssue> issues,
+        InputSelectionReadinessSnapshot? exactSelectionReadiness)
     {
+        CompiledInputContract contract = discovery.DiscoveryCapability.CompiledComposition
+            .V2Details.InputContract;
+        var groupMemberIds = contract.SelectionGroups
+            .SelectMany(static group => group.MemberSlotIds)
+            .ToHashSet(StringComparer.Ordinal);
+        InputSelectionReadinessSnapshot selectionReadiness =
+            exactSelectionReadiness ?? InputSelectionReadinessResolver.Resolve(
+                authoringRevision,
+                contract.SelectionGroups,
+                selectedSlotIds.Where(groupMemberIds.Contains));
+        var groupReadiness =
+            selectionReadiness.Groups.SelectMany(group =>
+            {
+                InputSelectionMemberReadiness? issueMember = group.Issue is null
+                    ? null
+                    : group.Members.FirstOrDefault(member => StringComparer.Ordinal.Equals(
+                            member.SlotId,
+                            group.Issue.SubjectId)) ??
+                        group.Members.FirstOrDefault(static member => member.IsSelected) ??
+                        group.Members[0];
+                return group.Members.Select(member => ReferenceEquals(member, issueMember)
+                    ? member with
+                    {
+                        Reason = group.Issue!.Message,
+                        NextAction = group.Issue.NextAction,
+                        IssueCode = group.Issue.Code,
+                    }
+                    : member);
+            }).ToDictionary(static member => member.SlotId, StringComparer.Ordinal);
         string reason = issues.Count == 0
             ? "The exact selected-input state is not admitted."
             : issues[0].Message;
@@ -517,9 +549,17 @@ public sealed class CompiledAuthoringWorkflowService
         [
             .. discovery.AvailableSlotIds.Select(slotId =>
             {
+                if (groupReadiness.TryGetValue(
+                        slotId,
+                        out InputSelectionMemberReadiness? readiness))
+                {
+                    return readiness;
+                }
+
                 bool selected = selectedSlotIds.Contains(slotId, StringComparer.Ordinal);
                 bool alternate = !selected && _resolver.ResolveExact(
                     discovery.DiscoveryCapability.Identity.IcId,
+                    authoringRevision,
                     prerequisiteLength,
                     [.. selectedSlotIds, slotId]).Succeeded;
                 return new InputSelectionMemberReadiness(

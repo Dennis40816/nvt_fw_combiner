@@ -1,6 +1,19 @@
 # NFC Roadmap
 
-Status: active owner roadmap, amended 2026-08-08.
+Status: active owner roadmap, implementation checkpoint 2026-08-10.
+
+2026-08-09 planning amendment: the owner approved complete removal of the
+remaining legacy architecture, one production path per module, the
+consolidated specification, and the LAR-00 through LAR-12 dependency graph.
+The graph is part of the `v0.10.3` complete-refactoring milestone. Its `LAR-*`
+planning ids receive GitHub issue numbers only after separate publication
+authorization. PR #352 remains the stable predecessor; this amendment does not
+tag, release, or reopen it.
+
+2026-08-10 implementation checkpoint: LAR-01 through LAR-12 are implemented on
+the feature branch. LAR-00 and #197 remain active and own the final verifier,
+golden, review, package, merge, CI, and release evidence. This checkpoint does
+not create `v0.10.3` or advance the later milestones.
 
 This file owns future milestone order and release boundaries only. It does not
 repeat product requirements, architecture decisions, firmware facts, skill
@@ -53,10 +66,10 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
 2. `v0.10.2` publishes the reviewed desktop adoption through #208, the shallow
    shell and shared read-only Hex viewport, and the first General/Saved Rule
    compatibility deletion through #254 as a support-neutral stable checkpoint.
-3. `v0.10.3` completes the remaining approved refactoring graph through #197,
-   including deferred UI, Workbench/parallel-catalog deletion, all four Core
-   Convergence slices, reviewed line-addressed residual ledgers, and exact
-   descending total and slice ratchets.
+3. `v0.10.3` completes the remaining approved refactoring graph through #197
+   and LAR-00, including LAR-01 through LAR-12, zero Workbench/renamed parallel
+   owners, one production path per module, all four Core Convergence ledgers,
+   reviewed line-addressed residuals, and exact descending ratchets.
 4. `v0.10.4` re-measures that result and audits whether any ownership or code
    can be removed or expressed more simply without weakening evidence.
 5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,

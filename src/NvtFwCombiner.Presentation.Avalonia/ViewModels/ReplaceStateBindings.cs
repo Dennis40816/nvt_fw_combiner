@@ -1,3 +1,5 @@
+using NvtFwCombiner.Application.Capabilities;
+
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Explicit shared-session callbacks consumed by the focused Replace child.</summary>
@@ -10,11 +12,11 @@ internal sealed record ReplaceStateBindings(
     Func<bool> IsGlobalBuildBlocked,
     Func<bool> IsWorkflowLoaded,
     Func<FirmwareSlotViewModel, long?> GetInspectedFileLength,
-    Func<WorkbenchFirmwareInspection?> GetBaseInspection,
+    Func<FirmwareInspectionSnapshot?> GetBaseInspection,
     Func<ReportPresentationViewModel> Reports,
-    Func<IEnumerable<FirmwareSlotViewModel>, string> CreateOutputFileName,
-    Func<IEnumerable<FirmwareSlotViewModel>, WorkbenchCtrlRamFirmwareVersionEdit?, string> CreateCtrlRamOutputFileName,
     CompositionRunInvoker RunCompositionAsync,
+    Func<CompositionRunReport, Task> ShowDiagnosticPreviewAsync,
+    Action<CapabilityActionReadinessSnapshot, bool> ShowActionReadiness,
     Action ReplaceModeChanged,
     Action ResetRunResult,
     Func<Task> RefreshSelectedFirmwareInspections,

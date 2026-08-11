@@ -1,0 +1,89 @@
+using System.Globalization;
+using NvtFwCombiner.Application.Capabilities;
+
+namespace NvtFwCombiner.Cli;
+
+public static partial class CliApplication
+{
+    private static async Task<int> RunProfilesAsync(
+        ICompositionCapabilityExperience capabilities,
+        string[] args,
+        TextWriter output,
+        TextWriter error)
+    {
+        if (args.Length > 1 || args is ["--help"])
+        {
+            await WriteProfilesUsageAsync(output).ConfigureAwait(false);
+            return args is ["--help"] ? Success : UsageError;
+        }
+
+        if (args.Length == 1 && args[0] != "list")
+        {
+            await error.WriteLineAsync($"error: unknown profiles command '{args[0]}'").ConfigureAwait(false);
+            return UsageError;
+        }
+
+        await output.WriteLineAsync("Built-in standard merge profiles:").ConfigureAwait(false);
+        foreach (CapabilityProfileSummary profile in
+            capabilities.GetStandardMergeProfileSummaries())
+        {
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            string issues = FormatProfileIssues(profile);
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}{issues}"))
+                .ConfigureAwait(false);
+        }
+
+        await output.WriteLineAsync("Built-in AB Merge profiles:").ConfigureAwait(false);
+        foreach (CapabilityProfileSummary profile in
+            capabilities.GetAbMergeProfileSummaries())
+        {
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            string issues = FormatProfileIssues(profile);
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  default-output={profile.DefaultOutputFileName}{issues}"))
+                .ConfigureAwait(false);
+        }
+
+        await output.WriteLineAsync("Built-in replace profiles:").ConfigureAwait(false);
+        foreach (CapabilityProfileSummary profile in
+            capabilities.GetDpReplaceProfileSummaries())
+        {
+            string inputs = profile.CompileSucceeded
+                ? string.Join(", ", profile.RequiredInputAddressSpaceIds)
+                : "compile-error";
+            string icNumberPolicy = FormatIcNumberPolicy(profile);
+            string issues = FormatProfileIssues(profile);
+            await output.WriteLineAsync(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{profile.ProfileId}  ic={profile.IcId}  inputs={inputs}  ic-num={icNumberPolicy}  default-output={profile.DefaultOutputFileName}{issues}"))
+                .ConfigureAwait(false);
+        }
+
+        return Success;
+    }
+
+    internal static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
+    {
+        return profile.IcNumberInputMode is not { } mode
+            ? profile.CompileSucceeded ? "none" : "compile-error"
+            : Enum.IsDefined(mode) ? mode.ToString() : throw new ArgumentOutOfRangeException(
+                nameof(profile), mode, "Unknown IC-number input mode.");
+    }
+
+    private static string FormatProfileIssues(CapabilityProfileSummary profile)
+    {
+        return profile.CompileSucceeded
+            ? string.Empty
+            : $"  issues={string.Join(',', profile.IssueCodes)}";
+    }
+}

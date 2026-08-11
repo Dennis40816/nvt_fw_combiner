@@ -34,7 +34,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             : malformedJson
             ? new System.Text.Json.JsonException("The package trust index is malformed JSON.")
             : new InvalidDataException("The package trust index is malformed.");
-        var source = new CanonicalCapabilityCatalogMigrationSource(() =>
+        ICanonicalCapabilityCatalogSource source =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource(() =>
             throw new TypeInitializationException("BuiltInV2BundleRegistry", cause));
 
         CapabilityCatalogLoadResult loaded =
@@ -53,7 +54,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     [Fact]
     public void SourceMaterializesNt51929WithCanonicalMetadataReferences()
     {
-        var source = new CanonicalCapabilityCatalogMigrationSource();
+        ICanonicalCapabilityCatalogSource source =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource();
 
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
@@ -142,7 +144,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     [Fact]
     public void SourceMaterializesNt51929DpReplaceDpcmiPlan()
     {
-        var source = new CanonicalCapabilityCatalogMigrationSource();
+        ICanonicalCapabilityCatalogSource source =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource();
 
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
@@ -192,7 +195,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51928DualCapacityKeepsDefinitionIdentityAndChangesCompilationIdentity()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -243,7 +246,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void DynamicRouteRejectsDifferentTrustedBundleDefinition()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = reload.Snapshot!.DynamicRoutes.Single(
@@ -273,17 +276,20 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void ReloadDoesNotRebindOldCompilationToCurrentPublication()
     {
         CapabilityCatalogReloadResult first =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        ResolvedCapability old = CanonicalCapabilityResolution
-            .ResolveCanonicalStandardMergeCapability("NT51929")
+        ResolvedCapability old = BootstrapTestHost.Canonical.Catalog
+            .ResolveUniqueRoute(
+                "NT51929",
+                ExperienceIds.StandardMerge,
+                "selector-free")
             .Capability!;
         CapabilityCatalogReloadResult second =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
 
         ResolvedCapability? rebound =
-            CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
+            BootstrapTestHost.Canonical.Catalog.ResolveCurrentCompilation(
                 old.CompiledComposition);
 
         Assert.True(first.Succeeded);
@@ -297,9 +303,9 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void ReloadRejectsOldDynamicCompilationAndAcceptedCapability()
     {
         CapabilityCatalogReloadResult first =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        bool compiled = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51928",
             0x40000,
             [CompositionAddressSpaceIds.DpInput, CompositionAddressSpaceIds.TpInput],
@@ -307,11 +313,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             out ResolvedCapability? acceptedCapability,
             out IReadOnlyList<CompositionIssue> issues);
         CapabilityCatalogReloadResult second =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
 
         ResolvedCapability? rebound =
-            CanonicalCapabilityResolution.ResolveCanonicalCapabilityForRun(
+            BootstrapTestHost.Canonical.Catalog.ResolveCurrentCompilation(
                 composition!,
                 acceptedCapability);
 
@@ -343,7 +349,8 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             Publication = Rebind(route.Publication, staleFingerprint),
             Evidence = Rebind(route.Evidence, staleFingerprint),
         };
-        var source = new CanonicalCapabilityCatalogMigrationSource(
+        ICanonicalCapabilityCatalogSource source =
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource(
             () => current with { Routes = [staleRoute] });
 
         CapabilityCatalogLoadResult loaded =
@@ -360,25 +367,28 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51929CompilationUsesPublishedCanonicalSnapshot()
     {
         CapabilityCatalogReloadResult reload =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        CapabilityResolutionResult resolution =
-            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
-                "NT51929");
-        bool available = CanonicalAuthoringAdapter.IsStandardMergeSupported(
+        CapabilityResolutionResult resolution = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                "NT51929",
+                ExperienceIds.StandardMerge,
+                "selector-free");
+        bool available = BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported(
             "NT51929");
-        CapabilityResolutionResult afterAvailability =
-            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
-                "NT51929");
+        CapabilityResolutionResult afterAvailability = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                "NT51929",
+                ExperienceIds.StandardMerge,
+                "selector-free");
 
-        bool recognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool recognized = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51929",
             dpInputLength: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
-        CapabilityResolutionResult afterCompile =
-            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
-                "NT51929");
+        CapabilityResolutionResult afterCompile = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                "NT51929",
+                ExperienceIds.StandardMerge,
+                "selector-free");
 
         Assert.True(reload.Succeeded);
         Assert.True(resolution.Succeeded);
@@ -399,7 +409,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51928AvailabilityUsesCurrentDynamicPolicyWithoutFallback()
     {
         var catalog = new CanonicalCapabilityCatalog(
-            new CanonicalCapabilityCatalogMigrationSource());
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource());
         CapabilityCatalogReloadResult loaded = catalog.Reload(
             TestContext.Current.CancellationToken);
         ResolvedCapabilityRoute route = loaded.Snapshot!.DynamicRoutes.Single(
@@ -429,18 +439,12 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             TestContext.Current.CancellationToken);
 
         Assert.True(loaded.Succeeded);
-        Assert.True(CanonicalCapabilityResolution.HasCanonicalCapability(
-            loaded.Snapshot,
-            " 51928 ",
-            ExperienceIds.StandardMerge));
-        Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
-            snapshot: null,
-            "NT51928",
+        Assert.True(catalog.HasAuthorableCapability(
+            IcIdentifier.Normalize(" 51928 "),
             ExperienceIds.StandardMerge));
         Assert.True(unavailableReload.Succeeded);
-        Assert.False(CanonicalCapabilityResolution.HasCanonicalCapability(
-            unavailableReload.Snapshot,
-            "nt51928",
+        Assert.False(unavailableCatalog.HasAuthorableCapability(
+            IcIdentifier.Normalize("nt51928"),
             ExperienceIds.StandardMerge));
     }
 
@@ -449,12 +453,13 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     public void Nt51929DpReplaceUsesPublishedCanonicalSnapshotAndDpcmiAuthority()
     {
         CapabilityCatalogReloadResult reload =
-            CanonicalCapabilityResolution.ReloadCanonicalCapabilityCatalog(
+            BootstrapTestHost.Canonical.Catalog.Reload(
                 TestContext.Current.CancellationToken);
-        CapabilityResolutionResult resolution =
-            CanonicalCapabilityResolution.ResolveCanonicalDpReplaceCapability(
-                "NT51929");
-        bool recognized = CanonicalCapabilityResolution.TryCompileDpReplace(
+        CapabilityResolutionResult resolution = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                "NT51929",
+                ExperienceIds.DpReplace,
+                "1-ic");
+        bool recognized = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             "NT51929",
             0x40000,
             out CompiledComposition? composition,
@@ -471,22 +476,14 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             "nvt-fw-combiner-canonical-dpcmi");
         string dpPath = workspace.Write("replacement-dp.bin", dp);
 
-        WorkbenchDpVersionMetadata? version =
+        DpVersionMetadata? version =
             FirmwareInspectionTestSupport.TryReadDpVersionMetadata(
                 "NT51929",
                 dpPath);
-        WorkbenchCmiDpCodeMetadata? cmi =
+        CmiDpCodeMetadata? cmi =
             FirmwareInspectionTestSupport.TryReadCmiDpCodeMetadata(
                 "NT51929",
                 dpPath);
-        WorkbenchOutputFileNameSuggestion outputName =
-            OutputNamingTestSupport.CreateFlashCodeOutputFileName(
-                "NT51929",
-                [new WorkbenchOutputNameCandidate(
-                    WorkbenchOutputNameCandidateKind.Dp,
-                    dpPath)],
-                new DateOnly(2026, 7, 26));
-
         Assert.True(reload.Succeeded);
         Assert.True(resolution.Succeeded);
         Assert.True(recognized);
@@ -498,10 +495,6 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         Assert.Equal((byte)0x0A, cmi.Value.MinorVersionNibble);
         Assert.Equal((ushort)0x42E, cmi.Value.JiraNumber);
         Assert.Equal(0x401A, cmi.Value.Register16Offset);
-        Assert.Equal("030A", outputName.DpVersionToken);
-        Assert.Equal(
-            "NT51929_FlashCode_D030ATxxxx_20260726.bin",
-            outputName.FileName);
     }
 
     /// <summary>A declared but truncated DPCMI does not fall back to the competing legacy DP-version bytes.</summary>
@@ -527,14 +520,15 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     [Fact]
     public void OtherStandardMergeRoutesUsePublishedCanonicalSnapshot()
     {
-        bool recognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        bool recognized = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             "NT51923",
             dpInputLength: 0x40000,
             out CompiledComposition? composition,
             out IReadOnlyList<CompositionIssue> issues);
-        CapabilityResolutionResult canonical =
-            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(
-                "NT51923");
+        CapabilityResolutionResult canonical = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                "NT51923",
+                ExperienceIds.StandardMerge,
+                "selector-free");
 
         Assert.True(recognized);
         Assert.Empty(issues);
@@ -550,16 +544,20 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
     [InlineData("NT51931")]
     public void RetiredIcRoutesFailClosed(string icId)
     {
-        CapabilityResolutionResult standard =
-            CanonicalCapabilityResolution.ResolveCanonicalStandardMergeCapability(icId);
-        CapabilityResolutionResult dp =
-            CanonicalCapabilityResolution.ResolveCanonicalDpReplaceCapability(icId);
-        bool standardRecognized = CanonicalCapabilityResolution.TryCompileStandardMerge(
+        CapabilityResolutionResult standard = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                icId,
+                ExperienceIds.StandardMerge,
+                "selector-free");
+        CapabilityResolutionResult dp = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
+                icId,
+                ExperienceIds.DpReplace,
+                "1-ic");
+        bool standardRecognized = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
             icId,
             dpInputLength: 0x40000,
             out CompiledComposition? standardComposition,
             out IReadOnlyList<CompositionIssue> standardIssues);
-        bool dpRecognized = CanonicalCapabilityResolution.TryCompileDpReplace(
+        bool dpRecognized = BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
             icId,
             baseCapacity: 0x40000,
             out CompiledComposition? dpComposition,

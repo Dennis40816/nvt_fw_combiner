@@ -169,6 +169,7 @@ EXPECTED_PROJECTS = {
     "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+    "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj",
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj",
     "tests/NvtFwCombiner.Application.Tests/NvtFwCombiner.Application.Tests.csproj",
@@ -196,18 +197,21 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj",
         "src/NvtFwCombiner.Contracts/NvtFwCombiner.Contracts.csproj",
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
+        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
-        "src/NvtFwCombiner.Profiles/NvtFwCombiner.Profiles.csproj",
     },
     "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj": {
         "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj"
     },
+    "src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
+        "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
+    },
     "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj": {
         "src/NvtFwCombiner.Application/NvtFwCombiner.Application.csproj",
-        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
     },
     "tests/NvtFwCombiner.Domain.Tests/NvtFwCombiner.Domain.Tests.csproj": {
         "src/NvtFwCombiner.Domain/NvtFwCombiner.Domain.csproj"
@@ -246,6 +250,7 @@ EXPECTED_PROJECT_REFERENCES = {
         "src/NvtFwCombiner.Infrastructure/NvtFwCombiner.Infrastructure.csproj",
     },
     "tests/NvtFwCombiner.UiSmoke.Tests/NvtFwCombiner.UiSmoke.Tests.csproj": {
+        "src/NvtFwCombiner.Bootstrap/NvtFwCombiner.Bootstrap.csproj",
         "src/NvtFwCombiner.Presentation.Avalonia/NvtFwCombiner.Presentation.Avalonia.csproj",
         "tests/NvtFwCombiner.TestSupport/NvtFwCombiner.TestSupport.csproj",
     },

@@ -14,17 +14,17 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         using var workspace = TempWorkspace.Create("nfc-ab-canonical-readiness");
         Dictionary<string, string> paths = WriteInputs(workspace);
         const long revision = 7;
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
-            .. paths.Select(pair => new WorkbenchFirmwareInspectionInput(
+            .. paths.Select(pair => new FirmwareInspectionSnapshotInput(
                 pair.Key,
                 pair.Value,
                 AbMergeAddressSpaceId: pair.Key,
                 AuthoringRevision: revision)),
         ];
 
-        IReadOnlyList<WorkbenchFirmwareInspectionResult> results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs);
+        IReadOnlyList<FirmwareInspectionSnapshotResult> results =
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs);
 
         Assert.Equal(3, results.Count);
         AuthoringCapabilityCatalogSnapshot catalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
@@ -48,7 +48,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
     public void AbInspectionBatchPreservesShortAndTailHealth()
     {
         using var workspace = TempWorkspace.Create("nfc-ab-canonical-health");
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
             new(
                 CompositionAddressSpaceIds.DpAbInput,
@@ -61,7 +61,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         ];
 
         var results =
-            FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs)
+            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs)
                 .ToDictionary(static result => result.InspectionId, static result => result.Inspection);
 
         Assert.Equal(
@@ -83,9 +83,9 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         paths[CompositionAddressSpaceIds.TpAInput] = workspace.Write(
             "tp-a-unknown-with-tail.bin",
             tpAWithIgnoredTail);
-        WorkbenchFirmwareInspectionInput[] inputs =
+        FirmwareInspectionSnapshotInput[] inputs =
         [
-            .. paths.Select(pair => new WorkbenchFirmwareInspectionInput(
+            .. paths.Select(pair => new FirmwareInspectionSnapshotInput(
                 pair.Key,
                 pair.Value,
                 AbMergeAddressSpaceId: pair.Key)),
@@ -93,16 +93,16 @@ public sealed partial class AbMergeRuntimeAdmissionTests
 
         CompiledInputVersionObservation[] versions =
         [
-            .. FirmwareInspectionAdapter.InspectFirmwareBatch("NT51929", inputs)
+            .. BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, "NT51929", inputs)
                 .SelectMany(static result => result.Inspection.InputSlotStatus!.Observation.Versions),
         ];
-        WorkbenchRunResult run = await CompositionExecutionAdapter.RunAbMergeAsync(
+        CompositionRunResult run = await AbMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51929",
             paths,
             build: false,
             TestContext.Current.CancellationToken);
 
-        Assert.True(run.Succeeded, run.ReportJson);
+        Assert.True(run.Succeeded, CompositionRunReportJson.Serialize(run));
         var tokens = run.OutputNaming!.Tokens.ToDictionary(static token => token.TokenId);
         var acceptedHashes = new Dictionary<string, string>(StringComparer.Ordinal)
         {

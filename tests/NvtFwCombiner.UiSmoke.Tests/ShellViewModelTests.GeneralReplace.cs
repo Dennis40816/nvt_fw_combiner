@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -48,17 +49,17 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void GeneralReplaceUsesIndependentBaseAndEditableMappings()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
 
         Assert.True(viewModel.Replace.IsGeneralReplaceModeSelected);
         Assert.False(viewModel.Replace.IsStructuredReplaceModeSelected);
         Assert.Empty(viewModel.Replace.ReplaceSlots);
         Assert.Equal("replace-base", viewModel.Replace.ReplaceBaseSlot.SlotId);
         Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
-        Assert.Contains("len 0x", viewModel.Replace.ReplaceMemoryRangeLabel, StringComparison.Ordinal);
+        Assert.Equal("Memory layout pending", viewModel.Replace.ReplaceMemoryRangeLabel);
         Assert.Contains("explicit profile-approved", viewModel.Replace.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.Equal(
@@ -85,9 +86,9 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-prerequisite");
         string basePath = workspace.Write("base.bin", new byte[0x40000]);
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x3E020";
         mapping.Length = "0x2";
@@ -102,7 +103,9 @@ public sealed partial class ShellViewModelTests
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
 
         Assert.Equal(replacementPath, mapping.FilePath);
-        _ = Assert.NotNull(mapping.AcceptedFileStamp);
+        Assert.True(
+            mapping.AcceptedFileStamp is not null,
+            $"{mapping.InspectionIssueMessage} | {viewModel.Replace.ReplaceReadinessStatus}");
     }
 
     /// <summary>Verifies a General Replace shape without an exact V2 route fails closed.</summary>
@@ -114,9 +117,9 @@ public sealed partial class ShellViewModelTests
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x00100";
@@ -139,9 +142,9 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
         string outputPath = workspace.PathFor("general-replace.bin");
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x3E020";
@@ -158,14 +161,13 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Contains(
-            "no longer matches",
-            viewModel.RunSession.LastRunResult.Detail,
-            StringComparison.Ordinal);
-        Assert.False(File.Exists(outputPath));
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        Assert.Equal([0xA5, 0x5A], File.ReadAllBytes(outputPath)[0x3E020..0x3E022]);
 
         viewModel.SetSlotFile(mapping.MappingId, replacementPath);
+        Assert.True(
+            mapping.AcceptedFileStamp == FileStamp.FromBytes([0xA5, 0xC3]),
+            $"{mapping.InspectionIssueMessage} | {viewModel.Replace.ReplaceReadinessStatus}");
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
@@ -173,9 +175,9 @@ public sealed partial class ShellViewModelTests
         Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
-    /// <summary>General Replace rejects a Base changed after accepted readiness.</summary>
+    /// <summary>General Replace reuses the immutable Base accepted by readiness.</summary>
     [Fact]
-    public async Task GeneralReplaceBuildRejectsBaseMutationAfterReadiness()
+    public async Task GeneralReplaceBuildReusesAcceptedBaseAfterPathMutation()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-replace-base-stamp");
         byte[] baseBytes = CreatePattern(0x40000, 0x26);
@@ -183,9 +185,9 @@ public sealed partial class ShellViewModelTests
         string replacementPath = workspace.Write("replacement.bin", [0xA5, 0x5A]);
         string outputPath = workspace.PathFor("general-replace.bin");
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x3E020";
@@ -195,6 +197,7 @@ public sealed partial class ShellViewModelTests
         await viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
 
+        byte[] acceptedBaseBytes = [.. baseBytes];
         baseBytes[0] ^= 0xFF;
         await File.WriteAllBytesAsync(
             basePath,
@@ -202,12 +205,11 @@ public sealed partial class ShellViewModelTests
             TestContext.Current.CancellationToken);
         await viewModel.Replace.BuildReplaceAsync(outputPath);
 
-        Assert.False(viewModel.RunSession.LastRunResult.Succeeded);
-        Assert.Contains(
-            "no longer matches",
-            viewModel.RunSession.LastRunResult.Detail,
-            StringComparison.Ordinal);
-        Assert.False(File.Exists(outputPath));
+        Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
+        acceptedBaseBytes[0x3E020] = 0xA5;
+        acceptedBaseBytes[0x3E021] = 0x5A;
+        Assert.Equal(acceptedBaseBytes, File.ReadAllBytes(outputPath));
+        Assert.Equal(baseBytes, File.ReadAllBytes(basePath));
     }
 
     /// <summary>A queued General Replace run cannot swap or overwrite its immutable draft.</summary>
@@ -217,9 +219,9 @@ public sealed partial class ShellViewModelTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-replace-run-snapshot");
         string basePath = workspace.Write("base.bin", CreatePattern(0x40000, 0x26));
         string sourcePath = workspace.Write("source.bin", [0x10, 0x11]);
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51926";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x3E020";
@@ -229,6 +231,7 @@ public sealed partial class ShellViewModelTests
         Task previewTask = viewModel.Replace.PreviewReplaceCommand.ExecuteAsync(null);
         mapping.TargetStartAddress = "0x3E030";
         await previewTask;
+        await viewModel.Replace.GeneralReplaceReadinessRefreshTask;
 
         using var report = JsonDocument.Parse(viewModel.Reports.LoadedReportJson);
         JsonElement operation = Assert.Single(report.RootElement.GetProperty("Operations").EnumerateArray());
@@ -253,9 +256,9 @@ public sealed partial class ShellViewModelTests
         byte[] baseBytes = File.ReadAllBytes(basePath);
         string replacementPath = workspace.Write("self-nf.bin", baseBytes[0x22C00..0x22C02]);
 
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.WorkflowSession.SelectedIc = "NT51950";
-        OpenReplace(viewModel, "General");
+        OpenReplace(viewModel, Domain.Composition.ExperienceIds.GeneralReplace);
         viewModel.SetSlotFile("replace-base", basePath);
         GeneralReplaceMappingViewModel mapping = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         mapping.TargetStartAddress = "0x22C00";

@@ -42,11 +42,11 @@ internal static class ReplaceRegionGroupBuilder
             });
     }
 
-    private static bool RegionGroupDefaultExpanded(WorkbenchReplaceRegionGroup group)
+    private static bool RegionGroupDefaultExpanded(ReplaceRegionGroup group)
     {
-        return group is WorkbenchReplaceRegionGroup.Cascade or
-            WorkbenchReplaceRegionGroup.Common or
-            WorkbenchReplaceRegionGroup.Master;
+        return group is ReplaceRegionGroup.Cascade or
+            ReplaceRegionGroup.Common or
+            ReplaceRegionGroup.Master;
     }
 
 }

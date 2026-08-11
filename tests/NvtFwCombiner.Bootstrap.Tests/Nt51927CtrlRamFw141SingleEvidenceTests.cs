@@ -55,7 +55,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             StringComparer.Ordinal);
         using var workspace = TempWorkspace.Create("nfc-nt51927-fw141-single-v2");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        WorkbenchRunResult standardMerge = await CompositionExecutionAdapter.RunStandardMergeAsync(
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
             "NT51927",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -65,8 +65,8 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             build: true,
             TestContext.Current.CancellationToken,
             referencePath);
-        Assert.True(standardMerge.Succeeded, standardMerge.ReportJson);
-        using (var standardMergeReport = JsonDocument.Parse(standardMerge.ReportJson))
+        Assert.True(standardMerge.Succeeded, CompositionRunReportJson.Serialize(standardMerge));
+        using (var standardMergeReport = JsonDocument.Parse(CompositionRunReportJson.Serialize(standardMerge)))
         {
             Assert.Equal("nt51927-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
@@ -74,22 +74,22 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         Assert.Equal(ownerCase.Expected.Bytes, File.ReadAllBytes(referencePath));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
-        WorkbenchRunResult v2 = await CompositionExecutionAdapter.RunReplaceAsync(
+        CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             icId,
             "single",
-            WorkbenchReplaceModes.CtrlRam,
+            ExperienceIds.CtrlRamReplace,
             slots,
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
 
-        Assert.True(v2.Succeeded, v2.ReportJson);
+        Assert.True(v2.Succeeded, CompositionRunReportJson.Serialize(v2));
         byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9";
         Assert.Equal(outputSha256, Hash(v2Bytes));
         AssertOwnerCrcOnlyDifference(ownerCase.Expected.Bytes, v2Bytes);
 
-        using var v2Report = JsonDocument.Parse(v2.ReportJson);
+        using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, expectedProfileId, icId);
         AssertProcessEvidence(v2Report.RootElement, expectedProcessorId, icId);
         Assert.Equal(Hash(ownerCase.Expected.Bytes), Hash(File.ReadAllBytes(referencePath)));
@@ -134,9 +134,9 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
 
         File.WriteAllBytes(referencePath, reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
-        slots[WorkbenchSlotIds.ReplaceBase] = referencePath;
+        slots[CompositionSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunCtrlRamReplaceWithProcessorAsync(
+        CompositionRunResult result = await CtrlRamReplaceTestSupport.RunWithProcessorAsync(BootstrapTestHost.Canonical,
             icId,
             "single",
             slots,
@@ -146,9 +146,9 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             new PassThroughProcessor(),
             TestContext.Current.CancellationToken);
 
-        Assert.True(result.Succeeded, result.ReportJson);
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
         Assert.True(File.Exists(outputPath));
-        using (var report = JsonDocument.Parse(result.ReportJson))
+        using (var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(result)))
         {
             AssertReportIdentity(
                 report.RootElement,
@@ -253,7 +253,7 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
     {
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            [WorkbenchSlotIds.ReplaceBase] = referencePath ?? ownerCase.Expected.Path,
+            [CompositionSlotIds.ReplaceBase] = referencePath ?? ownerCase.Expected.Path,
             ["replace-ctrlram-normal-master"] = ownerCase.Require("Normal_Ctrlram.bin").Path,
             ["replace-ctrlram-mp-master"] = ownerCase.Require("MP_Ctrlram.bin").Path,
             ["replace-ctrlram-nf"] = ownerCase.Require("NF_Ctrlram.bin").Path,

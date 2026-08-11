@@ -15,9 +15,7 @@ public sealed partial class LegacyCombinerPostbuildCatalogTests
     public void Nt51926CommonFw1xSelectsFirstRuntimeProfile(string commonFwVersion)
     {
         LegacyCombinerPostbuildProfile profile = Select("NT51926", commonFwVersion);
-        LegacyCombinerPostbuildCommandPlan plan = LegacyCombinerPostbuildPlanner.CreatePlan(
-            profile,
-            new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
+        LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]));
 
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", profile.ProcessorId);
         Assert.Equal(new LegacyCombinerCommonFwVersion(1, 0, 0), profile.EffectiveCommonFwVersion);

@@ -1,6 +1,4 @@
 using System.Text.Json;
-using NvtFwCombiner.Bootstrap;
-using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -38,19 +36,19 @@ public sealed partial class ShellViewModelTests
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51926");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         string tpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("tp-input"));
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             dpPath,
             TestContext.Current.CancellationToken);
 
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeDp);
+            slot.SlotId == CompositionSlotIds.MergeDp);
         Assert.Contains(
             dp.SemanticState,
             new[] { FirmwareSlotSemanticState.Verified, FirmwareSlotSemanticState.Warning });
@@ -58,7 +56,7 @@ public sealed partial class ShellViewModelTests
         Assert.False(viewModel.Merge.CanBuildMerge);
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeTp,
+            CompositionSlotIds.MergeTp,
             tpPath,
             TestContext.Current.CancellationToken);
 
@@ -78,14 +76,14 @@ public sealed partial class ShellViewModelTests
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement goldenCase = golden.CaseByIc("51950");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
 
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeDp);
+            slot.SlotId == CompositionSlotIds.MergeDp);
         FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeTp);
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(dp.CanSelectFile);
         Assert.False(tp.CanSelectFile);
         Assert.True(tp.IsSemanticStatePendingInput);
@@ -93,7 +91,7 @@ public sealed partial class ShellViewModelTests
 
         string dpPath = golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input"));
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             dpPath,
             TestContext.Current.CancellationToken);
 
@@ -119,23 +117,26 @@ public sealed partial class ShellViewModelTests
             "test",
             "test",
             ShellLanguage.English,
-            DesktopCompositionRoot.Create("test"),
+            PresentationTestHost.CreateServices("test"),
             static (_, _) => null,
             (icId, inputs) =>
             {
                 _ = readerEntered.TrySetResult();
                 releaseReader.Task.GetAwaiter().GetResult();
-                return FirmwareInspectionAdapter.InspectFirmwareBatch(icId, inputs);
+                return BuiltInFirmwareInspection.InspectFirmwareBatch(
+                    (BuiltInFirmwareInspection)TestHost.FirmwareInspectionExperience,
+                    icId,
+                    inputs);
             });
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeDp);
+            slot.SlotId == CompositionSlotIds.MergeDp);
         FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeTp);
+            slot.SlotId == CompositionSlotIds.MergeTp);
 
         Task selection = viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")),
             TestContext.Current.CancellationToken);
         try
@@ -167,22 +168,22 @@ public sealed partial class ShellViewModelTests
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement withLdc = golden.CaseByIc("51928");
         JsonElement withoutLdc = golden.CaseByIc("51926");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51928";
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             golden.ManifestPath(withLdc.GetProperty("inputs").GetProperty("dp-input")),
             TestContext.Current.CancellationToken);
         FirmwareSlotViewModel ldc = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeLdc);
+            slot.SlotId == CompositionSlotIds.MergeLdc);
         Assert.True(
             ldc.CanSelectFile,
             $"LDC={ldc.SemanticState}/{ldc.SelectionReadinessDetail}; " +
             $"DP={viewModel.Merge.MergeDpSlot.SemanticState}/" +
             $"{viewModel.Merge.MergeDpSlot.InputInspectionStatus}");
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeLdc,
+            CompositionSlotIds.MergeLdc,
             golden.ManifestPath(withLdc.GetProperty("inputs").GetProperty("ldc-input")),
             TestContext.Current.CancellationToken);
         Assert.True(
@@ -191,7 +192,7 @@ public sealed partial class ShellViewModelTests
 
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             golden.ManifestPath(withoutLdc.GetProperty("inputs").GetProperty("dp-input")),
             TestContext.Current.CancellationToken);
 
@@ -205,19 +206,19 @@ public sealed partial class ShellViewModelTests
     public async Task MultiMapStandardMergeUnsupportedDpCapacityTerminatesAsError()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-standard-invalid-capacity");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             workspace.Write("unsupported-dp.bin", new byte[0x60000]),
             TestContext.Current.CancellationToken);
 
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeDp);
+            slot.SlotId == CompositionSlotIds.MergeDp);
         FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeTp);
+            slot.SlotId == CompositionSlotIds.MergeTp);
         Assert.Equal(FirmwareSlotSemanticState.Error, dp.SemanticState);
         Assert.False(dp.IsInputInspectionPending);
         Assert.True(dp.BlocksBuild);
@@ -229,11 +230,11 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public void StandardMergePendingReadinessIsRelocalized()
     {
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         FirmwareSlotViewModel tp = viewModel.Merge.MergeSlots.Single(static slot =>
-            slot.SlotId == WorkbenchSlotIds.MergeTp);
+            slot.SlotId == CompositionSlotIds.MergeTp);
         string englishLabel = tp.SelectionReadinessLabel;
         string englishDetail = tp.SelectionReadinessDetail;
         string englishAutomation = tp.SelectionReadinessAutomationText;
@@ -253,16 +254,16 @@ public sealed partial class ShellViewModelTests
     public async Task StandardMergeBlockingInspectionDisablesBuild()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-standard-health");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeDp,
+            CompositionSlotIds.MergeDp,
             workspace.Write("short-dp.bin", [0x01]),
             TestContext.Current.CancellationToken);
         await viewModel.WorkflowSession.SetSlotFileAsync(
-            WorkbenchSlotIds.MergeTp,
+            CompositionSlotIds.MergeTp,
             workspace.Write("short-tp.bin", [0x02]),
             TestContext.Current.CancellationToken);
 

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Authoring;
 
@@ -58,6 +59,69 @@ public sealed record GeneralAuthoringAdmissionRequest
 /// </summary>
 public static class GeneralAuthoringAdmissionUseCase
 {
+    /// <summary>Resolves one accepted-stamp draft for a named output capacity.</summary>
+    public static GeneralAuthoringAdmissionResult Resolve(
+        GeneralMappingDraftState mappingDraft,
+        long outputCapacity,
+        GeneralTrustedParentResourcePolicy trustedParent,
+        GeneralSavedRuleResourcePolicy? savedRule = null)
+    {
+        return Resolve(new GeneralAuthoringAdmissionRequest(
+            mappingDraft,
+            new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [CompositionAddressSpaceIds.OutputImage] = outputCapacity,
+            },
+            trustedParent,
+            savedRule));
+    }
+
+    /// <summary>Resolves one pre-binding draft for observed immutable file lengths.</summary>
+    public static GeneralAuthoringAdmissionResult ResolveCandidate(
+        GeneralMappingDraftState mappingDraft,
+        long outputCapacity,
+        GeneralTrustedParentResourcePolicy trustedParent,
+        IReadOnlyDictionary<string, long> observedFileLengths,
+        GeneralSavedRuleResourcePolicy? savedRule = null)
+    {
+        return ResolveCandidate(
+            new GeneralAuthoringAdmissionRequest(
+                mappingDraft,
+                new Dictionary<string, long>(StringComparer.Ordinal)
+                {
+                    [CompositionAddressSpaceIds.OutputImage] = outputCapacity,
+                },
+                trustedParent,
+                savedRule),
+            observedFileLengths);
+    }
+
+    /// <summary>Creates the current exact-parent resource envelope for one General draft.</summary>
+    public static GeneralTrustedParentResourcePolicy CreateTrustedParentPolicy(
+        string parentId,
+        GeneralMappingDraftState mappingDraft,
+        SavedRuleParentIdentity? parentIdentity = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(parentId);
+        ArgumentNullException.ThrowIfNull(mappingDraft);
+        GeneralResourceLimits technical = GeneralAuthoringTechnicalLimits.Default;
+        var limits = new GeneralResourceLimits(
+            technical.MaximumMappingCount,
+            technical.MaximumTotalWriteBytes,
+            technical.MaximumFileBytes,
+            technical.MaximumSafeMaterializationBytes,
+            mappingDraft.Rows
+                .Where(static row =>
+                    row.Source.Kind == GeneralMappingSourceKind.FileArtifact)
+                .Select(static row => new GeneralSlotLengthLimits(
+                    row.MappingId,
+                    minimumBytes: 1,
+                    maximumBytes: int.MaxValue)));
+        return parentIdentity is null
+            ? new GeneralTrustedParentResourcePolicy(parentId, limits)
+            : new GeneralTrustedParentResourcePolicy(parentIdentity, limits);
+    }
+
     /// <summary>Resolves one immutable result used unchanged by every consumer.</summary>
     public static GeneralAuthoringAdmissionResult Resolve(
         GeneralAuthoringAdmissionRequest request)

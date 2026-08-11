@@ -1,6 +1,6 @@
 namespace NvtFwCombiner.Domain.Composition;
 
-/// <summary>Stable address-space identifiers used by built-in composition profiles and workbench adapters.</summary>
+/// <summary>Stable address-space identifiers used by built-in composition profiles and typed clients.</summary>
 public static class CompositionAddressSpaceIds
 {
     /// <summary>Mutable output image address space.</summary>

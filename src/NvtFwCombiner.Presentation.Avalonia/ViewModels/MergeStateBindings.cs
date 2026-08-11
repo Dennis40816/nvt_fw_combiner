@@ -11,7 +11,6 @@ internal sealed record MergeStateBindings(
     Func<bool> IsWorkflowLoading,
     Func<FirmwareSlotViewModel, long?> GetInspectedFileLength,
     Func<ReportPresentationViewModel> Reports,
-    Func<IEnumerable<FirmwareSlotViewModel>, string> CreateOutputFileName,
     CompositionRunInvoker RunCompositionAsync,
     Action<UiRunResultViewModel> PublishRunResult,
     Action RefreshNumberChoices,

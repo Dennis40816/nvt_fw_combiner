@@ -11,7 +11,7 @@ This document defines the owner-approved UI direction for the first usable NVT F
 - Workflow device context: IC and Number live in one fixed context area below the header on Merge and Replace pages. The raw Hex Editor has no firmware context.
 - Breadcrumb navigation: the context bar includes a clickable history path so multi-level Settings pages can return to any earlier level.
 - Shared visualization: Merge and Replace use the same Memory coverage before/after component in the same page location; the area is visual-first and table-supported.
-- Workbench layout: Merge and Replace use a left primary workspace and a right inspector. Readiness, validation, and processor status live in the inspector instead of floating as sparse cards.
+- Workspace layout: Merge and Replace use a left primary workspace and a right inspector. Readiness, validation, and processor status live in the inspector instead of floating as sparse cards.
 - Active state: top navigation and workflow mode selection must visibly show the active page/mode.
 - Button system: navigation uses low-noise active tabs, workflow mode uses rounded pill segmented controls, Home quick jumps use command rows, and disabled Preview/Build/Report actions stay visually light.
 - Inputs: firmware files are represented as slot cards.
@@ -73,7 +73,7 @@ Shell
 - Merge and Replace report modals must be persisted into a history view. History entries need the operation step list, IC/IC-num context, input/output hashes, external Combiner command sequence, warnings, artifact path, one-click clear, and local size warning/cleanup affordance so a user can audit or prune what happened after closing the modal.
 - Terminal/log panes are read-only and sanitized.
 - The shared Memory coverage area must support before/after display for both Merge and Replace without moving position between pages.
-- Memory coverage should read as a light workbench component with direct labels
+- Memory coverage should read as a light memory-layout component with direct labels
   and inspectable details, not as a dominant dark banner. A compact legend is
   conditional: show it only when multiple non-obvious states lack an adjacent
   self-labeling list.

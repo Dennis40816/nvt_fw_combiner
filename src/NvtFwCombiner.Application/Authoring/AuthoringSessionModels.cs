@@ -457,7 +457,8 @@ public sealed record AuthoringSlotState
         string? selectedPath,
         FileStamp? fileStamp,
         AuthoringSlotLifecycle lifecycle,
-        AuthoringSlotIssueReference? blockingIssue = null)
+        AuthoringSlotIssueReference? blockingIssue = null,
+        byte[]? acceptedBytes = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
         if (selectedPath is null && fileStamp is not null)
@@ -491,6 +492,14 @@ public sealed record AuthoringSlotState
         FileStamp = fileStamp;
         Lifecycle = lifecycle;
         BlockingIssue = blockingIssue;
+        AcceptedByteArray = acceptedBytes?.ToArray();
+        if (AcceptedByteArray is not null &&
+            (fileStamp is null || AcceptedByteArray.LongLength != fileStamp.Value.AcceptedLength))
+        {
+            throw new ArgumentException(
+                "Accepted bytes must match one accepted file stamp.",
+                nameof(acceptedBytes));
+        }
     }
 
     /// <summary>Referenced canonical slot-definition identity.</summary>
@@ -498,6 +507,13 @@ public sealed record AuthoringSlotState
 
     /// <summary>Caller-selected path, or null when empty.</summary>
     public string? SelectedPath { get; }
+
+    /// <summary>Immutable complete bytes retained for accepted-session execution.</summary>
+    public ReadOnlyMemory<byte>? AcceptedBytes => AcceptedByteArray is null
+        ? null
+        : new ReadOnlyMemory<byte>(AcceptedByteArray);
+
+    internal byte[]? AcceptedByteArray { get; }
 
     /// <summary>Host-captured identity for the selected file.</summary>
     public FileStamp? FileStamp { get; }

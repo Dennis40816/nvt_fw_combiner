@@ -13,6 +13,6 @@ public sealed class WorkbenchCompositionModelsTests
         string token,
         string expected)
     {
-        Assert.Equal(expected, WorkbenchDpVersionMetadata.FormatDisplayValue(token));
+        Assert.Equal(expected, DpVersionMetadata.FormatDisplayValue(token));
     }
 }

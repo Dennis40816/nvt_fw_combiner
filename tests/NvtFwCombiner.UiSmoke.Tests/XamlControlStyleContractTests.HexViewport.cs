@@ -104,7 +104,7 @@ public sealed partial class XamlControlStyleContractTests
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-hex-hover-cell");
         string sourcePath = workspace.Write("hover.bin", [.. Enumerable.Range(0, 32).Select(index => (byte)index)]);
-        MainWindowViewModel shell = ShellViewModelFactory.Create();
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         await shell.HexEditorWorkspace.LoadAsync(sourcePath, TestContext.Current.CancellationToken);
         var viewport = new HexViewportControl
         {

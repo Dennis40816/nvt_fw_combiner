@@ -9,6 +9,9 @@ public static class IcNumberSelectionTokens
     /// <summary>Cascade selector token for multi-chip workflows without an explicit numeric count.</summary>
     public const string Cascade = "cascade";
 
+    /// <summary>Reviewed two-to-eight-chip cascade selector token.</summary>
+    public const string CascadeTwoToEight = "cascade_2to8";
+
     /// <summary>Returns true when the value is the stable single-chip selector token.</summary>
     public static bool IsSingle(string? value)
     {

@@ -30,7 +30,7 @@ public sealed partial class MainWindow
             return;
         }
 
-        WorkbenchAbAFlashCodeDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
+        CompositionAdditionalDeliveryPlan? aFlashCodePlan = preparation.AFlashCodePlan;
         bool exportAFlashCode = aFlashCodePlan is not null &&
             await viewModel.Merge.PromptForAbAFlashCodeDeliveryAsync();
         string? outputPath = await FirmwareFilePickerDialogs.PickMergedFirmwareOutputPathAsync(

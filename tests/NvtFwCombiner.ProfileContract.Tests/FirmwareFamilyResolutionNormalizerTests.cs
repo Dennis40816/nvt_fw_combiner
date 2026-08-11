@@ -2,7 +2,6 @@ using System.Globalization;
 using NvtFwCombiner.Contracts.Firmware;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
-using NvtFwCombiner.Profiles;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
 namespace NvtFwCombiner.ProfileContract.Tests;
@@ -20,7 +19,6 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
         [
             typeof(FirmwareFamilyNormalizationException),
             typeof(IFirmwareMetadataStructureDefinitionResolver),
-            typeof(IcIdentifier),
         ];
 
         Assert.All(helpers, type => Assert.True(type.IsNotPublic, type.FullName));

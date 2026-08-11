@@ -1,4 +1,3 @@
-using NvtFwCombiner.Bootstrap;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -91,7 +90,7 @@ public sealed partial class ShellViewModelTests
     public void CtrlRamRouteIssueExplainsContextAndSlotCorrection()
     {
         string json = ReportJsonSamples.CtrlRamWarning(
-            issueCode: WorkbenchIssueCodes.ReplaceWorkflowNotSupported,
+            issueCode: CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported,
             severity: "error",
             message: "The selected CtrlRAM Replace shape has no exact evidence-backed V2 route.",
             operationId: "number");

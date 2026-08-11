@@ -392,7 +392,9 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
     private readonly GeneralMappingDraftRow[] _rows;
 
     /// <summary>Creates one draft with unique stable mapping ids.</summary>
-    public GeneralMappingDraftState(IEnumerable<GeneralMappingDraftRow> rows)
+    public GeneralMappingDraftState(
+        IEnumerable<GeneralMappingDraftRow> rows,
+        GeneralSavedRuleResourcePolicy? savedRuleResourcePolicy = null)
         : base(AuthoringDraftKind.GeneralMapping)
     {
         ArgumentNullException.ThrowIfNull(rows);
@@ -413,10 +415,22 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
         }
 
         Rows = Array.AsReadOnly(_rows);
+        SavedRuleResourcePolicy = savedRuleResourcePolicy;
     }
 
     /// <summary>Ordered typed mapping rows; row order determines operation order.</summary>
     public IReadOnlyList<GeneralMappingDraftRow> Rows { get; }
+
+    /// <summary>Optional exact Saved Rule narrowing authority carried by this typed draft.</summary>
+    public GeneralSavedRuleResourcePolicy? SavedRuleResourcePolicy { get; }
+
+    /// <summary>Returns this draft with one exact Saved Rule narrowing authority.</summary>
+    public GeneralMappingDraftState WithSavedRuleResourcePolicy(
+        GeneralSavedRuleResourcePolicy savedRuleResourcePolicy)
+    {
+        ArgumentNullException.ThrowIfNull(savedRuleResourcePolicy);
+        return new GeneralMappingDraftState(_rows, savedRuleResourcePolicy);
+    }
 
     /// <summary>Returns true when every ordered mapping value and accepted content identity matches.</summary>
     public bool HasSameValue(GeneralMappingDraftState other)
@@ -461,7 +475,8 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
                 _rows.Select(row =>
                     ReferenceEquals(row, selected)
                         ? row.WithLength(stamp.AcceptedLength)
-                        : row))
+                        : row),
+                SavedRuleResourcePolicy)
             : throw new InvalidOperationException(
                 "Use full file length requires a non-empty accepted file.");
     }
@@ -481,6 +496,7 @@ public sealed record GeneralMappingDraftState : AuthoringDraftState
         bool includeAcceptedFileStamps)
     {
         return _rows.Length == other._rows.Length &&
+            Equals(SavedRuleResourcePolicy, other.SavedRuleResourcePolicy) &&
             _rows.Zip(other._rows).All(pair =>
                 HasSameRow(pair.First, pair.Second, includeAcceptedFileStamps));
     }

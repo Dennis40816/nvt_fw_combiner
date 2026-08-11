@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -112,7 +112,7 @@ public sealed partial class SettingsViewModel : ObservableObject
                     "Standard Merge",
                     CatalogIcValue(CountAvailableIcs(
                         authoringAvailableRows,
-                        WorkbenchWorkflowIds.StandardMerge)),
+                        ExperienceIds.StandardMerge)),
                     chinese
                         ? "至少有一條 Standard Merge 路徑可出現在一般 authoring 選擇器的 IC。"
                         : "ICs with at least one Standard Merge route available to ordinary authoring selectors.",
@@ -121,7 +121,7 @@ public sealed partial class SettingsViewModel : ObservableObject
                     "DP Replace",
                     CatalogIcValue(CountAvailableIcs(
                         authoringAvailableRows,
-                        WorkbenchWorkflowIds.DpReplace)),
+                        ExperienceIds.DpReplace)),
                     chinese
                         ? "至少有一條 DP Replace 路徑可出現在一般 authoring 選擇器的 IC。"
                         : "ICs with at least one DP Replace route available to ordinary authoring selectors.",
@@ -135,7 +135,7 @@ public sealed partial class SettingsViewModel : ObservableObject
                     chinese ? "CtrlRAM Replace 可用 IC" : "CtrlRAM Replace available ICs",
                     CatalogIcValue(CountAvailableIcs(
                         authoringAvailableRows,
-                        WorkbenchWorkflowIds.CtrlRamReplace)),
+                        ExperienceIds.CtrlRamReplace)),
                     chinese
                         ? "可出現在一般 authoring 選擇器；execution、publication 與 evidence 狀態請見支援矩陣。"
                         : "Available to ordinary authoring selectors; see the matrix for execution, publication, and evidence.",

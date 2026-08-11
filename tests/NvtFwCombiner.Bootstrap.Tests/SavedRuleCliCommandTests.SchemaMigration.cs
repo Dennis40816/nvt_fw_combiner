@@ -1,5 +1,5 @@
 using NvtFwCombiner.TestSupport;
-using static NvtFwCombiner.Bootstrap.SavedRuleIssueCodes;
+using static NvtFwCombiner.Infrastructure.Composition.SavedRuleIssueCodes;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 

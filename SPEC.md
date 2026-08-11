@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.2 canonical desktop-adoption and compatibility-deletion release candidate; v0.10.1 is the stable predecessor`
-> 文件版本：`0.10.2`
-> 基準日期：`2026-08-04`
+> 文件狀態：`0.10.3 canonical architecture and legacy-retirement release candidate; v0.10.2 is the stable predecessor`
+> 文件版本：`0.10.3`
+> 基準日期：`2026-08-11`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,18 +30,20 @@
 
 ## 0.1 Current owner priority
 
-`0.10.2` is the second implementation release from the approved `0.10.x`
-program. It carries the completed 78-route headless foundation into the
-desktop, adopts the canonical per-slot readiness/inspection and exact compiled
-composition across the six Merge/Replace workflows, extracts the shallow shell
-and shared read-only Hex viewport, and deletes the superseded General/Saved
-Rule v1 compatibility owners through #254. It does not complete the remaining
-deferred UI, Workbench deletion, Core convergence, or #197 integration waves,
-and it does not convert function availability or golden observations into
-support certification. `v0.10.1` is the stable predecessor on this canonical
-line; independent `0.9.17`/`0.9.18` maintenance releases remain historical
-upgrade sources rather than alternate `0.10.x` architecture authority. The
-remaining sequence is maintained in
+`0.10.3` completes the approved canonical refactoring and legacy-architecture
+retirement program. The six Merge/Replace workflows now share one
+Application-owned accepted-session route for authoring, naming, execution,
+reporting, delivery, and processor planning; Profiles remains the compilation
+authority, Infrastructure owns adapters, Presentation and CLI consume the same
+typed use cases, and Bootstrap contains composition-root/lifetime wiring only.
+The Workbench graph and renamed parallel production owners are removed. This
+release is support-neutral: it does not convert function availability or
+golden observations into support certification, and it does not change profile,
+schema, firmware-family, processor-protocol, or golden byte authority.
+`v0.10.2` is the stable predecessor on this canonical line; independent
+`0.9.17`/`0.9.18` maintenance releases remain historical upgrade sources rather
+than alternate `0.10.x` architecture authority. The remaining sequence is
+maintained in
 [NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
@@ -1398,6 +1400,231 @@ to each `0.10.x` version.
 - Bootstrap owns DI and composition wiring only. Each migration slice names the
   remaining facade callers and lowers the facade aggregate ratchet; the final
   slice proves zero callers and removes the facade.
+- The 2026-08-09 owner amendment authorizes the complete legacy-architecture
+  retirement to cross Application, Bootstrap, CLI, and Presentation contract
+  boundaries. It supersedes #233's former no-Application/Contracts-redesign
+  non-goal only for this named retirement program. The independently reviewed
+  #352 Bootstrap/CLI reduction remains a stable predecessor and is not expanded
+  into the cross-layer change. Each retirement slice first moves live UI and
+  CLI callers to the canonical capability/session/inspection/Preview-Build/
+  typed-report contracts, then deletes the displaced owner in the same
+  dependency-ordered program. It may reshape the minimum canonical contract
+  needed by those callers, but it cannot introduce another Workbench facade,
+  compatibility service hierarchy, Bootstrap semantic owner, or indefinite
+  forwarding shim. UI layout and observable CLI behavior remain unchanged;
+  firmware facts, ranges, output bytes, processor authority, evidence, and
+  support state remain under their existing R2/R3 gates.
+- The 2026-08-09 terminal naming decision treats `Workbench` as a retired
+  migration-compatibility architecture, not a firmware/domain or durable
+  product concept. Completion requires zero `Workbench*` symbols in production
+  Application, Bootstrap, CLI, and Presentation source. Presentation preserves
+  the same visible workflows through Presentation-local ViewModels and the
+  canonical Application contracts; it cannot retain or rename the old
+  cross-layer DTO/facade graph. Historical specifications, ADRs, changelog
+  entries, and migration evidence may retain the word only when they clearly
+  describe the retired architecture. A zero-name result is not sufficient by
+  itself: architecture guards must also prove that equivalent semantic owners
+  or broad facades were not recreated under another name.
+- The 2026-08-09 canonical lifecycle-contract decision replaces the legacy
+  all-purpose `WorkbenchRunResult` boundary with three focused Application
+  owners. `ActiveSessionSnapshot` is the only accepted-session, draft,
+  capability, and compilation-identity snapshot;
+  `CapabilityActionReadinessSnapshot` is the only Preview/Build readiness
+  result; and `CompositionRunResult` plus its typed `CompositionRunReport` is
+  the only execution result/report boundary consumed by UI and CLI. A rejected,
+  unavailable, or diagnostic-plan-only action is a typed readiness or
+  diagnostic/report outcome and cannot be represented as a fabricated
+  execution result. Bootstrap cannot serialize an Application report into JSON
+  for an in-process CLI or Presentation consumer to parse again. Exact
+  capability and accepted draft state remain owned by the accepted session and
+  are not copied into an execution result. Delivery facts or other live data
+  that exist only on the retired result may be added to the existing focused
+  canonical result/report contract, but cannot justify another aggregate
+  facade or result envelope.
+- The 2026-08-09 shared-execution decision requires every workflow to enter the
+  same Application Preview/Build boundary from an exact accepted
+  `ActiveSessionSnapshot` and a minimal typed request. Workflow-specific
+  Bootstrap execution gateways such as Standard Merge, AB Merge, DP Replace,
+  CtrlRAM Replace, General Merge, and General Replace `Run*` methods are
+  migration-only and are deleted. Firmware-semantic selections, including
+  topology, IC-number policy, CtrlRAM firmware-version edits, General mappings,
+  naming admission, and the compiled processor plan, must already be bound to
+  the accepted typed draft, exact capability, or compiled composition before
+  execution. Only host delivery intent, such as a selected output destination
+  or optional additional delivery destination, may remain in the minimal Build
+  request. Preview and Build consume the same accepted session, input
+  identities, output-naming admission, capability fingerprint, and compilation
+  fingerprint; Presentation and CLI cannot own workflow runners of their own.
+- Complete retirement is byte-preserving. For every repository-declared or
+  owner-approved BIN golden available at the independently reviewed #352
+  baseline (`6ba7217299c3e2ddb1c38467e6f288d5710ffef1`), the refactored path must
+  produce the identical complete output byte sequence, output size, lowercase
+  SHA-256, naming tokens, mutation trace, and external-processor outcome from
+  the same input fixture identities. Expected output, expected hash, padding,
+  header, CRC, or tolerated range cannot be edited merely to make the
+  refactoring pass. Any difference is a firmware-semantic change, stops this
+  retirement program, and requires separate R3 authority and independent
+  evidence rather than a golden update inside the refactor.
+- The 2026-08-09 inspection-ownership decision permits one canonical
+  Application inspection publication for each exact authoring revision. The
+  publication is bound to the catalog resolution token, capability and
+  compilation fingerprints, immutable artifact identities, typed draft, and
+  per-slot results exposed through `ActiveSessionSnapshot.InputSlotStatuses`
+  and its derived-publication evidence. Presentation, CLI, output naming,
+  memory presentation, Preview, and Build consume that same accepted snapshot;
+  they cannot reopen paths, repeat metadata decoding, rebuild readiness, or
+  reinterpret a slot independently. Inspection is invalidated only by a file
+  selection or content-identity change, typed draft change, catalog/publication
+  revision change, or explicit Reload. Bootstrap path-based inspection,
+  `FirmwareInspectionAdapter`, `WorkbenchFirmwareInspection*`, and equivalent
+  duplicate inspection DTOs/services are migration-only and are deleted.
+- The 2026-08-09 memory-projection decision makes the Application
+  `MemoryLayoutProjector` the only owner of semantic memory and input-slot
+  projection. It consumes the exact accepted session and its canonical
+  capability/compiled composition and publishes a typed `MemoryLayoutSnapshot`.
+  Missing live client data is added minimally to that canonical projection, not
+  recomputed in an adapter. Presentation owns only labels, localization,
+  styling, display ordering, visibility, and interaction. It cannot calculate
+  firmware addresses, ranges, region groups, required/optional membership,
+  retained coverage, or compiled slot selection. Bootstrap
+  `CompositionMemoryProjection*`, `ICompositionMemoryPresentation`,
+  `WorkbenchMemory*`, and workflow-specific slot projections are deleted while
+  preserving the current visible layout and exact compiled ranges/selection.
+- The 2026-08-09 owner-wide single-path rule applies to every production module
+  in this retirement, not only execution or memory projection. Catalog
+  publication/resolution, authoring session state, inspection, readiness,
+  compilation/planning, memory projection, output naming, Preview/Build,
+  reporting, and delivery each have exactly one authoritative semantic owner
+  and one executable route. Presentation and CLI consume the same typed
+  Application route; Bootstrap and Infrastructure may perform only their
+  declared wiring or adapter duties. A forwarding adapter cannot contain a
+  fallback, re-resolution, reinspection, policy branch, semantic projection,
+  or compatibility implementation. Each migration slice moves every live
+  caller and deletes the displaced route in the same dependency-ordered
+  program. Completion requires source/call-graph guards proving both zero
+  legacy routes and the absence of renamed parallel implementations.
+- The 2026-08-09 output-naming decision makes
+  `CompositionRunService.ResolveOutputNameAsync` and
+  `CompiledOutputNameResolver` the only production naming path. Naming consumes
+  the exact accepted session, canonical inspection publication, compiled
+  naming plan, and declared effective date once. Preview returns the typed
+  naming result and admission identity; Build reuses that exact accepted result
+  and rejects a changed session, artifact identity, authoring revision,
+  publication token, capability fingerprint, or compilation fingerprint rather
+  than re-reading or re-deriving a name. A manual filename override remains
+  typed host Build intent and cannot alter profile naming semantics. CtrlRAM
+  firmware-version edits or other semantic naming inputs must first be part of
+  the accepted typed draft/session. Bootstrap `CompositionOutputNaming*`,
+  `WorkbenchOutputName*`, path-backed naming helpers, and UI/CLI workflow
+  auto-name preflights are deleted while preserving the exact displayed name
+  and all golden naming tokens.
+- The 2026-08-09 catalog-ownership decision establishes one publication chain:
+  an Infrastructure adapter loads and trust-validates immutable bundle source;
+  Profiles alone normalizes profiles, resolves map/profile semantics, and
+  compiles canonical definitions; Application's
+  `CanonicalCapabilityCatalog` alone publishes, reloads, caches, and resolves
+  fixed or dynamic `ResolvedCapability` routes and issues each
+  `ResolutionToken`; accepted sessions consume that publication. Narrow ports
+  invert the loader/compiler dependencies where required. Bootstrap only
+  registers those implementations. It cannot materialize routes, maps,
+  fingerprints, or fallback lookup state, retain a second cache, or project a
+  second catalog. Presentation and CLI query only the Application snapshot.
+  `CanonicalCapabilityCatalogMigrationSource`, Bootstrap
+  `CanonicalCapabilityResolution*`, `CanonicalCapabilityProjection*`, and
+  equivalent route/materialization owners are deleted rather than renamed.
+- The 2026-08-09 authoring-state decision makes `AuthoringSessionState` and
+  `CompiledAuthoringWorkflowService` the only production mutation path. The
+  desktop owns exactly one isolated session for each of the six workflows; a
+  CLI invocation owns an isolated ephemeral session. IC, IC Count, slot,
+  typed-draft, and Reload changes enter the same typed Application command
+  path. One accepted user mutation advances `AuthoringRevision` exactly once
+  and the same owner invalidates every stale inspection, readiness, naming,
+  memory, and Preview-token publication. Presentation retains only display and
+  interaction state and cannot mutate or rebuild the canonical session. UI and
+  CLI use the same commands and queries. Bootstrap `CompositionPlanningAdapter*`,
+  workflow-specific `ICompositionAuthoringExperience`/
+  `ICompositionAuthoringSession` methods, `Workbench*InputProjection`, and
+  equivalent slot/draft reconstruction are deleted. Merge/Replace session-set
+  wrappers are also deleted when they provide only grouping; Presentation owns
+  the six session instances directly rather than introducing another aggregate.
+- The 2026-08-09 report-and-delivery decision makes
+  `CompositionRunResult`/`CompositionRunReport` the complete typed outcome of
+  the shared Build path. Profiles and the compiled composition declare each
+  optional delivery artifact, its source `ByteRange`, kind, and naming policy.
+  This narrow canonical delivery vocabulary may require a coordinated,
+  versioned composition-profile schema, Domain, compiler, and fingerprint
+  extension because the pre-retirement runtime reconstructs A FlashCode
+  delivery in Bootstrap. It may only encode the existing reviewed behavior and
+  cannot change route admission, firmware geometry, output bytes, naming
+  tokens, or processor execution.
+  A caller supplies only whether to deliver and the adapter-owned destination;
+  it cannot change the kind or range. Application extracts the artifact from
+  the already-produced immutable output bytes and commits primary and optional
+  outputs through the output-writer port without reopening inputs, compiling,
+  or executing a processor again. The result reports every committed artifact
+  and delivery failure in typed form. Presentation and CLI consume that typed
+  report. JSON is serialized once only at an explicitly requested external
+  report-file boundary and preserves the existing schema, fields, and CLI
+  presentation; it cannot be an in-process transport. Bootstrap report
+  serialization/parsing, `IAbMergeDeliveryPlanning`,
+  `AbMergeAFlashCodeExportService`, `WorkbenchAbAFlashCodeDeliveryPlan`,
+  `WorkbenchDeliveryArtifact`, and CLI report-JSON parsers are deleted.
+- The 2026-08-09 outer-boundary decision makes Bootstrap a composition root
+  only. Presentation does not reference Bootstrap; CLI parsing, diagnostics,
+  and console rendering live in `NvtFwCombiner.Cli`; both clients invoke the
+  same focused Application commands and queries. Bootstrap owns only startup,
+  dependency registration, lifetime/disposal, and platform-adapter selection.
+  It exposes no callable workflow method, static semantic adapter, service
+  locator, cache, or client DTO. `WorkbenchHostServices`,
+  `CompositionExperienceAdapters*`, `CompositionExecutionPort`, and equivalent
+  forwarding shells are deleted. A Presentation-local immutable dependency bag
+  is permitted only when it has no methods, cache, state transition, fallback,
+  or policy; otherwise ViewModels receive focused ports directly. Tests use the
+  canonical Application use case or the real composition root rather than a
+  public Bootstrap convenience gateway. Moving CLI-owned presentation code out
+  of Bootstrap is reported as relocation, not claimed as a code-size reduction.
+- The 2026-08-09 external-processor decision distinguishes required external
+  protocol compatibility from the retired application architecture. A
+  supported legacy Combiner.exe protocol adapter may remain only when its
+  wire/argv/staging contract is genuinely distinct. Every compiled processor
+  operation follows one route: its Profiles-owned compiled processor plan
+  enters Application `IExternalProcessor`, `ExternalProcessorRouter` selects
+  exactly one registered protocol adapter, and the adapter uses the shared
+  staging, process, diff, declared-range, assertion, cleanup, and audit safety
+  owners. Runtime `LegacyCombinerPostbuildPlanner` and any IC/workflow-based
+  command-plan reconstruction are deleted; the command plan is fixed during
+  Profiles compilation. Common host behavior cannot be copied between protocol
+  adapters, and a compiled operation cannot fall back to a second adapter.
+- The 2026-08-09 compatibility decision classifies public Workbench and
+  Bootstrap migration APIs as accidental CLR surface of the desktop
+  application, not a supported SDK. They, their constructors, and their methods
+  are deleted with their final callers. The retirement cannot retain
+  `[Obsolete]` wrappers, type forwarders, compatibility assemblies, or dual old
+  and new entry points, and repository tests migrate to the canonical contract
+  rather than keeping production compatibility code. Durable compatibility is
+  limited to explicitly governed external surfaces: CLI commands/options/exit
+  behavior and observable text, Saved Rule and report JSON schemas, profile
+  bundle and firmware-family contracts, external-processor protocols, and user
+  file/settings formats. UI behavior and golden outputs remain unchanged. Any
+  evidenced repository-external CLR consumer stops the affected deletion for
+  separate owner review; it does not justify a speculative shim.
+- The 2026-08-09 migration decision requires vertical retirement slices rather
+  than an additive replacement foundation. Every mergeable slice adds only the
+  minimum canonical contract, migrates all named live UI/CLI callers, deletes
+  the displaced owner and forwarding path, lowers the exact ratchets in the
+  same commit, and is net-negative for both runtime and full production source.
+  Cross-assembly relocation is reported separately. Temporary adapters or dual
+  paths may exist only in unmerged feature-branch intermediate commits and
+  cannot enter `0.10.x`. The dependency order is catalog publication/resolution;
+  authoring session plus canonical inspection; memory plus output naming;
+  shared Preview/Build plus typed result/report/delivery; CLI and Presentation
+  caller convergence; then Bootstrap wiring-only and terminal zero-symbol/
+  renamed-path cleanup. Each slice runs proportional architecture, Polytail,
+  and golden evidence; the terminal slice runs the complete verifier, all
+  available BIN goldens, and zero-legacy/parallel-owner guards. A candidate that
+  cannot remain behavior-compatible and proportionately net-negative stops,
+  records its residual, and yields to the next slice rather than weakening
+  semantics or adding compatibility architecture.
 
 #### Artifact, metadata, and firmware vocabulary
 
@@ -2331,3 +2558,39 @@ amendment. Each ticket remains outside implementation intake until the owner
 separately approves its exact scope for `ready-for-agent`. Route-specific R3
 golden or firmware-owner evidence remains an implementation gate, not an
 unresolved architecture decision.
+
+### 15.9 Complete Legacy Architecture Retirement
+
+Status: the owner accepted the individual architecture decisions and approved
+the consolidated specification and LAR-01..12 implementation. The terminal
+implementation is present on the feature branch; LAR-00 verification and
+release gates remain open.
+The reviewable draft is
+[`docs/specs/0.10.x-legacy-architecture-retirement.md`](docs/specs/0.10.x-legacy-architecture-retirement.md),
+and its exact baseline/size assessment is
+[`docs/governance/0.10.x-legacy-architecture-retirement-size-assessment.md`](docs/governance/0.10.x-legacy-architecture-retirement-size-assessment.md).
+
+The terminal outcome is zero production Workbench or renamed-equivalent
+facades, one semantic/execution path per module, Application contracts shared
+by UI and CLI, Presentation independent of Bootstrap, and Bootstrap reduced to
+composition wiring and lifetime. Every repository-declared or owner-approved
+BIN golden at PR #352 commit
+`6ba7217299c3e2ddb1c38467e6f288d5710ffef1` remains exact full-byte evidence.
+The measured direct legacy surface was 14,543 nonblank lines of gross
+retirement surface, not promised net savings. The terminal implementation is
+67,433 runtime and 96,044 full-production nonblank lines: exact reductions of
+1,334 and 1,454 from the predecessor. The former 7,800–10,200 planning range
+is superseded because it overestimated how much unique trust, route,
+admission, reporting, delivery, and processor behavior could be deleted rather
+than relocated to its canonical owner. Exact gross/add/net and slice closure
+are recorded in the size assessment.
+
+The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
+planning ids LAR-01 through LAR-12 own the vertical implementation slices and
+LAR-00 owns aggregate completion; their exact blocker graph is maintained in
+`docs/governance/0.10.x-ticket-dependency-plan.md`. The graph is allocated to
+the `v0.10.3` complete-refactoring gate. The owner authorized the governed
+review/PR/merge/release sequence on 2026-08-10, but tag creation remains
+blocked until LAR-00, #197, CI, package/provenance, clean-Windows, and owner
+review gates pass. Support promotion, profile/schema implementation, and
+firmware-semantic mutation remain out of scope.

@@ -217,6 +217,138 @@ public sealed class GeneralMappingDraftStateTests
             issue!.Code);
     }
 
+    /// <summary>The shared inline codec accepts only complete hexadecimal byte pairs.</summary>
+    [Theory]
+    [InlineData(null, false, 0)]
+    [InlineData(" ", false, 0)]
+    [InlineData("A-", false, 0)]
+    [InlineData("GG", false, 0)]
+    [InlineData("AA-BB,cc_dd ", true, 4)]
+    public void InlineCodecMeasuresAndParsesCanonicalText(
+        string? value,
+        bool expectedSuccess,
+        long expectedByteCount)
+    {
+        bool measured = GeneralInlineSourceCodec.TryMeasure(value, out long byteCount);
+        bool parsed = GeneralInlineSourceCodec.TryParse(value, out byte[]? bytes);
+
+        Assert.Equal(expectedSuccess, measured);
+        Assert.Equal(expectedSuccess, parsed);
+        Assert.Equal(expectedByteCount, byteCount);
+        Assert.Equal(expectedSuccess ? expectedByteCount : 0, bytes?.LongLength ?? 0);
+    }
+
+    /// <summary>Closed mapping values and file-only presets fail at the typed row boundary.</summary>
+    [Fact]
+    public void MappingRowRejectsInvalidClosedValuesAndPresets()
+    {
+        _ = Assert.Throws<ArgumentException>(() => GeneralMappingSource.HexOverwrite(" "));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateRow(
+            (ExplicitMappingOperationKind)int.MaxValue,
+            GeneralMappingSource.File("input.bin")));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("input.bin"),
+            overlapPolicy: (OverlapPolicy)int.MaxValue));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("input.bin"),
+            alignment: 0));
+        _ = Assert.Throws<ArgumentException>(() => CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("input.bin"),
+            targetStart: 1,
+            alignment: 2));
+        _ = Assert.Throws<ArgumentException>(() => CreateRow(
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.HexOverwrite("AA"),
+            sourceStart: 1));
+        _ = Assert.Throws<ArgumentException>(() => CreateRow(
+            ExplicitMappingOperationKind.ReplaceRange,
+            GeneralMappingSource.HexFill("AA"),
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart));
+        _ = Assert.Throws<ArgumentException>(() => CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("input.bin"),
+            sourceStart: 1,
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart));
+        _ = Assert.Throws<ArgumentException>(() =>
+            new GeneralMappingDraftState([null!]));
+    }
+
+    /// <summary>Use-full-file-length requires one exact inspected From File Start row.</summary>
+    [Fact]
+    public void MaterializeFullFileLengthFailsClosedAndUpdatesOnlyTheSelectedRow()
+    {
+        GeneralMappingDraftRow sourceSlice = CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("slice.bin", FileStamp.FromBytes([0x01])),
+            sourceStart: 1,
+            fileRangePreset: GeneralMappingFileRangePreset.SourceSlice,
+            mappingId: "slice");
+        GeneralMappingDraftRow uninspected = CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("pending.bin"),
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart,
+            mappingId: "pending");
+        GeneralMappingDraftRow empty = CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("empty.bin", FileStamp.FromBytes([])),
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart,
+            mappingId: "empty");
+        GeneralMappingDraftRow accepted = CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("accepted.bin", FileStamp.FromBytes([1, 2, 3])),
+            fileRangePreset: GeneralMappingFileRangePreset.FromFileStart,
+            mappingId: "accepted");
+        GeneralMappingDraftRow untouched = CreateRow(
+            ExplicitMappingOperationKind.CopyRange,
+            GeneralMappingSource.File("other.bin"),
+            mappingId: "other");
+        var draft = new GeneralMappingDraftState(
+            [sourceSlice, uninspected, empty, accepted, untouched]);
+
+        _ = Assert.Throws<ArgumentException>(() => draft.MaterializeFullFileLength("missing"));
+        _ = Assert.Throws<InvalidOperationException>(() =>
+            draft.MaterializeFullFileLength("slice"));
+        _ = Assert.Throws<InvalidOperationException>(() =>
+            draft.MaterializeFullFileLength("pending"));
+        _ = Assert.Throws<InvalidOperationException>(() =>
+            draft.MaterializeFullFileLength("empty"));
+
+        GeneralMappingDraftState materialized =
+            draft.MaterializeFullFileLength("accepted");
+
+        Assert.Equal(3, materialized.Rows.Single(row =>
+            row.MappingId == "accepted").SourceRange.Length);
+        Assert.Same(
+            untouched,
+            materialized.Rows.Single(row => row.MappingId == "other"));
+    }
+
+    private static GeneralMappingDraftRow CreateRow(
+        ExplicitMappingOperationKind operationKind,
+        GeneralMappingSource source,
+        OverlapPolicy overlapPolicy = OverlapPolicy.Reject,
+        int alignment = 1,
+        long sourceStart = 0,
+        long targetStart = 0,
+        GeneralMappingFileRangePreset? fileRangePreset = null,
+        string mappingId = "mapping")
+    {
+        return new GeneralMappingDraftRow(
+            mappingId,
+            operationKind,
+            source,
+            new ByteRange(sourceStart, 1),
+            CompositionAddressSpaceIds.OutputImage,
+            new ByteRange(targetStart, 1),
+            overlapPolicy,
+            alignment,
+            "Test mapping.",
+            fileRangePreset: fileRangePreset);
+    }
+
     private static GeneralMappingDraftRow FileRow(
         string mappingId,
         ExplicitMappingOperationKind operationKind,

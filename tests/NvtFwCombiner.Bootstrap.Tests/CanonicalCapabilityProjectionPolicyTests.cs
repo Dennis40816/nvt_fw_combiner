@@ -1,5 +1,6 @@
-using System.Text.Json;
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
@@ -10,58 +11,47 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
     [Fact]
     public async Task Nt51931GeneralReplaceFailsClosedWithStableIssue()
     {
-        WorkbenchRunResult result = await CompositionExecutionAdapter.RunReplaceAsync(
+        GeneralAuthoringSessionPreparation prepared =
+            await GeneralWorkflowTestSupport.PrepareGeneralReplaceAsync(
+            BootstrapTestHost.Canonical,
             "NT51931",
             "single",
-            WorkbenchReplaceModes.General,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [WorkbenchSlotIds.ReplaceBase] = "\0must-not-be-resolved.bin",
+                [CompositionSlotIds.ReplaceBase] = "\0must-not-be-resolved.bin",
             },
-            build: false,
+            new GeneralMappingDraftState([]),
+            savedRulePolicy: null,
             TestContext.Current.CancellationToken);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal("Blocked", result.Status);
-        using var document = JsonDocument.Parse(result.ReportJson);
-        JsonElement issue = Assert.Single(document.RootElement.GetProperty("Issues").EnumerateArray());
-        Assert.Equal(WorkbenchIssueCodes.ReplaceWorkflowNotSupported, issue.GetProperty("Code").GetString());
-        Assert.Contains("Not available", issue.GetProperty("Message").GetString(), StringComparison.Ordinal);
-        Assert.Empty(document.RootElement.GetProperty("Operations").EnumerateArray());
-        Assert.Empty(document.RootElement.GetProperty("Inputs").EnumerateArray());
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.AcceptedSession);
+        CompositionIssue issue = Assert.Single(prepared.Issues);
+        Assert.Equal(CompositionPlanningIssueCodes.ReplaceWorkflowNotSupported, issue.Code);
+        Assert.Contains("Not available", issue.Message, StringComparison.Ordinal);
     }
 
     /// <summary>Retired NT51931 projections expose a blocked state without a compatibility route.</summary>
     [Fact]
-    public void Nt51931GeneralReplaceDisplayIsExplicitlyNotSupported()
+    public void Nt51931GeneralReplaceIsExplicitlyNotSupported()
     {
-        Assert.False(CanonicalCapabilityProjection.IsReplaceWorkflowAvailable("NT51931", WorkbenchReplaceModes.General));
-        Assert.Empty(CompositionMemoryProjection.GetReplaceInputSlots("NT51931", "single", WorkbenchReplaceModes.General));
-        WorkbenchMemoryDisplay display = CompositionMemoryProjection.GetReplaceMemoryDisplay(
-            "NT51931",
-            "single",
-            WorkbenchReplaceModes.General);
-        Assert.Equal("Not available", display.RangeLabel);
-        WorkbenchMemoryMapRow row = Assert.Single(display.MemoryMapRows);
-        Assert.Equal("Blocked", row.ActionLabel);
-        Assert.Equal("No target", row.AfterSource);
-        Assert.Contains("Not available", row.Detail, StringComparison.Ordinal);
-        Assert.Empty(display.CoverageSegments);
+        Assert.False(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51931", ExperienceIds.GeneralReplace));
+        Assert.False(BootstrapTestHost.Canonical.Projection
+            .GetReplaceWorkflowReadiness("NT51931", ExperienceIds.GeneralReplace)
+            .HasExactRoute);
     }
 
     /// <summary>Replace exposure follows only routes declared by the canonical publication.</summary>
     [Fact]
     public void OtherIcReplaceExposureIsCanonicalPublicationDriven()
     {
-        Assert.True(CanonicalCapabilityProjection.IsReplaceWorkflowAvailable("NT51932", WorkbenchReplaceModes.CtrlRam));
-        Assert.False(CanonicalCapabilityProjection.IsReplaceWorkflowAvailable("NT51932", WorkbenchReplaceModes.General));
-        Assert.True(CanonicalCapabilityProjection.IsReplaceWorkflowAvailable("NT51932", WorkbenchReplaceModes.Dp));
-        Assert.True(CanonicalCapabilityProjection.IsReplaceWorkflowAvailable("NT51926", WorkbenchReplaceModes.General));
-        Assert.False(CanonicalCapabilityProjection
-            .GetReplaceWorkflowReadiness("NT51932", WorkbenchReplaceModes.General)
+        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.CtrlRamReplace));
+        Assert.False(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.GeneralReplace));
+        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51932", ExperienceIds.DpReplace));
+        Assert.True(BootstrapTestHost.Canonical.Projection.IsReplaceWorkflowAvailable("NT51926", ExperienceIds.GeneralReplace));
+        Assert.False(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51932", ExperienceIds.GeneralReplace)
             .HasExactRoute);
-        Assert.True(CanonicalCapabilityProjection
-            .GetReplaceWorkflowReadiness("NT51926", WorkbenchReplaceModes.General)
+        Assert.True(BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness("NT51926", ExperienceIds.GeneralReplace)
             .HasExactRoute);
     }
 
@@ -69,12 +59,12 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
     [Fact]
     public void ReplaceReadinessSeparatesGoldenEvidenceFromAvailability()
     {
-        CapabilityWorkflowReadiness verified = CanonicalCapabilityProjection.GetReplaceWorkflowReadiness(
+        CapabilityWorkflowReadiness verified = BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness(
             "NT51929",
-            WorkbenchReplaceModes.Dp);
-        CapabilityWorkflowReadiness gated = CanonicalCapabilityProjection.GetReplaceWorkflowReadiness(
+            ExperienceIds.DpReplace);
+        CapabilityWorkflowReadiness gated = BootstrapTestHost.Canonical.Projection.GetReplaceWorkflowReadiness(
             "NT51932",
-            WorkbenchReplaceModes.Dp);
+            ExperienceIds.DpReplace);
 
         Assert.True(verified.IsAvailable);
         Assert.Equal(CapabilityEvidenceStatus.DirectGolden, verified.EvidenceStatus);
@@ -97,7 +87,7 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
         string familyId,
         CapabilityFamilyRelationship relationship)
     {
-        CapabilityFamilySummary summary = CanonicalCapabilityProjection.GetIcFamilySummary(icId);
+        CapabilityFamilySummary summary = BootstrapTestHost.Canonical.Projection.GetIcFamilySummary(icId);
 
         Assert.Equal(familyId, summary.FamilyId);
         Assert.Equal(relationship, summary.Relationship);
@@ -115,8 +105,8 @@ public sealed class CanonicalCapabilityProjectionPolicyTests
         string secondIcId,
         bool expected)
     {
-        Assert.Equal(expected, CanonicalCapabilityProjection.ArePerfectFamilyMembers(firstIcId, secondIcId));
-        Assert.Equal(expected, CanonicalCapabilityProjection.ArePerfectFamilyMembers(secondIcId, firstIcId));
+        Assert.Equal(expected, BootstrapTestHost.Canonical.Projection.ArePerfectFamilyMembers(firstIcId, secondIcId));
+        Assert.Equal(expected, BootstrapTestHost.Canonical.Projection.ArePerfectFamilyMembers(secondIcId, firstIcId));
     }
 
 }

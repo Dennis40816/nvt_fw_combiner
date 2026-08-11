@@ -6,14 +6,14 @@ public static partial class UiCompositionRunner
 {
     /// <summary>Gets compact firmware facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetFirmwareSlotFacts(
-        WorkbenchFirmwareInspection inspection,
+        FirmwareInspectionSnapshot inspection,
         bool includeBaseFacts = false,
         ShellTextResources? text = null)
     {
         ArgumentNullException.ThrowIfNull(inspection);
         text ??= ShellTextResources.For(ShellLanguage.English);
 
-        WorkbenchFirmwareConfigMetadata? metadata = inspection.FirmwareConfig;
+        FirmwareConfigMetadataSnapshot? metadata = inspection.FirmwareConfig;
         IReadOnlyList<FirmwareSlotFactViewModel> dpFacts = includeBaseFacts
             ? GetDpFirmwareSlotFacts(inspection, text)
             : [];
@@ -38,14 +38,14 @@ public static partial class UiCompositionRunner
 
     /// <summary>Gets compact DP facts from one already-read inspection snapshot.</summary>
     public static IReadOnlyList<FirmwareSlotFactViewModel> GetDpFirmwareSlotFacts(
-        WorkbenchFirmwareInspection inspection,
+        FirmwareInspectionSnapshot inspection,
         ShellTextResources? text = null)
     {
         ArgumentNullException.ThrowIfNull(inspection);
         text ??= ShellTextResources.For(ShellLanguage.English);
 
-        WorkbenchDpVersionMetadata? legacyMetadata = inspection.DpVersion;
-        WorkbenchCmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
+        DpVersionMetadata? legacyMetadata = inspection.DpVersion;
+        CmiDpCodeMetadata? cmiMetadata = inspection.CmiDpCode;
         if (legacyMetadata is null && cmiMetadata is null)
         {
             return
@@ -59,11 +59,11 @@ public static partial class UiCompositionRunner
             ];
         }
 
-        string dpVersion = legacyMetadata is WorkbenchDpVersionMetadata legacy
+        string dpVersion = legacyMetadata is DpVersionMetadata legacy
             ? legacy.DisplayValue
-            : WorkbenchDpVersionMetadata.FormatDisplayValue(cmiMetadata!.Value.VersionToken);
+            : DpVersionMetadata.FormatDisplayValue(cmiMetadata!.Value.VersionToken);
         List<FirmwareSlotFactViewModel> facts = [new FirmwareSlotFactViewModel("DP", dpVersion)];
-        if (cmiMetadata is WorkbenchCmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
+        if (cmiMetadata is CmiDpCodeMetadata cmi && !string.IsNullOrWhiteSpace(cmi.JiraBadge))
         {
             facts.Add(new FirmwareSlotFactViewModel("Jira", cmi.JiraBadge));
         }

@@ -276,7 +276,8 @@ public sealed class V2CompiledCompositionDetails
         CompiledInputContract inputContract,
         CompiledRegionAccessContract regionAccessContract,
         CompiledOutputNamingRequirement outputNamingRequirement,
-        IcNumberInputMode? icNumberInputMode = null)
+        IcNumberInputMode? icNumberInputMode = null,
+        IEnumerable<CompiledAdditionalDelivery>? additionalDeliveries = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(profileId);
         ArgumentException.ThrowIfNullOrWhiteSpace(profileVersion);
@@ -291,6 +292,16 @@ public sealed class V2CompiledCompositionDetails
         ArgumentNullException.ThrowIfNull(inputContract);
         ArgumentNullException.ThrowIfNull(regionAccessContract);
         ArgumentNullException.ThrowIfNull(outputNamingRequirement);
+        CompiledAdditionalDelivery[] deliverySnapshot =
+            [.. additionalDeliveries ?? []];
+        if (deliverySnapshot.Any(static delivery => delivery is null) ||
+            deliverySnapshot.Select(static delivery => delivery.Kind)
+                .Distinct(StringComparer.Ordinal).Count() != deliverySnapshot.Length)
+        {
+            throw new ArgumentException(
+                "Compiled additional deliveries must be non-null and uniquely identified.",
+                nameof(additionalDeliveries));
+        }
         if (provenance.Context is MapBoundV2CompilationContext mapContext)
         {
             ValidateRegionAccessContract(mapContext.ResolvedMap.ImageMap, regionAccessContract);
@@ -310,6 +321,7 @@ public sealed class V2CompiledCompositionDetails
         RegionAccessContract = regionAccessContract;
         OutputNamingRequirement = outputNamingRequirement;
         IcNumberInputMode = icNumberInputMode;
+        AdditionalDeliveries = Array.AsReadOnly(deliverySnapshot);
     }
 
     /// <summary>Stable profile id.</summary>
@@ -338,6 +350,9 @@ public sealed class V2CompiledCompositionDetails
 
     /// <summary>Canonical IC-number input mode, or null when it is not applicable.</summary>
     public IcNumberInputMode? IcNumberInputMode { get; }
+
+    /// <summary>Optional artifacts derived from this exact completed primary output.</summary>
+    public IReadOnlyList<CompiledAdditionalDelivery> AdditionalDeliveries { get; }
 
     private static void ValidateRegionAccessContract(
         FirmwareImageMap map,

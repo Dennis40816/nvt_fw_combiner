@@ -7,7 +7,7 @@ public sealed partial class MainWindowViewModel
     /// <summary>Focused successful Build-result and latest-output presentation.</summary>
     public BuildResultViewModel BuildResult { get; }
 
-    internal bool TryShowBuildCompleted(WorkbenchRunResult result, bool build)
+    internal bool TryShowBuildCompleted(CompositionRunResult result, bool build)
     {
         return BuildResult.TryShow(result, build);
     }

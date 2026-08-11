@@ -1,4 +1,4 @@
-using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -11,10 +11,10 @@ public sealed partial class ShellViewModelTests
     public void NavigationClearConfirmationIgnoresSubsequentNavigationRequests()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-navigation-modal-isolation");
-        MainWindowViewModel viewModel = ShellViewModelFactory.Create();
+        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51928";
-        viewModel.Replace.SelectedReplaceMode = WorkbenchReplaceModes.CtrlRam;
+        viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
         viewModel.SetSlotFile("replace-base", workspace.Write("base.bin", [0x10, 0x11]));
 
         viewModel.ShowMergeCommand.Execute(null);

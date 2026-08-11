@@ -12,14 +12,14 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void IcCatalogProjectionPreservesSelectableRowsAndChoices()
     {
-        IReadOnlyList<string> icIds = CanonicalCapabilityProjection.GetIcIds();
+        IReadOnlyList<string> icIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
 
         Assert.Equal(10, icIds.Count);
         Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
-        Assert.Equal("NT51950", CanonicalCapabilityProjection.DefaultIcId);
+        Assert.Equal("NT51950", BootstrapTestHost.Canonical.Projection.DefaultIcId);
         Assert.Equal(
-            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51926"),
-            CanonicalCapabilityProjection.GetNumberSelectionChoices("51926"));
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51926"),
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("51926"));
         foreach (string icId in icIds)
         {
             IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
@@ -27,7 +27,7 @@ public sealed class WorkbenchCatalogProjectionTests
                 IcNumberChoicePolicy.GetNumberSelectionChoices(profiles).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)),
-                CanonicalCapabilityProjection.GetNumberSelectionChoices(icId).Select(static choice => (
+                BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices(icId).Select(static choice => (
                     choice.Token,
                     choice.DisplayLabel)));
         }
@@ -37,9 +37,9 @@ public sealed class WorkbenchCatalogProjectionTests
     [Fact]
     public void CatalogProjectionsRejectMutation()
     {
-        IReadOnlyList<string> supportedIcIds = CanonicalCapabilityProjection.GetIcIds();
+        IReadOnlyList<string> supportedIcIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
         IReadOnlyList<CapabilityNumberChoice> numberChoices =
-            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51950");
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51950");
         string originalIcId = supportedIcIds[0];
         CapabilityNumberChoice originalNumberChoice = numberChoices[0];
 
@@ -51,10 +51,10 @@ public sealed class WorkbenchCatalogProjectionTests
         _ = Assert.Throws<NotSupportedException>(() =>
             mutableNumberChoices[0] = new CapabilityNumberChoice("invalid", "Invalid"));
 
-        Assert.Equal(originalIcId, CanonicalCapabilityProjection.GetIcIds()[0]);
+        Assert.Equal(originalIcId, BootstrapTestHost.Canonical.Projection.GetIcIds()[0]);
         Assert.Equal(
             originalNumberChoice,
-            CanonicalCapabilityProjection.GetNumberSelectionChoices("NT51950")[0]);
+            BootstrapTestHost.Canonical.Projection.GetNumberSelectionChoices("NT51950")[0]);
     }
 
     /// <summary>Retired ICs are absent from every production selector and compiled profile summary.</summary>
@@ -65,12 +65,12 @@ public sealed class WorkbenchCatalogProjectionTests
     [InlineData("NT51931")]
     public void RetiredIcIdsAreNotProjectedByWorkbenchCatalogs(string icId)
     {
-        Assert.DoesNotContain(icId, CanonicalCapabilityProjection.GetIcIds());
+        Assert.DoesNotContain(icId, BootstrapTestHost.Canonical.Projection.GetIcIds());
         Assert.DoesNotContain(
-            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
         Assert.DoesNotContain(
-            CanonicalCapabilityProjection.GetDpReplaceProfileSummaries(),
+            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries(),
             summary => StringComparer.Ordinal.Equals(summary.IcId, icId));
     }
 
@@ -79,14 +79,14 @@ public sealed class WorkbenchCatalogProjectionTests
     public void ProfileSummariesExcludeSyntheticCompilerFixtures()
     {
         IReadOnlyList<CapabilityProfileSummary> standardSummaries =
-            CanonicalCapabilityProjection.GetStandardMergeProfileSummaries();
+            BootstrapTestHost.Canonical.Projection.GetStandardMergeProfileSummaries();
         IReadOnlyList<CapabilityProfileSummary> replaceSummaries =
-            CanonicalCapabilityProjection.GetDpReplaceProfileSummaries();
+            BootstrapTestHost.Canonical.Projection.GetDpReplaceProfileSummaries();
         AssertStandardMergeProfileSummaries(standardSummaries);
         AssertV2DpReplaceProfileSummaries(replaceSummaries);
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
-        CapabilityCatalogSummary settings = CanonicalCapabilityProjection.GetCatalogSummary();
+        CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
         Assert.Equal(10, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
         Assert.Equal(10, settings.DpReplaceProfileCount);
@@ -107,7 +107,7 @@ public sealed class WorkbenchCatalogProjectionTests
         {
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
             Assert.True(
-                CanonicalCapabilityResolution.TryCompileStandardMerge(
+                BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
                     summary.IcId,
                     dpLength,
                     out CompiledComposition? composition,
@@ -138,7 +138,7 @@ public sealed class WorkbenchCatalogProjectionTests
         {
             long baseCapacity = summary.IcId == "NT51928" ? 0x80000 : 0x40000;
             Assert.True(
-                CanonicalCapabilityResolution.TryCompileDpReplace(
+                BootstrapTestHost.Canonical.Compiler.TryCompileDpReplace(
                     summary.IcId,
                     baseCapacity,
                     out CompiledComposition? composition,
