@@ -60,16 +60,25 @@ public sealed partial class XamlControlStyleContractTests
 
         Assert.True(
             lifecycle.IndexOf("main-window.opened", StringComparison.Ordinal) <
-            lifecycle.IndexOf("PrimeDeferredCatalogs", StringComparison.Ordinal));
+            lifecycle.IndexOf("WarmCanonicalCapabilities", StringComparison.Ordinal));
         Assert.Contains("Task.Run(", lifecycle, StringComparison.Ordinal);
-        Assert.Contains("WarmCanonicalCapabilities(cancellationToken)", warmup, StringComparison.Ordinal);
+        Assert.Contains("WarmCanonicalCapabilities(startupCancellation)", lifecycle, StringComparison.Ordinal);
         Assert.True(
             lifecycle.IndexOf("await catalogWarmup", StringComparison.Ordinal) <
+            lifecycle.IndexOf("viewModel.PublishCanonicalCatalogState()", StringComparison.Ordinal));
+        Assert.True(
+            lifecycle.IndexOf("viewModel.PublishCanonicalCatalogState()", StringComparison.Ordinal) <
+            lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal));
+        Assert.True(
+            lifecycle.IndexOf("ApplyLaunchPage(viewModel, _launchOptions.Page)", StringComparison.Ordinal) <
+            lifecycle.IndexOf("await ApplyDeferredLaunchOptionsAsync", StringComparison.Ordinal));
+        Assert.True(
+            lifecycle.IndexOf("await ApplyDeferredLaunchOptionsAsync", StringComparison.Ordinal) <
             lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal));
         Assert.True(
             lifecycle.IndexOf("await viewModel.MessageCenter.RefreshAfterStartupAsync", StringComparison.Ordinal) <
             lifecycle.IndexOf("viewModel.Settings.Refresh(viewModel.Text)", StringComparison.Ordinal));
-        Assert.Contains("Deferred catalog warm-up did not complete", warmup, StringComparison.Ordinal);
+        Assert.Contains("Deferred shell warm-up did not complete", lifecycle, StringComparison.Ordinal);
         Assert.Contains("DispatcherPriority.Background", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.started\"", warmup, StringComparison.Ordinal);
         Assert.Contains("$\"{traceStage}.ready\"", warmup, StringComparison.Ordinal);

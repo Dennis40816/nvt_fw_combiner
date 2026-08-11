@@ -79,6 +79,7 @@ passing.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
+- `v0.10.4` requires the exact compressed single-file, self-contained `win-x64` candidate to reach a nonzero Home main-window handle within a 700 ms median on the controlled owner machine after one unscored warm-up and across five measured launches. The first cold launch is recorded separately and is not substituted for the five-run median. Shell construction cannot force canonical catalog publication; Home workflow commands remain unavailable until the existing background warm publishes the canonical IC/default/profile choices on the UI thread. This is a reproducible package acceptance measurement, not a universal CI timing threshold.
 - Main EXE at or below 70,000,000 bytes is a soft optimization target. Main EXE and complete release ZIP at or below 80,000,000 bytes are hard candidate ceilings; required safety, profiles, processors, evidence, accessibility, and self-contained runtime content cannot be removed to meet them.
 
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
@@ -1166,8 +1167,9 @@ to each `0.10.x` version.
    records `v0.10.1` as the headless foundation, `v0.10.2` as the canonical
    desktop-adoption and first compatibility-deletion checkpoint through #254,
    `v0.10.3` as the complete remaining refactoring graph through #197,
-   `v0.10.4` as its simplification audit, `v0.10.5` as unified preload
-   performance control, and `v0.10.6` as a reserved configured-path update
+   `v0.10.4` as its simplification audit plus the measured 700 ms Home-window
+   startup gate, `v0.10.5` as unified preload performance control, and
+   `v0.10.6` as a reserved configured-path update
    experience whose detailed contract is still deferred. Release grouping
    never bypasses dependency or evidence gates.
 4. A slice may introduce a compatibility adapter temporarily, but it must name
@@ -2387,9 +2389,11 @@ support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
 refactor, reviewed residual ledgers, and exact ratchet gates are complete.
 `v0.10.4` then performs a
-fresh simplification/ownership audit of that result; `v0.10.5` owns performance
-work that unifies every preload behind one observable, cancellable, bounded,
-and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
+fresh simplification/ownership audit of that result and restores the exact
+packaged Home startup median to at most 700 ms without synchronously publishing
+the canonical catalog before the first window. `v0.10.5` owns the broader
+performance work that unifies every preload behind one observable, cancellable,
+bounded, and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
 update experience. The `v0.10.6` trust, rollback, version-selection,
 network/share, and release-policy contract remains owner-deferred and requires
 a later specification review before implementation tickets exist. These

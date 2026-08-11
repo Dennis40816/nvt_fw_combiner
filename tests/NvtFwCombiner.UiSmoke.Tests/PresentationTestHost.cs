@@ -11,7 +11,17 @@ internal static class PresentationTestHost
     {
         PresentationHostServices services = CreateServices(
             ApplicationVersionProvider.InformationalVersion);
-        return ShellViewModelFactory.Create(services, language);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
+        return PublishCanonicalCatalog(services, viewModel);
+    }
+
+    internal static MainWindowViewModel PublishCanonicalCatalog(
+        PresentationHostServices services,
+        MainWindowViewModel viewModel)
+    {
+        services.WarmCanonicalCapabilities(CancellationToken.None);
+        viewModel.PublishCanonicalCatalogState();
+        return viewModel;
     }
 
     internal static PresentationHostServices CreateServices(string applicationVersion)

@@ -84,8 +84,6 @@ public sealed partial class MainWindow : Window, IDisposable
         viewModel.Reports.PropertyChanged += Reports_OnPropertyChanged;
         _startupTrace.Mark("shell-notifications.ready");
 
-        ApplyInitialLaunchOptions(viewModel, launchOptions);
-        _startupTrace.Mark("initial-launch-options.applied");
         _startupTrace.Mark("main-window-constructor.completed");
     }
 
@@ -200,14 +198,15 @@ public sealed partial class MainWindow : Window, IDisposable
         try
         {
             var catalogWarmup = Task.Run(
-                () => PrimeDeferredCatalogs(
-                    viewModel.WorkflowSession.SelectedIc,
-                    viewModel.WorkflowSession.SelectedNumber,
-                    startupCancellation),
+                () => _hostServices.WarmCanonicalCapabilities(startupCancellation),
                 startupCancellation);
+            await catalogWarmup;
+            viewModel.PublishCanonicalCatalogState();
+            _startupTrace.Mark("startup-warmup.catalog-state.published");
+            ApplyLaunchPage(viewModel, _launchOptions.Page);
+            _startupTrace.Mark("startup-launch-page.ready");
             await ApplyDeferredLaunchOptionsAsync(viewModel, _launchOptions, startupCancellation);
             _startupTrace.Mark("startup-launch-options.ready");
-            await catalogWarmup;
             await viewModel.MessageCenter.RefreshAfterStartupAsync(startupCancellation);
             if (viewModel.IsSettingsVisible)
             {
@@ -224,7 +223,7 @@ public sealed partial class MainWindow : Window, IDisposable
         }
         catch (Exception exception)
         {
-            // Warm-up is a best-effort latency optimization. Navigation keeps its existing first-use path.
+            // Catalog-backed entry stays unavailable when its canonical publication cannot be established.
             Trace.TraceWarning("Deferred shell warm-up did not complete: {0}", exception.Message);
             _ = _startupTrace.Complete("startup-warmup.failed");
         }

@@ -4,6 +4,17 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ## [Unreleased]
 
+### Changed
+
+- `v0.10.4` startup now shows the meaningful Home window before canonical
+  capability publication. The existing post-open worker warm publishes the
+  canonical IC/default/profile choices back on the UI thread and only then
+  enables Home workflow entry; no profile, support, firmware range, output
+  byte, naming, or golden authority changes.
+- The controlled exact `win-x64` candidate acceptance target is one unscored
+  warm-up plus five Home launches with a process-to-window median at or below
+  700 ms; the first cold launch remains separately recorded.
+
 ## [0.10.3] - 2026-08-11
 
 ### Summary

@@ -3,6 +3,7 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Diagnostics;
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -22,15 +23,17 @@ public sealed partial class ShellViewModelTests
             new StubRuntimeProbe(),
             new StubClock());
         var exporter = new CapturingDiagnosticsExporter();
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
         MainWindowViewModel viewModel = new(
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("0.10.3-test"),
+            services,
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: exporter);
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
 
         Assert.Equal(1, viewModel.MessageCenter.ActiveBadgeCount);
         Assert.NotNull(viewModel.MessageCenter.GlobalBuildBlocker);
@@ -71,15 +74,17 @@ public sealed partial class ShellViewModelTests
             catalog,
             new StubRuntimeProbe(),
             new StubClock());
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
         MainWindowViewModel viewModel = new(
             "test",
             "0.10.3-test",
             ShellLanguage.ChineseTraditional,
-            PresentationTestHost.CreateServices("0.10.3-test"),
+            services,
             static (_, _) => null,
             static (_, _) => [],
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         viewModel.MessageCenter.OpenCommand.Execute(null);
 
         Assert.True(viewModel.MessageCenter.IsOpen);
@@ -309,15 +314,17 @@ public sealed partial class ShellViewModelTests
             reloader,
             new StubRuntimeProbe(),
             new StubClock());
-        return new MainWindowViewModel(
+        PresentationHostServices services = PresentationTestHost.CreateServices("0.10.3-test");
+        var viewModel = new MainWindowViewModel(
             "test",
             "0.10.3-test",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("0.10.3-test"),
+            services,
             static (_, _) => null,
             firmwareInspectionReader,
             systemInformationService: diagnostics,
             systemDiagnosticsExporter: new CapturingDiagnosticsExporter());
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
 
     private static CanonicalSupportMatrixQueryResult Result(

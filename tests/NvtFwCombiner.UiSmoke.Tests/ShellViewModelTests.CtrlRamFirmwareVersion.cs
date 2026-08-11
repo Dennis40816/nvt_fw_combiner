@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -368,14 +369,22 @@ public sealed partial class ShellViewModelTests
         TempWorkspace workspace,
         Func<string, string, FirmwareConfigMetadataSnapshot?>? firmwareConfigMetadataReader = null)
     {
-        MainWindowViewModel viewModel = firmwareConfigMetadataReader is null
-            ? PresentationTestHost.CreateViewModel()
-            : new MainWindowViewModel(
+        MainWindowViewModel viewModel;
+        if (firmwareConfigMetadataReader is null)
+        {
+            viewModel = PresentationTestHost.CreateViewModel();
+        }
+        else
+        {
+            PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
+            viewModel = new MainWindowViewModel(
                 "test-shell",
                 "test-app",
                 ShellLanguage.English,
-                PresentationTestHost.CreateServices("test-app"),
+                services,
                 firmwareConfigMetadataReader);
+            _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
+        }
         viewModel.WorkflowSession.SelectedIc = "NT51926";
         viewModel.WorkflowSession.SelectedNumber = "cascade";
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);

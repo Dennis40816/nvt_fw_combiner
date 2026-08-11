@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Ports;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -434,14 +435,16 @@ public sealed partial class ShellViewModelTests
 
     private static MainWindowViewModel CreateFileRevealViewModel(IFileRevealService fileRevealService)
     {
-        return new MainWindowViewModel(
+        PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
+        var viewModel = new MainWindowViewModel(
             "test-shell",
             "test-app",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("test-app"),
+            services,
             static (_, _) => null,
             TestHost.FirmwareInspectionExperience.InspectFirmwareBatch,
             fileRevealService);
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
 
     private static CompositionRunResult CreateRunResult(
