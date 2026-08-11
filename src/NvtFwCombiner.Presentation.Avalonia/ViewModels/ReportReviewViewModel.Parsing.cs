@@ -5,75 +5,156 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseInputs(
+    internal static IReadOnlyList<ReportLineViewModel> ProjectInputs(
+        IReadOnlyList<InputArtifactSummary> inputs,
+        CancellationToken cancellationToken)
+    {
+        return ProjectLines(
+            inputs,
+            static input => CreateInputLine(input.AddressSpaceId, input.ArtifactId, input.Size),
+            cancellationToken);
+    }
+
+    private static List<ReportLineViewModel> ParseInputs(
         JsonElement root,
         CancellationToken cancellationToken)
     {
-        return !root.TryGetProperty(nameof(Inputs), out JsonElement inputs) || inputs.ValueKind != JsonValueKind.Array
+        return !root.TryGetProperty(nameof(Inputs), out JsonElement inputs) ||
+            inputs.ValueKind != JsonValueKind.Array
             ? []
-            :
-            [
-                .. inputs.EnumerateArray().Select(input =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    string addressSpaceId = GetString(input, "AddressSpaceId");
-                    string artifactId = GetString(input, "ArtifactId");
-                    long size = GetLong(input, "Size");
-                    string role = FormatInputRole(addressSpaceId);
-                    return new ReportLineViewModel(
-                        FormatInputTitle(addressSpaceId, artifactId),
-                        string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId,
-                        addressSpaceId,
-                        classification: ClassifyInput(addressSpaceId),
-                        inputRole: role,
-                        inputSizeLabel: $"{size} bytes",
-                        inputAddressSpace: addressSpaceId);
-                }),
-            ];
+            : ProjectLines(
+                inputs.EnumerateArray(),
+                static input => CreateInputLine(
+                    GetString(input, "AddressSpaceId"),
+                    GetString(input, "ArtifactId"),
+                    GetLong(input, "Size")),
+                cancellationToken);
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseMutations(
+    private static ReportLineViewModel CreateInputLine(
+        string addressSpaceId,
+        string artifactId,
+        long size)
+    {
+        return new ReportLineViewModel(
+            FormatInputTitle(addressSpaceId, artifactId),
+            string.IsNullOrWhiteSpace(artifactId) ? addressSpaceId : artifactId,
+            addressSpaceId,
+            classification: ClassifyInput(addressSpaceId),
+            inputRole: FormatInputRole(addressSpaceId),
+            inputSizeLabel: $"{size} bytes",
+            inputAddressSpace: addressSpaceId);
+    }
+
+    private static List<ReportLineViewModel> ParseMutations(
         JsonElement root,
         CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Mutations), out JsonElement mutations) ||
-               mutations.ValueKind != JsonValueKind.Array
+            mutations.ValueKind != JsonValueKind.Array
             ? []
-            :
-            [
-                .. mutations.EnumerateArray().Select(mutation =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return new ReportLineViewModel(
-                        GetString(mutation, "OperationId"),
-                        $"{GetString(mutation, "TargetSpaceId")} {GetRangeOrNull(mutation, "TargetRange")} changed={GetLong(mutation, "ChangedByteCount")}",
-                        $"{GetString(mutation, "BeforeSha256")} -> {GetString(mutation, "AfterSha256")}");
-                }),
-            ];
+            : ProjectLines(
+                mutations.EnumerateArray(),
+                static mutation => CreateMutationLine(
+                    GetString(mutation, "OperationId"),
+                    GetString(mutation, "TargetSpaceId"),
+                    GetRangeOrNull(mutation, "TargetRange") ?? string.Empty,
+                    GetLong(mutation, "ChangedByteCount"),
+                    GetString(mutation, "BeforeSha256"),
+                    GetString(mutation, "AfterSha256")),
+                cancellationToken);
     }
 
-    private static IReadOnlyList<ReportLineViewModel> ParseIssues(
+    internal static IReadOnlyList<ReportLineViewModel> ProjectMutations(
+        IReadOnlyList<MutationRunSummary> mutations,
+        CancellationToken cancellationToken)
+    {
+        return ProjectLines(
+            mutations,
+            static mutation => CreateMutationLine(
+                    mutation.OperationId,
+                    mutation.TargetSpaceId,
+                    FormatRange(mutation.TargetRange),
+                    mutation.ChangedByteCount,
+                    mutation.BeforeSha256,
+                    mutation.AfterSha256),
+            cancellationToken);
+    }
+
+    private static ReportLineViewModel CreateMutationLine(
+        string operationId,
+        string targetSpaceId,
+        string targetRange,
+        long changedByteCount,
+        string beforeSha256,
+        string afterSha256)
+    {
+        return new ReportLineViewModel(
+            operationId,
+            $"{targetSpaceId} {targetRange} changed={changedByteCount}",
+            $"{beforeSha256} -> {afterSha256}");
+    }
+
+    private static List<ReportLineViewModel> ParseIssues(
         JsonElement root,
         CancellationToken cancellationToken)
     {
-        return !root.TryGetProperty(nameof(Issues), out JsonElement issues) || issues.ValueKind != JsonValueKind.Array
+        return !root.TryGetProperty(nameof(Issues), out JsonElement issues) ||
+            issues.ValueKind != JsonValueKind.Array
             ? []
-            :
-            [
-                .. issues.EnumerateArray().Select(issue =>
+            : ProjectLines(
+                issues.EnumerateArray(),
+                issue =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
                     string code = GetString(issue, "Code");
                     string severity = GetStringOrNull(issue, "Severity") ??
                         GetStringOrNull(issue, "severity") ??
                         LegacySeverityForIssueCode(code);
-                    return new ReportLineViewModel(
+                    return CreateIssueLine(
                         code,
                         GetString(issue, "Message"),
                         GetStringOrNull(issue, "OperationId") ?? "run",
-                        severity: severity);
-                }),
-            ];
+                        severity);
+                },
+                cancellationToken);
+    }
+
+    internal static IReadOnlyList<ReportLineViewModel> ProjectIssues(
+        IReadOnlyList<CompositionIssue> issues,
+        CancellationToken cancellationToken)
+    {
+        return ProjectLines(
+            issues,
+            static issue => CreateIssueLine(
+                    issue.Code,
+                    issue.Message,
+                    issue.OperationId ?? "run",
+                    issue.Severity),
+            cancellationToken);
+    }
+
+    private static List<ReportLineViewModel> ProjectLines<T>(
+        IEnumerable<T> source,
+        Func<T, ReportLineViewModel> project,
+        CancellationToken cancellationToken)
+    {
+        List<ReportLineViewModel> lines = [];
+        foreach (T item in source)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lines.Add(project(item));
+        }
+
+        return lines;
+    }
+
+    private static ReportLineViewModel CreateIssueLine(
+        string code,
+        string message,
+        string operationId,
+        string severity)
+    {
+        return new ReportLineViewModel(code, message, operationId, severity: severity);
     }
 
     private static string LegacySeverityForIssueCode(string code)
@@ -125,6 +206,13 @@ public sealed partial class ReportReviewViewModel
             ? committedElement.GetBoolean() ? "committed" : "preview"
             : "unknown";
         return $"{GetString(output, "FileName")} / {GetLong(output, "Size")} bytes / {committed}";
+    }
+
+    internal static string ProjectOutput(OutputArtifactSummary? output)
+    {
+        return output is null
+            ? "No output"
+            : $"{output.FileName} / {output.Size} bytes / {(output.Committed ? "committed" : "preview")}";
     }
 
     private static string GetOutputString(JsonElement root, string propertyName)

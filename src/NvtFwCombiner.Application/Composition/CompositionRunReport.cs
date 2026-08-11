@@ -60,10 +60,10 @@ public sealed class CompositionRunReport
         CompositionKind = compositionKind;
         StartedAtUtc = startedAtUtc;
         CompletedAtUtc = completedAtUtc;
-        Inputs = inputs;
-        Operations = operations;
-        Mutations = mutations;
-        Issues = issues;
+        Inputs = [.. inputs];
+        Operations = [.. operations];
+        Mutations = [.. mutations];
+        Issues = [.. issues];
         Output = output;
         OutputDifferences = outputDifferences is null ? [] : [.. outputDifferences];
         CompilationFingerprint = compilationFingerprint;

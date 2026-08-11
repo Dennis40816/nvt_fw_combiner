@@ -6,6 +6,100 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ShellViewModelTests
 {
+    /// <summary>Live typed reports and reopened JSON reports project the same review evidence.</summary>
+    [Fact]
+    public async Task LiveTypedReportProjectionMatchesPersistedJsonProjection()
+    {
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        string json = CompositionRunReportJson.Serialize(result);
+        var persisted = ReportReviewViewModel.FromJsonCancellable(
+            json,
+            "persisted report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            TestContext.Current.CancellationToken);
+        var live = ReportReviewViewModel.FromReportCancellable(
+            result.Report,
+            suppressOutput: false,
+            "live report",
+            result.CommittedOutputId,
+            result.InspectionSnapshot,
+            ShellLanguage.English,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(persisted.ProfileId, live.ProfileId);
+        Assert.Equal(persisted.IcId, live.IcId);
+        Assert.Equal(persisted.ModeId, live.ModeId);
+        Assert.Equal(persisted.ExperienceId, live.ExperienceId);
+        Assert.Equal(persisted.CompositionKind, live.CompositionKind);
+        Assert.Equal(persisted.RunId, live.RunId);
+        Assert.Equal(persisted.StartedAtUtc, live.StartedAtUtc);
+        Assert.Equal(persisted.Status, live.Status);
+        Assert.Equal(persisted.Output, live.Output);
+        Assert.Equal(persisted.OutputFileName, live.OutputFileName);
+        Assert.Equal(persisted.OutputSize, live.OutputSize);
+        Assert.Equal(persisted.OutputCommitmentLabel, live.OutputCommitmentLabel);
+        Assert.Equal(persisted.OutputSha256, live.OutputSha256);
+        Assert.Equal(persisted.Inputs.Select(ToReportLineSignature), live.Inputs.Select(ToReportLineSignature));
+        Assert.Equal(persisted.Operations.Select(ToReportLineSignature), live.Operations.Select(ToReportLineSignature));
+        Assert.Equal(persisted.Mutations.Select(ToReportLineSignature), live.Mutations.Select(ToReportLineSignature));
+        Assert.Equal(persisted.Issues.Select(ToReportLineSignature), live.Issues.Select(ToReportLineSignature));
+        Assert.Equal(
+            persisted.OutputDifferenceGroups.Select(static group => (group.Title, group.Detail, group.Status)),
+            live.OutputDifferenceGroups.Select(static group => (group.Title, group.Detail, group.Status)));
+        Assert.Equal(
+            persisted.OutputDifferenceSummaryRows.Select(static row => (row.Label, row.Count, row.Status, row.Detail)),
+            live.OutputDifferenceSummaryRows.Select(static row => (row.Label, row.Count, row.Status, row.Detail)));
+        Assert.Equal(0, live.MaterializedOutputDifferenceCount);
+        Assert.Equal(
+            persisted.OutputDifferences.Select(ToReportLineSignature),
+            live.OutputDifferences.Select(ToReportLineSignature));
+        Assert.Equal(persisted.HexDiff.HasDifferenceWorkspace, live.HexDiff.HasDifferenceWorkspace);
+        Assert.Equal(persisted.HexDiff.TotalRowCount, live.HexDiff.TotalRowCount);
+        Assert.Equal(persisted.HexDiff.TotalByteCount, live.HexDiff.TotalByteCount);
+    }
+
+    private static string ToReportLineSignature(ReportLineViewModel line)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            line.Title,
+            line.Detail,
+            line.Meta,
+            line.CodeBlock,
+            line.CodeBlockLabel,
+            line.OperationKind,
+            line.OperationSource,
+            line.OperationTarget,
+            line.OperationProcessor,
+            line.OperationStatus,
+            line.Severity,
+            line.Classification,
+            line.IsAccepted,
+            line.Range,
+            line.ChangedSummary,
+            line.Reason,
+            line.SectionLabel,
+            line.BeforeLabel,
+            line.BeforeValue,
+            line.AfterLabel,
+            line.AfterValue,
+            line.InputRole,
+            line.InputSizeLabel,
+            line.InputAddressSpace,
+            Badges = line.Badges.Select(static badge => badge.Text),
+            Facts = line.Facts.Select(static fact => new { fact.Label, fact.Value, fact.IsTechnical }),
+            Ranges = line.RangeRows.Select(static row => new { row.Kind, row.AddressSpace, row.Range, row.Source }),
+            Commands = line.RuntimeCommands.Select(static command => new
+            {
+                command.Title,
+                command.ArgumentListEvidence,
+                command.WorkingDirectoryDetail,
+            }),
+        });
+    }
+
     /// <summary>Large reports retain complete evidence while deferring unexpanded difference row models.</summary>
     [Fact]
     public async Task LargeChangeReportUsesBoundedPagesAndKeepsCompleteJson()

@@ -1,5 +1,3 @@
-using NvtFwCombiner.Application.ExternalTools;
-
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
 /// <summary>Process launch request prepared by infrastructure from an approved manifest.</summary>

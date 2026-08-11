@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Contracts.Reports;
-using NvtFwCombiner.Presentation.Avalonia.HexViewport;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -36,24 +35,105 @@ public sealed partial class ReportReviewViewModel
             throw new JsonException("OutputDifferences JSON indexing did not preserve every report entry.");
         }
 
-        var rows = new MemoizedIndexedReadOnlyList<ReportLineViewModel>(
-            count,
-            index => ParseOutputDifference(reportJson, slices[index], language));
-        var groupBySection = new Dictionary<string, DifferenceGroupBuilder>(StringComparer.Ordinal);
-        var groupOrder = new List<DifferenceGroupBuilder>();
-        var summaryBySection = new Dictionary<string, DifferenceSummaryBuilder>(StringComparer.Ordinal);
-        var summaryOrder = new List<DifferenceSummaryBuilder>();
-        var hexDiffDescriptors = new ReportHexDiffRangeDescriptor[count];
-        int acceptedCount = 0;
+        var items = new OutputDifferenceProjectionItem[count];
         int index = 0;
         foreach (JsonElement difference in differences.EnumerateArray())
         {
             cancellationToken.ThrowIfCancellationRequested();
             string classification = GetString(difference, "Classification");
-            string sectionLabel = GetOutputDifferenceSectionLabel(difference, classification, language);
-            string groupLabel = string.IsNullOrWhiteSpace(sectionLabel)
-                ? FormatDifferenceSectionLabel(classification, language)
-                : sectionLabel;
+            bool hasTypedRange = TryGetHexDiffRange(
+                difference,
+                out long rangeStart,
+                out long rangeLength,
+                out long rangeEndExclusive);
+            items[index++] = new OutputDifferenceProjectionItem(
+                classification,
+                GetOutputDifferenceSectionLabel(difference, classification, language),
+                hasTypedRange ? rangeStart : -1,
+                hasTypedRange ? rangeLength : 0,
+                hasTypedRange ? rangeEndExclusive : -1,
+                GetLong(difference, "ChangedByteCount"),
+                IsAcceptedOutputDifference(difference, classification));
+        }
+
+        return CreateOutputDifferenceProjection(
+            items,
+            index => ParseOutputDifference(reportJson, slices[index], language),
+            (sourceIndex, descriptor) => ParseHexDiffRange(
+                reportJson,
+                slices[sourceIndex],
+                descriptor,
+                outputSpaceId,
+                outputSize,
+                language),
+            outputSpaceId,
+            language,
+            cancellationToken);
+    }
+
+    internal static OutputDifferenceProjection ProjectOutputDifferences(
+        IReadOnlyList<OutputDifferenceSummary> differences,
+        string outputSpaceId,
+        long outputSize,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        if (differences.Count == 0)
+        {
+            return OutputDifferenceProjection.Empty;
+        }
+
+        var items = new OutputDifferenceProjectionItem[differences.Count];
+        for (int index = 0; index < differences.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            OutputDifferenceSummary difference = differences[index];
+            items[index] = new OutputDifferenceProjectionItem(
+                difference.Classification,
+                GetOutputDifferenceSectionLabel(difference, language),
+                difference.Range.Start,
+                difference.Range.Length,
+                difference.Range.EndExclusive,
+                difference.ChangedByteCount,
+                IsAcceptedOutputDifference(difference));
+        }
+
+        return CreateOutputDifferenceProjection(
+            items,
+            index => ProjectOutputDifference(differences[index], language),
+            (sourceIndex, descriptor) => ProjectHexDiffRange(
+                differences[sourceIndex],
+                descriptor,
+                outputSpaceId,
+                outputSize,
+                language),
+            outputSpaceId,
+            language,
+            cancellationToken);
+    }
+
+    private static OutputDifferenceProjection CreateOutputDifferenceProjection(
+        IReadOnlyList<OutputDifferenceProjectionItem> items,
+        Func<int, ReportLineViewModel> rowFactory,
+        Func<int, ReportHexDiffRangeDescriptor, ReportHexDiffRangeViewModel> hexDiffRowFactory,
+        string outputSpaceId,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        var rows = new MemoizedIndexedReadOnlyList<ReportLineViewModel>(items.Count, rowFactory);
+        var groupBySection = new Dictionary<string, DifferenceGroupBuilder>(StringComparer.Ordinal);
+        var groupOrder = new List<DifferenceGroupBuilder>();
+        var summaryBySection = new Dictionary<string, DifferenceSummaryBuilder>(StringComparer.Ordinal);
+        var summaryOrder = new List<DifferenceSummaryBuilder>();
+        var hexDiffDescriptors = new ReportHexDiffRangeDescriptor[items.Count];
+        int acceptedCount = 0;
+        for (int index = 0; index < items.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            OutputDifferenceProjectionItem item = items[index];
+            string groupLabel = string.IsNullOrWhiteSpace(item.SectionLabel)
+                ? FormatDifferenceSectionLabel(item.Classification, language)
+                : item.SectionLabel;
             if (!groupBySection.TryGetValue(groupLabel, out DifferenceGroupBuilder? group))
             {
                 group = new DifferenceGroupBuilder(groupLabel);
@@ -61,9 +141,9 @@ public sealed partial class ReportReviewViewModel
                 groupOrder.Add(group);
             }
 
-            string summaryLabel = string.IsNullOrWhiteSpace(sectionLabel)
+            string summaryLabel = string.IsNullOrWhiteSpace(item.SectionLabel)
                 ? T(language, "Unclassified changes", "未分類差異")
-                : sectionLabel;
+                : item.SectionLabel;
             if (!summaryBySection.TryGetValue(summaryLabel, out DifferenceSummaryBuilder? summary))
             {
                 summary = new DifferenceSummaryBuilder(summaryLabel);
@@ -72,20 +152,14 @@ public sealed partial class ReportReviewViewModel
             }
 
             group.SourceIndices.Add(index);
-            bool isAccepted = IsAcceptedOutputDifference(difference, classification);
-            bool hasTypedRange = TryGetHexDiffRange(
-                difference,
-                out long rangeStart,
-                out long rangeLength,
-                out long rangeEndExclusive);
             hexDiffDescriptors[index] = new ReportHexDiffRangeDescriptor(
                 index,
-                hasTypedRange ? rangeStart : -1,
-                hasTypedRange ? rangeLength : 0,
-                hasTypedRange ? rangeEndExclusive : -1,
-                GetLong(difference, "ChangedByteCount"),
-                isAccepted);
-            if (isAccepted)
+                item.Start,
+                item.Length,
+                item.EndExclusive,
+                item.ChangedByteCount,
+                item.IsAccepted);
+            if (item.IsAccepted)
             {
                 group.AcceptedCount++;
                 summary.AcceptedCount++;
@@ -96,8 +170,6 @@ public sealed partial class ReportReviewViewModel
                 group.ReviewCount++;
                 summary.ReviewCount++;
             }
-
-            index++;
         }
 
         var groups = new List<ReportDifferenceGroupViewModel>(groupOrder.Count);
@@ -137,23 +209,15 @@ public sealed partial class ReportReviewViewModel
                     : T(language, "contains a difference that needs review", "包含需要審查的差異")));
         }
 
-        ReportHexDiffRangeViewModel hexDiffRowFactory(int sourceIndex)
-        {
-            return ParseHexDiffRange(
-                reportJson,
-                slices[sourceIndex],
-                hexDiffDescriptors[sourceIndex],
-                outputSpaceId,
-                outputSize,
-                language);
-        }
-
         return new OutputDifferenceProjection(
             rows,
             groups,
             summaryRows,
             acceptedCount,
-            new ReportHexDiffSource(hexDiffDescriptors, outputSpaceId, hexDiffRowFactory));
+            new ReportHexDiffSource(
+                hexDiffDescriptors,
+                outputSpaceId,
+                sourceIndex => hexDiffRowFactory(sourceIndex, hexDiffDescriptors[sourceIndex])));
     }
 
     private static ReportLineViewModel ParseOutputDifference(
@@ -239,92 +303,61 @@ public sealed partial class ReportReviewViewModel
             afterValue: after);
     }
 
-    private static ReportHexDiffRangeViewModel ParseHexDiffRange(
-        string reportJson,
-        JsonValueSlice slice,
-        ReportHexDiffRangeDescriptor descriptor,
-        string outputSpaceId,
-        long outputSize,
+    private static ReportLineViewModel ProjectOutputDifference(
+        OutputDifferenceSummary difference,
         ShellLanguage language)
     {
-        using var document = JsonDocument.Parse(reportJson.AsMemory(slice.CharStart, slice.CharLength));
-        JsonElement difference = document.RootElement;
-        ReportLineViewModel detail = ParseOutputDifference(difference, language);
-        OutputDifferenceReplaySegment? replay = ParseHexDiffReplay(
-            difference,
-            descriptor,
-            outputSize);
-        return new ReportHexDiffRangeViewModel(
-            descriptor,
-            detail,
-            outputSpaceId,
-            language,
-            replay);
-    }
-
-    private static OutputDifferenceReplaySegment? ParseHexDiffReplay(
-        JsonElement difference,
-        ReportHexDiffRangeDescriptor descriptor,
-        long outputSize)
-    {
-        if (!difference.TryGetProperty("Replay", out JsonElement replay) ||
-            replay.ValueKind != JsonValueKind.Object ||
-            !TryGetHexDiffRange(replay, out long start, out long length, out long endExclusive) ||
-            start < 0 || length <= 0 || start > long.MaxValue - length ||
-            endExclusive != start + length ||
-            start % HexViewportSnapshot.BytesPerRow != 0)
-        {
-            return null;
-        }
-
-        string? beforeBase64 = GetStringOrNull(replay, "BeforeBytes");
-        string? afterBase64 = GetStringOrNull(replay, "AfterBytes");
-        string? replayBeforeSha256 = GetStringOrNull(replay, "BeforeSha256");
-        string? replayAfterSha256 = GetStringOrNull(replay, "AfterSha256");
-        string? differenceBeforeSha256 = GetStringOrNull(difference, "BeforeSha256");
-        string? differenceAfterSha256 = GetStringOrNull(difference, "AfterSha256");
-        if (string.IsNullOrWhiteSpace(beforeBase64) ||
-            string.IsNullOrWhiteSpace(afterBase64) ||
-            string.IsNullOrWhiteSpace(replayBeforeSha256) ||
-            string.IsNullOrWhiteSpace(replayAfterSha256) ||
-            string.IsNullOrWhiteSpace(differenceBeforeSha256) ||
-            string.IsNullOrWhiteSpace(differenceAfterSha256))
-        {
-            return null;
-        }
-
-        try
-        {
-            if (descriptor.Start < start ||
-                descriptor.Length > length ||
-                descriptor.Start > endExclusive - descriptor.Length)
-            {
-                return null;
-            }
-
-            var segment = new OutputDifferenceReplaySegment(
-                start,
-                Convert.FromBase64String(beforeBase64),
-                Convert.FromBase64String(afterBase64));
-            return string.Equals(segment.BeforeSha256, replayBeforeSha256, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(segment.AfterSha256, replayAfterSha256, StringComparison.OrdinalIgnoreCase) &&
-                segment.MatchesPersistableAlignedContext(
-                    outputSize,
-                    descriptor.Start,
-                    descriptor.Length) &&
-                segment.MatchesDifferenceEvidence(
-                    descriptor.Start,
-                    descriptor.Length,
-                    descriptor.ChangedByteCount,
-                    differenceBeforeSha256,
-                    differenceAfterSha256)
-                ? segment
-                : null;
-        }
-        catch (Exception exception) when (exception is ArgumentException or FormatException or OverflowException)
-        {
-            return null;
-        }
+        bool accepted = IsAcceptedOutputDifference(difference);
+        bool hasHex = !string.IsNullOrWhiteSpace(difference.BeforeHexPreview) ||
+            !string.IsNullOrWhiteSpace(difference.AfterHexPreview);
+        int displayLimit = !difference.IsHexPreviewComplete && difference.HexPreviewByteCount > 0
+            ? Math.Min(difference.HexPreviewByteCount, MaximumRenderedHexPreviewBytes)
+            : MaximumRenderedHexPreviewBytes;
+        FormattedHexPreview beforePreview = FormatBytePreview(difference.BeforeHexPreview, displayLimit);
+        FormattedHexPreview afterPreview = FormatBytePreview(difference.AfterHexPreview, displayLimit);
+        bool isHexComplete = difference.IsHexPreviewComplete &&
+            beforePreview.IsComplete &&
+            afterPreview.IsComplete;
+        long displayedByteCount = isHexComplete
+            ? Math.Max(beforePreview.ByteCount, afterPreview.ByteCount)
+            : difference.HexPreviewByteCount > 0
+                ? Math.Min(difference.HexPreviewByteCount, MaximumRenderedHexPreviewBytes)
+                : Math.Max(beforePreview.ByteCount, afterPreview.ByteCount);
+        string sectionLabel = GetOutputDifferenceSectionLabel(difference, language);
+        string reason = !string.IsNullOrWhiteSpace(difference.Semantic?.Explanation)
+            ? difference.Semantic.Explanation
+            : FormatDifferenceReason(difference.Classification, accepted, sectionLabel, language);
+        string title = !string.IsNullOrWhiteSpace(difference.Semantic?.SubjectLabel)
+            ? difference.Semantic.SubjectLabel
+            : difference.DifferenceId;
+        return new ReportLineViewModel(
+            title,
+            reason,
+            difference.DifferenceId,
+            badges:
+            [
+                new ReportLineBadgeViewModel(accepted ? T(language, "expected", "預期") : T(language, "review", "待審查")),
+                new ReportLineBadgeViewModel(FormatDifferenceClassification(difference.Classification, language)),
+            ],
+            facts: CreateOutputDifferenceFacts(
+                language,
+                reason,
+                difference.Semantic?.SubjectId ?? string.Empty,
+                difference.Evidence),
+            classification: difference.Classification,
+            isAccepted: accepted,
+            range: FormatRange(difference.Range),
+            changedSummary: FormatChangedBytes(difference.ChangedByteCount, language),
+            reason: reason,
+            sectionLabel: sectionLabel,
+            beforeLabel: hasHex
+                ? FormatByteValueLabel(isBefore: true, isComplete: isHexComplete, displayedByteCount, language)
+                : T(language, "Before range hash", "變更前 range hash"),
+            beforeValue: hasHex ? beforePreview.Value : difference.BeforeSha256,
+            afterLabel: hasHex
+                ? FormatByteValueLabel(isBefore: false, isComplete: isHexComplete, displayedByteCount, language)
+                : T(language, "After range hash", "變更後 range hash"),
+            afterValue: hasHex ? afterPreview.Value : difference.AfterSha256);
     }
 
     private static string FormatDifferenceClassification(string classification, ShellLanguage language)
@@ -377,6 +410,21 @@ public sealed partial class ReportReviewViewModel
                 : FormatDifferenceSectionLabel(classification, language));
     }
 
+    private static string GetOutputDifferenceSectionLabel(
+        OutputDifferenceSummary difference,
+        ShellLanguage language)
+    {
+        string? parentLabel = difference.Semantic?.ParentLabel;
+        string? categoryLabel = difference.Semantic?.CategoryLabel;
+        return !string.IsNullOrWhiteSpace(parentLabel)
+            ? parentLabel
+            : !string.IsNullOrWhiteSpace(difference.SectionLabel)
+                ? difference.SectionLabel
+                : !string.IsNullOrWhiteSpace(categoryLabel)
+                    ? categoryLabel
+                    : FormatDifferenceSectionLabel(difference.Classification, language);
+    }
+
     private static bool TryGetHexDiffRange(
         JsonElement difference,
         out long start,
@@ -397,6 +445,15 @@ public sealed partial class ReportReviewViewModel
         return GetBool(difference, "IsAccepted") &&
             !string.Equals(
                 classification,
+                OutputDifferenceClassifications.Unexpected,
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsAcceptedOutputDifference(OutputDifferenceSummary difference)
+    {
+        return difference.IsAccepted &&
+            !string.Equals(
+                difference.Classification,
                 OutputDifferenceClassifications.Unexpected,
                 StringComparison.Ordinal);
     }
@@ -539,7 +596,7 @@ public sealed partial class ReportReviewViewModel
         return new FormattedHexPreview(builder.ToString(), byteCount, IsComplete: true);
     }
 
-    private sealed class OutputDifferenceProjection
+    internal sealed class OutputDifferenceProjection
     {
         internal static OutputDifferenceProjection Empty { get; } = new(
             new MemoizedIndexedReadOnlyList<ReportLineViewModel>(
@@ -611,6 +668,15 @@ public sealed partial class ReportReviewViewModel
 
         internal bool IsAccepted => ReviewCount == 0;
     }
+
+    private readonly record struct OutputDifferenceProjectionItem(
+        string Classification,
+        string SectionLabel,
+        long Start,
+        long Length,
+        long EndExclusive,
+        long ChangedByteCount,
+        bool IsAccepted);
 
     private readonly record struct FormattedHexPreview(string Value, int ByteCount, bool IsComplete);
 }

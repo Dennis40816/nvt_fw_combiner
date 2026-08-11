@@ -1,4 +1,4 @@
-namespace NvtFwCombiner.Application.ExternalTools;
+namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>One completed external process invocation captured for run-report audit evidence.</summary>
 public sealed class ExternalProcessInvocation

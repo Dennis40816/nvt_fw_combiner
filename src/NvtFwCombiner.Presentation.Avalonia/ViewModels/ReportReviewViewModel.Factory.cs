@@ -41,6 +41,23 @@ public sealed partial class ReportReviewViewModel
             cancellationToken);
     }
 
+    internal static ReportReviewViewModel FromReportCancellable(
+        CompositionRunReport report,
+        bool suppressOutput,
+        string sourceName,
+        string? outputArtifactPath,
+        CompositionRunInspectionSnapshot? inspectionSnapshot,
+        ShellLanguage language,
+        CancellationToken cancellationToken) =>
+        ReportReviewTypedProjector.Project(
+            report,
+            suppressOutput,
+            sourceName,
+            outputArtifactPath,
+            inspectionSnapshot,
+            language,
+            cancellationToken);
+
     internal static ReportReviewViewModel FromJsonCancellable(
         string json,
         string sourceName,

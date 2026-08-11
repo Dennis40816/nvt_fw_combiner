@@ -1,55 +1,123 @@
 using System.Text.Json;
 using System.Text;
+using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static IReadOnlyList<ReportLineViewModel> ParseOperations(
+    internal static IReadOnlyList<ReportLineViewModel> ProjectOperations(
+        IReadOnlyList<OperationRunSummary> operations,
+        ShellLanguage language,
+        CancellationToken cancellationToken)
+    {
+        return ProjectLines(
+            operations,
+            operation => CreateOperationLine(
+                    new OperationProjection(
+                        operation.OperationId,
+                        operation.Sequence,
+                        operation.Kind.ToString(),
+                        operation.Status.ToString(),
+                        FormatEndpoint(
+                            operation.SourceSpaceId,
+                            operation.SourceRange is { } sourceRange ? FormatRange(sourceRange) : null),
+                        FormatEndpoint(operation.TargetSpaceId, FormatRange(operation.TargetRange)),
+                        operation.OverlapPolicy.ToString(),
+                        operation.ProcessorId,
+                        operation.ToolBindingId,
+                        operation.Reason,
+                        FormatOperationProvenance(operation.Provenance),
+                        CreateOperationRangeRows(operation),
+                        ProjectRuntimeCommands(operation.ExecutedCommands, language)),
+                    language),
+            cancellationToken);
+    }
+
+    private static List<ReportLineViewModel> ParseOperations(
         JsonElement root,
         ShellLanguage language,
         CancellationToken cancellationToken)
     {
         return !root.TryGetProperty(nameof(Operations), out JsonElement operations) ||
-               operations.ValueKind != JsonValueKind.Array
+            operations.ValueKind != JsonValueKind.Array
             ? []
-            :
-            [
-                .. operations.EnumerateArray().Select(operation =>
+            : ProjectLines(
+                operations.EnumerateArray(),
+                operation => CreateOperationLine(
+                    new OperationProjection(
+                        GetString(operation, "OperationId"),
+                        GetLong(operation, "Sequence"),
+                        GetString(operation, "Kind"),
+                        GetString(operation, nameof(Status)),
+                        FormatEndpoint(
+                            GetStringOrNull(operation, "SourceSpaceId"),
+                            GetRangeOrNull(operation, "SourceRange")),
+                        FormatEndpoint(
+                            GetString(operation, "TargetSpaceId"),
+                            GetRangeOrNull(operation, "TargetRange")),
+                        GetString(operation, "OverlapPolicy"),
+                        GetStringOrNull(operation, "ProcessorId"),
+                        GetStringOrNull(operation, "ToolBindingId"),
+                        GetString(operation, "Reason"),
+                        FormatOperationProvenance(operation),
+                        CreateOperationRangeRows(operation),
+                        ParseRuntimeCommands(operation, language)),
+                    language),
+                cancellationToken);
+    }
+
+    private static ReportLineViewModel CreateOperationLine(
+        OperationProjection operation,
+        ShellLanguage language)
+    {
+        bool hasStatus = !string.IsNullOrWhiteSpace(operation.Status);
+        string status = hasStatus ? operation.Status : "unknown";
+        string processor = operation.ProcessorId ?? operation.ToolBindingId ?? "-";
+        (string reasonSummary, string commandBlock) = ExtractCombinerCommand(operation.Reason);
+        List<ReportLineFactViewModel> facts =
+        [
+            new("Operation source", operation.Provenance, isTechnical: true),
+            new("Reason", reasonSummary),
+        ];
+        if (operation.ProcessorId is { } processorId)
+        {
+            facts.Add(new ReportLineFactViewModel("Processor", processorId, isTechnical: true));
+            if (operation.ToolBindingId is { } toolBindingId)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                string source = FormatEndpoint(GetStringOrNull(operation, "SourceSpaceId"), GetRangeOrNull(operation, "SourceRange"));
-                string target = FormatEndpoint(GetString(operation, "TargetSpaceId"), GetRangeOrNull(operation, "TargetRange"));
-                string kind = GetString(operation, "Kind");
-                string operationId = GetString(operation, "OperationId");
-                string? processorId = GetStringOrNull(operation, "ProcessorId");
-                string? toolBindingId = GetStringOrNull(operation, "ToolBindingId");
-                string processor = processorId ??
-                    toolBindingId ??
-                    "-";
-                string status = GetString(operation, nameof(Status));
-                string reason = GetString(operation, "Reason");
-                (string reasonSummary, string commandBlock) = ExtractCombinerCommand(reason);
-                IReadOnlyList<ReportRuntimeCommandViewModel> runtimeCommands = ParseRuntimeCommands(operation, language);
-                return new ReportLineViewModel(
-                    FormatOperationTitle(GetLong(operation, "Sequence"), kind, operationId),
-                    FormatOperationDetail(kind, target, processorId, toolBindingId),
-                    reasonSummary,
-                    commandBlock,
-                    CreateOperationBadges(operation),
-                    CreateOperationFacts(operation, reasonSummary),
-                    CreateOperationRangeRows(operation),
-                    operationKind: kind,
-                    operationSource: source,
-                    operationTarget: target,
-                    operationProcessor: processor,
-                    operationStatus: string.IsNullOrWhiteSpace(status) ? "unknown" : status,
-                    codeBlockLabel: string.IsNullOrWhiteSpace(commandBlock)
-                        ? string.Empty
-                        : T(language, "Profile-declared Combiner plan", "Profile 宣告的 Combiner 計畫"),
-                    runtimeCommands: runtimeCommands);
-            }),
-            ];
+                facts.Add(new ReportLineFactViewModel("Tool", toolBindingId, isTechnical: true));
+            }
+        }
+
+        return new ReportLineViewModel(
+            FormatOperationTitle(operation.Sequence, operation.Kind, operation.OperationId),
+            FormatOperationDetail(
+                operation.Kind,
+                operation.Target,
+                operation.ProcessorId,
+                operation.ToolBindingId),
+            reasonSummary,
+            commandBlock,
+            [
+                new ReportLineBadgeViewModel(hasStatus ? status : "status unknown"),
+                new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(operation.OverlapPolicy)
+                    ? "overlap unknown"
+                    : $"overlap {operation.OverlapPolicy}"),
+                new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(operation.Provenance)
+                    ? "source unknown"
+                    : operation.Provenance),
+            ],
+            facts,
+            operation.RangeRows,
+            operationKind: operation.Kind,
+            operationSource: operation.Source,
+            operationTarget: operation.Target,
+            operationProcessor: processor,
+            operationStatus: status,
+            codeBlockLabel: string.IsNullOrWhiteSpace(commandBlock)
+                ? string.Empty
+                : T(language, "Profile-declared Combiner plan", "Profile 宣告的 Combiner 計畫"),
+            runtimeCommands: operation.RuntimeCommands);
     }
 
     private static IReadOnlyList<ReportRuntimeCommandViewModel> ParseRuntimeCommands(
@@ -75,6 +143,23 @@ public sealed partial class ReportReviewViewModel
             ];
     }
 
+    private static IReadOnlyList<ReportRuntimeCommandViewModel> ProjectRuntimeCommands(
+        IReadOnlyList<ExternalProcessInvocation> commands,
+        ShellLanguage language)
+    {
+        return
+        [
+            .. commands.Select((command, index) => new ReportRuntimeCommandViewModel(
+                T(language, $"Runtime invocation {index + 1}", $"實際呼叫 {index + 1}"),
+                FormatRuntimeArgumentList(command),
+                T(
+                    language,
+                    $"Working directory: {FirmwarePathDisplay.Normalize(command.WorkingDirectory)}",
+                    $"工作目錄：{FirmwarePathDisplay.Normalize(command.WorkingDirectory)}"))),
+        ];
+    }
+
+
     private static string FormatRuntimeArgumentList(JsonElement command, string executablePath)
     {
         var builder = new StringBuilder($"exe: {executablePath}");
@@ -93,6 +178,22 @@ public sealed partial class ReportReviewViewModel
                 .Append(index++)
                 .Append("]: ")
                 .Append(argument.GetString() ?? string.Empty);
+        }
+
+        return builder.ToString();
+    }
+
+    private static string FormatRuntimeArgumentList(ExternalProcessInvocation command)
+    {
+        var builder = new StringBuilder($"exe: {FirmwarePathDisplay.Normalize(command.ExecutablePath)}");
+        for (int index = 0; index < command.Arguments.Count; index++)
+        {
+            _ = builder
+                .AppendLine()
+                .Append("argv[")
+                .Append(index)
+                .Append("]: ")
+                .Append(command.Arguments[index]);
         }
 
         return builder.ToString();
@@ -125,43 +226,6 @@ public sealed partial class ReportReviewViewModel
         return $"{tool}{processor} updates {target}";
     }
 
-    private static ReportLineBadgeViewModel[] CreateOperationBadges(JsonElement operation)
-    {
-        string status = GetString(operation, nameof(Status));
-        string overlapPolicy = GetString(operation, "OverlapPolicy");
-        string provenance = FormatOperationProvenance(operation);
-        return
-        [
-            new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(status) ? "status unknown" : status),
-            new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(overlapPolicy) ? "overlap unknown" : $"overlap {overlapPolicy}"),
-            new ReportLineBadgeViewModel(string.IsNullOrWhiteSpace(provenance) ? "source unknown" : provenance),
-        ];
-    }
-
-    private static List<ReportLineFactViewModel> CreateOperationFacts(
-        JsonElement operation,
-        string reasonSummary)
-    {
-        List<ReportLineFactViewModel> facts =
-        [
-            new("Operation source", FormatOperationProvenance(operation), isTechnical: true),
-            new("Reason", reasonSummary),
-        ];
-
-        if (GetStringOrNull(operation, "ProcessorId") is not { } processorId)
-        {
-            return facts;
-        }
-
-        facts.Add(new ReportLineFactViewModel("Processor", processorId, isTechnical: true));
-        if (GetStringOrNull(operation, "ToolBindingId") is { } toolBindingId)
-        {
-            facts.Add(new ReportLineFactViewModel("Tool", toolBindingId, isTechnical: true));
-        }
-
-        return facts;
-    }
-
     private static List<ReportRangeTableRowViewModel> CreateOperationRangeRows(JsonElement operation)
     {
         List<ReportRangeTableRowViewModel> rows = [];
@@ -192,6 +256,36 @@ public sealed partial class ReportReviewViewModel
             "Processor write",
             targetSpace,
             "postbuild write policy");
+        return rows;
+    }
+
+    private static List<ReportRangeTableRowViewModel> CreateOperationRangeRows(OperationRunSummary operation)
+    {
+        List<ReportRangeTableRowViewModel> rows = [];
+        if (operation.SourceSpaceId is { } sourceSpace && operation.SourceRange is { } sourceRange)
+        {
+            rows.Add(new ReportRangeTableRowViewModel(
+                "Source",
+                sourceSpace,
+                FormatRange(sourceRange),
+                "operation input"));
+        }
+
+        rows.Add(new ReportRangeTableRowViewModel(
+            "Target",
+            operation.TargetSpaceId,
+            FormatRange(operation.TargetRange),
+            "work image"));
+        rows.AddRange(operation.ProcessorAllowedReadRanges.Select(range => new ReportRangeTableRowViewModel(
+            "Processor read",
+            operation.TargetSpaceId,
+            FormatRange(range),
+            "postbuild read policy")));
+        rows.AddRange(operation.ProcessorAllowedWriteRanges.Select(range => new ReportRangeTableRowViewModel(
+            "Processor write",
+            operation.TargetSpaceId,
+            FormatRange(range),
+            "postbuild write policy")));
         return rows;
     }
 
@@ -255,6 +349,15 @@ public sealed partial class ReportReviewViewModel
             : string.IsNullOrWhiteSpace(sourceVersion) ? $"{kind}: {sourceId}" : $"{kind}: {sourceId}@{sourceVersion}";
     }
 
+    private static string FormatOperationProvenance(OperationProvenance provenance)
+    {
+        return string.IsNullOrWhiteSpace(provenance.SourceId)
+            ? provenance.Kind
+            : string.IsNullOrWhiteSpace(provenance.SourceVersion)
+                ? $"{provenance.Kind}: {provenance.SourceId}"
+                : $"{provenance.Kind}: {provenance.SourceId}@{provenance.SourceVersion}";
+    }
+
     private static string FormatEndpoint(string? addressSpaceId, string? range)
     {
         return string.IsNullOrWhiteSpace(addressSpaceId)
@@ -286,4 +389,19 @@ public sealed partial class ReportReviewViewModel
 
         return (summary, command);
     }
+
+    private readonly record struct OperationProjection(
+        string OperationId,
+        long Sequence,
+        string Kind,
+        string Status,
+        string Source,
+        string Target,
+        string OverlapPolicy,
+        string? ProcessorId,
+        string? ToolBindingId,
+        string Reason,
+        string Provenance,
+        IReadOnlyList<ReportRangeTableRowViewModel> RangeRows,
+        IReadOnlyList<ReportRuntimeCommandViewModel> RuntimeCommands);
 }

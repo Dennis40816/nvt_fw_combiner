@@ -5,7 +5,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 public sealed partial class ReportReviewViewModel
 {
-    private static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
+    internal static string CreateStatus(IReadOnlyList<ReportLineViewModel> issues, ShellLanguage language)
     {
         int blockingIssueCount = CountBlockingIssues(issues);
         int warningCount = CountWarnings(issues);
