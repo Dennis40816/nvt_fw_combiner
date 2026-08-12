@@ -6,8 +6,6 @@ public sealed partial class RepositoryBoundaryTests
     [Fact]
     public void StartupDiagnosticsStayPresentationLocalAndOptIn()
     {
-        AssertV0105PreloadBaselineIsFrozen();
-
         string session = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/StartupTraceSession.cs");
         string sink = ReadText(
@@ -78,6 +76,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("return [pscustomobject][ordered]@{", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool", runner, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Keeps the approved v0.10.5 preload intake evidence and migration ledger exact.</summary>
+    [Fact]
+    public void V0105PreloadBaselineAndLifecycleLedgerStayFrozen()
+    {
+        AssertV0105PreloadBaselineIsFrozen();
     }
 
     private static void AssertV0105PreloadBaselineIsFrozen()
@@ -191,6 +196,18 @@ public sealed partial class RepositoryBoundaryTests
         }
 
         Assert.Contains("at most **two workers**", baseline, StringComparison.Ordinal);
+        Assert.Contains(
+            "Every queued progress, terminal, dispatcher, and accessibility callback",
+            baseline,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "stage-state updates still carry the shell-session generation and stable",
+            baseline,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "stage id, but expose no current attempt identity until work is admitted",
+            baseline,
+            StringComparison.Ordinal);
         Assert.Contains("fake aggregate percentage", baseline, StringComparison.Ordinal);
         Assert.Contains("exactly one terminal outcome", baseline, StringComparison.Ordinal);
         Assert.Contains("third attempt deterministically evicts", baseline, StringComparison.Ordinal);
