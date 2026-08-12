@@ -102,11 +102,14 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    network/share, and release-policy contract remains deferred to a later owner
    specification discussion, so no implementation ticket is created yet.
 
-The complete refactoring release `v0.10.3` closed #197 and all applicable
-architecture, firmware-owner, Golden, package, clean-Windows, protected-CI, and
-release-owner gates before publication. The former fixed total and slice targets
-are dated planning benchmarks, not release gates. No roadmap entry may waive the
-retained gates or move, overwrite, or redefine an existing stable tag or asset.
+The complete refactoring release `v0.10.3` closed #197 and records the applicable
+architecture, firmware-owner, Golden, deterministic package/provenance,
+protected-CI, and release-owner gates before publication. Its published
+changelog retained visible clean-Windows smoke as an external attestation; this
+roadmap does not reconstruct or independently claim that evidence. The former
+fixed total and slice targets are dated planning benchmarks, not release gates.
+No roadmap entry may waive the retained gates or move, overwrite, or redefine an
+existing stable tag or asset.
 The later audit, performance, and update-experience releases do not reopen #197
 or weaken its retained gate.
 
