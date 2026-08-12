@@ -10,12 +10,15 @@ No unreleased changes.
 
 ### Summary
 
-This support-neutral release makes the Home window visible within the reviewed
-700 ms startup target, adds truthful foreground catalog progress and recovery,
+This support-neutral release makes the Home window visible before canonical
+catalog publication, adds truthful foreground catalog progress and recovery,
 repairs Dark-theme and reduced-motion presentation, removes more duplicate
 runtime paths, and keeps the complete Windows verification path within the
-owner-accepted five-minute CI budget. Firmware bytes, support status, profiles,
-schemas, naming, reports, and saved-data formats remain compatible.
+owner-accepted five-minute CI budget. A pre-integration release-identity package
+met the reviewed 700 ms target; the exact published package did not reproduce
+that absolute result after publication and the residual remains explicit.
+Firmware bytes, support status, profiles, schemas, naming, reports, and saved-
+data formats remain compatible.
 
 ### Product changes
 
@@ -40,10 +43,14 @@ schemas, naming, reports, and saved-data formats remain compatible.
   candidate passed closed-package smoke and, after one unscored warm-up,
   completed five scored launches in 639.263–664.913 ms with a 656.444 ms median;
   all five were within the 700 ms acceptance target. The separately recorded
-  unscored cold launch was 1516.926 ms.
-- Limitations: the 700 ms result is the controlled owner-machine package gate,
-  not a universal hardware guarantee. Unifying later optional preloads under
-  one bounded user-controlled lifecycle remains `v0.10.5` scope.
+  unscored cold launch was 1516.926 ms. After publication, the exact downloaded
+  package passed visible smoke but measured 777.090 ms and 806.930 ms medians.
+- Limitations: the exact stable package did not reproduce the 700 ms absolute
+  gate. An unchanged prior 656.444 ms control package measured 782.368 ms in the
+  same current environment, so the miss is not evidence of a queue-correction
+  regression, but the comparison does not waive the gate. Making the margin
+  robust and unifying optional preloads under one bounded user-controlled
+  lifecycle remain `v0.10.5` scope.
 
 #### Dark-theme, accessibility, and reduced-motion repair
 
@@ -131,9 +138,12 @@ firmware, credential, source tree, or unrestricted per-run executable path.
 
 ### Known issues
 
-- The unscored cold release-identity launch measured 1516.926 ms; the declared
-  700 ms gate covers the five scored launches after one unscored warm-up on the
-  controlled owner machine.
+- The exact downloaded stable package passed visible smoke, but two controlled
+  five-run observations measured 777.090 ms and 806.930 ms medians after one
+  unscored warm-up. The 700 ms absolute gate is therefore an open performance
+  residual. The unchanged prior control package also slowed from 656.444 ms to
+  782.368 ms in the same environment, so no package-specific regression is
+  inferred without stronger evidence.
 - Catalog loading is observable and recoverable, but optional report, system,
   inspection, and external-tool preloads do not yet share one bounded,
   user-controllable lifecycle; that convergence remains `v0.10.5` scope.
