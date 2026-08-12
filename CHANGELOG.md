@@ -36,11 +36,11 @@ schemas, naming, reports, and saved-data formats remain compatible.
   behavior, retry semantics, CLI behavior, output naming, report wire data, and
   firmware bytes remain unchanged. Workflow commands stay unavailable until
   the accepted catalog is published on the UI thread.
-- Verification: the exact compressed self-contained `win-x64` candidate passed
-  closed-package smoke and, after one unscored warm-up, completed five scored
-  launches in 665.410–695.633 ms with a 687.180 ms median; all five were within
-  the 700 ms acceptance target. The separately recorded first cold launch was
-  1040.087 ms.
+- Verification: the exact compressed self-contained `win-x64` release-identity
+  candidate passed closed-package smoke and, after one unscored warm-up,
+  completed five scored launches in 639.263–664.913 ms with a 656.444 ms median;
+  all five were within the 700 ms acceptance target. The separately recorded
+  unscored cold launch was 1516.926 ms.
 - Limitations: the 700 ms result is the controlled owner-machine package gate,
   not a universal hardware guarantee. Unifying later optional preloads under
   one bounded user-controlled lifecycle remains `v0.10.5` scope.
@@ -123,9 +123,9 @@ firmware, credential, source tree, or unrestricted per-run executable path.
 
 ### Known issues
 
-- The first cold launch measured 1040.087 ms; the declared 700 ms gate covers
-  the five scored launches after one unscored warm-up on the controlled owner
-  machine.
+- The unscored cold release-identity launch measured 1516.926 ms; the declared
+  700 ms gate covers the five scored launches after one unscored warm-up on the
+  controlled owner machine.
 - Catalog loading is observable and recoverable, but optional report, system,
   inspection, and external-tool preloads do not yet share one bounded,
   user-controllable lifecycle; that convergence remains `v0.10.5` scope.
