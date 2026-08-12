@@ -9,6 +9,7 @@ public sealed partial class XamlControlStyleContractTests
     public void MainWindowDefersInactivePageAndModalContent()
     {
         var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
+        var reportModal = XDocument.Parse(ReadPresentationFile("Views/ReportModal.axaml"));
         string codeBehind = ReadPresentationFile("MainWindow.axaml.cs");
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         string[] deferredHosts =
@@ -38,6 +39,26 @@ public sealed partial class XamlControlStyleContractTests
                 element => element.Attribute(x + "Name")?.Value == hostName);
             Assert.Null(host.Attribute("Content"));
             Assert.Contains($"LoadContent({hostName},", codeBehind, StringComparison.Ordinal);
+        }
+
+        string[] reportResources =
+        [
+            "MainWindowReportTemplates.axaml",
+            "MainWindowReportChangeTemplates.axaml",
+            "MainWindowReportInputTemplates.axaml",
+            "MainWindowReportOperationTemplates.axaml",
+            "MainWindowReportHistoryTemplates.axaml",
+            "MainWindowReportAuditTemplates.axaml",
+            "MainWindowReportPanels.axaml",
+        ];
+        foreach (string resourceName in reportResources)
+        {
+            Assert.DoesNotContain(
+                shell.Descendants(),
+                element => element.Attribute("Source")?.Value.EndsWith(resourceName, StringComparison.Ordinal) == true);
+            _ = Assert.Single(
+                reportModal.Descendants(),
+                element => element.Attribute("Source")?.Value.EndsWith(resourceName, StringComparison.Ordinal) == true);
         }
 
         Assert.Contains("ApplyDeferredShellContent(viewModel);", codeBehind, StringComparison.Ordinal);
