@@ -177,17 +177,23 @@ Every file input has an explicit maximum length before allocation. Reads use
 streaming/cooperative cancellation and reject growth, truncation, or identity
 change according to the owning feature contract. A standalone report selected
 through the storage provider or supplied by `--load-report` may remain outside
-application-managed roots, but its raw input is limited to 20 MiB
-(`20,971,520` bytes) and keeps its user-selected identity. This ceiling leaves
-room for worst-case JSON-string escaping plus bounded entry metadata so the
-newest maximum-size report still round-trips inside the separate 64 MiB history
-file. Before atomic save, the history writer validates the complete serialized
+application-managed roots, but its raw input is limited to 10 MiB
+(`10,485,760` bytes) and keeps its user-selected identity. The default
+`System.Text.Json` encoder can expand a raw ASCII character such as `<` to the
+six-byte `\u003C` escape. The 10 MiB ceiling therefore reserves 60 MiB for the
+worst-case encoded imported report and the remaining 4 MiB for the v1 envelope,
+maximum platform paths, and required entry fields inside the separate 64 MiB
+history file. Before atomic save, the history writer validates the complete serialized
 v1 envelope. When duplicating derivable UI summary metadata would cross the
 bound, it persists that entry with the schema-v1 empty-metadata representation;
 the existing reload path rematerializes the same summary from the report JSON.
-It never drops the newest report merely because optional derived metadata would
-duplicate it beyond the file bound. Report history retains its separate 64 MiB
-persisted-file bound and 12-entry limit. Its 16 MiB
+It never drops the newest report from the in-memory history merely because
+optional derived metadata would duplicate it beyond the file bound. If a report
+created in-process still cannot fit the 64 MiB envelope after that fallback,
+the writer returns a typed `EntryTooLargeToPersist` result, leaves the previous
+persisted file intact, and keeps the report available for the current session.
+Report history retains its separate 64 MiB persisted-file bound and 12-entry
+limit. Its 16 MiB
 retained-payload limit is a soft budget: the newest valid entry is always kept,
 even when that entry alone exceeds the budget, and older entries are evicted.
 
