@@ -5,7 +5,7 @@ description: Report consistent evidence-backed 0.10.x refactor progress. Use whe
 
 # Assess Refactor Progress
 
-Report three separate metrics instead of one ambiguous percentage:
+Report four separate metrics instead of one ambiguous percentage:
 
 1. **Ticket completion** — completed GitHub issues divided by the complete
    owner-approved dependency-plan inventory.
@@ -13,6 +13,8 @@ Report three separate metrics instead of one ambiguous percentage:
    tickets divided by all tickets in those waves.
 3. **Weighted total** — the declared program weights below, applied to live
    completion inside each wave group.
+4. **Unified preload lifecycle** — completed v0.10.5 PL tickets divided by
+   the complete approved PL inventory.
 
 GitHub Issues own live completion. The repository dependency plan owns only the
 stable ticket universe, waves, outcomes, and blocker edges. Never infer
@@ -44,8 +46,10 @@ The script applies these owner-priority weights:
 | Core convergence | `Core convergence` | 15% |
 | Integration | `Integration` | 5% |
 
-Do not silently change weights. A new wave or missing planned issue makes the
-snapshot low-confidence and requires an owner-reviewed skill/model update.
+The weights remain the closed legacy-refactor program metric; the separately
+reported preload metric does not rewrite that historical allocation. Do not
+silently change weights. A new wave or missing planned issue makes the snapshot
+low-confidence and requires an owner-reviewed skill/model update.
 
 ## Report The Result
 
@@ -54,6 +58,7 @@ Keep the script's metric names and rounding. Lead with:
 ```text
 Ticket completion: n/N (x.x%)
 Headless canonical foundation: n/N (x.x%)
+Unified preload lifecycle: n/N (x.x%)
 Weighted total: x.x%
 Confidence: High | Medium | Low
 ```
