@@ -163,57 +163,57 @@ def parse_plan(plan_path: Path) -> list[PlannedTicket]:
         for index, line in enumerate(lines)
         if line.strip() == PRELOAD_TABLE_HEADER
     ]
-    if len(preload_header_indexes) > 1:
-        raise ValueError("Dependency plan must not contain duplicate preload tables.")
+    if len(preload_header_indexes) != 1:
+        raise ValueError("Dependency plan must contain exactly one preload table.")
     preload_table_end_index = -1
-    if preload_header_indexes:
-        preload_header_index = preload_header_indexes[0]
-        preload_separator_index = preload_header_index + 1
-        if (
-            preload_separator_index >= len(lines)
-            or lines[preload_separator_index].strip() != PLAN_TABLE_SEPARATOR
-        ):
+    preload_header_index = preload_header_indexes[0]
+    preload_separator_index = preload_header_index + 1
+    if (
+        preload_separator_index >= len(lines)
+        or lines[preload_separator_index].strip() != PLAN_TABLE_SEPARATOR
+    ):
+        raise ValueError("Preload ticket table must use the canonical separator row.")
+    preload_ticket_count = 0
+    for line_index, line in enumerate(
+        lines[preload_separator_index + 1 :], preload_separator_index + 1
+    ):
+        if not line.strip():
+            preload_table_end_index = line_index
+            break
+        line_number = line_index + 1
+        match = ISSUE_ROW.match(line)
+        if match is None:
             raise ValueError(
-                "Preload ticket table must use the canonical separator row."
+                f"Malformed preload ticket row at line {line_number}: {line!r}"
             )
-        for line_index, line in enumerate(
-            lines[preload_separator_index + 1 :], preload_separator_index + 1
-        ):
-            if not line.strip():
-                preload_table_end_index = line_index
-                break
-            line_number = line_index + 1
-            match = ISSUE_ROW.match(line)
-            if match is None:
-                raise ValueError(
-                    f"Malformed preload ticket row at line {line_number}: {line!r}"
-                )
-            number = int(match.group("number"))
-            if number in seen:
-                raise ValueError(f"Duplicate dependency-plan issue #{number}.")
-            seen.add(number)
-            wave = match.group("wave").strip()
-            tickets.append(
-                PlannedTicket(
-                    number=number,
-                    depth=int(match.group("depth")),
-                    wave=wave,
-                    outcome=match.group("outcome").strip(),
-                    blockers=tuple(
-                        int(value)
-                        for value in ISSUE_REFERENCE.findall(match.group("blocked_by"))
-                    ),
-                    group=_group_for_wave(wave),
-                )
+        number = int(match.group("number"))
+        if number in seen:
+            raise ValueError(f"Duplicate dependency-plan issue #{number}.")
+        seen.add(number)
+        wave = match.group("wave").strip()
+        tickets.append(
+            PlannedTicket(
+                number=number,
+                depth=int(match.group("depth")),
+                wave=wave,
+                outcome=match.group("outcome").strip(),
+                blockers=tuple(
+                    int(value)
+                    for value in ISSUE_REFERENCE.findall(match.group("blocked_by"))
+                ),
+                group=_group_for_wave(wave),
             )
-        else:
-            preload_table_end_index = len(lines)
+        )
+        preload_ticket_count += 1
+    else:
+        preload_table_end_index = len(lines)
+    if preload_ticket_count == 0:
+        raise ValueError(
+            "Dependency-plan preload table must contain at least one ticket."
+        )
 
     for line_index, line in enumerate(lines[end_index + 1 :], end_index + 1):
-        if (
-            preload_header_indexes
-            and preload_header_indexes[0] <= line_index < preload_table_end_index
-        ):
+        if preload_header_indexes[0] <= line_index < preload_table_end_index:
             continue
         if ISSUE_ROW.match(line) or (
             line.lstrip().startswith("|") and ISSUE_REFERENCE.search(line)

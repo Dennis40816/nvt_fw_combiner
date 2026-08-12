@@ -93,6 +93,12 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | 3 | Runtime deletion | #4 | deletion | #3 |
 | 4 | Core convergence | #5 | core | #4 |
 | 5 | Integration | #6 | integration | #5 |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 6 | Preload lifecycle | #7 | preload | #6 |
 """
         issues = [
             self._issue(1, completed=True),
@@ -101,6 +107,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             self._issue(4),
             self._issue(5),
             self._issue(6),
+            self._issue(7),
         ]
         with tempfile.TemporaryDirectory() as directory:
             plan_path = Path(directory) / "plan.md"
@@ -117,7 +124,7 @@ class AssessRefactorProgressTests(unittest.TestCase):
             )
 
         self.assertEqual(
-            {"completed": 2, "total": 6, "percent": 33.3},
+            {"completed": 2, "total": 7, "percent": 28.6},
             snapshot["metrics"]["ticketCompletion"],
         )
         self.assertEqual(
@@ -133,6 +140,12 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | Depth | Wave | Issue | Approved outcome | Blocked by |
 | ---: | --- | ---: | --- | --- |
 | 0 | Baseline | #1 | baseline | — |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Preload lifecycle | #2 | preload | #1 |
 """
         with tempfile.TemporaryDirectory() as directory:
             plan_path = Path(directory) / "plan.md"
@@ -182,9 +195,25 @@ class AssessRefactorProgressTests(unittest.TestCase):
 | Depth | Wave | Issue | Approved outcome | Blocked by |
 | ---: | --- | ---: | --- | --- |
 | 0 | Baseline | #1 | baseline | #999 |
+
+## Stable execution ordering
+
+| Depth | Preload wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 1 | Preload lifecycle | #2 | preload | #1 |
 """
 
         with self.assertRaisesRegex(ValueError, r"#1.*#999"):
+            self._parse_temporary_plan(plan)
+
+    def test_missing_preload_table_fails_plan_integrity(self) -> None:
+        plan = """\
+| Depth | Wave | Issue | Approved outcome | Blocked by |
+| ---: | --- | ---: | --- | --- |
+| 0 | Baseline | #1 | baseline | — |
+"""
+
+        with self.assertRaisesRegex(ValueError, "exactly one preload table"):
             self._parse_temporary_plan(plan)
 
     def test_blank_line_cannot_silently_truncate_ticket_table(self) -> None:
