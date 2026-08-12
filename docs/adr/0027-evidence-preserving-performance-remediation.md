@@ -287,6 +287,12 @@ or extra evidence fails the finalizer before coverage or fixture acceptance.
 Artifacts contain logs, TRX, and coverage only; they never contain firmware
 payloads, private fixtures, build outputs, `bin`, or `obj`.
 Each producer copies only its declared regular files into a clean upload root.
+Coverage source identities are normalized against that producer's checked-out
+repository before hashing; runner-specific absolute roots are removed and any
+source outside the checkout is rejected. Missing Cobertura filenames, source
+roots that ambiguously resolve a relative class filename, and distinct raw
+identities that collapse to one repository path are rejected before either
+normalized report is published.
 The finalizer downloads the four exact artifact names into separate roots,
 validates each root before forming the logical union, and rejects cross-owner
 path reuse rather than flattening producer provenance.

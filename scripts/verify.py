@@ -29,9 +29,17 @@ from pathlib import Path, PurePosixPath
 from time import monotonic
 
 if __package__:
-    from .coverage_policy import load_baseline, verify_coverage
+    from .coverage_policy import (
+        load_baseline,
+        repository_relative_coverage_source,
+        verify_coverage,
+    )
 else:
-    from coverage_policy import load_baseline, verify_coverage
+    from coverage_policy import (
+        load_baseline,
+        repository_relative_coverage_source,
+        verify_coverage,
+    )
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKER_ROOT = ROOT / "tools" / "crc-worker"
@@ -1351,6 +1359,122 @@ def parse_trx_counters(path: Path) -> dict[str, int]:
     }
 
 
+def reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    document: dict[str, object] = {}
+    for key, value in pairs:
+        if key in document:
+            raise RuntimeError(f"duplicate JSON key in .NET CI evidence: {key}")
+        document[key] = value
+    return document
+
+
+def normalize_ci_dotnet_coverage_reports(
+    json_report: Path,
+    cobertura_report: Path,
+    repository_root: Path | None = None,
+) -> None:
+    """Remove runner-specific roots while preserving exact coverage evidence."""
+
+    repository_root = ROOT if repository_root is None else repository_root
+    try:
+        with json_report.open(encoding="utf-8") as handle:
+            json_document = json.load(
+                handle,
+                object_pairs_hook=reject_duplicate_json_keys,
+            )
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"invalid Coverlet JSON evidence: {json_report}") from error
+    if not isinstance(json_document, dict):
+        raise RuntimeError(f"invalid Coverlet JSON evidence: {json_report}")
+    normalized_document: dict[str, object] = {}
+    json_source_identities: dict[str, str] = {}
+    for module_name, raw_sources in json_document.items():
+        if not isinstance(module_name, str) or not isinstance(raw_sources, dict):
+            raise RuntimeError(f"invalid Coverlet JSON evidence: {json_report}")
+        normalized_sources: dict[str, object] = {}
+        for source_path, classes in raw_sources.items():
+            if not isinstance(source_path, str) or not isinstance(classes, dict):
+                raise RuntimeError(f"invalid Coverlet JSON evidence: {json_report}")
+            try:
+                relative_path = repository_relative_coverage_source(
+                    source_path,
+                    repository_root,
+                )
+            except ValueError as error:
+                raise RuntimeError(
+                    f"Coverlet JSON source is outside the producer repository: {source_path}"
+                ) from error
+            prior_identity = json_source_identities.setdefault(
+                relative_path,
+                source_path,
+            )
+            if prior_identity != source_path or relative_path in normalized_sources:
+                raise RuntimeError(
+                    f"Coverlet JSON source identity collides after normalization: {relative_path}"
+                )
+            normalized_sources[relative_path] = classes
+        normalized_document[module_name] = normalized_sources
+    normalized_json = (
+        json.dumps(normalized_document, indent=2, ensure_ascii=False) + "\n"
+    )
+
+    try:
+        cobertura_tree = ET.parse(cobertura_report)
+    except (OSError, ET.ParseError) as error:
+        raise RuntimeError(f"invalid Cobertura evidence: {cobertura_report}") from error
+    cobertura_root = cobertura_tree.getroot()
+    source_containers = cobertura_root.findall("./sources")
+    if len(source_containers) > 1:
+        raise RuntimeError("Cobertura evidence has multiple source-root containers")
+    source_roots = tuple(
+        source.text.strip()
+        for source in cobertura_root.findall("./sources/source")
+        if source.text and source.text.strip()
+    )
+    cobertura_source_identities: dict[str, str] = {}
+    for class_node in cobertura_root.findall(".//class"):
+        filename = class_node.get("filename")
+        if not filename:
+            raise RuntimeError("Cobertura class is missing its source filename")
+        try:
+            relative_path = repository_relative_coverage_source(
+                filename,
+                repository_root,
+                source_roots,
+            )
+        except ValueError as error:
+            raise RuntimeError(
+                f"Cobertura source is not a unique producer repository path: {filename}"
+            ) from error
+        prior_identity = cobertura_source_identities.setdefault(
+            relative_path,
+            filename,
+        )
+        if prior_identity != filename:
+            raise RuntimeError(
+                f"Cobertura source identity collides after normalization: {relative_path}"
+            )
+        class_node.set("filename", relative_path)
+    if source_containers:
+        sources_node = source_containers[0]
+    else:
+        sources_node = ET.Element("sources")
+        cobertura_root.insert(0, sources_node)
+    sources_node.clear()
+    ET.SubElement(sources_node, "source").text = "."
+    ET.indent(cobertura_tree, space="  ")
+    json_report.write_text(
+        normalized_json,
+        encoding="utf-8",
+        newline="\n",
+    )
+    cobertura_tree.write(
+        cobertura_report,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+
+
 def collect_ci_project_evidence(
     project: CiDotnetProject,
     results_directory: Path,
@@ -1386,6 +1510,7 @@ def collect_ci_project_evidence(
             report.unlink()
     json_report = canonical_parent / "coverage.json"
     cobertura_report = canonical_parent / "coverage.cobertura.xml"
+    normalize_ci_dotnet_coverage_reports(json_report, cobertura_report)
 
     counters = parse_trx_counters(trx_reports[0])
     expected_passed = project.expected_total - project.expected_skipped
@@ -1567,15 +1692,6 @@ def verify_ci_dotnet_test_shard(shard: str) -> None:
         )
     if fatal_failure is not None:
         raise fatal_failure
-
-
-def reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    document: dict[str, object] = {}
-    for key, value in pairs:
-        if key in document:
-            raise RuntimeError(f"duplicate JSON key in .NET CI evidence: {key}")
-        document[key] = value
-    return document
 
 
 def load_ci_manifest(path: Path) -> dict[str, object]:

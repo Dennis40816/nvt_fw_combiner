@@ -31,3 +31,7 @@ Private firmware golden regression remains an approved-runner gate once private 
   path-escaping, symlinked, hash-mismatched, counter-drifted, or extra evidence.
   Producers publish from a clean allowlisted staging root, and the finalizer
   preserves each artifact name/root until ownership and collision checks pass.
+  Windows coverage paths are normalized to verified repository-relative
+  identities before hashing so the Ubuntu finalizer never trusts runner roots;
+  missing, outside, ambiguous, or normalization-colliding identities fail at
+  the producer.

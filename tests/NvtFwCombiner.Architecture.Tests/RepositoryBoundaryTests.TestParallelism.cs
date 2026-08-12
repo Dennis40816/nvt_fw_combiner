@@ -84,6 +84,14 @@ public sealed partial class RepositoryBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains(
             "[Collection(UiProcessWideObservationCollection.Name)]",
+            File.ReadAllText(Path.Combine(directory, "ReportHistoryPersistenceTests.cs")),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[CollectionDefinition(UiProcessWideObservationCollection.Name, DisableParallelization = true)]",
+            groups,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[Collection(UiProcessWideObservationCollection.Name)]",
             groups,
             StringComparison.Ordinal);
     }

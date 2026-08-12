@@ -71,6 +71,39 @@ class VerifyOrchestrationTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+    @staticmethod
+    def write_ci_coverage_pair(
+        report_root: Path,
+        json_document: dict[str, object],
+        *,
+        source_roots: tuple[str, ...] = (),
+        class_filenames: tuple[str | None, ...] = (),
+    ) -> tuple[Path, Path]:
+        report_root.mkdir(parents=True, exist_ok=True)
+        json_report = report_root / "coverage.json"
+        json_report.write_text(json.dumps(json_document), encoding="utf-8")
+        coverage = MODULE.ET.Element("coverage")
+        sources = MODULE.ET.SubElement(coverage, "sources")
+        for source_root in source_roots:
+            MODULE.ET.SubElement(sources, "source").text = source_root
+        packages = MODULE.ET.SubElement(coverage, "packages")
+        classes = MODULE.ET.SubElement(
+            MODULE.ET.SubElement(packages, "package"),
+            "classes",
+        )
+        for index, filename in enumerate(class_filenames):
+            attributes = {"name": f"Probe{index}"}
+            if filename is not None:
+                attributes["filename"] = filename
+            MODULE.ET.SubElement(classes, "class", attributes)
+        cobertura_report = report_root / "coverage.cobertura.xml"
+        MODULE.ET.ElementTree(coverage).write(
+            cobertura_report,
+            encoding="utf-8",
+            xml_declaration=True,
+        )
+        return json_report, cobertura_report
+
     def stage_complete_ci_dotnet_evidence(
         self,
         download_root: Path,
@@ -1963,6 +1996,303 @@ class VerifyOrchestrationTests(unittest.TestCase):
             "DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=json,cobertura",
             command[-1],
         )
+
+    def test_ci_coverage_normalization_removes_the_windows_producer_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            report_root = repository_root / "artifacts/coverage"
+            report_root.mkdir(parents=True)
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report = report_root / "coverage.json"
+            json_report.write_text(
+                json.dumps({"Probe.dll": {str(source): {"Probe": {}}}}),
+                encoding="utf-8",
+            )
+            cobertura_report = report_root / "coverage.cobertura.xml"
+            cobertura_report.write_text(
+                "<coverage><sources><source>"
+                + str(repository_root)
+                + "</source></sources><packages><package><classes>"
+                '<class name="Probe" filename="src\\Probe\\Probe.cs" />'
+                "</classes></package></packages></coverage>",
+                encoding="utf-8",
+            )
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            normalized_json = json.loads(json_report.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                list(normalized_json["Probe.dll"]),
+            )
+            normalized_xml = MODULE.ET.parse(cobertura_report).getroot()
+            self.assertEqual(".", normalized_xml.findtext("./sources/source"))
+            self.assertEqual(
+                "src/Probe/Probe.cs",
+                normalized_xml.find(".//class").get("filename"),
+            )
+            normalized_bytes = (json_report.read_bytes(), cobertura_report.read_bytes())
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            self.assertEqual(
+                normalized_bytes,
+                (json_report.read_bytes(), cobertura_report.read_bytes()),
+            )
+
+    def test_ci_coverage_normalization_rejects_sources_outside_the_repository(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository_root = root / "repository"
+            report_root = repository_root / "artifacts/coverage"
+            report_root.mkdir(parents=True)
+            json_report = report_root / "coverage.json"
+            json_report.write_text(
+                json.dumps(
+                    {"Probe.dll": {str(root / "outside/Probe.cs"): {"Probe": {}}}}
+                ),
+                encoding="utf-8",
+            )
+            cobertura_report = report_root / "coverage.cobertura.xml"
+            cobertura_report.write_text("<coverage />", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                RuntimeError, "outside the producer repository"
+            ):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_json_source_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {
+                    "Probe.dll": {
+                        str(source): {"Absolute": {}},
+                        "src/Probe/Probe.cs": {"Relative": {}},
+                    }
+                },
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "identity collides"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_duplicate_json_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+            )
+            json_report.write_text(
+                '{"Probe.dll": {}, "Probe.dll": {}}',
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "duplicate JSON key"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_cobertura_root_outside_repository(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository_root = root / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(root / "outside"),),
+                class_filenames=("Probe.cs",),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "not a unique"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_accepts_deterministic_virtual_root(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {
+                    "Probe.dll": {
+                        "/_/src/Probe/Probe.cs": {"Probe": {}},
+                    }
+                },
+                source_roots=("\\",),
+                class_filenames=("/_/src/Probe/Probe.cs",),
+            )
+
+            MODULE.normalize_ci_dotnet_coverage_reports(
+                json_report,
+                cobertura_report,
+                repository_root,
+            )
+
+            normalized_json = json.loads(json_report.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["src/Probe/Probe.cs"],
+                list(normalized_json["Probe.dll"]),
+            )
+            self.assertEqual(
+                "src/Probe/Probe.cs",
+                MODULE.ET.parse(cobertura_report)
+                .getroot()
+                .find(".//class")
+                .get("filename"),
+            )
+
+    def test_ci_coverage_normalization_rejects_ambiguous_cobertura_roots(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(
+                    str(repository_root / "src/First"),
+                    str(repository_root / "src/Second"),
+                ),
+                class_filenames=("Probe.cs",),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "not a unique"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_cobertura_source_aliases(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            source = repository_root / "src/Probe/Probe.cs"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(repository_root),),
+                class_filenames=(str(source), "src/Probe/Probe.cs"),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "identity collides"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_missing_cobertura_filename(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                class_filenames=(None,),
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "missing its source filename"):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_coverage_normalization_rejects_multiple_source_containers(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            json_report, cobertura_report = self.write_ci_coverage_pair(
+                repository_root / "artifacts/coverage",
+                {},
+                source_roots=(str(repository_root),),
+                class_filenames=("src/Probe/Probe.cs",),
+            )
+            coverage = MODULE.ET.parse(cobertura_report)
+            extra_sources = MODULE.ET.SubElement(coverage.getroot(), "sources")
+            MODULE.ET.SubElement(extra_sources, "source").text = str(
+                repository_root / "second-runner-root"
+            )
+            coverage.write(cobertura_report, encoding="utf-8", xml_declaration=True)
+
+            with self.assertRaisesRegex(
+                RuntimeError, "multiple source-root containers"
+            ):
+                MODULE.normalize_ci_dotnet_coverage_reports(
+                    json_report,
+                    cobertura_report,
+                    repository_root,
+                )
+
+    def test_ci_project_evidence_hashes_normalized_coverage_bytes(self) -> None:
+        project = MODULE.CiDotnetProject("tests/Probe/Probe.csproj", 1)
+        with tempfile.TemporaryDirectory() as temporary:
+            repository_root = Path(temporary) / "repository"
+            results = repository_root / "artifacts/ci-dotnet-work/results"
+            self.write_ci_trx(results / "test-results.trx", total=1, skipped=0)
+            source = repository_root / "src/Probe/Probe.cs"
+            self.write_ci_coverage_pair(
+                results / "collector",
+                {"Probe.dll": {str(source): {"Probe": {}}}},
+                source_roots=(str(repository_root),),
+                class_filenames=("src/Probe/Probe.cs",),
+            )
+
+            with patch.object(MODULE, "ROOT", repository_root):
+                row, paths = MODULE.collect_ci_project_evidence(
+                    project,
+                    results,
+                    repository_root,
+                )
+            hashes = MODULE.ci_file_hashes(paths, repository_root)
+            json_path = repository_root / str(row["coverageJson"])
+            cobertura_path = repository_root / str(row["coverageCobertura"])
+
+            self.assertNotIn(
+                str(repository_root), json_path.read_text(encoding="utf-8")
+            )
+            self.assertNotIn(
+                str(repository_root),
+                cobertura_path.read_text(encoding="utf-8"),
+            )
+            self.assertEqual(MODULE.sha256_file(json_path), hashes[row["coverageJson"]])
+            self.assertEqual(
+                MODULE.sha256_file(cobertura_path),
+                hashes[row["coverageCobertura"]],
+            )
 
     def test_ci_project_evidence_collapses_only_identical_trx_attachment_copies(
         self,
