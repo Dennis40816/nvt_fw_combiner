@@ -19,7 +19,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSelectionSnapshot discovery =
-            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -35,7 +35,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         Assert.True(started.Succeeded, started.Issue?.Message);
 
         FirmwareInspectionSnapshot inspection = Assert.Single(
-            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical,
+            BuiltInFirmwareInspection.InspectFirmwareBatch(_host.Canonical,
                 "NT51950",
                 [new FirmwareInspectionSnapshotInput(
                     "dp",
@@ -74,7 +74,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSelectionSnapshot discovery =
-            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -138,7 +138,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         const string firstPath = "dp-256.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSelectionSnapshot discovery =
-            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),
@@ -191,7 +191,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         const string path = "dp.bin";
         var session = new AuthoringSessionState(ExperienceIds.StandardMerge);
         CompiledAuthoringSelectionSnapshot discovery =
-            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51950",
                 [CompositionAddressSpaceIds.DpInput],
                 new Dictionary<string, FileStamp>(StringComparer.Ordinal),

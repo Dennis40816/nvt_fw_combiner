@@ -6,9 +6,10 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Accepted fixed-workflow sessions bind paths once and retain immutable inspected bytes.</summary>
-[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class AcceptedSessionFileIdentityTests
 {
+    private readonly IsolatedBootstrapTestHost _host = new();
+
     /// <summary>Standard Merge ignores a client path alias after the session accepted canonical inputs.</summary>
     [Fact]
     public async Task StandardMergeAcceptedSessionIgnoresSwappedClientPath()
@@ -146,7 +147,7 @@ public sealed class AcceptedSessionFileIdentityTests
             result.OutputBytes.Span[checked((int)operation.TargetRange.Start)]);
     }
 
-    private static ActiveSessionSnapshot AcceptStandardSession(
+    private ActiveSessionSnapshot AcceptStandardSession(
         Dictionary<string, string> paths)
     {
         var stamps = paths.ToDictionary(
@@ -154,7 +155,7 @@ public sealed class AcceptedSessionFileIdentityTests
             static pair => FileStamp.FromBytes(File.ReadAllBytes(pair.Value)),
             StringComparer.Ordinal);
         CompiledAuthoringSelectionSnapshot projection =
-            BootstrapTestHost.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(
                 "NT51926",
                 [.. paths.Keys],
                 stamps,
@@ -167,11 +168,11 @@ public sealed class AcceptedSessionFileIdentityTests
             FixedInspectionKind.StandardMerge);
     }
 
-    private static ActiveSessionSnapshot AcceptAbSession(
+    private ActiveSessionSnapshot AcceptAbSession(
         Dictionary<string, string> paths)
     {
         CompiledAuthoringSelectionSnapshot projection =
-            BootstrapTestHost.Services.AbMergeAuthoring.GetAuthoringSnapshot(
+            _host.Services.AbMergeAuthoring.GetAuthoringSnapshot(
                 "NT51929",
                 topologyToken: null,
                 [.. paths.Keys],
@@ -188,7 +189,7 @@ public sealed class AcceptedSessionFileIdentityTests
             FixedInspectionKind.AbMerge);
     }
 
-    private static ActiveSessionSnapshot AcceptDpReplaceSession(
+    private ActiveSessionSnapshot AcceptDpReplaceSession(
         Dictionary<string, string> paths)
     {
         var inspectionPaths = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -197,7 +198,7 @@ public sealed class AcceptedSessionFileIdentityTests
             [CompositionAddressSpaceIds.InitialCodeReplacement] = paths[CompositionSlotIds.ReplaceDp],
         };
         CompiledAuthoringSelectionSnapshot projection =
-            BootstrapTestHost.Services.DpReplaceAuthoring.GetAuthoringSnapshot(
+            _host.Services.DpReplaceAuthoring.GetAuthoringSnapshot(
                 "NT51928",
                 [.. inspectionPaths.Keys],
                 inspectionPaths.ToDictionary(
@@ -213,7 +214,7 @@ public sealed class AcceptedSessionFileIdentityTests
             FixedInspectionKind.DpReplace);
     }
 
-    private static ActiveSessionSnapshot AcceptSession(
+    private ActiveSessionSnapshot AcceptSession(
         string workflowId,
         string icId,
         AuthoringCapabilityCatalogSnapshot catalog,
@@ -253,7 +254,7 @@ public sealed class AcceptedSessionFileIdentityTests
             }),
         ];
         IReadOnlyList<FirmwareInspectionSnapshotResult> inspected =
-            BuiltInFirmwareInspection.InspectFirmwareBatch(BootstrapTestHost.Canonical, icId, inputs);
+            BuiltInFirmwareInspection.InspectFirmwareBatch(_host.Canonical, icId, inputs);
         AuthoringCapabilityCatalogSnapshot exactCatalog = Assert.IsType<AuthoringCapabilityCatalogSnapshot>(
             inspected[0].Inspection.InputSlotCatalog);
         var statuses = inspected.ToDictionary(
@@ -323,11 +324,11 @@ public sealed class AcceptedSessionFileIdentityTests
         File.WriteAllBytes(path, bytes);
     }
 
-    private static ValueTask<CompositionRunResult> ExecuteAsync(
+    private ValueTask<CompositionRunResult> ExecuteAsync(
         ActiveSessionSnapshot session,
         IReadOnlyDictionary<string, string> paths)
     {
-        return BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+        return _host.Services.CompositionExecution.ExecuteAsync(
             new AcceptedCompositionExecutionRequest(
                 session,
                 paths,
@@ -336,10 +337,10 @@ public sealed class AcceptedSessionFileIdentityTests
             TestContext.Current.CancellationToken);
     }
 
-    private static void ReloadCatalog()
+    private void ReloadCatalog()
     {
         CapabilityCatalogReloadResult reload =
-            BootstrapTestHost.Canonical.Catalog.Reload(
+            _host.Catalog.Reload(
                 TestContext.Current.CancellationToken);
         Assert.True(reload.Succeeded, string.Join(
             "; ", reload.Issues.Select(static issue => issue.Message)));

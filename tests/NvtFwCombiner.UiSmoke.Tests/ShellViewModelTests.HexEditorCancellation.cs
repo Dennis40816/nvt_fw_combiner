@@ -3,7 +3,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class RunAndHexEditorTests
 {
     /// <summary>Ignores cancellation from a stale search generation when the caller token remains active.</summary>
     [Fact]

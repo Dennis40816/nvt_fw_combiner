@@ -25,6 +25,21 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 - Recorded a read-only next-stage TEST parallelization plan. It first isolates
   Bootstrap/UI/Architecture shared state and mega-classes, then considers a
   bounded project scheduler only when same-SHA timing proves a material gain.
+- The required .NET check keeps one canonical verifier path while moving
+  style/analyzer enforcement to its existing warnings-as-errors Release build
+  and batching 15 package-trust counterfactuals through one bounded MSBuild
+  host. Test identities, diagnostics, coverage, and golden gates remain exact.
+- Stopped the ineffective test-first build experiment after the fresh Windows
+  required check remained above five minutes, and rejected a same-tree custom
+  project scheduler whose measured improvement was only 1.962 seconds.
+- External-process cancellation and timeout tests now publish their parent and
+  child identities through a server-first Named Pipe handshake instead of a
+  fixed five-second PID-file poll. Production process behavior is unchanged.
+- The stable `dotnet / build-test` verdict now validates one complete Release
+  build and three closed test shards in parallel. Exact SHA/SDK manifests,
+  eight TRX and paired coverage reports, 3,321 tests with two declared skips,
+  GoldenRegression 17/17, coverage policy, fixture evidence, and cleanup remain
+  mandatory; no production, firmware, profile, schema, or golden file changes.
 
 ## [0.10.3] - 2026-08-11
 

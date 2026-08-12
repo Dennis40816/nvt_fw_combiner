@@ -4,13 +4,13 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class ReportProjectionConcurrencyTests
 {
     /// <summary>Live typed reports and reopened JSON reports project the same review evidence.</summary>
     [Fact]
     public async Task LiveTypedReportProjectionMatchesPersistedJsonProjection()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         string json = CompositionRunReportJson.Serialize(result);
         var persisted = ReportReviewViewModel.FromJsonCancellable(
             json,
@@ -288,7 +288,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task CancelledRunHexDiffProjectionPublishesNoPartialState()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
         using var cancellationSource = new CancellationTokenSource();
         cancellationSource.Cancel();
@@ -355,7 +355,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task RunHexDiffProjectionUsesLatestReportGeneration()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         CompositionRunResult largeResult = WithReport(
@@ -612,54 +612,4 @@ public sealed partial class ShellViewModelTests
         Assert.Equal("new-large-report.json", viewModel.Reports.ReportHistoryEntries[0].SourceName);
     }
 
-    private static CompositionRunReport CreateLargeDifferenceReport(
-        CompositionRunReport source,
-        int count,
-        int sectionCount,
-        string runId)
-    {
-        OutputDifferenceSummary[] differences =
-        [
-            .. Enumerable.Range(0, count).Select(index => new OutputDifferenceSummary(
-                $"diff-{index:D5}",
-                new Domain.Composition.ByteRange(index * 4L, 4),
-                changedByteCount: 4,
-                index == count - 1
-                    ? Contracts.Reports.OutputDifferenceClassifications.Unexpected
-                    : Contracts.Reports.OutputDifferenceClassifications.DeclaredReplacement,
-                isAccepted: index != count - 1,
-                $"evidence-{index:D5}",
-                $"difference {index}",
-                $"Section {index % sectionCount:D2}",
-                "11111111111111111111",
-                "22222222222222222222",
-                beforeHexPreview: "AABBCCDD",
-                afterHexPreview: "11223344",
-                hexPreviewByteCount: 4,
-                isHexPreviewComplete: true)),
-        ];
-        return new CompositionRunReport(
-            runId,
-            source.ProfileId,
-            source.ProfileVersion,
-            source.IcId,
-            source.ModeId,
-            source.ExperienceId,
-            source.CompositionKind,
-            source.StartedAtUtc,
-            source.CompletedAtUtc,
-            source.Inputs,
-            source.Operations,
-            source.Mutations,
-            source.Issues,
-            source.Output,
-            differences,
-            source.CompilationFingerprint,
-            source.Validations,
-            source.OutputNaming,
-            source.DeliveryArtifacts,
-            source.GeneralAdmission,
-            source.ImageInitialization,
-            source.DiagnosticPreview);
-    }
 }

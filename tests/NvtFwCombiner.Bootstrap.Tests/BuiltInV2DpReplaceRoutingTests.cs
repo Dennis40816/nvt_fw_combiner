@@ -295,7 +295,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
             slotPaths[CompositionSlotIds.ReplaceLdc] = workspace.Write("ldc.bin", ldc);
         }
 
-        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(
             "NT51928",
             ExperienceIds.DpReplace,
             slotPaths,
@@ -326,7 +326,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string outputPath = workspace.PathFor("output.bin");
         byte[] uniformLdc = new byte[0x80000];
         Array.Fill(uniformLdc, (byte)0xFF);
-        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(
             "NT51928",
             ExperienceIds.DpReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -357,7 +357,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string outputPath = workspace.PathFor("output.bin");
         byte[] uniformInitialCode = new byte[0x80000];
         Array.Fill(uniformInitialCode, (byte)0xFF);
-        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(
             "NT51928",
             ExperienceIds.DpReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -385,7 +385,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
     public async Task Nt51928NonUniformReplacementInputsDoNotEmitPlausibilityWarningsAsync()
     {
         using var workspace = TempWorkspace.Create("nfc-nt51928-nonuniform-inputs");
-        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(
             "NT51928",
             ExperienceIds.DpReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -490,7 +490,7 @@ public sealed class BuiltInV2DpReplaceRoutingTests
         string replacementPath = workspace.Write("replacement-dp.bin", CreatePattern(baseCapacity, 0xA7));
         var progress = new CompositionRunProgressFeed();
 
-        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(BootstrapTestHost.Services,
+        CompositionRunResult result = await DpReplaceTestSupport.RunAsync(
             icId,
             ExperienceIds.DpReplace,
             new Dictionary<string, string>(StringComparer.Ordinal)

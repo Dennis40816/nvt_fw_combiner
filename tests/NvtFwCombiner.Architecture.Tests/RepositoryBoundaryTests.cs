@@ -12,6 +12,7 @@ public sealed partial class RepositoryBoundaryTests
         string project = ReadText("tests/NvtFwCombiner.Architecture.Tests/NvtFwCombiner.Architecture.Tests.csproj");
 
         Assert.DoesNotContain("ProjectReference", project, StringComparison.Ordinal);
+        AssertUiRuntimeControlConstructionIsSerialized();
     }
 
 }

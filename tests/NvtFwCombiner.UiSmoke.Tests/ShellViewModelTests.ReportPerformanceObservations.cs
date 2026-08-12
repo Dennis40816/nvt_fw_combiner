@@ -5,13 +5,13 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class UiPerformanceObservationTests
 {
     /// <summary>Compares the live typed projection with the retained persisted-JSON reopen path.</summary>
     [Fact]
     public async Task LiveTypedReportProjectionEmitsJsonRoundTripSavings()
     {
-        CompositionRunResult source = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult source = await CreateDpReplaceInspectionResultAsync(TestHost);
         CompositionRunReport report = CreateLargeDifferenceReport(
             source.Report,
             count: 10_000,
@@ -78,7 +78,7 @@ public sealed partial class ShellViewModelTests
     [Fact]
     public async Task ReportHexDiffEmitsColdWarmProjectionAndRangeSelectionObservations()
     {
-        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync();
+        CompositionRunResult result = await CreateDpReplaceInspectionResultAsync(TestHost);
         using var source = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         string runId = source.RootElement.GetProperty("RunId").GetString()!;
         string json = ReportJsonSamples.ReplaceWithManyOutputDifferences(

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Globalization;
+using System.IO.Pipes;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.TestSupport;
 
@@ -39,9 +39,9 @@ public sealed class SystemExternalProcessRunnerTests
         }
 
         using var workspace = TempWorkspace.Create("nfc-process-runner");
-        string parentProcessIdPath = workspace.PathFor("parent.pid");
-        string childProcessIdPath = workspace.PathFor("child.pid");
-        string scriptPath = CreateChildProcessScript(workspace.Root, parentProcessIdPath, childProcessIdPath);
+        string pipeName = $"nfc-process-runner-{Guid.NewGuid():N}";
+        using NamedPipeServerStream readiness = CreateReadinessPipe(pipeName);
+        string scriptPath = CreateChildProcessScript(workspace.Root, pipeName);
         var runner = new SystemExternalProcessRunner();
         using var cancellation = new CancellationTokenSource();
         ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(30));
@@ -52,8 +52,10 @@ public sealed class SystemExternalProcessRunnerTests
         try
         {
             run = runner.RunAsync(startInfo, cancellation.Token).AsTask();
-            parentProcess = await WaitForProcessAsync(parentProcessIdPath, TestContext.Current.CancellationToken);
-            childProcess = await WaitForProcessAsync(childProcessIdPath, TestContext.Current.CancellationToken);
+            (parentProcess, childProcess) = await ReadProcessIdentitiesAsync(
+                readiness,
+                run,
+                TestContext.Current.CancellationToken);
 
             cancellation.Cancel();
 
@@ -91,9 +93,9 @@ public sealed class SystemExternalProcessRunnerTests
         }
 
         using var workspace = TempWorkspace.Create("nfc-process-runner");
-        string parentProcessIdPath = workspace.PathFor("parent.pid");
-        string childProcessIdPath = workspace.PathFor("child.pid");
-        string scriptPath = CreateChildProcessScript(workspace.Root, parentProcessIdPath, childProcessIdPath);
+        string pipeName = $"nfc-process-runner-{Guid.NewGuid():N}";
+        using NamedPipeServerStream readiness = CreateReadinessPipe(pipeName);
+        string scriptPath = CreateChildProcessScript(workspace.Root, pipeName);
         var runner = new SystemExternalProcessRunner();
         using var cancellation = new CancellationTokenSource();
         ExternalProcessStartInfo startInfo = CreateStartInfo(workspace.Root, scriptPath, TimeSpan.FromSeconds(10));
@@ -103,8 +105,10 @@ public sealed class SystemExternalProcessRunnerTests
         try
         {
             run = runner.RunAsync(startInfo, cancellation.Token).AsTask();
-            parentProcess = await WaitForProcessAsync(parentProcessIdPath, TestContext.Current.CancellationToken);
-            childProcess = await WaitForProcessAsync(childProcessIdPath, TestContext.Current.CancellationToken);
+            (parentProcess, childProcess) = await ReadProcessIdentitiesAsync(
+                readiness,
+                run,
+                TestContext.Current.CancellationToken);
 
             ExternalProcessResult result = await run;
 
@@ -215,65 +219,99 @@ public sealed class SystemExternalProcessRunnerTests
             timeout);
     }
 
-    private static string CreateChildProcessScript(string root, string parentProcessIdPath, string childProcessIdPath)
+    private static NamedPipeServerStream CreateReadinessPipe(string pipeName)
+    {
+        return new NamedPipeServerStream(
+            pipeName,
+            PipeDirection.In,
+            maxNumberOfServerInstances: 1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+    }
+
+    private static string CreateChildProcessScript(string root, string pipeName)
     {
         string scriptPath = Path.Combine(root, "long-running-child.ps1");
-        string escapedParentPidPath = parentProcessIdPath.Replace("'", "''", StringComparison.Ordinal);
-        string escapedPidPath = childProcessIdPath.Replace("'", "''", StringComparison.Ordinal);
-        File.WriteAllText(
-            scriptPath,
-            $"$PID | Set-Content -LiteralPath '{escapedParentPidPath}'" +
-            Environment.NewLine +
-            "$child = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\\cmd.exe') " +
-            "-ArgumentList '/d /c ping -n 30 127.0.0.1 > NUL' -PassThru" +
-            Environment.NewLine +
-            $"$child.Id | Set-Content -LiteralPath '{escapedPidPath}'" +
-            Environment.NewLine +
-            "$child.WaitForExit()" +
-            Environment.NewLine);
+        string escapedPipeName = pipeName.Replace("'", "''", StringComparison.Ordinal);
+        string content = $$"""
+            $child = $null
+            try {
+              $child = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cmd.exe') -ArgumentList '/d /c ping -n 30 127.0.0.1 > NUL' -PassThru
+              $pipe = [System.IO.Pipes.NamedPipeClientStream]::new('.', '{{escapedPipeName}}', [System.IO.Pipes.PipeDirection]::Out)
+              try {
+                $pipe.Connect()
+                $writer = [System.IO.StreamWriter]::new($pipe)
+                try {
+                  $writer.WriteLine("$PID|$($child.Id)")
+                  $writer.Flush()
+                } finally {
+                  $writer.Dispose()
+                }
+              } finally {
+                $pipe.Dispose()
+              }
+              $child.WaitForExit()
+            } finally {
+              if ($null -ne $child -and -not $child.HasExited) {
+                Stop-Process -Id $child.Id -Force -ErrorAction SilentlyContinue
+              }
+            }
+            """;
+        File.WriteAllText(scriptPath, content + Environment.NewLine);
         return scriptPath;
     }
 
-    private static async Task<TestProcessIdentity> WaitForProcessAsync(string path, CancellationToken cancellationToken)
+    private static async Task<(TestProcessIdentity Parent, TestProcessIdentity Child)> ReadProcessIdentitiesAsync(
+        NamedPipeServerStream readiness,
+        Task<ExternalProcessResult> run,
+        CancellationToken cancellationToken)
     {
-        for (int attempt = 0; attempt < 200; attempt++)
+        using var connectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task connection = readiness.WaitForConnectionAsync(connectionCancellation.Token);
+        Task completed = await Task.WhenAny(connection, run);
+        if (completed == run)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (TryReadProcessId(path, out int processId))
+            connectionCancellation.Cancel();
+            try
             {
-                try
-                {
-                    using var process = Process.GetProcessById(processId);
-                    return new TestProcessIdentity(processId, process.StartTime);
-                }
-                catch (ArgumentException)
-                {
-                    // The process can exit between the script write and this inspection. Retry until timeout.
-                }
+                await connection;
+            }
+            catch (OperationCanceledException) when (connectionCancellation.IsCancellationRequested)
+            {
+                // The runner completed before the fixture published readiness.
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
+            ExternalProcessResult result = await run;
+            Assert.Fail(
+                "The test process exited before publishing readiness: " +
+                $"exit={result.ExitCode}, timedOut={result.TimedOut}, stderr={result.StandardError}");
         }
 
-        throw new TimeoutException("The test process did not report its process id.");
+        await connection;
+        using var reader = new StreamReader(readiness, leaveOpen: true);
+        string? identityLine = await reader.ReadLineAsync(cancellationToken);
+        string[] fields = identityLine?.Split('|', StringSplitOptions.TrimEntries) ?? [];
+        Assert.Equal(2, fields.Length);
+        int parentProcessId = ParseProcessId(fields[0], identityLine);
+        int childProcessId = ParseProcessId(fields[1], identityLine);
+
+        return (CaptureProcessIdentity(parentProcessId), CaptureProcessIdentity(childProcessId));
     }
 
-    private static bool TryReadProcessId(string path, out int processId)
+    private static int ParseProcessId(string? value, string? identityLine)
     {
-        processId = 0;
-        try
+        if (!int.TryParse(value, out int processId) || processId <= 0)
         {
-            return File.Exists(path) && int.TryParse(
-                File.ReadAllText(path),
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out processId);
+            Assert.Fail($"The test process published an invalid readiness message: {identityLine ?? "<null>"}");
         }
-        catch (IOException)
-        {
-            // Set-Content can publish the path before releasing its write handle. The caller retries.
-            return false;
-        }
+
+        return processId;
+    }
+
+    private static TestProcessIdentity CaptureProcessIdentity(int processId)
+    {
+        using var process = Process.GetProcessById(processId);
+        return new TestProcessIdentity(processId, process.StartTime);
     }
 
     private static async Task AssertProcessExitedAsync(TestProcessIdentity expected, CancellationToken cancellationToken)

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -24,192 +23,38 @@ public sealed partial class RepositoryBoundaryTests
     [InlineData("registration-profile-version-wrong-type")]
     public void BuiltInBundleMaterializationRejectsTrustIndexDrift(string mutation)
     {
-        string source = File.ReadAllText(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "package-trust-index.json"));
-        string changed = mutation switch
-        {
-            "unknown-field" => source.Replace(
-                "\"trustIndexId\": \"built-in-profile-bundles\",",
-                "\"trustIndexId\": \"built-in-profile-bundles\",\n  \"executablePath\": \"forbidden.exe\",",
-                StringComparison.Ordinal),
-            "source-traversal" => source.Replace(
-                "nt51927-standard-merge/families/nt51927-nt51928.json",
-                "../built-in-evil/family.json",
-                StringComparison.Ordinal),
-            "leading-dot-source" => source.Replace(
-                "nt51927-standard-merge/families/nt51927-nt51928.json",
-                ".hidden/family.json",
-                StringComparison.Ordinal),
-            "illegal-character-source" => source.Replace(
-                "nt51927-standard-merge/families/nt51927-nt51928.json",
-                "invalid path/family.json",
-                StringComparison.Ordinal),
-            "canonical-family-wrong-type" => MutateTrustIndex(
-                source,
-                static root =>
-                {
-                    JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
-                    JsonObject materialization = bundle["materialization"]!.AsObject();
-                    materialization["canonicalFirmwareFamily"] = "ignored";
-                }),
-            "metadata-providers-wrong-type" => MutateTrustIndex(
-                source,
-                static root =>
-                {
-                    JsonObject bundle = root["bundles"]!.AsArray()[0]!.AsObject();
-                    bundle["metadataProviderFamilies"] = new JsonObject();
-                }),
-            "trust-index-version-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["trustIndexVersion"] = 123),
-            "bundle-version-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["bundles"]!.AsArray()[0]!["bundleVersion"] = 123),
-            "materialization-schema-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["bundles"]!.AsArray()[0]!["materialization"]![
-                    "compositionProfileSchemaFile"] = 123),
-            "canonical-source-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["bundles"]!.AsArray()[0]!["materialization"]![
-                    "canonicalFirmwareFamily"]!["source"] = 123),
-            "metadata-family-version-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["bundles"]!.AsArray()
-                    .First(static bundle => bundle!["metadataProviderFamilies"] is not null)![
-                        "metadataProviderFamilies"]!.AsArray()[0]!["familyVersion"] = 123),
-            "registration-profile-version-wrong-type" => MutateTrustIndex(
-                source,
-                static root => root["bundles"]!.AsArray()[0]!["runtimeRegistrations"]!
-                    .AsArray()[0]!["profileVersion"] = 123),
-            _ => throw new InvalidOperationException("Unknown trust-index mutation."),
-        };
-        Assert.NotEqual(source, changed);
+        MaterializationResult result = GetTrustIndexMaterializationResult(mutation);
 
-        string workspace = Path.Combine(
-            Path.GetTempPath(),
-            $"nfc-package-trust-index-{Guid.NewGuid():N}");
-        _ = Directory.CreateDirectory(workspace);
-        try
-        {
-            string indexPath = Path.Combine(workspace, "package-trust-index.json");
-            File.WriteAllText(indexPath, changed);
-            string? sourceRoot = null;
-            if (mutation is "leading-dot-source" or "illegal-character-source")
+        Assert.True(result.Failed, result.Output);
+        Assert.Contains(
+            mutation switch
             {
-                sourceRoot = Path.Combine(workspace, "built-in");
-                CopyDirectory(Path.Combine(Root.FullName, "profiles", "built-in"), sourceRoot);
-                string relativePath = mutation == "leading-dot-source"
-                    ? ".hidden/family.json"
-                    : "invalid path/family.json";
-                string target = Path.Combine(
-                    sourceRoot,
-                    relativePath.Replace('/', Path.DirectorySeparatorChar));
-                _ = Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                File.Copy(
-                    Path.Combine(
-                        sourceRoot,
-                        "nt51927-standard-merge",
-                        "families",
-                        "nt51927-nt51928.json"),
-                    target);
-            }
-            (int exitCode, string output) = RunMaterialization(
-                workspace,
-                indexPath,
-                sourceRoot);
-
-            Assert.NotEqual(0, exitCode);
-            Assert.Contains(
-                mutation switch
-                {
-                    "unknown-field" => "closed package trust-index shape",
-                    "source-traversal" or
-                    "leading-dot-source" or
-                    "illegal-character-source" => "firmware-family paths",
-                    "canonical-family-wrong-type" => "materialization must be an object",
-                    "metadata-providers-wrong-type" => "families must be an array",
-                    "trust-index-version-wrong-type" or
-                    "bundle-version-wrong-type" or
-                    "materialization-schema-wrong-type" or
-                    "canonical-source-wrong-type" or
-                    "metadata-family-version-wrong-type" or
-                    "registration-profile-version-wrong-type" => "must be a JSON string",
-                    _ => throw new InvalidOperationException("Unknown trust-index mutation."),
-                },
-                output,
-                StringComparison.OrdinalIgnoreCase);
-        }
-        finally
-        {
-            Directory.Delete(workspace, recursive: true);
-        }
+                "unknown-field" => "closed package trust-index shape",
+                "source-traversal" or
+                "leading-dot-source" or
+                "illegal-character-source" => "firmware-family paths",
+                "canonical-family-wrong-type" => "materialization must be an object",
+                "metadata-providers-wrong-type" => "families must be an array",
+                "trust-index-version-wrong-type" or
+                "bundle-version-wrong-type" or
+                "materialization-schema-wrong-type" or
+                "canonical-source-wrong-type" or
+                "metadata-family-version-wrong-type" or
+                "registration-profile-version-wrong-type" => "must be a JSON string",
+                _ => throw new InvalidOperationException("Unknown trust-index mutation."),
+            },
+            result.Output,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Build materialization verifies the exact bytes named by each trusted bundle manifest.</summary>
     [Fact]
     public void BuiltInBundleMaterializationRejectsEntryHashDriftBeforeCopy()
     {
-        string source = File.ReadAllText(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "package-trust-index.json"));
-        JsonObject trustIndex = JsonNode.Parse(source)!.AsObject();
-        JsonObject selectedBundle = trustIndex["bundles"]!.AsArray()
-            .Select(static node => node!.AsObject())
-            .Single(static bundle =>
-                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-dp-replace")
-            .DeepClone()
-            .AsObject();
-        trustIndex["bundles"] = new JsonArray(selectedBundle);
+        MaterializationResult result = GetMaterializationResult(EntryHashDriftCaseId);
 
-        string workspace = Path.Combine(
-            Path.GetTempPath(),
-            $"nfc-package-bundle-drift-{Guid.NewGuid():N}");
-        _ = Directory.CreateDirectory(workspace);
-        try
-        {
-            string indexPath = Path.Combine(workspace, "package-trust-index.json");
-            File.WriteAllText(
-                indexPath,
-                trustIndex.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            string sourceRoot = Path.Combine(workspace, "built-in");
-            string builtInSource = Path.Combine(
-                Root.FullName,
-                "profiles",
-                "built-in");
-            CopyDirectory(builtInSource, sourceRoot);
-            string copiedBundleRoot = Path.Combine(sourceRoot, "nt51928-dp-replace");
-            using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(
-                copiedBundleRoot,
-                "profile-bundle.json")));
-            string entryPath = manifest.RootElement.GetProperty("entries")
-                .EnumerateArray()
-                .First(static entry => entry.GetProperty("kind").GetString() == "composition-profile")
-                .GetProperty("path")
-                .GetString()!;
-            File.AppendAllText(Path.Combine(
-                copiedBundleRoot,
-                entryPath.Replace('/', Path.DirectorySeparatorChar)), "\n");
-
-            (int exitCode, string output) = RunMaterialization(
-                workspace,
-                indexPath,
-                sourceRoot);
-
-            Assert.NotEqual(0, exitCode);
-            Assert.True(
-                output.Contains("content hash", StringComparison.OrdinalIgnoreCase),
-                output);
-        }
-        finally
-        {
-            Directory.Delete(workspace, recursive: true);
-        }
+        Assert.True(result.Failed, result.Output);
+        Assert.Contains("content hash", result.Output, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Build materialization rejects manifest authority outside its normative schema.</summary>
@@ -218,75 +63,10 @@ public sealed partial class RepositoryBoundaryTests
     [InlineData("schema-id")]
     public void BuiltInBundleMaterializationRejectsManifestSchemaDrift(string mutation)
     {
-        JsonObject trustIndex = JsonNode.Parse(File.ReadAllText(Path.Combine(
-            Root.FullName,
-            "profiles",
-            "built-in",
-            "package-trust-index.json")))!.AsObject();
-        JsonObject selectedBundle = trustIndex["bundles"]!.AsArray()
-            .Select(static node => node!.AsObject())
-            .Single(static bundle =>
-                bundle["bundleDirectory"]!.GetValue<string>() == "nt51928-dp-replace")
-            .DeepClone()
-            .AsObject();
-        trustIndex["bundles"] = new JsonArray(selectedBundle);
+        MaterializationResult result = GetManifestMaterializationResult(mutation);
 
-        string workspace = Path.Combine(
-            Path.GetTempPath(),
-            $"nfc-package-manifest-schema-{Guid.NewGuid():N}");
-        _ = Directory.CreateDirectory(workspace);
-        try
-        {
-            string sourceRoot = Path.Combine(workspace, "built-in");
-            CopyDirectory(Path.Combine(Root.FullName, "profiles", "built-in"), sourceRoot);
-            string bundleRoot = Path.Combine(sourceRoot, "nt51928-dp-replace");
-            string manifestPath = Path.Combine(bundleRoot, "profile-bundle.json");
-            JsonObject manifest = JsonNode.Parse(File.ReadAllText(manifestPath))!.AsObject();
-            JsonObject entry = manifest["entries"]!.AsArray()
-                .Select(static node => node!.AsObject())
-                .First(static value =>
-                    value["kind"]!.GetValue<string>() == "composition-profile");
-            if (mutation == "entry-path")
-            {
-                string sourcePath = Path.Combine(
-                    bundleRoot,
-                    entry["path"]!.GetValue<string>()
-                        .Replace('/', Path.DirectorySeparatorChar));
-                const string invalidPath = "profiles/.hidden.json";
-                string invalidSource = Path.Combine(
-                    bundleRoot,
-                    invalidPath.Replace('/', Path.DirectorySeparatorChar));
-                File.Copy(sourcePath, invalidSource);
-                entry["path"] = invalidPath;
-            }
-            else
-            {
-                entry["schemaId"] = "https://evil.example/schema.json";
-            }
-
-            string contentHash = CalculateBundleEntryArrayHash(manifest["entries"]!.AsArray());
-            manifest["contentHash"] = contentHash;
-            selectedBundle["contentHash"] = contentHash;
-            File.WriteAllText(
-                manifestPath,
-                manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            string indexPath = Path.Combine(workspace, "package-trust-index.json");
-            File.WriteAllText(
-                indexPath,
-                trustIndex.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-
-            (int exitCode, string output) = RunMaterialization(
-                workspace,
-                indexPath,
-                sourceRoot);
-
-            Assert.NotEqual(0, exitCode);
-            Assert.Contains("entry identity", output, StringComparison.OrdinalIgnoreCase);
-        }
-        finally
-        {
-            Directory.Delete(workspace, recursive: true);
-        }
+        Assert.True(result.Failed, result.Output);
+        Assert.Contains("entry identity", result.Output, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string CalculateBundleEntryArrayHash(JsonArray entries)
@@ -316,39 +96,6 @@ public sealed partial class RepositoryBoundaryTests
 
         return Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(canonical.ToJsonString()))).ToLowerInvariant();
-    }
-
-    private static (int ExitCode, string Output) RunMaterialization(
-        string workspace,
-        string indexPath,
-        string? sourceRoot = null)
-    {
-        var startInfo = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-        };
-        startInfo.ArgumentList.Add("msbuild");
-        startInfo.ArgumentList.Add(Path.Combine(
-            Root.FullName,
-            "src",
-            "NvtFwCombiner.Bootstrap",
-            "NvtFwCombiner.Bootstrap.csproj"));
-        startInfo.ArgumentList.Add("-t:MaterializeBuiltInProfileBundles");
-        startInfo.ArgumentList.Add($"-p:BuiltInProfileTrustIndex={indexPath}");
-        if (sourceRoot is not null)
-        {
-            startInfo.ArgumentList.Add($"-p:BuiltInProfileSourceRoot={sourceRoot}");
-        }
-        startInfo.ArgumentList.Add(
-            $"-p:BaseIntermediateOutputPath={Path.Combine(workspace, "obj")}{Path.DirectorySeparatorChar}");
-        startInfo.ArgumentList.Add(
-            $"-p:OutDir={Path.Combine(workspace, "out")}{Path.DirectorySeparatorChar}");
-        using Process process = Process.Start(startInfo)!;
-        string output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return (process.ExitCode, output);
     }
 
     private static void CopyDirectory(string source, string destination)

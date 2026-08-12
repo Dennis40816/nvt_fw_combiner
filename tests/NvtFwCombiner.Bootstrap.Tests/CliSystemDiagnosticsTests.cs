@@ -5,7 +5,6 @@ using NvtFwCombiner.Application.Ports;
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Protects the CLI adapter over the shared typed System Information contract.</summary>
-[Collection(CanonicalCapabilityCatalogPublicationGroup.Name)]
 public sealed class CliSystemDiagnosticsTests
 {
     /// <summary>Doctor explicitly reloads the shared catalog and reports its typed lifecycle state.</summary>

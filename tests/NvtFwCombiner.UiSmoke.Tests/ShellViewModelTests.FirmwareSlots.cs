@@ -6,7 +6,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-public sealed partial class ShellViewModelTests
+public sealed partial class FirmwareInspectionSlotTests
 {
     /// <summary>Legacy and CMI readers display hexadecimal DP minor version D identically.</summary>
     [Fact]

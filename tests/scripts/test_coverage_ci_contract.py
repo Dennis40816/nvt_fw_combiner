@@ -21,6 +21,7 @@ from coverage_configuration_policy import (  # noqa: E402
 from coverage_policy import load_baseline  # noqa: E402
 
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+CI_WORKFLOW_TEMPLATE = ROOT / "docs" / "ci" / "workflow-templates" / "ci.yml"
 MAIN_PACKAGE_WORKFLOW = ROOT / ".github" / "workflows" / "main-package.yml"
 VERIFIER = ROOT / "scripts" / "verify.py"
 
@@ -31,6 +32,52 @@ class CoverageCiContractTests(unittest.TestCase):
         dotnet_job = workflow[workflow.index("  dotnet:") :]
 
         self.assertIn("fetch-depth: 0", dotnet_job)
+
+    def test_dotnet_ci_uses_three_closed_producers_and_one_stable_finalizer(
+        self,
+    ) -> None:
+        workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn("  dotnet-build:", workflow)
+        self.assertIn("  dotnet-test:", workflow)
+        self.assertIn("fail-fast: false", workflow)
+        self.assertIn("shard: [bootstrap, ui, core]", workflow)
+        self.assertIn("python scripts/verify.py --ci-dotnet-build", workflow)
+        self.assertIn(
+            "python scripts/verify.py --ci-dotnet-test-shard ${{ matrix.shard }}",
+            workflow,
+        )
+        self.assertIn("  dotnet:", workflow)
+        finalizer = workflow[workflow.index("  dotnet:") :]
+        finalizer_header = finalizer[: finalizer.index("    steps:")]
+        self.assertIn("name: dotnet / build-test", finalizer)
+        self.assertIn("needs: [dotnet-build, dotnet-test]", finalizer_header)
+        self.assertIn("if: >-\n      always() &&", finalizer_header)
+        self.assertIn("python scripts/verify.py --ci-dotnet-finalize", finalizer)
+        self.assertIn("pattern: dotnet-*-evidence", finalizer)
+        self.assertIn("path: artifacts/ci-dotnet-downloads/", finalizer)
+        self.assertNotIn("merge-multiple: true", finalizer)
+        self.assertEqual(2, workflow.count("path: artifacts/ci-dotnet-upload/"))
+        self.assertNotIn(".csproj", workflow)
+
+    def test_reviewed_template_preserves_draft_and_artifact_topology(self) -> None:
+        workflow = CI_WORKFLOW_TEMPLATE.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "types: [opened, synchronize, reopened, ready_for_review]",
+            workflow,
+        )
+        self.assertEqual(
+            3,
+            workflow.count(
+                "if: github.event_name == 'push' || "
+                "github.event.pull_request.draft == false"
+            ),
+        )
+        self.assertIn("if: >-\n      always() &&", workflow)
+        self.assertIn("path: artifacts/ci-dotnet-downloads/", workflow)
+        self.assertNotIn("merge-multiple: true", workflow)
+        self.assertNotIn("# immutable reviewed commit", workflow)
 
     def test_package_job_fetches_the_fixed_coverage_baseline_revision(self) -> None:
         workflow = MAIN_PACKAGE_WORKFLOW.read_text(encoding="utf-8")
@@ -53,17 +100,31 @@ class CoverageCiContractTests(unittest.TestCase):
 
     def test_dotnet_lane_restores_before_its_evaluated_source_check(self) -> None:
         verifier = VERIFIER.read_text(encoding="utf-8")
-        dotnet_lane = verifier[
-            verifier.index("def verify_dotnet(") : verifier.index(
-                "def verify_windows_process_orchestration("
+        dotnet_plan = verifier[
+            verifier.index("def dotnet_build_commands(") : verifier.index(
+                "def run_dotnet_commands("
             )
         ]
 
-        self.assertEqual(1, dotnet_lane.count('"--evaluated-source-ownership-only"'))
+        self.assertEqual(1, dotnet_plan.count('"--evaluated-source-ownership-only"'))
         self.assertLess(
-            dotnet_lane.index('[dotnet, "restore", str(SOLUTION)]'),
-            dotnet_lane.index('"--evaluated-source-ownership-only"'),
+            dotnet_plan.index('[dotnet, "restore", str(SOLUTION)]'),
+            dotnet_plan.index('"--evaluated-source-ownership-only"'),
         )
+
+    def test_release_build_owns_style_and_analyzer_diagnostics(self) -> None:
+        build_props = (ROOT / "Directory.Build.props").read_text(encoding="utf-8")
+        editor_config = (ROOT / ".editorconfig").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>",
+            build_props,
+        )
+        self.assertIn(
+            "<TreatWarningsAsErrors>true</TreatWarningsAsErrors>", build_props
+        )
+        self.assertIn("<AnalysisLevel>latest-recommended</AnalysisLevel>", build_props)
+        self.assertIn("dotnet_analyzer_diagnostic.severity = warning", editor_config)
 
     def test_ci_retains_short_lived_real_coverage_evidence(self) -> None:
         workflow = CI_WORKFLOW.read_text(encoding="utf-8")
@@ -72,7 +133,7 @@ class CoverageCiContractTests(unittest.TestCase):
         self.assertIn("path: artifacts/coverage/python/", workflow)
         self.assertIn("name: dotnet-coverage", workflow)
         self.assertIn("path: artifacts/coverage/dotnet/", workflow)
-        self.assertEqual(3, workflow.count("retention-days: 3"))
+        self.assertEqual(5, workflow.count("retention-days: 3"))
 
     def test_collector_pin_matches_the_baseline_and_test_reference(self) -> None:
         errors: list[str] = []
