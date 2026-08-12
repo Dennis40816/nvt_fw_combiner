@@ -6,7 +6,7 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 No unreleased changes.
 
-## [0.10.4] - 2026-08-12
+## [0.10.4] - 2026-08-13
 
 ### Summary
 
@@ -83,7 +83,7 @@ schemas, naming, reports, and saved-data formats remain compatible.
   CLI options and exits, profile/schema versions, processor protocols, output
   names, and packaged firmware behavior remain compatible.
 - Verification: GoldenRegression remains 17/17 with complete expected bytes and
-  SHA-256 results. Full production is 97,310 nonblank lines and counted runtime
+  SHA-256 results. Full production is 97,306 nonblank lines and counted runtime
   production is 67,186, a runtime reduction of 247 lines from `v0.10.3`; exact
   slice ratchets are 20,619 / 29,383 / 3,255 / 13,929.
 - Limitations: only evidence-backed behavior-compatible reductions were
@@ -112,6 +112,14 @@ schemas, naming, reports, and saved-data formats remain compatible.
 - Limitations: CI wall time remains runner-dependent. The accepted requirement
   is two stable runs within five minutes without weakening inventories,
   coverage, golden evidence, cleanup, or failure diagnostics.
+
+### Fixed
+
+- General Merge and General Replace queued authoring preparation now returns to
+  the owning UI scheduler before publishing accepted-file and readiness state.
+  Rapid mapping edits can no longer retain a stale pre-overlap Preview state;
+  canonical overlap admission, output bytes, naming, and report contracts are
+  unchanged.
 
 ### Security
 

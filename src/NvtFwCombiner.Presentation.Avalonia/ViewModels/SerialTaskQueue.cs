@@ -9,9 +9,17 @@ internal sealed class SerialTaskQueue
     internal Task Enqueue(Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
+        TaskScheduler scheduler = SynchronizationContext.Current is null
+            ? TaskScheduler.Current
+            : TaskScheduler.FromCurrentSynchronizationContext();
         lock (_gate)
         {
-            Task current = RunAfterAsync(_tail, action);
+            Task current = _tail.ContinueWith(
+                    _ => action(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    scheduler)
+                .Unwrap();
             _tail = current.ContinueWith(
                 static _ => { },
                 CancellationToken.None,
@@ -19,11 +27,5 @@ internal sealed class SerialTaskQueue
                 TaskScheduler.Default);
             return current;
         }
-    }
-
-    private static async Task RunAfterAsync(Task predecessor, Func<Task> action)
-    {
-        await predecessor.ConfigureAwait(false);
-        await action().ConfigureAwait(false);
     }
 }
