@@ -62,7 +62,7 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   fixed five-second PID-file poll. Production process behavior is unchanged.
 - The stable `dotnet / build-test` verdict now validates one complete Release
   build and three closed test shards in parallel. Exact SHA/SDK manifests,
-  eight TRX and paired coverage reports, 3,321 tests with two declared skips,
+  eight TRX and paired coverage reports, 3,349 tests with two declared skips,
   GoldenRegression 17/17, coverage policy, fixture evidence, and cleanup remain
   mandatory; no production, firmware, profile, schema, or golden file changes.
 

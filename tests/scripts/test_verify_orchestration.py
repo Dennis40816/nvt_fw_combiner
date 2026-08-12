@@ -1891,7 +1891,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    925,
+                    932,
                     0,
                 ),
             ),
@@ -1899,7 +1899,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    444,
+                    464,
                     0,
                 ),
             ),
@@ -1913,7 +1913,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    526,
+                    527,
                     0,
                 ),
                 (
@@ -1969,7 +1969,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3321, sum(total for projects in actual.values() for _, total, _ in projects)
+            3349, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,
