@@ -13,7 +13,9 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   byte, naming, or golden authority changes.
 - The controlled exact `win-x64` candidate acceptance target is one unscored
   warm-up plus five Home launches with a process-to-window median at or below
-  700 ms; the first cold launch remains separately recorded.
+  700 ms; the first cold launch remains separately recorded. The final exact
+  production package measured `687.180 ms` median (`665.410` to `695.633 ms`)
+  and passed the closed-package smoke.
 - Canonical catalog publication now uses a reusable, input-blocking foreground
   loading surface with truthful indeterminate/determinate progress, reduced-
   motion behavior, accessible status, and explicit retry recovery. The shell
