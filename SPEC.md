@@ -1,8 +1,8 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`0.10.4 post-refactor simplification and startup-performance release candidate; v0.10.3 is the stable predecessor`
-> 文件版本：`0.10.4`
-> 基準日期：`2026-08-12`
+> 文件狀態：`0.10.5 owner-approved implementation intake; v0.10.4 is the stable predecessor with an explicit 700 ms performance residual`
+> 文件版本：`0.10.5`
+> 基準日期：`2026-08-13`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
 > Repository：`Dennis40816/nvt_fw_combiner`
@@ -30,22 +30,25 @@
 
 ## 0.1 Current owner priority
 
-`0.10.4` is the support-neutral post-refactor simplification and startup-
-performance release built on the complete `v0.10.3` canonical architecture.
-It preserves the one Application-owned accepted-session route for all six
-Merge/Replace workflows while making Home visible within the controlled 700 ms
-package gate, publishing truthful foreground catalog progress, repairing Dark-
-theme and reduced-motion presentation, and removing additional duplicate
-runtime paths. Profiles remains the compilation authority, Infrastructure owns
-adapters, Presentation and CLI consume the same typed use cases, and Bootstrap
-contains composition-root/lifetime wiring only. This release does not convert
-function availability or golden observations into support certification and
-does not change profile, schema, firmware-family, processor-protocol, report-
-wire, naming, or golden byte authority. `v0.10.3` is the stable predecessor on
-this canonical line; independent `0.9.17`/`0.9.18` maintenance releases remain
-historical upgrade sources rather than alternate `0.10.x` architecture
-authority. The remaining sequence is maintained in
-[NFC Roadmap](docs/architecture/nfc_roadmap.md).
+`0.10.5` is the current owner-approved implementation intake. It builds on the
+stable support-neutral `v0.10.4` release and unifies catalog, report/history,
+diagnostics, deferred-view, external-environment, and selection-triggered
+inspection preparation behind the bounded lifecycle contract in ADR 0049. The
+stable `v0.10.4` package preserved one Application-owned accepted-session route
+for all six Merge/Replace workflows, truthful foreground catalog progress,
+Dark-theme/reduced-motion presentation, and the additional duplicate-path
+retirement. Its exact published package did not reproduce the controlled 700 ms
+Home-window target: the recorded medians were 777.090 ms and 806.930 ms against
+a 782.368 ms control, so the absolute performance gate remains an explicit
+residual rather than a release-pass claim. Profiles remains the compilation
+authority, Infrastructure owns adapters, Presentation and CLI consume the same
+typed use cases, and Bootstrap contains composition-root/lifetime wiring only.
+`v0.10.5` does not convert function availability or golden observations into
+support certification and does not change profile, schema, firmware-family,
+processor-protocol, report-wire, naming, or golden byte authority. Independent
+`0.9.17`/`0.9.18` maintenance releases remain historical upgrade sources rather
+than alternate `0.10.x` architecture authority. The remaining sequence is
+maintained in [NFC Roadmap](docs/architecture/nfc_roadmap.md).
 Publication is permitted only after independent review, firmware-owner
 approval, protected CI, package verification, and release-owner approval; an
 omitted external gate must remain explicit rather than being described as
@@ -80,7 +83,7 @@ passing.
 
 - `v0.9.10` (`b0266f312a67d644475731153b1af82f7eadcc95`) is the only accepted predecessor for `0.9.11`. The premature `0.9.11.10` lineage is recovery evidence only and cannot be merged or released as-is.
 - The measured startup lifecycle opens a meaningful Home screen first, warms immutable catalog projections on a worker thread, then materializes common page visual trees at background dispatcher priority. Warm-up cannot navigate, read user firmware, mutate a profile, launch an external processor, select support, or acquire Build authority.
-- `v0.10.4` requires the exact compressed single-file, self-contained `win-x64` candidate to reach a nonzero Home main-window handle within a 700 ms median on the controlled owner machine after one unscored warm-up and across five measured launches. The first cold launch is recorded separately and is not substituted for the five-run median. Shell construction cannot force canonical catalog publication; Home workflow commands remain unavailable until the existing background warm publishes the canonical IC/default/profile choices on the UI thread. This is a reproducible package acceptance measurement, not a universal CI timing threshold.
+- `v0.10.4` used an exact compressed single-file, self-contained `win-x64` 700 ms Home-window target on the controlled owner machine after one unscored warm-up and across five measured launches. The stable release preserved all safety and publication gates but its exact published package did not reproduce that target; the miss remains an explicit performance residual for later measured work. Shell construction cannot force canonical catalog publication, and Home workflow commands remain unavailable until the background load publishes the canonical IC/default/profile choices on the UI thread. This is a reproducible package observation, not a universal CI timing threshold.
 - Main EXE at or below 70,000,000 bytes is a soft optimization target. Main EXE and complete release ZIP at or below 80,000,000 bytes are hard candidate ceilings; required safety, profiles, processors, evidence, accessibility, and self-contained runtime content cannot be removed to meet them.
 
 - Post-commit background report preparation is an explicit `0.9.10` requirement. A successful Build publishes the atomically committed output identity as soon as the BIN is usable, while complete JSON, Hex Diff, and history projection continue off the dispatcher. Preview and uncommitted failures publish no artifact, and the run retains command ownership until the complete report is ready.
@@ -1168,8 +1171,9 @@ to each `0.10.x` version.
    records `v0.10.1` as the headless foundation, `v0.10.2` as the canonical
    desktop-adoption and first compatibility-deletion checkpoint through #254,
    `v0.10.3` as the complete remaining refactoring graph through #197,
-   `v0.10.4` as its simplification audit plus the measured 700 ms Home-window
-   startup gate, `v0.10.5` as unified preload performance control, and
+   `v0.10.4` as its simplification audit plus the measured Home-window startup
+   target whose stable package retained an explicit 700 ms miss, `v0.10.5` as
+   unified preload performance control, and
    `v0.10.6` as a reserved configured-path update
    experience whose detailed contract is still deferred. Release grouping
    never bypasses dependency or evidence gates.
@@ -2389,10 +2393,11 @@ viewport, and first General/Saved Rule compatibility deletion form a stable,
 support-neutral checkpoint. The complete remaining approved refactoring graph
 through #197 moves to `v0.10.3`, which is tagged only after the full canonical
 refactor, reviewed residual ledgers, and exact ratchet gates are complete.
-`v0.10.4` then performs a
-fresh simplification/ownership audit of that result and restores the exact
-packaged Home startup median to at most 700 ms without synchronously publishing
-the canonical catalog before the first window. `v0.10.5` owns the broader
+`v0.10.4` then performed a fresh simplification/ownership audit of that result
+and measured the exact packaged Home startup against a 700 ms target without
+synchronously publishing the canonical catalog before the first window. The
+stable package retained the measured miss as an explicit residual. `v0.10.5`
+owns the broader
 performance work that unifies every preload behind one observable, cancellable,
 bounded, and user-controllable lifecycle; and `v0.10.6` reserves a configured-path
 update experience. The `v0.10.6` trust, rollback, version-selection,
@@ -2566,10 +2571,11 @@ unresolved architecture decision.
 
 ### 15.9 Complete Legacy Architecture Retirement
 
-Status: the owner accepted the individual architecture decisions and approved
-the consolidated specification and LAR-01..12 implementation. The terminal
-implementation is present on the feature branch; LAR-00 verification and
-release gates remain open.
+Status: completed by the stable `v0.10.3` release. The owner accepted the
+individual architecture decisions, approved and completed LAR-01..12 and
+LAR-00, and closed #197's verifier, Golden, review, package, CI, and release
+gates before publishing tag `v0.10.3` from commit
+`6301049e59432b093abe2bea676d0e223fa488cd`.
 The reviewable draft is
 [`docs/specs/0.10.x-legacy-architecture-retirement.md`](docs/specs/0.10.x-legacy-architecture-retirement.md),
 and its exact baseline/size assessment is
@@ -2591,11 +2597,41 @@ than relocated to its canonical owner. Exact gross/add/net and slice closure
 are recorded in the size assessment.
 
 The owner approved the `$to-tickets` graph on 2026-08-09. Stable repository
-planning ids LAR-01 through LAR-12 own the vertical implementation slices and
-LAR-00 owns aggregate completion; their exact blocker graph is maintained in
-`docs/governance/0.10.x-ticket-dependency-plan.md`. The graph is allocated to
-the `v0.10.3` complete-refactoring gate. The owner authorized the governed
-review/PR/merge/release sequence on 2026-08-10, but tag creation remains
-blocked until LAR-00, #197, CI, package/provenance, clean-Windows, and owner
-review gates pass. Support promotion, profile/schema implementation, and
-firmware-semantic mutation remain out of scope.
+planning ids LAR-01 through LAR-12 owned the vertical implementation slices and
+LAR-00 owned aggregate completion; their exact blocker graph remains in
+`docs/governance/0.10.x-ticket-dependency-plan.md` as completed traceability.
+The governed review/PR/merge/release sequence closed on the stable `v0.10.3`
+tag. Support promotion, profile/schema implementation, and firmware-semantic
+mutation were outside that release and remain controlled by their own evidence
+gates.
+
+### 15.10 Unified Preload Lifecycle
+
+Status: owner-approved on 2026-08-13. Detailed scope, failure behavior, evidence,
+and the approved `PL-*` implementation graph are in
+[`docs/specs/v0.10.5-unified-preload-lifecycle.md`](docs/specs/v0.10.5-unified-preload-lifecycle.md),
+with durable architecture authority in
+[`ADR 0049`](docs/adr/0049-unified-preload-lifecycle.md).
+
+`v0.10.5` distinguishes preload from demand-driven execution. The canonical
+catalog, report/history restore, startup diagnostics, deferred view work, and
+external environment discovery are preload candidates. Selected-file metadata
+and inspection are selection-triggered preparation with an independent workflow
+generation. Shell preferences remain a bounded first-frame prerequisite, while
+Preview, Build, processor execution, and run-bound metadata retain their existing
+typed Application progress and are not absorbed into shell startup.
+
+Presentation owns one shell preload lifecycle—generation, cancellation, closed
+stage order, concurrency budget, progress, retry, skip, and cancel—but never
+interprets feature semantics. Application and Infrastructure retain their typed
+catalog, diagnostics, inspection, filesystem, and external-runtime ownership.
+The catalog is the sole required blocking stage; independent optional failures
+remain visible and cannot suppress later work. Numeric percentage represents
+validated completed work units rather than guessed elapsed time. All work is
+bounded, cancellation-cooperative, stale-safe, and deleted from its former path
+after migration.
+
+The release is firmware- and support-neutral. Existing CLI behavior, report and
+Saved Rule formats, profiles/schemas, processor protocols, BIN bytes/hashes/
+names, Golden evidence, and publication truth remain unchanged. Any difference
+stops the implementation slice and returns to its normal owner/evidence gate.
