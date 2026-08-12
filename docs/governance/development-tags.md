@@ -64,20 +64,17 @@ commit.
   extract the shallow shell and shared read-only Hex viewport, and delete the
   superseded General/Saved Rule v1 owners through #254. Remaining deferred UI,
   Workbench deletion, Core convergence, and #197 stay explicit follow-up.
-- `v0.10.3` — complete canonical-refactoring release: tag only after the
+- `v0.10.3` — completed canonical-refactoring release: published only after the
   remaining deferred UI adoption, Workbench/parallel-catalog deletion, all four
   Core Convergence slices, their reviewed line-addressed candidate/residual
-  ledgers, and #197's exact-ratchet, integration, evidence, and release gates
-  are complete. The owner-approved LAR-01 through LAR-12 graph extends this
-  terminal outcome to zero Workbench/renamed parallel owners and one production
-  path per module; LAR-00 closes its exact verifier/golden/size evidence before
-  tagging. The owner authorized the normal feature-branch/PR/merge/release path
-  on 2026-08-10; publication still requires all listed evidence and review
-  gates and cannot be performed from an unmerged working tree.
-- `v0.10.4` — post-refactor simplification audit: measure the `v0.10.3` result
-  again and review the new architecture for remaining removable ownership or a
-  simpler expression. The milestone does not pre-authorize speculative
-  abstractions, safety removal, or a line-count-only rewrite.
+  ledgers, LAR-01 through LAR-12, LAR-00, and #197's exact-ratchet, verifier,
+  Golden, integration, evidence, and release gates closed. Its terminal outcome
+  is zero Workbench/renamed parallel owners and one production path per module.
+- `v0.10.4` — completed post-refactor simplification audit: re-measured the
+  `v0.10.3` result and reviewed the architecture for removable ownership or a
+  simpler expression. The stable release preserved all safety/evidence gates;
+  its exact published package did not reproduce the 700 ms target, which remains
+  an explicit performance residual rather than a stable-release pass claim.
 - `v0.10.5` — unified preload performance-control release: consolidate startup
   and background preload scheduling behind one observable, cancellable,
   bounded, and user-controllable lifecycle. Performance work must retain

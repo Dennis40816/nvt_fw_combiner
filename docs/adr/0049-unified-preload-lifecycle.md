@@ -74,7 +74,8 @@ driven.
 
 Presentation owns one shell-level preload session. It owns only:
 
-- one monotonically increasing attempt generation;
+- one monotonically increasing shell session generation and one monotonically
+  increasing attempt number per stable stage;
 - a linked cancellation token and a bounded shutdown/drain deadline;
 - a closed, ordered stage plan and a maximum concurrency budget;
 - an immutable observable stage collection, selected summary stage,
@@ -83,18 +84,24 @@ Presentation owns one shell-level preload session. It owns only:
 - projection into the reusable foreground loading state and non-blocking
   background status surface.
 
-The shell attempt generation is allocated immediately before an admitted
-attempt starts. It is monotonically increasing and is never reused after
-success, failure, replacement, or cancellation. Report projection and
-selection-triggered inspection generations are likewise request identities:
-they are consumed when their request starts so late work cannot match a newer
-request. External-environment loads have their own monotonically increasing
-request generation for the same stale-work arbitration. By contrast, catalog
-publication and external-environment publication generations are semantic
-publication identities. Their typed owners increment them only when a fully
-validated immutable candidate commits. Cancellation or failure before that
-commit consumes the already allocated attempt/request generation, but not a
-semantic publication generation.
+The shell session generation is allocated once before its closed stage plan is
+admitted. Each stage has stable identity within that plan and allocates a new
+attempt number immediately before each initial or retry execution. The composite
+`(session generation, stage id, attempt number)` is never reused after success,
+failure, replacement, skip, or cancellation. Exactly one terminal belongs to
+each composite identity. A retry replaces only the stage's current immutable
+attempt snapshot; it cannot reopen or overwrite the prior terminal, and every
+queued callback must match both the current session generation and stage attempt
+number before mutating Presentation state. Report projection and selection-
+triggered inspection generations are likewise request identities: they are
+consumed when their request starts so late work cannot match a newer request.
+External-environment loads have their own monotonically increasing request
+generation for the same stale-work arbitration. By contrast, catalog publication
+and external-environment publication generations are semantic publication
+identities. Their typed owners increment them only when a fully validated
+immutable candidate commits. Cancellation or failure before that commit consumes
+the already allocated attempt/request generation, but not a semantic publication
+generation.
 
 The session does not cache feature data, parse report/catalog/tool results,
 infer firmware facts, or apply a result. Each stage calls its existing typed
@@ -122,6 +129,18 @@ diagnostic, then later independent stages continue. The operator may retry the
 failed stage, skip the current optional stage, or cancel remaining optional
 preloads. Cancel and skip never cancel an active Preview/Build or reinterpret a
 feature result.
+
+Retry does not reconstruct the whole shell session or its closed plan. It starts
+only after the failed attempt is terminal and drained, keeps the shell session
+generation, and allocates a new attempt number for that stage. Required catalog
+retry reruns only catalog; because catalog is the initial blocking dependency,
+no successor has started, and success releases the original plan once. Optional
+retry reruns only the failed stage. Independent or completed stages never rerun;
+a dependent stage that remained pending becomes eligible once after retry
+success. Skip leaves a required dependency successor unstarted with an explicit
+dependency-blocked stage state unless the typed owner declared that edge
+optional, while Continue advances independent work only. Delayed callbacks from
+an earlier attempt are rejected by the composite stage-attempt identity.
 
 An explicit `--load-report` request is visible requested work. A read or parse
 failure offers retry/skip and remains in report diagnostics; it does not abort
@@ -225,9 +244,11 @@ retains that owner's existing contract.
   an alternate path.
 - Report/history startup and manual load share one bounded filesystem reader
   and one report parser/projection path.
-- Selected-file inspection returns coherent content identity and stability from
-  the filesystem adapter. Presentation owns selection generation and display
-  only; path probing and duplicate semantic caches are removed.
+- Selected-file inspection folds Infrastructure's separate before/after
+  `FileInfo` path-stamp capture into the same read boundary that returns coherent
+  content identity and stability. Presentation already performs no filesystem
+  probing; it owns selection generation and display only, and its remaining
+  path-keyed projection/base caches are removed.
 - The existing IC-only compiled-classification cache must become bounded and
   bind canonical capability/publication identity, or be deleted in favor of
   canonical recomputation.
@@ -296,8 +317,10 @@ support, evidence, or processor authority.
 - Characterization tests lock the current catalog, history, report, diagnostics,
   deferred-view, inspection, and external-tool owners before migration.
 - Behavioral tests cover required failure, optional failure isolation,
-  retry/skip/cancel, stale generation, exact terminal cardinality, bounded
-  concurrency, shutdown drain, and progress monotonicity.
+  retry/skip/cancel, shell-session and per-stage attempt identity, delayed old-
+  attempt callbacks, required catalog retry, optional single-stage retry,
+  dependency release without rerunning completed work, exact per-attempt terminal
+  cardinality, bounded concurrency, shutdown drain, and progress monotonicity.
 - UI tests cover keyboard/focus, blocking versus non-blocking state, localized
   status/actions, reduced motion, percent text, and bounded live announcements.
 - Architecture tests reject a second coordinator, feature-result interpretation

@@ -10,10 +10,10 @@ planning ids receive GitHub issue numbers only after separate publication
 authorization. PR #352 remains the stable predecessor; this amendment does not
 tag, release, or reopen it.
 
-2026-08-10 implementation checkpoint: LAR-01 through LAR-12 are implemented on
-the feature branch. LAR-00 and #197 remain active and own the final verifier,
-golden, review, package, merge, CI, and release evidence. This checkpoint does
-not create `v0.10.3` or advance the later milestones.
+2026-08-13 completion record: LAR-01 through LAR-12, LAR-00, and #197 closed
+their verifier, Golden, review, package, merge, CI, and release evidence before
+the stable `v0.10.3` tag. The following stable `v0.10.4` release preserved that
+architecture and recorded its unachieved 700 ms target as an explicit residual.
 
 This file owns future milestone order and release boundaries only. It does not
 repeat product requirements, architecture decisions, firmware facts, skill
@@ -87,11 +87,12 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    and LAR-00, including LAR-01 through LAR-12, zero Workbench/renamed parallel
    owners, one production path per module, all four Core Convergence ledgers,
    reviewed line-addressed residuals, and exact descending ratchets.
-4. `v0.10.4` re-measures that result, audits whether any ownership or code can
-   be removed or expressed more simply without weakening evidence, and gates
-   the exact packaged Home-window median at 700 ms on the controlled owner
-   machine. Shell construction must not synchronously publish the canonical
-   capability catalog merely to show Home.
+4. `v0.10.4` re-measured that result, audited whether ownership or code could be
+   removed or expressed more simply without weakening evidence, and measured the
+   exact packaged Home-window median against 700 ms on the controlled owner
+   machine. The stable package did not reproduce 700 ms, so that absolute target
+   remains an explicit performance residual. Shell construction does not
+   synchronously publish the canonical capability catalog merely to show Home.
 5. `v0.10.5` executes the approved `PL-01` through `PL-07` graph and `PL-00`
    terminal gate: one observable, cancellable, bounded, and user-controllable
    preload lifecycle, with selection-triggered inspection retaining its own
@@ -101,13 +102,13 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    network/share, and release-policy contract remains deferred to a later owner
    specification discussion, so no implementation ticket is created yet.
 
-The complete refactoring release `v0.10.3` is downstream of #197 and all
-applicable architecture, firmware-owner, golden, package, clean-Windows,
-protected-CI, and release-owner gates. The former fixed total and slice targets
-are dated planning benchmarks, not release gates. No roadmap entry may waive
-the retained gates or move, overwrite, or redefine an existing stable tag or
-asset. The later audit, performance, and update-experience releases do not
-reopen #197 or weaken its retained gate.
+The complete refactoring release `v0.10.3` closed #197 and all applicable
+architecture, firmware-owner, Golden, package, clean-Windows, protected-CI, and
+release-owner gates before publication. The former fixed total and slice targets
+are dated planning benchmarks, not release gates. No roadmap entry may waive the
+retained gates or move, overwrite, or redefine an existing stable tag or asset.
+The later audit, performance, and update-experience releases do not reopen #197
+or weaken its retained gate.
 
 ## `0.11.0`: AB certification and family evidence
 
