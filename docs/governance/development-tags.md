@@ -82,6 +82,8 @@ commit.
   and background preload scheduling behind one observable, cancellable,
   bounded, and user-controllable lifecycle. Performance work must retain
   deterministic results, current cache identity, and the canonical verifier.
+  ADR 0049 and the approved `v0.10.5` specification define the exact preload,
+  preparation, typed-owner, progress, failure, and ticket boundaries.
 - `v0.10.6` — reserved path-based update experience: add a screen that can
   obtain reviewed update artifacts from a configured path so routine delivery
   no longer depends on repackaging and email. Trust source, rollback, version

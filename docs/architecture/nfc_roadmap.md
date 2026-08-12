@@ -1,6 +1,6 @@
 # NFC Roadmap
 
-Status: active owner roadmap, implementation checkpoint 2026-08-11.
+Status: active owner roadmap, implementation checkpoint 2026-08-13.
 
 2026-08-09 planning amendment: the owner approved complete removal of the
 remaining legacy architecture, one production path per module, the
@@ -46,6 +46,14 @@ This bounded first-window correction belongs beside the simplification audit;
 the broader observable, cancellable, bounded, and user-controllable preload
 lifecycle remains `v0.10.5` scope.
 
+2026-08-13 milestone amendment: after the official `v0.10.4` release, the owner
+approved [ADR 0049](../adr/0049-unified-preload-lifecycle.md) and the
+[`v0.10.5` specification](../specs/v0.10.5-unified-preload-lifecycle.md).
+`PL-01` through `PL-07` implement the bounded lifecycle and `PL-00` owns its
+terminal evidence/release gate. The lifecycle owner controls scheduling and
+operator actions only; catalog, report, inspection, diagnostics, and external-
+runtime semantics remain with their typed owners.
+
 ## `0.10.0`: planning and governance baseline
 
 `0.10.0` reconciles its original `v0.9.15` planning baseline with the complete
@@ -84,8 +92,10 @@ available reviewers. The owner release allocation recorded on 2026-08-04 is:
    the exact packaged Home-window median at 700 ms on the controlled owner
    machine. Shell construction must not synchronously publish the canonical
    capability catalog merely to show Home.
-5. `v0.10.5` unifies every preload under one observable, cancellable, bounded,
-   and user-controllable performance lifecycle.
+5. `v0.10.5` executes the approved `PL-01` through `PL-07` graph and `PL-00`
+   terminal gate: one observable, cancellable, bounded, and user-controllable
+   preload lifecycle, with selection-triggered inspection retaining its own
+   workflow generation and typed semantic owner.
 6. `v0.10.6` reserves a configured-path update screen so routine delivery does
    not require repackaging and email. Its trust, rollback, version,
    network/share, and release-policy contract remains deferred to a later owner

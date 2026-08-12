@@ -2599,3 +2599,34 @@ review/PR/merge/release sequence on 2026-08-10, but tag creation remains
 blocked until LAR-00, #197, CI, package/provenance, clean-Windows, and owner
 review gates pass. Support promotion, profile/schema implementation, and
 firmware-semantic mutation remain out of scope.
+
+### 15.10 Unified Preload Lifecycle
+
+Status: owner-approved on 2026-08-13. Detailed scope, failure behavior, evidence,
+and the approved `PL-*` implementation graph are in
+[`docs/specs/v0.10.5-unified-preload-lifecycle.md`](docs/specs/v0.10.5-unified-preload-lifecycle.md),
+with durable architecture authority in
+[`ADR 0049`](docs/adr/0049-unified-preload-lifecycle.md).
+
+`v0.10.5` distinguishes preload from demand-driven execution. The canonical
+catalog, report/history restore, startup diagnostics, deferred view work, and
+external environment discovery are preload candidates. Selected-file metadata
+and inspection are selection-triggered preparation with an independent workflow
+generation. Shell preferences remain a bounded first-frame prerequisite, while
+Preview, Build, processor execution, and run-bound metadata retain their existing
+typed Application progress and are not absorbed into shell startup.
+
+Presentation owns one shell preload lifecycle—generation, cancellation, closed
+stage order, concurrency budget, progress, retry, skip, and cancel—but never
+interprets feature semantics. Application and Infrastructure retain their typed
+catalog, diagnostics, inspection, filesystem, and external-runtime ownership.
+The catalog is the sole required blocking stage; independent optional failures
+remain visible and cannot suppress later work. Numeric percentage represents
+validated completed work units rather than guessed elapsed time. All work is
+bounded, cancellation-cooperative, stale-safe, and deleted from its former path
+after migration.
+
+The release is firmware- and support-neutral. Existing CLI behavior, report and
+Saved Rule formats, profiles/schemas, processor protocols, BIN bytes/hashes/
+names, Golden evidence, and publication truth remain unchanged. Any difference
+stops the implementation slice and returns to its normal owner/evidence gate.
