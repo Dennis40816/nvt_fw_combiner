@@ -1,15 +1,15 @@
 # Repository Verification Report
 
 Status: historical seed-preparation report for the 2026-06-25 bootstrap
-baseline, updated for the 0.10.4 post-refactor simplification and startup-
-performance release candidate. Current
+baseline, updated through the stable 0.10.4 post-refactor simplification and
+startup-performance release. Current
 verification evidence is produced by the canonical
 `python scripts/verify.py --structure-only` and `python scripts/verify.py --all`
 commands.
 
 Specification package version: `0.10.4`
 
-## 0.10.4 post-refactor simplification and startup-performance release candidate
+## 0.10.4 post-refactor simplification and startup-performance stable release
 
 The candidate retains the complete `v0.10.3` canonical execution architecture
 while making the meaningful Home window visible before catalog publication,
@@ -20,12 +20,13 @@ neutral and changes no profile/schema version, firmware authority, expected BIN
 byte or SHA-256 result, report wire, output naming, CRC success payload, or
 external-processor protocol.
 
-The exact production package passed closed-package smoke and measured five
-scored Home launches between 665.410 and 695.633 ms with a 687.180 ms median
-after one unscored warm-up; the separately recorded first cold launch was
-1040.087 ms. The complete verifier passes with 3,349 .NET tests and two declared
-platform skips, Python 378 with four declared skips, CRC Worker 30/30, and all
-17 existing BIN golden regressions. Full production is 97,310 nonblank lines
+The exact production package before final integration passed closed-package
+smoke and measured five scored Home launches between 665.410 and 695.633 ms
+with a 687.180 ms median after one unscored warm-up; the separately recorded
+first cold launch was 1040.087 ms. The complete verifier passes with 3,349 .NET
+tests and two declared platform skips, Python 378 with four declared skips, CRC
+Worker 30/30, and all
+17 existing BIN golden regressions. Full production is 97,306 nonblank lines
 and counted runtime production is 67,186; the exact four runtime slices remain
 20,619 / 29,383 / 3,255 / 13,929.
 
@@ -34,10 +35,23 @@ passed two fresh complete CI attempts within five minutes and merged into
 `0.10.x` as `8921fa6c0a21af2a1766a491d47118072f711026`.
 The reviewed and merged trees both equal
 `f60ddfadef87736b2bb1fbc7d99e0230be5f52d9`. Final protected-`main`
-integration, exact-main CI, release-review evidence, protected release
-workflow approval, deterministic package regeneration, published-asset
-verification, and downloaded-package smoke remain required before the
-immutable `v0.10.4` tag may be created.
+integration PR #369 then merged the final reviewed tree to protected `main` as
+`8c3cc51dc95cea2fbae8ec5ac0287db730d1b37b`; its tree is
+`48ee0fd87d942674acf83c910de78681db748458`. Exact-main CI passed, and release
+run `31623880051` attempt 2 completed deterministic package regeneration,
+candidate smoke, immutable promotion, five-asset verification, and downloaded-
+package smoke. Stable tag and Release `v0.10.4` are published from that exact
+commit and tree.
+
+The exact downloaded ZIP also passes visible local smoke. Its two controlled
+post-publication startup observations measured 777.090 ms and 806.930 ms
+medians, so the official-package repeat did not reproduce the 700 ms absolute
+gate. In the same current environment, the unchanged prior 656.444 ms control
+package measured 782.368 ms; this shows an environment-wide slowdown and no
+evidence specific to the final queue correction, but it does not convert the
+absolute miss into a pass. The stable tag remains immutable, and the startup
+residual is recorded in
+[`v0.10.4-startup-700ms-evidence.md`](v0.10.4-startup-700ms-evidence.md).
 
 ## 0.10.3 canonical architecture and legacy-retirement release candidate
 
