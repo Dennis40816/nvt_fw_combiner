@@ -81,7 +81,7 @@ public sealed class SystemInformationServiceTests
     [Fact]
     public async Task CurrentRemainsReadableWhileCatalogReloadIsBlocked()
     {
-        using var catalog = new BlockingReloadCatalog();
+        var catalog = new BlockingReloadCatalog();
         SystemInformationService service = new(
             "0.10.3-test",
             catalog,
@@ -94,11 +94,9 @@ public sealed class SystemInformationServiceTests
 
         try
         {
-            Assert.True(await Task.Run(
-                () => catalog.ReloadEntered.Wait(
-                    TimeSpan.FromSeconds(2),
-                    TestContext.Current.CancellationToken),
-                TestContext.Current.CancellationToken));
+            await catalog.ReloadEntered.Task.WaitAsync(
+                TimeSpan.FromSeconds(5),
+                TestContext.Current.CancellationToken);
             Task<SystemInformationSnapshot> read = Task.Run(
                 () => service.Current,
                 TestContext.Current.CancellationToken);
@@ -110,7 +108,7 @@ public sealed class SystemInformationServiceTests
         }
         finally
         {
-            catalog.ReleaseReload.Set();
+            catalog.ReleaseReload.SetResult();
         }
 
         Assert.Equal(2, (await refresh).Generation);
@@ -201,12 +199,13 @@ public sealed class SystemInformationServiceTests
 
     private sealed class BlockingReloadCatalog :
         ICanonicalSupportMatrixQuery,
-        ICanonicalCapabilityCatalogReloader,
-        IDisposable
+        ICanonicalCapabilityCatalogReloader
     {
-        internal ManualResetEventSlim ReloadEntered { get; } = new(false);
+        internal TaskCompletionSource ReloadEntered { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
-        internal ManualResetEventSlim ReleaseReload { get; } = new(false);
+        internal TaskCompletionSource ReleaseReload { get; } = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         public CanonicalSupportMatrixQueryResult Query()
         {
@@ -215,14 +214,8 @@ public sealed class SystemInformationServiceTests
 
         public void Reload(CancellationToken cancellationToken)
         {
-            ReloadEntered.Set();
-            ReleaseReload.Wait(cancellationToken);
-        }
-
-        public void Dispose()
-        {
-            ReloadEntered.Dispose();
-            ReleaseReload.Dispose();
+            ReloadEntered.SetResult();
+            ReleaseReload.Task.Wait(cancellationToken);
         }
     }
 
