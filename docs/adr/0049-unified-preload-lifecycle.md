@@ -10,7 +10,8 @@
   boundary; any firmware, support, trust, or release-policy delta retains its
   normal R3 owner gate
 - Builds on: ADR 0015, ADR 0026, ADR 0027, ADR 0038, ADR 0046, and ADR 0048
-- Amends: the `0.10.x` maintainability specification and `v0.10.5` roadmap
+- Amends: ADR 0027's process-restart-only external-environment refresh boundary,
+  the `0.10.x` maintainability specification, and the `v0.10.5` roadmap
 
 ## Context
 
@@ -81,6 +82,17 @@ Presentation owns one shell-level preload session. It owns only:
 - required/optional status, retry, skip, cancel, and completion commands; and
 - projection into the reusable foreground loading state and non-blocking
   background status surface.
+
+The shell attempt generation is allocated immediately before an admitted
+attempt starts. It is monotonically increasing and is never reused after
+success, failure, replacement, or cancellation. Report projection and
+selection-triggered inspection generations are likewise request identities:
+they are consumed when their request starts so late work cannot match a newer
+request. By contrast, catalog publication and external-environment generations
+are semantic publication identities. Their typed owners increment them only
+when a fully validated immutable candidate commits. Cancellation or failure
+before that commit consumes the already allocated attempt/request generation,
+but not a semantic publication generation.
 
 The session does not cache feature data, parse report/catalog/tool results,
 infer firmware facts, or apply a result. Each stage calls its existing typed
@@ -161,16 +173,30 @@ No stage creates an unbounded queue or nested parallel fan-out.
 
 Every file input has an explicit maximum length before allocation. Reads use
 streaming/cooperative cancellation and reject growth, truncation, or identity
-change according to the owning feature contract. Report history retains its
-64 MiB file bound, 12-entry limit, and 16 MiB retained payload budget. External
-tool discovery is bounded to the reviewed tools root, manifest schema/size,
-and deterministic path order; it never launches an executable during preload.
+change according to the owning feature contract. A standalone report selected
+through the storage provider or supplied by `--load-report` may remain outside
+application-managed roots, but its raw input is limited to 64 MiB
+(`67,108,864` bytes) and keeps its user-selected identity. Report history
+retains its separate 64 MiB persisted-file bound and 12-entry limit. Its 16 MiB
+retained-payload limit is a soft budget: the newest valid entry is always kept,
+even when that entry alone exceeds the budget, and older entries are evicted.
+
+External-tool discovery is confined to the reviewed tools root and does not
+follow reparse-point directories or accept a manifest that resolves outside
+that root. One discovery visits at most 4,096 filesystem entries at nesting
+depth 16, admits at most 256 `manifest.json` candidates, reads at most 1 MiB
+(`1,048,576` bytes) per manifest and at most 16 MiB (`16,777,216` bytes) of
+manifest data in total, and orders accepted candidates by normalized path.
+Exceeding any bound is one typed environment-load failure and publishes no
+candidate. Discovery never launches an executable during preload.
 
 Window close cancels the active preload generation and waits no more than five
 seconds for cooperative drain before continuing the existing close policy.
-Cancellation observed before semantic publication cannot publish, consume a
-generation, or enable an action. The ordinary cooperative race after an owner's
-final cancellation check retains that owner's existing contract.
+Cancellation observed before semantic publication cannot publish, increment a
+semantic publication generation, or enable an action. Any already allocated
+shell, report, or inspection request generation remains consumed and cannot be
+reused. The ordinary cooperative race after an owner's final cancellation check
+retains that owner's existing contract.
 
 ### Preserve one production path and cache identity
 
@@ -185,9 +211,21 @@ final cancellation check retains that owner's existing contract.
 - The existing IC-only compiled-classification cache must become bounded and
   bind canonical capability/publication identity, or be deleted in favor of
   canonical recomputation.
+- Batch inspection invokes only the authoring strategies identified by the
+  typed workflow roles on its inputs. It retains one distinct-path read cache,
+  input/result order, diagnostics, and cache-off parity; it cannot skip a
+  strategy by guessing from filenames, bytes, or IC identity.
 - External-tool discovery moves behind one Infrastructure environment loader;
   Bootstrap wires its generation lease but does not parse manifests or own a
   second refresh implementation.
+
+ADR 0027's restart-only external-environment boundary is superseded for
+`v0.10.5`. Explicit refresh materializes a candidate behind that one
+Infrastructure owner. A successful candidate atomically publishes the next
+generation for future acquisitions; a failed or cancelled refresh retains the
+current generation and its diagnostic. Every already-acquired run lease remains
+bound to its immutable generation. Process restart remains a valid reset, but
+is no longer the only refresh mechanism.
 
 Cache disable, cancellation, clear, retry, or refresh may cause canonical
 recomputation only. It cannot change bytes, naming, readiness, diagnostics,

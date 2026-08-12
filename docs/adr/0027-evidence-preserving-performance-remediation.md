@@ -204,6 +204,16 @@ tail reads for shortened-output normalization.
 
 ### External processor environment lifetime
 
+Status through `v0.10.4`: the restart-only refresh boundary below is historical.
+ADR 0049 supersedes that boundary for `v0.10.5` while retaining immutable
+per-run leases, trust checks, staging, and fail-closed execution. The single
+environment owner moves from Bootstrap discovery to an Infrastructure adapter;
+an explicit observable refresh may publish a new generation for future
+acquisitions only after the complete bounded candidate validates. Failure or
+cancellation retains the current generation, and an already-acquired run is
+never rebound. Process restart remains a reset, but is no longer the sole
+refresh mechanism.
+
 Bootstrap owns one lazily initialized external-processor environment per OS
 process. The first applicable run locates the external-tools root, enumerates
 and parses manifests, builds the hash-pinned registry and router, and publishes
@@ -212,9 +222,9 @@ Concurrent and later calls reuse the same router. An unavailable root and an
 initialization exception are also retained, so a Build cannot repeatedly scan
 or switch to mutable manifest state during the same process.
 
-Installing, removing, or changing a manifest/tool layout therefore requires an
-application or CLI-process restart. This is the explicit refresh boundary; no
-physical root is embedded in source and no environment survives a restart.
+Under the historical through-`v0.10.4` boundary, installing, removing, or
+changing a manifest/tool layout required an application or CLI-process restart.
+No physical root was embedded in source and no environment survived a restart.
 Per-run processor sessions, private staging directories, process launches, and
 output validation remain independent. The cached manifest registry does not
 cache executable trust: the resolver still checks executable existence and
