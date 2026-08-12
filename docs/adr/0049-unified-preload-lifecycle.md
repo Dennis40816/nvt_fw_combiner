@@ -183,19 +183,23 @@ application-managed roots, but its raw input is limited to 10 MiB
 six-byte `\u003C` escape. The 10 MiB ceiling therefore reserves 60 MiB for the
 worst-case encoded imported report and the remaining 4 MiB for the v1 envelope,
 maximum platform paths, and required entry fields inside the separate 64 MiB
-history file. Before atomic save, the history writer validates the complete serialized
-v1 envelope. When duplicating derivable UI summary metadata would cross the
-bound, it persists that entry with the schema-v1 empty-metadata representation;
-the existing reload path rematerializes the same summary from the report JSON.
-It never drops the newest report from the in-memory history merely because
-optional derived metadata would duplicate it beyond the file bound. If a report
-created in-process still cannot fit the 64 MiB envelope after that fallback,
-the writer returns a typed `EntryTooLargeToPersist` result, leaves the previous
-persisted file intact, and keeps the report available for the current session.
-Report history retains its separate 64 MiB persisted-file bound and 12-entry
-limit. Its 16 MiB
-retained-payload limit is a soft budget: the newest valid entry is always kept,
-even when that entry alone exceeds the budget, and older entries are evicted.
+history file. Before atomic save, the history writer validates the complete
+serialized v1 envelope. When it would cross the bound, every retained entry
+whose UI summary is derivable from `ReportJson` is persisted with the schema-v1
+empty-metadata representation; the existing reload path rematerializes the same
+summary from the report JSON. If the complete encoded envelope is still too
+large, the writer deterministically evicts oldest retained entries and
+reserializes until it fits. It never drops the newest report from in-memory
+history merely because optional derived metadata or older history consumes the
+file budget. If that newest report created in-process still cannot fit the 64 MiB
+envelope by itself after the metadata fallback, the writer returns a typed
+`EntryTooLargeToPersist` result, leaves the previous persisted file intact, and
+keeps the report available for the current session. Report history retains its
+separate 64 MiB persisted-file bound and 12-entry limit. Its 16 MiB retained-
+payload limit is a soft budget: the newest valid entry is always kept, even when
+that entry alone exceeds the budget, and older entries are evicted. The complete
+encoded-envelope limit is an independent hard bound and may require additional
+oldest-first eviction below that soft payload budget.
 
 External-tool discovery is confined to the reviewed tools root and does not
 follow reparse-point directories or accept a manifest that resolves outside
