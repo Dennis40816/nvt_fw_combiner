@@ -1,7 +1,31 @@
-using Avalonia.Media;
 using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
+/// <summary>Theme-neutral visual role for one memory coverage segment.</summary>
+public enum MemoryCoverageFillRole
+{
+    /// <summary>Pending, reserved, or otherwise neutral structure.</summary>
+    Neutral,
+    /// <summary>Display or Initial Code.</summary>
+    Dp,
+    /// <summary>Normal touch firmware.</summary>
+    Tp,
+    /// <summary>Backup touch firmware.</summary>
+    TpBackup,
+    /// <summary>LDC firmware.</summary>
+    Ldc,
+    /// <summary>General source or vector data.</summary>
+    Source,
+    /// <summary>Reference-owned bytes that remain preserved.</summary>
+    Kept,
+    /// <summary>Overlapping or otherwise conflicting output.</summary>
+    Conflict,
+    /// <summary>CtrlRAM without a more specific reviewed subtype.</summary>
+    CtrlRam,
+    /// <summary>DiffDLM or DLM content.</summary>
+    DiffDlm,
+}
 
 /// <summary>One visual segment in a memory coverage strip.</summary>
 public sealed class MemoryCoverageSegmentViewModel
@@ -11,7 +35,7 @@ public sealed class MemoryCoverageSegmentViewModel
         string rangeLabel,
         string sourceLabel,
         string detail,
-        string fill,
+        MemoryCoverageFillRole fillRole,
         double barWidth,
         bool isChanged = false,
         bool usesBaseFirmwarePattern = false,
@@ -24,7 +48,10 @@ public sealed class MemoryCoverageSegmentViewModel
         ArgumentException.ThrowIfNullOrWhiteSpace(rangeLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLabel);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fill);
+        if (!Enum.IsDefined(fillRole))
+        {
+            throw new ArgumentOutOfRangeException(nameof(fillRole));
+        }
 
         string displaySourceLabel = NormalizeSourceLabel(sourceLabel);
 
@@ -32,8 +59,7 @@ public sealed class MemoryCoverageSegmentViewModel
         SourceLabel = displaySourceLabel;
         Detail = detail;
         CompactDetail = CreateCompactDetail(displaySourceLabel, isChanged);
-        Fill = fill;
-        FillBrush = Brush.Parse(fill);
+        FillRole = fillRole;
         BarWidth = barWidth;
         IsChanged = isChanged;
         UsesBaseFirmwarePattern = usesBaseFirmwarePattern;
@@ -76,11 +102,8 @@ public sealed class MemoryCoverageSegmentViewModel
     /// <summary>Compact display note for dense memory legends.</summary>
     public string CompactDetail { get; }
 
-    /// <summary>Brush color used by the visual strip.</summary>
-    public string Fill { get; }
-
-    /// <summary>Parsed brush used by Avalonia visual elements.</summary>
-    public IBrush FillBrush { get; }
+    /// <summary>Theme-neutral role resolved to one shared XAML brush.</summary>
+    public MemoryCoverageFillRole FillRole { get; }
 
     /// <summary>Proportional display width in device-independent pixels.</summary>
     public double BarWidth { get; }

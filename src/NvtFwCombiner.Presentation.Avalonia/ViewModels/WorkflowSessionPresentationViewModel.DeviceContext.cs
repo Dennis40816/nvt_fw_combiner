@@ -8,14 +8,19 @@ public sealed partial class WorkflowSessionPresentationViewModel
 {
     private string _selectedIc = string.Empty;
 
-    private IReadOnlyList<string> AbMergeIcChoices { get; }
+    private IReadOnlyList<string> AbMergeIcChoices { get; set; } = [];
 
     internal string DeviceContextRefreshSummary { get; private set; } = string.Empty;
 
     /// <summary>Gets IC choices admitted by the active authoring context.</summary>
-    public IReadOnlyList<string> IcChoices => IsAbMergeContextActive
-        ? AbMergeIcChoices
-        : _compositionServices.Capabilities.GetIcIds();
+    public IReadOnlyList<string> IcChoices => !IsCanonicalCatalogReady
+        ? []
+        : IsAbMergeContextActive
+            ? AbMergeIcChoices
+            : _compositionServices.Capabilities.GetIcIds();
+
+    /// <summary>True after the canonical capability publication is ready for workflow authoring.</summary>
+    public bool IsCanonicalCatalogReady { get; private set; }
 
     /// <summary>Gets grouped display choices for the IC-count control.</summary>
     [ObservableProperty]
@@ -129,6 +134,28 @@ public sealed partial class WorkflowSessionPresentationViewModel
     internal bool IsWorkflowLoaded { get; private set; }
 
     internal bool IsLoadingWorkflow { get; private set; }
+
+    internal void PublishCanonicalCatalogState()
+    {
+        if (IsCanonicalCatalogReady)
+        {
+            return;
+        }
+
+        string defaultIcId = _compositionServices.Capabilities.DefaultIcId;
+        IReadOnlyList<string> abMergeIcChoices = Array.AsReadOnly(
+        [
+            .. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
+                .Select(static profile => profile.IcId),
+        ]);
+        AbMergeIcChoices = abMergeIcChoices;
+        _selectedIc = defaultIcId;
+        _replaceWorkflowContextIc = defaultIcId;
+        IsCanonicalCatalogReady = true;
+        OnPropertyChanged(nameof(IcChoices));
+        OnPropertyChanged(nameof(SelectedIc));
+        OnPropertyChanged(nameof(IsCanonicalCatalogReady));
+    }
 
     internal bool ShouldShowNumberSelectorForSelectedPage()
     {

@@ -26,11 +26,6 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
     {
         _compositionServices = compositionServices ??
             throw new ArgumentNullException(nameof(compositionServices));
-        AbMergeIcChoices = Array.AsReadOnly(
-        [
-            .. _compositionServices.Capabilities.GetAbMergeProfileSummaries()
-                .Select(static profile => profile.IcId),
-        ]);
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _merge = merge ?? throw new ArgumentNullException(nameof(merge));
         _replace = replace ?? throw new ArgumentNullException(nameof(replace));
@@ -45,8 +40,6 @@ public sealed partial class WorkflowSessionPresentationViewModel : ObservableObj
         DismissFirmwareIcMismatchCommand = new RelayCommand(DismissFirmwareIcMismatch);
         AcceptFirmwareNumberMismatchCommand = new RelayCommand(AcceptFirmwareNumberMismatch);
         DismissFirmwareNumberMismatchCommand = new RelayCommand(DismissFirmwareNumberMismatch);
-        _selectedIc = _compositionServices.Capabilities.DefaultIcId;
-        _replaceWorkflowContextIc = SelectedIc;
     }
 
     /// <summary>Gets current localized shell text used by workflow-session prompts.</summary>

@@ -12,12 +12,10 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
     {
         _compositionServices = compositionServices ??
             throw new ArgumentNullException(nameof(compositionServices));
-        IcChoices = _compositionServices.Capabilities.GetIcIds();
-        SelectedIc = _compositionServices.Capabilities.DefaultIcId;
     }
 
     /// <summary>Gets available IC identifiers.</summary>
-    public IReadOnlyList<string> IcChoices { get; private set; }
+    public IReadOnlyList<string> IcChoices { get; private set; } = [];
 
     /// <summary>Gets whether this workflow requires an IC-count choice.</summary>
     [ObservableProperty]
@@ -25,7 +23,7 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
 
     /// <summary>Gets or sets the draft IC identifier.</summary>
     [ObservableProperty]
-    public partial string SelectedIc { get; set; }
+    public partial string SelectedIc { get; set; } = string.Empty;
 
     /// <summary>Gets selectable grouped IC-count choices for the draft IC.</summary>
     [ObservableProperty]
@@ -56,12 +54,13 @@ public sealed partial class WorkflowContextSetupViewModel : ObservableObject
         bool showNumber,
         IReadOnlyList<string>? icChoices = null)
     {
-        IcChoices = icChoices ?? _compositionServices.Capabilities.GetIcIds();
-        if (IcChoices.Count == 0)
+        IReadOnlyList<string> nextChoices = icChoices ?? _compositionServices.Capabilities.GetIcIds();
+        if (nextChoices.Count == 0)
         {
             throw new ArgumentException("Workflow context requires at least one IC choice.", nameof(icChoices));
         }
 
+        IcChoices = nextChoices;
         OnPropertyChanged(nameof(IcChoices));
         IsNumberVisible = showNumber;
         SelectedIc = IcChoices.Contains(icId, StringComparer.Ordinal)

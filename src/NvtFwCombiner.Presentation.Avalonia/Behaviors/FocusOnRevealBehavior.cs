@@ -38,9 +38,21 @@ public sealed class FocusOnRevealBehavior : AvaloniaObject
     private static void OnIsEnabledChanged(Control control, AvaloniaPropertyChangedEventArgs e)
     {
         control.PropertyChanged -= Control_OnPropertyChanged;
+        control.AttachedToVisualTree -= Control_OnAttachedToVisualTree;
         if (e.NewValue is true)
         {
             control.PropertyChanged += Control_OnPropertyChanged;
+            control.AttachedToVisualTree += Control_OnAttachedToVisualTree;
+        }
+    }
+
+    private static void Control_OnAttachedToVisualTree(
+        object? sender,
+        VisualTreeAttachmentEventArgs e)
+    {
+        if (sender is Control control)
+        {
+            QueueFocus(control);
         }
     }
 
@@ -52,10 +64,15 @@ public sealed class FocusOnRevealBehavior : AvaloniaObject
             e.Property == Visual.IsVisibleProperty &&
             e.NewValue is true)
         {
-            Dispatcher.UIThread.Post(
-                () => FocusIfAvailable(control),
-                DispatcherPriority.Input);
+            QueueFocus(control);
         }
+    }
+
+    private static void QueueFocus(Control control)
+    {
+        Dispatcher.UIThread.Post(
+            () => FocusIfAvailable(control),
+            DispatcherPriority.Input);
     }
 
     private static void FocusIfAvailable(Control control)

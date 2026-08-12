@@ -1,5 +1,6 @@
 using System.Text.Json;
 using NvtFwCombiner.Domain.Composition;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -649,11 +650,12 @@ public sealed partial class FirmwareInspectionSlotTests
     private MainWindowViewModel CreateInspectionViewModel(
         Func<string, string, string?, CtrlRamInspectionRequest?, FirmwareInspectionSnapshot> reader)
     {
-        return new MainWindowViewModel(
+        PresentationHostServices services = PresentationTestHost.CreateServices("test-app");
+        var viewModel = new MainWindowViewModel(
             "test-shell",
             "test-app",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("test-app"),
+            services,
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
                 batchReader: (icId, inputs) =>
@@ -662,6 +664,7 @@ public sealed partial class FirmwareInspectionSlotTests
                         input.InspectionId,
                         reader(icId, input.Path, input.TpPath, input.CtrlRamRequest))),
                 ]));
+        return PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
     }
 
     private static FirmwareInspectionSnapshot DpInspection(string versionToken)

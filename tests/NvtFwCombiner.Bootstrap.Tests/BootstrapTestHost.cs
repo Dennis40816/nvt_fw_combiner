@@ -30,9 +30,9 @@ internal sealed class CanonicalTestContext
     internal CanonicalTestContext(CompositionHostServices services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        Catalog = services.CanonicalCapabilityQuery;
+        Catalog = services.Catalog;
         Compiler = services.Compiler;
-        Projection = services.Projection;
+        Projection = (CanonicalCapabilityExperience)services.CompositionCapabilityExperience;
         GeneralAuthoring = services.GeneralAuthoring;
         CtrlRamAuthoring = services.CtrlRamAuthoring;
         FirmwareInspection = (BuiltInFirmwareInspection)services.FirmwareInspectionExperience;

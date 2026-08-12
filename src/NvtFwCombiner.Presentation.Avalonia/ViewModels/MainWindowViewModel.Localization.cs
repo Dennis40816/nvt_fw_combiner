@@ -8,10 +8,10 @@ public sealed partial class MainWindowViewModel
         WorkspaceTitle = Text.WorkspaceTitle;
         WorkspaceSummary = Text.WorkspaceSummary;
         SettingsPreview = Text.SettingsPreview;
-        Merge.ApplyLanguageChanged();
-        Replace.ApplyLanguageChanged();
-        WorkflowSession.ApplyLanguageChanged();
-        Replace.NotifyCommandStateChanged();
+        if (WorkflowSession.IsCanonicalCatalogReady)
+        {
+            ApplyCatalogBackedTextResources();
+        }
 
         LoadedHexEditorWorkspace?.ApplyTextResources(Text);
         RunSession.ApplyLanguageChanged(language);
@@ -45,5 +45,13 @@ public sealed partial class MainWindowViewModel
             WorkflowSession.RefreshCtrlRamDisplayFromInspection();
             Replace.RefreshSelectionState();
         }
+    }
+
+    private void ApplyCatalogBackedTextResources()
+    {
+        Merge.ApplyLanguageChanged();
+        Replace.ApplyLanguageChanged();
+        WorkflowSession.ApplyLanguageChanged();
+        Replace.NotifyCommandStateChanged();
     }
 }

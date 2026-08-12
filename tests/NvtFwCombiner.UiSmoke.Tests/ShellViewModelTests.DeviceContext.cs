@@ -48,7 +48,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.ShowReplaceCommand.Execute(null);
 
         Assert.True(viewModel.IsReplaceVisible);
-        Assert.Equal(TestHost.Projection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
         Assert.NotEmpty(viewModel.WorkflowSession.NumberSelectionChoices);
         Assert.NotNull(viewModel.WorkflowSession.SelectedNumberChoice);
 
@@ -75,7 +75,7 @@ public sealed partial class ShellNavigationSystemTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
         Assert.True(viewModel.IsMergeVisible);
-        Assert.Equal(TestHost.Projection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>The consolidated IC detail exposes family, runtime, evidence, and support without badge-only meaning.</summary>

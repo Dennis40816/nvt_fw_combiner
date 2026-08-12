@@ -545,13 +545,6 @@
     <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderLightBrush}" />
     <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
   </Style>
-  <Style Selector="Border.memoryCoverageMarker">
-    <Setter Property="BorderThickness" Value="0" />
-  </Style>
-  <Style Selector="Border.memoryCoverageMarker.changed">
-    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-  </Style>
   <Style Selector="TextBlock.hexInspectorSection">
     <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
     <Setter Property="FontWeight" Value="SemiBold" />

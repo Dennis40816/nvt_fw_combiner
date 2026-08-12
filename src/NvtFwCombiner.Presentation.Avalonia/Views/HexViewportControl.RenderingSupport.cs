@@ -67,7 +67,7 @@ public sealed partial class HexViewportControl
             brush);
     }
 
-    private static FormattedText CreateBoundaryText(string value)
+    private FormattedText CreateBoundaryText(string value)
     {
         return new FormattedText(
             value,

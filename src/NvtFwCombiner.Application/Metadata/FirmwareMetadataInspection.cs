@@ -108,7 +108,6 @@ public sealed record ResolvedPrerequisiteAction(
 /// </summary>
 public sealed class MetadataPlanEntry
 {
-    private readonly string[] _fieldIds;
     private readonly FirmwareMetadataReferenceTarget[] _targetReferences;
     private readonly MetadataReferencePurpose[] _purposes;
     private readonly string[] _evidenceRefs;
@@ -219,13 +218,13 @@ public sealed class MetadataPlanEntry
         }
 
         Array.Sort(_targetReferences, CompareTargets);
-        _fieldIds =
+        FieldIds = Array.AsReadOnly(
         [
             .. _targetReferences
                 .Where(static target =>
                     target.Kind == FirmwareMetadataReferenceTargetKind.Field)
                 .Select(static target => target.TargetId),
-        ];
+        ]);
         _purposes = [.. purposes];
         if (_purposes.Length == 0 ||
             _purposes.Any(static purpose => !Enum.IsDefined(purpose)) ||
@@ -256,7 +255,6 @@ public sealed class MetadataPlanEntry
         MetadataSetBinding = metadataSetBinding;
         StructureDefinition = structureDefinition;
         TargetReferences = Array.AsReadOnly(_targetReferences);
-        FieldIds = Array.AsReadOnly(_fieldIds);
         Purposes = Array.AsReadOnly(_purposes);
         EvidenceRefs = Array.AsReadOnly(_evidenceRefs);
     }
@@ -326,24 +324,21 @@ public sealed record ResolvedMetadataPlanEntry(
 /// <summary>Application-owned metadata plan bound to one capability resolution token.</summary>
 public sealed class ResolvedMetadataPlan
 {
-    private readonly ResolvedMetadataPlanEntry[] _entries;
-
     internal ResolvedMetadataPlan(
         MetadataPlanDefinition definition,
         ResolutionToken resolutionToken)
     {
         ArgumentNullException.ThrowIfNull(definition);
         resolutionToken.EnsureValid(nameof(resolutionToken));
-        _entries =
+        Entries = Array.AsReadOnly(
         [
             .. definition.Entries.Select(static entry =>
                 new ResolvedMetadataPlanEntry(
                     entry,
                     MetadataInspectionState.WaitingForArtifact)),
-        ];
+        ]);
         Definition = definition;
         ResolutionToken = resolutionToken;
-        Entries = Array.AsReadOnly(_entries);
     }
 
     /// <summary>Canonical reference-only plan definition.</summary>
@@ -414,7 +409,6 @@ public sealed class MetadataInspectionRequest
 public sealed class MetadataInspectionSnapshot
 {
     private readonly FirmwareArtifactIdentity[] _artifactIdentities;
-    private readonly MetadataInspectionResult[] _results;
 
     internal MetadataInspectionSnapshot(
         ResolutionToken resolutionToken,
@@ -449,11 +443,10 @@ public sealed class MetadataInspectionSnapshot
 
         Array.Sort(_artifactIdentities, static (left, right) =>
             StringComparer.Ordinal.Compare(left.ArtifactId, right.ArtifactId));
-        _results = [.. results];
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
         ArtifactIdentities = Array.AsReadOnly(_artifactIdentities);
-        Results = Array.AsReadOnly(_results);
+        Results = Array.AsReadOnly([.. results]);
     }
 
     /// <summary>Capability publication token used for this inspection.</summary>

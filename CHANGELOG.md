@@ -6,6 +6,31 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
 
 ### Changed
 
+- `v0.10.4` startup now shows the meaningful Home window before canonical
+  capability publication. The existing post-open worker warm publishes the
+  canonical IC/default/profile choices back on the UI thread and only then
+  enables Home workflow entry; no profile, support, firmware range, output
+  byte, naming, or golden authority changes.
+- The controlled exact `win-x64` candidate acceptance target is one unscored
+  warm-up plus five Home launches with a process-to-window median at or below
+  700 ms; the first cold launch remains separately recorded. The final exact
+  production package measured `687.180 ms` median (`665.410` to `695.633 ms`)
+  and passed the closed-package smoke.
+- Canonical catalog publication now uses a reusable, input-blocking foreground
+  loading surface with truthful indeterminate/determinate progress, reduced-
+  motion behavior, accessible status, and explicit retry recovery. The shell
+  remains visible while catalog-owned workflow choices stay unavailable.
+- Light and Dark themes now own complete semantic brush dictionaries. Memory
+  coverage roles and the custom Hex viewport consume those tokens instead of
+  hard-coded light colors, preserving non-color state cues while fixing dark-
+  theme text, selection, report diff, warning, and memory-layout contrast.
+- Hex Editor, BIN Inspector, and Report Hex Diff now resolve their monospace
+  font from the shared theme token. Undo/Redo feedback follows the shell's
+  reduced-motion preference, retaining a static visible cue without running
+  the decorative timer.
+- A post-refactor architecture audit records the next evidence-backed
+  performance and ownership opportunities without treating large canonical
+  firmware owners as automatic deletion candidates.
 - Live run reports now reach the desktop as the typed Application report while
   durable/imported/history reports retain the compatible JSON path. This
   removes the in-process JSON serialize/parse round trip without changing the
@@ -18,10 +43,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   shortcut, and default-postbuild-profile compatibility paths. Existing
   workflow execution, naming, report, processor, and golden behavior remain on
   their canonical owners.
-- The `v0.10.4` audit measures 96,212 full production lines and 67,238 counted
-  runtime lines. Relative to `v0.10.3`, full source is +168 for the typed
-  report/replay UI path while counted runtime is -195; exact slice ratchets are
-  20,619 / 29,383 / 3,307 / 13,929.
+- The `v0.10.4` audit measures 97,310 full production lines and 67,186 counted
+  runtime lines. Relative to `v0.10.3`, full source is +1,266 for typed UI,
+  startup, and evidence surfaces while counted runtime is -247; exact slice
+  ratchets are 20,619 / 29,383 / 3,255 / 13,929.
 - Recorded a read-only next-stage TEST parallelization plan. It first isolates
   Bootstrap/UI/Architecture shared state and mega-classes, then considers a
   bounded project scheduler only when same-SHA timing proves a material gain.
@@ -37,7 +62,7 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   fixed five-second PID-file poll. Production process behavior is unchanged.
 - The stable `dotnet / build-test` verdict now validates one complete Release
   build and three closed test shards in parallel. Exact SHA/SDK manifests,
-  eight TRX and paired coverage reports, 3,321 tests with two declared skips,
+  eight TRX and paired coverage reports, 3,349 tests with two declared skips,
   GoldenRegression 17/17, coverage policy, fixture evidence, and cleanup remain
   mandatory; no production, firmware, profile, schema, or golden file changes.
 

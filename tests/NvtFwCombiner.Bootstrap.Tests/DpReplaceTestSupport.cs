@@ -21,7 +21,13 @@ internal static class DpReplaceTestSupport
             throw new ArgumentException("DP test support accepts only DP Replace.", nameof(replaceMode));
         }
 
-        host.WarmCanonicalCapabilities(cancellationToken);
+        CapabilityCatalogReloadResult reload = await LoadCanonicalCatalogAsync(
+            host.CanonicalCatalogLoader,
+            cancellationToken);
+        if (!reload.Succeeded)
+        {
+            throw new InvalidOperationException("Canonical capability catalog is unavailable.");
+        }
         if (!host.CompositionCapabilityExperience
                 .IsReplaceWorkflowAvailable(icId, ExperienceIds.DpReplace) ||
             !slotPaths.ContainsKey(CompositionSlotIds.ReplaceBase))
@@ -104,5 +110,20 @@ internal static class DpReplaceTestSupport
                         InputSelectionReadinessIssueCodes.SelectionNotApplicable,
                     prepared.SessionIssue?.Message ??
                         "DP Replace preparation did not produce one accepted session.")];
+    }
+
+    private static async Task<CapabilityCatalogReloadResult> LoadCanonicalCatalogAsync(
+        ICanonicalCapabilityCatalogLoader loader,
+        CancellationToken cancellationToken)
+    {
+        CapabilityCatalogReloadResult? result = null;
+        await foreach (CanonicalCapabilityCatalogLoadUpdate update in
+                       loader.LoadAsync(cancellationToken).WithCancellation(cancellationToken))
+        {
+            result = update.Result ?? result;
+        }
+
+        return result ?? throw new InvalidOperationException(
+            "Canonical catalog loading completed without a terminal result.");
     }
 }

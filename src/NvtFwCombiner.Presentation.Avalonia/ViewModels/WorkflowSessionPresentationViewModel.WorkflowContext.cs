@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 public sealed partial class WorkflowSessionPresentationViewModel
 {
     private WorkflowContextTarget? _workflowContextTarget;
-    private string _replaceWorkflowContextIc;
+    private string _replaceWorkflowContextIc = string.Empty;
     private string _replaceWorkflowContextNumber = IcNumberSelectionTokens.SingleChip;
 
     /// <summary>Gets the cancelable IC context draft shown for Home workflow shortcuts.</summary>

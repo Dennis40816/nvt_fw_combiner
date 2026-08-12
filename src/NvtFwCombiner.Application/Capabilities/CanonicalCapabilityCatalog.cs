@@ -1,5 +1,6 @@
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using System.Threading.Channels;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -46,6 +47,13 @@ public interface ICanonicalCapabilityCatalogSource
 {
     /// <summary>Loads one complete candidate or typed source issues.</summary>
     CapabilityCatalogLoadResult Load(CancellationToken cancellationToken);
+
+    internal CapabilityCatalogLoadResult Load(
+        ChannelWriter<CanonicalCapabilityCatalogLoadUpdate>? progress,
+        CancellationToken cancellationToken)
+    {
+        return Load(cancellationToken);
+    }
 }
 
 /// <summary>Typed source result consumed by the Application catalog.</summary>
@@ -111,6 +119,7 @@ public sealed record CapabilityResolutionResult(
 /// </summary>
 public sealed class CanonicalCapabilityCatalog :
     ICanonicalCapabilityCatalogReloader,
+    ICanonicalCapabilityCatalogLoader,
     ICanonicalCapabilityQuery,
     ICanonicalSupportMatrixQuery
 {
@@ -127,31 +136,28 @@ public sealed class CanonicalCapabilityCatalog :
         _source = source;
     }
 
-    /// <summary>Current immutable snapshot, or null before the first successful load.</summary>
-    public CanonicalCapabilityCatalogSnapshot? CurrentSnapshot =>
-        Volatile.Read(ref _current);
-
-    /// <summary>Latest completed load attempt, or null while the initial load is pending.</summary>
-    internal CapabilityCatalogReloadResult? LatestReload =>
-        Volatile.Read(ref _latestReload);
-
     /// <summary>Explicitly loads, validates, and atomically publishes one candidate.</summary>
     public CapabilityCatalogReloadResult Reload(
         CancellationToken cancellationToken = default)
     {
-        return Load(initialOnly: false, cancellationToken);
-    }
-
-    /// <summary>Loads the initial publication on a caller-owned worker.</summary>
-    internal void Warm(CancellationToken cancellationToken)
-    {
-        _ = EnsureLoaded(cancellationToken);
+        return Load(initialOnly: false, progress: null, cancellationToken);
     }
 
     void ICanonicalCapabilityCatalogReloader.Reload(
         CancellationToken cancellationToken)
     {
         _ = Reload(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public IAsyncEnumerable<CanonicalCapabilityCatalogLoadUpdate> LoadAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var updates = Channel.CreateUnbounded<CanonicalCapabilityCatalogLoadUpdate>();
+        _ = Task.Run(
+            () => PublishLoadUpdates(updates.Writer, cancellationToken),
+            CancellationToken.None);
+        return updates.Reader.ReadAllAsync(CancellationToken.None);
     }
 
     /// <summary>Gets the current valid publication after one lazy load attempt.</summary>
@@ -166,7 +172,7 @@ public sealed class CanonicalCapabilityCatalog :
     public CanonicalCapabilityCatalogSnapshot? TryGetCurrentSnapshot()
     {
         _ = EnsureLoaded(CancellationToken.None);
-        return CurrentSnapshot;
+        return Volatile.Read(ref _current);
     }
 
     /// <summary>Resolves one exact route through the current immutable snapshot.</summary>
@@ -174,7 +180,7 @@ public sealed class CanonicalCapabilityCatalog :
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         return snapshot is null
             ? Failure(
                 CapabilityCatalogIssueCodes.CatalogUnavailable,
@@ -185,7 +191,7 @@ public sealed class CanonicalCapabilityCatalog :
     /// <inheritdoc />
     public CanonicalSupportMatrixQueryResult Query()
     {
-        CapabilityCatalogReloadResult? reload = LatestReload;
+        CapabilityCatalogReloadResult? reload = Volatile.Read(ref _latestReload);
         return reload is null
             ? CanonicalSupportMatrixQueryResult.Loading()
             : CanonicalSupportMatrixQuery.Project(reload);
@@ -195,11 +201,12 @@ public sealed class CanonicalCapabilityCatalog :
         CancellationToken cancellationToken)
     {
         return Volatile.Read(ref _latestReload) ??
-            Load(initialOnly: true, cancellationToken);
+            Load(initialOnly: true, progress: null, cancellationToken);
     }
 
     private CapabilityCatalogReloadResult Load(
         bool initialOnly,
+        ChannelWriter<CanonicalCapabilityCatalogLoadUpdate>? progress,
         CancellationToken cancellationToken)
     {
         lock (_reloadLock)
@@ -210,7 +217,9 @@ public sealed class CanonicalCapabilityCatalog :
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            CapabilityCatalogLoadResult loaded = _source.Load(cancellationToken);
+            CapabilityCatalogLoadResult loaded =
+                _source.Load(progress, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             CapabilityCatalogReloadResult result;
             if (!loaded.Succeeded)
             {
@@ -222,13 +231,16 @@ public sealed class CanonicalCapabilityCatalog :
                 {
                     CanonicalCapabilityCatalogCandidate candidate = loaded.Candidate!;
                     ValidateCandidate(candidate);
-                    long generation = checked(++_publicationGeneration);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    long generation = checked(_publicationGeneration + 1);
                     var token = new ResolutionToken(
                         FormattableString.Invariant(
                             $"{candidate.CatalogId}:{candidate.CatalogVersion}:{generation}:{candidate.SourceSha256[..12]}"));
                     var snapshot = new CanonicalCapabilityCatalogSnapshot(
                         candidate,
                         token);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _publicationGeneration = generation;
                     Volatile.Write(ref _current, snapshot);
                     result = new CapabilityCatalogReloadResult(
                         Succeeded: true,
@@ -238,6 +250,7 @@ public sealed class CanonicalCapabilityCatalog :
                 }
                 catch (ArgumentException exception)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     result = Failed(
                     [
                         new CapabilityCatalogIssue(
@@ -252,12 +265,31 @@ public sealed class CanonicalCapabilityCatalog :
         }
     }
 
+    private void PublishLoadUpdates(
+        ChannelWriter<CanonicalCapabilityCatalogLoadUpdate> updates,
+        CancellationToken cancellationToken)
+    {
+        Exception? failure = null;
+        try
+        {
+            CapabilityCatalogReloadResult result =
+                Load(initialOnly: false, updates, cancellationToken);
+            _ = updates.TryWrite(new(result.Succeeded ? 1 : null, result));
+        }
+        catch (Exception exception)
+        {
+            failure = exception;
+        }
+
+        _ = updates.TryComplete(failure);
+    }
+
     /// <summary>Resolves a policy-bound dynamic definition before compiling current authoring state.</summary>
     public CapabilityRouteResolutionResult ResolveDynamicRoute(string routeId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(routeId);
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         return snapshot is null
             ? DynamicFailure(
                 CapabilityCatalogIssueCodes.CatalogUnavailable,
@@ -305,7 +337,7 @@ public sealed class CanonicalCapabilityCatalog :
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
         ArgumentException.ThrowIfNullOrWhiteSpace(icCountVariant);
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         if (snapshot is null)
         {
             return Failure(
@@ -348,7 +380,7 @@ public sealed class CanonicalCapabilityCatalog :
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         if (snapshot is null)
         {
             return Failure(
@@ -387,7 +419,7 @@ public sealed class CanonicalCapabilityCatalog :
         }
 
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         return snapshot is not null &&
             (snapshot.Capabilities.Any(capability =>
                     MatchesAuthorableRoute(
@@ -411,7 +443,7 @@ public sealed class CanonicalCapabilityCatalog :
     {
         ArgumentNullException.ThrowIfNull(composition);
         _ = EnsureLoaded(CancellationToken.None);
-        CanonicalCapabilityCatalogSnapshot? snapshot = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? snapshot = Volatile.Read(ref _current);
         if (snapshot is null || composition.CapabilityFingerprint is null)
         {
             return null;
@@ -501,14 +533,12 @@ public sealed class CanonicalCapabilityCatalog :
     private static void ValidateCandidate(
         CanonicalCapabilityCatalogCandidate candidate)
     {
-        if (candidate.Definitions.Count == 0)
+        if (candidate.Definitions.Count == 0 &&
+            candidate.DynamicDefinitions.Count == 0)
         {
-            if (candidate.DynamicDefinitions.Count == 0)
-            {
-                throw new ArgumentException(
-                    "A canonical capability candidate must contain at least one exact route.",
-                    nameof(candidate));
-            }
+            throw new ArgumentException(
+                "A canonical capability candidate must contain at least one exact route.",
+                nameof(candidate));
         }
 
         if (candidate.Definitions.Any(static definition => definition is null) ||
@@ -528,7 +558,7 @@ public sealed class CanonicalCapabilityCatalog :
     private CapabilityCatalogReloadResult Failed(
         IReadOnlyList<CapabilityCatalogIssue> issues)
     {
-        CanonicalCapabilityCatalogSnapshot? current = CurrentSnapshot;
+        CanonicalCapabilityCatalogSnapshot? current = Volatile.Read(ref _current);
         return new CapabilityCatalogReloadResult(
             Succeeded: false,
             RetainedLastKnownGood: current is not null,

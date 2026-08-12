@@ -336,11 +336,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_ctrl_c_waits_for_worker_process_handoff_before_cleanup(self) -> None:
         fake_process = MagicMock()
         activation_finished = threading.Event()
+        process_creation_started = threading.Event()
         cleanup_observations: list[bool] = []
 
         def create_during_interrupt(*_args: object, **_kwargs: object) -> MagicMock:
             self.assertIsNot(threading.current_thread(), threading.main_thread())
-            signal.raise_signal(signal.SIGINT)
+            process_creation_started.set()
             self.assertTrue(MODULE.PROCESS_CANCELLATION_REQUESTED.wait(5))
             return fake_process
 
@@ -366,6 +367,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     environment=None,
                 )
 
+        def interrupt_after_submissions(_futures: object) -> None:
+            self.assertTrue(process_creation_started.wait(5))
+            raise KeyboardInterrupt
+
         lanes = (
             MODULE.VerificationLane("worker", start_process),
             MODULE.VerificationLane("peer", await_cancellation),
@@ -386,6 +391,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE,
                 "terminate_active_processes",
                 side_effect=cleanup,
+            ),
+            patch.object(
+                MODULE, "as_completed", side_effect=interrupt_after_submissions
             ),
             self.assertRaises(KeyboardInterrupt),
         ):
@@ -1891,7 +1899,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Bootstrap.Tests/"
                     "NvtFwCombiner.Bootstrap.Tests.csproj",
-                    925,
+                    932,
                     0,
                 ),
             ),
@@ -1899,7 +1907,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.UiSmoke.Tests/"
                     "NvtFwCombiner.UiSmoke.Tests.csproj",
-                    444,
+                    464,
                     0,
                 ),
             ),
@@ -1913,7 +1921,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 (
                     "tests/NvtFwCombiner.Application.Tests/"
                     "NvtFwCombiner.Application.Tests.csproj",
-                    526,
+                    527,
                     0,
                 ),
                 (
@@ -1969,7 +1977,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
         self.assertEqual(8, len(set(flattened)))
         self.assertEqual(solution_test_projects, set(flattened))
         self.assertEqual(
-            3321, sum(total for projects in actual.values() for _, total, _ in projects)
+            3349, sum(total for projects in actual.values() for _, total, _ in projects)
         )
         self.assertEqual(
             2,

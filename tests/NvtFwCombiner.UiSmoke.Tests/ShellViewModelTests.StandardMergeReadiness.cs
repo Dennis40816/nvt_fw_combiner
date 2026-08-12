@@ -1,4 +1,5 @@
 using System.Text.Json;
+using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.TestSupport;
 
@@ -89,11 +90,12 @@ public sealed partial class FirmwareInspectionSlotTests
         JsonElement goldenCase = golden.CaseByIc("51950");
         var readerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseReader = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        PresentationHostServices services = PresentationTestHost.CreateServices("test");
         var viewModel = new MainWindowViewModel(
             "test",
             "test",
             ShellLanguage.English,
-            PresentationTestHost.CreateServices("test"),
+            services,
             new DelegatingFirmwareInspection(
                 TestHost.FirmwareInspectionExperience,
                 batchReader: (icId, inputs) =>
@@ -105,6 +107,7 @@ public sealed partial class FirmwareInspectionSlotTests
                         icId,
                         inputs);
                 }));
+        _ = PresentationTestHost.PublishCanonicalCatalog(services, viewModel);
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         FirmwareSlotViewModel dp = viewModel.Merge.MergeSlots.Single(static slot =>

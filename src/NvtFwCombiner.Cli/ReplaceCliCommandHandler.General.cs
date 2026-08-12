@@ -141,7 +141,7 @@ internal static partial class ReplaceCliCommandHandler
                 protectedInputPaths,
                 defaultOutputFileName,
                 (outputPath, build, token) =>
-                    ExecuteAcceptedAsync(host.CompositionExecution.ExecuteAsync(
+                    host.CompositionExecution.ExecuteAsync(
                         new AcceptedCompositionExecutionRequest(
                             acceptedSession,
                             slotPaths,
@@ -149,7 +149,7 @@ internal static partial class ReplaceCliCommandHandler
                             outputPath: outputPath,
                             actionReadiness: prepared.Readiness),
                         new CompositionRunProgressFeed(),
-                        token)),
+                        token),
                 output,
                 error,
                 cancellationToken)

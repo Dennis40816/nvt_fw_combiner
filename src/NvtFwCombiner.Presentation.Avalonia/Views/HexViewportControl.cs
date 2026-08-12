@@ -17,34 +17,8 @@ public sealed partial class HexViewportControl : Control
     private const double RowHeight = 25;
     private const int BytesPerRow = 16;
 
-    private static readonly IBrush NormalTextBrush = Brush.Parse("#334155");
-    private static readonly IBrush SecondaryTextBrush = Brush.Parse("#475569");
-    private static readonly IBrush SelectedTextBrush = Brush.Parse("#1D4ED8");
-    private static readonly IBrush ChangedTextBrush = Brush.Parse("#92400E");
-    private static readonly IBrush StructuralTextBrush = Brush.Parse("#4338CA");
-    private static readonly IBrush ReferenceTextBrush = Brush.Parse("#9D174D");
-    private static readonly IBrush SearchMatchTextBrush = Brush.Parse("#166534");
-    private static readonly IBrush SelectedBrush = Brush.Parse("#BFDBFE");
-    private static readonly IBrush SelectedRowBrush = Brush.Parse("#E6F0FF");
-    private static readonly IBrush ChangedBrush = Brush.Parse("#FEF3C7");
-    private static readonly IBrush ChangedRowBrush = Brush.Parse("#FFFBEB");
-    private static readonly IBrush ReferenceRowBrush = Brush.Parse("#FDF2F8");
-    private static readonly IBrush ReferenceChangedBrush = Brush.Parse("#FBCFE8");
-    private static readonly IBrush ReferenceMarkerBrush = Brush.Parse("#DB2777");
-    private static readonly IBrush StructuralLabelBrush = Brush.Parse("#EEF2FF");
-    private static readonly IBrush SearchMatchBrush = Brush.Parse("#DCFCE7");
-    private static readonly IBrush ChangedMarkerBrush = Brush.Parse("#D97706");
-    private static readonly IPen SelectedPen = new Pen(Brush.Parse("#2563EB"), 1);
-    private static readonly IPen ChangedPen = new Pen(Brush.Parse("#FDE68A"), 1);
-    private static readonly IPen StructuralPen = new Pen(Brush.Parse("#6366F1"), 1.5);
-    private static readonly IPen HoverPen = new Pen(Brush.Parse("#0EA5E9"), 1.5);
-    private static readonly IPen SearchMatchPen = new Pen(Brush.Parse("#86EFAC"), 1);
-    private static readonly IPen ReferenceChangedPen = new Pen(Brush.Parse("#F472B6"), 1);
-    private static readonly Typeface NormalTypeface = new(new FontFamily("Cascadia Mono, Consolas"));
-    private static readonly Typeface StrongTypeface = new(
-        new FontFamily("Cascadia Mono, Consolas"),
-        FontStyle.Normal,
-        FontWeight.SemiBold);
+    private Typeface? _normalTypeface;
+    private Typeface? _strongTypeface;
 
     internal static readonly StyledProperty<HexViewportSnapshot?> SnapshotProperty =
         AvaloniaProperty.Register<HexViewportControl, HexViewportSnapshot?>(nameof(Snapshot));
@@ -57,22 +31,28 @@ public sealed partial class HexViewportControl : Control
             nameof(ComparisonRowLabel),
             "orig");
 
-    private readonly FormattedText[] _normalHex = CreateHexTextCache(NormalTextBrush, NormalTypeface);
-    private readonly FormattedText[] _selectedHex = CreateHexTextCache(SelectedTextBrush, StrongTypeface);
-    private readonly FormattedText[] _changedHex = CreateHexTextCache(ChangedTextBrush, StrongTypeface);
-    private readonly FormattedText[] _structuralHex = CreateHexTextCache(StructuralTextBrush, NormalTypeface);
-    private readonly FormattedText[] _referenceHex = CreateHexTextCache(ReferenceTextBrush, NormalTypeface);
-    private readonly FormattedText[] _referenceChangedHex = CreateHexTextCache(ReferenceTextBrush, StrongTypeface);
-    private readonly FormattedText[] _referenceStructuralHex = CreateHexTextCache(StructuralTextBrush, NormalTypeface);
-    private readonly FormattedText[] _searchMatchHex = CreateHexTextCache(SearchMatchTextBrush, StrongTypeface);
-    private readonly FormattedText[] _normalAscii = CreateAsciiTextCache(SecondaryTextBrush, NormalTypeface);
-    private readonly FormattedText[] _changedAscii = CreateAsciiTextCache(ChangedTextBrush, StrongTypeface);
-    private readonly FormattedText[] _referenceAscii = CreateAsciiTextCache(ReferenceTextBrush, NormalTypeface);
-    private readonly FormattedText[] _referenceChangedAscii = CreateAsciiTextCache(ReferenceTextBrush, StrongTypeface);
-    private readonly FormattedText[] _structuralAscii = CreateAsciiTextCache(StructuralTextBrush, NormalTypeface);
-    private readonly FormattedText[] _searchMatchAscii = CreateAsciiTextCache(SearchMatchTextBrush, StrongTypeface);
+    internal static readonly StyledProperty<bool> IsReducedMotionEnabledProperty =
+        AvaloniaProperty.Register<HexViewportControl, bool>(nameof(IsReducedMotionEnabled));
+
+    private FormattedText[] _normalHex = [];
+    private FormattedText[] _selectedHex = [];
+    private FormattedText[] _changedHex = [];
+    private FormattedText[] _structuralHex = [];
+    private FormattedText[] _referenceHex = [];
+    private FormattedText[] _referenceChangedHex = [];
+    private FormattedText[] _referenceStructuralHex = [];
+    private FormattedText[] _searchMatchHex = [];
+    private FormattedText[] _normalAscii = [];
+    private FormattedText[] _changedAscii = [];
+    private FormattedText[] _referenceAscii = [];
+    private FormattedText[] _referenceChangedAscii = [];
+    private FormattedText[] _structuralAscii = [];
+    private FormattedText[] _searchMatchAscii = [];
 
     internal long? HoveredAddress { get; private set; }
+
+    private Typeface NormalTypeface => _normalTypeface ?? throw ThemePaletteNotResolved();
+    private Typeface StrongTypeface => _strongTypeface ?? throw ThemePaletteNotResolved();
 
     /// <summary>Creates the low-allocation renderer and its source-neutral interaction surface.</summary>
     public HexViewportControl()
@@ -82,6 +62,7 @@ public sealed partial class HexViewportControl : Control
         PointerPressed += OnPointerPressed;
         DoubleTapped += OnDoubleTapped;
         KeyDown += OnKeyDown;
+        InitializeThemePalette();
         InitializeHistoryFeedback();
     }
 
@@ -109,12 +90,19 @@ public sealed partial class HexViewportControl : Control
         set => SetValue(ComparisonRowLabelProperty, value);
     }
 
+    internal bool IsReducedMotionEnabled
+    {
+        get => GetValue(IsReducedMotionEnabledProperty);
+        set => SetValue(IsReducedMotionEnabledProperty, value);
+    }
+
     internal event EventHandler<HexViewportInteractionEventArgs>? InteractionRequested;
 
     /// <summary>Draws the immutable visible window without creating child controls.</summary>
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+        EnsureThemePalette();
         if (Snapshot is not { } snapshot || Bounds.Width <= AddressWidth + AsciiWidth)
         {
             return;
@@ -201,6 +189,10 @@ public sealed partial class HexViewportControl : Control
         else if (change.Property == ComparisonRowLabelProperty)
         {
             InvalidateVisual();
+        }
+        else if (change.Property == IsReducedMotionEnabledProperty)
+        {
+            RefreshHistoryFeedbackMotion();
         }
     }
 
@@ -303,7 +295,7 @@ public sealed partial class HexViewportControl : Control
                                 : _normalHex[parsed];
     }
 
-    private static IBrush? ResolveCellBackground(HexViewportCell cell, bool isReference, bool isSelected)
+    private IBrush? ResolveCellBackground(HexViewportCell cell, bool isReference, bool isSelected)
     {
         return (isReference, isSelected, cell.IsSearchMatch, cell.IsDataChanged) switch
         {
@@ -316,7 +308,7 @@ public sealed partial class HexViewportControl : Control
         };
     }
 
-    private static IPen? ResolveCellPen(HexViewportCell cell, bool isReference, bool isSelected)
+    private IPen? ResolveCellPen(HexViewportCell cell, bool isReference, bool isSelected)
     {
         return (isReference, isSelected, cell.IsSearchMatch, cell.IsDataChanged) switch
         {
@@ -342,7 +334,7 @@ public sealed partial class HexViewportControl : Control
             HexViewportCellVisualState.Structural;
     }
 
-    private static void DrawHoverOutline(
+    private void DrawHoverOutline(
         DrawingContext context,
         Rect rect,
         bool isReference,

@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
+using System.Threading.Channels;
 
 namespace NvtFwCombiner.Application.Capabilities;
 
@@ -30,58 +31,64 @@ internal sealed record CanonicalDynamicRoute(
     CanonicalCapabilityCompilationContract CompilationContract);
 
 /// <summary>Joins one trusted policy snapshot to exact compiler outputs before publication.</summary>
-internal sealed class CanonicalCapabilityCatalogSource :
-    ICanonicalCapabilityCatalogSource
-{
-    private readonly Func<CanonicalCapabilityPolicySnapshot> _loadPolicy;
-    private readonly Func<CapabilityRouteIdentity, bool> _isDynamicRoute;
-    private readonly Func<CapabilityRouteIdentity, CanonicalCompiledRoute>
-        _resolveCompiledRoute;
-    private readonly Func<CapabilityRouteIdentity, CanonicalDynamicRoute>
-        _resolveDynamicRoute;
-    private readonly Func<
+internal sealed class CanonicalCapabilityCatalogSource(
+    Func<CanonicalCapabilityPolicySnapshot> loadPolicy,
+    Func<CapabilityRouteIdentity, bool> isDynamicRoute,
+    Func<CapabilityRouteIdentity, CanonicalCompiledRoute> resolveCompiledRoute,
+    Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolveDynamicRoute,
+    Func<
         IReadOnlyList<CanonicalCapabilityDefinition>,
         IReadOnlyList<CanonicalDynamicCapabilityDefinition>,
-        CanonicalCapabilityDisclosure> _loadDisclosure;
-
-    internal CanonicalCapabilityCatalogSource(
-        Func<CanonicalCapabilityPolicySnapshot> loadPolicy,
-        Func<CapabilityRouteIdentity, bool> isDynamicRoute,
-        Func<CapabilityRouteIdentity, CanonicalCompiledRoute> resolveCompiledRoute,
-        Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolveDynamicRoute,
-        Func<
-            IReadOnlyList<CanonicalCapabilityDefinition>,
-            IReadOnlyList<CanonicalDynamicCapabilityDefinition>,
-            CanonicalCapabilityDisclosure> loadDisclosure)
-    {
-        _loadPolicy = loadPolicy ?? throw new ArgumentNullException(nameof(loadPolicy));
-        _isDynamicRoute = isDynamicRoute ?? throw new ArgumentNullException(nameof(isDynamicRoute));
-        _resolveCompiledRoute = resolveCompiledRoute ??
-            throw new ArgumentNullException(nameof(resolveCompiledRoute));
-        _resolveDynamicRoute = resolveDynamicRoute ??
-            throw new ArgumentNullException(nameof(resolveDynamicRoute));
-        _loadDisclosure = loadDisclosure ??
-            throw new ArgumentNullException(nameof(loadDisclosure));
-    }
-
+        CanonicalCapabilityDisclosure> loadDisclosure) :
+    ICanonicalCapabilityCatalogSource
+{
     public CapabilityCatalogLoadResult Load(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        return Load(progress: null, cancellationToken);
+    }
+
+    CapabilityCatalogLoadResult ICanonicalCapabilityCatalogSource.Load(
+        ChannelWriter<CanonicalCapabilityCatalogLoadUpdate>? progress,
+        CancellationToken cancellationToken)
+    {
+        return Load(progress, cancellationToken);
+    }
+
+    private CapabilityCatalogLoadResult Load(
+        ChannelWriter<CanonicalCapabilityCatalogLoadUpdate>? progress,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            CanonicalCapabilityPolicySnapshot policy = _loadPolicy();
-            CanonicalCapabilityDefinition[] definitions =
-            [
-                .. policy.Routes
-                    .Where(route => !_isDynamicRoute(route.Identity))
-                    .Select(Materialize),
-            ];
-            CanonicalDynamicCapabilityDefinition[] dynamicDefinitions =
-            [
-                .. policy.Routes
-                    .Where(route => _isDynamicRoute(route.Identity))
-                    .Select(MaterializeDynamic),
-            ];
+            cancellationToken.ThrowIfCancellationRequested();
+            CanonicalCapabilityPolicySnapshot policy = loadPolicy();
+            cancellationToken.ThrowIfCancellationRequested();
+            int totalRoutes = policy.Routes.Count;
+            int completedRoutes = 0;
+            _ = progress?.TryWrite(new(0, Result: null));
+            List<CanonicalCapabilityDefinition> definitions = [];
+            List<CanonicalDynamicCapabilityDefinition> dynamicDefinitions = [];
+            foreach (CanonicalCapabilityPolicyRoute route in
+                     policy.Routes.Where(route => !isDynamicRoute(route.Identity)))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                definitions.Add(Materialize(route));
+                cancellationToken.ThrowIfCancellationRequested();
+                _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
+            }
+            foreach (CanonicalCapabilityPolicyRoute route in
+                     policy.Routes.Where(route => isDynamicRoute(route.Identity)))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                dynamicDefinitions.Add(MaterializeDynamic(route));
+                cancellationToken.ThrowIfCancellationRequested();
+                _ = progress?.TryWrite(new((double)++completedRoutes / (totalRoutes + 1), Result: null));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            CanonicalCapabilityDisclosure disclosure = loadDisclosure(
+                definitions,
+                dynamicDefinitions);
+            cancellationToken.ThrowIfCancellationRequested();
             return CapabilityCatalogLoadResult.Success(
                 new CanonicalCapabilityCatalogCandidate(
                     policy.CatalogId,
@@ -89,45 +96,18 @@ internal sealed class CanonicalCapabilityCatalogSource :
                     policy.SourceSha256,
                     definitions,
                     dynamicDefinitions)
-                    .WithDisclosure(_loadDisclosure(
-                        definitions,
-                        dynamicDefinitions)));
+                    .WithDisclosure(disclosure));
         }
-        catch (InvalidDataException exception)
+        catch (Exception exception) when (TryGetSourceIssue(exception, out CapabilityCatalogIssue issue))
         {
-            return Failure(CapabilityCatalogIssueCodes.SourceInvalid, exception.Message);
-        }
-        catch (ArgumentException exception)
-        {
-            return Failure(CapabilityCatalogIssueCodes.SourceInvalid, exception.Message);
-        }
-        catch (IOException exception)
-        {
-            return Failure(CapabilityCatalogIssueCodes.SourceUnavailable, exception.Message);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            return Failure(CapabilityCatalogIssueCodes.SourceUnavailable, exception.Message);
-        }
-        catch (TypeInitializationException exception)
-        {
-            Exception? sourceFailure = FindSourceFailure(exception);
-            if (sourceFailure is null)
-            {
-                throw;
-            }
-
-            string code = sourceFailure is IOException or UnauthorizedAccessException
-                ? CapabilityCatalogIssueCodes.SourceUnavailable
-                : CapabilityCatalogIssueCodes.SourceInvalid;
-            return Failure(code, sourceFailure.Message);
+            return CapabilityCatalogLoadResult.Failure(issue);
         }
     }
 
     private CanonicalDynamicCapabilityDefinition MaterializeDynamic(
         CanonicalCapabilityPolicyRoute policy)
     {
-        CanonicalDynamicRoute route = _resolveDynamicRoute(policy.Identity);
+        CanonicalDynamicRoute route = resolveDynamicRoute(policy.Identity);
         return !StringComparer.Ordinal.Equals(
                 route.CapabilityFingerprint,
                 policy.CapabilityFingerprint)
@@ -146,7 +126,7 @@ internal sealed class CanonicalCapabilityCatalogSource :
     private CanonicalCapabilityDefinition Materialize(
         CanonicalCapabilityPolicyRoute policy)
     {
-        CanonicalCompiledRoute route = _resolveCompiledRoute(policy.Identity);
+        CanonicalCompiledRoute route = resolveCompiledRoute(policy.Identity);
         CompiledComposition composition = route.Composition
             .BindCapabilityFingerprint(route.CapabilityFingerprint);
         string mapId = composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId;
@@ -169,26 +149,22 @@ internal sealed class CanonicalCapabilityCatalogSource :
                 route.MetadataPlan);
     }
 
-    private static CapabilityCatalogLoadResult Failure(string code, string message)
+    private static bool TryGetSourceIssue(
+        Exception exception,
+        out CapabilityCatalogIssue issue)
     {
-        return CapabilityCatalogLoadResult.Failure(
-            new CapabilityCatalogIssue(code, message));
-    }
-
-    private static Exception? FindSourceFailure(TypeInitializationException exception)
-    {
-        Exception? current = exception.InnerException;
-        while (current is TypeInitializationException nested)
+        while (exception is TypeInitializationException { InnerException: { } inner })
         {
-            current = nested.InnerException;
+            exception = inner;
         }
 
-        return current is System.Text.Json.JsonException or
-            InvalidDataException or
-            ArgumentException or
-            IOException or
-            UnauthorizedAccessException
-                ? current
-                : null;
+        string? code = exception switch
+        {
+            IOException or UnauthorizedAccessException => CapabilityCatalogIssueCodes.SourceUnavailable,
+            InvalidDataException or ArgumentException or System.Text.Json.JsonException => CapabilityCatalogIssueCodes.SourceInvalid,
+            _ => null,
+        };
+        issue = new CapabilityCatalogIssue(code ?? string.Empty, exception.Message);
+        return code is not null;
     }
 }

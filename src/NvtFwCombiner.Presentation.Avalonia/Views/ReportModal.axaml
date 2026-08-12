@@ -5,6 +5,19 @@
     xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
     x:DataType="vm:ReportPresentationViewModel"
     Background="{DynamicResource NfcReportModalScrimBrush}">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportChangeTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportInputTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportOperationTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportHistoryTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportAuditTemplates.axaml" />
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowReportPanels.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
   <Border
       Classes="surface"
       MaxWidth="1500"

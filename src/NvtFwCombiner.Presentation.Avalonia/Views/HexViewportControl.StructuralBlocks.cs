@@ -96,7 +96,7 @@ public sealed partial class HexViewportControl
         context.DrawGeometry(null, StructuralPen, geometry);
     }
 
-    private static void DrawStructuralBlockLabel(DrawingContext context, string label, Rect outline)
+    private void DrawStructuralBlockLabel(DrawingContext context, string label, Rect outline)
     {
         FormattedText text = CreateBoundaryText(label);
         Rect badge = new(outline.X + 2, outline.Y + 2, text.Width + 6, text.Height + 2);

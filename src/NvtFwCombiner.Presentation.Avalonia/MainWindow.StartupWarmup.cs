@@ -1,38 +1,11 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
-using System.Diagnostics;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
 public sealed partial class MainWindow
 {
-    private void PrimeDeferredCatalogs(
-        string icId,
-        string number,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        _hostServices.WarmCanonicalCapabilities(cancellationToken);
-        PresentationCompositionServices composition = _hostServices.Composition;
-        try
-        {
-            _ = composition.Capabilities.GetCatalogSummary();
-            _ = composition.Capabilities.GetNumberSelectionChoices(icId);
-            _ = composition.GeneralAuthoring.GetDefaultOutputLength(icId);
-            _ = composition.StandardMergeAuthoring.GetRequiredAddressSpaces(icId);
-            _ = composition.CtrlRamAuthoring.GetDiscoveryDisplay(icId, number, basePath: null);
-        }
-        catch (Exception exception) when (
-            exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
-        {
-            Trace.TraceWarning(
-                "Deferred catalog warm-up did not complete: {0}",
-                exception.Message);
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-    }
-
     private async Task WarmDeferredShellAsync(
         MainWindowViewModel viewModel,
         CancellationToken cancellationToken)
@@ -44,12 +17,12 @@ public sealed partial class MainWindow
             cancellationToken);
         await WarmContentAsync(
             ReplacePageHost,
-            viewModel,
+            viewModel.Replace,
             "startup-warmup.replace-view",
             cancellationToken);
         await WarmContentAsync(
             MergePageHost,
-            viewModel,
+            viewModel.Merge,
             "startup-warmup.merge-view",
             cancellationToken);
         await WarmContentAsync(
@@ -66,12 +39,12 @@ public sealed partial class MainWindow
 
     private async Task WarmContentAsync(
         ContentControl host,
-        MainWindowViewModel viewModel,
+        object dataContext,
         string traceStage,
         CancellationToken cancellationToken)
     {
         await RunWarmupStepAsync(
-            () => MaterializeContent(host, viewModel),
+            () => MaterializeContent(host, dataContext),
             traceStage,
             cancellationToken);
     }

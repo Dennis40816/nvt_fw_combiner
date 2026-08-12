@@ -24,9 +24,10 @@ public sealed partial class HexViewportControl
 
     private void DrawHistoryFeedback(DrawingContext context, HexViewportCell cell, Rect rect, bool isReference)
     {
-        if (!isReference && _historyFeedbackBrush is not null && cell.HasHistoryFeedback)
+        IBrush? brush = IsReducedMotionEnabled ? SelectedRowBrush : _historyFeedbackBrush;
+        if (!isReference && brush is not null && cell.HasHistoryFeedback)
         {
-            DrawRoundedRectangle(context, _historyFeedbackBrush, null, rect, 3);
+            DrawRoundedRectangle(context, brush, null, rect, 3);
         }
     }
 
@@ -38,16 +39,35 @@ public sealed partial class HexViewportControl
         }
 
         _historyFeedbackVersion = snapshot.DecorationVersion;
-        if (!snapshot.Rows.SelectMany(row => row.Cells).Any(cell => cell.HasHistoryFeedback))
+        RefreshHistoryFeedbackMotion();
+    }
+
+    private void RefreshHistoryFeedbackMotion()
+    {
+        bool hasHistoryFeedback = Snapshot is { } snapshot &&
+                                  snapshot.Rows.SelectMany(row => row.Cells).Any(cell => cell.HasHistoryFeedback);
+        if (!hasHistoryFeedback)
         {
             StopHistoryFeedback();
             return;
         }
 
-        _historyFeedbackFrame = 0;
-        UpdateHistoryFeedbackBrush();
         _historyFeedbackTimer.Stop();
-        _historyFeedbackTimer.Start();
+        _historyFeedbackFrame = 0;
+        _historyFeedbackBrush = null;
+        if (ShouldAnimateHistoryFeedback(IsReducedMotionEnabled, hasHistoryFeedback))
+        {
+            EnsureThemePalette();
+            UpdateHistoryFeedbackBrush();
+            _historyFeedbackTimer.Start();
+        }
+
+        InvalidateVisual();
+    }
+
+    internal static bool ShouldAnimateHistoryFeedback(bool isReducedMotionEnabled, bool hasHistoryFeedback)
+    {
+        return hasHistoryFeedback && !isReducedMotionEnabled;
     }
 
     private void OnHistoryFeedbackTick(object? sender, EventArgs e)
@@ -67,11 +87,17 @@ public sealed partial class HexViewportControl
     private void UpdateHistoryFeedbackBrush()
     {
         double progress = (double)_historyFeedbackFrame / HistoryFeedbackFrameCount;
-        byte alpha = (byte)Math.Round(112 * (1 - progress));
-        byte red = Interpolate(96, 45, progress);
-        byte green = Interpolate(165, 212, progress);
-        byte blue = Interpolate(250, 191, progress);
-        _historyFeedbackBrush = new SolidColorBrush(Color.FromArgb(alpha, red, green, blue));
+        _historyFeedbackBrush = HistoryFeedbackAccentBrush is ISolidColorBrush accent
+            ? new SolidColorBrush(accent.Color, 0.44 * (1 - progress))
+            : throw new InvalidOperationException("Hex history feedback requires a solid theme accent brush.");
+    }
+
+    private void RefreshHistoryFeedbackBrush()
+    {
+        if (_historyFeedbackTimer.IsEnabled)
+        {
+            UpdateHistoryFeedbackBrush();
+        }
     }
 
     private void StopHistoryFeedback()
@@ -81,8 +107,4 @@ public sealed partial class HexViewportControl
         _historyFeedbackFrame = 0;
     }
 
-    private static byte Interpolate(byte start, byte end, double progress)
-    {
-        return (byte)Math.Round(start + ((end - start) * progress));
-    }
 }

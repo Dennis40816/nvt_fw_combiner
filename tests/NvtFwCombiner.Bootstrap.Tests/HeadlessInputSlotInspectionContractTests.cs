@@ -172,7 +172,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         CapabilityCatalogReloadResult reload = catalog.Reload(
             TestContext.Current.CancellationToken);
         Assert.True(reload.Succeeded, string.Join("; ", reload.Issues.Select(static issue => issue.Message)));
-        ResolvedCapabilityRoute route = catalog.CurrentSnapshot!.DynamicRoutes.Single(candidate =>
+        ResolvedCapabilityRoute route = catalog.GetCurrentSnapshot().DynamicRoutes.Single(candidate =>
             StringComparer.Ordinal.Equals(candidate.Identity.IcId, "NT51928") &&
             StringComparer.Ordinal.Equals(candidate.Identity.WorkflowId, ExperienceIds.DpReplace));
 

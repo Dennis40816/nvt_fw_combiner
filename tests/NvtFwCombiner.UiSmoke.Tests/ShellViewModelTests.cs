@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Bootstrap;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
@@ -18,4 +19,7 @@ public abstract partial class ShellViewModelTestBase
     }
 
     private protected CompositionHostServices TestHost { get; }
+
+    private protected CanonicalCapabilityExperience TestProjection =>
+        (CanonicalCapabilityExperience)TestHost.CompositionCapabilityExperience;
 }
