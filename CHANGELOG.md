@@ -29,6 +29,12 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   style/analyzer enforcement to its existing warnings-as-errors Release build
   and batching 15 package-trust counterfactuals through one bounded MSBuild
   host. Test identities, diagnostics, coverage, and golden gates remain exact.
+- Stopped the ineffective test-first build experiment after the fresh Windows
+  required check remained above five minutes, and rejected a same-tree custom
+  project scheduler whose measured improvement was only 1.962 seconds.
+- External-process cancellation and timeout tests now publish their parent and
+  child identities through a server-first Named Pipe handshake instead of a
+  fixed five-second PID-file poll. Production process behavior is unchanged.
 
 ## [0.10.3] - 2026-08-11
 
