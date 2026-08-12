@@ -88,11 +88,13 @@ attempt starts. It is monotonically increasing and is never reused after
 success, failure, replacement, or cancellation. Report projection and
 selection-triggered inspection generations are likewise request identities:
 they are consumed when their request starts so late work cannot match a newer
-request. By contrast, catalog publication and external-environment generations
-are semantic publication identities. Their typed owners increment them only
-when a fully validated immutable candidate commits. Cancellation or failure
-before that commit consumes the already allocated attempt/request generation,
-but not a semantic publication generation.
+request. External-environment loads have their own monotonically increasing
+request generation for the same stale-work arbitration. By contrast, catalog
+publication and external-environment publication generations are semantic
+publication identities. Their typed owners increment them only when a fully
+validated immutable candidate commits. Cancellation or failure before that
+commit consumes the already allocated attempt/request generation, but not a
+semantic publication generation.
 
 The session does not cache feature data, parse report/catalog/tool results,
 infer firmware facts, or apply a result. Each stage calls its existing typed
@@ -175,9 +177,17 @@ Every file input has an explicit maximum length before allocation. Reads use
 streaming/cooperative cancellation and reject growth, truncation, or identity
 change according to the owning feature contract. A standalone report selected
 through the storage provider or supplied by `--load-report` may remain outside
-application-managed roots, but its raw input is limited to 64 MiB
-(`67,108,864` bytes) and keeps its user-selected identity. Report history
-retains its separate 64 MiB persisted-file bound and 12-entry limit. Its 16 MiB
+application-managed roots, but its raw input is limited to 20 MiB
+(`20,971,520` bytes) and keeps its user-selected identity. This ceiling leaves
+room for worst-case JSON-string escaping plus bounded entry metadata so the
+newest maximum-size report still round-trips inside the separate 64 MiB history
+file. Before atomic save, the history writer validates the complete serialized
+v1 envelope. When duplicating derivable UI summary metadata would cross the
+bound, it persists that entry with the schema-v1 empty-metadata representation;
+the existing reload path rematerializes the same summary from the report JSON.
+It never drops the newest report merely because optional derived metadata would
+duplicate it beyond the file bound. Report history retains its separate 64 MiB
+persisted-file bound and 12-entry limit. Its 16 MiB
 retained-payload limit is a soft budget: the newest valid entry is always kept,
 even when that entry alone exceeds the budget, and older entries are evicted.
 
@@ -226,6 +236,14 @@ generation for future acquisitions; a failed or cancelled refresh retains the
 current generation and its diagnostic. Every already-acquired run lease remains
 bound to its immutable generation. Process restart remains a valid reset, but
 is no longer the only refresh mechanism.
+
+Environment loads are single-flight. Every startup discovery or explicit
+refresh allocates an external request generation before waiting for the load
+gate. A newer request cancels and supersedes the older request; the owner drains
+that request before starting the newer materialization. Commit requires both
+the current request generation and a final cancellation check. Therefore an
+older request cannot publish after a newer refresh was admitted, while failure
+of the newer request still retains the last successfully published environment.
 
 Cache disable, cancellation, clear, retry, or refresh may cause canonical
 recomputation only. It cannot change bytes, naming, readiness, diagnostics,
