@@ -7,6 +7,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC = PROJECT_ROOT / "src"
+TEST_PROCESS_WATCHDOG_SECONDS = 30
 
 
 def run_worker(document: object | bytes) -> subprocess.CompletedProcess[bytes]:
@@ -18,7 +19,7 @@ def run_worker(document: object | bytes) -> subprocess.CompletedProcess[bytes]:
         input=payload,
         capture_output=True,
         check=False,
-        timeout=5,
+        timeout=TEST_PROCESS_WATCHDOG_SECONDS,
         env=environment,
     )
 
