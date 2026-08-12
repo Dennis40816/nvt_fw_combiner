@@ -41,10 +41,10 @@ All notable changes to NVT FW Combiner are documented here. The project follows 
   shortcut, and default-postbuild-profile compatibility paths. Existing
   workflow execution, naming, report, processor, and golden behavior remain on
   their canonical owners.
-- The `v0.10.4` audit measures 96,212 full production lines and 67,238 counted
-  runtime lines. Relative to `v0.10.3`, full source is +168 for the typed
-  report/replay UI path while counted runtime is -195; exact slice ratchets are
-  20,619 / 29,383 / 3,307 / 13,929.
+- The `v0.10.4` audit measures 97,310 full production lines and 67,186 counted
+  runtime lines. Relative to `v0.10.3`, full source is +1,266 for typed UI,
+  startup, and evidence surfaces while counted runtime is -247; exact slice
+  ratchets are 20,619 / 29,383 / 3,255 / 13,929.
 - Recorded a read-only next-stage TEST parallelization plan. It first isolates
   Bootstrap/UI/Architecture shared state and mega-classes, then considers a
   bounded project scheduler only when same-SHA timing proves a material gain.

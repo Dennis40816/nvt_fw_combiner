@@ -9,7 +9,7 @@ internal sealed class RuntimeDependencyReadinessLeaseProvider :
     public RuntimeDependencyReadinessLease AcquireCurrent()
     {
         ExternalProcessorGenerationLease lease = ExternalProcessorFactory.AcquireCurrent();
-        return new RuntimeDependencyReadinessLease(
+        return new(
             lease.ReadinessProvider,
             lease.Generation,
             ExternalProcessorFactory.IsCurrent);

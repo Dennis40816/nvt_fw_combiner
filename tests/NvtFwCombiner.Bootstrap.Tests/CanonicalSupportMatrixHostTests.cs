@@ -40,8 +40,8 @@ public sealed class CanonicalSupportMatrixHostTests
                 TestContext.Current.CancellationToken);
         using var source = new BlockingProbeSource(seed.Candidate!);
         var catalog = new CanonicalCapabilityCatalog(source);
-        var warm = Task.Run(
-            () => catalog.Warm(TestContext.Current.CancellationToken),
+        Task<CanonicalCapabilityCatalogSnapshot?> load = Task.Run(
+            catalog.TryGetCurrentSnapshot,
             TestContext.Current.CancellationToken);
 
         try
@@ -62,7 +62,7 @@ public sealed class CanonicalSupportMatrixHostTests
         {
             source.AllowLoad.Set();
 #pragma warning disable xUnit1051 // Cleanup must observe the worker after test cancellation.
-            await warm.WaitAsync(TimeSpan.FromSeconds(5));
+            _ = await load.WaitAsync(TimeSpan.FromSeconds(5));
 #pragma warning restore xUnit1051
         }
 
@@ -92,13 +92,10 @@ public sealed class CanonicalSupportMatrixHostTests
             int.Parse(
                 reload.Snapshot!.CatalogVersion.Split('.')[^1],
                 System.Globalization.CultureInfo.InvariantCulture));
-        CapabilityCatalogReloadResult latest = catalog.LatestReload!;
+        CanonicalCapabilityCatalogSnapshot latest = catalog.GetCurrentSnapshot();
         Assert.Equal(
             $"1.0.{latestGeneration}",
-            latest.Snapshot!.CatalogVersion);
-        Assert.Same(
-            latest.Snapshot,
-            catalog.TryGetCurrentSnapshot());
+            latest.CatalogVersion);
     }
 
     /// <summary>One explicitly constructed host query observes its own catalog publication.</summary>

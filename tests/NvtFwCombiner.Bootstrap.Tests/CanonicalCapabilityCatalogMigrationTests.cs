@@ -10,14 +10,16 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Tests the first canonical route and the remaining one-way migration seam.</summary>
 public sealed partial class CanonicalCapabilityCatalogMigrationTests
 {
-    /// <summary>Static trust-index initialization failures become typed catalog issues.</summary>
+    /// <summary>Trusted-source failures become typed catalog issues with or without static wrapping.</summary>
     [Theory]
-    [InlineData(false, false, CapabilityCatalogIssueCodes.SourceInvalid)]
-    [InlineData(true, false, CapabilityCatalogIssueCodes.SourceUnavailable)]
-    [InlineData(false, true, CapabilityCatalogIssueCodes.SourceInvalid)]
-    public void SourceTranslatesTrustIndexTypeInitializationFailure(
+    [InlineData(false, false, true, CapabilityCatalogIssueCodes.SourceInvalid)]
+    [InlineData(true, false, true, CapabilityCatalogIssueCodes.SourceUnavailable)]
+    [InlineData(false, true, true, CapabilityCatalogIssueCodes.SourceInvalid)]
+    [InlineData(false, true, false, CapabilityCatalogIssueCodes.SourceInvalid)]
+    public void SourceTranslatesTrustedSourceFailure(
         bool unavailable,
         bool malformedJson,
+        bool typeInitializationWrapped,
         string expectedCode)
     {
         Exception cause = unavailable
@@ -25,9 +27,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             : malformedJson
             ? new System.Text.Json.JsonException("The package trust index is malformed JSON.")
             : new InvalidDataException("The package trust index is malformed.");
+        Exception sourceFailure = typeInitializationWrapped
+            ? new TypeInitializationException("BuiltInV2BundleRegistry", cause)
+            : cause;
         ICanonicalCapabilityCatalogSource source =
-            CompositionHostServices.CreateCanonicalCapabilityCatalogSource(() =>
-            throw new TypeInitializationException("BuiltInV2BundleRegistry", cause));
+            CompositionHostServices.CreateCanonicalCapabilityCatalogSource(() => throw sourceFailure);
 
         CapabilityCatalogLoadResult loaded =
             source.Load(TestContext.Current.CancellationToken);
@@ -648,4 +652,5 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
             return CapabilityCatalogLoadResult.Success(candidate);
         }
     }
+
 }

@@ -24,16 +24,40 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NvtFwCombiner.Profiles", diagnostics, StringComparison.Ordinal);
         Assert.Contains("Func<PresentationHostServices>", program, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(program, "hostServicesFactory()"));
+        int preparationStart = program.IndexOf(
+            ") PrepareStartup(",
+            StringComparison.Ordinal);
+        Assert.True(preparationStart >= 0);
+        string preparation = program[preparationStart..];
+        AssertStartupStageOrder(
+            preparation,
+            "shell-preferences.started",
+            "shellPreferenceLoader()",
+            "host-services.started",
+            "hostServicesFactory()",
+            "host-services.ready");
         AssertStartupStageOrder(
             program,
             "StartFromEnvironment()",
-            "host-services.started",
-            "hostServicesFactory()",
-            "host-services.ready",
+            "PrepareStartup(",
             "launch-options.parsed");
+        Assert.Contains("ShellPreferenceFileStore.LoadAsync", program, StringComparison.Ordinal);
         Assert.Contains("launch-options.parsed", program, StringComparison.Ordinal);
         Assert.Contains("application-xaml.ready", application, StringComparison.Ordinal);
+        AssertStartupStageOrder(
+            application,
+            "framework-initialization.started",
+            "_startupPreferences.GetAwaiter().GetResult()",
+            "shell-preferences.loaded",
+            "new MainWindow(");
         Assert.Contains("shell-view-model.created", window, StringComparison.Ordinal);
+        Assert.Contains("ShellPreferenceSnapshot startupPreferences", window, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellPreferenceSnapshot? startupPreferences", window, StringComparison.Ordinal);
+        Assert.DoesNotContain("startupPreferences ??", window, StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateStartupViewModel(_hostServices, startupPreferences)",
+            window,
+            StringComparison.Ordinal);
         Assert.Contains("shell-data-context.assigned", window, StringComparison.Ordinal);
         Assert.Contains("shell-initial-content.ready", window, StringComparison.Ordinal);
         Assert.Contains("main-window.opened", window, StringComparison.Ordinal);

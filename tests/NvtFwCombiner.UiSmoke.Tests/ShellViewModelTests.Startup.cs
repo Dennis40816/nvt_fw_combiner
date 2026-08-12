@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -7,7 +8,7 @@ public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>The first Home shell must not force canonical catalog publication.</summary>
     [Fact]
-    public void ShellConstructionDefersCanonicalCatalogPublication()
+    public async Task ShellConstructionDefersCanonicalCatalogPublication()
     {
         PresentationHostServices services = PresentationTestHost.CreateServices(
             ApplicationVersionProvider.InformationalVersion);
@@ -29,7 +30,10 @@ public sealed partial class ShellNavigationSystemTests
         Assert.False(viewModel.WorkflowSession.IsCanonicalCatalogReady);
         Assert.All(catalogCommands, command => Assert.False(command.CanExecute(null)));
 
-        services.WarmCanonicalCapabilities(CancellationToken.None);
+        CapabilityCatalogReloadResult reload = await PresentationTestHost.LoadCanonicalCatalogAsync(
+            services.CanonicalCatalogLoader,
+            CancellationToken.None);
+        Assert.True(reload.Succeeded);
         viewModel.PublishCanonicalCatalogState();
 
         Assert.True(viewModel.WorkflowSession.IsCanonicalCatalogReady);

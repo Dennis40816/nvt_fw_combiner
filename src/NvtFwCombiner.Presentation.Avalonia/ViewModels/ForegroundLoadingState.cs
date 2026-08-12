@@ -46,10 +46,10 @@ public sealed class ForegroundLoadingState : ObservableObject
         ? string.Create(CultureInfo.CurrentCulture, $"{progress * 100:0}%")
         : string.Empty;
 
-    /// <summary>True while a running operation has not reported determinate progress.</summary>
-    public bool IsIndeterminate => IsRunning && !Progress.HasValue;
+    /// <summary>True while the foreground operation is active, independently of its numeric status.</summary>
+    public bool IsIndeterminate => IsRunning;
 
-    /// <summary>True when the indeterminate activity animation is both truthful and permitted.</summary>
+    /// <summary>True when continuous activity animation is both truthful and permitted.</summary>
     public bool ShouldAnimate => IsIndeterminate && !IsReducedMotionEnabled;
 
     /// <summary>True when user or platform preference requests a static progress presentation.</summary>
@@ -79,13 +79,14 @@ public sealed class ForegroundLoadingState : ObservableObject
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
         ValidateProgress(progress);
 
-        SetTitle(title);
-        SetDetail(detail);
-        SetProgress(progress);
+        bool accessibleStatusChanged = SetTitle(title) |
+            SetDetail(detail) |
+            SetProgress(progress);
         SetRetryLabel(string.Empty);
         SetFailed(false);
         SetRunning(true);
         SetVisible(true);
+        NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
     /// <summary>Updates determinate progress for the active operation.</summary>
@@ -97,13 +98,15 @@ public sealed class ForegroundLoadingState : ObservableObject
         }
 
         ValidateProgress(progress);
+        bool accessibleStatusChanged = false;
         if (detail is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(detail);
-            SetDetail(detail);
+            accessibleStatusChanged = SetDetail(detail);
         }
 
-        SetProgress(progress);
+        accessibleStatusChanged |= SetProgress(progress);
+        NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
     /// <summary>Keeps the foreground surface visible with explicit recovery guidance.</summary>
@@ -112,13 +115,14 @@ public sealed class ForegroundLoadingState : ObservableObject
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(detail);
 
-        SetTitle(title);
-        SetDetail(detail);
-        SetProgress(null);
+        bool accessibleStatusChanged = SetTitle(title) |
+            SetDetail(detail) |
+            SetProgress(null);
         SetRetryLabel(retryLabel ?? string.Empty);
         SetRunning(false);
         SetFailed(true);
         SetVisible(true);
+        NotifyAccessibleStatus(accessibleStatusChanged);
     }
 
     /// <summary>Hides the foreground surface after the owning operation completes.</summary>
@@ -127,7 +131,7 @@ public sealed class ForegroundLoadingState : ObservableObject
         SetRunning(false);
         SetFailed(false);
         SetRetryLabel(string.Empty);
-        SetProgress(null);
+        _ = SetProgress(null);
         SetVisible(false);
     }
 
@@ -148,20 +152,14 @@ public sealed class ForegroundLoadingState : ObservableObject
         }
     }
 
-    private void SetTitle(string value)
+    private bool SetTitle(string value)
     {
-        if (SetProperty(ref _title, value, nameof(Title)))
-        {
-            OnPropertyChanged(nameof(AccessibleStatus));
-        }
+        return SetProperty(ref _title, value, nameof(Title));
     }
 
-    private void SetDetail(string value)
+    private bool SetDetail(string value)
     {
-        if (SetProperty(ref _detail, value, nameof(Detail)))
-        {
-            OnPropertyChanged(nameof(AccessibleStatus));
-        }
+        return SetProperty(ref _detail, value, nameof(Detail));
     }
 
     private void SetRetryLabel(string value)
@@ -172,16 +170,16 @@ public sealed class ForegroundLoadingState : ObservableObject
         }
     }
 
-    private void SetProgress(double? value)
+    private bool SetProgress(double? value)
     {
-        if (SetProperty(ref _progress, value, nameof(Progress)))
+        bool changed = SetProperty(ref _progress, value, nameof(Progress));
+        if (changed)
         {
             OnPropertyChanged(nameof(HasDeterminateProgress));
             OnPropertyChanged(nameof(ProgressPercentLabel));
-            OnPropertyChanged(nameof(IsIndeterminate));
-            OnPropertyChanged(nameof(ShouldAnimate));
-            OnPropertyChanged(nameof(AccessibleStatus));
         }
+
+        return changed;
     }
 
     private void SetVisible(bool value)
@@ -203,6 +201,14 @@ public sealed class ForegroundLoadingState : ObservableObject
         if (SetProperty(ref _hasFailed, value, nameof(HasFailed)))
         {
             OnPropertyChanged(nameof(CanRetry));
+        }
+    }
+
+    private void NotifyAccessibleStatus(bool changed)
+    {
+        if (changed)
+        {
+            OnPropertyChanged(nameof(AccessibleStatus));
         }
     }
 }

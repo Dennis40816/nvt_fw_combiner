@@ -193,8 +193,8 @@ public sealed partial class CanonicalCapabilityCatalogTests
             CapabilityCatalogLoadResult.Failure(sourceIssue),
             CapabilityCatalogLoadResult.Success(CreateCandidate())));
 
-        catalog.Warm(TestContext.Current.CancellationToken);
-        catalog.Warm(TestContext.Current.CancellationToken);
+        _ = catalog.TryGetCurrentSnapshot();
+        _ = catalog.TryGetCurrentSnapshot();
         CanonicalSupportMatrixQueryResult blocked = catalog.Query();
         CapabilityCatalogReloadResult recovered = catalog.Reload(
             TestContext.Current.CancellationToken);

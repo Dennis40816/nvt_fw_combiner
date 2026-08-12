@@ -1,5 +1,6 @@
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -14,19 +15,25 @@ public sealed partial class App : global::Avalonia.Application
 
     internal static PresentationHostServices? HostServices { get; private set; }
 
+    private static Task<ShellPreferenceSnapshot> _startupPreferences =
+        Task.FromResult(ShellPreferenceSnapshot.Default);
+
     /// <summary>Sets the dependency graph, UI startup state, and opt-in trace before framework initialization.</summary>
     internal static void SetStartup(
         PresentationHostServices hostServices,
         UiLaunchOptions startupOptions,
-        StartupTraceSession startupTrace)
+        StartupTraceSession startupTrace,
+        Task<ShellPreferenceSnapshot> startupPreferences)
     {
         ArgumentNullException.ThrowIfNull(hostServices);
         ArgumentNullException.ThrowIfNull(startupOptions);
         ArgumentNullException.ThrowIfNull(startupTrace);
+        ArgumentNullException.ThrowIfNull(startupPreferences);
 
         HostServices = hostServices;
         StartupOptions = startupOptions;
         StartupTrace = startupTrace;
+        _startupPreferences = startupPreferences;
     }
 
     /// <summary>Loads the compiled Avalonia XAML for the application.</summary>
@@ -43,10 +50,13 @@ public sealed partial class App : global::Avalonia.Application
         StartupTrace.Mark("framework-initialization.started");
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            ShellPreferenceSnapshot preferences = _startupPreferences.GetAwaiter().GetResult();
+            StartupTrace.Mark("shell-preferences.loaded");
             desktop.MainWindow = new MainWindow(
                 StartupOptions,
                 StartupTrace,
-                HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."));
+                HostServices ?? throw new InvalidOperationException("Presentation host services are not configured."),
+                preferences);
             StartupTrace.Mark("main-window.assigned");
         }
 

@@ -227,7 +227,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("IsEnabled=\"{Binding Reports.CanOpenReport}\"", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("ReportActionLabel", messageCenterModal, StringComparison.Ordinal);
         Assert.Contains("ReportActionStatus", messageCenterModal, StringComparison.Ordinal);
-        Assert.Contains("<Window.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.Contains("<Grid.KeyBindings>", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("<Window.KeyBindings>", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+H\" Command=\"{Binding Reports.ShowReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Gesture=\"Ctrl+Shift+Delete\" Command=\"{Binding Reports.ClearReportHistoryCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.Name=\"{Binding Text.OpenReportHistoryAutomationName}\"", reportPanels, StringComparison.Ordinal);

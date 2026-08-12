@@ -17,12 +17,12 @@ internal static class Program
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
-                  host.StandardMergeAuthoring,
-                  host.AbMergeAuthoring,
-                  host.DpReplaceAuthoring,
-                  host.GeneralAuthoring,
-                  host.CtrlRamAuthoring,
-                  host.FirmwareInspectionExperience,
+                host.StandardMergeAuthoring,
+                host.AbMergeAuthoring,
+                host.DpReplaceAuthoring,
+                host.GeneralAuthoring,
+                host.CtrlRamAuthoring,
+                host.FirmwareInspectionExperience,
                 host.CompositionOutputNaming,
                 host.CompositionExecution),
             CompositionHostServices.CreateFileRevealService(),
@@ -30,6 +30,6 @@ internal static class Program
             host.CreateSystemInformationService(DesktopApplication.InformationalVersion),
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
-            host.WarmCanonicalCapabilities);
+            host.CanonicalCatalogLoader);
     }
 }

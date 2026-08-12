@@ -21,9 +21,8 @@ public sealed class CompositionHostServices
         CanonicalCapabilityExperience projection)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        Compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
-        CompositionCapabilityExperience = projection ??
-            throw new ArgumentNullException(nameof(projection));
+        Compiler = compiler;
+        CompositionCapabilityExperience = projection;
         SavedRuleAuthoring = new BuiltInSavedRuleAuthoring();
         var standardMergeAuthoring = new StandardMergeAuthoringExperience(
             compiler,
@@ -57,7 +56,11 @@ public sealed class CompositionHostServices
         CompositionExecution = new CompositionExecutionExperience(
             catalog,
             new ProtectedCompositionDestinationProvider(),
-            AcquireExternalProcessorLease,
+            static () =>
+            {
+                ExternalProcessorGenerationLease lease = ExternalProcessorFactory.AcquireCurrent();
+                return new(lease.Generation, lease.Processor);
+            },
             ExternalProcessorFactory.IsCurrent,
             new SystemClock());
         RawBinaryEditorFileSessions = new RawBinaryEditorFileSessionFactory();
@@ -93,17 +96,11 @@ public sealed class CompositionHostServices
             new CanonicalCapabilityExperience(catalog, catalog));
     }
 
-    private static CompositionExternalProcessorLease AcquireExternalProcessorLease()
-    {
-        ExternalProcessorGenerationLease lease = ExternalProcessorFactory.AcquireCurrent();
-        return new CompositionExternalProcessorLease(
-            lease.Generation,
-            lease.Processor);
-    }
-
     /// <summary>Gets the focused query over the host's single canonical catalog publication.</summary>
-    public ICanonicalSupportMatrixQuery CanonicalSupportMatrixQuery =>
-        Catalog;
+    public ICanonicalSupportMatrixQuery CanonicalSupportMatrixQuery => Catalog;
+
+    /// <summary>Gets the focused Application-owned catalog loading port.</summary>
+    public ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader => Catalog;
 
     /// <summary>Gets the focused capability experience port.</summary>
     public ICompositionCapabilityExperience CompositionCapabilityExperience { get; }
@@ -138,12 +135,6 @@ public sealed class CompositionHostServices
     /// <summary>Gets the platform-backed raw-BIN file-session factory.</summary>
     public IRawBinaryEditorFileSessionFactory RawBinaryEditorFileSessions { get; }
 
-    /// <summary>Warms the canonical catalog on the caller-owned background worker.</summary>
-    public void WarmCanonicalCapabilities(CancellationToken cancellationToken)
-    {
-        Catalog.Warm(cancellationToken);
-    }
-
     /// <summary>Creates a focused current-session System Information lifecycle.</summary>
     public ISystemInformationService CreateSystemInformationService(
         string applicationVersion)
@@ -167,4 +158,5 @@ public sealed class CompositionHostServices
     {
         return new WindowsExplorerFileRevealService();
     }
+
 }

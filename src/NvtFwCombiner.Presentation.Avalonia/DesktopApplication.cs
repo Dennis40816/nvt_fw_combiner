@@ -1,4 +1,5 @@
 using Avalonia;
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.Presentation.Avalonia;
 
@@ -16,14 +17,37 @@ public static class DesktopApplication
         ArgumentNullException.ThrowIfNull(hostServicesFactory);
         ArgumentNullException.ThrowIfNull(args);
         var startupTrace = StartupTraceSession.StartFromEnvironment();
+        (PresentationHostServices hostServices, Task<ShellPreferenceSnapshot> shellPreferences) =
+            PrepareStartup(
+                hostServicesFactory,
+                static () => ShellPreferenceFileStore.LoadAsync(
+                    ShellPreferenceFileStore.DefaultPreferencesPath),
+                startupTrace);
+        var launchOptions = UiLaunchOptions.Parse(args);
+        startupTrace.Mark("launch-options.parsed");
+        App.SetStartup(hostServices, launchOptions, startupTrace, shellPreferences);
+        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
+
+    internal static (
+        PresentationHostServices HostServices,
+        Task<ShellPreferenceSnapshot> ShellPreferences) PrepareStartup(
+        Func<PresentationHostServices> hostServicesFactory,
+        Func<Task<ShellPreferenceSnapshot>> shellPreferenceLoader,
+        StartupTraceSession startupTrace)
+    {
+        ArgumentNullException.ThrowIfNull(hostServicesFactory);
+        ArgumentNullException.ThrowIfNull(shellPreferenceLoader);
+        ArgumentNullException.ThrowIfNull(startupTrace);
+
+        startupTrace.Mark("shell-preferences.started");
+        Task<ShellPreferenceSnapshot> shellPreferences = shellPreferenceLoader() ??
+            throw new InvalidOperationException("The shell-preference loader returned null.");
         startupTrace.Mark("host-services.started");
         PresentationHostServices hostServices = hostServicesFactory() ??
             throw new InvalidOperationException("The host-services factory returned null.");
         startupTrace.Mark("host-services.ready");
-        var launchOptions = UiLaunchOptions.Parse(args);
-        startupTrace.Mark("launch-options.parsed");
-        App.SetStartup(hostServices, launchOptions, startupTrace);
-        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        return (hostServices, shellPreferences);
     }
 
     /// <summary>Creates the configured Avalonia application builder.</summary>

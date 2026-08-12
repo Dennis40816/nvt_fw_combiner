@@ -67,17 +67,14 @@ public sealed class FirmwareBinInspectionStructure
 /// </summary>
 public sealed class FirmwareBinInspectionSnapshot
 {
-    private readonly FirmwareBinInspectionStructure[] _structures;
-
     private FirmwareBinInspectionSnapshot(
         ResolutionToken resolutionToken,
         long authoringRevision,
         IEnumerable<FirmwareBinInspectionStructure> structures)
     {
-        _structures = [.. structures];
         ResolutionToken = resolutionToken;
         AuthoringRevision = authoringRevision;
-        Structures = Array.AsReadOnly(_structures);
+        Structures = Array.AsReadOnly([.. structures]);
     }
 
     /// <summary>Capability publication token evaluated by the source inspection.</summary>

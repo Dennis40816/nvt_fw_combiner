@@ -64,17 +64,12 @@ public sealed record CompiledInputArtifactInspectionAdvisory(
 /// <summary>Immutable typed observations and advisories from one canonical input inspection.</summary>
 public sealed class CompiledInputArtifactObservationResult
 {
-    private readonly CompiledInputVersionObservation[] _versions;
-    private readonly CompiledInputArtifactInspectionAdvisory[] _advisories;
-
     internal CompiledInputArtifactObservationResult(
         IEnumerable<CompiledInputVersionObservation> versions,
         IEnumerable<CompiledInputArtifactInspectionAdvisory> advisories)
     {
-        _versions = [.. versions];
-        _advisories = [.. advisories];
-        Versions = Array.AsReadOnly(_versions);
-        Advisories = Array.AsReadOnly(_advisories);
+        Versions = Array.AsReadOnly([.. versions]);
+        Advisories = Array.AsReadOnly([.. advisories]);
     }
 
     /// <summary>No role-specific observations or advisories.</summary>

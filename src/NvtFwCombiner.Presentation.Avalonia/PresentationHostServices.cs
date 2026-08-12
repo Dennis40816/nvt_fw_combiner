@@ -16,7 +16,7 @@ public sealed class PresentationHostServices
         ISystemInformationService systemInformation,
         ISystemDiagnosticsExporter systemDiagnosticsExporter,
         IRawBinaryEditorFileSessionFactory rawBinaryEditorFileSessions,
-        Action<CancellationToken> warmCanonicalCapabilities)
+        ICanonicalCapabilityCatalogLoader canonicalCatalogLoader)
     {
         Composition = composition ?? throw new ArgumentNullException(nameof(composition));
         FileReveal = fileReveal ?? throw new ArgumentNullException(nameof(fileReveal));
@@ -26,8 +26,8 @@ public sealed class PresentationHostServices
             throw new ArgumentNullException(nameof(systemDiagnosticsExporter));
         RawBinaryEditorFileSessions = rawBinaryEditorFileSessions ??
             throw new ArgumentNullException(nameof(rawBinaryEditorFileSessions));
-        WarmCanonicalCapabilities = warmCanonicalCapabilities ??
-            throw new ArgumentNullException(nameof(warmCanonicalCapabilities));
+        CanonicalCatalogLoader = canonicalCatalogLoader ??
+            throw new ArgumentNullException(nameof(canonicalCatalogLoader));
     }
 
     internal PresentationCompositionServices Composition { get; }
@@ -42,5 +42,5 @@ public sealed class PresentationHostServices
 
     internal IRawBinaryEditorFileSessionFactory RawBinaryEditorFileSessions { get; }
 
-    internal Action<CancellationToken> WarmCanonicalCapabilities { get; }
+    internal ICanonicalCapabilityCatalogLoader CanonicalCatalogLoader { get; }
 }

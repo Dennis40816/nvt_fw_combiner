@@ -604,7 +604,7 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("_reportHistoryPersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.Contains("_shellPreferencePersistence.Queue", mainWindow, StringComparison.Ordinal);
         Assert.DoesNotContain("ShellPreferenceFileStore.LoadInto(viewModel)", mainWindow, StringComparison.Ordinal);
-        Assert.Contains("ShellTextResources.LanguageFromPreference(preferences.Language)", mainWindow, StringComparison.Ordinal);
+        Assert.Contains("ShellTextResources.LanguageFromPreference(startupPreferences.Language)", mainWindow, StringComparison.Ordinal);
         Assert.Contains("private readonly bool _isInitializing = true;", construction, StringComparison.Ordinal);
         Assert.Contains("_isInitializing = false;", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("RefreshContextState();", construction, StringComparison.Ordinal);

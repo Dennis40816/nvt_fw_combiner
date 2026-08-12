@@ -1,4 +1,5 @@
 using NvtFwCombiner.Bootstrap;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -19,9 +20,30 @@ internal static class PresentationTestHost
         PresentationHostServices services,
         MainWindowViewModel viewModel)
     {
-        services.WarmCanonicalCapabilities(CancellationToken.None);
+        CapabilityCatalogReloadResult reload =
+            LoadCanonicalCatalogAsync(
+                services.CanonicalCatalogLoader,
+                CancellationToken.None).GetAwaiter().GetResult();
+        Assert.True(reload.Succeeded);
         viewModel.PublishCanonicalCatalogState();
         return viewModel;
+    }
+
+    internal static async Task<CapabilityCatalogReloadResult> LoadCanonicalCatalogAsync(
+        ICanonicalCapabilityCatalogLoader loader,
+        CancellationToken cancellationToken)
+    {
+        CapabilityCatalogReloadResult? result = null;
+        await foreach (CanonicalCapabilityCatalogLoadUpdate update in
+                       loader.LoadAsync(cancellationToken)
+                           .WithCancellation(cancellationToken)
+                           .ConfigureAwait(false))
+        {
+            result = update.Result ?? result;
+        }
+
+        return result ?? throw new InvalidOperationException(
+            "Canonical catalog loading completed without a terminal result.");
     }
 
     internal static PresentationHostServices CreateServices(string applicationVersion)
@@ -30,12 +52,12 @@ internal static class PresentationTestHost
         return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
-                  host.StandardMergeAuthoring,
-                  host.AbMergeAuthoring,
-                  host.DpReplaceAuthoring,
-                  host.GeneralAuthoring,
-                  host.CtrlRamAuthoring,
-                  host.FirmwareInspectionExperience,
+                host.StandardMergeAuthoring,
+                host.AbMergeAuthoring,
+                host.DpReplaceAuthoring,
+                host.GeneralAuthoring,
+                host.CtrlRamAuthoring,
+                host.FirmwareInspectionExperience,
                 host.CompositionOutputNaming,
                 host.CompositionExecution),
             CompositionHostServices.CreateFileRevealService(),
@@ -43,7 +65,7 @@ internal static class PresentationTestHost
             host.CreateSystemInformationService(applicationVersion),
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
-            host.WarmCanonicalCapabilities);
+            host.CanonicalCatalogLoader);
     }
 
     internal static Application.HexEditor.IRawBinaryEditorFileSessionFactory

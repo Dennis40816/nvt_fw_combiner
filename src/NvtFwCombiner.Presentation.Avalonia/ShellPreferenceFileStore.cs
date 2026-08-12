@@ -41,6 +41,13 @@ public static class ShellPreferenceFileStore
             MaximumPreferencesFileBytes);
     }
 
+    /// <summary>Starts the bounded startup preference read without blocking framework initialization.</summary>
+    internal static Task<ShellPreferenceSnapshot> LoadAsync(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return Task.Run(() => Load(path));
+    }
+
     /// <summary>Saves shell preferences to a specific path.</summary>
     public static void Save(string path, ShellPreferenceSnapshot preferences)
     {

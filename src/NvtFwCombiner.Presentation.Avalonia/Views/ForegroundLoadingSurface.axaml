@@ -7,6 +7,8 @@
     x:DataType="vm:ForegroundLoadingState"
     AutomationProperties.LiveSetting="Polite"
     AutomationProperties.Name="{Binding AccessibleStatus}"
+    behaviors:FocusOnRevealBehavior.IsEnabled="True"
+    Focusable="True"
     IsHitTestVisible="{Binding IsVisible}"
     IsVisible="{Binding IsVisible}">
   <Grid Background="{DynamicResource NfcModalScrimBrush}">
@@ -75,7 +77,6 @@
         <ProgressBar
             Height="5"
             Maximum="1"
-            AutomationProperties.Name="{Binding AccessibleStatus}"
             Foreground="{DynamicResource NfcAccentBrush}"
             IsIndeterminate="{Binding ShouldAnimate}"
             IsVisible="{Binding IsRunning}"
