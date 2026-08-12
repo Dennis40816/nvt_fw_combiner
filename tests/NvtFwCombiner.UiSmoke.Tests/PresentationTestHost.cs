@@ -16,6 +16,18 @@ internal static class PresentationTestHost
         return PublishCanonicalCatalog(services, viewModel);
     }
 
+    internal static MainWindowViewModel CreateViewModel(
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator,
+        ShellLanguage language = ShellLanguage.English)
+    {
+        ArgumentNullException.ThrowIfNull(generalAuthoringDecorator);
+        PresentationHostServices services = CreateServices(
+            ApplicationVersionProvider.InformationalVersion,
+            generalAuthoringDecorator);
+        MainWindowViewModel viewModel = ShellViewModelFactory.Create(services, language);
+        return PublishCanonicalCatalog(services, viewModel);
+    }
+
     internal static MainWindowViewModel PublishCanonicalCatalog(
         PresentationHostServices services,
         MainWindowViewModel viewModel)
@@ -48,6 +60,13 @@ internal static class PresentationTestHost
 
     internal static PresentationHostServices CreateServices(string applicationVersion)
     {
+        return CreateServices(applicationVersion, static authoring => authoring);
+    }
+
+    private static PresentationHostServices CreateServices(
+        string applicationVersion,
+        Func<IGeneralAuthoring, IGeneralAuthoring> generalAuthoringDecorator)
+    {
         var host = CompositionHostServices.Create();
         return new PresentationHostServices(
             new PresentationCompositionServices(
@@ -55,7 +74,7 @@ internal static class PresentationTestHost
                 host.StandardMergeAuthoring,
                 host.AbMergeAuthoring,
                 host.DpReplaceAuthoring,
-                host.GeneralAuthoring,
+                generalAuthoringDecorator(host.GeneralAuthoring),
                 host.CtrlRamAuthoring,
                 host.FirmwareInspectionExperience,
                 host.CompositionOutputNaming,

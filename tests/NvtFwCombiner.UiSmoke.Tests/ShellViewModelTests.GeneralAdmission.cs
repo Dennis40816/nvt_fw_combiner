@@ -14,33 +14,147 @@ public sealed partial class GeneralWorkflowTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-general-merge-admission");
         string firstPath = workspace.Write("first.bin", [0x10, 0x11, 0x12, 0x13]);
         string secondPath = workspace.Write("second.bin", [0x20, 0x21, 0x22, 0x23]);
-        MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel();
-        viewModel.ShowMergeCommand.Execute(null);
-        viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
-        viewModel.Merge.GeneralMergeOutputLength = "0x20";
+        DelayedGeneralAuthoring? delayedAuthoring = null;
+        using var uiThread = new UiThreadTestContext();
+        try
+        {
+            await uiThread.InvokeAsync(async () =>
+            {
+                MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(inner =>
+                    delayedAuthoring = new DelayedGeneralAuthoring(inner));
+                viewModel.ShowMergeCommand.Execute(null);
+                viewModel.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+                viewModel.Merge.GeneralMergeOutputLength = "0x20";
 
-        GeneralMergeMappingViewModel first = Assert.Single(viewModel.Merge.GeneralMergeMappings);
-        viewModel.SetSlotFile(first.MappingId, firstPath);
-        Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                GeneralMergeMappingViewModel first = Assert.Single(viewModel.Merge.GeneralMergeMappings);
+                await viewModel.WorkflowSession.SetSlotFileAsync(
+                    first.MappingId,
+                    firstPath,
+                    TestContext.Current.CancellationToken);
+                Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
 
-        first.Length = "0x4";
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
-        Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                var publicationThreads = new List<int>();
+                first.PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == nameof(GeneralMappingRowViewModel.AcceptedFileStamp) &&
+                        first.AcceptedFileStamp is not null)
+                    {
+                        publicationThreads.Add(Environment.CurrentManagedThreadId);
+                    }
+                };
+                first.Length = "0x4";
+                await delayedAuthoring!.FirstPreparationStarted.WaitAsync(
+                    TimeSpan.FromSeconds(5),
+                    TestContext.Current.CancellationToken);
+                first.Length = "0x04";
+                delayedAuthoring.ReleaseFirstPreparation();
+                await viewModel.Merge.GeneralMergeReadinessRefreshTask.WaitAsync(
+                    TimeSpan.FromSeconds(5),
+                    TestContext.Current.CancellationToken);
+                Assert.True(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                Assert.NotEmpty(publicationThreads);
+                Assert.All(publicationThreads, threadId => Assert.Equal(uiThread.ThreadId, threadId));
 
-        viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
-        GeneralMergeMappingViewModel second = viewModel.Merge.GeneralMergeMappings[1];
-        second.TargetStartAddress = "0x2";
-        second.Length = "0x4";
-        viewModel.SetSlotFile(second.MappingId, secondPath);
-        await viewModel.Merge.GeneralMergeReadinessRefreshTask;
+                viewModel.Merge.AddGeneralMergeMappingCommand.Execute(null);
+                GeneralMergeMappingViewModel second = viewModel.Merge.GeneralMergeMappings[1];
+                second.TargetStartAddress = "0x2";
+                second.Length = "0x4";
+                await viewModel.WorkflowSession.SetSlotFileAsync(
+                    second.MappingId,
+                    secondPath,
+                    TestContext.Current.CancellationToken);
+                await viewModel.Merge.GeneralMergeReadinessRefreshTask;
 
-        Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
-        MemoryCoverageSegmentViewModel overlap = Assert.Single(
-            viewModel.Merge.MergeCoverageSegments,
-            segment => segment.SourceLabel == "Overlap error");
-        Assert.Equal("0x00002-0x00003 (len 0x2)", overlap.RangeLabel);
-        Assert.Contains(first.MappingId, overlap.Detail, StringComparison.Ordinal);
-        Assert.Contains(second.MappingId, overlap.Detail, StringComparison.Ordinal);
+                Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
+                MemoryCoverageSegmentViewModel overlap = Assert.Single(
+                    viewModel.Merge.MergeCoverageSegments,
+                    segment => segment.SourceLabel == "Overlap error");
+                Assert.Equal("0x00002-0x00003 (len 0x2)", overlap.RangeLabel);
+                Assert.Contains(first.MappingId, overlap.Detail, StringComparison.Ordinal);
+                Assert.Contains(second.MappingId, overlap.Detail, StringComparison.Ordinal);
+            });
+        }
+        finally
+        {
+            delayedAuthoring?.ReleaseFirstPreparation();
+        }
+    }
+
+    private sealed class DelayedGeneralAuthoring(IGeneralAuthoring inner) : IGeneralAuthoring
+    {
+        private readonly TaskCompletionSource _firstPreparationStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _releaseFirstPreparation =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _preparationCount;
+
+        internal Task FirstPreparationStarted => _firstPreparationStarted.Task;
+
+        public GeneralAuthoringAdmissionResult GetMergeAdmission(
+            string icId,
+            GeneralMergeDraftState draft)
+        {
+            return inner.GetMergeAdmission(icId, draft);
+        }
+
+        public GeneralAuthoringAdmissionResult? GetReplaceAdmission(
+            string icId,
+            long referenceCapacity,
+            GeneralMappingDraftState mappingDraft)
+        {
+            return inner.GetReplaceAdmission(icId, referenceCapacity, mappingDraft);
+        }
+
+        public string GetDefaultOutputLength(string icId)
+        {
+            return inner.GetDefaultOutputLength(icId);
+        }
+
+        public string GetDefaultOutputFillByte(string icId)
+        {
+            return inner.GetDefaultOutputFillByte(icId);
+        }
+
+        public async ValueTask<GeneralAuthoringSessionPreparation> PrepareMergeSessionAsync(
+            AuthoringSessionState session,
+            string icId,
+            GeneralMergeDraftState draft,
+            CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _preparationCount) == 1)
+            {
+                _firstPreparationStarted.SetResult();
+                await _releaseFirstPreparation.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return await inner.PrepareMergeSessionAsync(
+                session,
+                icId,
+                draft,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        public ValueTask<GeneralAuthoringSessionPreparation> PrepareReplaceSessionAsync(
+            AuthoringSessionState session,
+            string icId,
+            string number,
+            string referencePath,
+            GeneralMappingDraftState draft,
+            CancellationToken cancellationToken)
+        {
+            return inner.PrepareReplaceSessionAsync(
+                session,
+                icId,
+                number,
+                referencePath,
+                draft,
+                cancellationToken);
+        }
+
+        internal void ReleaseFirstPreparation()
+        {
+            _ = _releaseFirstPreparation.TrySetResult();
+        }
     }
 
     /// <summary>General Replace rejects overlap before Preview and marks only the exact intersection.</summary>
