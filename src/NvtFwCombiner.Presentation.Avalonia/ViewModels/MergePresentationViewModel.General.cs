@@ -149,15 +149,8 @@ public sealed partial class MergePresentationViewModel
         {
             return;
         }
-        if (e.PropertyName is nameof(GeneralMergeMappingViewModel.SourceStartAddress) or
-            nameof(GeneralMergeMappingViewModel.TargetStartAddress) or
-            nameof(GeneralMergeMappingViewModel.Length) or
-            nameof(GeneralMergeMappingViewModel.FilePath) or
-            nameof(GeneralMergeMappingViewModel.AcceptedFileStamp))
-        {
-            RefreshMergeMemoryMapState();
-            _stateBindings.ResetRunResult();
-            RefreshCommandState();
-        }
+        RefreshMergeMemoryMapState();
+        _stateBindings.ResetRunResult();
+        RefreshCommandState();
     }
 }
