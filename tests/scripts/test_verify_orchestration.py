@@ -336,11 +336,12 @@ class VerifyOrchestrationTests(unittest.TestCase):
     def test_ctrl_c_waits_for_worker_process_handoff_before_cleanup(self) -> None:
         fake_process = MagicMock()
         activation_finished = threading.Event()
+        process_creation_started = threading.Event()
         cleanup_observations: list[bool] = []
 
         def create_during_interrupt(*_args: object, **_kwargs: object) -> MagicMock:
             self.assertIsNot(threading.current_thread(), threading.main_thread())
-            signal.raise_signal(signal.SIGINT)
+            process_creation_started.set()
             self.assertTrue(MODULE.PROCESS_CANCELLATION_REQUESTED.wait(5))
             return fake_process
 
@@ -366,6 +367,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     environment=None,
                 )
 
+        def interrupt_after_submissions(_futures: object) -> None:
+            self.assertTrue(process_creation_started.wait(5))
+            raise KeyboardInterrupt
+
         lanes = (
             MODULE.VerificationLane("worker", start_process),
             MODULE.VerificationLane("peer", await_cancellation),
@@ -386,6 +391,9 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 MODULE,
                 "terminate_active_processes",
                 side_effect=cleanup,
+            ),
+            patch.object(
+                MODULE, "as_completed", side_effect=interrupt_after_submissions
             ),
             self.assertRaises(KeyboardInterrupt),
         ):
