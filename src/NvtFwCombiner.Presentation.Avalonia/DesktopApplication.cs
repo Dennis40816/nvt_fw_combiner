@@ -8,12 +8,18 @@ public static class DesktopApplication
     /// <summary>Gets the informational version shown by the desktop process.</summary>
     public static string InformationalVersion => ApplicationVersionProvider.InformationalVersion;
 
-    /// <summary>Runs the desktop UI until its classic desktop lifetime exits.</summary>
-    public static int Run(PresentationHostServices hostServices, string[] args)
+    /// <summary>Creates the desktop dependency graph under startup tracing, then runs the UI.</summary>
+    public static int Run(
+        Func<PresentationHostServices> hostServicesFactory,
+        string[] args)
     {
-        ArgumentNullException.ThrowIfNull(hostServices);
+        ArgumentNullException.ThrowIfNull(hostServicesFactory);
         ArgumentNullException.ThrowIfNull(args);
         var startupTrace = StartupTraceSession.StartFromEnvironment();
+        startupTrace.Mark("host-services.started");
+        PresentationHostServices hostServices = hostServicesFactory() ??
+            throw new InvalidOperationException("The host-services factory returned null.");
+        startupTrace.Mark("host-services.ready");
         var launchOptions = UiLaunchOptions.Parse(args);
         startupTrace.Mark("launch-options.parsed");
         App.SetStartup(hostServices, launchOptions, startupTrace);

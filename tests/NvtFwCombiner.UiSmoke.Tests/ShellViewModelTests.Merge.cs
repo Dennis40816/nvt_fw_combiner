@@ -59,7 +59,7 @@ public sealed partial class MergeWorkflowTests
         viewModel.ShowMergeCommand.Execute(null);
 
         foreach (CapabilityProfileSummary profile in
-            TestHost.Projection.GetStandardMergeProfileSummaries())
+            TestProjection.GetStandardMergeProfileSummaries())
         {
             viewModel.WorkflowSession.SelectedIc = profile.IcId;
 
@@ -147,7 +147,7 @@ public sealed partial class MergeWorkflowTests
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        Assert.Equal(TestHost.Projection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
+        Assert.Equal(TestProjection.GetIcIds(), viewModel.WorkflowSession.IcChoices);
     }
 
     /// <summary>A rejected DP_AB size cannot override compiled coverage while processor effects remain on TPB.</summary>

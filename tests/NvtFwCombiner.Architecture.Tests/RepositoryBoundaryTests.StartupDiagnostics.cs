@@ -22,6 +22,15 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("NvtFwCombiner.Application", diagnostics, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Domain", diagnostics, StringComparison.Ordinal);
         Assert.DoesNotContain("NvtFwCombiner.Profiles", diagnostics, StringComparison.Ordinal);
+        Assert.Contains("Func<PresentationHostServices>", program, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(program, "hostServicesFactory()"));
+        AssertStartupStageOrder(
+            program,
+            "StartFromEnvironment()",
+            "host-services.started",
+            "hostServicesFactory()",
+            "host-services.ready",
+            "launch-options.parsed");
         Assert.Contains("launch-options.parsed", program, StringComparison.Ordinal);
         Assert.Contains("application-xaml.ready", application, StringComparison.Ordinal);
         Assert.Contains("shell-view-model.created", window, StringComparison.Ordinal);
@@ -43,5 +52,16 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("return [pscustomobject][ordered]@{", runner, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool", runner, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Invoke-WebRequest", runner, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AssertStartupStageOrder(string source, params string[] stages)
+    {
+        int previous = -1;
+        foreach (string stage in stages)
+        {
+            int current = source.IndexOf(stage, StringComparison.Ordinal);
+            Assert.True(current > previous, $"Startup stage '{stage}' is missing or out of order.");
+            previous = current;
+        }
     }
 }

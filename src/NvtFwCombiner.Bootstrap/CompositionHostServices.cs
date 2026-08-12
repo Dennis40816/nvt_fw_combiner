@@ -22,8 +22,8 @@ public sealed class CompositionHostServices
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
-        Projection = projection ?? throw new ArgumentNullException(nameof(projection));
-        CompositionCapabilityExperience = projection;
+        CompositionCapabilityExperience = projection ??
+            throw new ArgumentNullException(nameof(projection));
         SavedRuleAuthoring = new BuiltInSavedRuleAuthoring();
         var standardMergeAuthoring = new StandardMergeAuthoringExperience(
             compiler,
@@ -67,8 +67,6 @@ public sealed class CompositionHostServices
 
     internal CanonicalCapabilityCompilerAdapter Compiler { get; }
 
-    internal CanonicalCapabilityExperience Projection { get; }
-
     internal static ICanonicalCapabilityCatalogSource
         CreateCanonicalCapabilityCatalogSource(
             Func<CanonicalCapabilityPolicySnapshot>? loadPolicy = null)
@@ -102,9 +100,6 @@ public sealed class CompositionHostServices
             lease.Generation,
             lease.Processor);
     }
-
-    /// <summary>Gets the focused query over this host's single canonical publication.</summary>
-    public ICanonicalCapabilityQuery CanonicalCapabilityQuery => Catalog;
 
     /// <summary>Gets the focused query over the host's single canonical catalog publication.</summary>
     public ICanonicalSupportMatrixQuery CanonicalSupportMatrixQuery =>

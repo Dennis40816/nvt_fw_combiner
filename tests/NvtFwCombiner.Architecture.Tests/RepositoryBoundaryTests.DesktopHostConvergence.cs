@@ -21,8 +21,13 @@ public sealed partial class RepositoryBoundaryTests
         Assert.Contains("NvtFwCombiner.Presentation.Avalonia.csproj", desktopProject, StringComparison.Ordinal);
         Assert.Contains("<OutputType>WinExe</OutputType>", desktopProject, StringComparison.Ordinal);
         Assert.Contains("<AssemblyName>NvtFwCombiner.Desktop</AssemblyName>", desktopProject, StringComparison.Ordinal);
-        Assert.Contains("CompositionHostServices.Create()", desktopProgram, StringComparison.Ordinal);
-        Assert.Contains("DesktopApplication.Run", desktopProgram, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(desktopProgram, "CompositionHostServices.Create()"));
+        Assert.Equal(1, CountOccurrences(desktopProgram, "new PresentationHostServices("));
+        Assert.Equal(2, CountOccurrences(desktopProgram, "CreatePresentationHostServices"));
+        Assert.Contains(
+            "DesktopApplication.Run(CreatePresentationHostServices, args)",
+            desktopProgram,
+            StringComparison.Ordinal);
         Assert.Contains("src/NvtFwCombiner.Desktop/NvtFwCombiner.Desktop.csproj", solution, StringComparison.Ordinal);
         Assert.DoesNotContain("DesktopCompositionRoot", presentationSources, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices", presentationSources, StringComparison.Ordinal);

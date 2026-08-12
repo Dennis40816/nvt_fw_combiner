@@ -8,8 +8,13 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        return DesktopApplication.Run(CreatePresentationHostServices, args);
+    }
+
+    private static PresentationHostServices CreatePresentationHostServices()
+    {
         var host = CompositionHostServices.Create();
-        var presentation = new PresentationHostServices(
+        return new PresentationHostServices(
             new PresentationCompositionServices(
                 host.CompositionCapabilityExperience,
                   host.StandardMergeAuthoring,
@@ -26,6 +31,5 @@ internal static class Program
             CompositionHostServices.CreateSystemDiagnosticsExporter(),
             host.RawBinaryEditorFileSessions,
             host.WarmCanonicalCapabilities);
-        return DesktopApplication.Run(presentation, args);
     }
 }

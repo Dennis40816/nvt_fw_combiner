@@ -32,6 +32,8 @@ public sealed partial class RepositoryBoundaryTests
         Assert.DoesNotContain("static CanonicalCapabilityCatalog", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityCompilerAdapter", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("static CanonicalCapabilityProjection", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("CanonicalCapabilityQuery", wiring, StringComparison.Ordinal);
+        Assert.DoesNotContain("Projection", wiring, StringComparison.Ordinal);
         Assert.DoesNotContain("CompositionHostServices.Canonical", bootstrap, StringComparison.Ordinal);
         AssertBootstrapTestsDoNotMutateTheSharedCatalogPublication();
     }
